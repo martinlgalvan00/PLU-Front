@@ -64,34 +64,35 @@
 
 .pitbull-detail {
   display: grid;
-  gap: var(--space-xl);
+  gap: var(--space-2xl);
   grid-template-columns: 1.2fr 0.8fr;
-  padding: var(--space-xl);
 }
 
-.pitbull-detail__info,
-.pitbull-detail__aside {
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-}
-
-.pitbull-detail__info h3,
+.pitbull-detail__title,
 .pitbull-detail__aside h4 {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   margin: 0 0 var(--space-md);
   text-transform: uppercase;
 }
 
-.pitbull-detail__info ul {
+.pitbull-detail__list {
   color: var(--color-text-secondary);
   display: grid;
+  font-size: 15px;
   gap: 8px;
-  margin: 0 0 var(--space-lg);
+  line-height: 1.5;
+  margin: var(--space-md) 0 var(--space-lg);
   padding-left: 18px;
+}
+
+.pitbull-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: var(--space-md);
 }
 
 .capacity-bar {
