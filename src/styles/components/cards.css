@@ -1,3 +1,7 @@
+/* =============================================
+   CARDS BASE
+   ============================================= */
+
 .benefit-card,
 .pricing-card,
 .info-card {
@@ -8,12 +12,56 @@
   justify-items: center;
   min-height: 260px;
   padding: 42px 26px;
+  position: relative;
   text-align: center;
+  transition:
+    transform var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
+/* Glow top edge al hover */
+.benefit-card::before,
+.info-card::before {
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-gold));
+  border-radius: var(--border-radius-pill) var(--border-radius-pill) 0 0;
+  content: '';
+  height: 3px;
+  left: 20%;
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  transition: opacity var(--transition-base), left var(--transition-base), width var(--transition-base);
+  width: 60%;
+}
+
+.benefit-card:hover,
+.info-card:hover {
+  border-color: rgba(225, 6, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), var(--glow-red-soft);
+  transform: translateY(-6px);
+}
+
+.benefit-card:hover::before,
+.info-card:hover::before {
+  left: 15%;
+  opacity: 1;
+  width: 70%;
+}
+
+/* Icono con micro-animación */
 .benefit-card svg {
   margin-bottom: 26px;
+  transition: transform var(--transition-base);
 }
+
+.benefit-card:hover svg {
+  transform: scale(1.12) rotate(-4deg);
+}
+
+/* =============================================
+   TYPOGRAPHY IN CARDS
+   ============================================= */
 
 .benefit-card h3,
 .pricing-card h3,
@@ -34,6 +82,10 @@
   margin: 0;
 }
 
+/* =============================================
+   GRIDS
+   ============================================= */
+
 .benefit-grid {
   display: grid;
   gap: 20px;
@@ -49,6 +101,10 @@
   gap: 50px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
+/* =============================================
+   PRICING CARD
+   ============================================= */
 
 .pricing-card {
   align-content: start;
@@ -98,6 +154,10 @@
   color: #777;
 }
 
+/* =============================================
+   CONTENT / INFO CARDS
+   ============================================= */
+
 .content-grid {
   gap: 22px;
 }
@@ -106,6 +166,10 @@
   align-content: center;
   gap: 18px;
 }
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
 
 @media (max-width: 1060px) {
   .benefit-grid,

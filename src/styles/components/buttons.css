@@ -1,29 +1,45 @@
+/* =============================================
+   BUTTON BASE
+   ============================================= */
+
 .btn {
   align-items: center;
   background: var(--color-brand-red);
+  border: none;
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
+  cursor: pointer;
   display: inline-flex;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   gap: var(--space-sm);
   justify-content: center;
-  letter-spacing: var(--letter-spacing-wide);
+  letter-spacing: 0.04em;
   min-height: 44px;
-  padding: 0 22px;
+  padding: 0 20px;
   text-transform: uppercase;
-  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast), opacity var(--transition-fast);
 }
 
 .btn:hover:not(:disabled) {
   background: var(--color-brand-red-hover);
-  box-shadow: 0 8px 24px rgba(225, 6, 0, 0.28);
-  transform: translateY(-1px);
 }
+
+.btn:active:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* =============================================
+   BUTTON VARIANTS
+   ============================================= */
 
 .btn--secondary {
   background: var(--color-bg-muted);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-bg-elevated);
 }
 
 .btn--celeste {
@@ -33,38 +49,41 @@
 
 .btn--celeste:hover:not(:disabled) {
   background: #8ec0f0;
-  box-shadow: 0 8px 24px var(--color-brand-celeste-glow);
 }
 
 .btn--outline {
   background: transparent;
   border: 1px solid var(--color-border-light);
-  box-shadow: none;
 }
 
 .btn--outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--color-brand-celeste);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border-light);
 }
 
 .btn--ghost {
   background: transparent;
-  color: var(--color-text-secondary);
   box-shadow: none;
+  color: var(--color-text-secondary);
 }
 
 .btn--ghost:hover:not(:disabled) {
-  color: var(--color-text-primary);
   background: rgba(255, 255, 255, 0.05);
   box-shadow: none;
+  color: var(--color-text-primary);
 }
 
+/* Gold — con pulse animation en featured */
 .btn--gold {
   background: var(--color-brand-gold);
   color: #1a1408;
 }
 
+.btn--gold:hover:not(:disabled) {
+  background: var(--color-brand-gold-light);
+}
+
+/* Size variants */
 .btn--small {
   font-size: 12px;
   min-height: 36px;
@@ -75,25 +94,35 @@
   width: 100%;
 }
 
+/* =============================================
+   LOGIN BUTTON
+   ============================================= */
+
 .login-btn {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-accent);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
-  color: var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  cursor: pointer;
   display: inline-flex;
   font-size: 13px;
   font-weight: 600;
   gap: 6px;
   min-height: 40px;
   padding: 0 14px;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .login-btn:hover {
-  background: var(--color-brand-celeste-dim);
-  border-color: var(--color-brand-celeste);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
 }
+
+/* =============================================
+   EXPORT BUTTON
+   ============================================= */
 
 .export-btn {
   align-items: center;
@@ -107,6 +136,14 @@
   gap: 6px;
   min-height: 38px;
   padding: 0 14px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.export-btn:hover:not(:disabled) {
+  border-color: var(--color-border-light);
 }
 
 .export-btn--gold {
@@ -115,17 +152,27 @@
   color: #1a1408;
 }
 
-.btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+.export-btn--gold:hover:not(:disabled) {
+  background: var(--color-brand-gold-light);
 }
+
+/* =============================================
+   FOCUS VISIBLE
+   ============================================= */
 
 .btn:focus-visible,
 .login-btn:focus-visible,
 .export-btn:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(116, 172, 223, 0.2);
 }
 
+/* =============================================
+   DISABLED
+   ============================================= */
+
+.btn:disabled,
 .export-btn:disabled {
   cursor: not-allowed;
   opacity: 0.45;

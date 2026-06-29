@@ -4,6 +4,7 @@ import { money } from '../lib/format.js'
 import FormSection from '../components/ui/FormSection.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 
 export default function RegisterPage({
@@ -19,13 +20,12 @@ export default function RegisterPage({
     <main className="page register-page">
       <div className="page__inner">
         <Reveal>
-          <section className="section-heading section-heading--left">
-            <span className="section-heading__eyebrow">Inscripción</span>
-            <h1 className="section-heading__title">Registro de atleta</h1>
-            <p className="section-heading__desc">
-              Afiliación anual, inscripción a Pitbull Classic o ambos en un solo trámite.
-            </p>
-          </section>
+          <SectionHeading
+            align="left"
+            eyebrow="Inscripción"
+            title="Registro de atleta"
+            description="Afiliación anual, inscripción a Pitbull Classic o ambos en un solo trámite."
+          />
         </Reveal>
 
         <section className="form-section">
