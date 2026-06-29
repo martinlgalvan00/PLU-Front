@@ -1,25 +1,36 @@
 import PageHero from '../components/layout/PageHero.jsx'
+import Button from '../components/ui/Button.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
-import Reveal from '../components/ui/Reveal.jsx'
+import SectionHeading from '../components/ui/SectionHeading.jsx'
 import { MEMBERSHIP_PLANS } from '../lib/content.js'
 
 export default function MembersPage({ onNavigate }) {
   return (
     <main className="page">
-      <div className="page__inner">
-        <PageHero
-          eyebrow="Afiliación anual"
-          title="Elegí tu plan PLU ARG"
-          description="La afiliación habilita tu código de atleta, acceso a eventos oficiales y respaldo federativo durante toda la temporada."
-        />
-        <div className="membership-grid">
-          {MEMBERSHIP_PLANS.map((plan, i) => (
-            <Reveal key={plan.id} delay={i * 100} variant="scale">
-              <MembershipCard {...plan} onSelect={() => onNavigate('register')} />
-            </Reveal>
-          ))}
+      <PageHero
+        eyebrow="Afiliación anual"
+        title="Elegí tu plan PLU ARG"
+        description="La afiliación habilita tu código de atleta, acceso a eventos oficiales y respaldo federativo durante toda la temporada."
+      />
+
+      <section className="page-section">
+        <div className="page-section__inner">
+          <SectionHeading
+            title="Planes disponibles"
+            description="Todos los planes incluyen código de atleta y acceso al calendario oficial PLU ARG."
+          />
+          <div className="membership-grid">
+            {MEMBERSHIP_PLANS.map((plan) => (
+              <MembershipCard key={plan.id} {...plan} onSelect={() => onNavigate('register')} />
+            ))}
+          </div>
+          <div className="page-section__action">
+            <Button variant="outline" onClick={() => onNavigate('register')}>
+              Ir al formulario de afiliación
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
     </main>
   )
 }

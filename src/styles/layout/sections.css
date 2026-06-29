@@ -1,0 +1,63 @@
+/* =============================================
+   SECCIONES COMPARTIDAS — Home y páginas públicas
+   ============================================= */
+
+.page-section,
+.home-section {
+  padding: var(--space-3xl) var(--space-lg);
+  position: relative;
+}
+
+.page-section--alt,
+.home-section--dark {
+  background: var(--color-bg-secondary);
+  border-block: 1px solid var(--color-border-subtle);
+}
+
+.page-section--stats,
+.home-section--stats {
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-2xl);
+}
+
+.page-section__inner,
+.home-section__inner {
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+}
+
+.page-section__inner--narrow,
+.home-section__inner--narrow {
+  max-width: 760px;
+}
+
+.page-section__action,
+.home-section__action {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.page-section__action--left {
+  text-align: left;
+}
+
+.page-split,
+.home-split {
+  align-items: start;
+  display: grid;
+  gap: var(--space-2xl);
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
+.membership-teaser {
+  margin: 0 auto;
+  max-width: 400px;
+}
+
+@media (max-width: 900px) {
+  .page-split,
+  .home-split {
+    grid-template-columns: 1fr;
+  }
+}

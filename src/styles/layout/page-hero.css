@@ -1,4 +1,9 @@
+/* =============================================
+   PAGE HERO BASE
+   ============================================= */
+
 .page-hero {
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-2xl);
   margin-bottom: var(--space-2xl);
@@ -6,12 +11,24 @@
   padding: var(--space-2xl) var(--space-xl);
   position: relative;
   text-align: center;
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.page-hero:hover {
+  border-color: var(--color-border-light);
+  box-shadow: var(--glow-celeste-soft);
 }
 
 .page-hero--compact {
   margin-bottom: var(--space-xl);
   padding: var(--space-xl);
 }
+
+/* =============================================
+   PAGE HERO EFFECTS
+   ============================================= */
 
 .page-hero__glow {
   background:
@@ -21,6 +38,24 @@
   pointer-events: none;
   position: absolute;
 }
+
+.page-hero::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  animation: noise-drift 18s var(--ease-in-out) infinite;
+  content: '';
+  inset: -10%;
+  mix-blend-mode: soft-light;
+  opacity: 0.15;
+  pointer-events: none;
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  z-index: 0;
+}
+
+/* =============================================
+   PAGE HERO TYPOGRAPHY
+   ============================================= */
 
 .page-hero__eyebrow {
   color: var(--color-brand-celeste);
@@ -53,6 +88,10 @@
   position: relative;
 }
 
+/* =============================================
+   TRUST STRIP
+   ============================================= */
+
 .trust-strip {
   border-bottom: 1px solid var(--color-border-subtle);
   display: grid;
@@ -68,24 +107,24 @@
   color: var(--color-text-muted);
   display: flex;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   gap: 10px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .trust-strip__icon {
   align-items: center;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   display: inline-flex;
   flex-shrink: 0;
-  height: 36px;
+  height: 32px;
   justify-content: center;
-  width: 36px;
+  width: 32px;
 }
+
+/* =============================================
+   CAPACITY WIDGET
+   ============================================= */
 
 .capacity-widget {
   margin-bottom: var(--space-lg);
@@ -113,6 +152,16 @@
   margin-top: 6px;
 }
 
+/* Si la barra de capacidad (que existe en inline o page.css) está animada via custom prop */
+.capacity-widget__bar-fill {
+  animation: grow-line-full 1.2s var(--ease-out) both;
+  transform-origin: left;
+}
+
+/* =============================================
+   FOOTER CTA
+   ============================================= */
+
 .footer-cta {
   background: linear-gradient(135deg, rgba(225, 6, 0, 0.12), rgba(116, 172, 223, 0.08));
   border: 1px solid var(--color-border-subtle);
@@ -120,6 +169,16 @@
   margin-bottom: var(--space-2xl);
   padding: var(--space-xl);
   text-align: center;
+  transition:
+    transform var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.footer-cta:hover {
+  border-color: rgba(225, 6, 0, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px);
 }
 
 .footer-cta h3 {
@@ -142,6 +201,10 @@
   gap: 10px;
   justify-content: center;
 }
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
 
 @media (max-width: 900px) {
   .trust-strip {
