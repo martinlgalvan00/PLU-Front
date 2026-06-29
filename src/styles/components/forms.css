@@ -1,0 +1,73 @@
+.field {
+  color: var(--color-text-primary);
+  display: grid;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 7px;
+}
+
+.field input,
+.field select,
+.filters input,
+.filters select,
+.admin-toolbar select {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  min-height: 44px;
+  padding: 9px 11px;
+  width: 100%;
+}
+
+.field input:focus,
+.field select:focus,
+.filters input:focus,
+.filters select:focus,
+.admin-toolbar select:focus {
+  border-color: var(--color-brand-red);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  outline: none;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-actions {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+  padding-top: 20px;
+}
+
+.form-actions div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.form-actions span,
+.order-panel p {
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 1060px) {
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

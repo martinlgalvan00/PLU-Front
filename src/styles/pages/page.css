@@ -1,0 +1,136 @@
+.page {
+  padding: var(--space-3xl) var(--space-lg) var(--space-4xl);
+}
+
+.page__inner {
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+}
+
+.page__inner--narrow {
+  max-width: 760px;
+}
+
+.page__action {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.page--login {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height) - 200px);
+}
+
+.login-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-2xl);
+  max-width: 440px;
+  padding: var(--space-xl);
+  width: 100%;
+}
+
+.contact-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.contact-card__email {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 20px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.contact-card__line {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 0;
+}
+
+.pitbull-detail {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: 1.2fr 0.8fr;
+  padding: var(--space-xl);
+}
+
+.pitbull-detail__info,
+.pitbull-detail__aside {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.pitbull-detail__info h3,
+.pitbull-detail__aside h4 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 var(--space-md);
+  text-transform: uppercase;
+}
+
+.pitbull-detail__info ul {
+  color: var(--color-text-secondary);
+  display: grid;
+  gap: 8px;
+  margin: 0 0 var(--space-lg);
+  padding-left: 18px;
+}
+
+.capacity-bar {
+  background: var(--color-bg-muted);
+  border-radius: var(--border-radius-pill);
+  height: 8px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.capacity-bar__fill {
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste));
+  height: 100%;
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+.pitbull-detail__capacity small {
+  color: var(--color-text-muted);
+}
+
+.pitbull-detail__aside {
+  border-left: 1px solid var(--color-border-subtle);
+  padding-left: var(--space-xl);
+}
+
+.pitbull-detail__aside p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 800px) {
+  .pitbull-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-detail__aside {
+    border-left: 0;
+    border-top: 1px solid var(--color-border-subtle);
+    padding-left: 0;
+    padding-top: var(--space-lg);
+  }
+}

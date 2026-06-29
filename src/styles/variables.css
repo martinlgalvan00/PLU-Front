@@ -1,0 +1,58 @@
+:root {
+  --color-brand-red: #e10600;
+  --color-brand-red-hover: #ff1a14;
+  --color-brand-gold: #c9b978;
+  --color-brand-gold-light: #ddc992;
+  --color-brand-gold-dark: #9b8f59;
+  --color-brand-celeste: #74acdf;
+  --color-brand-celeste-dim: rgba(116, 172, 223, 0.15);
+  --color-brand-celeste-glow: rgba(116, 172, 223, 0.35);
+
+  --color-success-bg: #dcfce7;
+  --color-success-text: #166534;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #991b1b;
+
+  --font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+  --letter-spacing-wide: 0.05em;
+  --letter-spacing-wider: 0.12em;
+  --letter-spacing-display: 0.04em;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --duration-fast: 180ms;
+  --duration-base: 320ms;
+  --duration-slow: 560ms;
+  --duration-reveal: 700ms;
+  --transition-fast: var(--duration-fast) var(--ease-out);
+  --transition-base: var(--duration-base) var(--ease-out);
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 72px;
+  --space-4xl: 96px;
+
+  --max-width-content: 1240px;
+  --max-width-page: 1200px;
+  --max-width-text: 720px;
+  --max-width-narrow: 560px;
+  --header-height: 76px;
+  --header-height-scrolled: 64px;
+  --admin-sidebar-width: 260px;
+  --border-radius-sm: 6px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 14px;
+  --border-radius-xl: 18px;
+  --border-radius-2xl: 24px;
+  --border-radius-pill: 999px;
+}

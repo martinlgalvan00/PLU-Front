@@ -1,0 +1,85 @@
+.surface-card {
+  position: relative;
+  transition:
+    transform var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.surface-card::after {
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 70%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%);
+  transition: opacity var(--transition-fast);
+}
+
+.surface-card:hover {
+  border-color: var(--color-border-light);
+  box-shadow: var(--color-shadow-card);
+  transform: translateY(-4px);
+}
+
+.surface-card:hover::after {
+  animation: shimmer 0.9s var(--ease-out);
+  opacity: 1;
+}
+
+.hero__grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  inset: 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.35;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.hero__glow {
+  animation: hero-glow 8s var(--ease-in-out) infinite;
+  background: radial-gradient(circle at 30% 40%, rgba(225, 6, 0, 0.25), transparent 55%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.section-divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-brand-celeste) 20%,
+    var(--color-brand-red) 50%,
+    var(--color-brand-celeste) 80%,
+    transparent
+  );
+  height: 1px;
+  margin: 0 auto;
+  max-width: 240px;
+  opacity: 0.5;
+}
+
+.cta-section__inner::before {
+  background: radial-gradient(circle, rgba(116, 172, 223, 0.12), transparent 70%);
+  content: '';
+  filter: blur(40px);
+  height: 200px;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+}
+
+.cta-section__inner {
+  position: relative;
+}

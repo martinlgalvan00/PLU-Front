@@ -1,0 +1,28 @@
+.status {
+  border-radius: var(--border-radius-pill);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  padding: 7px 9px;
+}
+
+.status--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.status--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.status--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.status--neutral {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-secondary);
+}

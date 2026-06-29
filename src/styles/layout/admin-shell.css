@@ -1,0 +1,297 @@
+.admin-shell {
+  display: grid;
+  grid-template-columns: var(--admin-sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+.admin-shell__sidebar {
+  background: var(--color-bg-surface);
+  border-right: 1px solid var(--color-border-subtle);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: var(--space-lg);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-shell__brand {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.admin-shell__brand span {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-shell__brand strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-shell__nav {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.admin-shell__nav button {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    padding-left var(--transition-base);
+  width: 100%;
+}
+
+.admin-shell__nav button:hover,
+.admin-shell__nav button.active {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+.admin-shell__nav button.active {
+  border-left: 3px solid var(--color-brand-red);
+  padding-left: 9px;
+}
+
+.admin-shell__footer {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+.admin-shell__role {
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+}
+
+.admin-shell__role select {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.admin-shell__exit {
+  justify-content: center;
+  width: 100%;
+}
+
+.admin-shell__main {
+  background: var(--color-bg-primary);
+  min-width: 0;
+}
+
+.admin-page {
+  padding: var(--space-xl);
+}
+
+.admin-page__header {
+  margin-bottom: var(--space-xl);
+}
+
+.admin-page__header--row {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-page__header h1 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: var(--letter-spacing-display);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.admin-page__header p {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.admin-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-stats {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.admin-filters label {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.admin-filters input,
+.admin-filters select {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  flex: 1;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+@media (max-width: 960px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell__sidebar {
+    height: auto;
+    position: static;
+  }
+
+  .admin-shell__nav {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-shell__nav {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-topbar {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+}
+
+.admin-topbar__titles h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  letter-spacing: var(--letter-spacing-display);
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.admin-topbar__titles p {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.admin-topbar__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.admin-topbar__search {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  gap: 8px;
+  min-width: min(320px, 100%);
+  padding: 8px 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-topbar__search:focus-within {
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 3px var(--color-brand-celeste-dim);
+}
+
+.admin-topbar__search input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  outline: none;
+}
+
+.admin-topbar__alert {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  position: relative;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  width: 40px;
+}
+
+.admin-topbar__alert:hover {
+  border-color: var(--color-brand-red);
+  color: var(--color-brand-red);
+}
+
+.admin-topbar__badge {
+  align-items: center;
+  background: var(--color-brand-red);
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 4px;
+  position: absolute;
+  right: -4px;
+  top: -4px;
+}

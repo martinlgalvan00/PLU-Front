@@ -1,0 +1,132 @@
+.btn {
+  align-items: center;
+  background: var(--color-brand-red);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  gap: var(--space-sm);
+  justify-content: center;
+  letter-spacing: var(--letter-spacing-wide);
+  min-height: 44px;
+  padding: 0 22px;
+  text-transform: uppercase;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-brand-red-hover);
+  box-shadow: 0 8px 24px rgba(225, 6, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.btn--secondary {
+  background: var(--color-bg-muted);
+}
+
+.btn--celeste {
+  background: var(--color-brand-celeste);
+  color: #0a1628;
+}
+
+.btn--celeste:hover:not(:disabled) {
+  background: #8ec0f0;
+  box-shadow: 0 8px 24px var(--color-brand-celeste-glow);
+}
+
+.btn--outline {
+  background: transparent;
+  border: 1px solid var(--color-border-light);
+  box-shadow: none;
+}
+
+.btn--outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--color-brand-celeste);
+  box-shadow: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.btn--gold {
+  background: var(--color-brand-gold);
+  color: #1a1408;
+}
+
+.btn--small {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.login-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.login-btn:hover {
+  background: var(--color-brand-celeste-dim);
+  border-color: var(--color-brand-celeste);
+}
+
+.export-btn {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.export-btn--gold {
+  background: var(--color-brand-gold);
+  border-color: transparent;
+  color: #1a1408;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn:focus-visible,
+.login-btn:focus-visible,
+.export-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.export-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

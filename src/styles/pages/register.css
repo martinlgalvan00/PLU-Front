@@ -1,0 +1,68 @@
+.form-section {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.athlete-form,
+.order-panel {
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--border-radius-xl);
+}
+
+.athlete-form {
+  display: grid;
+  gap: 24px;
+  padding: 28px;
+}
+
+.order-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  position: sticky;
+  top: 150px;
+}
+
+.order-panel h2 {
+  font-size: 28px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.order-details {
+  display: grid;
+  gap: 12px;
+}
+
+.order-details strong {
+  font-size: 32px;
+}
+
+.order-details code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+  padding: 10px;
+}
+
+.manual-note {
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary) !important;
+  padding: 12px;
+}
+
+@media (max-width: 1060px) {
+  .form-section {
+    grid-template-columns: 1fr;
+  }
+
+  .order-panel {
+    position: static;
+  }
+}

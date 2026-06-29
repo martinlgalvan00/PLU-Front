@@ -1,0 +1,126 @@
+.benefit-card,
+.pricing-card,
+.info-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-2xl);
+  display: grid;
+  justify-items: center;
+  min-height: 260px;
+  padding: 42px 26px;
+  text-align: center;
+}
+
+.benefit-card svg {
+  margin-bottom: 26px;
+}
+
+.benefit-card h3,
+.pricing-card h3,
+.info-card h3,
+.event-row h3 {
+  font-size: 20px;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.benefit-card p,
+.info-card p,
+.pricing-card li,
+.contact-panel p,
+.panel-header p {
+  color: var(--color-text-primary);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.benefit-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 54px auto 0;
+  max-width: var(--max-width-text);
+}
+
+.pricing-grid,
+.content-grid,
+.metric-grid {
+  display: grid;
+  gap: 50px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-card {
+  align-content: start;
+  min-height: 560px;
+}
+
+.pricing-card div {
+  align-items: start;
+  display: flex;
+  font-size: 66px;
+  gap: var(--space-sm);
+  margin-top: 54px;
+}
+
+.pricing-card div span {
+  color: var(--color-text-price);
+  font-size: 28px;
+  margin-top: 12px;
+}
+
+.pricing-card > p {
+  font-size: 18px;
+  letter-spacing: var(--letter-spacing-wide);
+  margin: 0 0 34px;
+  text-transform: uppercase;
+}
+
+.pricing-card ul {
+  display: grid;
+  gap: 18px;
+  list-style: none;
+  margin: 0 0 42px;
+  padding: 0;
+  width: 100%;
+}
+
+.pricing-card li {
+  align-items: center;
+  border-top: 1px dotted var(--color-border-dotted);
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.pricing-card li svg {
+  color: #777;
+}
+
+.content-grid {
+  gap: 22px;
+}
+
+.info-card {
+  align-content: center;
+  gap: 18px;
+}
+
+@media (max-width: 1060px) {
+  .benefit-grid,
+  .pricing-grid,
+  .content-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .benefit-grid,
+  .pricing-grid,
+  .content-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,16 +1,64 @@
-# React + Vite
+# PLU ARG / Maximal
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Plataforma de gestión para Powerlifting United Argentina, integrada con Maximal.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Vite 8** + **React 19** + **CSS modular**
+- **Express** (API scaffold)
+- **PostgreSQL** + **Prisma**
+- **Vitest** para tests
 
-## React Compiler
+## Inicio rápido
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cp .env.example .env
+npm install
+npm run dev
+```
 
-## Expanding the Oxlint configuration
+Abrir http://localhost:5173
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Documentación
+
+- [Setup](./docs/SETUP.md)
+- [Arquitectura](./docs/ARCHITECTURE.md)
+- [Reglas de negocio](./docs/BUSINESS_RULES.md)
+- [Agent Skills](./agent-skills/) — guías para agentes de código
+
+## Estructura
+
+```
+src/
+  components/   UI (layout, cards, forms)
+  pages/        Vistas públicas y panel admin
+  hooks/        Estado React
+  services/     Negocio + integraciones (MP, Brevo, exports)
+  lib/          Constantes, roles, utilidades
+  styles/       CSS con design tokens
+server/         API Express
+prisma/         Schema PostgreSQL
+agent-skills/   14 skills internas
+docs/           Documentación técnica
+tests/          Tests unitarios
+```
+
+## Scripts
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Frontend dev |
+| `npm run dev:all` | Frontend + API |
+| `npm run build` | Build producción |
+| `npm run test` | Tests |
+| `npm run db:up` | PostgreSQL Docker |
+
+## Roles MVP
+
+- Admin Maximal / PLU ARG — edición completa
+- Operador PLU ARG — operación sin gestión de usuarios
+- PLU USA — solo lectura y exportación
+
+## Licencia
+
+Privado — PLU ARG / Maximal

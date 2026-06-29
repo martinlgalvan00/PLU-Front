@@ -1,0 +1,77 @@
+.admin-toolbar,
+.admin-panel,
+.metric-card {
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--border-radius-xl);
+}
+
+.admin-toolbar {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  padding: 24px;
+}
+
+.admin-toolbar h1 {
+  margin-bottom: 0;
+}
+
+.admin-toolbar label {
+  display: grid;
+  font-weight: var(--font-weight-bold);
+  gap: var(--space-sm);
+  min-width: 240px;
+}
+
+.metric-grid {
+  gap: var(--space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric-card {
+  display: grid;
+  gap: var(--space-sm);
+  padding: 20px;
+}
+
+.metric-card svg {
+  color: var(--color-brand-red);
+}
+
+.metric-card span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+}
+
+.metric-card strong {
+  font-size: 34px;
+}
+
+.admin-panel {
+  overflow: hidden;
+}
+
+.panel-header {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+  padding: 22px;
+}
+
+.panel-header h2 {
+  font-size: 28px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1060px) {
+  .admin-toolbar,
+  .panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

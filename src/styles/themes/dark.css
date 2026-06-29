@@ -1,0 +1,32 @@
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg-primary: #0a0a0c;
+  --color-bg-secondary: #050506;
+  --color-bg-surface: #101014;
+  --color-bg-elevated: #16161c;
+  --color-bg-input: #121218;
+  --color-bg-code: #1a1a22;
+  --color-bg-muted: #2a2a32;
+  --color-bg-steel: linear-gradient(145deg, #1a1a20 0%, #0e0e12 100%);
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d4d4dc;
+  --color-text-muted: #9a9aa8;
+  --color-text-accent: #c9b978;
+  --color-text-price: #8ec8ff;
+
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-border-light: rgba(255, 255, 255, 0.28);
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-accent: rgba(116, 172, 223, 0.35);
+  --color-overlay: rgba(5, 5, 8, 0.82);
+  --color-focus-ring: rgba(225, 6, 0, 0.22);
+  --color-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --color-shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
+  --color-hero-gradient:
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.22), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.12), transparent 50%),
+    linear-gradient(180deg, #0a0a0c 0%, #050506 100%);
+}
