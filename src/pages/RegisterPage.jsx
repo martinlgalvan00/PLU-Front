@@ -6,6 +6,7 @@ import { validateAthleteForm, validateCompetitionForm, validateMembershipForm } 
 import FormSection from '../components/ui/FormSection.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 
 export default function RegisterPage({ athlete, createdOrder, event, flow, form, onApprovePayment, onSubmit, onUpdateForm, total }) {
@@ -45,11 +46,12 @@ export default function RegisterPage({ athlete, createdOrder, event, flow, form,
     <main className="page register-page">
       <div className="page__inner">
         <Reveal>
-          <section className="section-heading section-heading--left">
-            <span className="section-heading__eyebrow">{content[0]}</span>
-            <h1 className="section-heading__title">{content[1]}</h1>
-            <p className="section-heading__desc">{content[2]}</p>
-          </section>
+          <SectionHeading
+            align="left"
+            eyebrow={content[0]}
+            title={content[1]}
+            description={content[2]}
+          />
         </Reveal>
 
         <section className="form-section">

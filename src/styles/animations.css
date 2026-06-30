@@ -1,3 +1,7 @@
+/* =============================================
+   KEYFRAMES CORE
+   ============================================= */
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -10,22 +14,40 @@
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes scale-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.94);
   }
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -40,15 +62,31 @@
   }
 }
 
+/* =============================================
+   HERO ANIMATIONS
+   ============================================= */
+
 @keyframes hero-glow {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.75;
-  }
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 0.78; }
 }
+
+@keyframes hero-glow-gold {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.42; }
+}
+
+@keyframes noise-drift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-1%, 1%); }
+  50%  { transform: translate(1%, -1%); }
+  75%  { transform: translate(-0.5%, 0.5%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* =============================================
+   NAV ANIMATIONS
+   ============================================= */
 
 @keyframes nav-slide-in {
   from {
@@ -61,23 +99,140 @@
   }
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-120%);
+@keyframes nav-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
   }
-  100% {
-    transform: translateX(120%);
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
+/* =============================================
+   SHIMMER / SHINE
+   ============================================= */
+
+@keyframes shimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@keyframes shine-sweep {
+  0%   { transform: translateX(-200%) skewX(-20deg); }
+  100% { transform: translateX(200%) skewX(-20deg); }
+}
+
+@keyframes shimmer-text {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* =============================================
+   GROW / DRAW
+   ============================================= */
+
+@keyframes grow-line {
+  from { width: 0; opacity: 0; }
+  to   { width: 32px; opacity: 1; }
+}
+
+@keyframes grow-line-full {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes border-draw {
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0% 0 0); }
+}
+
+/* =============================================
+   FLOATING / PULSE
+   ============================================= */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes float-sm {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  80%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: var(--glow-red-soft); }
+  50%       { box-shadow: var(--glow-red); }
+}
+
+@keyframes glow-pulse-gold {
+  0%, 100% { box-shadow: var(--glow-gold-soft); }
+  50%       { box-shadow: var(--glow-gold); }
+}
+
+/* =============================================
+   SPINNER PREMIUM
+   ============================================= */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes spinner-dash {
+  0%   { stroke-dashoffset: 187; }
+  50%  { stroke-dashoffset: 46; }
+  100% { stroke-dashoffset: 187; transform: rotate(360deg); }
+}
+
+/* =============================================
+   BOUNCE ENTRY
+   ============================================= */
+
+@keyframes bounce-in {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.08); }
+  80%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+@keyframes dot-bounce {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+
+/* =============================================
+   FLAG WAVE
+   ============================================= */
+
+@keyframes flag-wave {
+  0%, 100% { transform: scaleX(1) skewY(0deg); }
+  25%       { transform: scaleX(1.04) skewY(1deg); }
+  75%       { transform: scaleX(0.97) skewY(-1deg); }
+}
+
+/* =============================================
+   REVEAL SYSTEM
+   ============================================= */
+
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(12px);
   transition:
     opacity var(--duration-reveal) var(--ease-out),
     transform var(--duration-reveal) var(--ease-out);
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
 }
 
 .reveal--fade {
@@ -88,48 +243,60 @@
   transform: scale(0.97);
 }
 
+.reveal--from-left {
+  transform: translateX(-32px);
+}
+
+.reveal--from-right {
+  transform: translateX(32px);
+}
+
+.reveal--zoom {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
 .reveal.is-visible {
   opacity: 1;
   transform: none;
 }
 
+/* =============================================
+   PAGE TRANSITIONS
+   ============================================= */
+
 .page-transition {
   animation: page-enter var(--duration-slow) var(--ease-out) both;
 }
 
-.hero__eyebrow {
-  animation: fade-up var(--duration-reveal) var(--ease-out) 0.1s both;
-}
+/* Hero: sin stagger — el contenido aparece de una */
 
-.hero__title {
-  animation: fade-up var(--duration-reveal) var(--ease-out) 0.22s both;
-}
-
-.hero__subtitle {
-  animation: fade-up var(--duration-reveal) var(--ease-out) 0.34s both;
-}
-
-.hero__actions {
-  animation: fade-up var(--duration-reveal) var(--ease-out) 0.46s both;
-}
+/* =============================================
+   ADMIN
+   ============================================= */
 
 .admin-section-enter {
   animation: page-enter var(--duration-base) var(--ease-out) both;
 }
 
+/* =============================================
+   PREFERS REDUCED MOTION
+   ============================================= */
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal,
+  .reveal--fade,
+  .reveal--scale,
+  .reveal--from-left,
+  .reveal--from-right,
+  .reveal--zoom {
     opacity: 1;
     transform: none;
     transition: none;
   }
 
   .page-transition,
-  .admin-section-enter,
-  .hero__eyebrow,
-  .hero__title,
-  .hero__subtitle,
-  .hero__actions {
+  .admin-section-enter {
     animation: none;
   }
 

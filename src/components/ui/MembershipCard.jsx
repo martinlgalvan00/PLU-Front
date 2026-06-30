@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import { money } from '../../lib/format.js'
+import SpotlightCard from './SpotlightCard.jsx'
 
 export default function MembershipCard({
   title,
@@ -11,7 +12,7 @@ export default function MembershipCard({
   ctaLabel = 'Afiliarme',
 }) {
   return (
-    <article className={`membership-card surface-card ${highlighted ? 'membership-card--featured' : ''}`}>
+    <SpotlightCard as="article" className={`membership-card ${highlighted ? 'membership-card--featured' : ''}`}>
       {highlighted && <span className="membership-card__badge">Más elegido</span>}
       <h3 className="membership-card__title">{title}</h3>
       <div className="membership-card__price">
@@ -29,6 +30,6 @@ export default function MembershipCard({
       <button type="button" className="btn btn--block" onClick={onSelect}>
         {ctaLabel}
       </button>
-    </article>
+    </SpotlightCard>
   )
 }

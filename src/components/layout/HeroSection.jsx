@@ -1,7 +1,7 @@
 import heroImage from '../../assets/PLU Argentina.jpg'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import CTAButton from '../ui/CTAButton.jsx'
+import Button from '../ui/Button.jsx'
 
 export default function HeroSection({ onNavigate }) {
   const { t } = useI18n()
@@ -14,8 +14,6 @@ export default function HeroSection({ onNavigate }) {
 
   return (
     <section className="hero" style={{ '--hero-image': `url(${heroImage})` }}>
-      <div className="hero__glow" aria-hidden="true" />
-      <div className="hero__grain" aria-hidden="true" />
       <div className="hero__overlay" />
       <div className="hero__content">
         <span className="hero__eyebrow">{t('hero.eyebrow')}</span>
@@ -27,16 +25,16 @@ export default function HeroSection({ onNavigate }) {
 
         <div className="hero__actions">
           <div className="hero__actions-primary">
-            <CTAButton onClick={() => onNavigate('register')}>{t('hero.ctaRegister')}</CTAButton>
-            <CTAButton variant="celeste" onClick={() => onNavigate('pitbull')}>
+            <Button onClick={() => onNavigate('register')}>{t('hero.ctaRegister')}</Button>
+            <Button variant="outline" onClick={() => onNavigate('pitbull')}>
               {t('hero.ctaPitbull')}
-            </CTAButton>
+            </Button>
           </div>
           <div className="hero__actions-secondary">
             {secondaryLinks.map(([view, label]) => (
               <button key={view} type="button" className="hero__quick-link" onClick={() => onNavigate(view)}>
                 {label}
-                <ArrowRight size={16} />
+                <ArrowRight size={15} />
               </button>
             ))}
           </div>

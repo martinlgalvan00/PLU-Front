@@ -1,4 +1,5 @@
 import {
+  ABOUT_PILLARS,
   COMMUNITY_HIGHLIGHTS,
   FAQ_ITEMS,
   HOME_STATS,
@@ -7,7 +8,9 @@ import {
   RECENT_RESULTS,
 } from '../lib/content.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import AboutSection from '../components/ui/AboutSection.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
+import Button from '../components/ui/Button.jsx'
 import CapacityBar from '../components/ui/CapacityBar.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
@@ -17,42 +20,26 @@ import ResultCard from '../components/ui/ResultCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StatBlock from '../components/ui/StatBlock.jsx'
-import TrustStrip from '../components/ui/TrustStrip.jsx'
+
+const FEATURED_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.highlighted) ?? MEMBERSHIP_PLANS[0]
 
 export default function HomePage({ onNavigate, onSelectEvent }) {
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
-      <TrustStrip />
 
       <section className="home-section home-section--stats">
         <div className="home-section__inner stats-row">
-          {HOME_STATS.map((stat, i) => (
-            <Reveal key={stat.label} delay={i * 80}>
-              <StatBlock {...stat} />
-            </Reveal>
+          {HOME_STATS.map((stat) => (
+            <StatBlock key={stat.label} {...stat} />
           ))}
         </div>
       </section>
 
-      <Reveal as="section" className="home-section" id="que-es">
-        <div className="home-section__inner home-split">
-          <SectionHeading
-            align="left"
-            eyebrow="Qué es PLU ARG"
-            title="La federación que ordena el powerlifting argentino"
-            description="Unimos reglamento claro, operación profesional y comunidad competitiva. Desde Maximal coordinamos afiliaciones, eventos oficiales y resultados con estándar internacional."
-          />
-          <div className="about-card surface-card">
-            <ul>
-              <li>Reglamento unificado y arbitraje capacitado</li>
-              <li>Inscripciones y pagos centralizados</li>
-              <li>Resultados oficiales y exportación internacional</li>
-              <li>Red de gimnasios y atletas en todo el país</li>
-            </ul>
-          </div>
+      <Reveal as="section" className="home-section home-section--about" id="que-es">
+        <div className="home-section__inner">
+          <AboutSection pillars={ABOUT_PILLARS} onNavigate={onNavigate} />
         </div>
-        <div className="section-divider" />
       </Reveal>
 
       <Reveal as="section" className="home-section home-section--dark">
@@ -62,56 +49,40 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             title="Sumate a la comunidad PLU ARG"
             description="Elegí tu plan y competí con respaldo federativo en toda la temporada."
           />
-          <div className="membership-grid">
-            {MEMBERSHIP_PLANS.map((plan, i) => (
-              <Reveal key={plan.id} delay={i * 100} variant="scale">
-                <MembershipCard {...plan} onSelect={() => onNavigate('membership')} />
-              </Reveal>
-            ))}
+          <div className="membership-teaser">
+            <MembershipCard {...FEATURED_PLAN} onSelect={() => onNavigate('membership')} />
+          </div>
+          <div className="home-section__action">
+            <Button variant="outline" onClick={() => onNavigate('members')}>
+              Ver todos los planes
+            </Button>
           </div>
         </div>
       </Reveal>
 
       <Reveal as="section" className="home-section">
         <div className="home-section__inner">
-          <div className="pitbull-spotlight surface-card">
-            <div className="pitbull-spotlight__content">
-              <SectionHeading
-                align="left"
-                eyebrow="Pitbull Classic"
-                title={PITBULL_CLASSIC.title}
-                description={`${PITBULL_CLASSIC.date} · ${PITBULL_CLASSIC.venue}, ${PITBULL_CLASSIC.location}`}
-              />
-              <div className="pitbull-spotlight__tags">
-                {PITBULL_CLASSIC.categories.map((cat) => (
-                  <span key={cat} className="pitbull-spotlight__tag">
-                    {cat}
-                  </span>
-                ))}
-              </div>
-              <CapacityBar
-                current={PITBULL_CLASSIC.registered}
-                total={PITBULL_CLASSIC.slots}
-              />
-              <div className="hero__actions-primary">
-                <button type="button" className="btn" onClick={() => onSelectEvent(UPCOMING_EVENTS[0])}>
-                  Inscribirme
-                </button>
-                <button type="button" className="btn btn--outline" onClick={() => onNavigate('pitbull')}>
-                  Ver detalle
-                </button>
-              </div>
-            </div>
-            <EventCard
-              featured
-              date={PITBULL_CLASSIC.date}
+          <div className="pitbull-spotlight">
+            <SectionHeading
+              align="left"
+              eyebrow="Pitbull Classic"
               title={PITBULL_CLASSIC.title}
-              venue={PITBULL_CLASSIC.venue}
-              location={PITBULL_CLASSIC.location}
-              status="inscripcion_abierta"
-              onAction={() => onSelectEvent(UPCOMING_EVENTS[0])}
-              actionLabel="Inscribirme"
+              description={`${PITBULL_CLASSIC.date} · ${PITBULL_CLASSIC.venue}, ${PITBULL_CLASSIC.location}`}
             />
+            <div className="pitbull-spotlight__tags">
+              {PITBULL_CLASSIC.categories.map((cat) => (
+                <span key={cat} className="pitbull-spotlight__tag">
+                  {cat}
+                </span>
+              ))}
+            </div>
+            <CapacityBar current={PITBULL_CLASSIC.registered} total={PITBULL_CLASSIC.slots} />
+            <div className="hero__actions-primary">
+              <Button onClick={() => onSelectEvent(UPCOMING_EVENTS[0])}>Inscribirme</Button>
+              <Button variant="outline" onClick={() => onNavigate('pitbull')}>
+                Ver detalle
+              </Button>
+            </div>
           </div>
         </div>
       </Reveal>
@@ -125,23 +96,22 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
           />
           <div className="events-grid">
             {UPCOMING_EVENTS.map((event, i) => (
-              <Reveal key={event.slug} delay={i * 90}>
-                <EventCard
-                  featured={i === 0}
-                  date={event.date}
-                  title={event.title}
-                  venue={event.venue}
-                  location={event.location}
-                  status={event.status}
-                  onAction={() => onSelectEvent(event)}
-                />
-              </Reveal>
+              <EventCard
+                key={event.slug}
+                featured={i === 0}
+                date={event.date}
+                title={event.title}
+                venue={event.venue}
+                location={event.location}
+                status={event.status}
+                onAction={() => onSelectEvent(event)}
+              />
             ))}
           </div>
           <div className="home-section__action">
-            <button type="button" className="btn btn--outline" onClick={() => onNavigate('events')}>
+            <Button variant="outline" onClick={() => onNavigate('events')}>
               Ver calendario completo
-            </button>
+            </Button>
           </div>
         </div>
       </Reveal>
@@ -154,16 +124,14 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             description="Totales, categorías y posiciones de meets recientes."
           />
           <div className="results-grid">
-            {RECENT_RESULTS.map((result, i) => (
-              <Reveal key={`${result.athlete}-${result.date}`} delay={i * 80}>
-                <ResultCard {...result} />
-              </Reveal>
+            {RECENT_RESULTS.map((result) => (
+              <ResultCard key={`${result.athlete}-${result.date}`} {...result} />
             ))}
           </div>
           <div className="home-section__action">
-            <button type="button" className="btn btn--outline" onClick={() => onNavigate('results')}>
+            <Button variant="outline" onClick={() => onNavigate('results')}>
               Ver todos los resultados
-            </button>
+            </Button>
           </div>
         </div>
       </Reveal>
@@ -176,13 +144,11 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             description="Una red de gimnasios, jueces y atletas que empuja el deporte de fuerza en Argentina."
           />
           <div className="community-grid">
-            {COMMUNITY_HIGHLIGHTS.map((item, i) => (
-              <Reveal key={item.title} delay={i * 100}>
-                <article className="community-card surface-card" data-index={String(i + 1).padStart(2, '0')}>
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </article>
-              </Reveal>
+            {COMMUNITY_HIGHLIGHTS.map((item) => (
+              <article key={item.title} className="community-card">
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </article>
             ))}
           </div>
         </div>

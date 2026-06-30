@@ -1,28 +1,78 @@
-.status {
+/* =============================================
+   STATUS PILL / BADGE
+   ============================================= */
+
+.status-pill {
+  align-items: center;
+  border: 1px solid transparent;
   border-radius: var(--border-radius-pill);
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1;
-  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: var(--letter-spacing-wide);
+  padding: 4px 10px;
+  text-transform: uppercase;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+  white-space: nowrap;
 }
 
-.status--success {
+.status-pill svg {
+  flex-shrink: 0;
+}
+
+/* =============================================
+   STATUS VARIANTS
+   ============================================= */
+
+.status-pill--success {
   background: var(--color-success-bg);
+  border-color: rgba(22, 101, 52, 0.2);
   color: var(--color-success-text);
 }
 
-.status--warning {
+.status-pill--warning {
   background: var(--color-warning-bg);
+  border-color: rgba(146, 64, 14, 0.2);
   color: var(--color-warning-text);
 }
 
-.status--danger {
+.status-pill--danger {
   background: var(--color-danger-bg);
+  border-color: rgba(153, 27, 27, 0.2);
   color: var(--color-danger-text);
 }
 
-.status--neutral {
-  background: rgba(255, 255, 255, 0.12);
+.status-pill--neutral {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
   color: var(--color-text-secondary);
+}
+
+.status-pill--info {
+  background: var(--color-brand-celeste-dim);
+  border-color: rgba(116, 172, 223, 0.25);
+  color: var(--color-brand-celeste);
+}
+
+/* =============================================
+   PENDING / ACTIVE STATUS CON PULSE
+   ============================================= */
+
+.status-pill--pending {
+  position: relative;
+}
+
+.status-pill--pending::before {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  background-color: var(--color-warning-text);
+  border-radius: 50%;
+  content: '';
+  display: block;
+  height: 6px;
+  position: relative;
+  width: 6px;
 }

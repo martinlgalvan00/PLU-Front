@@ -7,6 +7,36 @@ export const HOME_STATS = [
   { value: '100%', label: 'Estándar internacional' },
 ]
 
+export const ABOUT_INTRO = {
+  eyebrow: 'Qué es PLU ARG',
+  title: 'La federación que ordena el powerlifting argentino',
+  description:
+    'Unimos reglamento claro, operación profesional y comunidad competitiva. Desde Maximal coordinamos afiliaciones, eventos oficiales y resultados con estándar internacional.',
+}
+
+export const ABOUT_PILLARS = [
+  {
+    icon: 'BookOpen',
+    title: 'Reglamento unificado',
+    text: 'Normativa clara y cuerpo arbitral capacitado en cada meet oficial.',
+  },
+  {
+    icon: 'ClipboardList',
+    title: 'Inscripciones centralizadas',
+    text: 'Afiliación, inscripción a eventos y pagos desde un solo trámite web.',
+  },
+  {
+    icon: 'Trophy',
+    title: 'Resultados oficiales',
+    text: 'Planillas publicadas y exportación alineada a estándares internacionales.',
+  },
+  {
+    icon: 'MapPin',
+    title: 'Red nacional',
+    text: 'Gimnasios aliados y atletas activos en distintas provincias del país.',
+  },
+]
+
 export const MEMBERSHIP_PLANS = [
   {
     id: 'athlete',
