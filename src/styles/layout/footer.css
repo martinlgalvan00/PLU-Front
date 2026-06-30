@@ -1,3 +1,7 @@
+/* =============================================
+   SITE FOOTER
+   ============================================= */
+
 .site-footer {
   background: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border-subtle);
@@ -33,12 +37,18 @@
   max-width: 280px;
 }
 
+/* =============================================
+   FLAG WAVE ANIMATION
+   ============================================= */
+
 .site-footer__flag {
+  animation: flag-wave 6s ease-in-out infinite;
   background: linear-gradient(180deg, #74acdf 33%, #fff 33% 66%, #74acdf 66%);
   border-radius: 2px;
   display: block;
   height: 4px;
-  opacity: 0.7;
+  opacity: 0.8;
+  transform-origin: left center;
   width: 48px;
 }
 
@@ -58,25 +68,62 @@
   padding: 0;
 }
 
-.site-footer button {
-  background: transparent;
+/* =============================================
+   UNDERLINE LINKS
+   ============================================= */
+
+.site-footer button,
+.site-footer a {
   color: var(--color-text-secondary);
   font-size: 14px;
   padding: 0;
+  position: relative;
   text-align: left;
-}
-
-.site-footer button:hover {
-  color: var(--color-brand-celeste);
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
 .site-footer a {
   align-items: center;
-  color: var(--color-brand-celeste);
   display: inline-flex;
   gap: 8px;
-  text-decoration: none;
 }
+
+.site-footer button::after,
+.site-footer a:not(.site-footer__social)::after {
+  background: var(--color-brand-celeste);
+  bottom: -2px;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--transition-base);
+  width: 100%;
+}
+
+.site-footer button:hover,
+.site-footer a:hover {
+  color: var(--color-text-primary);
+}
+
+.site-footer button:hover::after,
+.site-footer a:not(.site-footer__social):hover::after {
+  transform: scaleX(1);
+}
+
+.site-footer__social {
+  color: var(--color-brand-celeste);
+}
+
+.site-footer__social:hover {
+  color: var(--color-text-primary);
+}
+
+/* =============================================
+   BOTTOM BAR
+   ============================================= */
 
 .site-footer__bottom {
   border-top: 1px solid var(--color-border-subtle);

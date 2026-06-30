@@ -1,5 +1,6 @@
 import { Calendar, MapPin } from 'lucide-react'
 import StatusPill from './StatusPill.jsx'
+import SpotlightCard from './SpotlightCard.jsx'
 
 export default function EventCard({
   date,
@@ -14,7 +15,7 @@ export default function EventCard({
   const closed = status === 'cerrado' || status === 'finalizado'
 
   return (
-    <article className={`event-card surface-card ${featured ? 'event-card--featured' : ''}`}>
+    <SpotlightCard as="article" className={`event-card ${featured ? 'event-card--featured' : ''}`}>
       <div className="event-card__top">
         <div className="event-card__date">
           <Calendar size={16} />
@@ -33,6 +34,6 @@ export default function EventCard({
           {actionLabel}
         </button>
       )}
-    </article>
+    </SpotlightCard>
   )
 }
