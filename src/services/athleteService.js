@@ -1,4 +1,4 @@
-import { DEFAULT_FORM, PROCEDURE_TYPES } from '../lib/constants.js'
+import { DEFAULT_FORM, PRICING, PROCEDURE_TYPES } from '../lib/constants.js'
 import { generateId, todayISO } from '../lib/format.js'
 import { validateAthleteForm } from '../lib/validation.js'
 import { getPaymentStatusForMethod, createPaymentReference } from './paymentService.js'
@@ -126,6 +126,96 @@ export function findDuplicateAthlete(athletes, { email, documentId }) {
       a.email.toLowerCase() === email.toLowerCase() ||
       a.documentId === documentId,
   )
+}
+
+export function createAthleteProfile(form, athletes) {
+  const validation = validateAthleteForm(form)
+  if (!validation.success) return { error: validation.error, errors: validation.errors }
+
+  const duplicate = findDuplicateAthlete(athletes, form)
+  if (duplicate) return { error: `Ya existe un atleta con ese correo o documento (${duplicate.fullName}).` }
+
+  const athleteId = generateId('ath', athletes.length + 1)
+  const athlete = { id: athleteId, ...validation.data, status: 'registrado' }
+  return {
+    athlete,
+    confirmation: { type: 'profile', athleteName: athlete.fullName, status: 'registrado' },
+    auditLog: createAuditLog('athlete.registered', 'athlete', athleteId, 'public'),
+    resetForm: { ...DEFAULT_FORM },
+  }
+}
+
+export function createMembershipOrder({ athlete, form, memberships, payments }) {
+  const paymentStatus = getPaymentStatusForMethod(form.paymentMethod)
+  const payment = createPayment({ athleteId: athlete.id, concept: 'Afiliación anual', amount: PRICING.membership, method: form.paymentMethod, payments })
+  const membership = {
+    id: generateId('mem', memberships.length + 1),
+    athleteId: athlete.id,
+    year: '2026',
+    status: 'pendiente_pago',
+    startDate: todayISO(),
+    expirationDate: '2027-01-31',
+    memberCode: `PLU-ARG-2026-${athlete.id.replace('ath-', '')}`,
+    paymentStatus,
+    mercadoPagoRef: '',
+  }
+  return {
+    membership,
+    payment,
+    createdOrder: createOrder(athlete, payment, 'membership'),
+    auditLog: createAuditLog('membership.created', 'membership', membership.id, athlete.id),
+  }
+}
+
+export function createCompetitionOrder({ athlete, event, form, registrations, payments }) {
+  const payment = createPayment({ athleteId: athlete.id, concept: `Inscripción ${event.title}`, amount: PRICING.event, method: form.paymentMethod, payments })
+  const registration = {
+    id: generateId('reg', registrations.length + 1),
+    athleteId: athlete.id,
+    event: event.title,
+    eventSlug: event.slug,
+    category: form.category,
+    division: form.division,
+    bodyweight: form.estimatedWeight,
+    status: 'pendiente_pago',
+    paymentStatus: payment.status,
+    notes: '',
+  }
+  return {
+    registration,
+    payment,
+    createdOrder: createOrder(athlete, payment, 'competition'),
+    auditLog: createAuditLog('registration.created', 'registration', registration.id, athlete.id),
+  }
+}
+
+function createPayment({ athleteId, concept, amount, method, payments }) {
+  return {
+    id: generateId('pay', payments.length + 1),
+    athleteId,
+    concept,
+    amount,
+    method,
+    status: getPaymentStatusForMethod(method),
+    reference: createPaymentReference(method),
+    createdAt: todayISO(),
+  }
+}
+
+function createOrder(athlete, payment, type) {
+  return {
+    type,
+    athleteName: athlete.fullName,
+    athleteDocument: athlete.documentId,
+    athleteId: athlete.id,
+    paymentId: payment.id,
+    paymentMethod: payment.method,
+    ...payment,
+  }
+}
+
+function createAuditLog(action, entityType, entityId, actor) {
+  return { id: `audit-${Date.now()}`, action, entityType, entityId, actor, createdAt: new Date().toISOString() }
 }
 
 export function createRegistrationFromForm(form, athletes, memberships, registrations, payments) {

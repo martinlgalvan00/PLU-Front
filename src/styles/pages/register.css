@@ -57,6 +57,56 @@
   padding: 12px;
 }
 
+.access-grid { display: grid; gap: var(--space-lg); grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 auto; max-width: 900px; }
+.access-card { align-content: start; display: grid; gap: var(--space-md); min-height: 300px; padding: var(--space-xl); }
+.access-card > svg { color: var(--color-brand-gold); }
+.access-card h2 { font-size: 28px; margin: 0; }
+.access-card p { color: var(--color-text-secondary); line-height: 1.6; margin: 0; }
+.access-card .btn { align-self: end; margin-top: auto; }
+
+.athlete-portal .page__inner { display: grid; gap: var(--space-lg); }
+.athlete-welcome { align-items: center; display: flex; justify-content: space-between; padding: var(--space-xl); }
+.athlete-welcome span,
+.portal-section header span { color: var(--color-brand-celeste); font-size: 12px; font-weight: 700; letter-spacing: var(--letter-spacing-wider); text-transform: uppercase; }
+.athlete-welcome h1 { font-size: 38px; margin: 6px 0 8px; }
+.athlete-welcome p,
+.portal-events p { color: var(--color-text-secondary); margin: 0; }
+.athlete-overview { display: grid; gap: var(--space-lg); grid-template-columns: minmax(280px, .8fr) minmax(380px, 1.2fr); }
+.profile-summary { align-content: start; display: grid; gap: var(--space-lg); padding: var(--space-xl); }
+.profile-summary > svg,
+.portal-section header > svg { color: var(--color-brand-red); }
+.profile-summary div,
+.membership-row div,
+.card-back div { display: grid; gap: 5px; }
+.profile-summary span,
+.membership-row div > span,
+.card-back span { color: var(--color-text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.digital-card-block { display: grid; gap: 12px; min-width: 0; perspective: 1200px; }
+.digital-card { aspect-ratio: 1.586; min-height: 250px; position: relative; transform-style: preserve-3d; transition: transform var(--duration-slow) var(--ease-out); width: 100%; }
+.digital-card.is-flipped { transform: rotateY(180deg); }
+.card-face { backface-visibility: hidden; border: 1px solid var(--color-brand-gold-dark); border-radius: var(--border-radius-lg); inset: 0; overflow: hidden; padding: var(--space-xl); position: absolute; }
+.card-front { align-items: end; background: linear-gradient(140deg, var(--color-bg-primary), var(--color-bg-steel), var(--color-bg-primary)); display: grid; grid-template-columns: 1fr auto; }
+.card-brand { align-self: start; display: grid; grid-column: 1 / -1; line-height: .9; }
+.card-brand span,
+.card-brand strong { font-size: 19px; font-weight: 800; }
+.card-brand small,
+.card-member span,
+.card-front > svg { color: var(--color-brand-gold); }
+.card-member h2 { font-size: 24px; margin: 5px 0; }
+.card-member p { color: var(--color-text-muted); margin: 0; }
+.card-back { align-content: center; background: var(--color-bg-surface); display: grid; gap: var(--space-md); grid-template-columns: repeat(2, minmax(0, 1fr)); transform: rotateY(180deg); }
+.card-back small { border-top: 1px solid var(--color-border-subtle); color: var(--color-text-muted); grid-column: 1 / -1; padding-top: 12px; }
+.card-flip { justify-self: end; }
+.portal-section { overflow: hidden; }
+.portal-section header { align-items: center; border-bottom: 1px solid var(--color-border-subtle); display: flex; justify-content: space-between; padding: var(--space-lg); }
+.portal-section h2 { margin: 4px 0 0; }
+.membership-row { align-items: center; display: grid; gap: var(--space-lg); grid-template-columns: .7fr 1.5fr .7fr auto; padding: var(--space-lg); }
+.portal-events { display: grid; }
+.portal-events article { align-items: center; border-bottom: 1px solid var(--color-border-subtle); display: grid; gap: var(--space-lg); grid-template-columns: 80px 1fr auto; padding: 20px var(--space-lg); }
+.portal-events article:last-child { border-bottom: 0; }
+.portal-events time { color: var(--color-brand-red); font-size: 20px; font-weight: 800; }
+.portal-events h3 { margin: 0 0 4px; }
+
 @media (max-width: 1060px) {
   .form-section {
     grid-template-columns: 1fr;
@@ -65,4 +115,16 @@
   .order-panel {
     position: static;
   }
+
+  .athlete-overview { grid-template-columns: 1fr; }
+  .membership-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .access-grid,
+  .membership-row,
+  .portal-events article { grid-template-columns: 1fr; }
+  .athlete-welcome { align-items: flex-start; flex-direction: column; gap: var(--space-md); }
+  .digital-card { min-height: 230px; }
+  .card-face { padding: var(--space-lg); }
 }

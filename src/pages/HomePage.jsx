@@ -19,7 +19,7 @@ import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StatBlock from '../components/ui/StatBlock.jsx'
 import TrustStrip from '../components/ui/TrustStrip.jsx'
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, onSelectEvent }) {
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
@@ -65,7 +65,7 @@ export default function HomePage({ onNavigate }) {
           <div className="membership-grid">
             {MEMBERSHIP_PLANS.map((plan, i) => (
               <Reveal key={plan.id} delay={i * 100} variant="scale">
-                <MembershipCard {...plan} onSelect={() => onNavigate('register')} />
+                <MembershipCard {...plan} onSelect={() => onNavigate('membership')} />
               </Reveal>
             ))}
           </div>
@@ -94,7 +94,7 @@ export default function HomePage({ onNavigate }) {
                 total={PITBULL_CLASSIC.slots}
               />
               <div className="hero__actions-primary">
-                <button type="button" className="btn" onClick={() => onNavigate('register')}>
+                <button type="button" className="btn" onClick={() => onSelectEvent(UPCOMING_EVENTS[0])}>
                   Inscribirme
                 </button>
                 <button type="button" className="btn btn--outline" onClick={() => onNavigate('pitbull')}>
@@ -109,7 +109,7 @@ export default function HomePage({ onNavigate }) {
               venue={PITBULL_CLASSIC.venue}
               location={PITBULL_CLASSIC.location}
               status="inscripcion_abierta"
-              onAction={() => onNavigate('register')}
+              onAction={() => onSelectEvent(UPCOMING_EVENTS[0])}
               actionLabel="Inscribirme"
             />
           </div>
@@ -133,7 +133,7 @@ export default function HomePage({ onNavigate }) {
                   venue={event.venue}
                   location={event.location}
                   status={event.status}
-                  onAction={() => onNavigate('register')}
+                  onAction={() => onSelectEvent(event)}
                 />
               </Reveal>
             ))}
@@ -199,7 +199,7 @@ export default function HomePage({ onNavigate }) {
         title="¿Listo para competir con respaldo federativo?"
         description="Afiliate, inscribite a Pitbull Classic o contactá al equipo PLU ARG."
         primaryLabel="Afiliarme ahora"
-        onPrimary={() => onNavigate('register')}
+        onPrimary={() => onNavigate('membership')}
         secondaryLabel="Contacto"
         onSecondary={() => onNavigate('contact')}
       />

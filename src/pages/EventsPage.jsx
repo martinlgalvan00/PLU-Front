@@ -5,7 +5,7 @@ import EventCard from '../components/ui/EventCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 
-export default function EventsPage({ onNavigate }) {
+export default function EventsPage({ onSelectEvent }) {
   const [selected, setSelected] = useState(null)
 
   return (
@@ -44,7 +44,7 @@ export default function EventsPage({ onNavigate }) {
                     venue={event.venue}
                     location={event.location}
                     status={event.status}
-                    onAction={() => onNavigate('register')}
+                    onAction={() => onSelectEvent(event)}
                   />
                 </Reveal>
               ))}

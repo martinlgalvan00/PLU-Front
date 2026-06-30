@@ -30,7 +30,7 @@ export default function PitbullPage({ onNavigate }) {
                 current={PITBULL_CLASSIC.registered}
                 total={PITBULL_CLASSIC.slots}
               />
-              <button type="button" className="btn" onClick={() => onNavigate('register')}>
+              <button type="button" className="btn" onClick={() => onNavigate('competition')}>
                 Inscribirme ahora
               </button>
             </div>
@@ -45,8 +45,8 @@ export default function PitbullPage({ onNavigate }) {
 
       <CTASection
         title="¿Primera vez en PLU ARG?"
-        description="Podés inscribirte con afiliación incluida en un solo trámite."
-        primaryLabel="Afiliarme + inscribirme"
+        description="Creá tu perfil y luego gestioná por separado la afiliación y la competencia."
+        primaryLabel="Crear perfil"
         onPrimary={() => onNavigate('register')}
         secondaryLabel="Ver reglamento"
         onSecondary={() => onNavigate('rulebook')}

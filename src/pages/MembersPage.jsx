@@ -15,7 +15,7 @@ export default function MembersPage({ onNavigate }) {
         <div className="membership-grid">
           {MEMBERSHIP_PLANS.map((plan, i) => (
             <Reveal key={plan.id} delay={i * 100} variant="scale">
-              <MembershipCard {...plan} onSelect={() => onNavigate('register')} />
+              <MembershipCard {...plan} onSelect={() => onNavigate('membership')} />
             </Reveal>
           ))}
         </div>
