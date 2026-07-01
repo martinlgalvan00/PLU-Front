@@ -1,5 +1,5 @@
 /* =============================================
-   SECTION HEADING
+   SECTION HEADING — refinado
    ============================================= */
 
 .section-heading {
@@ -12,17 +12,28 @@
 }
 
 .section-heading__eyebrow {
-  color: var(--color-text-muted);
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: var(--letter-spacing-wider);
-  margin-bottom: 10px;
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  margin-bottom: 12px;
   text-transform: uppercase;
 }
 
+.section-heading__eyebrow::before {
+  background: var(--color-brand-red);
+  border-radius: 1px;
+  content: '';
+  flex-shrink: 0;
+  height: 1.5px;
+  width: 18px;
+}
+
 .section-heading--left .section-heading__eyebrow {
-  display: inline-block;
+  display: inline-flex;
 }
 
 .section-heading__eyebrow-line {
@@ -31,18 +42,18 @@
 
 .section-heading__title {
   font-family: var(--font-display);
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: clamp(26px, 3.8vw, 42px);
   font-weight: 800;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
-  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.0;
+  margin: 0 0 14px;
   text-transform: uppercase;
 }
 
 .section-heading__desc {
-  color: var(--color-text-secondary);
-  font-size: 17px;
-  line-height: 1.6;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1.65;
   margin: 0 auto;
   max-width: var(--max-width-text);
 }
@@ -97,101 +108,355 @@
 }
 
 /* =============================================
-   MEMBERSHIP CARD
+   MEMBERSHIP CARD — premium tier system
    ============================================= */
 
 .membership-card {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-xl);
-  display: grid;
-  gap: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
   padding: var(--space-xl);
   position: relative;
+  transition:
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
+/* Shimmer sweep diagonal */
+.membership-card::after {
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.055) 50%,
+    transparent 80%
+  );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%) skewX(-15deg);
+  z-index: 2;
+}
+
+.membership-card:hover::after {
+  animation: card-shimmer 0.65s var(--ease-out) forwards;
+}
+
+.membership-card:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+  transform: translateY(-4px);
+}
+
+/* ── Accent variants ────────────────────── */
+
+/* Celeste (atleta) */
+.membership-card--celeste {
+  border-top: 2px solid var(--color-brand-celeste);
+}
+
+.membership-card--celeste:hover {
+  border-color: rgba(116, 172, 223, 0.35);
+  box-shadow: var(--glow-celeste), 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+/* Gold (junior) */
+.membership-card--gold {
+  border-top: 2px solid var(--color-brand-gold);
+}
+
+.membership-card--gold:hover {
+  border-color: rgba(201, 185, 120, 0.35);
+  box-shadow: var(--glow-gold), 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+/* Red (combo featured) */
+.membership-card--red {
+  border-top: 2px solid var(--color-brand-red);
+}
+
+.membership-card--red:hover {
+  border-color: rgba(225, 6, 0, 0.40);
+  box-shadow: var(--glow-red), 0 20px 48px rgba(0, 0, 0, 0.30);
+}
+
+/* ── Featured ─────────────────────────── */
 .membership-card--featured {
-  border-color: var(--color-brand-red);
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(225, 6, 0, 0.09) 0%, transparent 55%),
+    var(--color-bg-surface);
+  border-color: rgba(225, 6, 0, 0.28);
 }
 
+.membership-card--featured:hover {
+  border-color: rgba(225, 6, 0, 0.50);
+  box-shadow: var(--glow-red), 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+/* Badge destacado */
 .membership-card__badge {
   background: var(--color-brand-red);
-  border-radius: var(--border-radius-pill);
-  font-size: 11px;
-  font-weight: 700;
+  border-radius: 0 0 var(--border-radius-pill) var(--border-radius-pill);
+  box-shadow: var(--glow-red-soft);
+  font-size: 9px;
+  font-weight: 800;
   left: var(--space-lg);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.10em;
   padding: 4px 10px;
   position: absolute;
   text-transform: uppercase;
-  top: -12px;
+  top: 0;
 }
 
+/* ── Header: icon + title ────────────── */
+.membership-card__head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.membership-card__icon {
+  align-items: center;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  flex-shrink: 0;
+  height: 36px;
+  justify-content: center;
+  transition:
+    background var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+  width: 36px;
+}
+
+.membership-card__icon--celeste {
+  background: rgba(116, 172, 223, 0.10);
+  color: var(--color-brand-celeste);
+}
+.membership-card--celeste:hover .membership-card__icon--celeste {
+  background: rgba(116, 172, 223, 0.18);
+  box-shadow: 0 4px 14px rgba(116, 172, 223, 0.25);
+  transform: scale(1.1);
+}
+
+.membership-card__icon--gold {
+  background: rgba(201, 185, 120, 0.10);
+  color: var(--color-brand-gold);
+}
+.membership-card--gold:hover .membership-card__icon--gold {
+  background: rgba(201, 185, 120, 0.18);
+  box-shadow: 0 4px 14px rgba(201, 185, 120, 0.25);
+  transform: scale(1.1);
+}
+
+.membership-card__icon--red {
+  background: rgba(225, 6, 0, 0.10);
+  color: var(--color-brand-red);
+}
+.membership-card--red:hover .membership-card__icon--red {
+  background: rgba(225, 6, 0, 0.16);
+  box-shadow: 0 4px 14px rgba(225, 6, 0, 0.28);
+  transform: scale(1.1);
+}
+
+/* Title */
 .membership-card__title {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
-  margin: 8px 0 0;
+  letter-spacing: 0.03em;
+  margin: 0;
   text-transform: uppercase;
 }
 
+/* ── Precio ──────────────────────────── */
 .membership-card__price {
   align-items: baseline;
   display: flex;
   gap: 4px;
+  margin-bottom: var(--space-md);
 }
 
 .membership-card__amount {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 36px;
+  font-size: clamp(26px, 3.5vw, 34px);
   font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color var(--transition-base);
+}
+
+.membership-card--featured .membership-card__amount {
+  color: var(--color-brand-red);
 }
 
 .membership-card__period {
-  color: var(--color-text-muted);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.30);
+  font-size: 13px;
 }
 
+/* ── Divider animado ─────────────────── */
+.membership-card__divider {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-border-subtle) 20%,
+    var(--color-border-subtle) 80%,
+    transparent 100%
+  );
+  height: 1px;
+  margin-bottom: var(--space-md);
+  position: relative;
+  width: 100%;
+}
+
+.membership-card__divider::after {
+  background: var(--gradient-brand);
+  border-radius: 1px;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease-out);
+  width: 100%;
+}
+
+.membership-card:hover .membership-card__divider::after {
+  transform: scaleX(1);
+}
+
+/* ── Features ────────────────────────── */
 .membership-card__features {
   display: grid;
-  gap: 10px;
+  flex: 1;
+  gap: 6px;
   list-style: none;
-  margin: 0;
+  margin: 0 0 var(--space-lg);
   padding: 0;
 }
 
 .membership-card__features li {
   align-items: center;
-  border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.50);
   display: flex;
-  font-size: 14px;
-  gap: 8px;
-  padding-top: 10px;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.4;
+  padding: 4px 0;
+  transition: color var(--transition-fast);
 }
 
-.membership-card__features svg {
-  color: var(--color-brand-celeste);
-  flex-shrink: 0;
+.membership-card:hover .membership-card__features li {
+  color: rgba(255, 255, 255, 0.68);
 }
+
+/* Check icon */
+.membership-card__check {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.35);
+  display: flex;
+  flex-shrink: 0;
+  height: 20px;
+  justify-content: center;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  width: 20px;
+}
+
+.membership-card--celeste:hover .membership-card__check {
+  background: rgba(116, 172, 223, 0.12);
+  color: var(--color-brand-celeste);
+  transform: scale(1.1);
+}
+
+.membership-card--gold:hover .membership-card__check {
+  background: rgba(201, 185, 120, 0.12);
+  color: var(--color-brand-gold);
+  transform: scale(1.1);
+}
+
+.membership-card--red:hover .membership-card__check {
+  background: rgba(225, 6, 0, 0.12);
+  color: var(--color-brand-red);
+  transform: scale(1.1);
+}
+
+/* ── CTA ─────────────────────────────── */
+.membership-card__cta {
+  align-items: center;
+  display: inline-flex !important;
+  gap: 8px;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.membership-card__cta svg {
+  opacity: 0.6;
+  transform: translateX(0);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.membership-card:hover .membership-card__cta svg {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
 
 /* =============================================
-   EVENT CARD
+   EVENT CARD — futurista, sin ruido visual
    ============================================= */
+
 
 .event-card,
 .result-card,
 .community-card,
 .rulebook-card {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-xl);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  border-left: 2px solid transparent;
+  overflow: hidden;
   padding: var(--space-lg);
+  position: relative;
+  transition:
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-left-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
+.event-card:hover,
+.result-card:hover {
+  border-left-color: var(--color-brand-red);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  transform: translateX(3px);
+}
+
+/* Featured event */
 .event-card--featured {
-  border-color: var(--color-border-light);
+  border-radius: var(--border-radius-xl);
+  border-left-width: 3px;
+  border-left-color: var(--color-brand-red);
+}
+
+.event-card--featured:hover {
+  box-shadow: var(--glow-red-soft), 0 12px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px) translateX(0);
 }
 
 .event-card__top {
@@ -208,83 +473,108 @@
   color: var(--color-brand-red);
   display: flex;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  gap: 6px;
-  letter-spacing: 0.04em;
+  gap: 5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .event-card__title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
+  letter-spacing: 0.01em;
   margin: 10px 0 6px;
   text-transform: uppercase;
 }
 
 .event-card__venue,
 .event-card__location {
-  color: var(--color-text-muted);
-  font-size: 14px;
-  margin: 0 0 6px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  margin: 0 0 4px;
 }
 
 .event-card__location {
   align-items: center;
   display: flex;
-  gap: 6px;
+  gap: 5px;
 }
 
 /* =============================================
-   RESULT CARD
+   RESULT CARD — datos claros, lujo
    ============================================= */
+
+.result-card:hover {
+  border-left-color: var(--color-brand-gold);
+  transform: translateX(3px);
+}
 
 .result-card__top {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .result-card__place {
-  background: var(--color-bg-elevated);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.40);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  text-transform: uppercase;
 }
 
 .result-card__date {
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.28);
   font-size: 12px;
 }
 
 .result-card__athlete {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
+  letter-spacing: 0.01em;
   margin: 0 0 4px;
   text-transform: uppercase;
 }
 
 .result-card__event {
-  color: var(--color-text-muted);
-  font-size: 14px;
-  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  margin: 0 0 14px;
 }
 
-/* Total con shimmer text al hover */
+/* Total — shimmer gold en hover */
 .result-card__total {
-  color: var(--color-brand-red);
+  color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.result-card:hover .result-card__total {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold) 0%,
+    var(--color-brand-gold-light) 50%,
+    var(--color-brand-gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 1.5s var(--ease-in-out) infinite;
 }
 
 /* =============================================
-   STAT BLOCK
+   STAT BLOCK (plu-ui scope — grids internos)
    ============================================= */
 
 .stat-block {
@@ -314,7 +604,7 @@
 }
 
 /* =============================================
-   CTA SECTION
+   CTA SECTION — presencia total
    ============================================= */
 
 .cta-section {
@@ -324,82 +614,120 @@
 
 .cta-section__inner {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-xl);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-2xl);
   margin: 0 auto;
-  max-width: 720px;
+  max-width: 760px;
+  overflow: hidden;
   padding: var(--space-2xl) var(--space-xl);
+  position: relative;
   text-align: center;
+  transition:
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+/* Gradiente radial sutil de fondo */
+.cta-section__inner::before {
+  background:
+    radial-gradient(ellipse 80% 80% at 20% 50%, rgba(225, 6, 0, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 70% at 80% 50%, rgba(116, 172, 223, 0.06) 0%, transparent 55%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* Línea top gradiente */
+.cta-section__inner::after {
+  background: var(--gradient-brand);
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.cta-section__inner:hover {
+  border-color: rgba(225, 6, 0, 0.18);
+  box-shadow: var(--glow-red-soft), 0 32px 80px rgba(0, 0, 0, 0.32);
 }
 
 .cta-section__title {
   font-family: var(--font-display);
-  font-size: clamp(24px, 3.5vw, 32px);
+  font-size: clamp(22px, 3.2vw, 36px);
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   margin: 0 0 12px;
   text-transform: uppercase;
 }
 
 .cta-section__desc {
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.65;
   margin: 0 0 var(--space-lg);
 }
 
 .cta-section__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
 }
 
 /* =============================================
-   FAQ ACCORDION
+   FAQ ACCORDION — ultra limpio
    ============================================= */
 
 .faq-accordion {
   display: grid;
-  gap: 10px;
+  gap: 1px;
 }
 
 .faq-item {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid transparent;
-  border-radius: var(--border-radius-lg);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-left: 2px solid transparent;
+  border-radius: 0;
   overflow: hidden;
   transition:
-    border-color var(--transition-base),
-    border-left-color var(--transition-base),
-    box-shadow var(--transition-base);
+    background var(--transition-fast),
+    border-left-color var(--transition-base);
+}
+
+.faq-item:first-child {
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .faq-item:hover {
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .faq-item--open {
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.02);
   border-left-color: var(--color-brand-red);
 }
 
 .faq-item__trigger {
   align-items: center;
   background: transparent;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   display: flex;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
   text-align: left;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: color var(--transition-fast);
   width: 100%;
 }
 
 .faq-item__trigger:hover {
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text-primary);
 }
 
 .faq-item--open .faq-item__trigger {
@@ -407,12 +735,9 @@
 }
 
 .faq-item__icon {
+  color: rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
   transition: transform var(--transition-base), color var(--transition-fast);
-}
-
-.faq-item:hover .faq-item__icon {
-  color: var(--color-text-muted);
 }
 
 .faq-item--open .faq-item__icon {
@@ -437,10 +762,11 @@
 
 .faq-item__panel p {
   border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-secondary);
-  line-height: 1.65;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.7;
   margin: 0;
-  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
 }
 
 /* =============================================
@@ -463,7 +789,7 @@
 
 .empty-state h3 {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 22px;
   margin: 0 0 8px;
   text-transform: uppercase;
 }
@@ -493,17 +819,17 @@
 .data-table th,
 .data-table td {
   border-bottom: 1px solid var(--color-border-subtle);
-  padding: 14px 16px;
+  padding: 13px 16px;
   text-align: left;
   vertical-align: middle;
 }
 
 .data-table th {
   background: var(--color-bg-elevated);
-  color: var(--color-text-muted);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
 }
 
@@ -515,8 +841,8 @@
 }
 
 .data-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 3px 0 0 var(--color-brand-red);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 2px 0 0 var(--color-brand-red);
 }
 
 .data-table tbody tr:hover td:first-child {
@@ -567,9 +893,9 @@
 
 .event-calendar__title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: var(--letter-spacing-display);
+  letter-spacing: 0.03em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -580,40 +906,38 @@
 
 .event-calendar__nav {
   align-items: center;
-  background: var(--color-bg-elevated);
+  background: transparent;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.40);
   display: inline-flex;
-  height: 36px;
+  height: 34px;
   justify-content: center;
   transition:
     border-color var(--transition-fast),
     color var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
-  width: 36px;
+    transform var(--transition-fast);
+  width: 34px;
 }
 
 .event-calendar__nav:hover {
   border-color: var(--color-border-light);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   color: var(--color-text-primary);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .event-calendar__nav:active {
-  transform: translateY(0) scale(0.95);
+  transform: scale(0.95);
 }
 
 .event-calendar__weekdays {
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.25);
   display: grid;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   gap: 4px;
   grid-template-columns: repeat(7, 1fr);
-  letter-spacing: var(--letter-spacing-wide);
+  letter-spacing: 0.08em;
   margin-bottom: 6px;
   text-align: center;
   text-transform: uppercase;
@@ -628,10 +952,10 @@
 .event-calendar__cell {
   align-items: center;
   aspect-ratio: 1;
-  background: var(--color-bg-elevated);
+  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--border-radius-md);
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.40);
   display: flex;
   flex-direction: column;
   font-size: 13px;
@@ -643,35 +967,35 @@
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .event-calendar__cell--empty {
-  background: transparent;
   pointer-events: none;
 }
 
 .event-calendar__cell--today {
-  border-color: var(--color-brand-celeste);
-  box-shadow: 0 0 0 1px var(--color-brand-celeste-dim);
+  border-color: rgba(116, 172, 223, 0.35);
+  color: var(--color-brand-celeste);
 }
 
 .event-calendar__cell--event:not(:disabled) {
-  background: linear-gradient(160deg, rgba(225, 6, 0, 0.12), rgba(116, 172, 223, 0.08));
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
+  background: rgba(225, 6, 0, 0.08);
+  border-color: rgba(225, 6, 0, 0.18);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .event-calendar__cell--event:not(:disabled):hover {
-  border-color: var(--color-brand-red);
-  box-shadow: 0 4px 16px rgba(225, 6, 0, 0.15);
+  background: rgba(225, 6, 0, 0.13);
+  border-color: rgba(225, 6, 0, 0.35);
+  color: var(--color-text-primary);
   transform: translateY(-2px);
 }
 
 .event-calendar__cell--event:not(:disabled):active {
-  transform: translateY(0) scale(0.96);
+  transform: scale(0.96);
 }
 
 .event-calendar__dots {
@@ -681,8 +1005,8 @@
 
 .event-calendar__dot {
   border-radius: 50%;
-  height: 5px;
-  width: 5px;
+  height: 4px;
+  width: 4px;
 }
 
 .event-calendar__dot--success  { background: #22c55e; }
@@ -691,14 +1015,16 @@
 .event-calendar__dot--neutral  { background: var(--color-text-muted); }
 
 .event-calendar__legend {
-  border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
+  border-top: none;
+  color: rgba(255, 255, 255, 0.28);
   display: flex;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 10px;
   gap: 12px;
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
+  letter-spacing: 0.04em;
+  margin-top: 0;
+  padding-top: 0;
+  text-transform: uppercase;
 }
 
 .event-calendar__legend-item {
@@ -714,12 +1040,13 @@
 .events-layout {
   display: grid;
   gap: var(--space-xl);
-  grid-template-columns: minmax(280px, 380px) 1fr;
+  grid-template-columns: minmax(280px, 360px) 1fr;
 }
 
 .events-layout__selected {
-  color: var(--color-text-muted);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.30);
+  font-size: 13px;
+  letter-spacing: 0.02em;
   margin: 0 0 var(--space-md);
 }
 
@@ -731,4 +1058,75 @@
   .events-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* =============================================
+   LIGHT THEME OVERRIDES
+   ============================================= */
+
+[data-theme='light'] .event-card__venue,
+[data-theme='light'] .event-card__location {
+  color: rgba(15, 17, 23, 0.40);
+}
+
+[data-theme='light'] .result-card__date,
+[data-theme='light'] .result-card__event {
+  color: rgba(15, 17, 23, 0.40);
+}
+
+[data-theme='light'] .result-card__place {
+  border-color: rgba(15, 17, 23, 0.12);
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .faq-item__icon {
+  color: rgba(15, 17, 23, 0.25);
+}
+
+[data-theme='light'] .faq-item--open {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .event-card:hover,
+[data-theme='light'] .result-card:hover {
+  box-shadow: 0 8px 28px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .data-table th {
+  color: rgba(15, 17, 23, 0.35);
+}
+
+[data-theme='light'] .data-table tbody tr:hover {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .event-calendar__weekdays {
+  color: rgba(15, 17, 23, 0.28);
+}
+
+[data-theme='light'] .event-calendar__cell {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .event-calendar__legend {
+  color: rgba(15, 17, 23, 0.30);
+}
+
+[data-theme='light'] .events-layout__selected {
+  color: rgba(15, 17, 23, 0.30);
+}
+
+[data-theme='light'] .hero__quick-link {
+  color: rgba(15, 17, 23, 0.32);
+}
+
+[data-theme='light'] .stat-block:hover .stat-block__value {
+  -webkit-text-fill-color: initial;
+  background: none;
+  background-clip: unset;
+  animation: none;
+}
+
+[data-theme='light'] .cta-section__desc {
+  color: var(--color-text-muted);
 }

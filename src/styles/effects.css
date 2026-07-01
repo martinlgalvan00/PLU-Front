@@ -1,62 +1,191 @@
 /* =============================================
-   SURFACE CARD — hover sutil, sin shimmer
+   SURFACE CARD — hover premium con shimmer
    ============================================= */
 
 .surface-card {
   position: relative;
   transition:
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .surface-card:hover {
   border-color: var(--color-border-light);
   box-shadow: var(--color-shadow-card);
+  transform: translateY(-2px);
 }
 
-/* Compat: ya no usa spotlight por cursor */
+/* Shimmer sweep al hover */
 .surface-card--spotlight {
   overflow: hidden;
 }
 
-/* =============================================
-   HERO — overlay mínimo (sin grain ni glow animado)
-   ============================================= */
+.surface-card--spotlight::after {
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 70%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-100%) skewX(-15deg);
+  transition: opacity 0.1s;
+  z-index: 1;
+}
 
-.hero__grain,
-.hero__glow,
-.hero__glow-gold {
-  display: none;
+.surface-card--spotlight:hover::after {
+  animation: card-shimmer 0.7s var(--ease-out) forwards;
+  opacity: 1;
 }
 
 /* =============================================
-   SECTION DIVIDER — línea simple
+   HERO — glow activado con animación suave
+   ============================================= */
+
+.hero__grain {
+  display: none;
+}
+
+.hero__glow {
+  animation: hero-glow 4s var(--ease-in-out) infinite;
+  background: radial-gradient(ellipse 70% 55% at 65% 30%, rgba(225, 6, 0, 0.22), transparent 65%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.hero__glow-gold {
+  animation: hero-glow-gold 6s var(--ease-in-out) infinite 1.5s;
+  background: radial-gradient(ellipse 50% 40% at 15% 75%, rgba(201, 185, 120, 0.18), transparent 55%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+/* =============================================
+   SECTION DIVIDER — línea con gradiente
    ============================================= */
 
 .section-divider {
-  background: var(--color-border-subtle);
-  height: 1px;
+  background: var(--gradient-brand);
+  border-radius: var(--border-radius-pill);
+  height: 2px;
   margin: var(--space-2xl) auto 0;
-  max-width: 120px;
+  max-width: 80px;
+  opacity: 0.6;
 }
 
 /* =============================================
-   CTA SECTION — sin blur de fondo
+   CTA SECTION — glassmorphism
    ============================================= */
 
+.cta-section__inner {
+  position: relative;
+  overflow: hidden;
+}
+
 .cta-section__inner::before {
-  display: none;
+  background:
+    radial-gradient(ellipse 60% 60% at 20% 50%, rgba(225, 6, 0, 0.08), transparent 65%),
+    radial-gradient(ellipse 40% 50% at 80% 50%, rgba(116, 172, 223, 0.07), transparent 60%);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 /* =============================================
-   GLASS PANEL
+   GLASS PANEL — mejorado
    ============================================= */
 
 .glass-panel {
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--border-radius-xl);
+}
+
+/* =============================================
+   SHIMMER CARD — clase reutilizable
+   ============================================= */
+
+.shimmer-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.shimmer-card::after {
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 75%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%) skewX(-15deg);
+  z-index: 2;
+}
+
+.shimmer-card:hover::after {
+  animation: card-shimmer 0.65s var(--ease-out) forwards;
+  opacity: 1;
+}
+
+/* =============================================
+   GRADIENT BORDER — clase reutilizable
+   ============================================= */
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  background: var(--gradient-brand);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  padding: 1px;
+  position: absolute;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: opacity var(--transition-base);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* =============================================
+   GLOW CARD — card con aura colorizada
+   ============================================= */
+
+.glow-card--red:hover {
+  box-shadow: var(--glow-red), 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.glow-card--gold:hover {
+  box-shadow: var(--glow-gold), 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.glow-card--celeste:hover {
+  box-shadow: var(--glow-celeste), 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 /* =============================================
@@ -83,4 +212,27 @@
 
 .link-underline:hover::after {
   transform: scaleX(1);
+}
+
+/* =============================================
+   NUMBER VALUE — shimmer text en grandes números
+   ============================================= */
+
+.value-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-text-primary) 0%,
+    var(--color-text-primary) 35%,
+    rgba(255, 255, 255, 0.85) 50%,
+    var(--color-text-primary) 65%,
+    var(--color-text-primary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.value-shimmer:hover {
+  animation: shimmer-text 1.2s var(--ease-in-out) infinite;
 }

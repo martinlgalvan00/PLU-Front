@@ -1,0 +1,358 @@
+/* =============================================
+   MEMBERS PAGE — afiliación anual
+   ============================================= */
+
+.members-page__stats {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  padding: 0 var(--space-lg) var(--space-xl);
+}
+
+.members-stat {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  display: grid;
+  gap: 4px;
+  padding: var(--space-lg);
+}
+
+.members-stat strong {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.members-stat span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.members-stat--price strong {
+  color: var(--color-brand-gold);
+}
+
+.members-stat--season strong {
+  color: var(--color-brand-celeste);
+}
+
+.membership-annual-intro {
+  align-items: center;
+  background:
+    linear-gradient(125deg, rgba(116, 172, 223, 0.07) 0%, rgba(225, 6, 0, 0.06) 100%),
+    var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-2xl);
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: 1.1fr 0.9fr;
+  overflow: hidden;
+  padding: clamp(var(--space-lg), 4vw, var(--space-2xl));
+  position: relative;
+}
+
+.membership-annual-intro::before {
+  background: linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-red));
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.membership-annual-intro__eyebrow {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.membership-annual-intro__copy h2 {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.membership-annual-intro__copy p {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 var(--space-lg);
+  max-width: 52ch;
+}
+
+.membership-annual-intro__card {
+  aspect-ratio: 1.58 / 1;
+  background:
+    linear-gradient(145deg, rgba(8, 8, 12, 0.9) 0%, rgba(20, 20, 28, 0.95) 100%),
+    radial-gradient(circle at 100% 0%, rgba(225, 6, 0, 0.25) 0%, transparent 50%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--glow-celeste-soft);
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  max-width: 320px;
+  padding: var(--space-lg);
+  width: 100%;
+}
+
+.membership-annual-intro__card-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.membership-annual-intro__card strong {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.membership-annual-intro__card em {
+  color: var(--color-brand-celeste);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.membership-annual-intro__card small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.membership-annual-intro__card-bar {
+  align-self: end;
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-gold));
+  border-radius: var(--border-radius-pill);
+  height: 4px;
+  margin-top: var(--space-md);
+  width: 100%;
+}
+
+.members-page__steps {
+  background: var(--color-bg-secondary);
+  border-block: 1px solid var(--color-border-subtle);
+}
+
+.membership-steps {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.membership-step {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.membership-step__index {
+  color: var(--color-brand-red);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.membership-step strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.membership-step p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.membership-compare {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+}
+
+.membership-compare h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 var(--space-md);
+  text-transform: uppercase;
+}
+
+.membership-compare__table {
+  display: grid;
+  gap: 1px;
+  overflow-x: auto;
+}
+
+.membership-compare__row {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  display: grid;
+  font-size: 13px;
+  gap: var(--space-md);
+  grid-template-columns: 1.4fr repeat(3, 0.6fr);
+  min-width: 520px;
+  padding: 12px 14px;
+}
+
+.membership-compare__row--head {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.membership-compare__row span:not(:first-child) {
+  display: flex;
+  justify-content: center;
+}
+
+.membership-compare__row svg {
+  color: var(--color-brand-celeste);
+}
+
+.membership-compare__row .membership-compare__no svg {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+}
+
+/* =============================================
+   PLATFORM MAP
+   ============================================= */
+
+.platform-map {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.platform-map__group-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 var(--space-md);
+  text-transform: uppercase;
+}
+
+.platform-map__grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.platform-map__card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  display: grid;
+  gap: 8px;
+  padding: var(--space-lg);
+  text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
+}
+
+.platform-map__card:hover {
+  border-color: rgba(116, 172, 223, 0.35);
+  box-shadow: var(--glow-celeste-soft);
+  transform: translateY(-3px);
+}
+
+.platform-map__icon {
+  align-items: center;
+  background: rgba(116, 172, 223, 0.1);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.platform-map__card strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.platform-map__card p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.platform-map__link {
+  color: var(--color-brand-red);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1024px) {
+  .platform-map__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .membership-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .members-page__stats,
+  .membership-annual-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .membership-annual-intro__card {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .members-page__stats,
+  .membership-steps,
+  .platform-map__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme='light'] .members-stat,
+[data-theme='light'] .membership-annual-intro,
+[data-theme='light'] .membership-step,
+[data-theme='light'] .membership-compare,
+[data-theme='light'] .platform-map__card {
+  background: #ffffff;
+}

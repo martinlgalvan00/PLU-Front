@@ -10,6 +10,9 @@ const ICONS = {
   MapPin,
 }
 
+// Números de acento por pilar para darle más impacto visual
+const PILLAR_ACCENT = ['01', '02', '03', '04']
+
 export default function AboutSection({ pillars, onNavigate }) {
   return (
     <div className="about-section">
@@ -21,12 +24,13 @@ export default function AboutSection({ pillars, onNavigate }) {
       />
 
       <div className="about-pillars">
-        {pillars.map(({ icon, title, text }) => {
+        {pillars.map(({ icon, title, text }, i) => {
           const Icon = ICONS[icon]
           return (
             <article key={title} className="about-pillar">
+              <div className="about-pillar__num" aria-hidden>{PILLAR_ACCENT[i]}</div>
               <div className="about-pillar__icon" aria-hidden>
-                {Icon && <Icon size={20} strokeWidth={1.75} />}
+                {Icon && <Icon size={18} strokeWidth={1.5} />}
               </div>
               <div className="about-pillar__body">
                 <h3>{title}</h3>

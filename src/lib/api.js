@@ -22,9 +22,15 @@ async function parseResponse(response) {
 
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
+  const method = options.method ?? 'GET'
+  const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
+    ? { 'X-PLU-Request': 'browser' }
+    : {}
   const response = await fetch(url, {
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...mutationHeaders,
       ...(options.headers ?? {}),
     },
     ...options,

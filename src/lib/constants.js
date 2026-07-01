@@ -19,8 +19,42 @@ export const PAYMENT_METHODS = {
 }
 
 export const ROLES = {
-  admin_plu: { label: 'Admin PLU', canEdit: true, canManageUsers: true },
-  athlete_plu: { label: 'Atleta PLU', canEdit: false, canManageUsers: false },
+  admin_maximal: {
+    label: 'Admin Maximal',
+    canViewAdmin: true,
+    canEditOperationalData: true,
+    canManageUsers: true,
+    canApproveManualPayments: true,
+    canExportAdmin: true,
+    canExportPluUsa: true,
+  },
+  admin_plu_arg: {
+    label: 'Admin PLU ARG',
+    canViewAdmin: true,
+    canEditOperationalData: true,
+    canManageUsers: true,
+    canApproveManualPayments: true,
+    canExportAdmin: true,
+    canExportPluUsa: true,
+  },
+  operador_plu_arg: {
+    label: 'Operador PLU ARG',
+    canViewAdmin: true,
+    canEditOperationalData: true,
+    canManageUsers: false,
+    canApproveManualPayments: true,
+    canExportAdmin: true,
+    canExportPluUsa: true,
+  },
+  viewer_plu_usa: {
+    label: 'PLU USA lectura',
+    canViewAdmin: true,
+    canEditOperationalData: false,
+    canManageUsers: false,
+    canApproveManualPayments: false,
+    canExportAdmin: false,
+    canExportPluUsa: true,
+  },
 }
 
 export const NAV_PRIMARY = ['home', 'members', 'pitbull', 'events', 'results']
@@ -35,6 +69,14 @@ export const REGISTRATION_FILTER_STATUSES = [
   ['validacion_manual', 'Validación manual'],
   ['confirmada', 'Confirmada'],
   ['aprobado', 'Pago aprobado'],
+]
+
+export const MEMBERSHIP_FILTER_STATUSES = [
+  ['all', 'Todos los estados'],
+  ['activa', 'Activas'],
+  ['pendiente_pago', 'Pendiente de pago'],
+  ['vencida', 'Vencidas'],
+  ['cancelada', 'Canceladas'],
 ]
 
 export const DEFAULT_FORM = {

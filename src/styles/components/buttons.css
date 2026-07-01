@@ -17,17 +17,45 @@
   justify-content: center;
   letter-spacing: 0.04em;
   min-height: 44px;
+  overflow: hidden;
   padding: 0 20px;
+  position: relative;
   text-transform: uppercase;
-  transition: background var(--transition-fast), opacity var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+/* Shimmer sweep en hover */
+.btn::after {
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 75%
+  );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%) skewX(-15deg);
+}
+
+.btn:hover:not(:disabled)::after {
+  animation: card-shimmer 0.55s var(--ease-out) forwards;
 }
 
 .btn:hover:not(:disabled) {
   background: var(--color-brand-red-hover);
+  box-shadow: var(--glow-red-soft);
+  transform: translateY(-1px);
 }
 
 .btn:active:not(:disabled) {
   opacity: 0.9;
+  transform: translateY(0) scale(0.98);
 }
 
 /* =============================================
@@ -40,6 +68,7 @@
 
 .btn--secondary:hover:not(:disabled) {
   background: var(--color-bg-elevated);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .btn--celeste {
@@ -49,6 +78,7 @@
 
 .btn--celeste:hover:not(:disabled) {
   background: #8ec0f0;
+  box-shadow: var(--glow-celeste-soft);
 }
 
 .btn--outline {
@@ -57,8 +87,9 @@
 }
 
 .btn--outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
 }
 
 .btn--ghost {
@@ -73,7 +104,7 @@
   color: var(--color-text-primary);
 }
 
-/* Gold — con pulse animation en featured */
+/* Gold — con brillo dorado en hover */
 .btn--gold {
   background: var(--color-brand-gold);
   color: #1a1408;
@@ -81,6 +112,7 @@
 
 .btn--gold:hover:not(:disabled) {
   background: var(--color-brand-gold-light);
+  box-shadow: var(--glow-gold-soft);
 }
 
 /* Size variants */
@@ -111,13 +143,18 @@
   gap: 6px;
   min-height: 40px;
   padding: 0 14px;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .login-btn:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--color-border-light);
   color: var(--color-text-primary);
+  transform: translateY(-1px);
 }
 
 /* =============================================
@@ -139,11 +176,14 @@
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
-    transform var(--transition-fast);
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .export-btn:hover:not(:disabled) {
   border-color: var(--color-border-light);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
 }
 
 .export-btn--gold {
@@ -154,6 +194,7 @@
 
 .export-btn--gold:hover:not(:disabled) {
   background: var(--color-brand-gold-light);
+  box-shadow: var(--glow-gold-soft);
 }
 
 /* =============================================

@@ -5,7 +5,7 @@ import SectionHeading from '../components/ui/SectionHeading.jsx'
 export default function LoginPage({ onLogin, onNavigate }) {
   function enter(type) {
     const session = onLogin(type)
-    onNavigate(session.role === 'admin_plu' ? 'admin' : 'profile')
+    onNavigate(session.role === 'athlete_plu' ? 'profile' : 'admin')
   }
 
   return (

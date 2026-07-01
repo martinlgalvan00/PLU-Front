@@ -135,3 +135,161 @@
     padding-top: var(--space-lg);
   }
 }
+
+/* =============================================
+   MEMBERS PAGE
+   ============================================= */
+
+.members-page .page-section--benefits {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-xl);
+}
+
+.members-page .page-section--plans {
+  padding-top: var(--space-2xl);
+}
+
+.members-benefits {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+}
+
+.members-benefit {
+  align-items: flex-start;
+  cursor: default;
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  position: relative;
+  transition:
+    background 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Borde-top que aparece en hover */
+.members-benefit::before {
+  background: var(--gradient-brand);
+  content: '';
+  height: 1.5px;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  transition: opacity var(--transition-base);
+  width: 100%;
+}
+
+.members-benefit:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.members-benefit:hover::before {
+  opacity: 1;
+}
+
+.members-benefit__icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: flex;
+  flex-shrink: 0;
+  height: 40px;
+  justify-content: center;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base),
+    transform var(--transition-base);
+  width: 40px;
+}
+
+.members-benefit:hover .members-benefit__icon {
+  background: rgba(116, 172, 223, 0.10);
+  border-color: rgba(116, 172, 223, 0.22);
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.members-benefit__label {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+  transition: color var(--transition-fast);
+}
+
+.members-benefit__desc {
+  color: rgba(255, 255, 255, 0.30);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  transition: color var(--transition-fast);
+}
+
+.members-benefit:hover .members-benefit__desc {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+/* ── Responsive benefits ─────────────── */
+@media (max-width: 960px) {
+  .members-benefits {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .members-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Light theme ─────────────────────── */
+[data-theme='light'] .members-benefit:hover {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .members-benefit__icon {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .members-benefit__desc {
+  color: rgba(15, 17, 23, 0.40);
+}
+
+[data-theme='light'] .members-benefit:hover .members-benefit__desc {
+  color: rgba(15, 17, 23, 0.65);
+}
+
+[data-theme='light'] .membership-card {
+  background: #ffffff;
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .membership-card__features li {
+  color: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .membership-card:hover .membership-card__features li {
+  color: rgba(15, 17, 23, 0.72);
+}
+
+[data-theme='light'] .membership-card__period {
+  color: rgba(15, 17, 23, 0.30);
+}
+
+[data-theme='light'] .membership-card__check {
+  background: rgba(15, 17, 23, 0.04);
+  color: rgba(15, 17, 23, 0.35);
+}
+
+[data-theme='light'] .membership-card--featured {
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(225, 6, 0, 0.06) 0%, transparent 55%),
+    #ffffff;
+}

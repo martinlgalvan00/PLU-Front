@@ -5,6 +5,7 @@ import PageTransition from './components/layout/PageTransition.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
+import { canViewAdmin, getRoleLabel } from './lib/roles.js'
 import AdminPage from './pages/AdminPage.jsx'
 import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
@@ -43,8 +44,12 @@ export default function App() {
   }, [view])
 
   function navigate(nextView) {
-    const requiredRole = { admin: 'admin_plu', profile: 'athlete_plu', membership: 'athlete_plu', competition: 'athlete_plu' }[nextView]
-    setView(requiredRole && app.session?.role !== requiredRole ? 'login' : nextView)
+    const adminRequired = nextView === 'admin'
+    const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
+    const blocked =
+      (adminRequired && !canViewAdmin(app.session?.role)) ||
+      (athleteRequired && app.session?.role !== 'athlete_plu')
+    setView(blocked ? 'login' : nextView)
   }
 
   function selectEvent(event) {
@@ -52,19 +57,24 @@ export default function App() {
     navigate('competition')
   }
 
-  if (view === 'admin' && app.session?.role === 'admin_plu') {
+  if (view === 'admin' && canViewAdmin(app.session?.role)) {
     return (
       <AdminPage
         canEdit={app.userCanEdit}
         dashboard={app.dashboard}
         filters={app.filters}
         filteredRegistrations={app.filteredRegistrations}
+        enrichedMemberships={app.enrichedMemberships}
+        pendingActions={app.pendingActions}
+        adminNavBadges={app.adminNavBadges}
+        getAthleteDetail={app.getAthleteDetail}
         onApprovePayment={app.handleApprovePayment}
         onExportAdmin={app.exportAdminCsv}
         onExportPluUsa={app.exportPluUsaCsv}
         onSetFilters={app.setFilters}
         payments={app.payments}
         athletes={app.athletes}
+        roleLabel={getRoleLabel(app.session?.role)}
         onExit={() => navigate('home')}
       />
     )

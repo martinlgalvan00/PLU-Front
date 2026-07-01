@@ -30,8 +30,16 @@ export function ThemeProvider({ children }) {
       },
       toggleTheme() {
         const next = theme === 'dark' ? 'light' : 'dark'
-        persistTheme(next)
-        setThemeState(next)
+        // View Transition API — cross-fade premium (Chrome 111+)
+        if (typeof document.startViewTransition === 'function') {
+          document.startViewTransition(() => {
+            persistTheme(next)
+            setThemeState(next)
+          })
+        } else {
+          persistTheme(next)
+          setThemeState(next)
+        }
       },
     }),
     [theme],

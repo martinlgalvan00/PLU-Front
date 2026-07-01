@@ -67,6 +67,48 @@ export const MEMBERSHIP_PLANS = [
   },
 ]
 
+export const MEMBERSHIP_ANNUAL_STEPS = [
+  {
+    step: '01',
+    title: 'Elegí tu plan',
+    text: 'Atleta, juvenil o combo con Pitbull Classic según tu categoría y objetivo competitivo.',
+  },
+  {
+    step: '02',
+    title: 'Completá tu perfil',
+    text: 'Datos personales, gimnasio, división y categoría bajo normativa PLU ARG.',
+  },
+  {
+    step: '03',
+    title: 'Pagá con Mercado Pago',
+    text: 'Checkout seguro. La federación valida el pago antes de activar tu afiliación.',
+  },
+  {
+    step: '04',
+    title: 'Recibí tu código',
+    text: 'Código PLU ARG, tarjeta digital y habilitación para inscribirte a meets oficiales.',
+  },
+]
+
+export const MEMBERSHIP_COMPARE_ROWS = [
+  { label: 'Código de atleta PLU ARG', athlete: true, junior: true, combo: true },
+  { label: 'Tarjeta digital de miembro', athlete: true, junior: true, combo: true },
+  { label: 'Acceso a eventos oficiales', athlete: true, junior: true, combo: true },
+  { label: 'Inscripción Pitbull Classic', athlete: false, junior: false, combo: true },
+  { label: 'Vigencia temporada 2026', athlete: true, junior: true, combo: true },
+]
+
+export const PLATFORM_SECTIONS = [
+  { key: 'members', group: 'Competencia', title: 'Afiliación', desc: 'Planes anuales, código de atleta y respaldo federativo.' },
+  { key: 'pitbull', group: 'Competencia', title: 'Pitbull Classic', desc: 'El meet insignia de la temporada PLU ARG.' },
+  { key: 'events', group: 'Competencia', title: 'Eventos', desc: 'Calendario competitivo y inscripciones por meet.' },
+  { key: 'results', group: 'Competencia', title: 'Resultados', desc: 'Planillas oficiales, totales y podios.' },
+  { key: 'rulebook', group: 'Institucional', title: 'Reglamento', desc: 'Normativa, categorías y equipamiento.' },
+  { key: 'community', group: 'Institucional', title: 'Comunidad', desc: 'Gimnasios aliados, jueces y red de atletas.' },
+  { key: 'faq', group: 'Institucional', title: 'FAQ', desc: 'Respuestas sobre afiliación, pagos y competencia.' },
+  { key: 'contact', group: 'Institucional', title: 'Contacto', desc: 'Soporte operativo y consultas de la federación.' },
+]
+
 export const PITBULL_CLASSIC = {
   title: 'Pitbull Classic',
   date: '15 de agosto, 2026',
@@ -124,15 +166,37 @@ export const RULEBOOK_SECTIONS = [
   { title: 'Conducta y antidoping', text: 'Política de fair play, control de sustancias y procedimiento de reclamos.' },
 ]
 
-export const ADMIN_SECTIONS = [
-  ['dashboard', 'Dashboard', 'LayoutDashboard'],
-  ['athletes', 'Atletas', 'Users'],
-  ['memberships', 'Afiliaciones', 'BadgeCheck'],
-  ['events', 'Eventos', 'Calendar'],
-  ['registrations', 'Inscripciones', 'ClipboardList'],
-  ['payments', 'Pagos', 'CreditCard'],
-  ['results', 'Resultados', 'Trophy'],
-  ['exports', 'Exportaciones', 'Download'],
-  ['users', 'Usuarios', 'Shield'],
-  ['audit', 'Auditoría', 'ScrollText'],
+export const ADMIN_NAV_GROUPS = [
+  {
+    label: 'Gestión',
+    items: [
+      ['dashboard', 'Dashboard', 'LayoutDashboard'],
+      ['athletes', 'Atletas', 'Users'],
+      ['memberships', 'Afiliaciones', 'BadgeCheck'],
+    ],
+  },
+  {
+    label: 'Eventos',
+    items: [
+      ['events', 'Eventos', 'Calendar'],
+      ['registrations', 'Inscripciones', 'ClipboardList'],
+      ['results', 'Resultados', 'Trophy'],
+    ],
+  },
+  {
+    label: 'Finanzas',
+    items: [
+      ['payments', 'Pagos', 'CreditCard'],
+      ['exports', 'Exportaciones', 'Download'],
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      ['users', 'Usuarios', 'Shield'],
+      ['audit', 'Auditoría', 'ScrollText'],
+    ],
+  },
 ]
+
+export const ADMIN_SECTIONS = ADMIN_NAV_GROUPS.flatMap((group) => group.items)

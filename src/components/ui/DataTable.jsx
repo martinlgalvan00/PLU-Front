@@ -1,6 +1,12 @@
 import StatusBadge from './StatusBadge.jsx'
 
-export default function DataTable({ columns, rows, emptyMessage = 'Sin registros' }) {
+export default function DataTable({
+  columns,
+  rows,
+  emptyMessage = 'Sin registros',
+  onRowClick,
+  rowClassName = '',
+}) {
   if (!rows.length) {
     return <p className="data-table__empty">{emptyMessage}</p>
   }
@@ -17,7 +23,23 @@ export default function DataTable({ columns, rows, emptyMessage = 'Sin registros
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id}>
+            <tr
+              key={row.id}
+              className={rowClassName}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onRowClick(row)
+                      }
+                    }
+                  : undefined
+              }
+              tabIndex={onRowClick ? 0 : undefined}
+              role={onRowClick ? 'button' : undefined}
+            >
               {columns.map((col) => (
                 <td key={col.key}>
                   {col.render ? col.render(row) : row[col.key]}
