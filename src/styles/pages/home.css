@@ -458,18 +458,191 @@
 .pitbull-spotlight {
   background: var(--color-bg-surface);
   border: 1px solid rgba(225, 6, 0, 0.18);
-  border-left: 3px solid var(--color-brand-red);
-  border-radius: var(--border-radius-xl);
+  border-radius: var(--border-radius-2xl);
   display: grid;
-  gap: var(--space-lg);
-  max-width: 680px;
+  gap: 0;
+  grid-template-columns: minmax(240px, 42%) 1fr;
+  max-width: var(--max-width-content);
   overflow: hidden;
-  padding: var(--space-xl);
+  padding: 0;
   position: relative;
   transition:
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     border-color var(--transition-base),
     box-shadow var(--transition-base);
+}
+
+.pitbull-spotlight__visual {
+  isolation: isolate;
+  min-height: 320px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-spotlight__visual-img {
+  display: block;
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: center 30%;
+  position: absolute;
+  width: 100%;
+}
+
+.pitbull-spotlight__visual-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(5, 5, 8, 0.15) 0%,
+    rgba(5, 5, 8, 0.55) 55%,
+    rgba(5, 5, 8, 0.92) 100%
+  );
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.pitbull-spotlight__visual-glow {
+  background: radial-gradient(circle at 20% 20%, rgba(225, 6, 0, 0.35), transparent 55%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.pitbull-spotlight__badge {
+  align-items: center;
+  backdrop-filter: blur(8px);
+  background: rgba(5, 5, 8, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  left: var(--space-md);
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  position: absolute;
+  text-transform: uppercase;
+  top: var(--space-md);
+  z-index: 3;
+}
+
+.pitbull-spotlight__visual-stat {
+  bottom: var(--space-md);
+  color: var(--color-text-primary);
+  left: var(--space-md);
+  position: absolute;
+  z-index: 3;
+}
+
+.pitbull-spotlight__visual-stat strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pitbull-spotlight__visual-stat span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pitbull-spotlight__body {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+}
+
+.pitbull-spotlight__eyebrow {
+  color: var(--color-brand-red);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-wider);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.pitbull-spotlight__title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: var(--letter-spacing-display);
+  line-height: 1.05;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-spotlight__title em {
+  color: var(--color-text-muted);
+  font-style: normal;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.pitbull-spotlight__meta {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-spotlight__meta li {
+  align-items: flex-start;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.pitbull-spotlight__meta svg {
+  color: var(--color-brand-celeste);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pitbull-spotlight__capacity {
+  margin-top: 4px;
+}
+
+.pitbull-spotlight__urgency {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.pitbull-spotlight__urgency strong {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-spotlight__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.pitbull-spotlight__tag--raw {
+  border-color: rgba(225, 6, 0, 0.25);
+  color: rgba(255, 180, 170, 0.85);
+}
+
+.pitbull-spotlight__tag--classic {
+  border-color: rgba(116, 172, 223, 0.35);
+  color: rgba(180, 215, 245, 0.9);
+}
+
+.pitbull-spotlight__tag--equipped {
+  border-color: rgba(201, 185, 120, 0.35);
+  color: rgba(220, 205, 150, 0.9);
 }
 
 .pitbull-spotlight::after {
@@ -775,6 +948,14 @@
   .hero {
     min-height: 75vh;
     padding-top: calc(var(--header-height) + var(--space-xl));
+  }
+
+  .pitbull-spotlight {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-spotlight__visual {
+    min-height: 220px;
   }
 }
 

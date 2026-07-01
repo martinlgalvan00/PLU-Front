@@ -147,3 +147,19 @@
 [data-theme='light'] .faq-item__trigger:hover {
   color: rgba(15, 17, 23, 0.92);
 }
+
+[data-theme='light'] .footer-cta {
+  background: #ffffff;
+}
+
+[data-theme='light'] .footer-cta:hover {
+  box-shadow: 0 12px 40px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .site-footer__main {
+  background: #eef0f4;
+}
+
+[data-theme='light'] .site-footer__bottom {
+  background: #f4f5f7;
+}
