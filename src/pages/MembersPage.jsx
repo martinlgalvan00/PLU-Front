@@ -21,11 +21,11 @@ export default function MembersPage({ onNavigate }) {
           />
           <div className="membership-grid">
             {MEMBERSHIP_PLANS.map((plan) => (
-              <MembershipCard key={plan.id} {...plan} onSelect={() => onNavigate('register')} />
+              <MembershipCard key={plan.id} {...plan} onSelect={() => onNavigate('membership')} />
             ))}
           </div>
           <div className="page-section__action">
-            <Button variant="outline" onClick={() => onNavigate('register')}>
+            <Button variant="outline" onClick={() => onNavigate('membership')}>
               Ir al formulario de afiliación
             </Button>
           </div>

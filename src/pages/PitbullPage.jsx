@@ -30,11 +30,11 @@ export default function PitbullPage({ onNavigate }) {
               <ul className="pitbull-detail__list">
                 <li>Divisiones: {PITBULL_CLASSIC.divisions.join(' · ')}</li>
                 <li>Inscripción individual: {money(PRICING.event)}</li>
-                <li>Combo afiliación + evento: {money(PRICING.combo)}</li>
+                <li>La afiliación y la inscripción se gestionan por separado.</li>
               </ul>
               <CapacityBar current={PITBULL_CLASSIC.registered} total={PITBULL_CLASSIC.slots} />
               <div className="pitbull-detail__actions">
-                <Button onClick={() => onNavigate('register')}>Inscribirme ahora</Button>
+                <Button onClick={() => onNavigate('competition')}>Inscribirme ahora</Button>
                 <Button variant="outline" onClick={() => onNavigate('members')}>
                   Ver planes de afiliación
                 </Button>
@@ -53,8 +53,8 @@ export default function PitbullPage({ onNavigate }) {
 
       <CTASection
         title="¿Primera vez en PLU ARG?"
-        description="Podés inscribirte con afiliación incluida en un solo trámite."
-        primaryLabel="Afiliarme + inscribirme"
+        description="Creá tu perfil y luego gestioná por separado la afiliación y la competencia."
+        primaryLabel="Crear perfil"
         onPrimary={() => onNavigate('register')}
         secondaryLabel="Ver reglamento"
         onSecondary={() => onNavigate('rulebook')}

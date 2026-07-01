@@ -17,7 +17,7 @@ export default function ShopPage({ onNavigate }) {
           title="Inscripciones"
           text="Inscribite a competencias oficiales PLU ARG desde acá."
           action="Inscribirse"
-          onAction={() => onNavigate('register')}
+          onAction={() => onNavigate('events')}
         />
       </div>
     </PageFrame>

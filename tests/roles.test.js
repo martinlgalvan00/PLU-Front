@@ -3,18 +3,19 @@ import { canEdit, canManageUsers, canExportPluUsa } from '../src/lib/roles.js'
 
 describe('roles', () => {
   it('admin puede editar', () => {
-    expect(canEdit('admin_plu_arg')).toBe(true)
+    expect(canEdit('admin_plu')).toBe(true)
   })
 
-  it('PLU USA no puede editar', () => {
-    expect(canEdit('viewer_plu_usa')).toBe(false)
+  it('el atleta no puede editar', () => {
+    expect(canEdit('athlete_plu')).toBe(false)
   })
 
-  it('operador no gestiona usuarios', () => {
-    expect(canManageUsers('operador_plu_arg')).toBe(false)
+  it('el atleta no gestiona usuarios', () => {
+    expect(canManageUsers('athlete_plu')).toBe(false)
   })
 
-  it('PLU USA puede exportar', () => {
-    expect(canExportPluUsa('viewer_plu_usa')).toBe(true)
+  it('solo admin exporta PLU USA', () => {
+    expect(canExportPluUsa('admin_plu')).toBe(true)
+    expect(canExportPluUsa('athlete_plu')).toBe(false)
   })
 })

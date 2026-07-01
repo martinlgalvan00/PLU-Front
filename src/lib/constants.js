@@ -19,10 +19,8 @@ export const PAYMENT_METHODS = {
 }
 
 export const ROLES = {
-  admin_maximal: { label: 'Admin Maximal', canEdit: true, canManageUsers: true },
-  admin_plu_arg: { label: 'Admin PLU ARG', canEdit: true, canManageUsers: true },
-  operador_plu_arg: { label: 'Operador PLU ARG', canEdit: true, canManageUsers: false },
-  viewer_plu_usa: { label: 'PLU USA lectura', canEdit: false, canManageUsers: false },
+  admin_plu: { label: 'Admin PLU', canEdit: true, canManageUsers: true },
+  athlete_plu: { label: 'Atleta PLU', canEdit: false, canManageUsers: false },
 }
 
 export const NAV_PRIMARY = ['home', 'members', 'pitbull', 'events', 'results']
@@ -53,7 +51,6 @@ export const DEFAULT_FORM = {
   division: 'Open',
   category: 'Raw',
   estimatedWeight: '',
-  procedureType: 'both',
   paymentMethod: 'mercado_pago',
 }
 
@@ -61,11 +58,6 @@ export const FORM_OPTIONS = {
   sex: ['Masculino', 'Femenino'],
   division: ['Open', 'Junior', 'Sub-Junior', 'Master I', 'Master II'],
   category: ['Raw', 'Classic Raw', 'Equipped'],
-  procedureType: [
-    ['both', 'Afiliación + inscripción'],
-    ['membership', 'Solo afiliación'],
-    ['event', 'Solo inscripción'],
-  ],
   paymentMethod: [
     ['mercado_pago', 'Mercado Pago'],
     ['manual_link', 'Link de pago + validación manual'],

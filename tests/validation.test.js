@@ -13,13 +13,12 @@ describe('validation', () => {
       ...DEFAULT_FORM,
       fullName: 'Juan Pérez',
       documentId: '40111222',
-      birthDate: '1990-01-01',
+      birthDate: '01/01/1990',
       email: 'juan@example.com',
       phone: '+54 11 1234-5678',
       province: 'Buenos Aires',
       city: 'CABA',
       gym: 'Maximal',
-      estimatedWeight: '82.5',
     })
     expect(result.success).toBe(true)
   })
