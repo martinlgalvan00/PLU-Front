@@ -16,4 +16,7 @@
 @import './components/states.css';
 @import './pages/home.css';
 @import './pages/page.css';
+@import './pages/admin.css';
 @import './pages/register.css';
+@import url('/src/styles/pages/events.css');
+@import url('/src/styles/pages/members.css');

@@ -19,9 +19,10 @@ body {
   min-width: 320px;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  /* Transición suave de todos los tokens al cambiar tema */
   transition:
-    background-color var(--transition-base),
-    color var(--transition-base);
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 h1,
@@ -67,4 +68,66 @@ button:disabled {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   min-height: 100vh;
+}
+
+/* =============================================
+   THEME TRANSITION — View Transition API + fallback CSS
+   Todas las propiedades afectadas por cambio de tema
+   hacen cross-fade visual suave
+   ============================================= */
+
+/* Fallback: transición CSS en elementos key */
+.site-header,
+.stat-block,
+.event-card,
+.result-card,
+.community-card,
+.membership-card,
+.admin-metric,
+.admin-welcome,
+.action-queue,
+.faq-item,
+.cta-section__inner,
+.about-pillar,
+.pitbull-spotlight {
+  transition:
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* View Transition API — cross-fade suave de toda la página */
+@keyframes theme-fade-in {
+  from { opacity: 0.6; filter: blur(2px) saturate(0.7); }
+  to   { opacity: 1;   filter: blur(0)   saturate(1); }
+}
+
+::view-transition-old(root) {
+  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-old;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: 0.35s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-in;
+  mix-blend-mode: normal;
+}
+
+@keyframes theme-fade-old {
+  from { opacity: 1; filter: blur(0); }
+  to   { opacity: 0; filter: blur(3px) saturate(0.5); }
+}
+
+/* pref-toggle: icono con spin al cambiar */
+.pref-toggle {
+  position: relative;
+}
+
+.pref-toggle svg {
+  transition: transform 0.4s var(--ease-spring), opacity 0.25s;
+}
+
+.pref-toggle:active svg {
+  transform: rotate(180deg) scale(0.85);
+  opacity: 0.7;
 }

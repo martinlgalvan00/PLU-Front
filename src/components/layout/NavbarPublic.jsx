@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, X, LayoutDashboard } from 'lucide-react'
 import { NAV_PRIMARY, NAV_SECONDARY } from '../../lib/constants.js'
+import { canViewAdmin } from '../../lib/roles.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useScrolled } from '../../hooks/useMotion.js'
 import Button from '../ui/Button.jsx'
@@ -27,6 +28,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
   const moreRef = useRef(null)
   const scrolled = useScrolled(16)
   const { t } = useI18n()
+  const adminSession = canViewAdmin(session?.role)
 
   function go(view) {
     onNavigate(view)
@@ -35,29 +37,25 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // Bloquear scroll al abrir drawer
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return () => { document.body.style.overflow = '' }
   }, [open])
 
+  // Cerrar con Escape
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') {
-        setOpen(false)
-        setMoreOpen(false)
-      }
+      if (e.key === 'Escape') { setOpen(false); setMoreOpen(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Cerrar dropdown "Más" al clickear fuera
   useEffect(() => {
     function onClickOutside(e) {
-      if (moreRef.current && !moreRef.current.contains(e.target)) {
-        setMoreOpen(false)
-      }
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false)
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
@@ -68,6 +66,8 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
   return (
     <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''}`}>
       <div className="site-header__inner">
+
+        {/* ── Logo / Brand ─────────────────────── */}
         <button className="site-header__logo" type="button" onClick={() => go('home')}>
           <img src={logo} alt="" />
           <span className="site-header__brand">
@@ -76,22 +76,15 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
           </span>
         </button>
 
+        {/* ── Nav desktop — solo PRIMARY + dropdown ─── */}
         <nav className="site-header__nav" aria-label="Principal">
           {NAV_PRIMARY.map((key) => (
             <NavLink key={key} active={activeView === key} onClick={() => go(key)}>
               {t(`nav.${key}`)}
             </NavLink>
           ))}
-          {NAV_SECONDARY.map((key) => (
-            <NavLink
-              key={key}
-              className="site-header__link--extended"
-              active={activeView === key}
-              onClick={() => go(key)}
-            >
-              {t(`nav.${key}`)}
-            </NavLink>
-          ))}
+
+          {/* Dropdown "Más" — agrupa todos los SECONDARY */}
           <div className="site-header__more" ref={moreRef}>
             <button
               type="button"
@@ -101,10 +94,12 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               onClick={() => setMoreOpen((v) => !v)}
             >
               {t('nav.more')}
-              <ChevronDown size={14} aria-hidden className={moreOpen ? 'is-rotated' : ''} />
+              <ChevronDown size={13} aria-hidden className={moreOpen ? 'is-rotated' : ''} />
             </button>
+
             {moreOpen && (
               <div className="site-header__more-menu" role="menu">
+                <p className="site-header__more-label">Institucional</p>
                 {NAV_SECONDARY.map((key) => (
                   <button
                     key={key}
@@ -121,23 +116,50 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
           </div>
         </nav>
 
+        {/* ── Actions desktop ──────────────────── */}
         <div className="site-header__actions">
           <div className="site-header__prefs">
             <ThemeToggle compact />
             <LanguageToggle compact />
           </div>
+
           {session ? (
             <>
-              <LoginButton compact label={session.role === 'admin_plu' ? 'Panel PLU' : 'Mi perfil'} onClick={() => go(session.role === 'admin_plu' ? 'admin' : 'profile')} />
-              <button type="button" className="site-header__icon-action" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={18} /></button>
+              <LoginButton
+                compact
+                label={adminSession ? 'Panel' : 'Mi perfil'}
+                onClick={() => go(adminSession ? 'admin' : 'profile')}
+              />
+              <button
+                type="button"
+                className="site-header__icon-action"
+                onClick={onLogout}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+              >
+                <LogOut size={16} />
+              </button>
             </>
           ) : (
-            <><LoginButton compact label={t('nav.login')} onClick={() => go('login')} /><Button className="site-header__cta btn--small" onClick={() => go('register')}>{t('nav.register')}</Button></>
+            <>
+              <LoginButton compact label={t('nav.login')} onClick={() => go('login')} />
+              <Button className="site-header__cta btn--small" onClick={() => go('register')}>
+                {t('nav.register')}
+              </Button>
+            </>
           )}
         </div>
 
+        {/* ── Mobile bar ───────────────────────── */}
         <div className="site-header__mobile-actions">
-          <Button className="site-header__cta site-header__cta--mobile btn--small" onClick={() => go('register')}>
+          <div className="site-header__prefs site-header__prefs--mobile">
+            <ThemeToggle compact />
+            <LanguageToggle compact />
+          </div>
+          <Button
+            className="site-header__cta site-header__cta--mobile btn--small"
+            onClick={() => go('register')}
+          >
             {t('nav.register')}
           </Button>
           <button
@@ -152,6 +174,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
         </div>
       </div>
 
+      {/* ── Backdrop móvil ───────────────────── */}
       <button
         type="button"
         className={`site-header__backdrop ${open ? 'is-visible' : ''}`}
@@ -160,37 +183,64 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
         onClick={() => setOpen(false)}
       />
 
+      {/* ── Drawer móvil ─────────────────────── */}
       <aside className={`site-header__drawer ${open ? 'is-open' : ''}`} aria-hidden={!open}>
         <div className="site-header__drawer-head">
           <span className="site-header__drawer-brand">{t('brand.name')}</span>
-          <button type="button" className="site-header__drawer-close" aria-label="Cerrar menú" onClick={() => setOpen(false)}>
+          <button
+            type="button"
+            className="site-header__drawer-close"
+            aria-label="Cerrar menú"
+            onClick={() => setOpen(false)}
+          >
             <X size={20} />
           </button>
         </div>
+
         <nav className="site-header__drawer-nav" aria-label="Menú móvil">
           <p className="site-header__drawer-group">Competencia</p>
-          {NAV_PRIMARY.filter((k) => k !== 'home').map((key) => (
-            <button key={key} type="button" className={activeView === key ? 'is-active' : ''} onClick={() => go(key)}>
+          {NAV_PRIMARY.map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={activeView === key ? 'is-active' : ''}
+              onClick={() => go(key)}
+            >
               {t(`nav.${key}`)}
             </button>
           ))}
-          <button type="button" className={activeView === 'home' ? 'is-active' : ''} onClick={() => go('home')}>
-            {t('nav.home')}
-          </button>
 
           <p className="site-header__drawer-group">Institucional</p>
           {NAV_SECONDARY.map((key) => (
-            <button key={key} type="button" className={activeView === key ? 'is-active' : ''} onClick={() => go(key)}>
+            <button
+              key={key}
+              type="button"
+              className={activeView === key ? 'is-active' : ''}
+              onClick={() => go(key)}
+            >
               {t(`nav.${key}`)}
             </button>
           ))}
 
           <div className="site-header__drawer-actions">
-            <div className="site-header__prefs">
-              <ThemeToggle compact />
-              <LanguageToggle compact />
-            </div>
-            {session ? <><LoginButton label={session.role === 'admin_plu' ? 'Panel PLU' : 'Mi perfil'} onClick={() => go(session.role === 'admin_plu' ? 'admin' : 'profile')} /><Button variant="ghost" className="btn--block" onClick={onLogout}><LogOut size={17} /> Cerrar sesión</Button></> : <><LoginButton label={t('nav.login')} onClick={() => go('login')} /><Button className="site-header__cta site-header__cta--block" onClick={() => go('register')}>{t('nav.register')}</Button></>}
+            {session ? (
+              <>
+                <LoginButton
+                  label={adminSession ? 'Panel PLU' : 'Mi perfil'}
+                  onClick={() => go(adminSession ? 'admin' : 'profile')}
+                />
+                <Button variant="ghost" className="btn--block" onClick={onLogout}>
+                  <LogOut size={17} /> Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <LoginButton label={t('nav.login')} onClick={() => go('login')} />
+                <Button className="site-header__cta site-header__cta--block" onClick={() => go('register')}>
+                  {t('nav.register')}
+                </Button>
+              </>
+            )}
           </div>
         </nav>
       </aside>

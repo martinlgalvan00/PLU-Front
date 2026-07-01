@@ -1,62 +1,86 @@
-/* =============================================
-   CARDS BASE
-   ============================================= */
-
 .benefit-card,
 .pricing-card,
 .info-card {
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-2xl);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
   display: grid;
   justify-items: center;
-  min-height: 260px;
-  padding: 42px 26px;
+  min-height: 240px;
+  overflow: hidden;
+  padding: 36px 24px;
   position: relative;
   text-align: center;
   transition:
-    transform var(--transition-base),
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     border-color var(--transition-base),
-    box-shadow var(--transition-base);
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
-/* Glow top edge al hover */
+.benefit-card::after,
+.info-card::after {
+  background: linear-gradient(110deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.055) 50%,
+      transparent 80%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%) skewX(-15deg);
+  z-index: 2;
+}
+
+.benefit-card:hover::after,
+.info-card:hover::after {
+  animation: card-shimmer 0.6s var(--ease-out) forwards;
+}
+
+/* Borde top gradiente */
 .benefit-card::before,
 .info-card::before {
-  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-gold));
-  border-radius: var(--border-radius-pill) var(--border-radius-pill) 0 0;
+  background: var(--gradient-brand);
+  border-radius: 0;
   content: '';
-  height: 3px;
+  height: 1.5px;
   left: 20%;
   opacity: 0;
   position: absolute;
   top: 0;
-  transition: opacity var(--transition-base), left var(--transition-base), width var(--transition-base);
+  transition:
+    opacity var(--transition-base),
+    left var(--transition-base),
+    width var(--transition-base);
   width: 60%;
 }
 
 .benefit-card:hover,
 .info-card:hover {
-  border-color: rgba(225, 6, 0, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), var(--glow-red-soft);
-  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.26);
+  transform: translateY(-5px);
 }
 
 .benefit-card:hover::before,
 .info-card:hover::before {
-  left: 15%;
+  left: 8%;
   opacity: 1;
-  width: 70%;
+  width: 84%;
 }
 
-/* Icono con micro-animación */
+/* Icono con glow */
 .benefit-card svg {
-  margin-bottom: 26px;
-  transition: transform var(--transition-base);
+  filter: drop-shadow(0 0 0px rgba(225, 6, 0, 0));
+  margin-bottom: 22px;
+  transition:
+    transform var(--transition-base),
+    filter var(--transition-base);
 }
 
 .benefit-card:hover svg {
-  transform: scale(1.12) rotate(-4deg);
+  filter: drop-shadow(0 2px 10px rgba(225, 6, 0, 0.35));
+  transform: scale(1.10) translateY(-2px);
 }
 
 /* =============================================
@@ -67,9 +91,13 @@
 .pricing-card h3,
 .info-card h3,
 .event-row h3 {
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   line-height: 1.05;
   margin: 0;
+  text-transform: uppercase;
 }
 
 .benefit-card p,
@@ -77,7 +105,8 @@
 .pricing-card li,
 .contact-panel p,
 .panel-header p {
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
+  font-size: 14px;
   line-height: 1.65;
   margin: 0;
 }
@@ -88,9 +117,9 @@
 
 .benefit-grid {
   display: grid;
-  gap: 20px;
+  gap: 16px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 54px auto 0;
+  margin: 48px auto 0;
   max-width: var(--max-width-text);
 }
 
@@ -98,7 +127,7 @@
 .content-grid,
 .metric-grid {
   display: grid;
-  gap: 50px;
+  gap: 40px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -108,50 +137,50 @@
 
 .pricing-card {
   align-content: start;
-  min-height: 560px;
+  min-height: 540px;
 }
 
 .pricing-card div {
   align-items: start;
   display: flex;
-  font-size: 66px;
+  font-size: 60px;
   gap: var(--space-sm);
-  margin-top: 54px;
+  margin-top: 48px;
 }
 
 .pricing-card div span {
   color: var(--color-text-price);
-  font-size: 28px;
-  margin-top: 12px;
+  font-size: 26px;
+  margin-top: 10px;
 }
 
-.pricing-card > p {
-  font-size: 18px;
+.pricing-card>p {
+  font-size: 16px;
   letter-spacing: var(--letter-spacing-wide);
-  margin: 0 0 34px;
+  margin: 0 0 28px;
   text-transform: uppercase;
 }
 
 .pricing-card ul {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   list-style: none;
-  margin: 0 0 42px;
+  margin: 0 0 36px;
   padding: 0;
   width: 100%;
 }
 
 .pricing-card li {
   align-items: center;
-  border-top: 1px dotted var(--color-border-dotted);
+  border-top: 1px solid var(--color-border-subtle);
   display: flex;
   gap: var(--space-sm);
   justify-content: center;
-  padding-top: 18px;
+  padding-top: 14px;
 }
 
 .pricing-card li svg {
-  color: #777;
+  color: rgba(255, 255, 255, 0.25);
 }
 
 /* =============================================
@@ -159,12 +188,31 @@
    ============================================= */
 
 .content-grid {
-  gap: 22px;
+  gap: 16px;
 }
 
 .info-card {
   align-content: center;
-  gap: 18px;
+  gap: 14px;
+}
+
+/* =============================================
+   CARD GLOW VARIANTS
+   ============================================= */
+
+.card--glow-red:hover {
+  border-color: rgba(225, 6, 0, 0.28);
+  box-shadow: var(--glow-red), 0 20px 56px rgba(0, 0, 0, 0.32);
+}
+
+.card--glow-gold:hover {
+  border-color: rgba(201, 185, 120, 0.32);
+  box-shadow: var(--glow-gold), 0 20px 56px rgba(0, 0, 0, 0.32);
+}
+
+.card--glow-celeste:hover {
+  border-color: rgba(116, 172, 223, 0.32);
+  box-shadow: var(--glow-celeste), 0 20px 56px rgba(0, 0, 0, 0.32);
 }
 
 /* =============================================
@@ -172,6 +220,7 @@
    ============================================= */
 
 @media (max-width: 1060px) {
+
   .benefit-grid,
   .pricing-grid,
   .content-grid,
@@ -181,10 +230,29 @@
 }
 
 @media (max-width: 720px) {
+
   .benefit-grid,
   .pricing-grid,
   .content-grid,
   .metric-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* =============================================
+   LIGHT THEME
+   ============================================= */
+
+[data-theme='light'] .benefit-card,
+[data-theme='light'] .info-card {
+  background: #ffffff;
+}
+
+[data-theme='light'] .benefit-card:hover,
+[data-theme='light'] .info-card:hover {
+  box-shadow: 0 12px 36px rgba(15, 17, 23, 0.09);
+}
+
+[data-theme='light'] .pricing-card li svg {
+  color: rgba(15, 17, 23, 0.25);
 }

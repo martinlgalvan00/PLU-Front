@@ -8,14 +8,32 @@
   --color-brand-celeste-dim: rgba(116, 172, 223, 0.15);
   --color-brand-celeste-glow: rgba(116, 172, 223, 0.35);
 
-  /* Sombras sutiles — sin glow exagerado */
-  --glow-red: 0 4px 16px rgba(225, 6, 0, 0.2);
-  --glow-red-soft: 0 2px 12px rgba(225, 6, 0, 0.12);
-  --glow-gold: 0 4px 16px rgba(201, 185, 120, 0.18);
-  --glow-gold-soft: 0 2px 12px rgba(201, 185, 120, 0.12);
-  --glow-celeste: 0 4px 16px rgba(116, 172, 223, 0.18);
-  --glow-celeste-soft: 0 2px 12px rgba(116, 172, 223, 0.1);
+  /* ── Glows sutiles ─────────────────────────────── */
+  --glow-red:          0 4px 20px rgba(225, 6, 0, 0.30);
+  --glow-red-soft:     0 2px 14px rgba(225, 6, 0, 0.16);
+  --glow-red-strong:   0 8px 32px rgba(225, 6, 0, 0.45);
+  --glow-gold:         0 4px 20px rgba(201, 185, 120, 0.28);
+  --glow-gold-soft:    0 2px 14px rgba(201, 185, 120, 0.16);
+  --glow-gold-strong:  0 8px 32px rgba(201, 185, 120, 0.40);
+  --glow-celeste:      0 4px 20px rgba(116, 172, 223, 0.28);
+  --glow-celeste-soft: 0 2px 14px rgba(116, 172, 223, 0.14);
+  --glow-celeste-strong: 0 8px 32px rgba(116, 172, 223, 0.42);
 
+  /* ── Card premium tokens ───────────────────────── */
+  --card-gradient-red:
+    linear-gradient(135deg, rgba(225, 6, 0, 0.08) 0%, transparent 60%);
+  --card-gradient-gold:
+    linear-gradient(135deg, rgba(201, 185, 120, 0.08) 0%, transparent 60%);
+  --card-gradient-celeste:
+    linear-gradient(135deg, rgba(116, 172, 223, 0.08) 0%, transparent 60%);
+  --card-gradient-neutral:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+
+  /* ── Gradient borders ──────────────────────────── */
+  --gradient-brand: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste), var(--color-brand-gold));
+  --gradient-brand-diag: linear-gradient(135deg, var(--color-brand-red) 0%, var(--color-brand-celeste) 50%, var(--color-brand-gold) 100%);
+
+  /* ── Status ────────────────────────────────────── */
   --color-success-bg: #dcfce7;
   --color-success-text: #166534;
   --color-warning-bg: #fef3c7;
@@ -23,6 +41,7 @@
   --color-danger-bg: #fee2e2;
   --color-danger-text: #991b1b;
 
+  /* ── Tipografía ────────────────────────────────── */
   --font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Barlow Condensed', 'Poppins', ui-sans-serif, system-ui, sans-serif;
   --font-weight-bold: 700;
@@ -31,6 +50,7 @@
   --letter-spacing-wider: 0.12em;
   --letter-spacing-display: 0.04em;
 
+  /* ── Easings ───────────────────────────────────── */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -45,6 +65,7 @@
   --transition-base: var(--duration-base) var(--ease-out);
   --transition-slow: var(--duration-slow) var(--ease-out);
 
+  /* ── Espaciado ─────────────────────────────────── */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -54,6 +75,7 @@
   --space-3xl: 72px;
   --space-4xl: 96px;
 
+  /* ── Layout ────────────────────────────────────── */
   --max-width-content: 1240px;
   --max-width-page: 1200px;
   --max-width-text: 720px;

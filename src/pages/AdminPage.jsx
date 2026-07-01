@@ -1,205 +1,118 @@
 import { useState } from 'react'
-import { Filter, Search } from 'lucide-react'
 import AdminShell from '../components/layout/AdminShell.jsx'
-import AdminTopBar from '../components/layout/AdminTopBar.jsx'
-import DataTable, { StatusBadge } from '../components/ui/DataTable.jsx'
-import EmptyState from '../components/ui/EmptyState.jsx'
-import ExportButton from '../components/ui/ExportButton.jsx'
-import StatBlock from '../components/ui/StatBlock.jsx'
-import { REGISTRATION_FILTER_STATUSES } from '../lib/constants.js'
-import { money } from '../lib/format.js'
+import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
+import AthletesSection from './admin/AthletesSection.jsx'
+import DashboardSection from './admin/DashboardSection.jsx'
+import MembershipsSection from './admin/MembershipsSection.jsx'
+import PlaceholderSection from './admin/PlaceholderSection.jsx'
+import RegistrationsSection from './admin/RegistrationsSection.jsx'
 
 export default function AdminPage({
   canEdit,
   dashboard,
   filters,
   filteredRegistrations,
+  enrichedMemberships,
+  pendingActions,
+  adminNavBadges,
+  getAthleteDetail,
   onApprovePayment,
   onExportAdmin,
   onExportPluUsa,
   onSetFilters,
   payments,
   athletes,
+  roleLabel,
   onExit,
 }) {
   const [section, setSection] = useState('dashboard')
   const [globalSearch, setGlobalSearch] = useState('')
+  const [selectedAthleteId, setSelectedAthleteId] = useState(null)
 
-  const pendingPayments = payments.filter((p) => p.status === 'pendiente' || p.status === 'pendiente_pago').length
+  const pendingPayments = payments.filter(
+    (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
+  ).length
 
-  const registrationRows = filteredRegistrations.map((reg) => {
-    const payment = payments.find((p) => p.athleteId === reg.athleteId)
-    return {
-      id: reg.id,
-      athlete: reg.athlete?.fullName,
-      document: reg.athlete?.documentId,
-      event: reg.event,
-      category: `${reg.category} · ${reg.division}`,
-      status: reg.status,
-      paymentStatus: payment?.status,
-      amount: payment ? money(payment.amount) : '—',
-      paymentId: payment?.id,
+  function handleSectionChange(nextSection) {
+    setSection(nextSection)
+    if (nextSection !== 'athletes') {
+      setSelectedAthleteId(null)
     }
-  })
+  }
 
-  const columns = [
-    {
-      key: 'athlete',
-      label: 'Atleta',
-      render: (row) => (
-        <>
-          <strong>{row.athlete}</strong>
-          <span className="data-table__sub">{row.document}</span>
-        </>
-      ),
-    },
-    { key: 'event', label: 'Evento' },
-    { key: 'category', label: 'Categoría' },
-    {
-      key: 'status',
-      label: 'Estado',
-      render: (row) => <StatusBadge value={row.status} />,
-    },
-    {
-      key: 'payment',
-      label: 'Pago',
-      render: (row) => (
-        <>
-          <StatusBadge value={row.paymentStatus} />
-          <span className="data-table__sub">{row.amount}</span>
-        </>
-      ),
-    },
-    {
-      key: 'action',
-      label: 'Acción',
-      render: (row) => (
-        <button
-          type="button"
-          className="btn btn--small"
-          onClick={() => onApprovePayment(row.paymentId)}
-          disabled={!canEdit || row.paymentStatus === 'aprobado'}
-        >
-          Validar
-        </button>
-      ),
-    },
-  ]
+  function handleSelectAthlete(athleteId) {
+    setSelectedAthleteId(athleteId)
+    setSection('athletes')
+  }
 
   function renderSection() {
     if (section === 'dashboard') {
       return (
-        <>
-          <AdminTopBar
-            title="Dashboard"
-            subtitle="Resumen operativo de PLU ARG"
-            searchValue={globalSearch}
-            onSearchChange={setGlobalSearch}
-            alertCount={pendingPayments}
+        <DashboardSection
+          dashboard={dashboard}
+          pendingActions={pendingActions}
+          pendingPayments={pendingPayments}
+          onNavigate={handleSectionChange}
+          onApprovePayment={onApprovePayment}
+          canEdit={canEdit}
+          globalSearch={globalSearch}
+          onGlobalSearchChange={setGlobalSearch}
+        />
+      )
+    }
+
+    if (section === 'athletes') {
+      if (selectedAthleteId) {
+        return (
+          <AthleteDetailSection
+            detail={getAthleteDetail(selectedAthleteId)}
+            onBack={() => setSelectedAthleteId(null)}
+            canEdit={canEdit}
+            onApprovePayment={onApprovePayment}
           />
-          <div className="admin-stats">
-            {dashboard.map((item) => (
-              <StatBlock key={item.label} value={item.value} label={item.label} />
-            ))}
-          </div>
-        </>
+        )
+      }
+
+      return <AthletesSection athletes={athletes} onSelectAthlete={handleSelectAthlete} />
+    }
+
+    if (section === 'memberships') {
+      return (
+        <MembershipsSection memberships={enrichedMemberships} onSelectAthlete={handleSelectAthlete} />
       )
     }
 
     if (section === 'registrations') {
       return (
-        <>
-          <header className="admin-page__header admin-page__header--row">
-            <div>
-              <h1>Inscripciones</h1>
-              <p>Atletas, eventos, pagos y estados</p>
-            </div>
-            <div className="admin-page__actions">
-              <ExportButton label="CSV admin" onClick={onExportAdmin} disabled={!canEdit} />
-              <ExportButton label="PLU USA" onClick={onExportPluUsa} variant="gold" />
-            </div>
-          </header>
-          <div className="admin-filters">
-            <label>
-              <Search size={16} />
-              <input
-                placeholder="Buscar atleta, DNI o categoría"
-                value={filters.query}
-                onChange={(e) => onSetFilters((c) => ({ ...c, query: e.target.value }))}
-              />
-            </label>
-            <label>
-              <Filter size={16} />
-              <select
-                value={filters.status}
-                onChange={(e) => onSetFilters((c) => ({ ...c, status: e.target.value }))}
-              >
-                {REGISTRATION_FILTER_STATUSES.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <DataTable columns={columns} rows={registrationRows} emptyMessage="No hay inscripciones" />
-        </>
+        <RegistrationsSection
+          canEdit={canEdit}
+          filters={filters}
+          filteredRegistrations={filteredRegistrations}
+          payments={payments}
+          onApprovePayment={onApprovePayment}
+          onExportAdmin={onExportAdmin}
+          onExportPluUsa={onExportPluUsa}
+          onSetFilters={onSetFilters}
+        />
       )
     }
 
-    if (section === 'athletes') {
-      return (
-        <>
-          <header className="admin-page__header">
-            <h1>Atletas</h1>
-            <p>{athletes.length} registros en base</p>
-          </header>
-          <DataTable
-            columns={[
-              { key: 'fullName', label: 'Nombre' },
-              { key: 'documentId', label: 'Documento' },
-              { key: 'email', label: 'Email' },
-              {
-                key: 'status',
-                label: 'Estado',
-                render: (row) => <StatusBadge value={row.status} />,
-              },
-            ]}
-            rows={athletes.map((a) => ({ ...a, id: a.id }))}
-          />
-        </>
-      )
+    if (['events', 'payments', 'results', 'exports', 'users', 'audit'].includes(section)) {
+      return <PlaceholderSection section={section} />
     }
 
-    const placeholders = {
-      memberships: ['Afiliaciones', 'Gestión de códigos, vencimientos y renovaciones.'],
-      events: ['Eventos', 'Calendario, cupos y configuración de meets.'],
-      payments: ['Pagos', 'Órdenes, Mercado Pago y validaciones manuales.'],
-      results: ['Resultados', 'Importación LiftingCast y publicación de planillas.'],
-      exports: ['Exportaciones', 'CSV/XLSX para operación y PLU USA.'],
-      users: ['Usuarios', 'Roles, accesos y permisos del panel.'],
-      audit: ['Auditoría', 'Historial de cambios sensibles del sistema.'],
-    }
-
-    const [title, desc] = placeholders[section] ?? ['Sección', '']
-    return (
-      <>
-        <header className="admin-page__header">
-          <h1>{title}</h1>
-          <p>{desc}</p>
-        </header>
-        <EmptyState title="Módulo en desarrollo" description={desc} />
-      </>
-    )
+    return null
   }
 
   return (
     <AdminShell
       activeSection={section}
-      onSectionChange={setSection}
+      onSectionChange={handleSectionChange}
       onExit={onExit}
+      navBadges={adminNavBadges}
+      roleLabel={roleLabel}
     >
-      <div className="admin-page admin-section-enter" key={section}>
+      <div className="admin-page admin-section-enter" key={`${section}-${selectedAthleteId ?? 'list'}`}>
         {renderSection()}
       </div>
     </AdminShell>

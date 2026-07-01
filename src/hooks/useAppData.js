@@ -14,6 +14,12 @@ import {
   buildPluUsaExportRows,
   createCsv,
 } from '../services/exportService.js'
+import {
+  buildPendingActions,
+  getAdminNavBadges,
+  getAthleteAuditLogs,
+} from '../services/adminService.js'
+import { enrichMemberships } from '../services/membershipService.js'
 
 export function useAppData() {
   const storedData = useMemo(() => readStorage(), [])
@@ -62,6 +68,37 @@ export function useAppData() {
         athlete: athletes.find((a) => a.id === registration.athleteId),
       })),
     [registrations, athletes],
+  )
+
+  const enrichedMemberships = useMemo(
+    () => enrichMemberships(memberships, athletes),
+    [memberships, athletes],
+  )
+
+  const pendingActions = useMemo(
+    () => buildPendingActions({ payments, athletes, memberships, registrations }),
+    [payments, athletes, memberships, registrations],
+  )
+
+  const adminNavBadges = useMemo(
+    () => getAdminNavBadges({ payments, registrations }),
+    [payments, registrations],
+  )
+
+  const getAthleteDetail = useCallback(
+    (athleteId) => {
+      const athlete = athletes.find((item) => item.id === athleteId)
+      if (!athlete) return null
+
+      return {
+        athlete,
+        memberships: memberships.filter((item) => item.athleteId === athleteId),
+        registrations: registrations.filter((item) => item.athleteId === athleteId),
+        payments: payments.filter((item) => item.athleteId === athleteId),
+        auditLogs: getAthleteAuditLogs(athleteId, auditLogs, memberships, registrations, payments),
+      }
+    },
+    [athletes, memberships, registrations, payments, auditLogs],
   )
 
   const filteredRegistrations = useMemo(() => {
@@ -129,7 +166,7 @@ export function useAppData() {
 
   const login = useCallback((accountType) => {
     const nextSession = accountType === 'admin'
-      ? { role: 'admin_plu', name: 'Administración PLU', email: 'admin@pluarg.com' }
+      ? { role: 'admin_plu_arg', name: 'Administración PLU', email: 'admin@pluarg.com' }
       : { role: 'athlete_plu', athleteId: 'ath-001', name: 'Martina Rivas', email: 'martina.rivas@example.com' }
     setSession(nextSession)
     return nextSession
@@ -140,8 +177,7 @@ export function useAppData() {
   const handleApprovePayment = useCallback(
     async (paymentId) => {
       const payment = payments.find((item) => item.id === paymentId)
-      const canApproveOwnPayment = session?.role === 'athlete_plu' && payment?.athleteId === session.athleteId
-      if (!userCanEdit && !canApproveOwnPayment) return
+      if (!payment || !userCanEdit) return
       const result = await approvePaymentAction(paymentId, payments)
       if (!result) return
 
@@ -173,7 +209,7 @@ export function useAppData() {
       const athlete = athletes.find((a) => a.id === result.athleteId)
       if (athlete) await result.emails(athlete)
     },
-    [userCanEdit, payments, athletes, session],
+    [userCanEdit, payments, athletes],
   )
 
   const exportAdminCsv = useCallback(() => {
@@ -203,6 +239,10 @@ export function useAppData() {
     setFilters,
     dashboard,
     filteredRegistrations,
+    enrichedMemberships,
+    pendingActions,
+    adminNavBadges,
+    getAthleteDetail,
     updateForm,
     registerAthlete,
     submitMembership,

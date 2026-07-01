@@ -25,7 +25,12 @@ export default {
     description:
       'Memberships, competitions, results and community for strength athletes in Argentina.',
     ctaRegister: 'Join now',
+    ctaRegisterHint: 'Annual membership 2026',
     ctaPitbull: 'Register for Pitbull Classic',
+    ctaPitbullShort: 'Pitbull Classic',
+    ctaPitbullHint: 'Flagship meet · August 2026',
+    ctaPitbullAction: 'Register',
+    quickNavLabel: 'Quick links',
     ctaLogin: 'Access admin panel',
     ctaEvents: 'View events',
     ctaResults: 'View results',

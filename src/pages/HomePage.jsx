@@ -4,18 +4,19 @@ import {
   FAQ_ITEMS,
   HOME_STATS,
   MEMBERSHIP_PLANS,
-  PITBULL_CLASSIC,
+  PLATFORM_SECTIONS,
   RECENT_RESULTS,
 } from '../lib/content.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
 import Button from '../components/ui/Button.jsx'
-import CapacityBar from '../components/ui/CapacityBar.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
+import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
+import PlatformMap from '../components/ui/PlatformMap.jsx'
 import ResultCard from '../components/ui/ResultCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
@@ -60,30 +61,12 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section">
+      <Reveal as="section" className="home-section home-section--pitbull">
         <div className="home-section__inner">
-          <div className="pitbull-spotlight">
-            <SectionHeading
-              align="left"
-              eyebrow="Pitbull Classic"
-              title={PITBULL_CLASSIC.title}
-              description={`${PITBULL_CLASSIC.date} · ${PITBULL_CLASSIC.venue}, ${PITBULL_CLASSIC.location}`}
-            />
-            <div className="pitbull-spotlight__tags">
-              {PITBULL_CLASSIC.categories.map((cat) => (
-                <span key={cat} className="pitbull-spotlight__tag">
-                  {cat}
-                </span>
-              ))}
-            </div>
-            <CapacityBar current={PITBULL_CLASSIC.registered} total={PITBULL_CLASSIC.slots} />
-            <div className="hero__actions-primary">
-              <Button onClick={() => onSelectEvent(UPCOMING_EVENTS[0])}>Inscribirme</Button>
-              <Button variant="outline" onClick={() => onNavigate('pitbull')}>
-                Ver detalle
-              </Button>
-            </div>
-          </div>
+          <PitbullSpotlight
+            onRegister={() => onSelectEvent(UPCOMING_EVENTS[0])}
+            onDetail={() => onNavigate('pitbull')}
+          />
         </div>
       </Reveal>
 
@@ -151,6 +134,17 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
               </article>
             ))}
           </div>
+        </div>
+      </Reveal>
+
+      <Reveal as="section" className="home-section home-section--dark">
+        <div className="home-section__inner">
+          <SectionHeading
+            eyebrow="Navegación"
+            title="Explorá toda la plataforma"
+            description="Accedé a cada sección pública de PLU ARG desde un solo lugar."
+          />
+          <PlatformMap sections={PLATFORM_SECTIONS} onNavigate={onNavigate} />
         </div>
       </Reveal>
 

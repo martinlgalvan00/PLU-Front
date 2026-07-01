@@ -25,7 +25,12 @@ export default {
     description:
       'Afiliaciones, competencias, resultados y comunidad para atletas de fuerza en Argentina.',
     ctaRegister: 'Registrarme',
+    ctaRegisterHint: 'Afiliación anual 2026',
     ctaPitbull: 'Inscribirme a Pitbull Classic',
+    ctaPitbullShort: 'Pitbull Classic',
+    ctaPitbullHint: 'Meet insignia · agosto 2026',
+    ctaPitbullAction: 'Inscribirme',
+    quickNavLabel: 'Accesos rápidos',
     ctaLogin: 'Acceder al panel',
     ctaEvents: 'Ver eventos',
     ctaResults: 'Ver resultados',

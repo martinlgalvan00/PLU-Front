@@ -14,6 +14,13 @@ enum UserRole {
   viewer_plu_usa
 }
 
+enum UserStatus {
+  invited
+  active
+  suspended
+  disabled
+}
+
 enum AthleteStatus {
   pre_registrado
   registrado
@@ -22,12 +29,33 @@ enum AthleteStatus {
   bloqueado
 }
 
+enum AthleteDocumentType {
+  dni
+  passport
+  national_id
+  other
+}
+
+enum CompetitiveSex {
+  masculino
+  femenino
+}
+
 enum MembershipStatus {
   pendiente_pago
   activa
   vencida
   cancelada
   reembolsada
+}
+
+enum EventStatus {
+  draft
+  published
+  registration_open
+  registration_closed
+  finished
+  cancelled
 }
 
 enum RegistrationStatus {
@@ -48,146 +76,554 @@ enum PaymentStatus {
   reembolsado
 }
 
+enum PaymentOrderType {
+  membership
+  event_registration
+  membership_plus_event
+}
+
+enum PaymentProvider {
+  mercado_pago
+  manual
+  mock
+}
+
+enum ExportType {
+  athletes
+  memberships
+  event_registrations
+  payments
+  lifting_results
+  plu_usa_consolidated
+}
+
+enum ExportStatus {
+  queued
+  processing
+  completed
+  failed
+}
+
+enum ExportFormat {
+  csv
+  xlsx
+}
+
+enum EmailStatus {
+  queued
+  sent
+  skipped
+  failed
+}
+
+enum UserTheme {
+  system
+  light
+  dark
+}
+
+enum UserDensity {
+  comfortable
+  compact
+}
+
+enum NotificationChannel {
+  email
+  in_app
+}
+
+enum RecentEntityType {
+  athlete
+  membership
+  event
+  event_registration
+  payment_order
+  payment
+  export_job
+}
+
+enum IntegrationProvider {
+  mercado_pago
+  brevo
+  liftingcast
+  auth0
+  manual
+}
+
+enum IntegrationEventStatus {
+  received
+  processing
+  processed
+  failed
+  skipped
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         UserRole @default(operador_plu_arg)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  auditLogs    AuditLog[]
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String?
+  role         UserRole   @default(operador_plu_arg)
+  status       UserStatus @default(invited)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  profile                 UserProfile?
+  identities              UserIdentity[]
+  sessions                Session[]
+  preference              UserPreference?
+  savedViews              UserSavedView[]
+  tablePreferences        UserTablePreference[]
+  notificationPreferences UserNotificationPreference[]
+  recentEntities          UserRecentEntity[]
+  exports                 ExportJob[]
+  auditLogs               AuditLog[]
+
+  @@index([role, status])
+}
+
+model UserIdentity {
+  id              String   @id @default(cuid())
+  userId          String
+  provider        String
+  providerSubject String
+  email           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  firstName   String
+  lastName    String
+  displayName String?
+  avatarUrl   String?
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  userAgent String?
+  ipHash    String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UserPreference {
+  id               String      @id @default(cuid())
+  userId           String      @unique
+  locale           String      @default("es-AR")
+  timezone         String      @default("America/Argentina/Buenos_Aires")
+  theme            UserTheme   @default(system)
+  density          UserDensity @default(comfortable)
+  defaultDashboard String?
+  settings         Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  scope     String
+  name      String
+  filters   Json
+  sort      Json?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope])
+  @@index([scope])
+}
+
+model UserTablePreference {
+  id             String   @id @default(cuid())
+  userId         String
+  tableKey       String
+  visibleColumns Json
+  columnOrder    Json?
+  pageSize       Int      @default(25)
+  sort           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tableKey])
+}
+
+model UserNotificationPreference {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel
+  topic     String
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel, topic])
+}
+
+model UserRecentEntity {
+  id         String           @id @default(cuid())
+  userId     String
+  entityType RecentEntityType
+  entityId   String
+  viewedAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId, viewedAt])
+}
+
+model IntegrationEvent {
+  id             String                 @id @default(cuid())
+  provider       IntegrationProvider
+  type           String
+  status         IntegrationEventStatus @default(received)
+  externalId     String?
+  idempotencyKey String?                @unique
+  entityType     String?
+  entityId       String?
+  payload        Json?
+  result         Json?
+  error          String?
+  attemptsCount  Int                    @default(0)
+  receivedAt     DateTime               @default(now())
+  processedAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  attempts IntegrationAttempt[]
+
+  @@unique([provider, externalId])
+  @@index([provider, type, status])
+  @@index([entityType, entityId])
+  @@index([receivedAt])
+}
+
+model IntegrationAttempt {
+  id                 String                 @id @default(cuid())
+  integrationEventId String
+  status             IntegrationEventStatus
+  requestPayload     Json?
+  responsePayload    Json?
+  error              String?
+  createdAt          DateTime               @default(now())
+
+  integrationEvent IntegrationEvent @relation(fields: [integrationEventId], references: [id], onDelete: Cascade)
+
+  @@index([integrationEventId])
+  @@index([status, createdAt])
 }
 
 model Athlete {
-  id              String        @id @default(cuid())
-  fullName        String
-  documentId      String        @unique
-  birthDate       DateTime
-  email           String        @unique
-  phone           String
-  country         String        @default("Argentina")
-  province        String
-  city            String
-  gym             String
-  sex             String
-  division        String
-  category        String
-  estimatedWeight String?
-  status          AthleteStatus @default(pre_registrado)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  memberships     Membership[]
-  registrations   EventRegistration[]
-  payments        Payment[]
+  id                    String         @id @default(cuid())
+  firstName             String
+  lastName              String
+  birthDate             DateTime
+  email                 String         @unique
+  phone                 String
+  country               String         @default("Argentina")
+  province              String
+  city                  String
+  gym                   String
+  competitiveSex        CompetitiveSex
+  defaultDivision       String
+  defaultCategory       String
+  estimatedBodyweightKg Decimal?       @db.Decimal(6, 2)
+  status                AthleteStatus  @default(pre_registrado)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  documents     AthleteDocument[]
+  memberships   Membership[]
+  registrations EventRegistration[]
+  paymentOrders PaymentOrder[]
+  payments      Payment[]
+  results       LiftingResult[]
+
+  @@index([lastName, firstName])
+  @@index([email])
+  @@index([status])
+}
+
+model AthleteDocument {
+  id             String              @id @default(cuid())
+  athleteId      String
+  documentType   AthleteDocumentType
+  documentNumber String
+  country        String              @default("Argentina")
+  primary        Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([documentType, documentNumber])
+  @@index([athleteId])
 }
 
 model Membership {
   id             String           @id @default(cuid())
   athleteId      String
-  athlete        Athlete          @relation(fields: [athleteId], references: [id])
   year           Int
+  memberCode     String           @unique
   status         MembershipStatus @default(pendiente_pago)
   startDate      DateTime
   expirationDate DateTime
-  memberCode     String           @unique
-  paymentStatus  String?
-  mercadoPagoRef String?
+  paymentOrderId String?
+  paymentId      String?
+  notes          String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+
+  athlete       Athlete             @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  paymentOrder  PaymentOrder?       @relation("MembershipPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  payment       Payment?            @relation("MembershipPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  registrations EventRegistration[]
+  allocations   PaymentAllocation[]
+
+  @@unique([athleteId, year])
+  @@index([athleteId, status])
+  @@index([paymentOrderId])
+  @@index([paymentId])
 }
 
 model Event {
-  id           String              @id @default(cuid())
-  slug         String              @unique
-  title        String
-  venue        String
-  location     String
-  eventDate    DateTime
-  capacity     Int?
-  status       String              @default("draft")
-  requiresMembership Boolean       @default(true)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id                   String      @id @default(cuid())
+  slug                 String      @unique
+  title                String
+  description          String?
+  venue                String
+  location             String
+  eventDate            DateTime
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  capacity             Int?
+  status               EventStatus @default(draft)
+  requiresMembership   Boolean     @default(true)
+  price                Int
+  currency             String      @default("ARS")
+  rules                Json?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
   registrations EventRegistration[]
-  results      LiftingResult[]
+  results       LiftingResult[]
+
+  @@index([status, eventDate])
+  @@index([eventDate])
 }
 
 model EventRegistration {
-  id            String             @id @default(cuid())
-  athleteId     String
-  athlete       Athlete            @relation(fields: [athleteId], references: [id])
-  eventId       String
-  event         Event              @relation(fields: [eventId], references: [id])
-  category      String
-  division      String
-  bodyweight    String?
-  status        RegistrationStatus @default(borrador)
-  paymentStatus String?
-  notes         String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id             String             @id @default(cuid())
+  athleteId      String
+  eventId        String
+  membershipId   String?
+  division       String
+  category       String
+  bodyweightKg   Decimal?           @db.Decimal(6, 2)
+  status         RegistrationStatus @default(borrador)
+  paymentOrderId String?
+  paymentId      String?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  athlete      Athlete             @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  membership   Membership?         @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  paymentOrder PaymentOrder?       @relation("RegistrationPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  payment      Payment?            @relation("RegistrationPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  allocations  PaymentAllocation[]
+
+  @@unique([eventId, athleteId])
+  @@index([athleteId, status])
+  @@index([eventId, status])
+  @@index([membershipId])
+  @@index([paymentOrderId])
+  @@index([paymentId])
 }
 
 model PaymentOrder {
-  id              String    @id @default(cuid())
-  externalRef     String?   @unique
-  preferenceId    String?
-  amount          Int
-  currency        String    @default("ARS")
-  concept         String
-  status          PaymentStatus @default(creado)
-  method          String
-  athleteId       String?
-  metadata        Json?
-  idempotencyKey  String?   @unique
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  payments        Payment[]
+  id                   String           @id @default(cuid())
+  athleteId            String?
+  orderType            PaymentOrderType
+  status               PaymentStatus    @default(creado)
+  amount               Int
+  currency             String           @default("ARS")
+  provider             PaymentProvider  @default(mercado_pago)
+  providerPreferenceId String?
+  providerInitPoint    String?
+  externalRef          String?          @unique
+  idempotencyKey       String?          @unique
+  concept              String
+  metadata             Json?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  athlete       Athlete?            @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  payments      Payment[]
+  memberships   Membership[]        @relation("MembershipPaymentOrder")
+  registrations EventRegistration[] @relation("RegistrationPaymentOrder")
+  allocations   PaymentAllocation[]
+
+  @@index([athleteId, status])
+  @@index([provider, status])
+  @@index([providerPreferenceId])
 }
 
 model Payment {
-  id             String       @id @default(cuid())
-  orderId        String
-  order          PaymentOrder @relation(fields: [orderId], references: [id])
-  athleteId      String
-  athlete        Athlete      @relation(fields: [athleteId], references: [id])
+  id                String          @id @default(cuid())
+  orderId           String
+  athleteId         String?
+  provider          PaymentProvider
+  externalPaymentId String?         @unique
+  status            PaymentStatus   @default(creado)
+  amount            Int
+  currency          String          @default("ARS")
+  payerEmail        String?
+  rawPayload        Json?
+  confirmedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order         PaymentOrder        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  athlete       Athlete?            @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  memberships   Membership[]        @relation("MembershipPayment")
+  registrations EventRegistration[] @relation("RegistrationPayment")
+  allocations   PaymentAllocation[]
+
+  @@index([orderId])
+  @@index([athleteId, status])
+  @@index([provider, status])
+}
+
+model PaymentAllocation {
+  id             String   @id @default(cuid())
+  paymentOrderId String
+  paymentId      String?
+  membershipId   String?
+  registrationId String?
   amount         Int
-  method         String
-  status         PaymentStatus @default(creado)
-  reference      String?
-  mercadoPagoId  String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime @default(now())
+
+  paymentOrder PaymentOrder       @relation(fields: [paymentOrderId], references: [id], onDelete: Cascade)
+  payment      Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  membership   Membership?        @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  registration EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@index([paymentOrderId])
+  @@index([paymentId])
+  @@index([membershipId])
+  @@index([registrationId])
 }
 
 model LiftingResult {
-  id           String   @id @default(cuid())
-  eventId      String
-  event        Event    @relation(fields: [eventId], references: [id])
-  athleteName  String
-  division     String?
-  category     String?
-  bodyweightKg Float?
-  squat1Kg     Float?
-  bench1Kg     Float?
-  deadlift1Kg  Float?
-  totalKg      Float?
-  place        Int?
-  rawData      Json?
-  source       String   @default("liftingcast")
-  createdAt    DateTime @default(now())
+  id             String    @id @default(cuid())
+  eventId        String
+  athleteId      String?
+  source         String    @default("liftingcast")
+  federation     String?
+  meetName       String?
+  meetDate       DateTime?
+  athleteName    String
+  sex            String?
+  age            Int?
+  division       String?
+  category       String?
+  bodyweightKg   Decimal?  @db.Decimal(6, 2)
+  weightClassKg  Decimal?  @db.Decimal(6, 2)
+  equipment      String?
+  squat1Kg       Decimal?  @db.Decimal(6, 2)
+  squat2Kg       Decimal?  @db.Decimal(6, 2)
+  squat3Kg       Decimal?  @db.Decimal(6, 2)
+  bench1Kg       Decimal?  @db.Decimal(6, 2)
+  bench2Kg       Decimal?  @db.Decimal(6, 2)
+  bench3Kg       Decimal?  @db.Decimal(6, 2)
+  deadlift1Kg    Decimal?  @db.Decimal(6, 2)
+  deadlift2Kg    Decimal?  @db.Decimal(6, 2)
+  deadlift3Kg    Decimal?  @db.Decimal(6, 2)
+  bestSquatKg    Decimal?  @db.Decimal(6, 2)
+  bestBenchKg    Decimal?  @db.Decimal(6, 2)
+  bestDeadliftKg Decimal?  @db.Decimal(6, 2)
+  totalKg        Decimal?  @db.Decimal(7, 2)
+  place          Int?
+  formula        String?
+  tested         Boolean?
+  rawPayload     Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  athlete Athlete? @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([athleteId])
+  @@index([eventId, division, category])
 }
 
-model Export {
-  id        String   @id @default(cuid())
-  type      String
-  format    String
-  filters   Json?
-  filePath  String?
-  createdBy String?
-  createdAt DateTime @default(now())
+model ExportJob {
+  id                String       @id @default(cuid())
+  type              ExportType
+  format            ExportFormat
+  status            ExportStatus @default(queued)
+  requestedByUserId String?
+  filePath          String?
+  filters           Json?
+  metadata          Json?
+  error             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  requestedBy User? @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([type, status])
+  @@index([requestedByUserId])
+}
+
+model EmailLog {
+  id               String      @id @default(cuid())
+  provider         String      @default("brevo")
+  templateKey      String
+  recipientEmail   String
+  status           EmailStatus @default(queued)
+  payload          Json?
+  providerResponse Json?
+  error            String?
+  sentAt           DateTime?
+  createdAt        DateTime    @default(now())
+
+  @@index([recipientEmail])
+  @@index([templateKey, status])
 }
 
 model AuditLog {
@@ -196,18 +632,14 @@ model AuditLog {
   entityType String
   entityId   String
   actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id])
+  before     Json?
+  after      Json?
   metadata   Json?
   createdAt  DateTime @default(now())
-}
 
-model EmailLog {
-  id         String   @id @default(cuid())
-  type       String
-  to         String
-  templateId String?
-  status     String
-  params     Json?
-  error      String?
-  createdAt  DateTime @default(now())
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
 }
