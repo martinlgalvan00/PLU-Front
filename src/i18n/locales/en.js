@@ -89,4 +89,16 @@ export default {
     alerts: 'Operational alerts',
     exit: 'Back to site',
   },
+  footer: {
+    ctaEyebrow: '2026 season',
+    ctaTitle: 'Ready to compete with PLU ARG?',
+    ctaDesc: 'Join, register for Pitbull Classic, or access the admin panel.',
+    brandDesc: 'Argentine powerlifting federation. Operated with Maximal.',
+    badgeStandard: 'International standards',
+    navPlatform: 'Platform',
+    navFederation: 'Federation',
+    contact: 'Contact',
+    contactHours: 'Response within 24–48 business hours',
+    tagline: 'Powerlifting with international standards',
+  },
 }
