@@ -5,7 +5,7 @@ import { translate } from '../src/i18n/translate.js'
 describe('i18n translate', () => {
   it('resuelve claves anidadas', () => {
     expect(translate(es, 'nav.home')).toBe('Inicio')
-    expect(translate(es, 'hero.ctaRegister')).toBe('Afiliarme')
+    expect(translate(es, 'hero.ctaRegister')).toBe('Registrarme')
   })
 
   it('devuelve la clave si no existe', () => {

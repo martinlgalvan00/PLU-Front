@@ -23,7 +23,7 @@ import StatBlock from '../components/ui/StatBlock.jsx'
 
 const FEATURED_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.highlighted) ?? MEMBERSHIP_PLANS[0]
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, onSelectEvent }) {
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
@@ -50,7 +50,7 @@ export default function HomePage({ onNavigate }) {
             description="Elegí tu plan y competí con respaldo federativo en toda la temporada."
           />
           <div className="membership-teaser">
-            <MembershipCard {...FEATURED_PLAN} onSelect={() => onNavigate('register')} />
+            <MembershipCard {...FEATURED_PLAN} onSelect={() => onNavigate('membership')} />
           </div>
           <div className="home-section__action">
             <Button variant="outline" onClick={() => onNavigate('members')}>
@@ -78,7 +78,7 @@ export default function HomePage({ onNavigate }) {
             </div>
             <CapacityBar current={PITBULL_CLASSIC.registered} total={PITBULL_CLASSIC.slots} />
             <div className="hero__actions-primary">
-              <Button onClick={() => onNavigate('register')}>Inscribirme</Button>
+              <Button onClick={() => onSelectEvent(UPCOMING_EVENTS[0])}>Inscribirme</Button>
               <Button variant="outline" onClick={() => onNavigate('pitbull')}>
                 Ver detalle
               </Button>
@@ -104,7 +104,7 @@ export default function HomePage({ onNavigate }) {
                 venue={event.venue}
                 location={event.location}
                 status={event.status}
-                onAction={() => onNavigate('register')}
+                onAction={() => onSelectEvent(event)}
               />
             ))}
           </div>
@@ -165,7 +165,7 @@ export default function HomePage({ onNavigate }) {
         title="¿Listo para competir con respaldo federativo?"
         description="Afiliate, inscribite a Pitbull Classic o contactá al equipo PLU ARG."
         primaryLabel="Afiliarme ahora"
-        onPrimary={() => onNavigate('register')}
+        onPrimary={() => onNavigate('membership')}
         secondaryLabel="Contacto"
         onSecondary={() => onNavigate('contact')}
       />

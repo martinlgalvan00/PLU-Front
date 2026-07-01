@@ -3,8 +3,10 @@ import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import { useAppData } from './hooks/useAppData.js'
-import { PROCEDURE_TYPES } from './lib/constants.js'
+import { PRICING } from './lib/constants.js'
+import { UPCOMING_EVENTS } from './lib/events.js'
 import AdminPage from './pages/AdminPage.jsx'
+import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
 import ContactPage from './pages/ContactPage.jsx'
 import EventsPage from './pages/EventsPage.jsx'
@@ -33,6 +35,7 @@ const PUBLIC_VIEWS = {
 
 export default function App() {
   const [view, setView] = useState('home')
+  const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const app = useAppData()
 
   useEffect(() => {
@@ -40,10 +43,16 @@ export default function App() {
   }, [view])
 
   function navigate(nextView) {
-    setView(nextView)
+    const requiredRole = { admin: 'admin_plu', profile: 'athlete_plu', membership: 'athlete_plu', competition: 'athlete_plu' }[nextView]
+    setView(requiredRole && app.session?.role !== requiredRole ? 'login' : nextView)
   }
 
-  if (view === 'admin') {
+  function selectEvent(event) {
+    setSelectedEvent(event)
+    navigate('competition')
+  }
+
+  if (view === 'admin' && app.session?.role === 'admin_plu') {
     return (
       <AdminPage
         canEdit={app.userCanEdit}
@@ -56,8 +65,6 @@ export default function App() {
         onSetFilters={app.setFilters}
         payments={app.payments}
         athletes={app.athletes}
-        role={app.role}
-        setRole={app.setRole}
         onExit={() => navigate('home')}
       />
     )
@@ -71,22 +78,38 @@ export default function App() {
           createdOrder: app.createdOrder,
           form: app.form,
           onApprovePayment: app.handleApprovePayment,
-          onNavigate: navigate,
-          onSubmit: app.handleSubmit,
+          flow: 'profile',
+          onSubmit: app.registerAthlete,
           onUpdateForm: app.updateForm,
-          total: PROCEDURE_TYPES[app.form.procedureType]?.amount ?? 0,
+          total: 0,
         }
       : view === 'login'
-        ? { onNavigate: navigate, role: app.role, setRole: app.setRole }
+        ? { onNavigate: navigate, onLogin: app.login }
+        : ['events', 'home'].includes(view)
+          ? { onNavigate: navigate, onSelectEvent: selectEvent }
         : { onNavigate: navigate }
+
+  if (view === 'profile' && app.session?.role === 'athlete_plu') {
+    return <PrivateLayout app={app} view={view} navigate={navigate}><AthleteProfilePage athlete={app.athletes.find((item) => item.id === app.session.athleteId)} memberships={app.memberships} onNavigate={navigate} onSelectEvent={selectEvent} payments={app.payments} registrations={app.registrations} /></PrivateLayout>
+  }
+
+  if (['membership', 'competition'].includes(view) && app.session?.role === 'athlete_plu') {
+    const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
+    const flow = view
+    return <PrivateLayout app={app} view={view} navigate={navigate}><RegisterPage athlete={athlete} createdOrder={app.createdOrder} event={selectedEvent} flow={flow} form={app.form} onApprovePayment={app.handleApprovePayment} onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition} onUpdateForm={app.updateForm} total={flow === 'membership' ? PRICING.membership : PRICING.event} /></PrivateLayout>
+  }
 
   return (
     <div className="app-shell">
-      <NavbarPublic activeView={view} onNavigate={navigate} />
+      <NavbarPublic activeView={view} onLogout={app.logout} onNavigate={navigate} session={app.session} />
       <PageTransition viewKey={view}>
         <Page {...pageProps} />
       </PageTransition>
       <Footer onNavigate={navigate} />
     </div>
   )
+}
+
+function PrivateLayout({ app, children, navigate, view }) {
+  return <div className="app-shell"><NavbarPublic activeView={view} onLogout={() => { app.logout(); navigate('home') }} onNavigate={navigate} session={app.session} /><PageTransition viewKey={view}>{children}</PageTransition><Footer onNavigate={navigate} /></div>
 }

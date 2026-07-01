@@ -13,7 +13,6 @@ import {
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import { ADMIN_SECTIONS } from '../../lib/content.js'
-import { ROLES } from '../../lib/constants.js'
 
 const ICONS = {
   LayoutDashboard,
@@ -32,8 +31,6 @@ export default function AdminShell({
   activeSection,
   onSectionChange,
   onExit,
-  role,
-  onRoleChange,
   children,
 }) {
   return (
@@ -64,16 +61,7 @@ export default function AdminShell({
             <ThemeToggle compact />
             <LanguageToggle compact />
           </div>
-          <label className="admin-shell__role">
-            Rol activo
-            <select value={role} onChange={(e) => onRoleChange(e.target.value)}>
-              {Object.entries(ROLES).map(([key, { label }]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="admin-shell__role"><span>Perfil activo</span><strong>Admin PLU</strong></div>
         <button type="button" className="btn btn--ghost admin-shell__exit" onClick={onExit}>
           Volver al sitio
         </button>

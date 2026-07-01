@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { NAV_PRIMARY, NAV_SECONDARY } from '../../lib/constants.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useScrolled } from '../../hooks/useMotion.js'
@@ -21,7 +21,7 @@ function NavLink({ active, onClick, children, className = '' }) {
   )
 }
 
-export default function NavbarPublic({ activeView, onNavigate }) {
+export default function NavbarPublic({ activeView, onLogout, onNavigate, session }) {
   const [open, setOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef(null)
@@ -126,10 +126,14 @@ export default function NavbarPublic({ activeView, onNavigate }) {
             <ThemeToggle compact />
             <LanguageToggle compact />
           </div>
-          <LoginButton compact label={t('nav.login')} onClick={() => go('login')} />
-          <Button className="site-header__cta btn--small" onClick={() => go('register')}>
-            {t('nav.register')}
-          </Button>
+          {session ? (
+            <>
+              <LoginButton compact label={session.role === 'admin_plu' ? 'Panel PLU' : 'Mi perfil'} onClick={() => go(session.role === 'admin_plu' ? 'admin' : 'profile')} />
+              <button type="button" className="site-header__icon-action" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={18} /></button>
+            </>
+          ) : (
+            <><LoginButton compact label={t('nav.login')} onClick={() => go('login')} /><Button className="site-header__cta btn--small" onClick={() => go('register')}>{t('nav.register')}</Button></>
+          )}
         </div>
 
         <div className="site-header__mobile-actions">
@@ -186,10 +190,7 @@ export default function NavbarPublic({ activeView, onNavigate }) {
               <ThemeToggle compact />
               <LanguageToggle compact />
             </div>
-            <LoginButton label={t('nav.login')} onClick={() => go('login')} />
-            <Button className="site-header__cta site-header__cta--block" onClick={() => go('register')}>
-              {t('nav.register')}
-            </Button>
+            {session ? <><LoginButton label={session.role === 'admin_plu' ? 'Panel PLU' : 'Mi perfil'} onClick={() => go(session.role === 'admin_plu' ? 'admin' : 'profile')} /><Button variant="ghost" className="btn--block" onClick={onLogout}><LogOut size={17} /> Cerrar sesión</Button></> : <><LoginButton label={t('nav.login')} onClick={() => go('login')} /><Button className="site-header__cta site-header__cta--block" onClick={() => go('register')}>{t('nav.register')}</Button></>}
           </div>
         </nav>
       </aside>

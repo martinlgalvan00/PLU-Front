@@ -20,8 +20,6 @@ export default function AdminPage({
   onSetFilters,
   payments,
   athletes,
-  role,
-  setRole,
   onExit,
 }) {
   const [section, setSection] = useState('dashboard')
@@ -200,8 +198,6 @@ export default function AdminPage({
       activeSection={section}
       onSectionChange={setSection}
       onExit={onExit}
-      role={role}
-      onRoleChange={setRole}
     >
       <div className="admin-page admin-section-enter" key={section}>
         {renderSection()}

@@ -13,7 +13,7 @@ export function canExport(role) {
 }
 
 export function canExportPluUsa(role) {
-  return role === 'viewer_plu_usa' || canEdit(role)
+  return role === 'admin_plu'
 }
 
 export function canApprovePayments(role) {

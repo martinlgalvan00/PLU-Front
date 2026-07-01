@@ -14,7 +14,7 @@ export default {
     faq: 'FAQ',
     contact: 'Contacto',
     more: 'Más',
-    register: 'Afiliarme',
+    register: 'Registrarme',
     login: 'Acceder',
     admin: 'Panel',
   },
@@ -24,7 +24,7 @@ export default {
     subtitle: 'Powerlifting con estándar internacional',
     description:
       'Afiliaciones, competencias, resultados y comunidad para atletas de fuerza en Argentina.',
-    ctaRegister: 'Afiliarme',
+    ctaRegister: 'Registrarme',
     ctaPitbull: 'Inscribirme a Pitbull Classic',
     ctaLogin: 'Acceder al panel',
     ctaEvents: 'Ver eventos',
