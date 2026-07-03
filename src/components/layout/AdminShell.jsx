@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  ArrowLeft,
   BadgeCheck,
   Calendar,
   ClipboardList,
@@ -30,6 +31,8 @@ const ICONS = {
   Shield,
   ScrollText,
 }
+
+const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
 
 export default function AdminShell({
   activeSection,
@@ -76,8 +79,11 @@ export default function AdminShell({
               <BrandLogo imgClassName="admin-shell__brand-logo" height={28} />
             </div>
             <div className="admin-shell__brand-copy">
-              <strong>PLU ARG</strong>
-              <span>Panel operativo</span>
+              <div className="admin-shell__brand-title">
+                <strong>PLU ARG</strong>
+                <span className="admin-shell__brand-tag">Operativo</span>
+              </div>
+              <span>Panel administrativo</span>
             </div>
           </div>
           <button
@@ -107,10 +113,18 @@ export default function AdminShell({
                       onClick={() => handleSectionChange(key)}
                     >
                       <span className="admin-shell__nav-icon" aria-hidden>
-                        <Icon size={17} />
+                        <Icon size={16} strokeWidth={2.1} />
                       </span>
                       <span className="admin-shell__nav-label">{label}</span>
-                      {badge > 0 && <em className="admin-shell__badge">{badge}</em>}
+                      {badge > 0 && (
+                        <em
+                          className={`admin-shell__badge${
+                            ALERT_BADGE_KEYS.has(key) ? ' admin-shell__badge--alert' : ''
+                          }`}
+                        >
+                          {badge}
+                        </em>
+                      )}
                     </button>
                   )
                 })}
@@ -120,15 +134,21 @@ export default function AdminShell({
         </div>
 
         <div className="admin-shell__footer">
-          <div className="admin-shell__prefs">
-            <ThemeToggle compact />
-            <LanguageToggle compact />
+          <div className="admin-shell__account">
+            <div className="admin-shell__account-mark" aria-hidden>
+              <Shield size={16} strokeWidth={2.2} />
+            </div>
+            <div className="admin-shell__account-copy">
+              <strong>{roleLabel}</strong>
+              <span>Perfil activo</span>
+            </div>
+            <div className="admin-shell__prefs">
+              <ThemeToggle compact />
+              <LanguageToggle compact />
+            </div>
           </div>
-          <div className="admin-shell__role">
-            <span>Perfil activo</span>
-            <strong>{roleLabel}</strong>
-          </div>
-          <button type="button" className="btn btn--ghost admin-shell__exit" onClick={onExit}>
+          <button type="button" className="admin-shell__exit" onClick={onExit}>
+            <ArrowLeft size={16} strokeWidth={2.2} aria-hidden />
             Volver al sitio
           </button>
         </div>
@@ -138,19 +158,16 @@ export default function AdminShell({
         <header className="admin-mobile-bar">
           <button
             type="button"
-            className="admin-mobile-bar__menu"
-            aria-label="Abrir menú"
+            className={`admin-mobile-bar__menu${sidebarOpen ? ' is-active' : ''}`}
+            aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((open) => !open)}
           >
-            <Menu size={20} />
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <div className="admin-mobile-bar__brand">
-            <BrandLogo imgClassName="admin-mobile-bar__logo" height={24} />
-            <div className="admin-mobile-bar__titles">
-              <span>PLU ARG</span>
-              <strong>{activeLabel}</strong>
-            </div>
+          <h1 className="admin-mobile-bar__title">{activeLabel}</h1>
+          <div className="admin-mobile-bar__actions">
+            <ThemeToggle compact />
           </div>
         </header>
         {children}

@@ -31,3 +31,14 @@ export function requireAuth0Config(env = process.env) {
 export function createAuth0JwtCheck({ env = process.env, sdkAuth = auth } = {}) {
   return sdkAuth(requireAuth0Config(env))
 }
+
+export function createOptionalAuth0JwtCheck({ env = process.env, sdkAuth = auth } = {}) {
+  const config = createAuth0Config(env)
+  if (!config) {
+    return (_req, res) => {
+      res.status(503).json({ error: 'OAuth no esta configurado.' })
+    }
+  }
+
+  return sdkAuth(config)
+}

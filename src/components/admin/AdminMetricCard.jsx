@@ -7,11 +7,16 @@ const ICONS = {
   shield: Shield,
 }
 
-export default function AdminMetricCard({ value, label, icon = 'users', tone = 'default' }) {
+export default function AdminMetricCard({ value, label, icon = 'users', tone = 'default', onClick }) {
   const Icon = ICONS[icon] ?? Users
+  const Tag = onClick ? 'button' : 'article'
 
   return (
-    <article className={`admin-metric admin-metric--${tone}`}>
+    <Tag
+      type={onClick ? 'button' : undefined}
+      className={`admin-metric admin-metric--${tone}`}
+      onClick={onClick}
+    >
       <div className="admin-metric__icon" aria-hidden>
         <Icon size={20} />
       </div>
@@ -19,6 +24,6 @@ export default function AdminMetricCard({ value, label, icon = 'users', tone = '
         <strong className="admin-metric__value">{value}</strong>
         <span className="admin-metric__label">{label}</span>
       </div>
-    </article>
+    </Tag>
   )
 }

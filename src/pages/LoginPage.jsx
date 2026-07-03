@@ -2,26 +2,48 @@ import { useState } from 'react'
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
+import { usePluOAuth } from '../providers/oauthContext.js'
 
 const FEATURE_KEYS = ['login.featureProfile', 'login.featureMembership', 'login.featureEvents']
 
 export default function LoginPage({ onLogin, onNavigate }) {
   const { t } = useI18n()
+  const oauth = usePluOAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
-  function enter(type) {
-    const session = onLogin(type)
+  async function enter(credentialsOrType) {
+    const session = await onLogin(credentialsOrType)
     onNavigate(session.role === 'athlete_plu' ? 'profile' : 'admin')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    setSubmitError('')
     setIsSubmitting(true)
-    window.setTimeout(() => {
-      enter('athlete')
+
+    const formData = new FormData(event.currentTarget)
+
+    try {
+      await enter({
+        email: formData.get('email'),
+        password: formData.get('password'),
+      })
+    } catch {
+      setSubmitError(t('login.errorInvalid'))
+    } finally {
       setIsSubmitting(false)
-    }, 280)
+    }
+  }
+
+  async function handleOAuthLogin() {
+    setSubmitError('')
+    try {
+      await oauth.login()
+    } catch {
+      setSubmitError(t('login.errorOAuth'))
+    }
   }
 
   return (
@@ -51,6 +73,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
         <section className="login-card" aria-label={t('login.title')}>
           <div className="login-card__tricolor" aria-hidden />
+
+          {oauth.configured && (
+            <button
+              type="button"
+              className="login-submit"
+              onClick={handleOAuthLogin}
+              disabled={oauth.isLoading}
+            >
+              {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
+              {!oauth.isLoading && <ArrowRight size={16} aria-hidden />}
+            </button>
+          )}
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
             <label className="login-field">
@@ -83,7 +117,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -100,6 +134,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
               {isSubmitting ? t('login.submitting') : t('login.submit')}
               {!isSubmitting && <ArrowRight size={16} aria-hidden />}
             </button>
+            {submitError && (
+              <p className="form-submit-error" role="alert">
+                {submitError}
+              </p>
+            )}
           </form>
 
           <div className="login-separator" role="separator">
@@ -107,16 +146,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
           </div>
 
           <button type="button" className="login-join-btn" onClick={() => onNavigate('members')}>
-            {t('login.joinPrompt')}{' '}
-            <span>{t('login.joinLink')}</span>
+            {t('login.joinPrompt')} <span>{t('login.joinLink')}</span>
           </button>
 
           <details className="login-demo">
             <summary>{t('login.demoTitle')}</summary>
             <div className="login-demo__actions">
-              <button type="button" onClick={() => enter('admin')}>
-                {t('login.demoAdmin')}
-              </button>
               <button type="button" onClick={() => enter('athlete')}>
                 {t('login.demoAthlete')}
               </button>
@@ -134,4 +169,3 @@ export default function LoginPage({ onLogin, onNavigate }) {
     </main>
   )
 }
-

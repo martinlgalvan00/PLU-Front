@@ -1,0 +1,957 @@
+/* =============================================
+   RESULTS PAGE — PLU ARG Design System v2
+   Podio animado premium, responsive, dark/light
+   ============================================= */
+
+/* ── Page layout ────────────────────────────── */
+
+.results-page--design {
+  background: var(--color-page-canvas);
+  color: var(--color-text-primary);
+}
+
+.results-page__inner {
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  padding: 0 var(--space-lg) var(--space-2xl);
+}
+
+/* ── Stats summary ──────────────────────────── */
+
+.results-stats {
+  display: flex;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.results-stat {
+  display: grid;
+  gap: 2px;
+}
+
+.results-stat strong {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.results-stat span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* =============================================
+   PODIUM — Animado premium
+   ============================================= */
+
+/* ── Keyframes ───────────────────────────────── */
+
+@keyframes podium-platform-rise {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes podium-card-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes podium-medal-bounce {
+  0%   { transform: scale(0) rotate(-20deg); }
+  55%  { transform: scale(1.18) rotate(8deg); }
+  75%  { transform: scale(0.92) rotate(-4deg); }
+  90%  { transform: scale(1.05) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes podium-shimmer-sweep {
+  0%   { transform: translateX(-160%) skewX(-15deg); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateX(160%) skewX(-15deg); opacity: 0; }
+}
+
+@keyframes podium-floor-draw {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes podium-rank-pop {
+  0%   { opacity: 0; transform: scale(0.5) translateY(6px); }
+  60%  { opacity: 1; transform: scale(1.1) translateY(-2px); }
+  80%  { transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Stage (wrapper) ────────────────────────── */
+
+.podium-stage {
+  margin: 0 auto var(--space-4xl);
+  max-width: 860px;
+  overflow: visible;
+  padding: var(--space-3xl) var(--space-lg) 0;
+  position: relative;
+}
+
+.podium-stage__ambient {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 50%,
+    rgba(201, 185, 120, 0.08) 0%,
+    rgba(116, 172, 223, 0.05) 45%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(32px);
+  height: 300px;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease-out);
+}
+
+.podium-stage--visible .podium-stage__ambient {
+  opacity: 0.4;
+}
+
+/* ── Arena (3-col grid) ─────────────────────── */
+
+.podium-stage__arena {
+  align-items: flex-end;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, 1fr);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Each slot ──────────────────────────────── */
+
+.podium-slot {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── Athlete card ───────────────────────────── */
+
+.podium-athlete {
+  background: var(--results-podium-bg, var(--color-bg-surface));
+  border: 1px solid var(--results-podium-border, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: -1px;
+  overflow: hidden;
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  position: relative;
+  text-align: center;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  width: 100%;
+  z-index: 2;
+
+  /* Default hidden — animated in when visible */
+  opacity: 0;
+}
+
+.podium-athlete__shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 70%
+  );
+  height: 100%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+/* ── Animate on stage visible (entrance only — no infinite loops) ── */
+
+.podium-stage--visible .podium-slot--first .podium-athlete {
+  animation: podium-card-drop 0.6s var(--ease-spring) calc(0.4s + var(--entry-delay, 0s)) both;
+}
+
+.podium-stage--visible .podium-slot--second .podium-athlete {
+  animation: podium-card-drop 0.6s var(--ease-spring) calc(0.3s + var(--entry-delay, 0s)) both;
+}
+
+.podium-stage--visible .podium-slot--third .podium-athlete {
+  animation: podium-card-drop 0.6s var(--ease-spring) calc(0.5s + var(--entry-delay, 0s)) both;
+}
+
+/* ── Static elevation per rank (calm, no pulsing) ───────────────── */
+
+.podium-slot--first .podium-athlete {
+  box-shadow: 0 8px 28px rgba(201, 185, 120, 0.14);
+}
+
+.podium-slot--second .podium-athlete {
+  box-shadow: 0 6px 20px rgba(180, 180, 195, 0.10);
+}
+
+.podium-slot--third .podium-athlete {
+  box-shadow: 0 6px 20px rgba(184, 115, 51, 0.10);
+}
+
+/* Shimmer sweep — on hover only */
+.podium-athlete:hover .podium-athlete__shimmer {
+  animation: podium-shimmer-sweep 0.75s var(--ease-out) both;
+}
+
+.podium-athlete:hover {
+  transform: translateY(-2px);
+}
+
+/* ── Card accent lines ──────────────────────── */
+
+.podium-slot--first .podium-athlete {
+  border-color: rgba(201, 185, 120, 0.35);
+}
+
+.podium-slot--first .podium-athlete::before {
+  background: linear-gradient(90deg, transparent, var(--color-brand-gold), transparent);
+  content: '';
+  height: 2px;
+  left: 10%;
+  position: absolute;
+  top: 0;
+  width: 80%;
+}
+
+.podium-slot--second .podium-athlete {
+  border-color: rgba(190, 190, 205, 0.25);
+}
+
+.podium-slot--second .podium-athlete::before {
+  background: linear-gradient(90deg, transparent, rgba(200, 200, 215, 0.7), transparent);
+  content: '';
+  height: 2px;
+  left: 10%;
+  position: absolute;
+  top: 0;
+  width: 80%;
+}
+
+.podium-slot--third .podium-athlete {
+  border-color: rgba(184, 115, 51, 0.22);
+}
+
+.podium-slot--third .podium-athlete::before {
+  background: linear-gradient(90deg, transparent, rgba(184, 115, 51, 0.6), transparent);
+  content: '';
+  height: 2px;
+  left: 10%;
+  position: absolute;
+  top: 0;
+  width: 80%;
+}
+
+/* ── Medal ───────────────────────────────────── */
+
+.podium-athlete__medal {
+  display: block;
+  font-size: 32px;
+  line-height: 1;
+  opacity: 0;
+}
+
+.podium-slot--first .podium-athlete__medal { font-size: 40px; }
+
+.podium-stage--visible .podium-athlete__medal {
+  animation: podium-medal-bounce 0.7s var(--ease-spring) calc(0.9s + var(--entry-delay, 0s)) both;
+}
+
+/* ── Rank badge ─────────────────────────────── */
+
+.podium-athlete__rank-badge {
+  align-items: center;
+  background: var(--results-rank-bg, rgba(255, 255, 255, 0.06));
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  height: 20px;
+  justify-content: center;
+  letter-spacing: 0.05em;
+  width: 20px;
+}
+
+.podium-slot--first .podium-athlete__rank-badge {
+  background: rgba(201, 185, 120, 0.18);
+  color: var(--color-brand-gold);
+}
+
+/* ── Athlete name ───────────────────────────── */
+
+.podium-athlete__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(13px, 1.6vw, 15px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin: 4px 0 0;
+  text-transform: uppercase;
+}
+
+.podium-slot--first .podium-athlete__name {
+  font-size: clamp(14px, 1.8vw, 17px);
+}
+
+/* ── Category & event ───────────────────────── */
+
+.podium-athlete__category {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 2px 0 0;
+  text-transform: uppercase;
+}
+
+.podium-athlete__event {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* ── Total ───────────────────────────────────── */
+
+.podium-athlete__total-wrap {
+  background: rgba(201, 185, 120, 0.08);
+  border: 1px solid rgba(201, 185, 120, 0.18);
+  border-radius: var(--border-radius-lg);
+  margin-top: var(--space-sm);
+  padding: 6px 14px;
+  width: 100%;
+}
+
+.podium-slot--second .podium-athlete__total-wrap {
+  background: rgba(190, 190, 205, 0.06);
+  border-color: rgba(180, 180, 195, 0.18);
+}
+
+.podium-slot--third .podium-athlete__total-wrap {
+  background: rgba(184, 115, 51, 0.06);
+  border-color: rgba(184, 115, 51, 0.16);
+}
+
+.podium-athlete__total {
+  color: var(--color-brand-gold);
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(17px, 2.2vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.podium-slot--second .podium-athlete__total {
+  color: #c0c0cc;
+}
+
+.podium-slot--third .podium-athlete__total {
+  color: #c87941;
+}
+
+/* ── Platform block ─────────────────────────── */
+
+.podium-platform {
+  align-items: center;
+  background: var(--podium-platform-bg, rgba(255, 255, 255, 0.06));
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  display: flex;
+  flex-direction: column;
+  height: var(--platform-h, 80px);
+  justify-content: flex-start;
+  overflow: hidden;
+  position: relative;
+  transform-origin: bottom center;
+  width: 100%;
+  z-index: 1;
+
+  /* Default hidden */
+  opacity: 0;
+  transform: scaleY(0);
+}
+
+.podium-stage--visible .podium-platform {
+  animation: podium-platform-rise 0.5s var(--ease-out) calc(0.15s + var(--entry-delay, 0s)) both;
+}
+
+.podium-platform__rank {
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: var(--space-sm);
+  opacity: 0;
+}
+
+.podium-stage--visible .podium-platform__rank {
+  animation: podium-rank-pop 0.5s var(--ease-spring) calc(0.5s + var(--entry-delay, 0s)) both;
+}
+
+.podium-platform__reflection {
+  bottom: 0;
+  height: 40%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+/* Platform colors per rank */
+.podium-slot--first .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(201, 185, 120, 0.28) 0%,
+    rgba(201, 185, 120, 0.14) 40%,
+    rgba(201, 185, 120, 0.08) 100%
+  );
+  border: 1px solid rgba(201, 185, 120, 0.3);
+  border-bottom: none;
+}
+
+.podium-slot--first .podium-platform__rank { color: rgba(201, 185, 120, 0.7); }
+
+.podium-slot--second .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(190, 190, 210, 0.22) 0%,
+    rgba(180, 180, 200, 0.10) 100%
+  );
+  border: 1px solid rgba(180, 180, 200, 0.22);
+  border-bottom: none;
+}
+
+.podium-slot--second .podium-platform__rank { color: rgba(190, 190, 210, 0.6); }
+
+.podium-slot--third .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(184, 115, 51, 0.20) 0%,
+    rgba(150, 90, 40, 0.08) 100%
+  );
+  border: 1px solid rgba(184, 115, 51, 0.22);
+  border-bottom: none;
+}
+
+.podium-slot--third .podium-platform__rank { color: rgba(184, 115, 51, 0.65); }
+
+/* ── Floor line ─────────────────────────────── */
+
+.podium-stage__floor {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201, 185, 120, 0.25) 30%,
+    rgba(116, 172, 223, 0.2) 60%,
+    transparent 100%
+  );
+  height: 1px;
+  margin: 0 auto;
+  max-width: 90%;
+  position: relative;
+  transform-origin: center;
+  z-index: 1;
+}
+
+.podium-stage--visible .podium-stage__floor {
+  animation: podium-floor-draw 0.6s var(--ease-out) 0.1s both;
+}
+
+/* ── Section header ─────────────────────────── */
+
+.results-podium {
+  margin-bottom: var(--space-xl);
+}
+
+.results-podium__header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 0;
+  padding: 0 var(--space-lg);
+  text-align: center;
+}
+
+.results-podium__eyebrow {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.results-podium__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-lg);
+  text-transform: uppercase;
+}
+
+/* ── Results list header ────────────────────── */
+
+.results-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.results-list-header__eyebrow {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.results-list-header__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.results-list-header__filters {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.results-count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+/* ── Results grid ───────────────────────────── */
+
+.results-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ── Result card (premium v2) ───────────────── */
+
+.result-card {
+  background: var(--results-row-bg, var(--color-bg-surface));
+  border: 1px solid var(--results-row-border, var(--color-border-subtle));
+  border-radius: var(--border-radius-lg);
+  border-top: 2px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-xs);
+  overflow: hidden;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  position: relative;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base),
+    background var(--transition-theme);
+}
+
+.result-card::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.04) 50%, transparent 100%);
+  content: '';
+  height: 100%;
+  left: -100%;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transition: left 0.55s var(--ease-out);
+  width: 100%;
+}
+
+.result-card:hover {
+  border-top-color: var(--color-brand-gold);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
+}
+
+.result-card:hover::after {
+  left: 100%;
+}
+
+.result-card--featured {
+  border-top-color: var(--color-brand-gold);
+  box-shadow: 0 4px 20px rgba(201, 185, 120, 0.1);
+}
+
+.result-card__top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.result-card__rank {
+  align-items: center;
+  display: flex;
+}
+
+.result-card__medal {
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.result-card__rank-label {
+  background: var(--results-rank-bg, rgba(255, 255, 255, 0.06));
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+}
+
+.result-card__date {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 4px;
+  letter-spacing: 0.03em;
+}
+
+.result-card__athlete {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.8vw, 17px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.result-card__category {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.result-card__footer {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-sm);
+}
+
+.result-card__event {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 4px;
+  line-height: 1.3;
+  margin: 0;
+  max-width: 70%;
+}
+
+.result-card__total {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* ── Empty state ────────────────────────────── */
+
+.results-empty {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+}
+
+.results-empty p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Responsive ─────────────────────────────── */
+
+@media (max-width: 960px) {
+  .results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .podium-stage {
+    padding-inline: var(--space-md);
+  }
+
+  .podium-stage__arena {
+    gap: var(--space-sm);
+  }
+
+  .podium-athlete__name {
+    font-size: 12px;
+  }
+
+  .podium-athlete__event {
+    display: none;
+  }
+
+  .podium-athlete__total {
+    font-size: 15px;
+  }
+
+  .results-list-header {
+    flex-direction: column;
+  }
+
+  .results-stats {
+    gap: var(--space-lg);
+  }
+
+  .results-podium__title {
+    font-size: clamp(20px, 5vw, 26px);
+  }
+}
+
+@media (max-width: 480px) {
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-page__inner {
+    padding-inline: var(--space-md);
+  }
+
+  /* Podio mobile: columnas más compactas */
+  .podium-athlete {
+    padding: var(--space-sm);
+  }
+
+  .podium-athlete__medal {
+    font-size: 22px;
+  }
+
+  .podium-slot--first .podium-athlete__medal {
+    font-size: 28px;
+  }
+
+  .podium-athlete__total-wrap {
+    padding: 4px 8px;
+  }
+
+  .podium-athlete__category {
+    display: none;
+  }
+}
+
+/* ── prefers-reduced-motion ─────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .podium-stage--visible .podium-athlete,
+  .podium-stage--visible .podium-slot--first .podium-athlete,
+  .podium-stage--visible .podium-slot--second .podium-athlete,
+  .podium-stage--visible .podium-slot--third .podium-athlete {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .podium-stage--visible .podium-platform {
+    animation: none;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .podium-stage--visible .podium-platform__rank,
+  .podium-stage--visible .podium-athlete__medal,
+  .podium-stage--visible .podium-stage__floor {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .podium-stage__ambient {
+    transition: none;
+  }
+}
+
+/* ── Light theme overrides ──────────────────── */
+
+[data-theme='light'] .podium-athlete {
+  background: var(--results-podium-bg);
+  border-color: var(--results-podium-border);
+  box-shadow: 0 4px 20px rgba(15, 17, 23, 0.06);
+}
+
+[data-theme='light'] .podium-slot--first .podium-athlete {
+  border-color: rgba(201, 185, 120, 0.38);
+}
+
+[data-theme='light'] .podium-slot--second .podium-athlete {
+  border-color: rgba(180, 180, 200, 0.28);
+}
+
+[data-theme='light'] .podium-slot--third .podium-athlete {
+  border-color: rgba(184, 115, 51, 0.25);
+}
+
+[data-theme='light'] .podium-athlete__shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(15, 17, 23, 0.06) 50%,
+    transparent 70%
+  );
+}
+
+[data-theme='light'] .podium-platform {
+  --podium-platform-bg: rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .podium-slot--first .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(201, 185, 120, 0.18) 0%,
+    rgba(201, 185, 120, 0.08) 100%
+  );
+  border-color: rgba(201, 185, 120, 0.28);
+}
+
+[data-theme='light'] .podium-slot--second .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(150, 150, 170, 0.12) 0%,
+    rgba(140, 140, 160, 0.05) 100%
+  );
+  border-color: rgba(150, 150, 170, 0.18);
+}
+
+[data-theme='light'] .podium-slot--third .podium-platform {
+  background: linear-gradient(180deg,
+    rgba(184, 115, 51, 0.12) 0%,
+    rgba(160, 95, 40, 0.05) 100%
+  );
+  border-color: rgba(184, 115, 51, 0.18);
+}
+
+[data-theme='light'] .podium-athlete__rank-badge {
+  background: rgba(15, 17, 23, 0.06);
+}
+
+[data-theme='light'] .podium-slot--first .podium-athlete__rank-badge {
+  background: rgba(201, 185, 120, 0.16);
+}
+
+[data-theme='light'] .podium-stage__ambient {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 50%,
+    rgba(201, 185, 120, 0.06) 0%,
+    rgba(116, 172, 223, 0.04) 45%,
+    transparent 70%
+  );
+}
+
+[data-theme='light'] .podium-stage__floor {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201, 185, 120, 0.30) 30%,
+    rgba(116, 172, 223, 0.22) 60%,
+    transparent 100%
+  );
+}
+
+[data-theme='light'] .result-card {
+  background: var(--results-row-bg);
+  border-color: var(--results-row-border);
+  box-shadow: 0 2px 8px rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .result-card:hover {
+  box-shadow: 0 12px 32px rgba(15, 17, 23, 0.10);
+}
+
+[data-theme='light'] .result-card::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 17, 23, 0.02) 50%, transparent 100%);
+}
+
+[data-theme='light'] .result-card--featured {
+  box-shadow: 0 4px 20px rgba(201, 185, 120, 0.12);
+}
+
+[data-theme='light'] .result-card__rank-label {
+  background: var(--results-rank-bg);
+}
+
+[data-theme='light'] .results-podium__eyebrow {
+  color: #8b7340;
+}
+
+[data-theme='light'] .results-list-header__eyebrow {
+  color: #1a6bb0;
+}
+
+[data-theme='light'] .podium-athlete__total-wrap {
+  background: rgba(201, 185, 120, 0.06);
+  border-color: rgba(201, 185, 120, 0.22);
+}
+
+[data-theme='light'] .podium-slot--second .podium-athlete__total-wrap {
+  background: rgba(150, 150, 170, 0.05);
+  border-color: rgba(150, 150, 170, 0.18);
+}
+
+[data-theme='light'] .podium-slot--third .podium-athlete__total-wrap {
+  background: rgba(184, 115, 51, 0.05);
+  border-color: rgba(184, 115, 51, 0.18);
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { CalendarDays, MapPin, ArrowRight } from 'lucide-react'
+import { CalendarDays, MapPin, ArrowRight, Users, CheckCircle2, Clock } from 'lucide-react'
 
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 
@@ -62,6 +62,10 @@ function EventsStats({ stats }) {
 
       <article className="events-stat events-stat--design">
 
+        <div className="events-stat__icon" aria-hidden>
+          <CalendarDays size={16} strokeWidth={2} />
+        </div>
+
         <strong>{stats.upcoming}</strong>
 
         <span>Próximos meets</span>
@@ -70,6 +74,10 @@ function EventsStats({ stats }) {
 
       <article className="events-stat events-stat--design events-stat--open">
 
+        <div className="events-stat__icon" aria-hidden>
+          <CheckCircle2 size={16} strokeWidth={2} />
+        </div>
+
         <strong>{stats.open}</strong>
 
         <span>Inscripción abierta</span>
@@ -77,6 +85,10 @@ function EventsStats({ stats }) {
       </article>
 
       <article className="events-stat events-stat--design events-stat--next">
+
+        <div className="events-stat__icon" aria-hidden>
+          <Clock size={16} strokeWidth={2} />
+        </div>
 
         <strong>{stats.nextLabel}</strong>
 
@@ -89,6 +101,7 @@ function EventsStats({ stats }) {
   )
 
 }
+
 
 
 
@@ -130,11 +143,13 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
 
       <StatusPill value={event.status} />
 
+      <hr className="events-detail__divider" aria-hidden />
+
       <ul className="events-detail__meta">
 
         <li>
 
-          <CalendarDays size={14} aria-hidden />
+          <CalendarDays size={13} aria-hidden />
 
           {event.date}
 
@@ -142,7 +157,7 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
 
         <li>
 
-          <MapPin size={14} aria-hidden />
+          <MapPin size={13} aria-hidden />
 
           {event.venue}, {event.location}
 

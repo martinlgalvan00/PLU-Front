@@ -70,5 +70,26 @@
 
   --color-nav-stripe: var(--plu-gradient-stripe);
 
+  /* ── Results tokens ────────────────────────── */
+  --results-podium-bg: var(--plu-cool-800);
+  --results-podium-border: rgba(255, 255, 255, 0.08);
+  --results-row-bg: var(--plu-cool-800);
+  --results-row-hover: var(--plu-cool-750);
+  --results-row-border: rgba(255, 255, 255, 0.06);
+  --results-rank-bg: rgba(255, 255, 255, 0.06);
+
+  /* ── Events v2 tokens ──────────────────────── */
+  --events-stat-bg: var(--plu-cool-800);
+  --events-stat-border: rgba(255, 255, 255, 0.07);
+  --events-detail-bg: var(--plu-cool-800);
+  --events-detail-border: rgba(255, 255, 255, 0.09);
+  --events-calendar-bg: var(--plu-cool-800);
+  --events-calendar-header: rgba(255, 255, 255, 0.04);
+  --events-calendar-day-hover: rgba(255, 255, 255, 0.06);
+  --filter-pill-bg: var(--plu-cool-800);
+  --filter-pill-border: rgba(255, 255, 255, 0.08);
+  --filter-pill-text: rgba(255, 255, 255, 0.52);
+  --filter-pill-active-text: #fff;
+
 }
 

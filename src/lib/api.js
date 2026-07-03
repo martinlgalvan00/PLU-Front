@@ -23,6 +23,7 @@ async function parseResponse(response) {
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
   const method = options.method ?? 'GET'
+  const { headers, ...requestOptions } = options
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
@@ -31,9 +32,9 @@ export async function apiRequest(path, options = {}) {
     headers: {
       'Content-Type': 'application/json',
       ...mutationHeaders,
-      ...(options.headers ?? {}),
+      ...(headers ?? {}),
     },
-    ...options,
+    ...requestOptions,
   })
 
   const body = await parseResponse(response)
@@ -52,5 +53,27 @@ export function apiPost(path, payload) {
   return apiRequest(path, {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export function loginRequest(credentials) {
+  return apiPost('/api/auth/login', credentials)
+}
+
+export function meRequest() {
+  return apiRequest('/api/auth/me')
+}
+
+export function logoutRequest() {
+  return apiPost('/api/auth/logout', {})
+}
+
+export function oauthSessionRequest(accessToken) {
+  return apiRequest('/api/auth/oauth/session', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({}),
   })
 }

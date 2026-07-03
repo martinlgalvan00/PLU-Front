@@ -107,7 +107,8 @@ export default {
     exit: 'Volver al sitio',
   },
   footer: {
-    brandDesc: 'Federación argentina de powerlifting con estándar internacional. Administrada por Maximal.',
+    brandDesc:
+      'Federación argentina de powerlifting con estándar internacional. Administrada por Maximal.',
     navPlatform: 'Plataforma',
     navCommunity: 'Comunidad',
     navAccess: 'Acceso',
@@ -134,7 +135,8 @@ export default {
     messagePlaceholder: 'Contanos en qué podemos ayudarte…',
     submit: 'Enviar consulta',
     sentTitle: 'Consulta enviada',
-    sentDesc: 'El equipo de Maximal / PLU ARG te va a responder a la brevedad por el correo que dejaste.',
+    sentDesc:
+      'El equipo de Maximal / PLU ARG te va a responder a la brevedad por el correo que dejaste.',
     sidebarTitle: 'Datos de contacto',
     sidebarEmail: 'hola@pluarg.com.ar',
     sidebarLocation: 'Buenos Aires, Argentina',
@@ -142,7 +144,8 @@ export default {
   login: {
     eyebrow: 'PLU ARG · Acceso unificado',
     title: 'Iniciá sesión',
-    subtitle: 'Un solo acceso para toda la comunidad — tu perfil, afiliación e inscripciones en un solo lugar.',
+    subtitle:
+      'Un solo acceso para toda la comunidad — tu perfil, afiliación e inscripciones en un solo lugar.',
     featureProfile: 'Perfil deportivo y credencial digital',
     featureMembership: 'Afiliación anual y pagos',
     featureEvents: 'Inscripciones a meets oficiales',
@@ -151,6 +154,10 @@ export default {
     forgot: '¿Olvidaste tu contraseña?',
     submit: 'Ingresar',
     submitting: 'Ingresando…',
+    errorInvalid: 'No pudimos iniciar sesion. Revisá el email y la contraseña.',
+    oauthSubmit: 'Ingresar con OAuth',
+    oauthLoading: 'Conectando OAuth…',
+    errorOAuth: 'No pudimos iniciar sesion con OAuth. Intentá nuevamente.',
     demoTitle: 'Acceso demo',
     demoAdmin: 'Ingresar como administrador',
     demoAthlete: 'Ingresar como atleta',

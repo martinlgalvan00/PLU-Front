@@ -1,3 +1,4 @@
+import { Building2, ShieldCheck, Users } from 'lucide-react'
 import {
   ABOUT_PILLARS,
   COMMUNITY_HIGHLIGHTS,
@@ -22,6 +23,8 @@ import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 
 const FEATURED_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.highlighted) ?? MEMBERSHIP_PLANS[0]
+
+const COMMUNITY_ICONS = [Building2, ShieldCheck, Users]
 
 export default function HomePage({ onNavigate, onSelectEvent }) {
   return (
@@ -67,7 +70,7 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             description="Meet oficiales PLU ARG en distintas sedes del país."
           />
           <StaggerReveal className="events-grid" stagger={90}>
-            {UPCOMING_EVENTS.map((event, i) => (
+            {UPCOMING_EVENTS.slice(0, 3).map((event, i) => (
               <EventCard
                 key={event.slug}
                 featured={i === 0}
@@ -96,7 +99,7 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             description="Totales, categorías y posiciones de meets recientes."
           />
           <StaggerReveal className="results-grid" stagger={70}>
-            {RECENT_RESULTS.map((result) => (
+            {RECENT_RESULTS.slice(0, 3).map((result) => (
               <ResultCard key={`${result.athlete}-${result.date}`} {...result} />
             ))}
           </StaggerReveal>
@@ -133,12 +136,18 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             description="De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar."
           />
           <StaggerReveal className="community-grid" stagger={80} variant="scale">
-            {COMMUNITY_HIGHLIGHTS.map((item) => (
-              <article key={item.title} className="community-card">
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </article>
-            ))}
+            {COMMUNITY_HIGHLIGHTS.map((item, i) => {
+              const Icon = COMMUNITY_ICONS[i] ?? Users
+              return (
+                <article key={item.title} className="community-card">
+                  <span className="community-card__icon" aria-hidden>
+                    <Icon size={18} strokeWidth={1.5} />
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </article>
+              )
+            })}
           </StaggerReveal>
         </div>
       </Reveal>

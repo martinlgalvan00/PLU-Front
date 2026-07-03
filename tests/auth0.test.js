@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createAuth0Config,
   createAuth0JwtCheck,
+  createOptionalAuth0JwtCheck,
   requireAuth0Config,
 } from '../server/modules/auth/auth0.js'
 
@@ -51,5 +52,25 @@ describe('auth0 infrastructure', () => {
     expect(result).toBe(middleware)
     expect(calls).toHaveLength(1)
     expect(calls[0].issuerBaseURL).toBe('https://plu-dev.us.auth0.com/')
+  })
+
+  it('crea middleware opcional tolerante cuando falta configuracion', async () => {
+    const middleware = createOptionalAuth0JwtCheck({ env: {} })
+    const response = {
+      statusCode: null,
+      body: null,
+      status(code) {
+        this.statusCode = code
+        return this
+      },
+      json(body) {
+        this.body = body
+      },
+    }
+
+    await middleware({}, response)
+
+    expect(response.statusCode).toBe(503)
+    expect(response.body).toEqual({ error: 'OAuth no esta configurado.' })
   })
 })

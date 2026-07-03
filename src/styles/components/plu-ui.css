@@ -660,11 +660,16 @@
     transform var(--transition-base);
 }
 
-.event-card:hover,
 .result-card:hover {
   border-left-color: var(--color-brand-red);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
   transform: translateX(3px);
+}
+
+.event-card:hover {
+  border-left-color: var(--color-brand-red);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px);
 }
 
 /* Featured event */
@@ -675,8 +680,8 @@
 }
 
 .event-card--featured:hover {
-  box-shadow: var(--glow-red-soft), 0 12px 40px rgba(0, 0, 0, 0.25);
-  transform: translateY(-3px) translateX(0);
+  box-shadow: var(--glow-red-soft), 0 14px 36px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px);
 }
 
 /* Ticket: bloque de fecha + cuerpo, lado a lado.
@@ -1173,6 +1178,73 @@
   text-align: center;
 }
 
+/* Mobile card layout */
+.data-table-cards {
+  display: none;
+}
+
+.data-table-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  display: grid;
+  gap: 10px;
+  padding: var(--space-md);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.data-table-card__field {
+  align-items: baseline;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(88px, 34%) 1fr;
+}
+
+.data-table-card__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.data-table-card__value {
+  font-size: 14px;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.data-table-card__value .data-table__sub {
+  margin-top: 2px;
+}
+
+.data-table-card.data-table__row--clickable {
+  cursor: pointer;
+}
+
+.data-table-card.data-table__row--clickable:hover {
+  border-color: rgba(225, 6, 0, 0.28);
+  box-shadow: inset 3px 0 0 var(--color-brand-red);
+}
+
+.data-table-card.data-table__row--clickable:focus-visible {
+  outline: 2px solid var(--color-brand-red);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .data-table {
+    display: none;
+  }
+
+  .data-table-cards {
+    display: grid;
+    gap: var(--space-sm);
+  }
+}
+
 /* =============================================
    RESPONSIVE GRIDS
    ============================================= */
@@ -1425,10 +1497,6 @@
 
 [data-theme='light'] .events-layout__selected {
   color: rgba(15, 17, 23, 0.30);
-}
-
-[data-theme='light'] .hero__quick-link {
-  color: rgba(15, 17, 23, 0.32);
 }
 
 [data-theme='light'] .stat-block:hover .stat-block__value {
