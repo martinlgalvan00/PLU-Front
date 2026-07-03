@@ -1,6 +1,8 @@
-import { Calendar, MapPin } from 'lucide-react'
-import StatusPill from './StatusPill.jsx'
+import { MapPin, ArrowRight } from 'lucide-react'
+import { getStatusMeta } from '../../lib/status.js'
 import SpotlightCard from './SpotlightCard.jsx'
+
+const LIVE_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
 
 export default function EventCard({
   date,
@@ -15,6 +17,9 @@ export default function EventCard({
   actionLabel = 'Inscribirme',
 }) {
   const closed = status === 'cerrado' || status === 'finalizado'
+  const [day, month] = date.split(' ')
+  const { label: statusLabel, tone } = getStatusMeta(status)
+  const isLive = LIVE_STATUSES.has(status)
 
   return (
     <SpotlightCard
@@ -40,31 +45,38 @@ export default function EventCard({
           : undefined
       }
     >
-      <div className="event-card__top">
-        <div className="event-card__date">
-          <Calendar size={16} />
-          {date}
-        </div>
-        {status && <StatusPill value={status} />}
+      <div className="event-card__date-block" data-tone={tone}>
+        <span className="event-card__day">{day}</span>
+        <span className="event-card__month">{month}</span>
       </div>
-      <h3 className="event-card__title">{title}</h3>
-      <p className="event-card__venue">{venue}</p>
-      <p className="event-card__location">
-        <MapPin size={14} />
-        {location}
-      </p>
-      {onAction && !closed && (
-        <button
-          type="button"
-          className="btn btn--small btn--block"
-          onClick={(event) => {
-            event.stopPropagation()
-            onAction()
-          }}
-        >
-          {actionLabel}
-        </button>
-      )}
+      <div className="event-card__body">
+        {status && (
+          <div className="event-card__status" data-tone={tone}>
+            <span className="event-card__status-dot" aria-hidden />
+            {statusLabel}
+          </div>
+        )}
+        <h3 className="event-card__title">{title}</h3>
+        <p className="event-card__meta">
+          {venue}
+          <span className="event-card__meta-sep" aria-hidden>·</span>
+          <MapPin size={12} />
+          {location}
+        </p>
+        {onAction && !closed && (
+          <button
+            type="button"
+            className={isLive ? 'event-card__action event-card__action--live' : 'event-card__action event-card__action--quiet'}
+            onClick={(event) => {
+              event.stopPropagation()
+              onAction?.()
+            }}
+          >
+            {isLive ? actionLabel : 'Ver evento'}
+            {isLive && <ArrowRight size={13} />}
+          </button>
+        )}
+      </div>
     </SpotlightCard>
   )
 }

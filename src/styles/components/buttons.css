@@ -10,17 +10,17 @@
   color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
-  font-family: var(--font-display);
+  font-family: var(--font-family);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   gap: var(--space-sm);
   justify-content: center;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
   min-height: 44px;
   overflow: hidden;
   padding: 0 20px;
   position: relative;
-  text-transform: uppercase;
+  text-transform: none;
   transition:
     background var(--transition-fast),
     box-shadow var(--transition-fast),

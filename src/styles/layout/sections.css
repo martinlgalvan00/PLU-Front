@@ -6,12 +6,41 @@
 .home-section {
   padding: var(--space-3xl) var(--space-lg);
   position: relative;
+  scroll-margin-top: calc(var(--header-height-scrolled) + 16px);
 }
 
-.page-section--alt,
-.home-section--dark {
+.page-section--alt {
   background: var(--color-bg-secondary);
   border-block: 1px solid var(--color-border-subtle);
+}
+
+/* Sección de acento (eventos, comunidad, navegación) — tokens por tema */
+.home-section--dark {
+  background: var(--home-accent-bg, var(--plu-cool-900));
+  border-block: 1px solid var(--home-accent-border, rgba(255, 255, 255, 0.08));
+  color: var(--home-accent-title, #fff);
+}
+
+.home-section--dark .section-heading__eyebrow {
+  color: var(--home-accent-eyebrow, var(--color-brand-celeste));
+}
+
+.home-section--dark .section-heading__title {
+  color: var(--home-accent-title, #fff);
+}
+
+.home-section--dark .section-heading__desc {
+  color: var(--home-accent-desc, rgba(255, 255, 255, 0.58));
+}
+
+.home-section--dark .btn--outline {
+  border-color: var(--home-accent-outline-border, rgba(255, 255, 255, 0.28));
+  color: var(--home-accent-outline-text, #fff);
+}
+
+.home-section--dark .btn--outline:hover:not(:disabled) {
+  background: var(--home-accent-outline-hover-bg, rgba(255, 255, 255, 0.06));
+  border-color: var(--home-accent-outline-hover-border, rgba(255, 255, 255, 0.45));
 }
 
 .page-section--stats,

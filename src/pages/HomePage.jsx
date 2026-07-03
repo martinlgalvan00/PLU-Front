@@ -2,7 +2,6 @@ import {
   ABOUT_PILLARS,
   COMMUNITY_HIGHLIGHTS,
   FAQ_ITEMS,
-  HOME_STATS,
   MEMBERSHIP_PLANS,
   PLATFORM_SECTIONS,
   RECENT_RESULTS,
@@ -20,7 +19,7 @@ import PlatformMap from '../components/ui/PlatformMap.jsx'
 import ResultCard from '../components/ui/ResultCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
-import StatBlock from '../components/ui/StatBlock.jsx'
+import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 
 const FEATURED_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.highlighted) ?? MEMBERSHIP_PLANS[0]
 
@@ -29,26 +28,19 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
 
-      <section className="home-section home-section--stats">
-        <div className="home-section__inner stats-row">
-          {HOME_STATS.map((stat) => (
-            <StatBlock key={stat.label} {...stat} />
-          ))}
-        </div>
-      </section>
-
-      <Reveal as="section" className="home-section home-section--about" id="que-es">
+      <Reveal as="section" className="home-section home-section--about" id="que-es" variant="from-left">
         <div className="home-section__inner">
           <AboutSection pillars={ABOUT_PILLARS} onNavigate={onNavigate} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--dark">
+      <Reveal as="section" className="home-section home-section--light" variant="scale">
         <div className="home-section__inner">
           <SectionHeading
+            align="left"
             eyebrow="Afiliación anual"
-            title="Sumate a la comunidad PLU ARG"
-            description="Elegí tu plan y competí con respaldo federativo en toda la temporada."
+            title="Un paso, un año de competencia."
+            description="La afiliación es el requisito único para competir en eventos oficiales de PLU ARG durante el año calendario."
           />
           <div className="membership-teaser">
             <MembershipCard {...FEATURED_PLAN} onSelect={() => onNavigate('membership')} />
@@ -61,12 +53,9 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--pitbull">
+      <Reveal as="section" className="home-section home-section--pitbull" variant="from-right">
         <div className="home-section__inner">
-          <PitbullSpotlight
-            onRegister={() => onSelectEvent(UPCOMING_EVENTS[0])}
-            onDetail={() => onNavigate('pitbull')}
-          />
+          <PitbullSpotlight onDetail={() => onNavigate('pitbull')} />
         </div>
       </Reveal>
 
@@ -77,7 +66,7 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
             title="Calendario competitivo"
             description="Meet oficiales PLU ARG en distintas sedes del país."
           />
-          <div className="events-grid">
+          <StaggerReveal className="events-grid" stagger={90}>
             {UPCOMING_EVENTS.map((event, i) => (
               <EventCard
                 key={event.slug}
@@ -90,7 +79,7 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
                 onAction={() => onSelectEvent(event)}
               />
             ))}
-          </div>
+          </StaggerReveal>
           <div className="home-section__action">
             <Button variant="outline" onClick={() => onNavigate('events')}>
               Ver calendario completo
@@ -99,18 +88,18 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section">
+      <Reveal as="section" className="home-section" variant="fade">
         <div className="home-section__inner">
           <SectionHeading
             eyebrow="Resultados"
             title="Últimas planillas oficiales"
             description="Totales, categorías y posiciones de meets recientes."
           />
-          <div className="results-grid">
+          <StaggerReveal className="results-grid" stagger={70}>
             {RECENT_RESULTS.map((result) => (
               <ResultCard key={`${result.athlete}-${result.date}`} {...result} />
             ))}
-          </div>
+          </StaggerReveal>
           <div className="home-section__action">
             <Button variant="outline" onClick={() => onNavigate('results')}>
               Ver todos los resultados
@@ -119,25 +108,42 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--dark">
+      <Reveal as="section" className="home-section home-section--light">
+        <div className="home-section__inner">
+          <div className="rulebook-teaser">
+            <SectionHeading
+              align="left"
+              eyebrow="Reglamento · Rulebook"
+              title="Las mismas reglas para todos, sin ambigüedad."
+            />
+            <div className="rulebook-teaser__action">
+              <Button variant="outline" onClick={() => onNavigate('rulebook')}>
+                Ver categorías y divisiones
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Reveal>
+
+      <Reveal as="section" className="home-section home-section--dark" variant="from-left">
         <div className="home-section__inner">
           <SectionHeading
-            eyebrow="Comunidad argentina"
-            title="Más que una federación"
-            description="Una red de gimnasios, jueces y atletas que empuja el deporte de fuerza en Argentina."
+            eyebrow="Comunidad"
+            title="Cada gimnasio que se suma, hace más fuerte a la federación."
+            description="De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar."
           />
-          <div className="community-grid">
+          <StaggerReveal className="community-grid" stagger={80} variant="scale">
             {COMMUNITY_HIGHLIGHTS.map((item) => (
               <article key={item.title} className="community-card">
                 <h3>{item.title}</h3>
                 <p>{item.text}</p>
               </article>
             ))}
-          </div>
+          </StaggerReveal>
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--dark">
+      <Reveal as="section" className="home-section home-section--dark" variant="scale">
         <div className="home-section__inner">
           <SectionHeading
             eyebrow="Navegación"
@@ -148,21 +154,24 @@ export default function HomePage({ onNavigate, onSelectEvent }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section">
+      <Reveal as="section" className="home-section" variant="fade">
         <div className="home-section__inner home-section__inner--narrow">
           <SectionHeading eyebrow="FAQ" title="Preguntas frecuentes" />
           <FAQAccordion items={FAQ_ITEMS} />
         </div>
       </Reveal>
 
-      <CTASection
-        title="¿Listo para competir con respaldo federativo?"
-        description="Afiliate, inscribite a Pitbull Classic o contactá al equipo PLU ARG."
-        primaryLabel="Afiliarme ahora"
-        onPrimary={() => onNavigate('membership')}
-        secondaryLabel="Contacto"
-        onSecondary={() => onNavigate('contact')}
-      />
+      <Reveal variant="scale">
+        <CTASection
+          title="¿Listo para competir con respaldo federativo?"
+          description="Afiliate, inscribite a Pitbull Classic o contactá al equipo PLU ARG."
+          primaryLabel="Afiliarme ahora"
+          onPrimary={() => onNavigate('membership')}
+          secondaryLabel="Contacto"
+          onSecondary={() => onNavigate('contact')}
+        />
+      </Reveal>
     </main>
   )
 }
+

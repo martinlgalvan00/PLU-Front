@@ -1,41 +1,30 @@
 :root {
-  --color-brand-red: #e10600;
-  --color-brand-red-hover: #ff1a14;
-  --color-brand-gold: #c9b978;
-  --color-brand-gold-light: #ddc992;
-  --color-brand-gold-dark: #9b8f59;
-  --color-brand-celeste: #74acdf;
-  --color-brand-celeste-dim: rgba(116, 172, 223, 0.15);
-  --color-brand-celeste-glow: rgba(116, 172, 223, 0.35);
+  /* Primitivos de marca → ver src/styles/tokens/palette.css (--plu-*) */
 
   /* ── Glows sutiles ─────────────────────────────── */
-  --glow-red:          0 4px 20px rgba(225, 6, 0, 0.30);
-  --glow-red-soft:     0 2px 14px rgba(225, 6, 0, 0.16);
-  --glow-red-strong:   0 8px 32px rgba(225, 6, 0, 0.45);
+  --glow-red:          0 4px 20px var(--plu-red-alpha-30);
+  --glow-red-soft:     0 2px 14px var(--plu-red-alpha-16);
+  --glow-red-strong:   0 8px 32px var(--plu-red-alpha-45);
   --glow-gold:         0 4px 20px rgba(201, 185, 120, 0.28);
   --glow-gold-soft:    0 2px 14px rgba(201, 185, 120, 0.16);
   --glow-gold-strong:  0 8px 32px rgba(201, 185, 120, 0.40);
-  --glow-celeste:      0 4px 20px rgba(116, 172, 223, 0.28);
-  --glow-celeste-soft: 0 2px 14px rgba(116, 172, 223, 0.14);
+  --glow-celeste:      0 4px 20px var(--plu-celeste-alpha-35);
+  --glow-celeste-soft: 0 2px 14px var(--plu-celeste-alpha-18);
   --glow-celeste-strong: 0 8px 32px rgba(116, 172, 223, 0.42);
 
   /* ── Card premium tokens ───────────────────────── */
   --card-gradient-red:
-    linear-gradient(135deg, rgba(225, 6, 0, 0.08) 0%, transparent 60%);
+    linear-gradient(135deg, var(--plu-red-alpha-16) 0%, transparent 60%);
   --card-gradient-gold:
-    linear-gradient(135deg, rgba(201, 185, 120, 0.08) 0%, transparent 60%);
+    linear-gradient(135deg, var(--plu-gold-alpha-18) 0%, transparent 60%);
   --card-gradient-celeste:
-    linear-gradient(135deg, rgba(116, 172, 223, 0.08) 0%, transparent 60%);
+    linear-gradient(135deg, var(--plu-celeste-alpha-18) 0%, transparent 60%);
   --card-gradient-neutral:
     linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
 
-  /* ── Gradient borders ──────────────────────────── */
-  --gradient-brand: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste), var(--color-brand-gold));
-  --gradient-brand-diag: linear-gradient(135deg, var(--color-brand-red) 0%, var(--color-brand-celeste) 50%, var(--color-brand-gold) 100%);
-
   /* ── Status ────────────────────────────────────── */
-  --color-success-bg: #dcfce7;
-  --color-success-text: #166534;
+  --color-success-bg: var(--plu-success-bg);
+  --color-success-text: var(--plu-success-600);
   --color-warning-bg: #fef3c7;
   --color-warning-text: #92400e;
   --color-danger-bg: #fee2e2;
@@ -43,7 +32,9 @@
 
   /* ── Tipografía ────────────────────────────────── */
   --font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Barlow Condensed', 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease-design: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-weight-bold: 700;
   --font-weight-black: 800;
   --letter-spacing-wide: 0.05em;

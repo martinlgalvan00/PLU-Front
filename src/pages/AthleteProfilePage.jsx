@@ -1,30 +1,104 @@
-import { useState } from 'react'
-import { BadgeCheck, CalendarDays, CreditCard, UserCircle } from 'lucide-react'
-import StatusPill from '../components/ui/StatusPill.jsx'
-import { money } from '../lib/format.js'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import Reveal from '../components/ui/Reveal.jsx'
 
-export default function AthleteProfilePage({ athlete, memberships, onNavigate, onSelectEvent, payments, registrations }) {
-  const [flipped, setFlipped] = useState(false)
+function initials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+}
+
+export default function AthleteProfilePage({
+  athlete,
+  memberships,
+  onNavigate,
+  onLogout,
+  registrations,
+}) {
+  const { t } = useI18n()
+
   if (!athlete) return null
+
   const membership = memberships.find((item) => item.athleteId === athlete.id)
-  const athletePayments = payments.filter((item) => item.athleteId === athlete.id)
+  const nextEvent = UPCOMING_EVENTS.find((event) => event.featured) ?? UPCOMING_EVENTS[0]
+  const registration = registrations.find(
+    (item) => item.athleteId === athlete.id && item.event === nextEvent?.title,
+  )
 
   return (
-    <main className="page athlete-portal"><div className="page__inner">
-      <section className="athlete-welcome surface-card"><div><span>Portal del atleta</span><h1>Hola, {athlete.fullName.split(' ')[0]}</h1><p>Administrá tu afiliación, competencias y datos personales.</p></div><StatusPill value={membership?.status || 'pendiente_pago'} /></section>
-      <section className="athlete-overview">
-        <article className="profile-summary surface-card"><UserCircle size={32} /><div><span>Documento</span><strong>{athlete.documentId}</strong></div><div><span>Correo electrónico</span><strong>{athlete.email}</strong></div><div><span>Equipo</span><strong>{athlete.gym}</strong></div></article>
-        <div className="digital-card-block">
-          <div className={`digital-card ${flipped ? 'is-flipped' : ''}`}>
-            <div className="card-face card-front"><div className="card-brand"><span>POWERLIFTING</span><strong>UNITED</strong><small>ARGENTINA</small></div><div className="card-member"><span>ATLETA PLU</span><h2>{athlete.fullName}</h2><p>{membership?.memberCode || 'AFILIACIÓN PENDIENTE'}</p></div><BadgeCheck size={34} /></div>
-            <div className="card-face card-back"><div><span>Documento</span><strong>{athlete.documentId}</strong></div><div><span>Sexo competitivo</span><strong>{athlete.sex}</strong></div><div><span>Equipo</span><strong>{athlete.gym}</strong></div><div><span>Vencimiento</span><strong>{membership?.expirationDate || 'Pendiente'}</strong></div><small>La validez de este carnet puede verificarse con PLU Argentina.</small></div>
+    <main className="page page--design">
+      <Reveal>
+        <section className="account-hero">
+          <div className="account-hero__inner">
+            <div className="account-hero__avatar" aria-hidden>
+              {initials(athlete.fullName)}
+            </div>
+            <div className="account-hero__copy">
+              <span className="account-hero__eyebrow">{t('account.eyebrow')}</span>
+              <h1>
+                {athlete.fullName}
+              </h1>
+              <div className="account-hero__badges">
+                {membership?.status === 'activa' && (
+                  <span className="account-badge account-badge--active">{t('account.membershipActive')}</span>
+                )}
+                {membership?.memberCode && (
+                  <span className="account-badge account-badge--code">{membership.memberCode}</span>
+                )}
+              </div>
+            </div>
+            <button type="button" className="account-hero__logout" onClick={onLogout}>
+              {t('account.logout')}
+            </button>
           </div>
-          <button className="btn btn--secondary card-flip" type="button" onClick={() => setFlipped((value) => !value)}><CreditCard size={17} /> Ver {flipped ? 'frente' : 'reverso'}</button>
-        </div>
+        </section>
+      </Reveal>
+
+      <section className="account-cards">
+        <Reveal delay={0}>
+          <article className="account-card">
+            <span className="account-card__label">{t('account.nextCompetition')}</span>
+            <h2>{nextEvent?.title ?? '—'}</h2>
+            <p>
+              {nextEvent?.date} · {athlete.division} · {athlete.category}
+              {athlete.estimatedWeight ? ` · ${athlete.estimatedWeight}kg` : ''}
+            </p>
+            {registration && (
+              <span className="account-card__status">{t('account.confirmed')}</span>
+            )}
+          </article>
+        </Reveal>
+
+        <Reveal delay={80}>
+          <article className="account-card">
+            <span className="account-card__label">{t('account.membership')}</span>
+            <h2>
+              {membership?.status === 'activa'
+                ? `Vigente hasta ${membership.expirationDate ?? 'dic. 2026'}`
+                : 'Sin afiliación activa'}
+            </h2>
+            <p>{membership?.memberCode ? `Código de afiliado ${membership.memberCode}` : 'Completá tu afiliación para competir.'}</p>
+            <button type="button" className="account-card__link" onClick={() => onNavigate('members')}>
+              {t('account.viewDetails')}
+            </button>
+          </article>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <article className="account-card">
+            <span className="account-card__label">{t('account.history')}</span>
+            <h2>{registrations.length ? `${registrations.length} inscripciones` : 'Sin historial'}</h2>
+            <p>
+              {registrations.length
+                ? 'Competencias registradas en la plataforma PLU ARG.'
+                : t('account.historyEmpty')}
+            </p>
+          </article>
+        </Reveal>
       </section>
-      <section className="portal-section surface-card"><header><div><span>Temporada 2026</span><h2>Afiliación anual</h2></div><CreditCard size={24} /></header><div className="membership-row"><div><span>Estado</span><StatusPill value={membership?.status || 'pendiente_pago'} /></div><div><span>Vigencia</span><strong>{membership ? `${membership.startDate} al ${membership.expirationDate}` : 'Sin afiliación activa'}</strong></div><div><span>Último pago</span><strong>{athletePayments[0] ? money(athletePayments[0].amount) : '—'}</strong></div><button className="btn" type="button" onClick={() => onNavigate('membership')}>{membership?.status === 'activa' ? 'Renovar afiliación' : 'Pagar afiliación'}</button></div></section>
-      <section className="portal-section surface-card"><header><div><span>Calendario PLU ARG</span><h2>Competencias disponibles</h2></div><CalendarDays size={24} /></header><div className="portal-events">{UPCOMING_EVENTS.map((event) => { const registration = registrations.find((item) => item.athleteId === athlete.id && item.event === event.title); return <article key={event.slug}><time>{event.date}</time><div><h3>{event.title}</h3><p>{event.venue} · {event.location}</p></div>{registration ? <StatusPill value={registration.status} /> : <button className="btn btn--small" type="button" onClick={() => onSelectEvent(event)}>Inscribirme</button>}</article> })}</div></section>
-    </div></main>
+    </main>
   )
 }

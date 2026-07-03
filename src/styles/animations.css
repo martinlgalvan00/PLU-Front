@@ -62,6 +62,39 @@
   }
 }
 
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes page-enter-back {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-exit-back {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
 /* =============================================
    HERO ANIMATIONS
    ============================================= */
@@ -306,7 +339,66 @@
    ============================================= */
 
 .page-transition {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-transition--enter.page-transition--dir-forward {
   animation: page-enter var(--duration-slow) var(--ease-out) both;
+}
+
+.page-transition--exit.page-transition--dir-forward {
+  animation: page-exit 200ms var(--ease-sharp) both;
+  pointer-events: none;
+}
+
+.page-transition--enter.page-transition--dir-back {
+  animation: page-enter-back var(--duration-base) var(--ease-out) both;
+}
+
+.page-transition--exit.page-transition--dir-back {
+  animation: page-exit-back 200ms var(--ease-sharp) both;
+  pointer-events: none;
+}
+
+.page-transition--idle {
+  animation: none;
+}
+
+/* =============================================
+   STAGGER REVEAL
+   ============================================= */
+
+.stagger-reveal > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--duration-reveal) var(--ease-out),
+    transform var(--duration-reveal) var(--ease-out);
+  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-step, 80ms));
+}
+
+.stagger-reveal--scale > * {
+  transform: scale(0.97);
+}
+
+.stagger-reveal--from-left > * {
+  transform: translateX(-24px);
+}
+
+.stagger-reveal--from-right > * {
+  transform: translateX(24px);
+}
+
+.stagger-reveal.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 549px) {
+  .stagger-reveal > * {
+    transition-delay: calc(min(var(--stagger-index, 0), 2) * var(--stagger-step, 80ms));
+  }
 }
 
 /* =============================================
@@ -333,9 +425,34 @@
     transition: none;
   }
 
-  .page-transition,
+  .page-transition--enter,
+  .page-transition--exit,
+  .page-transition--enter.page-transition--dir-forward,
+  .page-transition--exit.page-transition--dir-forward,
+  .page-transition--enter.page-transition--dir-back,
+  .page-transition--exit.page-transition--dir-back {
+    animation: none;
+  }
+
+  .stagger-reveal > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hero--design .hero__content > *,
+  .hero--design .hero__metric {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
   .admin-section-enter {
     animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 
   *,
