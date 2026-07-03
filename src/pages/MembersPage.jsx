@@ -1,6 +1,7 @@
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import Button from '../components/ui/Button.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
+import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { money } from '../lib/format.js'
 import { PRICING } from '../lib/constants.js'
@@ -100,6 +101,22 @@ export default function MembersPage({ onNavigate }) {
         </div>
       </Reveal>
 
+      <section className="design-section" id="planes">
+        <span className="design-section__eyebrow" style={{ display: 'block', textAlign: 'center' }}>
+          Planes
+        </span>
+        <h2 className="design-section__title design-section__title--center">
+          Elegí tu plan de afiliación.
+        </h2>
+        <div className="membership-grid">
+          {MEMBERSHIP_PLANS.map((plan, i) => (
+            <Reveal key={plan.id} delay={i * 80}>
+              <MembershipCard {...plan} onSelect={() => onNavigate('register')} />
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       <Reveal as="section" variant="scale" className="design-section design-section--dark" id="comenzar">
         <div className="design-cta-band">
           <div className="design-cta-band__price">
@@ -124,24 +141,6 @@ export default function MembersPage({ onNavigate }) {
         </h2>
         <FAQAccordion items={MEMBERSHIP_FAQ} />
       </Reveal>
-
-      <section className="design-section">
-        <div className="membership-grid">
-          {MEMBERSHIP_PLANS.map((plan, i) => (
-            <Reveal key={plan.id} delay={i * 80}>
-              <article className="design-process-card">
-                <h3>{plan.title}</h3>
-                <p>
-                  {money(plan.price)} / {plan.period}
-                </p>
-                <Button variant="outline" onClick={() => onNavigate('register')}>
-                  Elegir plan
-                </Button>
-              </article>
-            </Reveal>
-          ))}
-        </div>
-      </section>
     </main>
   )
 }

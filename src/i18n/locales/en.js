@@ -107,7 +107,8 @@ export default {
     exit: 'Back to site',
   },
   footer: {
-    brandDesc: 'Argentine powerlifting federation with international standards. Operated by Maximal.',
+    brandDesc:
+      'Argentine powerlifting federation with international standards. Operated by Maximal.',
     navPlatform: 'Platform',
     navCommunity: 'Community',
     navAccess: 'Access',
@@ -142,7 +143,8 @@ export default {
   login: {
     eyebrow: 'PLU ARG · Unified access',
     title: 'Sign in',
-    subtitle: 'One login for the whole community — profile, membership and registrations in one place.',
+    subtitle:
+      'One login for the whole community — profile, membership and registrations in one place.',
     featureProfile: 'Athlete profile and digital credential',
     featureMembership: 'Annual membership and payments',
     featureEvents: 'Official meet registrations',
@@ -151,6 +153,10 @@ export default {
     forgot: 'Forgot your password?',
     submit: 'Sign in',
     submitting: 'Signing in…',
+    errorInvalid: 'We could not sign you in. Check your email and password.',
+    oauthSubmit: 'Sign in with OAuth',
+    oauthLoading: 'Connecting OAuth…',
+    errorOAuth: 'We could not sign you in with OAuth. Try again.',
     demoTitle: 'Demo access',
     demoAdmin: 'Sign in as admin',
     demoAthlete: 'Sign in as athlete',

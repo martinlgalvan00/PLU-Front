@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import AdminMetricCard from '../../components/admin/AdminMetricCard.jsx'
+import RecentActivity from '../../components/admin/RecentActivity.jsx'
 
 const METRIC_TONES = {
   users: 'celeste',
@@ -10,10 +11,17 @@ const METRIC_TONES = {
   shield: 'alert',
 }
 
+const METRIC_SECTIONS = {
+  users: 'athletes',
+  badge: 'memberships',
+  clipboard: 'registrations',
+}
+
 export default function DashboardSection({
   dashboard,
   pendingActions,
   pendingPayments,
+  recentActivity = [],
   onNavigate,
   onApprovePayment,
   canEdit,
@@ -55,24 +63,32 @@ export default function DashboardSection({
       </section>
 
       <div className="admin-stats">
-        {dashboard.map((item) => (
-          <AdminMetricCard
-            key={item.label}
-            value={item.value}
-            label={item.label}
-            icon={item.icon}
-            tone={METRIC_TONES[item.icon] ?? 'default'}
-          />
-        ))}
+        {dashboard.map((item) => {
+          const targetSection = METRIC_SECTIONS[item.icon]
+
+          return (
+            <AdminMetricCard
+              key={item.label}
+              value={item.value}
+              label={item.label}
+              icon={item.icon}
+              tone={METRIC_TONES[item.icon] ?? 'default'}
+              onClick={targetSection ? () => onNavigate?.(targetSection) : scrollToActions}
+            />
+          )
+        })}
       </div>
 
-      <div ref={actionQueueRef}>
-        <ActionQueue
-          items={pendingActions}
-          onNavigate={onNavigate}
-          onApprovePayment={onApprovePayment}
-          canEdit={canEdit}
-        />
+      <div className="admin-dashboard__panels">
+        <div ref={actionQueueRef}>
+          <ActionQueue
+            items={pendingActions}
+            onNavigate={onNavigate}
+            onApprovePayment={onApprovePayment}
+            canEdit={canEdit}
+          />
+        </div>
+        <RecentActivity items={recentActivity} />
       </div>
     </div>
   )

@@ -1,0 +1,105 @@
+import { createHash, randomBytes } from 'node:crypto'
+
+export const SESSION_COOKIE_NAME = 'plu_session'
+
+const SESSION_DURATION_MS = 1000 * 60 * 60 * 8
+
+export function hashToken(token) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+function hashOptionalValue(value) {
+  if (!value) return null
+
+  return createHash('sha256').update(String(value)).digest('hex')
+}
+
+function secureCookieEnabled(env = process.env) {
+  if (env.SESSION_COOKIE_SECURE === 'true') return true
+  if (env.SESSION_COOKIE_SECURE === 'false') return false
+
+  return env.NODE_ENV === 'production'
+}
+
+export function getSessionCookieOptions(env = process.env) {
+  return {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: secureCookieEnabled(env),
+    path: '/',
+    maxAge: SESSION_DURATION_MS,
+  }
+}
+
+export function getClearSessionCookieOptions(env = process.env) {
+  const options = getSessionCookieOptions(env)
+  delete options.maxAge
+  return options
+}
+
+export async function createSession({ prisma, userId, req, now = new Date() }) {
+  const token = randomBytes(32).toString('base64url')
+  const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS)
+
+  await prisma.session.create({
+    data: {
+      tokenHash: hashToken(token),
+      userId,
+      userAgent: req.get('user-agent') ?? null,
+      ipHash: hashOptionalValue(req.ip),
+      expiresAt,
+      revokedAt: null,
+    },
+  })
+
+  return { token, expiresAt }
+}
+
+export function serializeUser(user) {
+  const profileName =
+    user.profile?.displayName ??
+    [user.profile?.firstName, user.profile?.lastName].filter(Boolean).join(' ').trim()
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: profileName || user.email,
+    role: user.role,
+  }
+}
+
+export async function readSession({ prisma, token, now = new Date() }) {
+  if (!token) return null
+
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: { user: { include: { profile: true } } },
+  })
+
+  if (
+    !session ||
+    session.revokedAt ||
+    session.expiresAt <= now ||
+    session.user?.status !== 'active'
+  ) {
+    return null
+  }
+
+  return {
+    session,
+    user: serializeUser(session.user),
+  }
+}
+
+export async function readSessionFromRequest({ prisma, req }) {
+  return readSession({ prisma, token: req.cookies?.[SESSION_COOKIE_NAME] })
+}
+
+export async function revokeSession({ prisma, token, now = new Date() }) {
+  if (!token) return
+
+  await prisma.session.updateMany({
+    where: { tokenHash: hashToken(token), revokedAt: null },
+    data: { revokedAt: now },
+  })
+}

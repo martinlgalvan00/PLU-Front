@@ -15,6 +15,7 @@ export default function AdminPage({
   enrichedMemberships,
   pendingActions,
   adminNavBadges,
+  recentActivity,
   getAthleteDetail,
   onApprovePayment,
   onExportAdmin,
@@ -52,6 +53,7 @@ export default function AdminPage({
           dashboard={dashboard}
           pendingActions={pendingActions}
           pendingPayments={pendingPayments}
+          recentActivity={recentActivity}
           onNavigate={handleSectionChange}
           onApprovePayment={onApprovePayment}
           canEdit={canEdit}

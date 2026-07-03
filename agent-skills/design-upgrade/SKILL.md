@@ -206,7 +206,7 @@ Debe incluir: hero fuerte, claim claro, imagen deportiva, CTAs visibles, stats, 
 
 #### Afiliación (`MembersPage`, `RegisterPage`)
 
-Transmitir: beneficio, precio ARS, qué incluye, requisitos, CTA claro, proceso simple. Usar `MembershipCard` + `FormSection` (cuando exista).
+Transmitir: beneficio, precio ARS, qué incluye, requisitos, CTA claro, proceso simple. **Siempre** renderizar los planes con el componente `MembershipCard` (ícono por tier, comparación de ahorro, features con check, CTA) — nunca con markup genérico tipo `design-process-card`, que pierde jerarquía visual y datos (features, ahorro, destacado). `MembersPage` ya usa `<div className="membership-grid">` + `MembershipCard` por cada `MEMBERSHIP_PLANS`; si se agrega un plan nuevo, alcanza con sumarlo a `MEMBERSHIP_PLANS` en `content.js`, el componente ya soporta `compareWith`, `highlighted` y `features`. Usar `FormSection` (cuando exista) para el registro.
 
 #### Pitbull Classic (`PitbullPage`)
 
@@ -219,6 +219,14 @@ Priorizar: claridad, velocidad, estados (`StatusBadge`), filtros, acciones por r
 #### PLU USA (`viewer_plu_usa`)
 
 Solo lectura: export PLU USA habilitado, acciones de edición deshabilitadas (`canEdit` en `roles.js`). UI limpia orientada a descarga.
+
+#### Resultados (`ResultsPage`)
+
+Mostrar: podio visual top 3 (medallas 🥇🥈🥉), stats de la temporada, grilla de resultados por meet, filtros por evento. Consistencia con `EventsPage` (mismo hero, mismo design system). Tokens: `--results-podium-bg`, `--results-row-bg`, `--results-rank-bg`. Estilos en `src/styles/pages/results.css`. El podio anima **solo en la entrada** (drop-in + medal bounce, una vez al entrar en viewport) y usa sombra estática por rango (oro/plata/bronce); nada de loops infinitos — ver sección "9c. Modernidad y minimalismo".
+
+**Componentes clave:** `ResultCard` (rediseñado con `ResultCard--featured`, `result-card__medal`), `PodiumSection`, `ResultsStats`, `FilterPills`.
+
+**Estados a cubrir:** sin resultados → `EmptyState`; filtro vacío → mensaje contextual con botón de reset.
 
 ### 9. Motion y detalle (sin exagerar)
 
@@ -234,6 +242,47 @@ Usar el sistema existente:
 | Header scrolled | `useScrolled` en `Header.jsx` |
 
 Respetar `prefers-reduced-motion` (ya en `animations.css`).
+
+### 9c. Modernidad y minimalismo (regla de restricción visual)
+
+El objetivo estético es **premium y contenido**, no "recargado". Un diseño se siente más moderno cuando *hace menos cosas a la vez*, no cuando suma más efectos.
+
+**Reglas duras:**
+
+| Regla | Por qué |
+|-------|---------|
+| Máximo **una** animación en loop infinito visible por sección | Dos o más loops simultáneos (float + glow pulsante + shimmer) leen como "plantilla de casino", no como marca premium |
+| Motion de entrada (una vez) sí, motion ambiental permanente no | La atención del usuario debe volver a los datos, no quedar atrapada en movimiento decorativo |
+| Glow/sombra de color → **estático**, no pulsante | Un `box-shadow` fijo con tinte de marca ya comunica jerarquía (oro/plata/bronce); animarlo en loop es ruido |
+| Hover-only para shimmer, elevación o brillo | El detalle premium se revela con la interacción, no se regala todo el tiempo |
+| Preferir espacio en blanco antes que otra capa decorativa | Si una card necesita 3+ efectos superpuestos para verse bien, el problema es de jerarquía tipográfica, no de falta de motion |
+
+**Ejemplo aplicado — Podio (`Podium.jsx` / `results.css`):** entrada `podium-card-drop` (una vez) + `podium-medal-bounce` (una vez) + sombra estática por rango (oro/plata/bronce) + shimmer solo en `:hover`. **Sin** flotación infinita ni glow pulsante — se retiraron por sentirse recargados frente al objetivo minimalista.
+
+**Checklist rápido antes de agregar un efecto nuevo:**
+- [ ] ¿Ya hay una animación en loop en esta vista? → no agregar otra
+- [ ] ¿El efecto comunica jerarquía/estado o es solo decoración? → si es solo decoración, dudar
+- [ ] ¿Se puede lograr el mismo impacto con espaciado o tipografía en vez de motion?
+
+### 9b. Transiciones de Tema (Dark / Light)
+
+**Implementación actual:** View Transition API (`document.startViewTransition`) en `ThemeProvider.jsx` con animación `clip-path: circle()` que se expande desde el centro. Fallback CSS en `base.css`.
+
+**Reglas:**
+
+- El selector de fallback CSS en `base.css` debe incluir **todos** los componentes que cambian visualmente con el tema.
+- Nuevos componentes → agregar al selector de `base.css` (línea ~90).
+- Nuevos tokens de tema → definir en `dark.css` **y** `light.css` con los mismos nombres de variable.
+- Los overrides `[data-theme='light'] .component` van al final del CSS del componente correspondiente.
+- Nunca hardcodear colores en JSX; usar variables CSS para que el cambio de tema sea automático.
+
+**Checklist específico de transiciones:**
+
+- [ ] Componente nuevo agregado al selector de fallback en `base.css`
+- [ ] Token nuevo definido en `dark.css` y `light.css`
+- [ ] Override `[data-theme='light']` al final del CSS del componente
+- [ ] No hay hex hardcodeados en el componente JSX
+- [ ] Transición se ve fluida en Chrome (View Transition) y Firefox (fallback)
 
 ### 10. QA visual antes de finalizar
 
@@ -287,6 +336,8 @@ Al cerrar una mejora visual, registrar en el mensaje al usuario o en `docs/` si 
 | Olvidar rol PLU USA | Export bloqueado o edición expuesta | Verificar `canEdit` / `canExportPluUsa` |
 | Crear componente duplicado | Deuda técnica | Buscar en `src/components/ui/` antes de crear |
 | Hero sin imagen de respaldo | Build roto | CSS gradient fallback si falta asset |
+| Múltiples animaciones infinitas simultáneas (float + glow + shimmer) | Se ve recargado, no "premium moderno" | Una sola animación de entrada + hover; sombra estática con tinte de marca en vez de glow pulsante |
+| Renderizar planes/precios con markup genérico en vez del componente dedicado | Se pierde jerarquía, features y comparación de ahorro | Usar `MembershipCard` (o el componente ya construido) en cada lugar donde se muestren planes |
 
 ## Checklist de aceptación
 
@@ -304,6 +355,7 @@ Un diseño está **aceptado** si:
 - [ ] Tablas legibles con estados diferenciados
 - [ ] Estados de pago / afiliación / inscripción comprensibles
 - [ ] Puede escalar sin rediseñar todo (tokens + componentes)
+- [ ] No hay más de una animación en loop infinito visible a la vez por sección
 - [ ] `npm run build` y `npm run test` pasan
 
 ## Referencias oficiales

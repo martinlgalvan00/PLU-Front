@@ -32,6 +32,27 @@
     radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.08), transparent 55%),
     radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.12), transparent 50%),
     linear-gradient(180deg, #f5f5f7 0%, #ebebef 100%);
+
+  /* ── Results tokens ────────────────────────── */
+  --results-podium-bg: #ffffff;
+  --results-podium-border: rgba(15, 17, 23, 0.08);
+  --results-row-bg: #ffffff;
+  --results-row-hover: #f7f6f3;
+  --results-row-border: rgba(15, 17, 23, 0.06);
+  --results-rank-bg: rgba(15, 17, 23, 0.05);
+
+  /* ── Events v2 tokens ──────────────────────── */
+  --events-stat-bg: #ffffff;
+  --events-stat-border: rgba(15, 17, 23, 0.08);
+  --events-detail-bg: #ffffff;
+  --events-detail-border: rgba(15, 17, 23, 0.08);
+  --events-calendar-bg: #ffffff;
+  --events-calendar-header: rgba(15, 17, 23, 0.03);
+  --events-calendar-day-hover: rgba(15, 17, 23, 0.04);
+  --filter-pill-bg: #ffffff;
+  --filter-pill-border: rgba(15, 17, 23, 0.10);
+  --filter-pill-text: rgba(15, 17, 23, 0.55);
+  --filter-pill-active-text: #fff;
 }
 
 /* =============================================
@@ -48,7 +69,20 @@
 }
 
 [data-theme='light'] .admin-shell__footer {
-  background: rgba(15, 17, 23, 0.02);
+  background: transparent;
+}
+
+[data-theme='light'] .admin-shell__account {
+  background: #ffffff;
+}
+
+[data-theme='light'] .admin-shell__nav button:hover .admin-shell__nav-icon {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme='light'] .admin-shell__nav-icon {
+  background: rgba(15, 17, 23, 0.03);
 }
 
 [data-theme='light'] .admin-shell__nav::-webkit-scrollbar-thumb {
@@ -56,13 +90,14 @@
 }
 
 [data-theme='light'] .admin-mobile-bar {
-  background: #ffffff;
+  background: color-mix(in srgb, #ffffff 92%, transparent);
 }
 
 [data-theme='light'] .admin-page-toolbar__search,
 [data-theme='light'] .admin-page-toolbar__alert,
 [data-theme='light'] .admin-metric,
 [data-theme='light'] .action-queue,
+[data-theme='light'] .recent-activity,
 [data-theme='light'] .admin-welcome {
   background: #ffffff;
 }
@@ -78,17 +113,6 @@
   -webkit-text-fill-color: initial;
   animation: none;
   color: var(--color-text-primary);
-}
-
-/* =============================================
-   HERO — light overlay
-   ============================================= */
-
-[data-theme='light'] .hero__overlay {
-  background: linear-gradient(105deg,
-    rgba(245, 245, 247, 0.95) 0%,
-    rgba(245, 245, 247, 0.60) 40%,
-    rgba(245, 245, 247, 0.15) 100%);
 }
 
 /* =============================================

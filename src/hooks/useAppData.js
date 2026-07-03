@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
+import { usePluOAuth } from '../providers/oauthContext.js'
 import {
   approvePayment as approvePaymentAction,
   createAthleteProfile,
@@ -16,20 +18,21 @@ import {
 } from '../services/exportService.js'
 import {
   buildPendingActions,
+  buildRecentActivity,
   getAdminNavBadges,
   getAthleteAuditLogs,
 } from '../services/adminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
 
 export function useAppData() {
+  const oauth = usePluOAuth()
   const storedData = useMemo(() => readStorage(), [])
-  const [session, setSession] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('plu-arg-session')) }
-    catch { return null }
-  })
+  const [session, setSession] = useState(null)
   const [athletes, setAthletes] = useState(() => getInitialState(storedData).athletes)
   const [memberships, setMemberships] = useState(() => getInitialState(storedData).memberships)
-  const [registrations, setRegistrations] = useState(() => getInitialState(storedData).registrations)
+  const [registrations, setRegistrations] = useState(
+    () => getInitialState(storedData).registrations,
+  )
   const [payments, setPayments] = useState(() => getInitialState(storedData).payments)
   const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
   const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
@@ -44,9 +47,37 @@ export function useAppData() {
   }, [athletes, memberships, registrations, payments, createdOrder, auditLogs])
 
   useEffect(() => {
-    if (session) localStorage.setItem('plu-arg-session', JSON.stringify(session))
-    else localStorage.removeItem('plu-arg-session')
-  }, [session])
+    let active = true
+
+    meRequest()
+      .then(({ user }) => {
+        if (active) setSession(user)
+      })
+      .catch(async (error) => {
+        if (!active) return
+
+        if (error.status !== 401) {
+          console.warn('No se pudo restaurar la sesion.', error)
+          return
+        }
+
+        if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
+
+        try {
+          const accessToken = await oauth.getAccessToken()
+          if (!active || !accessToken) return
+
+          const { user } = await oauthSessionRequest(accessToken)
+          if (active) setSession(user)
+        } catch (oauthError) {
+          console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [oauth])
 
   const dashboard = useMemo(() => {
     const pendingPayments = payments.filter((p) =>
@@ -55,7 +86,11 @@ export function useAppData() {
 
     return [
       { label: 'Atletas', value: athletes.length, icon: 'users' },
-      { label: 'Afiliaciones activas', value: memberships.filter((m) => m.status === 'activa').length, icon: 'badge' },
+      {
+        label: 'Afiliaciones activas',
+        value: memberships.filter((m) => m.status === 'activa').length,
+        icon: 'badge',
+      },
       { label: 'Pitbull Classic', value: registrations.length, icon: 'clipboard' },
       { label: 'Pagos pendientes', value: pendingPayments, icon: 'shield' },
     ]
@@ -83,6 +118,11 @@ export function useAppData() {
   const adminNavBadges = useMemo(
     () => getAdminNavBadges({ payments, registrations }),
     [payments, registrations],
+  )
+
+  const recentActivity = useMemo(
+    () => buildRecentActivity({ auditLogs, athletes, memberships, registrations, payments }),
+    [auditLogs, athletes, memberships, registrations, payments],
   )
 
   const getAthleteDetail = useCallback(
@@ -132,47 +172,99 @@ export function useAppData() {
       setCreatedOrder(result.confirmation)
       setAuditLogs((c) => [result.auditLog, ...c])
       setForm(result.resetForm)
-      setSession({ role: 'athlete_plu', athleteId: result.athlete.id, name: result.athlete.fullName, email: result.athlete.email })
+      setSession({
+        role: 'athlete_plu',
+        athleteId: result.athlete.id,
+        name: result.athlete.fullName,
+        email: result.athlete.email,
+      })
       return result
     },
     [form, athletes],
   )
 
-  const submitMembership = useCallback((event) => {
-    event.preventDefault()
-    const athlete = athletes.find((item) => item.id === session?.athleteId)
-    if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
-    const result = createMembershipOrder({ athlete, form, memberships, payments })
-    setMemberships((current) => [result.membership, ...current.filter((item) => item.athleteId !== athlete.id || item.year !== '2026')])
-    setPayments((current) => [result.payment, ...current])
-    setCreatedOrder(result.createdOrder)
-    setAuditLogs((current) => [result.auditLog, ...current])
-    return result
-  }, [athletes, form, memberships, payments, session])
+  const submitMembership = useCallback(
+    (event) => {
+      event.preventDefault()
+      const athlete = athletes.find((item) => item.id === session?.athleteId)
+      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const result = createMembershipOrder({ athlete, form, memberships, payments })
+      setMemberships((current) => [
+        result.membership,
+        ...current.filter((item) => item.athleteId !== athlete.id || item.year !== '2026'),
+      ])
+      setPayments((current) => [result.payment, ...current])
+      setCreatedOrder(result.createdOrder)
+      setAuditLogs((current) => [result.auditLog, ...current])
+      return result
+    },
+    [athletes, form, memberships, payments, session],
+  )
 
-  const submitCompetition = useCallback((event, selectedEvent) => {
-    event.preventDefault()
-    const athlete = athletes.find((item) => item.id === session?.athleteId)
-    if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
-    const duplicate = registrations.some((item) => item.athleteId === athlete.id && item.event === selectedEvent.title && item.status !== 'cancelada')
-    if (duplicate) return { error: `Ya estás inscripto en ${selectedEvent.title}.` }
-    const result = createCompetitionOrder({ athlete, event: selectedEvent, form, registrations, payments })
-    setRegistrations((current) => [result.registration, ...current])
-    setPayments((current) => [result.payment, ...current])
-    setCreatedOrder(result.createdOrder)
-    setAuditLogs((current) => [result.auditLog, ...current])
-    return result
-  }, [athletes, form, payments, registrations, session])
+  const submitCompetition = useCallback(
+    (event, selectedEvent) => {
+      event.preventDefault()
+      const athlete = athletes.find((item) => item.id === session?.athleteId)
+      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const duplicate = registrations.some(
+        (item) =>
+          item.athleteId === athlete.id &&
+          item.event === selectedEvent.title &&
+          item.status !== 'cancelada',
+      )
+      if (duplicate) return { error: `Ya estás inscripto en ${selectedEvent.title}.` }
+      const result = createCompetitionOrder({
+        athlete,
+        event: selectedEvent,
+        form,
+        registrations,
+        payments,
+      })
+      setRegistrations((current) => [result.registration, ...current])
+      setPayments((current) => [result.payment, ...current])
+      setCreatedOrder(result.createdOrder)
+      setAuditLogs((current) => [result.auditLog, ...current])
+      return result
+    },
+    [athletes, form, payments, registrations, session],
+  )
 
-  const login = useCallback((accountType) => {
-    const nextSession = accountType === 'admin'
-      ? { role: 'admin_plu_arg', name: 'Administración PLU', email: 'admin@pluarg.com' }
-      : { role: 'athlete_plu', athleteId: 'ath-001', name: 'Martina Rivas', email: 'martina.rivas@example.com' }
+  const login = useCallback(async (credentialsOrAccountType) => {
+    if (credentialsOrAccountType === 'athlete') {
+      const demoAthleteSession = {
+        role: 'athlete_plu',
+        athleteId: 'ath-001',
+        name: 'Martina Rivas',
+        email: 'martina.rivas@example.com',
+      }
+      setSession(demoAthleteSession)
+      return demoAthleteSession
+    }
+
+    const { user } = await loginRequest(credentialsOrAccountType)
+    const nextSession = user
     setSession(nextSession)
     return nextSession
   }, [])
 
-  const logout = useCallback(() => setSession(null), [])
+  const logout = useCallback(async () => {
+    const currentSession = session
+    setSession(null)
+
+    if (currentSession?.role !== 'athlete_plu') {
+      try {
+        await logoutRequest()
+      } catch (error) {
+        if (error.status !== 401) {
+          console.warn('No se pudo cerrar la sesion del servidor.', error)
+        }
+      }
+
+      if (oauth.configured && oauth.isAuthenticated) {
+        await oauth.logout()
+      }
+    }
+  }, [oauth, session])
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
@@ -185,7 +277,12 @@ export function useAppData() {
       setMemberships((c) =>
         c.map((m) =>
           result.payment.concept === 'Afiliación anual' && m.athleteId === result.athleteId
-            ? { ...m, status: 'activa', paymentStatus: 'aprobado', mercadoPagoRef: result.payment.reference }
+            ? {
+                ...m,
+                status: 'activa',
+                paymentStatus: 'aprobado',
+                mercadoPagoRef: result.payment.reference,
+              }
             : m,
         ),
       )
@@ -242,6 +339,7 @@ export function useAppData() {
     enrichedMemberships,
     pendingActions,
     adminNavBadges,
+    recentActivity,
     getAthleteDetail,
     updateForm,
     registerAthlete,

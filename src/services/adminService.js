@@ -81,6 +81,45 @@ export function getAthleteAuditLogs(athleteId, auditLogs, memberships, registrat
     }))
 }
 
+export function buildRecentActivity({ auditLogs, athletes, memberships, registrations, payments }, limit = 6) {
+  function athleteName(athleteId) {
+    return athletes.find((item) => item.id === athleteId)?.fullName ?? 'Atleta'
+  }
+
+  function resolveDetail(log) {
+    if (log.entityType === 'athlete') return athleteName(log.entityId)
+
+    if (log.entityType === 'membership') {
+      const membership = memberships.find((item) => item.id === log.entityId)
+      return membership ? `${athleteName(membership.athleteId)} · ${membership.memberCode}` : null
+    }
+
+    if (log.entityType === 'registration') {
+      const registration = registrations.find((item) => item.id === log.entityId)
+      return registration ? `${athleteName(registration.athleteId)} · ${registration.event}` : null
+    }
+
+    if (log.entityType === 'payment') {
+      const payment = payments.find((item) => item.id === log.entityId)
+      return payment ? `${athleteName(payment.athleteId)} · ${money(payment.amount)}` : null
+    }
+
+    return null
+  }
+
+  return [...auditLogs]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit)
+    .map((log) => ({
+      id: log.id,
+      action: ACTION_LABELS[log.action] ?? log.action,
+      detail: resolveDetail(log),
+      actor: log.actor === 'admin' ? 'Panel admin' : log.actor === 'public' ? 'Autogestión' : null,
+      createdAt: log.createdAt,
+      createdAtLabel: new Date(log.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }),
+    }))
+}
+
 export function getAdminNavBadges({ payments, registrations }) {
   return {
     payments: payments.filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status)).length,

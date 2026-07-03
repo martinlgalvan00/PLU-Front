@@ -74,53 +74,90 @@ button:disabled {
 
 /* =============================================
    THEME TRANSITION — View Transition API + fallback CSS
-   Todas las propiedades afectadas por cambio de tema
-   hacen cross-fade visual suave
    ============================================= */
 
-/* Fallback: transición CSS en elementos key */
+/* ── Duración del cambio de tema (usada en toda la capa) */
+:root {
+  --transition-theme: 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fallback: transición CSS en todos los elementos afectados por tema */
 .site-header,
+.app-shell,
 .stat-block,
 .event-card,
+.events-stat,
+.events-detail,
+.event-calendar,
+.filter-pills,
+.filter-pills__item,
+.events-sidebar-card,
+.events-list--design .event-card,
 .result-card,
+.results-podium,
+.podium-card,
+.results-table-row,
 .community-card,
 .membership-card,
 .admin-metric,
 .admin-welcome,
 .action-queue,
+.recent-activity,
 .faq-item,
 .cta-section__inner,
 .about-pillar,
-.pitbull-spotlight {
+.pitbull-spotlight,
+.design-page-hero,
+.site-footer__main,
+.site-footer__bottom {
   transition:
-    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background var(--transition-theme),
+    background-color var(--transition-theme),
+    border-color var(--transition-theme),
+    box-shadow var(--transition-theme),
+    color var(--transition-theme);
 }
 
-/* View Transition API — cross-fade suave de toda la página */
-@keyframes theme-fade-in {
-  from { opacity: 0.6; filter: blur(2px) saturate(0.7); }
-  to   { opacity: 1;   filter: blur(0)   saturate(1); }
+/* ── View Transition API premium (Chrome 111+) ── */
+
+/* Animación circular que se expande desde el centro de la pantalla */
+@keyframes theme-reveal-new {
+  from {
+    clip-path: circle(0% at 50% 50%);
+    opacity: 0.92;
+  }
+  to {
+    clip-path: circle(150% at 50% 50%);
+    opacity: 1;
+  }
+}
+
+@keyframes theme-reveal-old {
+  from {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.1;
+    filter: blur(4px) saturate(0.4);
+    transform: scale(0.99);
+  }
 }
 
 ::view-transition-old(root) {
-  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-old;
+  animation: 280ms cubic-bezier(0.4, 0, 0.2, 1) both theme-reveal-old;
   mix-blend-mode: normal;
+  z-index: 1;
 }
 
 ::view-transition-new(root) {
-  animation: 0.35s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-in;
+  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both theme-reveal-new;
   mix-blend-mode: normal;
+  z-index: 2;
 }
 
-@keyframes theme-fade-old {
-  from { opacity: 1; filter: blur(0); }
-  to   { opacity: 0; filter: blur(3px) saturate(0.5); }
-}
-
-/* pref-toggle: icono con spin al cambiar */
+/* ── Icono del toggle con spin al cambiar ── */
 .pref-toggle {
   position: relative;
 }
@@ -132,4 +169,16 @@ button:disabled {
 .pref-toggle:active svg {
   transform: rotate(180deg) scale(0.85);
   opacity: 0.7;
+}
+
+/* ── Efecto visual de "cambio" en el ícono del toggle ── */
+@keyframes theme-icon-swap {
+  0%   { transform: rotate(0deg) scale(1); opacity: 1; }
+  30%  { transform: rotate(90deg) scale(0.7); opacity: 0; }
+  60%  { transform: rotate(-30deg) scale(1.15); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+.pref-toggle--switching svg {
+  animation: theme-icon-swap 0.5s var(--ease-spring) forwards;
 }

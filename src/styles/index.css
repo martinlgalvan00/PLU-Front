@@ -23,5 +23,6 @@
 @import './pages/register.css';
 @import './pages/design-phase2.css';
 @import './pages/rulebook.css';
+@import './pages/results.css';
 @import url('/src/styles/pages/events.css');
 @import url('/src/styles/pages/members.css');
