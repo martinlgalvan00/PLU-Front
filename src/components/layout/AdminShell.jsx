@@ -13,9 +13,9 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import logo from '../../assets/PLU Official Letterhead Logo.png'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
+import BrandLogo from '../ui/BrandLogo.jsx'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 
 const ICONS = {
@@ -73,7 +73,7 @@ export default function AdminShell({
         <div className="admin-shell__brand">
           <div className="admin-shell__brand-inner">
             <div className="admin-shell__brand-mark">
-              <img src={logo} alt="" />
+              <BrandLogo imgClassName="admin-shell__brand-logo" height={28} />
             </div>
             <div className="admin-shell__brand-copy">
               <strong>PLU ARG</strong>
@@ -146,7 +146,7 @@ export default function AdminShell({
             <Menu size={20} />
           </button>
           <div className="admin-mobile-bar__brand">
-            <img src={logo} alt="" />
+            <BrandLogo imgClassName="admin-mobile-bar__logo" height={24} />
             <div className="admin-mobile-bar__titles">
               <span>PLU ARG</span>
               <strong>{activeLabel}</strong>

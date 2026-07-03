@@ -1,31 +1,42 @@
-# Referencia de diseño — Claude Design
+# Design reference — PLU ARG Sitio Público
 
-Colocá acá el export de Claude Design para implementarlo en PLU-Front.
+Archivo fuente: `PLU ARG - Sitio Publico (standalone).html` (export Claude Design).
 
-## Qué subir
+## Extracción
 
-Desde [claude.ai/design](https://claude.ai/design), exportá el proyecto y guardá:
-
-- `PLU ARG - Sitio Publico.dc.html` (HTML autocontenido), o
-- El ZIP completo del handoff (descomprimido en esta carpeta)
-
-## Estructura esperada
-
-```txt
-design-reference/
-  README.md
-  PLU ARG - Sitio Publico.dc.html   ← archivo principal
-  assets/                           ← opcional, si el ZIP trae imágenes sueltas
+```bash
+node scripts/extract-design-ref.mjs
 ```
 
-## Después de subir el archivo
+Genera `extracted-design.html` (~170 KB) con el markup interno del bundle.
 
-En Cursor, pedí:
+## Implementado (Fase 1)
 
-> Implementá el diseño de `design-reference/PLU ARG - Sitio Publico.dc.html` en PLU-Front.
+| Área | Archivos |
+|------|----------|
+| Nav stripe + dropdowns Eventos/Recursos | `NavbarPublic.jsx`, `header.css` |
+| Hero copy, CTAs pill, métricas | `HeroSection.jsx`, `home.css`, i18n |
+| About 3 pilares cards blancas | `content.js`, `AboutSection.jsx`, `home.css` |
+| Pitbull spotlight diseño | `PitbullSpotlight.jsx`, `home.css` |
+| Tokens OKLCH aproximados | `dark.css`, `variables.css` |
+| Tipografía JetBrains Mono | `index.html` |
 
-El agente va a extraer tokens, layout y componentes y mapearlos a `src/` sin pegar HTML monolítico en producción.
+## Implementado (Fase 2)
 
-## No commitear por error
+| Área | Archivos |
+|------|----------|
+| Afiliación (hero, beneficios, requisitos, proceso, FAQ) | `MembersPage.jsx`, `design-phase2.css` |
+| Eventos (filtros pill, card Pitbull, calendario sidebar) | `EventsPage.jsx`, `events.js` |
+| Login (formulario + demo) | `LoginPage.jsx` |
+| Cuenta atleta | `AthleteProfilePage.jsx` |
+| Contacto (form + pills motivo) | `ContactPage.jsx`, `ContactForm.jsx` |
+| Footer simplificado | `Footer.jsx` |
+| Nav indicator deslizante | `NavbarPublic.jsx` |
+| Canvas claro páginas internas + light theme | `design-phase2.css`, `light.css` |
+| Componentes compartidos | `DesignPageHero.jsx`, `FilterPills.jsx` |
 
-Si el export pesa mucho o trae datos sensibles, revisá antes de `git add`. Podés agregar archivos grandes a `.gitignore` si solo son referencia local.
+## Pendiente (Fase 3)
+
+- Páginas restantes: Resultados, Reglamento, Comunidad, FAQ internas al 100% del HTML
+- Auth real (email/password) reemplazando demo login
+- Animaciones scroll reveal del artifact

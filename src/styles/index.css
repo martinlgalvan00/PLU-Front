@@ -1,6 +1,8 @@
+@import url('/src/styles/tokens/palette.css');
 @import './variables.css';
 @import './themes/dark.css';
 @import './themes/light.css';
+@import './themes/design-pages-theme.css';
 @import './base.css';
 @import './animations.css';
 @import './effects.css';
@@ -13,10 +15,13 @@
 @import './components/forms.css';
 @import './components/status.css';
 @import './components/plu-ui.css';
+@import './components/brand-logo.css';
 @import './components/states.css';
 @import './pages/home.css';
 @import './pages/page.css';
 @import './pages/admin.css';
 @import './pages/register.css';
+@import './pages/design-phase2.css';
+@import './pages/rulebook.css';
 @import url('/src/styles/pages/events.css');
 @import url('/src/styles/pages/members.css');

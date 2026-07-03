@@ -1,0 +1,99 @@
+/**
+ * PLU ARG — Paleta base (design-reference / Claude Design)
+ * Usá los alias semánticos (--color-*) en componentes; estos son los primitivos.
+ */
+:root {
+  /* ── Rojo PLU ─────────────────────────────────── */
+  --plu-red-600: #b80500;
+  --plu-red-500: #e10600;
+  --plu-red-400: #ff3b36;
+  --plu-red-300: #ff6b67;
+  --plu-red-oklch: oklch(58% 0.19 25);
+  --plu-red-oklch-glow: oklch(56% 0.18 25);
+  --plu-red-alpha-16: oklch(58% 0.19 25 / 0.16);
+  --plu-red-alpha-30: rgba(225, 6, 0, 0.3);
+  --plu-red-alpha-45: rgba(225, 6, 0, 0.45);
+
+  /* ── Celeste Argentina ────────────────────────── */
+  --plu-celeste-500: #5a96cc;
+  --plu-celeste-400: #74acdf;
+  --plu-celeste-300: #9ec5eb;
+  --plu-celeste-oklch: oklch(78% 0.06 230);
+  --plu-celeste-alpha-18: oklch(78% 0.06 230 / 0.18);
+  --plu-celeste-alpha-35: rgba(116, 172, 223, 0.35);
+
+  /* ── Dorado / acento premium ──────────────────── */
+  --plu-gold-600: #9b8f59;
+  --plu-gold-500: #c9b978;
+  --plu-gold-400: #ddc992;
+  --plu-gold-oklch: oklch(74% 0.11 85);
+  --plu-gold-alpha-18: oklch(74% 0.11 85 / 0.18);
+
+  /* ── Neutros cálidos (páginas claras) ─────────── */
+  --plu-warm-50: #f7f6f3;
+  --plu-warm-100: #f0efec;
+  --plu-warm-200: #e8e6e1;
+  --plu-warm-oklch-98: oklch(98% 0.003 80);
+  --plu-warm-oklch-95: oklch(95% 0.004 80);
+
+  /* ── Neutros fríos (UI oscura) ────────────────── */
+  --plu-cool-950: #0a0b0d;
+  --plu-cool-900: #121316;
+  --plu-cool-850: #141518;
+  --plu-cool-800: #181a1f;
+  --plu-cool-750: #1e2026;
+  --plu-cool-700: #252830;
+  --plu-cool-oklch-8: oklch(8% 0.006 260);
+  --plu-cool-oklch-10: oklch(10% 0.006 260);
+  --plu-cool-oklch-13: oklch(13% 0.006 260);
+
+  /* ── Texto ────────────────────────────────────── */
+  --plu-ink-900: #1a1c22;
+  --plu-ink-700: #3d424d;
+  --plu-ink-500: #6b6f7a;
+  --plu-ink-400: oklch(58% 0.006 260);
+  --plu-ink-inverse: #ffffff;
+
+  /* ── Estado ───────────────────────────────────── */
+  --plu-success-600: #2d7a4a;
+  --plu-success-500: #3d9a62;
+  --plu-success-400: #8fd4a8;
+  --plu-success-bg: oklch(96% 0.02 150);
+  --plu-warning-500: #b45309;
+  --plu-danger-500: #991b1b;
+
+  /* ── Gradientes de marca ──────────────────────── */
+  --plu-gradient-stripe: linear-gradient(
+    90deg,
+    var(--plu-red-oklch),
+    var(--plu-celeste-oklch) 45%,
+    oklch(78% 0.06 230 / 0.1)
+  );
+  --plu-gradient-brand-bar: linear-gradient(180deg, var(--plu-red-oklch), var(--plu-gold-oklch));
+  --plu-gradient-hero-dark: linear-gradient(200deg, var(--plu-cool-oklch-13), var(--plu-cool-oklch-8) 65%);
+  --plu-gradient-brand-horizontal: linear-gradient(
+    90deg,
+    var(--plu-red-500),
+    var(--plu-celeste-400),
+    var(--plu-gold-500)
+  );
+  --plu-gradient-brand-diagonal: linear-gradient(
+    135deg,
+    var(--plu-red-500) 0%,
+    var(--plu-celeste-400) 50%,
+    var(--plu-gold-500) 100%
+  );
+
+  /* ── Alias semánticos de marca ────────────────── */
+  --color-brand-red: var(--plu-red-500);
+  --color-brand-red-hover: var(--plu-red-400);
+  --color-brand-gold: var(--plu-gold-500);
+  --color-brand-gold-light: var(--plu-gold-400);
+  --color-brand-gold-dark: var(--plu-gold-600);
+  --color-brand-celeste: var(--plu-celeste-400);
+  --color-brand-celeste-dim: var(--plu-celeste-alpha-18);
+  --color-brand-celeste-glow: var(--plu-celeste-alpha-35);
+
+  --gradient-brand: var(--plu-gradient-brand-horizontal);
+  --gradient-brand-diag: var(--plu-gradient-brand-diagonal);
+}

@@ -22,11 +22,15 @@ export default function MembershipCard({
   period = 'anual',
   features = [],
   highlighted = false,
+  compareWith = [],
   onSelect,
   ctaLabel = 'Afiliarme',
 }) {
   const Icon = PLAN_ICONS[id] ?? Shield
   const accent = PLAN_ACCENT[id] ?? 'celeste'
+  const compareTotal = compareWith.reduce((sum, item) => sum + item.price, 0)
+  const savings = compareTotal - price
+  const hasCompare = compareWith.length > 0 && savings > 0
 
   return (
     <article
@@ -48,10 +52,30 @@ export default function MembershipCard({
         <h3 className="membership-card__title">{title}</h3>
       </div>
 
+      {/* Comparación — qué costaría por separado */}
+      {hasCompare && (
+        <dl className="membership-card__compare">
+          {compareWith.map((item) => (
+            <div className="membership-card__compare-row" key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{money(item.price)}</dd>
+            </div>
+          ))}
+          <div className="membership-card__compare-row membership-card__compare-row--total">
+            <dt>Por separado</dt>
+            <dd>{money(compareTotal)}</dd>
+          </div>
+        </dl>
+      )}
+
       {/* Precio */}
       <div className="membership-card__price">
         <span className="membership-card__amount">{money(price)}</span>
-        <span className="membership-card__period">/{period}</span>
+        {hasCompare ? (
+          <span className="membership-card__save">Ahorrás {money(savings)}</span>
+        ) : (
+          <span className="membership-card__period">/{period}</span>
+        )}
       </div>
 
       {/* Separador */}

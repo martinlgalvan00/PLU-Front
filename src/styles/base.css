@@ -67,6 +67,8 @@ button:disabled {
 .app-shell {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 

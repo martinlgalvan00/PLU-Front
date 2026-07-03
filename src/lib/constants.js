@@ -61,6 +61,22 @@ export const NAV_PRIMARY = ['home', 'members', 'pitbull', 'events', 'results']
 
 export const NAV_SECONDARY = ['rulebook', 'community', 'faq', 'contact']
 
+/** Nav agrupada como en design-reference (Claude Design) */
+export const NAV_EVENTOS = [
+  { key: 'pitbull', featured: true },
+  { key: 'events' },
+  { key: 'results' },
+]
+
+export const NAV_RECURSOS = [
+  { key: 'rulebook' },
+  { key: 'community' },
+  { key: 'faq' },
+]
+
+export const NAV_EVENTOS_VIEWS = NAV_EVENTOS.map(({ key }) => key)
+export const NAV_RECURSOS_VIEWS = NAV_RECURSOS.map(({ key }) => key)
+
 export const NAV_ITEMS = [...NAV_PRIMARY, ...NAV_SECONDARY].map((key) => [key, key])
 
 export const REGISTRATION_FILTER_STATUSES = [

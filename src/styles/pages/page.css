@@ -62,6 +62,50 @@
   margin: 0;
 }
 
+.pitbull-category-kicker {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin: 0 0 var(--space-lg);
+}
+
+.pitbull-category-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: var(--space-2xl);
+}
+
+.pitbull-category-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-left: 2px solid var(--color-brand-red);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.pitbull-category-card h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.pitbull-category-card p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pitbull-credential {
+  margin-top: var(--space-2xl);
+}
+
+.pitbull-credential .digital-card-block {
+  max-width: 420px;
+}
+
 .pitbull-detail {
   display: grid;
   gap: var(--space-2xl);
@@ -133,6 +177,10 @@
     border-top: 1px solid var(--color-border-subtle);
     padding-left: 0;
     padding-top: var(--space-lg);
+  }
+
+  .pitbull-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -281,6 +329,15 @@
 
 [data-theme='light'] .membership-card__period {
   color: rgba(15, 17, 23, 0.30);
+}
+
+[data-theme='light'] .membership-card__compare-row {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .membership-card__compare-row--total {
+  border-top-color: rgba(15, 17, 23, 0.16);
+  text-decoration-color: rgba(15, 17, 23, 0.3);
 }
 
 [data-theme='light'] .membership-card__check {

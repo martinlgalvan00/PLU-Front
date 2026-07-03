@@ -58,45 +58,53 @@ export default function RegisterPage({ athlete, createdOrder, event, flow, form,
           <form className="athlete-form" onSubmit={submit} noValidate>
             {flow === 'profile' && (
               <>
-                <FormSection step="01" title="Datos personales" description="Información básica para identificarte.">
-                  <div className="form-grid">
-                    <Field autoComplete="name" error={errors.fullName} label="Nombre y apellido" name="fullName" placeholder="Ej.: Martina Rivas" value={form.fullName} onChange={changeField} />
-                    <Field error={errors.documentId} inputMode="numeric" label="DNI o documento" name="documentId" placeholder="Ej.: 40111222" value={form.documentId} onChange={changeField} />
-                    <Field error={errors.birthDate} inputMode="numeric" label="Fecha de nacimiento" maxLength={10} name="birthDate" placeholder="DD/MM/AAAA" value={form.birthDate} onChange={changeField} />
-                    <Field autoComplete="email" error={errors.email} label="Correo electrónico" name="email" placeholder="nombre@correo.com" type="email" value={form.email} onChange={changeField} />
-                    <Field autoComplete="tel" error={errors.phone} inputMode="tel" label="Teléfono" name="phone" placeholder="Ej.: +54 9 11 1234 5678" value={form.phone} onChange={changeField} />
-                  </div>
-                </FormSection>
-                <FormSection step="02" title="Ubicación y equipo" description="Datos de residencia y entrenamiento.">
-                  <div className="form-grid">
-                    <Field error={errors.country} label="País" name="country" value={form.country} onChange={changeField} />
-                    <Field error={errors.province} label="Provincia" name="province" placeholder="Ej.: Buenos Aires" value={form.province} onChange={changeField} />
-                    <Field error={errors.city} label="Ciudad" name="city" placeholder="Ej.: La Plata" value={form.city} onChange={changeField} />
-                    <Field error={errors.gym} label="Gimnasio o equipo" name="gym" placeholder="Ej.: Maximal Power" value={form.gym} onChange={changeField} />
-                    <Select label="Sexo competitivo" name="sex" value={form.sex} onChange={changeField} options={FORM_OPTIONS.sex} />
-                  </div>
-                </FormSection>
+                <Reveal delay={0}>
+                  <FormSection step="01" title="Datos personales" description="Información básica para identificarte.">
+                    <div className="form-grid">
+                      <Field autoComplete="name" error={errors.fullName} label="Nombre y apellido" name="fullName" placeholder="Ej.: Martina Rivas" value={form.fullName} onChange={changeField} />
+                      <Field error={errors.documentId} inputMode="numeric" label="DNI o documento" name="documentId" placeholder="Ej.: 40111222" value={form.documentId} onChange={changeField} />
+                      <Field error={errors.birthDate} inputMode="numeric" label="Fecha de nacimiento" maxLength={10} name="birthDate" placeholder="DD/MM/AAAA" value={form.birthDate} onChange={changeField} />
+                      <Field autoComplete="email" error={errors.email} label="Correo electrónico" name="email" placeholder="nombre@correo.com" type="email" value={form.email} onChange={changeField} />
+                      <Field autoComplete="tel" error={errors.phone} inputMode="tel" label="Teléfono" name="phone" placeholder="Ej.: +54 9 11 1234 5678" value={form.phone} onChange={changeField} />
+                    </div>
+                  </FormSection>
+                </Reveal>
+                <Reveal delay={80}>
+                  <FormSection step="02" title="Ubicación y equipo" description="Datos de residencia y entrenamiento.">
+                    <div className="form-grid">
+                      <Field error={errors.country} label="País" name="country" value={form.country} onChange={changeField} />
+                      <Field error={errors.province} label="Provincia" name="province" placeholder="Ej.: Buenos Aires" value={form.province} onChange={changeField} />
+                      <Field error={errors.city} label="Ciudad" name="city" placeholder="Ej.: La Plata" value={form.city} onChange={changeField} />
+                      <Field error={errors.gym} label="Gimnasio o equipo" name="gym" placeholder="Ej.: Maximal Power" value={form.gym} onChange={changeField} />
+                      <Select label="Sexo competitivo" name="sex" value={form.sex} onChange={changeField} options={FORM_OPTIONS.sex} />
+                    </div>
+                  </FormSection>
+                </Reveal>
               </>
             )}
 
             {flow === 'competition' && (
-              <FormSection step="01" title={event.title} description="Datos específicos para esta competencia.">
-                <div className="form-grid">
-                  <Select label="División" name="division" value={form.division} onChange={changeField} options={FORM_OPTIONS.division} />
-                  <Select label="Categoría" name="category" value={form.category} onChange={changeField} options={FORM_OPTIONS.category} />
-                  <Field error={errors.estimatedWeight} inputMode="decimal" label="Peso corporal" name="estimatedWeight" placeholder="Ej.: 67,5 kg" value={form.estimatedWeight} onChange={changeField} />
-                  <div className="field field--readonly"><span>Tipo de trámite</span><strong>Inscripción a {event.title}</strong></div>
-                  <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
-                </div>
-              </FormSection>
+              <Reveal>
+                <FormSection step="01" title={event.title} description="Datos específicos para esta competencia.">
+                  <div className="form-grid">
+                    <Select label="División" name="division" value={form.division} onChange={changeField} options={FORM_OPTIONS.division} />
+                    <Select label="Categoría" name="category" value={form.category} onChange={changeField} options={FORM_OPTIONS.category} />
+                    <Field error={errors.estimatedWeight} inputMode="decimal" label="Peso corporal" name="estimatedWeight" placeholder="Ej.: 67,5 kg" value={form.estimatedWeight} onChange={changeField} />
+                    <div className="field field--readonly"><span>Tipo de trámite</span><strong>Inscripción a {event.title}</strong></div>
+                    <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
+                  </div>
+                </FormSection>
+              </Reveal>
             )}
 
             {flow === 'membership' && (
-              <FormSection step="01" title="Método de pago" description="Tu información personal ya está asociada al perfil.">
-                <div className="form-grid form-grid--compact">
-                  <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
-                </div>
-              </FormSection>
+              <Reveal>
+                <FormSection step="01" title="Método de pago" description="Tu información personal ya está asociada al perfil.">
+                  <div className="form-grid form-grid--compact">
+                    <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
+                  </div>
+                </FormSection>
+              </Reveal>
             )}
 
             {submitError && <p className="form-submit-error" role="alert">{submitError}</p>}
@@ -109,7 +117,7 @@ export default function RegisterPage({ athlete, createdOrder, event, flow, form,
             </div>
           </form>
 
-          <aside className="order-panel surface-card">
+          <Reveal variant="from-right" as="aside" className="order-panel surface-card" delay={120}>
             <h2>{flow === 'profile' ? 'Estado del perfil' : 'Estado del trámite'}</h2>
             {visibleOrder ? (
               <div className="order-details">
@@ -121,7 +129,7 @@ export default function RegisterPage({ athlete, createdOrder, event, flow, form,
                 )}
               </div>
             ) : <p>{flow === 'profile' ? 'Completá tus datos para crear el perfil.' : 'Generá la orden para consultar su estado.'}</p>}
-          </aside>
+          </Reveal>
         </section>
       </div>
     </main>

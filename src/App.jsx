@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
+import { getTransitionDirection } from './lib/navigation.js'
 import { canViewAdmin, getRoleLabel } from './lib/roles.js'
 import AdminPage from './pages/AdminPage.jsx'
 import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
@@ -36,21 +37,28 @@ const PUBLIC_VIEWS = {
 
 export default function App() {
   const [view, setView] = useState('home')
+  const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const app = useAppData()
 
   useEffect(() => {
-    window.scrollTo(0, 0)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [view])
 
-  function navigate(nextView) {
-    const adminRequired = nextView === 'admin'
-    const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
-    const blocked =
-      (adminRequired && !canViewAdmin(app.session?.role)) ||
-      (athleteRequired && app.session?.role !== 'athlete_plu')
-    setView(blocked ? 'login' : nextView)
-  }
+  const navigate = useCallback(
+    (nextView) => {
+      const adminRequired = nextView === 'admin'
+      const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
+      const blocked =
+        (adminRequired && !canViewAdmin(app.session?.role)) ||
+        (athleteRequired && app.session?.role !== 'athlete_plu')
+      const resolvedView = blocked ? 'login' : nextView
+
+      setTransitionDirection(getTransitionDirection(view, resolvedView))
+      setView(resolvedView)
+    },
+    [app.session?.role, view],
+  )
 
   function selectEvent(event) {
     setSelectedEvent(event)
@@ -100,26 +108,76 @@ export default function App() {
         : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
-    return <PrivateLayout app={app} view={view} navigate={navigate}><AthleteProfilePage athlete={app.athletes.find((item) => item.id === app.session.athleteId)} memberships={app.memberships} onNavigate={navigate} onSelectEvent={selectEvent} payments={app.payments} registrations={app.registrations} /></PrivateLayout>
+    return (
+      <PrivateLayout
+        app={app}
+        view={view}
+        navigate={navigate}
+        transitionDirection={transitionDirection}
+      >
+        <AthleteProfilePage
+          athlete={app.athletes.find((item) => item.id === app.session.athleteId)}
+          memberships={app.memberships}
+          onNavigate={navigate}
+          onLogout={() => { app.logout(); navigate('home') }}
+          registrations={app.registrations}
+        />
+      </PrivateLayout>
+    )
   }
 
   if (['membership', 'competition'].includes(view) && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
     const flow = view
-    return <PrivateLayout app={app} view={view} navigate={navigate}><RegisterPage athlete={athlete} createdOrder={app.createdOrder} event={selectedEvent} flow={flow} form={app.form} onApprovePayment={app.handleApprovePayment} onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition} onUpdateForm={app.updateForm} total={flow === 'membership' ? PRICING.membership : PRICING.event} /></PrivateLayout>
+    return (
+      <PrivateLayout
+        app={app}
+        view={view}
+        navigate={navigate}
+        transitionDirection={transitionDirection}
+      >
+        <RegisterPage
+          athlete={athlete}
+          createdOrder={app.createdOrder}
+          event={selectedEvent}
+          flow={flow}
+          form={app.form}
+          onApprovePayment={app.handleApprovePayment}
+          onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
+          onUpdateForm={app.updateForm}
+          total={flow === 'membership' ? PRICING.membership : PRICING.event}
+        />
+      </PrivateLayout>
+    )
   }
 
   return (
     <div className="app-shell">
       <NavbarPublic activeView={view} onLogout={app.logout} onNavigate={navigate} session={app.session} />
-      <PageTransition viewKey={view}>
+      <PageTransition viewKey={view} direction={transitionDirection}>
         <Page {...pageProps} />
       </PageTransition>
-      <Footer onNavigate={navigate} />
+      {view !== 'login' && <Footer onNavigate={navigate} />}
     </div>
   )
 }
 
-function PrivateLayout({ app, children, navigate, view }) {
-  return <div className="app-shell"><NavbarPublic activeView={view} onLogout={() => { app.logout(); navigate('home') }} onNavigate={navigate} session={app.session} /><PageTransition viewKey={view}>{children}</PageTransition><Footer onNavigate={navigate} /></div>
+function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
+  return (
+    <div className="app-shell">
+      <NavbarPublic
+        activeView={view}
+        onLogout={() => {
+          app.logout()
+          navigate('home')
+        }}
+        onNavigate={navigate}
+        session={app.session}
+      />
+      <PageTransition viewKey={view} direction={transitionDirection}>
+        {children}
+      </PageTransition>
+      <Footer onNavigate={navigate} />
+    </div>
+  )
 }

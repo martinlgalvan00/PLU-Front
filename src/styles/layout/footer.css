@@ -133,7 +133,8 @@
   width: fit-content;
 }
 
-.site-footer__logo img {
+.site-footer__logo img,
+.site-footer__logo-img {
   height: 44px;
   object-fit: contain;
   width: auto;
