@@ -196,7 +196,6 @@
 }
 
 .site-footer__flag {
-  animation: flag-wave 6s ease-in-out infinite;
   background: linear-gradient(180deg, #74acdf 33%, #fff 33% 66%, #74acdf 66%);
   border-radius: 2px;
   display: block;
@@ -326,16 +325,6 @@
   color: var(--color-text-muted);
   font-weight: 500;
   letter-spacing: 0.02em;
-}
-
-@keyframes flag-wave {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(0.85);
-  }
 }
 
 .events-grid--stacked {

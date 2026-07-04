@@ -320,6 +320,71 @@
   text-transform: uppercase;
 }
 
+/* Home — accesos compactos en grilla densa */
+.platform-map--compact {
+  gap: var(--space-md);
+}
+
+.platform-map--compact .platform-map__group {
+  gap: 0;
+}
+
+.platform-map--compact .platform-map__grid {
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.platform-map--compact .platform-map__card {
+  align-items: center;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.platform-map--compact .platform-map__card:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.platform-map--compact .platform-map__icon {
+  flex-shrink: 0;
+  height: 32px;
+  width: 32px;
+}
+
+.platform-map--compact .platform-map__body {
+  display: grid;
+  flex: 1;
+  gap: 0;
+  min-width: 0;
+}
+
+.platform-map--compact .platform-map__body strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.platform-map--compact .platform-map__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.platform-map--compact .platform-map__card:hover .platform-map__chevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+@media (min-width: 720px) {
+  .platform-map--compact .platform-map__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1024px) {
   .platform-map__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,41 +1,28 @@
 import { ABOUT_INTRO } from '../../lib/content.js'
-import Button from './Button.jsx'
 import SectionHeading from './SectionHeading.jsx'
 
-const PILLAR_NUMBERS = ['01', '02', '03']
-
-export default function AboutSection({ pillars, onNavigate }) {
+export default function AboutSection({ pillars }) {
   return (
     <div className="about-section">
       <SectionHeading
         align="left"
+        variant="ref"
         eyebrow={ABOUT_INTRO.eyebrow}
         title={ABOUT_INTRO.title}
         description={ABOUT_INTRO.description}
       />
 
-      <div className="about-pillars about-pillars--design">
-        {pillars.map(({ title, text }, i) => (
-          <article key={title} className="about-pillar about-pillar--design">
-            <div className="about-pillar__num" aria-hidden>
-              {PILLAR_NUMBERS[i]}
-            </div>
-            <div className="about-pillar__body">
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </div>
-          </article>
+      <ul className="about-section__pillars">
+        {pillars.map(({ id, title, text }, index) => (
+          <li key={id ?? title} className="about-pillar-card surface-card">
+            <span className="about-pillar-card__index" aria-hidden>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <strong className="about-pillar-card__title">{title}</strong>
+            <p className="about-pillar-card__text">{text}</p>
+          </li>
         ))}
-      </div>
-
-      <div className="about-actions">
-        <Button variant="outline" onClick={() => onNavigate('rulebook')}>
-          Ver reglamento
-        </Button>
-        <Button variant="ghost" onClick={() => onNavigate('members')}>
-          Planes de afiliación
-        </Button>
-      </div>
+      </ul>
     </div>
   )
 }

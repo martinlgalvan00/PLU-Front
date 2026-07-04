@@ -49,30 +49,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
   return (
     <main className="page login-page--design">
       <div className="login-shell">
-        <aside className="login-brand" aria-labelledby="login-heading">
-          <div className="login-brand__logos">
-            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={44} />
-            <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={34} />
-          </div>
-          <span className="login-brand__eyebrow">{t('login.eyebrow')}</span>
-          <h1 id="login-heading">{t('login.title')}</h1>
-          <p className="login-brand__desc">{t('login.subtitle')}</p>
-          <ul className="login-brand__features">
-            {FEATURE_KEYS.map((key) => (
-              <li key={key}>
-                <Check size={14} strokeWidth={2.5} aria-hidden />
-                {t(key)}
-              </li>
-            ))}
-          </ul>
-          <p className="login-brand__secure">
-            <span className="login-secure-note__dot" aria-hidden />
-            {t('login.secureNote')}
-          </p>
-        </aside>
-
-        <section className="login-card" aria-label={t('login.title')}>
+        <section className="login-card" aria-labelledby="login-heading">
           <div className="login-card__tricolor" aria-hidden />
+
+          <header className="login-card__header">
+            <div className="login-card__logos">
+              <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />
+              <BrandLogo variant="letterhead" imgClassName="login-card__logo" height={28} />
+            </div>
+            <span className="login-card__eyebrow">{t('login.eyebrow')}</span>
+            <h1 id="login-heading">{t('login.title')}</h1>
+            <p className="login-card__lead">{t('login.subtitle')}</p>
+          </header>
 
           {oauth.configured && (
             <button
@@ -145,9 +133,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
             <span>{t('login.separator')}</span>
           </div>
 
-          <button type="button" className="login-join-btn" onClick={() => onNavigate('members')}>
-            {t('login.joinPrompt')} <span>{t('login.joinLink')}</span>
-          </button>
+          <p className="login-join">
+            {t('login.joinPrompt')}{' '}
+            <button type="button" className="login-join__link" onClick={() => onNavigate('members')}>
+              {t('login.joinLink')}
+            </button>
+          </p>
 
           <details className="login-demo">
             <summary>{t('login.demoTitle')}</summary>
@@ -158,6 +149,28 @@ export default function LoginPage({ onLogin, onNavigate }) {
             </div>
           </details>
         </section>
+
+        <aside className="login-brand">
+          <div className="login-brand__logos">
+            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={44} />
+            <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={34} />
+          </div>
+          <span className="login-brand__eyebrow">{t('login.eyebrow')}</span>
+          <p className="login-brand__title">{t('login.title')}</p>
+          <p className="login-brand__desc">{t('login.subtitle')}</p>
+          <ul className="login-brand__features">
+            {FEATURE_KEYS.map((key) => (
+              <li key={key}>
+                <Check size={14} strokeWidth={2.5} aria-hidden />
+                {t(key)}
+              </li>
+            ))}
+          </ul>
+          <p className="login-brand__secure">
+            <span className="login-secure-note__dot" aria-hidden />
+            {t('login.secureNote')}
+          </p>
+        </aside>
       </div>
 
       <p className="login-page__footer">

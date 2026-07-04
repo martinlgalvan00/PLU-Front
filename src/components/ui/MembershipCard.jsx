@@ -25,6 +25,7 @@ export default function MembershipCard({
   compareWith = [],
   onSelect,
   ctaLabel = 'Afiliarme',
+  compact = false,
 }) {
   const Icon = PLAN_ICONS[id] ?? Shield
   const accent = PLAN_ACCENT[id] ?? 'celeste'
@@ -38,6 +39,7 @@ export default function MembershipCard({
         'membership-card',
         `membership-card--${accent}`,
         highlighted ? 'membership-card--featured' : '',
+        compact ? 'membership-card--compact' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -53,7 +55,7 @@ export default function MembershipCard({
       </div>
 
       {/* Comparación — qué costaría por separado */}
-      {hasCompare && (
+      {hasCompare && !compact && (
         <dl className="membership-card__compare">
           {compareWith.map((item) => (
             <div className="membership-card__compare-row" key={item.label}>
@@ -72,11 +74,19 @@ export default function MembershipCard({
       <div className="membership-card__price">
         <span className="membership-card__amount">{money(price)}</span>
         {hasCompare ? (
-          <span className="membership-card__save">Ahorrás {money(savings)}</span>
+          <span className="membership-card__save">
+            {compact ? `Ahorrás ${money(savings)} vs. por separado` : `Ahorrás ${money(savings)}`}
+          </span>
         ) : (
           <span className="membership-card__period">/{period}</span>
         )}
       </div>
+
+      {compact && hasCompare && (
+        <p className="membership-card__compact-note">
+          Afiliación anual + inscripción Pitbull Classic
+        </p>
+      )}
 
       {/* Separador */}
       <div className="membership-card__divider" aria-hidden />

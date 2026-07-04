@@ -1,0 +1,13 @@
+#!/bin/sh
+# Hook post-commit: avisa si quedaron commits sin push.
+# Instalar con: powershell -File scripts/install-push-reminder.ps1
+
+ROOT=$(git rev-parse --show-toplevel) || exit 0
+
+if command -v powershell.exe >/dev/null 2>&1; then
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$ROOT/scripts/check-unpushed-commits.ps1" -Notify -QuietIfClean
+elif command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "$ROOT/scripts/check-unpushed-commits.ps1" -Notify -QuietIfClean
+fi
+
+exit 0

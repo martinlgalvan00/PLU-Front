@@ -1,186 +1,79 @@
-import { Building2, ShieldCheck, Users } from 'lucide-react'
 import {
   ABOUT_PILLARS,
-  COMMUNITY_HIGHLIGHTS,
-  FAQ_ITEMS,
+  HOME_FAQ,
+  HOME_FAQ_ITEMS,
   MEMBERSHIP_PLANS,
-  PLATFORM_SECTIONS,
-  RECENT_RESULTS,
 } from '../lib/content.js'
-import { UPCOMING_EVENTS } from '../lib/events.js'
 import AboutSection from '../components/ui/AboutSection.jsx'
+import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
-import Button from '../components/ui/Button.jsx'
-import CTASection from '../components/ui/CTASection.jsx'
-import EventCard from '../components/ui/EventCard.jsx'
+import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
+import HomeQuickBand from '../components/ui/HomeQuickBand.jsx'
+import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
+import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
-import MembershipCard from '../components/ui/MembershipCard.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
-import PlatformMap from '../components/ui/PlatformMap.jsx'
-import ResultCard from '../components/ui/ResultCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
-import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 
-const FEATURED_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.highlighted) ?? MEMBERSHIP_PLANS[0]
+const ATHLETE_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete') ?? MEMBERSHIP_PLANS[0]
 
-const COMMUNITY_ICONS = [Building2, ShieldCheck, Users]
-
-export default function HomePage({ onNavigate, onSelectEvent }) {
+export default function HomePage({ onNavigate }) {
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
+      <HomeQuickBand onNavigate={onNavigate} />
 
-      <Reveal as="section" className="home-section home-section--about" id="que-es" variant="from-left">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--about" id="que-es" variant="fade">
         <div className="home-section__inner">
-          <AboutSection pillars={ABOUT_PILLARS} onNavigate={onNavigate} />
+          <AboutSection pillars={ABOUT_PILLARS} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--light" variant="scale">
+      <Reveal as="section" className="home-section home-section--immersive home-section--pitbull-home" variant="from-right">
         <div className="home-section__inner">
-          <SectionHeading
-            align="left"
-            eyebrow="Afiliación anual"
-            title="Un paso, un año de competencia."
-            description="La afiliación es el requisito único para competir en eventos oficiales de PLU ARG durante el año calendario."
-          />
-          <div className="membership-teaser">
-            <MembershipCard {...FEATURED_PLAN} onSelect={() => onNavigate('membership')} />
-          </div>
-          <div className="home-section__action">
-            <Button variant="outline" onClick={() => onNavigate('members')}>
-              Ver todos los planes
-            </Button>
-          </div>
+          <PitbullSpotlight variant="home" onDetail={() => onNavigate('pitbull')} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--pitbull" variant="from-right">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--membership" variant="scale">
         <div className="home-section__inner">
-          <PitbullSpotlight onDetail={() => onNavigate('pitbull')} />
+          <HomeMembershipBand plan={ATHLETE_PLAN} onNavigate={onNavigate} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--dark">
+      <Reveal as="section" className="home-section home-section--surface home-section--results" variant="fade">
         <div className="home-section__inner">
-          <SectionHeading
-            eyebrow="Próximos eventos"
-            title="Calendario competitivo"
-            description="Meet oficiales PLU ARG en distintas sedes del país."
-          />
-          <StaggerReveal className="events-grid" stagger={90}>
-            {UPCOMING_EVENTS.slice(0, 3).map((event, i) => (
-              <EventCard
-                key={event.slug}
-                featured={i === 0}
-                date={event.date}
-                title={event.title}
-                venue={event.venue}
-                location={event.location}
-                status={event.status}
-                onAction={() => onSelectEvent(event)}
-              />
-            ))}
-          </StaggerReveal>
-          <div className="home-section__action">
-            <Button variant="outline" onClick={() => onNavigate('events')}>
-              Ver calendario completo
-            </Button>
-          </div>
+          <HomeResultsTeaser onNavigate={onNavigate} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section" variant="fade">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--rulebook" variant="fade">
         <div className="home-section__inner">
-          <SectionHeading
-            eyebrow="Resultados"
-            title="Últimas planillas oficiales"
-            description="Totales, categorías y posiciones de meets recientes."
-          />
-          <StaggerReveal className="results-grid" stagger={70}>
-            {RECENT_RESULTS.slice(0, 3).map((result) => (
-              <ResultCard key={`${result.athlete}-${result.date}`} {...result} />
-            ))}
-          </StaggerReveal>
-          <div className="home-section__action">
-            <Button variant="outline" onClick={() => onNavigate('results')}>
-              Ver todos los resultados
-            </Button>
-          </div>
+          <HomeRulebookTeaser onNavigate={onNavigate} />
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--light">
-        <div className="home-section__inner">
-          <div className="rulebook-teaser">
-            <SectionHeading
-              align="left"
-              eyebrow="Reglamento · Rulebook"
-              title="Las mismas reglas para todos, sin ambigüedad."
-            />
-            <div className="rulebook-teaser__action">
-              <Button variant="outline" onClick={() => onNavigate('rulebook')}>
-                Ver categorías y divisiones
-              </Button>
-            </div>
-          </div>
-        </div>
+      <Reveal as="section" className="home-section home-section--immersive home-section--community" variant="scale">
+        <CommunitySpotlight onNavigate={onNavigate} />
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--dark" variant="from-left">
-        <div className="home-section__inner">
-          <SectionHeading
-            eyebrow="Comunidad"
-            title="Cada gimnasio que se suma, hace más fuerte a la federación."
-            description="De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar."
-          />
-          <StaggerReveal className="community-grid" stagger={80} variant="scale">
-            {COMMUNITY_HIGHLIGHTS.map((item, i) => {
-              const Icon = COMMUNITY_ICONS[i] ?? Users
-              return (
-                <article key={item.title} className="community-card">
-                  <span className="community-card__icon" aria-hidden>
-                    <Icon size={18} strokeWidth={1.5} />
-                  </span>
-                  <h3>{item.title}</h3>
-                  <p>{item.text}</p>
-                </article>
-              )
-            })}
-          </StaggerReveal>
-        </div>
-      </Reveal>
-
-      <Reveal as="section" className="home-section home-section--dark" variant="scale">
-        <div className="home-section__inner">
-          <SectionHeading
-            eyebrow="Navegación"
-            title="Explorá toda la plataforma"
-            description="Accedé a cada sección pública de PLU ARG desde un solo lugar."
-          />
-          <PlatformMap sections={PLATFORM_SECTIONS} onNavigate={onNavigate} />
-        </div>
-      </Reveal>
-
-      <Reveal as="section" className="home-section" variant="fade">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--faq" variant="fade">
         <div className="home-section__inner home-section__inner--narrow">
-          <SectionHeading eyebrow="FAQ" title="Preguntas frecuentes" />
-          <FAQAccordion items={FAQ_ITEMS} />
+          <SectionHeading
+            align="center"
+            variant="ref"
+            eyebrow={HOME_FAQ.eyebrow}
+            title={HOME_FAQ.title}
+          />
+          <FAQAccordion items={HOME_FAQ_ITEMS} variant="ref" />
+          <div className="home-faq__footer">
+            <button type="button" className="home-faq__more" onClick={() => onNavigate('faq')}>
+              Ver todas las preguntas →
+            </button>
+          </div>
         </div>
-      </Reveal>
-
-      <Reveal variant="scale">
-        <CTASection
-          title="¿Listo para competir con respaldo federativo?"
-          description="Afiliate, inscribite a Pitbull Classic o contactá al equipo PLU ARG."
-          primaryLabel="Afiliarme ahora"
-          onPrimary={() => onNavigate('membership')}
-          secondaryLabel="Contacto"
-          onSecondary={() => onNavigate('contact')}
-        />
       </Reveal>
     </main>
   )
 }
-

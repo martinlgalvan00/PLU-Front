@@ -4,12 +4,21 @@ import { PITBULL_CLASSIC } from '../../lib/content.js'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 
-export default function PitbullSpotlight({ onDetail, onRegister, registerLabel = 'Inscribirme' }) {
+export default function PitbullSpotlight({
+  variant = 'card',
+  onDetail,
+  onRegister,
+  registerLabel = 'Inscribirme',
+}) {
+  const isHome = variant === 'home'
+
   return (
-    <article className="pitbull-spotlight pitbull-spotlight--design">
-      <div className="pitbull-spotlight__copy">
+    <article
+      className={`pitbull-spotlight ${isHome ? 'pitbull-spotlight--home' : 'pitbull-spotlight--design'}`}
+    >
+      <div className={`pitbull-spotlight__copy ${isHome ? 'pitbull-spotlight__copy--accent' : ''}`}>
         <span className="pitbull-spotlight__eyebrow">
-          <span className="pitbull-spotlight__eyebrow-dot" aria-hidden />
+          {!isHome && <span className="pitbull-spotlight__eyebrow-dot" aria-hidden />}
           Próximo evento
         </span>
         <h2 className="pitbull-spotlight__title">{PITBULL_CLASSIC.title}</h2>
@@ -18,52 +27,96 @@ export default function PitbullSpotlight({ onDetail, onRegister, registerLabel =
           resultados reconocidos por PLU USA.
         </p>
 
-        <ul className="pitbull-spotlight__meta">
-          <li>
-            <Calendar size={14} aria-hidden />
-            {PITBULL_CLASSIC.date}
-          </li>
-          <li>
-            <MapPin size={14} aria-hidden />
-            {PITBULL_CLASSIC.location}
-          </li>
-        </ul>
-
-        <div className="pitbull-spotlight__tags">
-          {PITBULL_CLASSIC.categories.map((category) => (
-            <span key={category} className="pitbull-spotlight__tag">
-              {category}
+        {isHome ? (
+          <div className="pitbull-spotlight__meta">
+            <span>
+              {PITBULL_CLASSIC.date}{' '}
+              <small>· dato de ejemplo</small>
             </span>
-          ))}
-        </div>
+            <span>
+              {PITBULL_CLASSIC.location}{' '}
+              <small>· dato de ejemplo</small>
+            </span>
+          </div>
+        ) : (
+          <ul className="pitbull-spotlight__meta">
+            <li>
+              <Calendar size={14} aria-hidden />
+              {PITBULL_CLASSIC.date}
+            </li>
+            <li>
+              <MapPin size={14} aria-hidden />
+              {PITBULL_CLASSIC.location}
+            </li>
+          </ul>
+        )}
 
-        <div className="pitbull-spotlight__capacity">
-          <CapacityBar current={PITBULL_CLASSIC.registered} total={PITBULL_CLASSIC.slots} label="Cupos ocupados" />
-        </div>
+        {!isHome && (
+          <>
+            <div className="pitbull-spotlight__tags">
+              {PITBULL_CLASSIC.categories.map((category) => (
+                <span key={category} className="pitbull-spotlight__tag">
+                  {category}
+                </span>
+              ))}
+            </div>
+
+            <div className="pitbull-spotlight__capacity">
+              <CapacityBar
+                current={PITBULL_CLASSIC.registered}
+                total={PITBULL_CLASSIC.slots}
+                label="Cupos ocupados"
+              />
+            </div>
+          </>
+        )}
 
         <div className="pitbull-spotlight__actions">
-          <Button onClick={onDetail}>Ver Pitbull Classic</Button>
-          {onRegister ? (
-            <Button variant="outline" onClick={onRegister}>
-              {registerLabel}
-            </Button>
+          {isHome ? (
+            <>
+              <button type="button" className="pitbull-spotlight__cta-primary" onClick={onDetail}>
+                Ver Pitbull Classic
+              </button>
+              <span className="pitbull-spotlight__soon">
+                Inscripción próximamente
+              </span>
+            </>
           ) : (
-            <span className="pitbull-spotlight__soon">
-              <span className="pitbull-spotlight__soon-dot" aria-hidden />
-              Inscripción próximamente
-            </span>
+            <>
+              <Button onClick={onDetail}>Ver Pitbull Classic</Button>
+              {onRegister ? (
+                <Button variant="outline" onClick={onRegister}>
+                  {registerLabel}
+                </Button>
+              ) : (
+                <span className="pitbull-spotlight__soon">
+                  <span className="pitbull-spotlight__soon-dot" aria-hidden />
+                  Inscripción próximamente
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <div className="pitbull-spotlight__visual" aria-hidden>
-        <img src={pitbullVisual} alt="" className="pitbull-spotlight__visual-img" />
-        <div className="pitbull-spotlight__visual-overlay" />
-        <span className="pitbull-spotlight__badge">Destacado</span>
-        <div className="pitbull-spotlight__visual-date">
-          <span className="pitbull-spotlight__visual-date-day">{PITBULL_CLASSIC.dateDay}</span>
-          <span className="pitbull-spotlight__visual-date-month">{PITBULL_CLASSIC.dateMonth} 2026</span>
-        </div>
+      <div className={`pitbull-spotlight__visual ${isHome ? 'pitbull-spotlight__visual--home pitbull-spotlight__visual--placeholder' : ''}`} aria-hidden>
+        {isHome ? (
+          <>
+            <div className="pitbull-spotlight__visual-overlay" />
+            <span className="pitbull-spotlight__badge">Destacado</span>
+            <span className="pitbull-spotlight__visual-caption">foto — podio Pitbull Classic</span>
+          </>
+        ) : (
+          <>
+            <img src={pitbullVisual} alt="" className="pitbull-spotlight__visual-img" />
+            <div className="pitbull-spotlight__visual-overlay" />
+            <span className="pitbull-spotlight__badge">Destacado</span>
+            <div className="pitbull-spotlight__visual-date">
+              <span className="pitbull-spotlight__visual-date-day">{PITBULL_CLASSIC.dateDay}</span>
+              <span className="pitbull-spotlight__visual-date-month">{PITBULL_CLASSIC.dateMonth} 2026</span>
+            </div>
+          </>
+        )}
       </div>
     </article>
   )

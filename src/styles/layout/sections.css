@@ -14,7 +14,36 @@
   border-block: 1px solid var(--color-border-subtle);
 }
 
-/* Sección de acento (eventos, comunidad, navegación) — tokens por tema */
+/* Banda intermedia — más clara que el canvas, sin llegar al negro del header */
+.home-section--muted {
+  background: var(--color-section-muted);
+  border-block: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .section-heading__eyebrow {
+  color: var(--color-brand-celeste);
+}
+
+.home-section--muted .section-heading__title {
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .section-heading__desc {
+  color: var(--color-text-muted);
+}
+
+.home-section--muted .btn--outline {
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .btn--outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+/* Sección de acento oscuro — usar solo en bloques puntuales */
 .home-section--dark {
   background: var(--home-accent-bg, var(--plu-cool-900));
   border-block: 1px solid var(--home-accent-border, rgba(255, 255, 255, 0.08));
@@ -61,6 +90,10 @@
   max-width: 760px;
 }
 
+.home-section--compact {
+  padding-block: var(--space-2xl);
+}
+
 .page-section__action,
 .home-section__action {
   margin-top: var(--space-xl);
@@ -84,9 +117,39 @@
   max-width: 420px;
 }
 
+.membership-band {
+  background: var(--home-band-bg, var(--color-bg-surface));
+  border: 1px solid var(--home-band-border, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: var(--space-lg);
+  padding: clamp(24px, 4vw, 36px);
+}
+
+.membership-band .section-heading {
+  margin-bottom: 0;
+}
+
+.membership-band__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 900px) {
   .page-split,
   .home-split {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-section,
+  .home-section {
+    padding-block: var(--space-2xl);
+  }
+
+  .home-section--compact {
+    padding-block: var(--space-xl);
   }
 }

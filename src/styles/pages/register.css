@@ -1,3 +1,318 @@
+/* =============================================
+   REGISTER PAGE — layout premium
+   ============================================= */
+
+.register-page--design.page {
+  background: var(--color-page-canvas);
+  overflow-x: clip;
+  padding: clamp(24px, 4vw, 48px) var(--space-lg) clamp(32px, 5vw, 64px);
+  position: relative;
+}
+
+.register-page--design::before {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(116, 172, 223, 0.12), transparent 42%),
+    radial-gradient(circle at 92% 88%, rgba(201, 185, 120, 0.1), transparent 40%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.register-shell {
+  display: grid;
+  gap: clamp(28px, 5vw, 48px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  margin: 0 auto;
+  max-width: 1040px;
+  position: relative;
+  z-index: 1;
+}
+
+.register-intro {
+  display: grid;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+}
+
+.register-intro__eyebrow {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-intro__title {
+  font-family: var(--font-family);
+  font-size: clamp(28px, 4.5vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 14ch;
+}
+
+.register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 38ch;
+}
+
+.register-perks {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+}
+
+.register-perks li {
+  align-items: flex-start;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 13.5px;
+  gap: 12px;
+  line-height: 1.5;
+}
+
+.register-perks__icon {
+  align-items: center;
+  background: rgba(201, 185, 120, 0.12);
+  border: 1px solid rgba(201, 185, 120, 0.22);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-gold);
+  display: flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.register-intro__meta {
+  border-left: 2px solid var(--color-brand-red);
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-sm);
+  padding-left: 14px;
+}
+
+.register-intro__meta strong {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.register-intro__meta span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.register-main {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.register-status {
+  background: var(--register-status-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--register-status-border, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.register-status__label {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-status__hint {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-status__body {
+  display: grid;
+  gap: 8px;
+}
+
+.register-status__body--success svg {
+  color: var(--plu-success-500);
+}
+
+.register-status__name {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.register-status__body strong {
+  font-size: 22px;
+}
+
+.register-status__body p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.register-status__body code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.register-card {
+  backdrop-filter: blur(16px);
+  background: var(--register-card-bg, rgba(24, 26, 31, 0.94));
+  border: 1px solid var(--register-card-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--border-radius-xl);
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: var(--space-lg);
+  overflow: hidden;
+  padding: clamp(22px, 3.5vw, 32px);
+  position: relative;
+}
+
+.register-card__tricolor {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0%,
+    var(--color-brand-red) 33.33%,
+    rgba(255, 255, 255, 0.92) 33.33%,
+    rgba(255, 255, 255, 0.92) 66.66%,
+    var(--color-brand-celeste) 66.66%,
+    var(--color-brand-celeste) 100%
+  );
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-steps {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.register-steps__item {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.register-steps__item.is-active {
+  color: var(--color-brand-gold);
+}
+
+.register-steps__line {
+  background: var(--color-border-subtle);
+  flex: 1;
+  height: 1px;
+  min-width: 24px;
+}
+
+.register-card .form-section-block {
+  margin-bottom: 0;
+}
+
+.register-card .form-section-block + .form-section-block {
+  border-top: 1px solid var(--register-card-border, var(--color-border-subtle));
+  margin-top: var(--space-xs);
+  padding-top: var(--space-lg);
+}
+
+.register-card .form-section-block__header {
+  border-bottom: none;
+  margin-bottom: var(--space-md);
+  padding-bottom: 0;
+}
+
+.register-card .form-section-block__step {
+  background: rgba(201, 185, 120, 0.12);
+  border: 1px solid rgba(201, 185, 120, 0.24);
+  color: var(--color-brand-gold);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 5px 10px;
+}
+
+.register-card .form-section-block__title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.register-card .form-section-block__desc {
+  font-size: 13px;
+}
+
+.register-card .field input,
+.register-card .field select {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  min-height: 46px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.register-card .field input:focus,
+.register-card .field select:focus {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(116, 172, 223, 0.45);
+  box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.12);
+}
+
+.register-card__footer {
+  background: rgba(0, 0, 0, 0.18);
+  border-top: 1px solid var(--register-card-border, var(--color-border-subtle));
+  margin: var(--space-sm) calc(-1 * clamp(22px, 3.5vw, 32px)) calc(-1 * clamp(22px, 3.5vw, 32px));
+  padding: 18px clamp(22px, 3.5vw, 32px);
+}
+
+.register-card__summary {
+  display: grid;
+  gap: 4px;
+}
+
+.register-card__summary strong {
+  font-size: 15px;
+}
+
+.register-card__summary span {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.register-card__submit {
+  box-shadow: 0 12px 28px rgba(225, 6, 0, 0.28);
+  min-height: 48px;
+  padding-inline: 22px;
+}
+
+/* Legacy layout */
 .form-section {
   align-items: start;
   display: grid;
@@ -5,14 +320,14 @@
   grid-template-columns: minmax(0, 1fr) 340px;
 }
 
-.athlete-form,
+.athlete-form:not(.register-card),
 .order-panel {
   background: var(--color-bg-surface);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--border-radius-xl);
 }
 
-.athlete-form {
+.athlete-form:not(.register-card) {
   display: grid;
   gap: 24px;
   padding: 28px;
@@ -107,6 +422,43 @@
 .portal-events time { color: var(--color-brand-red); font-size: 20px; font-weight: 800; }
 .portal-events h3 { margin: 0 0 4px; }
 
+@media (max-width: 900px) {
+  .register-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .register-intro__title,
+  .register-intro__desc {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .register-page--design.page {
+    padding-inline: var(--space-md);
+  }
+
+  .register-perks {
+    display: none;
+  }
+
+  .register-card__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .register-card__submit {
+    width: 100%;
+  }
+
+  .access-grid,
+  .membership-row,
+  .portal-events article { grid-template-columns: 1fr; }
+  .athlete-welcome { align-items: flex-start; flex-direction: column; gap: var(--space-md); }
+  .digital-card { min-height: 230px; }
+  .card-face { padding: var(--space-lg); }
+}
+
 @media (max-width: 1060px) {
   .form-section {
     grid-template-columns: 1fr;
@@ -120,11 +472,28 @@
   .membership-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 720px) {
-  .access-grid,
-  .membership-row,
-  .portal-events article { grid-template-columns: 1fr; }
-  .athlete-welcome { align-items: flex-start; flex-direction: column; gap: var(--space-md); }
-  .digital-card { min-height: 230px; }
-  .card-face { padding: var(--space-lg); }
+[data-theme='light'] .register-page--design {
+  --register-card-bg: rgba(255, 255, 255, 0.96);
+  --register-card-border: rgba(15, 17, 23, 0.1);
+  --register-status-bg: #fff;
+  --register-status-border: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .register-card .field input,
+[data-theme='light'] .register-card .field select {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .register-card .field input:focus,
+[data-theme='light'] .register-card .field select:focus {
+  background: #fff;
+}
+
+[data-theme='light'] .register-card__footer {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+[data-theme='light'] .register-perks__icon {
+  background: rgba(201, 185, 120, 0.14);
 }

@@ -22,11 +22,11 @@
 
   --color-bg-steel: linear-gradient(145deg, var(--plu-cool-750) 0%, var(--plu-cool-900) 100%);
 
-  --color-bg-about: var(--plu-cool-900);
+  --color-bg-about: var(--plu-cool-750);
 
-  --color-page-canvas: var(--plu-cool-900);
+  --color-page-canvas: var(--plu-cool-800);
 
-  --color-section-muted: var(--plu-cool-850);
+  --color-section-muted: var(--plu-cool-750);
 
   --color-text-on-light: var(--plu-ink-900);
 
@@ -39,6 +39,8 @@
   --color-text-secondary: #d4d4dc;
 
   --color-text-muted: #9a9aa8;
+
+  --color-text-ghost: rgba(255, 255, 255, 0.12);
 
   --color-text-accent: var(--plu-gold-500);
 
