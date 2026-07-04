@@ -1,19 +1,23 @@
 import { useState } from 'react'
-import { CheckCircle2, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, IdCard, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import { FORM_OPTIONS } from '../lib/constants.js'
 import { money } from '../lib/format.js'
 import { validateAthleteForm, validateCompetitionForm, validateMembershipForm } from '../lib/validation.js'
 import FormSection from '../components/ui/FormSection.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
-import Reveal from '../components/ui/Reveal.jsx'
-import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
+
+const PROFILE_PERKS = [
+  { icon: IdCard, text: 'Credencial digital y código de atleta PLU ARG' },
+  { icon: Trophy, text: 'Inscripción a meets oficiales en un solo lugar' },
+  { icon: ShieldCheck, text: 'Perfil validado por la federación' },
+]
 
 export default function RegisterPage({ athlete, createdOrder, event, flow, form, onApprovePayment, onSubmit, onUpdateForm, total }) {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const content = {
-    profile: ['Nuevo atleta', 'Registro de atleta', 'Completá tus datos personales para crear tu perfil en PLU Argentina.', 'Crear perfil'],
+    profile: ['Nuevo atleta', 'Registro de atleta', 'Completá tus datos para crear tu perfil en PLU Argentina.', 'Crear perfil'],
     competition: ['Competencia', `Inscripción a ${event?.title}`, `${athlete?.fullName}, completá tus datos competitivos para este evento.`, 'Generar inscripción'],
     membership: ['Afiliación anual', 'Pagar afiliación PLU ARG', `${athlete?.fullName}, seleccioná cómo querés pagar tu afiliación.`, 'Generar pago'],
   }[flow]
@@ -43,94 +47,156 @@ export default function RegisterPage({ athlete, createdOrder, event, flow, form,
   }
 
   return (
-    <main className="page register-page">
-      <div className="page__inner">
-        <Reveal>
-          <SectionHeading
-            align="left"
-            eyebrow={content[0]}
-            title={content[1]}
-            description={content[2]}
-          />
-        </Reveal>
+    <main className="page register-page register-page--design">
+      <div className="register-shell">
+        <header className="register-intro">
+          <span className="register-intro__eyebrow">
+            <Sparkles size={14} aria-hidden />
+            {content[0]}
+          </span>
+          <h1 className="register-intro__title">{content[1]}</h1>
+          <p className="register-intro__desc">{content[2]}</p>
 
-        <section className="form-section">
-          <form className="athlete-form" onSubmit={submit} noValidate>
+          {flow === 'profile' && (
+            <ul className="register-perks">
+              {PROFILE_PERKS.map(({ icon: Icon, text }) => (
+                <li key={text}>
+                  <span className="register-perks__icon" aria-hidden>
+                    <Icon size={16} strokeWidth={1.75} />
+                  </span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {flow !== 'profile' && (
+            <div className="register-intro__meta">
+              <strong>{flow === 'membership' ? money(total) : event?.title}</strong>
+              <span>{athlete?.fullName}</span>
+            </div>
+          )}
+        </header>
+
+        <div className="register-main">
+          <aside className="register-status">
+            <span className="register-status__label">
+              {flow === 'profile' ? 'Estado del perfil' : 'Estado del trámite'}
+            </span>
+            {visibleOrder ? (
+              <div className="register-status__body register-status__body--success">
+                <span className="register-status__name">{visibleOrder.athleteName}</span>
+                {flow === 'profile' ? (
+                  <>
+                    <CheckCircle2 size={28} aria-hidden />
+                    <strong>Perfil creado</strong>
+                    <p>Ya podés acceder a tu área de atleta.</p>
+                  </>
+                ) : (
+                  <>
+                    <strong>{money(visibleOrder.amount)}</strong>
+                    <p>{visibleOrder.concept}</p>
+                    <StatusPill value={visibleOrder.status} />
+                    <code>{visibleOrder.reference}</code>
+                    {visibleOrder.paymentMethod === 'mercado_pago' ? (
+                      <button type="button" className="btn btn--outline" onClick={() => onApprovePayment(visibleOrder.paymentId)}>
+                        Simular pago
+                      </button>
+                    ) : (
+                      <p className="manual-note">El equipo PLU confirmará la acreditación.</p>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="register-status__hint">
+                {flow === 'profile'
+                  ? 'Completá el formulario para activar tu perfil.'
+                  : 'Generá la orden para consultar su estado.'}
+              </p>
+            )}
+          </aside>
+
+          <form className="register-card athlete-form" onSubmit={submit} noValidate>
+            <div className="register-card__tricolor" aria-hidden />
+
+            {flow === 'profile' && (
+              <div className="register-steps" aria-hidden>
+                <span className="register-steps__item is-active">01 · Personal</span>
+                <span className="register-steps__line" />
+                <span className="register-steps__item">02 · Ubicación</span>
+              </div>
+            )}
+
             {flow === 'profile' && (
               <>
-                <Reveal delay={0}>
-                  <FormSection step="01" title="Datos personales" description="Información básica para identificarte.">
-                    <div className="form-grid">
-                      <Field autoComplete="name" error={errors.fullName} label="Nombre y apellido" name="fullName" placeholder="Ej.: Martina Rivas" value={form.fullName} onChange={changeField} />
-                      <Field error={errors.documentId} inputMode="numeric" label="DNI o documento" name="documentId" placeholder="Ej.: 40111222" value={form.documentId} onChange={changeField} />
-                      <Field error={errors.birthDate} inputMode="numeric" label="Fecha de nacimiento" maxLength={10} name="birthDate" placeholder="DD/MM/AAAA" value={form.birthDate} onChange={changeField} />
-                      <Field autoComplete="email" error={errors.email} label="Correo electrónico" name="email" placeholder="nombre@correo.com" type="email" value={form.email} onChange={changeField} />
-                      <Field autoComplete="tel" error={errors.phone} inputMode="tel" label="Teléfono" name="phone" placeholder="Ej.: +54 9 11 1234 5678" value={form.phone} onChange={changeField} />
-                    </div>
-                  </FormSection>
-                </Reveal>
-                <Reveal delay={80}>
-                  <FormSection step="02" title="Ubicación y equipo" description="Datos de residencia y entrenamiento.">
-                    <div className="form-grid">
-                      <Field error={errors.country} label="País" name="country" value={form.country} onChange={changeField} />
-                      <Field error={errors.province} label="Provincia" name="province" placeholder="Ej.: Buenos Aires" value={form.province} onChange={changeField} />
-                      <Field error={errors.city} label="Ciudad" name="city" placeholder="Ej.: La Plata" value={form.city} onChange={changeField} />
-                      <Field error={errors.gym} label="Gimnasio o equipo" name="gym" placeholder="Ej.: Maximal Power" value={form.gym} onChange={changeField} />
-                      <Select label="Sexo competitivo" name="sex" value={form.sex} onChange={changeField} options={FORM_OPTIONS.sex} />
-                    </div>
-                  </FormSection>
-                </Reveal>
+                <FormSection step="01" title="Datos personales" description="Información básica para identificarte.">
+                  <div className="form-grid">
+                    <Field autoComplete="name" error={errors.fullName} label="Nombre y apellido" name="fullName" placeholder="Ej.: Martina Rivas" value={form.fullName} onChange={changeField} />
+                    <Field error={errors.documentId} inputMode="numeric" label="DNI o documento" name="documentId" placeholder="Ej.: 40111222" value={form.documentId} onChange={changeField} />
+                    <Field error={errors.birthDate} inputMode="numeric" label="Fecha de nacimiento" maxLength={10} name="birthDate" placeholder="DD/MM/AAAA" value={form.birthDate} onChange={changeField} />
+                    <Field autoComplete="email" error={errors.email} label="Correo electrónico" name="email" placeholder="nombre@correo.com" type="email" value={form.email} onChange={changeField} />
+                    <Field autoComplete="tel" error={errors.phone} inputMode="tel" label="Teléfono" name="phone" placeholder="Ej.: +54 9 11 1234 5678" value={form.phone} onChange={changeField} />
+                  </div>
+                </FormSection>
+
+                <FormSection step="02" title="Ubicación y equipo" description="Datos de residencia y entrenamiento.">
+                  <div className="form-grid">
+                    <Field error={errors.country} label="País" name="country" value={form.country} onChange={changeField} />
+                    <Field error={errors.province} label="Provincia" name="province" placeholder="Ej.: Buenos Aires" value={form.province} onChange={changeField} />
+                    <Field error={errors.city} label="Ciudad" name="city" placeholder="Ej.: La Plata" value={form.city} onChange={changeField} />
+                    <Field error={errors.gym} label="Gimnasio o equipo" name="gym" placeholder="Ej.: Maximal Power" value={form.gym} onChange={changeField} />
+                    <Select label="Sexo competitivo" name="sex" value={form.sex} onChange={changeField} options={FORM_OPTIONS.sex} />
+                  </div>
+                </FormSection>
               </>
             )}
 
             {flow === 'competition' && (
-              <Reveal>
-                <FormSection step="01" title={event.title} description="Datos específicos para esta competencia.">
-                  <div className="form-grid">
-                    <Select label="División" name="division" value={form.division} onChange={changeField} options={FORM_OPTIONS.division} />
-                    <Select label="Categoría" name="category" value={form.category} onChange={changeField} options={FORM_OPTIONS.category} />
-                    <Field error={errors.estimatedWeight} inputMode="decimal" label="Peso corporal" name="estimatedWeight" placeholder="Ej.: 67,5 kg" value={form.estimatedWeight} onChange={changeField} />
-                    <div className="field field--readonly"><span>Tipo de trámite</span><strong>Inscripción a {event.title}</strong></div>
-                    <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
+              <FormSection step="01" title={event.title} description="Datos específicos para esta competencia.">
+                <div className="form-grid">
+                  <Select label="División" name="division" value={form.division} onChange={changeField} options={FORM_OPTIONS.division} />
+                  <Select label="Categoría" name="category" value={form.category} onChange={changeField} options={FORM_OPTIONS.category} />
+                  <Field error={errors.estimatedWeight} inputMode="decimal" label="Peso corporal" name="estimatedWeight" placeholder="Ej.: 67,5 kg" value={form.estimatedWeight} onChange={changeField} />
+                  <div className="field field--readonly">
+                    <span>Tipo de trámite</span>
+                    <strong>Inscripción a {event.title}</strong>
                   </div>
-                </FormSection>
-              </Reveal>
+                  <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
+                </div>
+              </FormSection>
             )}
 
             {flow === 'membership' && (
-              <Reveal>
-                <FormSection step="01" title="Método de pago" description="Tu información personal ya está asociada al perfil.">
-                  <div className="form-grid form-grid--compact">
-                    <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
-                  </div>
-                </FormSection>
-              </Reveal>
+              <FormSection step="01" title="Método de pago" description="Tu información personal ya está asociada al perfil.">
+                <div className="form-grid form-grid--compact">
+                  <Select label="Método de pago" name="paymentMethod" value={form.paymentMethod} onChange={changeField} options={FORM_OPTIONS.paymentMethod} />
+                </div>
+              </FormSection>
             )}
 
-            {submitError && <p className="form-submit-error" role="alert">{submitError}</p>}
-            <div className="form-actions">
-              <div>
+            {submitError && (
+              <p className="form-submit-error" role="alert">
+                {submitError}
+              </p>
+            )}
+
+            <div className="register-card__footer form-actions">
+              <div className="register-card__summary">
                 <strong>{flow === 'profile' ? 'Alta de atleta sin costo' : `Total: ${money(total)}`}</strong>
-                <span>{flow === 'profile' ? 'Luego podrás afiliarte o inscribirte a eventos.' : 'La orden quedará vinculada a tu perfil.'}</span>
+                <span>
+                  {flow === 'profile'
+                    ? 'Luego podrás afiliarte o inscribirte a eventos.'
+                    : 'La orden quedará vinculada a tu perfil.'}
+                </span>
               </div>
-              <button type="submit" className="btn"><ShieldCheck size={18} /> {content[3]}</button>
+              <button type="submit" className="btn register-card__submit">
+                <ShieldCheck size={18} aria-hidden />
+                {content[3]}
+              </button>
             </div>
           </form>
-
-          <Reveal variant="from-right" as="aside" className="order-panel surface-card" delay={120}>
-            <h2>{flow === 'profile' ? 'Estado del perfil' : 'Estado del trámite'}</h2>
-            {visibleOrder ? (
-              <div className="order-details">
-                <span>{visibleOrder.athleteName}</span>
-                {flow === 'profile' ? (
-                  <><CheckCircle2 size={38} /><strong>Perfil creado</strong><p>Ya podés acceder a tu área de atleta.</p></>
-                ) : (
-                  <><strong>{money(visibleOrder.amount)}</strong><p>{visibleOrder.concept}</p><StatusPill value={visibleOrder.status} /><code>{visibleOrder.reference}</code>{visibleOrder.paymentMethod === 'mercado_pago' ? <button type="button" className="btn" onClick={() => onApprovePayment(visibleOrder.paymentId)}>Simular pago</button> : <p className="manual-note">El equipo PLU confirmará la acreditación.</p>}</>
-                )}
-              </div>
-            ) : <p>{flow === 'profile' ? 'Completá tus datos para crear el perfil.' : 'Generá la orden para consultar su estado.'}</p>}
-          </Reveal>
-        </section>
+        </div>
       </div>
     </main>
   )

@@ -1,3 +1,4 @@
+import { FileDown } from 'lucide-react'
 import {
   RULEBOOK_DIVISIONS,
   RULEBOOK_DOWNLOAD,
@@ -5,111 +6,124 @@ import {
   RULEBOOK_JUDGING,
   RULEBOOK_WEIGHT_CATEGORIES,
 } from '../lib/content.js'
-import PageHero from '../components/layout/PageHero.jsx'
+import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import Button from '../components/ui/Button.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SubNav from '../components/ui/SubNav.jsx'
 
 const SUB_NAV_ITEMS = [
-  { href: '#reg-descarga', label: 'Descarga' },
-  { href: '#reg-categorias', label: 'Categorías de peso' },
-  { href: '#reg-divisiones', label: 'Divisiones' },
-  { href: '#reg-equipamiento', label: 'Equipamiento' },
-  { href: '#reg-jueceo', label: 'Jueceo' },
+  { href: '#reg-descarga', label: 'Descarga', shortLabel: 'PDF' },
+  { href: '#reg-categorias', label: 'Categorías de peso', shortLabel: 'Peso' },
+  { href: '#reg-divisiones', label: 'Divisiones', shortLabel: 'Edad' },
+  { href: '#reg-equipamiento', label: 'Equipamiento', shortLabel: 'Equipo' },
+  { href: '#reg-jueceo', label: 'Jueceo', shortLabel: 'Jueces' },
 ]
+
+function RulebookPanel({ id, num, title, note, children }) {
+  return (
+    <section id={id} className="anchor-target rulebook-panel">
+      <header className="rulebook-panel__header">
+        <span className="rulebook-panel__num">{num}</span>
+        <h2 className="rulebook-panel__title">{title}</h2>
+      </header>
+      <div className="rulebook-panel__body">{children}</div>
+      {note && <p className="rulebook-panel__note">{note}</p>}
+    </section>
+  )
+}
 
 export default function RulebookPage({ onNavigate }) {
   return (
     <main className="page rulebook-page">
-      <div className="page__inner">
-        <PageHero
-          eyebrow="Rulebook"
-          title="Reglamento oficial PLU ARG"
-          description="Categorías, divisiones, equipamiento y criterios de jueceo — el mismo estándar para cada atleta, en cada evento."
-        />
-      </div>
+      <DesignPageHero
+        breadcrumbLabel="Reglamento"
+        onHome={() => onNavigate?.('home')}
+        eyebrow="Rulebook"
+        title="Reglamento oficial PLU ARG"
+        description="Categorías, divisiones, equipamiento y jueceo bajo un mismo estándar."
+      />
 
       <SubNav items={SUB_NAV_ITEMS} />
 
       <div className="page__inner rulebook-sections">
         <Reveal>
-          <section id="reg-descarga" className="anchor-target rulebook-download">
-            <div>
-              <h3>{RULEBOOK_DOWNLOAD.title}</h3>
-              <p>{RULEBOOK_DOWNLOAD.subtitle}</p>
+          <section id="reg-descarga" className="anchor-target rulebook-panel rulebook-panel--download">
+            <div className="rulebook-download">
+              <span className="rulebook-download__icon" aria-hidden>
+                <FileDown size={22} strokeWidth={1.75} />
+              </span>
+              <div className="rulebook-download__copy">
+                <h2 className="rulebook-download__title">{RULEBOOK_DOWNLOAD.title}</h2>
+                <p className="rulebook-download__meta">{RULEBOOK_DOWNLOAD.subtitle}</p>
+              </div>
+              <Button variant="outline" disabled>
+                {RULEBOOK_DOWNLOAD.action}
+              </Button>
             </div>
-            <button type="button" className="btn btn--outline" disabled>
-              {RULEBOOK_DOWNLOAD.action}
-            </button>
           </section>
         </Reveal>
 
         <Reveal>
-          <section id="reg-categorias" className="anchor-target rulebook-block">
-            <p className="rulebook-block__kicker">01 · Categorías de peso corporal</p>
-            <div className="rulebook-weight-grid">
+          <RulebookPanel id="reg-categorias" num="01" title="Categorías de peso corporal">
+            <div className="rulebook-split">
               {RULEBOOK_WEIGHT_CATEGORIES.map((item) => (
-                <div key={item.title} className="rulebook-weight-col">
-                  <h4>{item.title}</h4>
+                <div key={item.title} className="rulebook-split__col">
+                  <h3>{item.title}</h3>
                   <p>{item.text}</p>
                 </div>
               ))}
             </div>
-          </section>
+          </RulebookPanel>
         </Reveal>
 
         <Reveal>
-          <section id="reg-divisiones" className="anchor-target rulebook-block">
-            <p className="rulebook-block__kicker">02 · Divisiones por edad</p>
-            <div className="rulebook-divisions-grid">
-              {RULEBOOK_DIVISIONS.map((division, i) => (
-                <Reveal key={division.title} delay={i * 80}>
-                  <div className="rulebook-division-tile">
-                    <h4>{division.title}</h4>
-                    <p>{division.range}</p>
-                  </div>
-                </Reveal>
+          <RulebookPanel
+            id="reg-divisiones"
+            num="02"
+            title="Divisiones por edad"
+            note="Rangos de ejemplo, sujetos a confirmación en el reglamento final."
+          >
+            <dl className="rulebook-meta-list">
+              {RULEBOOK_DIVISIONS.map((division) => (
+                <div key={division.title} className="rulebook-meta-list__row">
+                  <dt>{division.title}</dt>
+                  <dd>{division.range}</dd>
+                </div>
+              ))}
+            </dl>
+          </RulebookPanel>
+        </Reveal>
+
+        <Reveal>
+          <RulebookPanel id="reg-equipamiento" num="03" title="Equipamiento">
+            <div className="rulebook-equipment-list">
+              {RULEBOOK_EQUIPMENT.map((item) => (
+                <article key={item.title} className="rulebook-equipment-item">
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </article>
               ))}
             </div>
-            <p className="rulebook-block__note">
-              Rangos de ejemplo, sujetos a confirmación en el reglamento final.
-            </p>
-          </section>
+          </RulebookPanel>
         </Reveal>
 
         <Reveal>
-          <section id="reg-equipamiento" className="anchor-target rulebook-block">
-            <p className="rulebook-block__kicker">03 · Equipamiento</p>
-            <div className="rulebook-equipment-grid">
-              {RULEBOOK_EQUIPMENT.map((item, i) => (
-                <Reveal key={item.title} delay={i * 80}>
-                  <article className="rulebook-equipment-card surface-card">
-                    <h4>{item.title}</h4>
-                    <p>{item.text}</p>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-        </Reveal>
-
-        <Reveal>
-          <section id="reg-jueceo" className="anchor-target rulebook-block">
-            <p className="rulebook-block__kicker">04 · Criterios básicos de jueceo</p>
+          <RulebookPanel id="reg-jueceo" num="04" title="Criterios básicos de jueceo">
             <ol className="rulebook-judging-list">
-              {RULEBOOK_JUDGING.map((rule, i) => (
-                <Reveal key={rule.numeral} delay={i * 80} as="li">
+              {RULEBOOK_JUDGING.map((rule) => (
+                <li key={rule.numeral}>
                   <span className="rulebook-judging-list__numeral">{rule.numeral}</span>
                   <p>{rule.text}</p>
-                </Reveal>
+                </li>
               ))}
             </ol>
-          </section>
+          </RulebookPanel>
         </Reveal>
 
-        <div className="page__action">
-          <button type="button" className="btn btn--outline" onClick={() => onNavigate('contact')}>
+        <div className="rulebook-page__action">
+          <Button variant="outline" onClick={() => onNavigate('contact')}>
             Consultar al equipo técnico
-          </button>
+          </Button>
         </div>
       </div>
     </main>

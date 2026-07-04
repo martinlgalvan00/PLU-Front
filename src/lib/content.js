@@ -6,6 +6,15 @@ export const HOME_STATS = [
   { value: '100%', label: 'Gestión digital' },
 ]
 
+/** Banda de accesos rápidos bajo el hero (design-reference) */
+export const HOME_QUICK_LINKS = [
+  { key: 'members', labelKey: 'nav.members' },
+  { key: 'pitbull', labelKey: 'nav.pitbull' },
+  { key: 'events', labelKey: 'nav.events' },
+  { key: 'results', labelKey: 'nav.results' },
+  { key: 'rulebook', labelKey: 'nav.rulebook' },
+]
+
 export const ABOUT_INTRO = {
   eyebrow: 'Qué es PLU ARG',
   title: 'La federación que ordena el powerlifting argentino.',
@@ -13,16 +22,77 @@ export const ABOUT_INTRO = {
     'Conecta atletas, gimnasios y jueces bajo un mismo sistema de afiliación, competencia y resultados — con la seriedad administrativa que exige responder ante PLU USA.',
 }
 
+export const HOME_MEMBERSHIP = {
+  eyebrow: 'Afiliación anual',
+  title: 'Un paso, un año de competencia.',
+  description:
+    'La afiliación es el requisito único para competir en eventos oficiales de PLU ARG durante el año calendario.',
+}
+
+export const HOME_RESULTS = {
+  eyebrow: 'Resultados',
+  title: 'Todavía no hay resultados publicados.',
+  description:
+    'Los resultados de Pitbull Classic van a estar disponibles acá apenas termine el evento, con exportación lista para PLU USA.',
+}
+
+export const HOME_RULEBOOK = {
+  eyebrow: 'Reglamento · Rulebook',
+  title: 'Las mismas reglas para todos, sin ambigüedad.',
+  cta: 'Ver categorías y divisiones',
+}
+
+export const HOME_COMMUNITY = {
+  eyebrow: 'Comunidad',
+  title: 'Cada gimnasio que se suma, hace más fuerte a la federación.',
+  description:
+    'De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar.',
+  cta: 'Conocé la comunidad',
+}
+
+export const HOME_FAQ = {
+  eyebrow: 'Preguntas frecuentes',
+  title: 'Lo que todo atleta pregunta antes de empezar.',
+}
+
+/** FAQ home — copy exacto del design-reference */
+export const HOME_FAQ_ITEMS = [
+  {
+    q: '¿Cómo me afilio a PLU ARG?',
+    a: 'Entrás a la página de Afiliación, completás tus datos, pagás con Mercado Pago y quedás registrado al instante.',
+  },
+  {
+    q: '¿Necesito estar afiliado para inscribirme a Pitbull Classic?',
+    a: 'Sí. La afiliación anual es el requisito para inscribirte a cualquier evento oficial de PLU ARG.',
+  },
+  {
+    q: '¿Dónde veo los resultados de un evento?',
+    a: 'En la sección Resultados, disponibles públicamente apenas se normalizan después de cada evento.',
+  },
+]
+
+export const HOME_MEMBERSHIP_FEATURES = [
+  'Acceso a todos los eventos oficiales del año',
+  'Código de afiliado y credencial digital',
+  'Resultados reconocidos por PLU USA',
+]
+
 export const ABOUT_PILLARS = [
   {
+    id: 'standard',
+    icon: 'Globe2',
     title: 'Estándar internacional',
     text: 'Reglas, divisiones y categorías alineadas al circuito reconocido por PLU USA.',
   },
   {
+    id: 'ops',
+    icon: 'ClipboardList',
     title: 'Gestión sin planillas',
     text: 'Afiliación, inscripción y pago en un solo lugar, para el atleta y para quien organiza.',
   },
   {
+    id: 'community',
+    icon: 'Users',
     title: 'Comunidad en crecimiento',
     text: 'Gimnasios y atletas de todo el país compitiendo bajo un mismo sistema.',
   },
@@ -164,6 +234,8 @@ export const PITBULL_CREDENTIAL_SAMPLE = {
   status: 'Pago acreditado',
 }
 
+// Datos de ejemplo para Podium/ResultCard — se reactivan en ResultsPage cuando haya
+// resultados reales publicados (hoy la página muestra el estado pre-lanzamiento).
 export const RECENT_RESULTS = [
   { athlete: 'Martina Rivas', event: 'Pitbull Classic 2025', total: '412.5 kg', place: '1° Open Raw F', date: '2025-08-10' },
   { athlete: 'Nicolás Aguirre', event: 'Argentina Open 2025', total: '580 kg', place: '2° Junior Classic', date: '2025-10-18' },

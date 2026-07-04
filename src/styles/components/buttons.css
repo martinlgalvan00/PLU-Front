@@ -28,25 +28,6 @@
     opacity var(--transition-fast);
 }
 
-/* Shimmer sweep en hover */
-.btn::after {
-  background: linear-gradient(
-    105deg,
-    transparent 25%,
-    rgba(255, 255, 255, 0.18) 50%,
-    transparent 75%
-  );
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  transform: translateX(-120%) skewX(-15deg);
-}
-
-.btn:hover:not(:disabled)::after {
-  animation: card-shimmer 0.55s var(--ease-out) forwards;
-}
-
 .btn:hover:not(:disabled) {
   background: var(--color-brand-red-hover);
   box-shadow: var(--glow-red-soft);

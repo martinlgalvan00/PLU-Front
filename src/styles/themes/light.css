@@ -17,6 +17,8 @@
   --color-text-secondary: #2c2f3c;
   --color-text-muted: #636878;
 
+  --color-text-ghost: rgba(15, 17, 23, 0.12);
+
   --color-text-accent: #7a6b2e;
   --color-text-price: #1d5f9e;
 
@@ -29,9 +31,23 @@
   --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.10);
   --color-shadow-card: 0 12px 32px rgba(15, 17, 23, 0.07);
   --color-hero-gradient:
-    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.08), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.12), transparent 50%),
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.11), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.16), transparent 50%),
     linear-gradient(180deg, #f5f5f7 0%, #ebebef 100%);
+
+  /* ── Glows — recalibrados para leer sobre fondos claros ──
+     Los mismos halos que en dark (variables.css) quedan casi
+     imperceptibles sobre blanco con ese alpha; acá suben de
+     intensidad para conservar la misma sensación "premium". ── */
+  --glow-red:            0 6px 22px rgba(225, 6, 0, 0.38);
+  --glow-red-soft:       0 3px 16px rgba(225, 6, 0, 0.22);
+  --glow-red-strong:     0 10px 34px rgba(225, 6, 0, 0.52);
+  --glow-gold:           0 6px 22px rgba(201, 185, 120, 0.38);
+  --glow-gold-soft:      0 3px 16px rgba(201, 185, 120, 0.22);
+  --glow-gold-strong:    0 10px 34px rgba(201, 185, 120, 0.50);
+  --glow-celeste:        0 6px 22px rgba(116, 172, 223, 0.45);
+  --glow-celeste-soft:   0 3px 16px rgba(116, 172, 223, 0.26);
+  --glow-celeste-strong: 0 10px 34px rgba(116, 172, 223, 0.52);
 
   /* ── Results tokens ────────────────────────── */
   --results-podium-bg: #ffffff;

@@ -1,11 +1,22 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
-export default function FAQAccordion({ items }) {
-  const [openIndex, setOpenIndex] = useState(0)
+function FaqRefIcon({ isOpen }) {
+  return (
+    <span className="faq-item__icon-ref" aria-hidden>
+      <span className="faq-item__icon-ref-bar" />
+      <span className={`faq-item__icon-ref-bar ${isOpen ? '' : 'faq-item__icon-ref-bar--vert'}`} />
+    </span>
+  )
+}
+
+export default function FAQAccordion({ items, variant = 'default' }) {
+  const [openIndex, setOpenIndex] = useState(-1)
+  const isRef = variant === 'ref'
+  const rootClass = isRef ? 'faq-accordion faq-accordion--ref' : 'faq-accordion'
 
   return (
-    <div className="faq-accordion">
+    <div className={rootClass}>
       {items.map((item, index) => {
         const isOpen = openIndex === index
         return (
@@ -16,8 +27,12 @@ export default function FAQAccordion({ items }) {
               aria-expanded={isOpen}
               onClick={() => setOpenIndex(isOpen ? -1 : index)}
             >
-              {item.q}
-              <ChevronDown size={18} className="faq-item__icon" />
+              {isRef ? <span className="faq-item__question">{item.q}</span> : item.q}
+              {isRef ? (
+                <FaqRefIcon isOpen={isOpen} />
+              ) : (
+                <ChevronDown size={18} className="faq-item__icon" />
+              )}
             </button>
             <div className="faq-item__panel-wrap" data-open={isOpen}>
               <div className="faq-item__panel">

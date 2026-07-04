@@ -3,7 +3,6 @@ import {
   COMMUNITY_QUOTE,
   COMMUNITY_TESTIMONIAL_PLACEHOLDERS,
 } from '../lib/content.js'
-import PageHero from '../components/layout/PageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
@@ -11,13 +10,23 @@ import SectionHeading from '../components/ui/SectionHeading.jsx'
 export default function CommunityPage({ onNavigate }) {
   return (
     <main className="page community-page">
-      <div className="page__inner">
-        <PageHero
-          eyebrow="Comunidad"
-          title="El powerlifting argentino crece de a un gimnasio por vez."
-          description="PLU ARG existe porque hay atletas y gimnasios en distintas provincias entrenando bajo el mismo estándar. Esta es su federación."
-        />
+      <Reveal>
+        <header className="community-hero">
+          <div className="community-hero__inner">
+            <div className="community-hero__caption">foto — entrenamiento grupal, gimnasio afiliado</div>
+            <span className="community-hero__eyebrow">Comunidad</span>
+            <h1 className="community-hero__title">
+              El powerlifting argentino crece de a un gimnasio por vez.
+            </h1>
+            <p className="community-hero__desc">
+              PLU ARG existe porque hay atletas y gimnasios en distintas provincias entrenando bajo
+              el mismo estándar. Esta es su federación.
+            </p>
+          </div>
+        </header>
+      </Reveal>
 
+      <div className="page__inner">
         <Reveal variant="zoom">
           <blockquote className="community-quote">{COMMUNITY_QUOTE}</blockquote>
         </Reveal>

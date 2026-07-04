@@ -307,7 +307,7 @@
 }
 
 [data-theme='light'] .members-benefit__desc {
-  color: rgba(15, 17, 23, 0.40);
+  color: rgba(15, 17, 23, 0.58);
 }
 
 [data-theme='light'] .members-benefit:hover .members-benefit__desc {
@@ -320,33 +320,33 @@
 }
 
 [data-theme='light'] .membership-card__features li {
-  color: rgba(15, 17, 23, 0.52);
+  color: rgba(15, 17, 23, 0.64);
 }
 
 [data-theme='light'] .membership-card:hover .membership-card__features li {
-  color: rgba(15, 17, 23, 0.72);
+  color: rgba(15, 17, 23, 0.82);
 }
 
 [data-theme='light'] .membership-card__period {
-  color: rgba(15, 17, 23, 0.30);
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .membership-card__compare-row {
-  color: rgba(15, 17, 23, 0.42);
+  color: rgba(15, 17, 23, 0.58);
 }
 
 [data-theme='light'] .membership-card__compare-row--total {
-  border-top-color: rgba(15, 17, 23, 0.16);
-  text-decoration-color: rgba(15, 17, 23, 0.3);
+  border-top-color: rgba(15, 17, 23, 0.22);
+  text-decoration-color: rgba(15, 17, 23, 0.4);
 }
 
 [data-theme='light'] .membership-card__check {
-  background: rgba(15, 17, 23, 0.04);
-  color: rgba(15, 17, 23, 0.35);
+  background: rgba(15, 17, 23, 0.05);
+  color: rgba(15, 17, 23, 0.55);
 }
 
 [data-theme='light'] .membership-card--featured {
   background:
-    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(225, 6, 0, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(225, 6, 0, 0.10) 0%, transparent 55%),
     #ffffff;
 }

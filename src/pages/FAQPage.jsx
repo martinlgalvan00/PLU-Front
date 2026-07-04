@@ -1,5 +1,5 @@
 import { FAQ_GROUPS } from '../lib/content.js'
-import PageHero from '../components/layout/PageHero.jsx'
+import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SubNav from '../components/ui/SubNav.jsx'
@@ -9,14 +9,13 @@ const SUB_NAV_ITEMS = FAQ_GROUPS.map((group) => ({ href: `#${group.id}`, label: 
 export default function FAQPage({ onNavigate }) {
   return (
     <main className="page faq-page">
-      <div className="page__inner page__inner--narrow">
-        <PageHero
-          compact
-          eyebrow="FAQ"
-          title="Preguntas frecuentes"
-          description="Todo lo que necesitás saber sobre afiliación, inscripción, pagos y resultados."
-        />
-      </div>
+      <DesignPageHero
+        breadcrumbLabel="FAQ"
+        onHome={() => onNavigate?.('home')}
+        eyebrow="FAQ"
+        title="Preguntas frecuentes"
+        description="Todo lo que necesitás saber sobre afiliación, inscripción, pagos y resultados."
+      />
 
       <SubNav items={SUB_NAV_ITEMS} />
 

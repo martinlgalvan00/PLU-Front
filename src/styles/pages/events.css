@@ -884,7 +884,7 @@
 }
 
 [data-theme='light'] .event-calendar__jump svg {
-  color: rgba(15, 17, 23, 0.32);
+  color: rgba(15, 17, 23, 0.48);
 }
 
 [data-theme='light'] .event-calendar__jump:hover {

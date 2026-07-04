@@ -2,6 +2,7 @@ import {
   BadgeCheck,
   BookOpen,
   Calendar,
+  ChevronRight,
   HelpCircle,
   Mail,
   Trophy,
@@ -19,17 +20,18 @@ const ICONS = {
   contact: Mail,
 }
 
-export default function PlatformMap({ sections, onNavigate }) {
-  const groups = [...new Set(sections.map((section) => section.group))]
+export default function PlatformMap({ sections, onNavigate, variant = 'default' }) {
+  const isCompact = variant === 'compact'
+  const groups = isCompact ? [null] : [...new Set(sections.map((section) => section.group))]
 
   return (
-    <div className="platform-map">
+    <div className={`platform-map${isCompact ? ' platform-map--compact' : ''}`}>
       {groups.map((group) => (
-        <div key={group} className="platform-map__group">
-          <h3 className="platform-map__group-label">{group}</h3>
+        <div key={group ?? 'all'} className="platform-map__group">
+          {!isCompact && group && <h3 className="platform-map__group-label">{group}</h3>}
           <div className="platform-map__grid">
             {sections
-              .filter((section) => section.group === group)
+              .filter((section) => (isCompact ? true : section.group === group))
               .map((section) => {
                 const Icon = ICONS[section.key] ?? BadgeCheck
                 return (
@@ -40,11 +42,17 @@ export default function PlatformMap({ sections, onNavigate }) {
                     onClick={() => onNavigate(section.key)}
                   >
                     <span className="platform-map__icon" aria-hidden>
-                      <Icon size={18} />
+                      <Icon size={isCompact ? 16 : 18} />
                     </span>
-                    <strong>{section.title}</strong>
-                    <p>{section.desc}</p>
-                    <span className="platform-map__link">Explorar</span>
+                    <span className="platform-map__body">
+                      <strong>{section.title}</strong>
+                      {!isCompact && <p>{section.desc}</p>}
+                    </span>
+                    {isCompact ? (
+                      <ChevronRight size={16} className="platform-map__chevron" aria-hidden />
+                    ) : (
+                      <span className="platform-map__link">Explorar</span>
+                    )}
                   </button>
                 )
               })}

@@ -18,6 +18,17 @@
   to   { opacity: 1; }
 }
 
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
 @keyframes scale-in {
   from {
     opacity: 0;
@@ -98,16 +109,6 @@
 /* =============================================
    HERO ANIMATIONS
    ============================================= */
-
-@keyframes hero-glow {
-  0%, 100% { opacity: 0.55; }
-  50%       { opacity: 0.85; }
-}
-
-@keyframes hero-glow-gold {
-  0%, 100% { opacity: 0.25; }
-  50%       { opacity: 0.50; }
-}
 
 @keyframes noise-drift {
   0%   { transform: translate(0, 0); }
@@ -286,16 +287,6 @@
 }
 
 /* =============================================
-   FLAG WAVE
-   ============================================= */
-
-@keyframes flag-wave {
-  0%, 100% { transform: scaleX(1) skewY(0deg); }
-  25%       { transform: scaleX(1.04) skewY(1deg); }
-  75%       { transform: scaleX(0.97) skewY(-1deg); }
-}
-
-/* =============================================
    REVEAL SYSTEM
    ============================================= */
 
@@ -440,8 +431,10 @@
     transition: none;
   }
 
-  .hero--design .hero__content > *,
-  .hero--design .hero__metric {
+  .hero--design .hero__copy-inner > *,
+  .hero--design .hero__metric,
+  .hero-status-card,
+  .hero-status-card__live-dot {
     animation: none !important;
     opacity: 1;
     transform: none;
