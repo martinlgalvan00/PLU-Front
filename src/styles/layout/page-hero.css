@@ -152,6 +152,20 @@
   margin-top: 6px;
 }
 
+.capacity-bar {
+  background: var(--color-bg-muted);
+  border-radius: var(--border-radius-pill);
+  height: 8px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.capacity-bar__fill {
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste));
+  height: 100%;
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
 /* Si la barra de capacidad (que existe en inline o page.css) está animada via custom prop */
 .capacity-widget__bar-fill {
   animation: grow-line-full 1.2s var(--ease-out) both;

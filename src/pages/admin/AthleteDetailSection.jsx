@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import AuditTimeline from '../../components/ui/AuditTimeline.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 
 export default function AthleteDetailSection({ detail, onBack, canEdit, onApprovePayment }) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState('profile')
 
   if (!detail) {
@@ -16,19 +18,22 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
   const { athlete, memberships, registrations, payments, auditLogs } = detail
   const activeMembership = memberships.find((item) => item.status === 'activa')
 
-  const tabs = [
-    { id: 'profile', label: 'Perfil' },
-    { id: 'memberships', label: 'Afiliaciones', count: memberships.length },
-    { id: 'registrations', label: 'Inscripciones', count: registrations.length },
-    { id: 'payments', label: 'Pagos', count: payments.length },
-    { id: 'activity', label: 'Actividad', count: auditLogs.length },
-  ]
+  const tabs = useMemo(
+    () => [
+      { id: 'profile', label: t('admin.athleteDetail.tabs.profile') },
+      { id: 'memberships', label: t('admin.athleteDetail.tabs.memberships'), count: memberships.length },
+      { id: 'registrations', label: t('admin.athleteDetail.tabs.registrations'), count: registrations.length },
+      { id: 'payments', label: t('admin.athleteDetail.tabs.payments'), count: payments.length },
+      { id: 'activity', label: t('admin.athleteDetail.tabs.activity'), count: auditLogs.length },
+    ],
+    [auditLogs.length, memberships.length, payments.length, registrations.length, t],
+  )
 
   return (
     <div className="athlete-detail">
       <button type="button" className="btn btn--ghost athlete-detail__back" onClick={onBack}>
         <ArrowLeft size={16} />
-        Volver a atletas
+        {t('admin.athleteDetail.back')}
       </button>
 
       <MemberProfileCard
@@ -44,23 +49,23 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
 
       {activeTab === 'profile' && (
         <dl className="athlete-detail__grid surface-card">
-          <dt>Documento</dt>
+          <dt>{t('admin.athleteDetail.fields.document')}</dt>
           <dd>{athlete.documentId}</dd>
-          <dt>Email</dt>
+          <dt>{t('admin.athleteDetail.fields.email')}</dt>
           <dd>{athlete.email}</dd>
-          <dt>Teléfono</dt>
+          <dt>{t('admin.athleteDetail.fields.phone')}</dt>
           <dd>{athlete.phone}</dd>
-          <dt>Ubicación</dt>
+          <dt>{t('admin.athleteDetail.fields.location')}</dt>
           <dd>
             {athlete.city}, {athlete.province}
           </dd>
-          <dt>Gimnasio</dt>
+          <dt>{t('admin.athleteDetail.fields.gym')}</dt>
           <dd>{athlete.gym}</dd>
-          <dt>División</dt>
+          <dt>{t('admin.athleteDetail.fields.division')}</dt>
           <dd>{athlete.division}</dd>
-          <dt>Categoría</dt>
+          <dt>{t('admin.athleteDetail.fields.category')}</dt>
           <dd>{athlete.category}</dd>
-          <dt>Peso estimado</dt>
+          <dt>{t('admin.athleteDetail.fields.estimatedWeight')}</dt>
           <dd>{athlete.estimatedWeight ? `${athlete.estimatedWeight} kg` : '—'}</dd>
         </dl>
       )}
@@ -68,56 +73,56 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
       {activeTab === 'memberships' && (
         <DataTable
           columns={[
-            { key: 'year', label: 'Año' },
-            { key: 'memberCode', label: 'Código' },
+            { key: 'year', label: t('admin.columns.year') },
+            { key: 'memberCode', label: t('admin.columns.code') },
             {
               key: 'status',
-              label: 'Estado',
+              label: t('admin.columns.status'),
               render: (row) => <StatusBadge value={row.status} />,
             },
-            { key: 'startDate', label: 'Inicio' },
-            { key: 'expirationDate', label: 'Vencimiento' },
+            { key: 'startDate', label: t('admin.columns.start') },
+            { key: 'expirationDate', label: t('admin.columns.expiration') },
           ]}
           rows={memberships}
-          emptyMessage="Sin afiliaciones registradas"
+          emptyMessage={t('admin.athleteDetail.emptyMemberships')}
         />
       )}
 
       {activeTab === 'registrations' && (
         <DataTable
           columns={[
-            { key: 'event', label: 'Evento' },
-            { key: 'category', label: 'Categoría' },
-            { key: 'division', label: 'División' },
+            { key: 'event', label: t('admin.columns.event') },
+            { key: 'category', label: t('admin.columns.category') },
+            { key: 'division', label: t('admin.columns.division') },
             {
               key: 'status',
-              label: 'Estado',
+              label: t('admin.columns.status'),
               render: (row) => <StatusBadge value={row.status} />,
             },
           ]}
           rows={registrations}
-          emptyMessage="Sin inscripciones"
+          emptyMessage={t('admin.athleteDetail.emptyRegistrations')}
         />
       )}
 
       {activeTab === 'payments' && (
         <DataTable
           columns={[
-            { key: 'concept', label: 'Concepto' },
+            { key: 'concept', label: t('admin.columns.concept') },
             {
               key: 'amount',
-              label: 'Monto',
+              label: t('admin.columns.amount'),
               render: (row) => money(row.amount),
             },
             {
               key: 'status',
-              label: 'Estado',
+              label: t('admin.columns.status'),
               render: (row) => <StatusBadge value={row.status} />,
             },
-            { key: 'method', label: 'Método' },
+            { key: 'method', label: t('admin.columns.method') },
             {
               key: 'action',
-              label: 'Acción',
+              label: t('admin.columns.action'),
               render: (row) => (
                 <button
                   type="button"
@@ -125,19 +130,23 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
                   onClick={() => onApprovePayment?.(row.id)}
                   disabled={!canEdit || row.status === 'aprobado'}
                 >
-                  Validar
+                  {t('admin.actions.validate')}
                 </button>
               ),
             },
           ]}
           rows={payments}
-          emptyMessage="Sin pagos"
+          emptyMessage={t('admin.athleteDetail.emptyPayments')}
         />
       )}
 
       {activeTab === 'activity' && (
         <div className="surface-card athlete-detail__timeline">
-          <AuditTimeline items={auditLogs} />
+          {auditLogs.length > 0 ? (
+            <AuditTimeline items={auditLogs} />
+          ) : (
+            <p className="data-table__empty">{t('admin.athleteDetail.emptyActivity')}</p>
+          )}
         </div>
       )}
     </div>

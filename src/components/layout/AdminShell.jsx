@@ -17,6 +17,7 @@ import {
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 
 const ICONS = {
@@ -43,11 +44,12 @@ export default function AdminShell({
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { t } = useI18n()
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
-    return match?.[1] ?? 'Panel'
-  }, [activeSection])
+    return match?.[1] ? t(match[1]) : t('admin.shell.defaultSection')
+  }, [activeSection, t])
 
   useEffect(() => {
     if (!sidebarOpen) return undefined
@@ -69,7 +71,7 @@ export default function AdminShell({
       <button
         type="button"
         className="admin-shell__backdrop"
-        aria-label="Cerrar menú"
+        aria-label={t('admin.shell.closeMenu')}
         onClick={() => setSidebarOpen(false)}
       />
       <aside className={`admin-shell__sidebar${sidebarOpen ? ' is-open' : ''}`}>
@@ -81,15 +83,15 @@ export default function AdminShell({
             <div className="admin-shell__brand-copy">
               <div className="admin-shell__brand-title">
                 <strong>PLU ARG</strong>
-                <span className="admin-shell__brand-tag">Operativo</span>
+                <span className="admin-shell__brand-tag">{t('admin.shell.brandTag')}</span>
               </div>
-              <span>Panel administrativo</span>
+              <span>{t('admin.shell.brandSubtitle')}</span>
             </div>
           </div>
           <button
             type="button"
             className="admin-shell__close"
-            aria-label="Cerrar menú"
+            aria-label={t('admin.shell.closeMenu')}
             onClick={() => setSidebarOpen(false)}
           >
             <X size={18} />
@@ -97,11 +99,11 @@ export default function AdminShell({
         </div>
 
         <div className="admin-shell__nav-scroll">
-          <nav className="admin-shell__nav" aria-label="Panel administrativo">
+          <nav className="admin-shell__nav" aria-label={t('admin.shell.navAria')}>
             {ADMIN_NAV_GROUPS.map((group) => (
-              <div key={group.label} className="admin-shell__group">
-                <span className="admin-shell__group-label">{group.label}</span>
-                {group.items.map(([key, label, iconName]) => {
+              <div key={group.labelKey} className="admin-shell__group">
+                <span className="admin-shell__group-label">{t(group.labelKey)}</span>
+                {group.items.map(([key, labelKey, iconName]) => {
                   const Icon = ICONS[iconName]
                   const badge = navBadges[key]
 
@@ -115,7 +117,7 @@ export default function AdminShell({
                       <span className="admin-shell__nav-icon" aria-hidden>
                         <Icon size={16} strokeWidth={2.1} />
                       </span>
-                      <span className="admin-shell__nav-label">{label}</span>
+                      <span className="admin-shell__nav-label">{t(labelKey)}</span>
                       {badge > 0 && (
                         <em
                           className={`admin-shell__badge${
@@ -140,7 +142,7 @@ export default function AdminShell({
             </div>
             <div className="admin-shell__account-copy">
               <strong>{roleLabel}</strong>
-              <span>Perfil activo</span>
+              <span>{t('admin.shell.activeProfile')}</span>
             </div>
             <div className="admin-shell__prefs">
               <ThemeToggle compact />
@@ -149,7 +151,7 @@ export default function AdminShell({
           </div>
           <button type="button" className="admin-shell__exit" onClick={onExit}>
             <ArrowLeft size={16} strokeWidth={2.2} aria-hidden />
-            Volver al sitio
+            {t('admin.shell.exit')}
           </button>
         </div>
       </aside>
@@ -159,7 +161,7 @@ export default function AdminShell({
           <button
             type="button"
             className={`admin-mobile-bar__menu${sidebarOpen ? ' is-active' : ''}`}
-            aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-label={sidebarOpen ? t('admin.shell.closeMenu') : t('admin.shell.openMenu')}
             aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((open) => !open)}
           >
@@ -167,6 +169,7 @@ export default function AdminShell({
           </button>
           <h1 className="admin-mobile-bar__title">{activeLabel}</h1>
           <div className="admin-mobile-bar__actions">
+            <LanguageToggle compact />
             <ThemeToggle compact />
           </div>
         </header>

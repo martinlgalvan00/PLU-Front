@@ -1,19 +1,16 @@
+import { ArrowRight } from 'lucide-react'
 import { HOME_RESULTS } from '../../lib/content.js'
-import SectionHeading from './SectionHeading.jsx'
 
 export default function HomeResultsTeaser({ onNavigate }) {
   return (
-    <div className="home-results-teaser">
-      <SectionHeading
-        align="left"
-        variant="ref"
-        eyebrow={HOME_RESULTS.eyebrow}
-        title={HOME_RESULTS.title}
-        description={HOME_RESULTS.description}
-      />
-      <button type="button" className="home-results-teaser__btn" onClick={() => onNavigate('results')}>
-        Ver resultados →
+    <article className="home-teaser-card home-teaser-card--results">
+      <span className="home-teaser-card__eyebrow">{HOME_RESULTS.eyebrow}</span>
+      <h2 className="home-teaser-card__title">{HOME_RESULTS.title}</h2>
+      <p className="home-teaser-card__desc">{HOME_RESULTS.description}</p>
+      <button type="button" className="home-teaser-card__link" onClick={() => onNavigate('results')}>
+        Ver resultados
+        <ArrowRight size={14} aria-hidden />
       </button>
-    </div>
+    </article>
   )
 }

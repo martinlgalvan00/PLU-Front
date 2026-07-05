@@ -1,0 +1,504 @@
+/* ═══════════════════════════════════════════════════════════════════
+   event-share-card.css — PLU ARG
+   Card de inscripción compartible (1080×1080) + Modal de preview
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Variables locales ─────────────────────────────────────────── */
+.share-card {
+  --card-bg: #0d0e11;
+  --card-surface: #141518;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-red: #e10600;
+  --card-celeste: #74acdf;
+  --card-gold: #c9b978;
+  --card-text: #ffffff;
+  --card-muted: rgba(255, 255, 255, 0.55);
+  --card-size: 1080px;
+}
+
+/* ─── Wrapper base ──────────────────────────────────────────────── */
+.share-card {
+  position: relative;
+  width: var(--card-size);
+  height: var(--card-size);
+  background-color: var(--card-bg);
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  color: var(--card-text);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+}
+
+/* Modo captura: en flujo normal — el contenedor padre (CardPreviewModal) es
+   quien la oculta recortándola a 0×0. Un position:fixed con offset negativo
+   acá rompe el rasterizado de texto/imágenes en html2canvas. */
+.share-card--capture {
+  position: relative;
+}
+
+/* Modo preview: se renderiza a tamaño real (1080×1080) y se reduce con
+   transform: scale() (calculado en JS vía ResizeObserver) — así el preview
+   es un espejo fiel del PNG final, no una reinterpretación a otro ancho. */
+.share-card--preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+.share-card-scale-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+/* ─── Fondo con gradiente ───────────────────────────────────────── */
+.share-card__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 80% 20%, rgba(225, 6, 0, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 15% 80%, rgba(116, 172, 223, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201, 185, 120, 0.04) 0%, transparent 70%),
+    linear-gradient(175deg, #1a1c22 0%, #0d0e11 50%, #0a0b0d 100%);
+  z-index: 0;
+}
+
+/* ─── Marca de agua diagonal ────────────────────────────────────── */
+.share-card__watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 120px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.025);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+/* ─── Franjas de acento ─────────────────────────────────────────── */
+.share-card__stripe-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--card-red) 0%,
+    var(--card-celeste) 50%,
+    var(--card-gold) 100%
+  );
+  z-index: 10;
+}
+
+.share-card__stripe-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--card-red) 0%,
+    var(--card-celeste) 50%,
+    var(--card-gold) 100%
+  );
+  z-index: 10;
+  opacity: 0.6;
+}
+
+/* ─── Header ────────────────────────────────────────────────────── */
+.share-card__header {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 64px 72px 0;
+}
+
+.share-card__logo {
+  height: 72px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(1.1);
+}
+
+.share-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.share-card__badge--celeste {
+  background: rgba(116, 172, 223, 0.15);
+  color: var(--card-celeste);
+  border: 1.5px solid rgba(116, 172, 223, 0.35);
+}
+
+.share-card__badge--gold {
+  background: rgba(201, 185, 120, 0.15);
+  color: var(--card-gold);
+  border: 1.5px solid rgba(201, 185, 120, 0.35);
+}
+
+/* ─── Body ──────────────────────────────────────────────────────── */
+.share-card__body {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 72px;
+  gap: 48px;
+}
+
+/* Sección atleta */
+.share-card__athlete-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share-card__eyebrow {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-red);
+}
+
+.share-card__athlete-name {
+  font-size: 88px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--card-text);
+  /* Truncar nombres muy largos */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.share-card__athlete-code {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--card-celeste);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Divisor */
+.share-card__divider {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--card-red), var(--card-celeste));
+  border-radius: 999px;
+}
+
+/* Variante afiliación: acento dorado en vez de rojo (coherente con el badge gold) */
+.share-card--membership .share-card__eyebrow {
+  color: var(--card-gold);
+}
+
+.share-card--membership .share-card__divider {
+  background: linear-gradient(90deg, var(--card-gold), var(--card-celeste));
+}
+
+/* Sección evento */
+.share-card__event-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share-card__event-eyebrow {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--card-muted);
+}
+
+.share-card__event-title {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--card-gold);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.share-card__event-meta {
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--card-muted);
+  margin: 0;
+}
+
+.share-card__event-category {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--card-celeste);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────── */
+.share-card__footer {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 72px 64px;
+}
+
+.share-card__tagline {
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--card-muted);
+}
+
+.share-card__url {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL DE PREVIEW
+   ═══════════════════════════════════════════════════════════════════ */
+
+.card-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 11, 13, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: card-modal-fade-in 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+  padding: 24px;
+}
+
+@keyframes card-modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card-modal {
+  width: min(520px, 100%);
+  background: #141518;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: card-modal-slide-up 280ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+}
+
+@keyframes card-modal-slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Header del modal */
+.card-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-modal__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.card-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.card-modal__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* Preview de la card */
+.card-modal__preview-wrap {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.card-modal__preview-inner {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* La card interna se auto-escala vía aspect-ratio */
+}
+
+/* Hint de compartir */
+.card-modal__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.card-modal__hint-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3d9a62;
+  flex-shrink: 0;
+}
+
+/* Acciones del modal */
+.card-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px 20px 20px;
+}
+
+.card-modal__actions .btn {
+  justify-content: center;
+}
+
+/* Estado de generando */
+.card-modal__generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.card-modal__spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #e10600;
+  border-radius: 50%;
+  animation: card-spin 700ms linear infinite;
+}
+
+@keyframes card-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Botón de generar card (en ConfirmationScreen y perfil) */
+.card-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(225, 6, 0, 0.15), rgba(116, 172, 223, 0.10));
+  border: 1px solid rgba(225, 6, 0, 0.3);
+  border-radius: 10px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, transform 150ms ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.card-trigger-btn:hover {
+  background: linear-gradient(135deg, rgba(225, 6, 0, 0.22), rgba(116, 172, 223, 0.15));
+  border-color: rgba(225, 6, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.card-trigger-btn:active {
+  transform: translateY(0);
+}
+
+.card-trigger-btn__emoji {
+  font-size: 16px;
+}
+
+/* Sección "Mi card" en el perfil */
+.account-card-share {
+  position: relative;
+  background: linear-gradient(135deg, rgba(225, 6, 0, 0.08) 0%, rgba(116, 172, 223, 0.06) 100%);
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-card-share__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e10600;
+}
+
+.account-card-share h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.account-card-share p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  line-height: 1.5;
+}

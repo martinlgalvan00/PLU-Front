@@ -26,5 +26,6 @@ export function normalizeStoredData(data) {
       ? normalizeEntity(data.createdOrder, ['status'])
       : data.createdOrder,
     auditLogs: data.auditLogs ?? [],
+    adminEvents: data.adminEvents ?? [],
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
@@ -18,16 +18,28 @@ import {
 } from '../services/exportService.js'
 import {
   buildPendingActions,
+  buildDashboardOverview,
   buildRecentActivity,
   getAdminNavBadges,
   getAthleteAuditLogs,
 } from '../services/adminService.js'
+import {
+  createAdminEvent,
+  getInitialAdminEvents,
+  updateAdminEvent,
+} from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
 
 export function useAppData() {
   const oauth = usePluOAuth()
   const storedData = useMemo(() => readStorage(), [])
-  const [session, setSession] = useState(null)
+  const [session, setSessionState] = useState(null)
+  const sessionRef = useRef(null)
+  const setSession = useCallback((next) => {
+    sessionRef.current = next
+    setSessionState(next)
+  }, [])
+  const getSession = useCallback(() => sessionRef.current, [])
   const [athletes, setAthletes] = useState(() => getInitialState(storedData).athletes)
   const [memberships, setMemberships] = useState(() => getInitialState(storedData).memberships)
   const [registrations, setRegistrations] = useState(
@@ -36,6 +48,7 @@ export function useAppData() {
   const [payments, setPayments] = useState(() => getInitialState(storedData).payments)
   const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
   const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
+  const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
 
@@ -43,8 +56,8 @@ export function useAppData() {
   const userCanEdit = canEdit(role)
 
   useEffect(() => {
-    writeStorage({ athletes, memberships, registrations, payments, createdOrder, auditLogs })
-  }, [athletes, memberships, registrations, payments, createdOrder, auditLogs])
+    writeStorage({ athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents })
+  }, [athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents])
 
   useEffect(() => {
     let active = true
@@ -79,22 +92,19 @@ export function useAppData() {
     }
   }, [oauth])
 
-  const dashboard = useMemo(() => {
-    const pendingPayments = payments.filter((p) =>
-      ['pendiente_pago', 'pendiente', 'validacion_manual'].includes(p.status),
-    ).length
+  const dashboardOverview = useMemo(
+    () =>
+      buildDashboardOverview({
+        athletes,
+        memberships,
+        registrations,
+        payments,
+        events: adminEvents,
+      }),
+    [athletes, memberships, registrations, payments, adminEvents],
+  )
 
-    return [
-      { label: 'Atletas', value: athletes.length, icon: 'users' },
-      {
-        label: 'Afiliaciones activas',
-        value: memberships.filter((m) => m.status === 'activa').length,
-        icon: 'badge',
-      },
-      { label: 'Pitbull Classic', value: registrations.length, icon: 'clipboard' },
-      { label: 'Pagos pendientes', value: pendingPayments, icon: 'shield' },
-    ]
-  }, [athletes, memberships, payments, registrations])
+  const dashboard = dashboardOverview.primary
 
   const enrichedRegistrations = useMemo(
     () =>
@@ -121,8 +131,9 @@ export function useAppData() {
   )
 
   const recentActivity = useMemo(
-    () => buildRecentActivity({ auditLogs, athletes, memberships, registrations, payments }),
-    [auditLogs, athletes, memberships, registrations, payments],
+    () =>
+      buildRecentActivity({ auditLogs, athletes, memberships, registrations, payments, events: adminEvents }),
+    [auditLogs, athletes, memberships, registrations, payments, adminEvents],
   )
 
   const getAthleteDetail = useCallback(
@@ -241,6 +252,34 @@ export function useAppData() {
       return demoAthleteSession
     }
 
+    if (credentialsOrAccountType === 'admin') {
+      const demoAdminSession = {
+        id: 'demo-admin',
+        role: 'admin_plu_arg',
+        name: 'Admin Demo',
+        email: 'demo@pluarg.com.ar',
+      }
+      setSession(demoAdminSession)
+      return demoAdminSession
+    }
+
+    if (typeof credentialsOrAccountType === 'object') {
+      const emailRaw = String(credentialsOrAccountType.email ?? '').trim().toLowerCase()
+      const email = emailRaw === 'demo' ? 'demo@pluarg.com.ar' : emailRaw
+      const password = String(credentialsOrAccountType.password ?? '')
+
+      if (email === 'demo@pluarg.com.ar' && password === '123') {
+        const demoAdminSession = {
+          id: 'demo-admin',
+          role: 'admin_plu_arg',
+          name: 'Admin Demo',
+          email: 'demo@pluarg.com.ar',
+        }
+        setSession(demoAdminSession)
+        return demoAdminSession
+      }
+    }
+
     const { user } = await loginRequest(credentialsOrAccountType)
     const nextSession = user
     setSession(nextSession)
@@ -251,7 +290,7 @@ export function useAppData() {
     const currentSession = session
     setSession(null)
 
-    if (currentSession?.role !== 'athlete_plu') {
+    if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
       try {
         await logoutRequest()
       } catch (error) {
@@ -319,9 +358,30 @@ export function useAppData() {
     createCsv('plu-usa-export.csv', rows)
   }, [athletes, memberships, registrations])
 
+  const saveAdminEvent = useCallback(
+    (draft) => {
+      if (!userCanEdit) return { error: 'Sin permisos para editar eventos.' }
+
+      if (draft.id) {
+        const result = updateAdminEvent(adminEvents, draft.id, draft)
+        if (!result.event) return { error: 'No se encontró el evento.' }
+        setAdminEvents(result.events)
+        if (result.auditLog) setAuditLogs((current) => [result.auditLog, ...current])
+        return { event: result.event }
+      }
+
+      const result = createAdminEvent(adminEvents, draft)
+      setAdminEvents(result.events)
+      setAuditLogs((current) => [result.auditLog, ...current])
+      return { event: result.event }
+    },
+    [adminEvents, userCanEdit],
+  )
+
   return {
     role,
     session,
+    getSession,
     login,
     logout,
     userCanEdit,
@@ -335,6 +395,9 @@ export function useAppData() {
     filters,
     setFilters,
     dashboard,
+    dashboardOverview,
+    adminEvents,
+    saveAdminEvent,
     filteredRegistrations,
     enrichedMemberships,
     pendingActions,

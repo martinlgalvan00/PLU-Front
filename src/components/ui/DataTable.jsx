@@ -6,9 +6,17 @@ export default function DataTable({
   emptyMessage = 'Sin registros',
   onRowClick,
   rowClassName = '',
+  variant = 'default',
 }) {
+  const tableClass = `data-table ${variant === 'admin' ? 'data-table--admin' : ''}`.trim()
+  const cardsClass = `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
+
   if (!rows.length) {
-    return <p className="data-table__empty">{emptyMessage}</p>
+    return (
+      <p className={`data-table__empty ${variant === 'admin' ? 'data-table__empty--admin' : ''}`.trim()}>
+        {emptyMessage}
+      </p>
+    )
   }
 
   function getRowInteractionProps(row) {
@@ -29,12 +37,14 @@ export default function DataTable({
 
   return (
     <>
-      <div className="data-table">
+      <div className={tableClass}>
         <table>
           <thead>
             <tr>
               {columns.map((col) => (
-                <th key={col.key}>{col.label}</th>
+                <th key={col.key} scope="col">
+                  {col.label}
+                </th>
               ))}
             </tr>
           </thead>
@@ -42,7 +52,7 @@ export default function DataTable({
             {rows.map((row) => (
               <tr key={row.id} className={rowClassName} {...getRowInteractionProps(row)}>
                 {columns.map((col) => (
-                  <td key={col.key}>
+                  <td key={col.key} data-label={col.label}>
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}
@@ -52,11 +62,11 @@ export default function DataTable({
         </table>
       </div>
 
-      <div className="data-table-cards" aria-label="Lista de registros">
+      <div className={cardsClass} aria-label="Lista de registros">
         {rows.map((row) => (
           <article
             key={row.id}
-            className={`data-table-card${rowClassName ? ` ${rowClassName}` : ''}`}
+            className={`data-table-card${rowClassName ? ` ${rowClassName}` : ''}${variant === 'admin' ? ' data-table-card--admin' : ''}`.trim()}
             {...getRowInteractionProps(row)}
           >
             {columns.map((col) => (

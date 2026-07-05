@@ -45,19 +45,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [view])
 
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__pluNav = setView
+  }, [])
+
   const navigate = useCallback(
     (nextView) => {
+      // Lee la sesión vía ref (app.getSession()), no app.session: justo después de un
+      // login, setSession todavía no se aplicó al render en curso y app.session
+      // seguiría viendo el valor viejo dentro de este mismo handler síncrono.
+      const currentRole = app.getSession()?.role
       const adminRequired = nextView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
       const blocked =
-        (adminRequired && !canViewAdmin(app.session?.role)) ||
-        (athleteRequired && app.session?.role !== 'athlete_plu')
+        (adminRequired && !canViewAdmin(currentRole)) ||
+        (athleteRequired && currentRole !== 'athlete_plu')
       const resolvedView = blocked ? 'login' : nextView
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [app.session?.role, view],
+    [app.getSession, view],
   )
 
   function selectEvent(event) {
@@ -69,7 +77,8 @@ export default function App() {
     return (
       <AdminPage
         canEdit={app.userCanEdit}
-        dashboard={app.dashboard}
+        dashboardOverview={app.dashboardOverview}
+        adminEvents={app.adminEvents}
         filters={app.filters}
         filteredRegistrations={app.filteredRegistrations}
         enrichedMemberships={app.enrichedMemberships}
@@ -80,9 +89,11 @@ export default function App() {
         onApprovePayment={app.handleApprovePayment}
         onExportAdmin={app.exportAdminCsv}
         onExportPluUsa={app.exportPluUsaCsv}
+        onSaveEvent={app.saveAdminEvent}
         onSetFilters={app.setFilters}
         payments={app.payments}
         athletes={app.athletes}
+        registrations={app.registrations}
         roleLabel={getRoleLabel(app.session?.role)}
         onExit={() => navigate('home')}
       />
@@ -98,14 +109,21 @@ export default function App() {
           form: app.form,
           onApprovePayment: app.handleApprovePayment,
           flow: 'profile',
+          onNavigate: navigate,
           onSubmit: app.registerAthlete,
           onUpdateForm: app.updateForm,
           total: 0,
         }
       : view === 'login'
         ? { onNavigate: navigate, onLogin: app.login }
-        : ['events', 'home'].includes(view)
+        : view === 'events'
+          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents }
+        : view === 'home'
           ? { onNavigate: navigate, onSelectEvent: selectEvent }
+        : view === 'pitbull' || view === 'results'
+          ? { onNavigate: navigate, events: app.adminEvents }
+        : view === 'members'
+          ? { onNavigate: navigate, session: app.session }
         : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
@@ -143,6 +161,7 @@ export default function App() {
           event={selectedEvent}
           flow={flow}
           form={app.form}
+          memberships={app.memberships}
           onApprovePayment={app.handleApprovePayment}
           onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
           onUpdateForm={app.updateForm}

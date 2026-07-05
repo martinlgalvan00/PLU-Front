@@ -78,7 +78,7 @@ export default function EventCalendar({
   const todayKey = toKey(today.getFullYear(), today.getMonth(), today.getDate())
 
   return (
-    <div className="event-calendar surface-card surface-card--spotlight">
+    <div className="event-calendar event-calendar--premium">
       <header className="event-calendar__header">
         <button type="button" className="event-calendar__nav" onClick={prevMonth} aria-label="Mes anterior">
           <ChevronLeft size={20} />
@@ -145,8 +145,8 @@ export default function EventCalendar({
       </div>
 
       <footer className="event-calendar__footer">
-        <div className="event-calendar__legend">
-          {Object.entries(EVENT_STATUS).slice(0, 4).map(([key, meta]) => (
+        <div className="event-calendar__legend event-calendar__legend--compact">
+          {Object.entries(EVENT_STATUS).slice(0, 3).map(([key, meta]) => (
             <span key={key} className="event-calendar__legend-item">
               <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
               {meta.label}

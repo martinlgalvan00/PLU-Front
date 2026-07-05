@@ -58,7 +58,11 @@
       "Read(//tmp/fonts/**)",
       "Read(//c/tmp/fonts/**)",
       "Read(//c/Users/agusd/AppData/Local/Temp/fonts/**)",
-      "Bash(node shot2.js)"
+      "Bash(node shot2.js)",
+      "Bash(node inspect4.js)",
+      "Bash(node crop2.js)",
+      "Bash(awk 'NR<=100 && /\\\\{/{last=NR\": \"$0} END{}' src/styles/themes/design-pages-theme.css)",
+      "Bash(node inspect5.js)"
     ]
   }
 }

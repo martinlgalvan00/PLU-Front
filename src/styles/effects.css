@@ -16,6 +16,16 @@
   transform: translateY(-2px);
 }
 
+.surface-card--flat,
+.surface-card--flat:hover {
+  transform: none;
+}
+
+.admin-dashboard--compact .surface-card--flat:hover {
+  border-color: var(--color-border-light);
+  box-shadow: none;
+}
+
 .surface-card--spotlight {
   overflow: hidden;
 }

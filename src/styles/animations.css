@@ -397,7 +397,43 @@
    ============================================= */
 
 .admin-section-enter {
-  animation: page-enter var(--duration-base) var(--ease-out) both;
+  animation: admin-section-enter 0.36s var(--ease-out) both;
+}
+
+@keyframes admin-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-block-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-metric-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* =============================================
@@ -433,14 +469,21 @@
 
   .hero--design .hero__copy-inner > *,
   .hero--design .hero__metric,
+  .hero--design .hero__proof,
   .hero-status-card,
   .hero-status-card__live-dot {
     animation: none !important;
     opacity: 1;
     transform: none;
+    transition: none !important;
   }
 
   .admin-section-enter {
+    animation: none;
+  }
+
+  .admin-dashboard__block,
+  .admin-metric--compact {
     animation: none;
   }
 

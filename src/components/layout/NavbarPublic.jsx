@@ -72,7 +72,9 @@ function NavDropdown({ active, children, footerAction, label, menuLabel, open, o
 function DrawerSection({ accent = 'neutral', children, label }) {
   return (
     <div className={`site-header__drawer-section site-header__drawer-section--${accent}`}>
-      <p className="site-header__drawer-section-label">{label}</p>
+      <p className="site-header__drawer-section-label">
+        <span>{label}</span>
+      </p>
       <div className="site-header__drawer-section-items">{children}</div>
     </div>
   )
@@ -85,7 +87,12 @@ function DrawerItem({ active, children, className = '', featured = false, onClic
       className={`site-header__drawer-item ${active ? 'is-active' : ''} ${featured ? 'is-featured' : ''} ${className}`.trim()}
       onClick={onClick}
     >
-      {featured && <span className="site-header__drawer-item-bar" aria-hidden />}
+      {featured && (
+        <span
+          className={`site-header__drawer-item-bar ${active ? 'is-active' : ''}`.trim()}
+          aria-hidden
+        />
+      )}
       <span className="site-header__drawer-item-label">{children}</span>
     </button>
   )
@@ -169,23 +176,25 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
   const navHint = (key) => t(`nav.${key}Hint`)
 
   return (
-    <div className="site-header-shell">
+    <div className={`site-header-shell${open ? ' site-header-shell--menu-open' : ''}`}>
       <div className="site-header__stripe" aria-hidden />
       <div className="site-header__ambient" aria-hidden />
 
-      <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''}`}>
+      <header
+        className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''} ${activeView === 'home' && !scrolled && !open ? 'site-header--over-hero' : ''}`}
+      >
         <div className="site-header__inner">
           <button className="site-header__logo site-header__logo--design" type="button" onClick={() => go('home')}>
             <BrandLogo
               variant="argentina"
               imgClassName="site-header__logo-emblem"
-              height={44}
+              height={36}
             />
             <BrandLogo
               variant="letterhead"
               letterheadBlend
               imgClassName="site-header__logo-letterhead"
-              height={32}
+              height={26}
             />
           </button>
 
@@ -314,7 +323,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                     onClick={() => go('login')}
                     aria-label={t('nav.login')}
                   >
-                    <LockKeyhole size={15} aria-hidden />
+                    <LockKeyhole size={18} strokeWidth={2.25} aria-hidden />
                   </button>
                   <button
                     type="button"
@@ -332,7 +341,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               <button
                 type="button"
                 className={`site-header__mobile-chip site-header__mobile-chip--menu${open ? ' is-open' : ''}`}
-                aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+                aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
                 aria-expanded={open}
                 onClick={() => setOpen(!open)}
               >
@@ -345,28 +354,37 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
             </div>
           </div>
         </div>
+      </header>
 
-        <button
-          type="button"
-          className={`site-header__backdrop ${open ? 'is-visible' : ''}`}
-          aria-hidden={!open}
-          tabIndex={open ? 0 : -1}
-          onClick={() => setOpen(false)}
-        />
+      <button
+        type="button"
+        className={`site-header__backdrop ${open ? 'is-visible' : ''}`}
+        aria-label={t('nav.closeMenu')}
+        aria-hidden={!open}
+        tabIndex={open ? 0 : -1}
+        onClick={() => setOpen(false)}
+      />
 
-        <aside className={`site-header__drawer ${open ? 'is-open' : ''}`} aria-hidden={!open}>
+      <aside
+        className={`site-header__drawer ${open ? 'is-open' : ''}`}
+        aria-hidden={!open}
+        aria-label={t('nav.menu')}
+      >
           <div className="site-header__drawer-head">
             <button type="button" className="site-header__drawer-brand" onClick={() => go('home')}>
-              <BrandLogo variant="argentina" imgClassName="site-header__drawer-emblem" height={36} />
-              <BrandLogo variant="letterhead" imgClassName="site-header__drawer-logo site-header__logo-letterhead" height={28} />
+              <BrandLogo
+                variant="letterhead"
+                imgClassName="site-header__drawer-logo site-header__logo-letterhead"
+                height={24}
+              />
             </button>
             <button
               type="button"
               className="site-header__drawer-close"
-              aria-label="Cerrar menú"
+              aria-label={t('nav.closeMenu')}
               onClick={() => setOpen(false)}
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
@@ -457,7 +475,6 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
             )}
           </div>
         </aside>
-      </header>
     </div>
   )
 }

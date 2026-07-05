@@ -1,3 +1,5 @@
+import admin from './admin.es.js'
+
 export default {
   brand: {
     name: 'PLU ARG',
@@ -5,6 +7,9 @@ export default {
   },
   nav: {
     home: 'Inicio',
+    menu: 'Menú',
+    closeMenu: 'Cerrar menú',
+    openMenu: 'Abrir menú',
     members: 'Afiliación',
     pitbull: 'Pitbull Classic',
     events: 'Eventos',
@@ -92,6 +97,34 @@ export default {
     rejected: 'Rechazado',
     cancelled: 'Cancelada',
   },
+  status: {
+    pre_registrado: 'Pre-registrado',
+    registrado: 'Registrado',
+    afiliado_activo: 'Afiliado activo',
+    afiliado_vencido: 'Afiliado vencido',
+    bloqueado: 'Bloqueado',
+    pendiente_pago: 'Pendiente de pago',
+    activa: 'Activa',
+    vencida: 'Vencida',
+    cancelada: 'Cancelada',
+    reembolsada: 'Reembolsada',
+    borrador: 'Borrador',
+    pagada: 'Pagada',
+    confirmada: 'Confirmada',
+    observada: 'Observada',
+    creado: 'Creado',
+    pendiente: 'Pendiente',
+    aprobado: 'Aprobado',
+    rechazado: 'Rechazado',
+    cancelado: 'Cancelado',
+    reembolsado: 'Reembolsado',
+    validacion_manual: 'Validación manual',
+    proximamente: 'Próximamente',
+    inscripcion_abierta: 'Inscripción abierta',
+    cupos_limitados: 'Cupos limitados',
+    cerrado: 'Cerrado',
+    finalizado: 'Finalizado',
+  },
   payment: {
     amount: 'Monto',
     method: 'Método',
@@ -108,12 +141,7 @@ export default {
     viewPanel: 'Ver en panel',
     backHome: 'Volver al inicio',
   },
-  admin: {
-    dashboard: 'Dashboard',
-    searchPlaceholder: 'Buscar atleta, DNI o evento…',
-    alerts: 'Alertas operativas',
-    exit: 'Volver al sitio',
-  },
+  admin,
   footer: {
     brandDesc:
       'Federación argentina de powerlifting con estándar internacional. Administrada por Maximal.',
@@ -167,6 +195,10 @@ export default {
     oauthLoading: 'Conectando OAuth…',
     errorOAuth: 'No pudimos iniciar sesion con OAuth. Intentá nuevamente.',
     demoTitle: 'Acceso demo',
+    demoHint: 'Usuario demo y contraseña 123 ingresan al panel administrativo.',
+    demoUserLabel: 'Usuario',
+    demoPassLabel: 'Clave',
+    demoFill: 'Completar credenciales demo',
     demoAdmin: 'Ingresar como administrador',
     demoAthlete: 'Ingresar como atleta',
     separator: 'o',

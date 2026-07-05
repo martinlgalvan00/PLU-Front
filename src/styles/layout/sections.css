@@ -4,7 +4,7 @@
 
 .page-section,
 .home-section {
-  padding: var(--space-3xl) var(--space-lg);
+  padding: var(--space-3xl) var(--layout-gutter-lg);
   position: relative;
   scroll-margin-top: calc(var(--header-height-scrolled) + 16px);
 }

@@ -1,86 +1,111 @@
+import { ArrowRight } from 'lucide-react'
 import {
   COMMUNITY_GYM_PLACEHOLDERS,
+  COMMUNITY_HIGHLIGHTS,
   COMMUNITY_QUOTE,
   COMMUNITY_TESTIMONIAL_PLACEHOLDERS,
 } from '../lib/content.js'
+import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import SectionHeading from '../components/ui/SectionHeading.jsx'
+
+function CommunityHeroHighlights() {
+  return (
+    <div className="design-hero__stats community-highlights" aria-label="Pilares de la comunidad">
+      {COMMUNITY_HIGHLIGHTS.map(({ title, text }) => (
+        <article key={title} className="community-highlight">
+          <strong>{title}</strong>
+          <span>{text}</span>
+        </article>
+      ))}
+    </div>
+  )
+}
 
 export default function CommunityPage({ onNavigate }) {
   return (
-    <main className="page community-page">
-      <Reveal>
-        <header className="community-hero">
-          <div className="community-hero__inner">
-            <div className="community-hero__caption">foto — entrenamiento grupal, gimnasio afiliado</div>
-            <span className="community-hero__eyebrow">Comunidad</span>
-            <h1 className="community-hero__title">
-              El powerlifting argentino crece de a un gimnasio por vez.
-            </h1>
-            <p className="community-hero__desc">
-              PLU ARG existe porque hay atletas y gimnasios en distintas provincias entrenando bajo
-              el mismo estándar. Esta es su federación.
-            </p>
-          </div>
-        </header>
-      </Reveal>
+    <main className="page page--design community-page--design">
+      <DesignPageHero
+        breadcrumbLabel="Comunidad"
+        onHome={() => onNavigate?.('home')}
+        eyebrow="Red PLU ARG"
+        title="El powerlifting argentino crece de a un gimnasio por vez."
+        description="Atletas y sedes en distintas provincias, entrenando bajo el mismo estándar internacional."
+      >
+        <CommunityHeroHighlights />
+      </DesignPageHero>
 
-      <div className="page__inner">
-        <Reveal variant="zoom">
-          <blockquote className="community-quote">{COMMUNITY_QUOTE}</blockquote>
+      <div className="community-page__inner">
+        <Reveal>
+          <figure className="community-manifesto">
+            <blockquote>{COMMUNITY_QUOTE}</blockquote>
+          </figure>
         </Reveal>
 
         <Reveal>
-          <SectionHeading
-            align="left"
-            eyebrow="Gimnasios afiliados"
-            title="Espacio reservado para la red de gimnasios PLU ARG."
-          />
-        </Reveal>
-        <div className="community-gym-grid">
-          {COMMUNITY_GYM_PLACEHOLDERS.map((gym, i) => (
-            <Reveal key={gym.id} delay={i * 60}>
-              <div className="community-gym-tile">
-                <span>{gym.label}</span>
+          <section className="community-shell" aria-labelledby="community-network-title">
+            <header className="community-shell__head">
+              <div className="community-shell__head-copy">
+                <span className="community-shell__eyebrow">Gimnasios afiliados</span>
+                <h2 className="community-shell__title" id="community-network-title">
+                  Red en expansión
+                </h2>
+                <p className="community-shell__lead">
+                  Sedes aliadas en el AMBA, el litoral y el interior. Pronto, mapa y directorio
+                  completo.
+                </p>
               </div>
-            </Reveal>
-          ))}
-        </div>
-        <Reveal>
-          <p className="community-gym-cta">
-            ¿Tu gimnasio quiere sumarse a la red PLU ARG?{' '}
-            <button type="button" className="link-underline" onClick={() => onNavigate('contact')}>
-              Contactanos
-            </button>
-          </p>
+              <button
+                type="button"
+                className="community-shell__link"
+                onClick={() => onNavigate?.('contact')}
+              >
+                Sumar mi gimnasio
+                <ArrowRight size={14} aria-hidden />
+              </button>
+            </header>
+
+            <div className="community-network">
+              {COMMUNITY_GYM_PLACEHOLDERS.map((gym) => (
+                <article key={gym.id} className="community-network__node">
+                  <span className="community-network__city">{gym.label}</span>
+                  <span className="community-network__venue">{gym.sub}</span>
+                </article>
+              ))}
+            </div>
+          </section>
         </Reveal>
 
-        <Reveal>
-          <SectionHeading
-            align="left"
-            eyebrow="Historias"
-            title="Espacio reservado para historias reales de atletas."
-          />
+        <Reveal delay={60}>
+          <section className="community-stories" aria-labelledby="community-stories-title">
+            <header className="community-stories__head">
+              <span className="community-stories__eyebrow">Historias</span>
+              <h2 className="community-stories__title" id="community-stories-title">
+                Voces de la comunidad
+              </h2>
+            </header>
+
+            <div className="community-stories__grid">
+              {COMMUNITY_TESTIMONIAL_PLACEHOLDERS.map((item) => (
+                <article key={item.id} className="community-story-card">
+                  <span className="community-story-card__mark" aria-hidden>
+                    “
+                  </span>
+                  <p>{item.text}</p>
+                  <footer className="community-story-card__foot">
+                    <span className="community-story-card__role">{item.role}</span>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          </section>
         </Reveal>
-        <div className="community-testimonial-grid">
-          {COMMUNITY_TESTIMONIAL_PLACEHOLDERS.map((item, i) => (
-            <Reveal key={item.id} delay={i * 80}>
-              <article className="community-testimonial-card surface-card">
-                <div className="community-testimonial-card__photo">
-                  <span>{item.photoLabel}</span>
-                </div>
-                <p>{item.text}</p>
-              </article>
-            </Reveal>
-          ))}
-        </div>
       </div>
 
       <CTASection
         title="¿Tu gimnasio quiere ser parte de PLU ARG?"
         primaryLabel="Quiero ser parte"
-        onPrimary={() => onNavigate('contact')}
+        onPrimary={() => onNavigate?.('contact')}
       />
     </main>
   )
