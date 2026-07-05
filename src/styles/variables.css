@@ -75,8 +75,8 @@
   --layout-gutter-sm: clamp(10px, 1.2vw, 16px);
   --layout-gutter-lg: clamp(16px, 2.4vw, 40px);
   --admin-content-max: min(1280px, 100%);
-  --header-height: 58px;
-  --header-height-scrolled: 50px;
+  --header-height: 62px;
+  --header-height-scrolled: 52px;
   --admin-sidebar-width: 260px;
   --border-radius-sm: 6px;
   --border-radius-md: 10px;

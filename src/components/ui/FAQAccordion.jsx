@@ -10,7 +10,7 @@ function FaqRefIcon({ isOpen }) {
   )
 }
 
-export default function FAQAccordion({ items, variant = 'default' }) {
+export default function FAQAccordion({ items, numbered = false, variant = 'default' }) {
   const [openIndex, setOpenIndex] = useState(-1)
   const isRef = variant === 'ref'
   const rootClass = isRef ? 'faq-accordion faq-accordion--ref' : 'faq-accordion'
@@ -27,6 +27,11 @@ export default function FAQAccordion({ items, variant = 'default' }) {
               aria-expanded={isOpen}
               onClick={() => setOpenIndex(isOpen ? -1 : index)}
             >
+              {numbered && isRef && (
+                <span className="faq-item__index" aria-hidden>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+              )}
               {isRef ? <span className="faq-item__question">{item.q}</span> : item.q}
               {isRef ? (
                 <FaqRefIcon isOpen={isOpen} />
