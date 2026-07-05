@@ -2434,15 +2434,6 @@
     padding-inline: var(--space-md);
   }
 
-  .events-hero-panel__controls {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .events-hero-panel__count {
-    white-space: normal;
-  }
-
   .events-sidebar-card {
     position: static;
   }

@@ -4,6 +4,7 @@ export default {
   brand: {
     name: 'PLU ARG',
     tagline: 'Maximal',
+    federationLine: 'Federación Argentina',
   },
   nav: {
     home: 'Inicio',

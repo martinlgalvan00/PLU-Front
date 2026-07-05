@@ -48,22 +48,45 @@ export default function HomePage({ onNavigate }) {
       </Reveal>
 
       <Reveal as="section" className="home-section home-section--immersive home-section--community" variant="scale">
-        <CommunitySpotlight onNavigate={onNavigate} />
+        <div className="home-section__inner">
+          <CommunitySpotlight onNavigate={onNavigate} />
+        </div>
       </Reveal>
 
       <Reveal as="section" className="home-section home-section--canvas-light home-section--faq" variant="fade">
-        <div className="home-section__inner home-section__inner--narrow">
-          <SectionHeading
-            align="center"
-            variant="ref"
-            eyebrow={HOME_FAQ.eyebrow}
-            title={HOME_FAQ.title}
-          />
-          <FAQAccordion items={HOME_FAQ_ITEMS} variant="ref" />
-          <div className="home-faq__footer">
-            <button type="button" className="home-faq__more" onClick={() => onNavigate('faq')}>
-              Ver todas las preguntas →
-            </button>
+        <div className="home-section__inner">
+          <div className="home-faq">
+            <div className="home-faq__intro">
+              <SectionHeading
+                align="left"
+                variant="ref"
+                eyebrow={HOME_FAQ.eyebrow}
+                title={HOME_FAQ.title}
+                description={HOME_FAQ.description}
+              />
+              <div className="home-faq__quick-links">
+                {HOME_FAQ.quickLinks.map(({ label, view }) => (
+                  <button
+                    key={view}
+                    type="button"
+                    className="home-faq__quick-link"
+                    onClick={() => onNavigate(view)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="home-faq__panel">
+              <FAQAccordion items={HOME_FAQ_ITEMS} variant="ref" numbered />
+              <div className="home-faq__footer">
+                <button type="button" className="home-faq__more" onClick={() => onNavigate('faq')}>
+                  {HOME_FAQ.cta}
+                  <span aria-hidden>→</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </Reveal>

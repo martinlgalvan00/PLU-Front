@@ -190,12 +190,15 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               imgClassName="site-header__logo-emblem"
               height={36}
             />
-            <BrandLogo
-              variant="letterhead"
-              letterheadBlend
-              imgClassName="site-header__logo-letterhead"
-              height={26}
-            />
+            <span className="site-header__brand-stack">
+              <BrandLogo
+                variant="letterhead"
+                letterheadBlend
+                imgClassName="site-header__logo-letterhead"
+                height={26}
+              />
+              <span className="site-header__brand-eyebrow">{t('brand.federationLine')}</span>
+            </span>
           </button>
 
           <nav ref={navRef} className="site-header__nav site-header__nav--design" aria-label="Principal">
@@ -256,11 +259,16 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
           <div className="site-header__actions">
             <div className="site-header__actions-cluster">
-            <div className="site-header__prefs">
-              <ThemeToggle compact />
-              <LanguageToggle compact />
+            <div className="site-header__prefs-rail">
+              <div className="site-header__prefs">
+                <ThemeToggle compact />
+                <LanguageToggle compact />
+              </div>
             </div>
 
+            <span className="site-header__actions-sep" aria-hidden />
+
+            <div className="site-header__actions-main">
             {session ? (
               <>
                 <LoginButton
@@ -289,6 +297,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 </Button>
               </>
             )}
+            </div>
             </div>
           </div>
 

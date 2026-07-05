@@ -46,13 +46,27 @@ export const HOME_COMMUNITY = {
   eyebrow: 'Comunidad',
   title: 'Cada gimnasio que se suma, hace más fuerte a la federación.',
   description:
-    'De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar.',
+    'De Buenos Aires a Bariloche, PLU ARG conecta atletas y gimnasios bajo un mismo estándar internacional.',
   cta: 'Conocé la comunidad',
+  visualCaption: 'foto — comunidad, gimnasio, magnesio en tarima',
+  stats: [
+    { value: '40+', label: 'Gimnasios afiliados' },
+    { value: '850+', label: 'Atletas registrados' },
+    { value: '12', label: 'Provincias' },
+  ],
 }
 
 export const HOME_FAQ = {
   eyebrow: 'Preguntas frecuentes',
   title: 'Lo que todo atleta pregunta antes de empezar.',
+  description:
+    'Respuestas claras sobre afiliación, eventos y resultados — sin vueltas ni letra chica.',
+  cta: 'Ver todas las preguntas',
+  quickLinks: [
+    { label: 'Afiliación', view: 'members' },
+    { label: 'Pitbull Classic', view: 'pitbull' },
+    { label: 'Contacto', view: 'contact' },
+  ],
 }
 
 /** FAQ home — copy exacto del design-reference */

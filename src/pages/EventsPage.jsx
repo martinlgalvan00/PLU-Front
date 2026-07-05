@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
+import { ArrowRight, CalendarDays, MapPin } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -23,52 +23,6 @@ const FILTER_LABELS = {
   open: 'con inscripción abierta',
   soon: 'próximamente',
   done: 'finalizados',
-}
-
-function EventsHeroPanel({ filter, listCount, onFilterChange, stats }) {
-  const statItems = [
-    { icon: CalendarDays, label: 'Próximos meets', value: stats.upcoming },
-    { icon: Users, label: 'Inscripción abierta', tone: 'open', value: stats.open },
-    { icon: Ticket, label: 'Siguiente fecha', tone: 'next', value: stats.nextLabel },
-  ]
-
-  return (
-    <div className="events-hero-panel">
-      <div className="events-hero-panel__stats" aria-label="Resumen de eventos">
-        {statItems.map(({ icon: Icon, label, tone, value }) => (
-          <article
-            key={label}
-            className={`events-hero-stat${tone ? ` events-hero-stat--${tone}` : ''}`.trim()}
-          >
-            <span className="events-hero-stat__icon" aria-hidden>
-              <Icon size={14} />
-            </span>
-            <div className="events-hero-stat__copy">
-              <strong>{value}</strong>
-              <span>{label}</span>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="events-hero-panel__controls">
-        <div className="events-hero-panel__controls-head">
-          <span className="events-hero-panel__controls-label">Filtrar eventos</span>
-          <span className="events-hero-panel__count-badge" aria-live="polite">
-            {listCount} {listCount === 1 ? 'evento' : 'eventos'}
-          </span>
-        </div>
-        <FilterPills
-          active={filter}
-          ariaLabel="Filtrar eventos"
-          className="filter-pills--refined"
-          onChange={onFilterChange}
-          options={FILTERS}
-        />
-        <p className="events-hero-panel__count">{FILTER_LABELS[filter]}</p>
-      </div>
-    </div>
-  )
 }
 
 const EVENT_STATUS_COPY = {
@@ -144,20 +98,6 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
   const [filter, setFilter] = useState('all')
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
 
-  const stats = useMemo(() => {
-    const upcoming = events.filter((event) => event.status !== 'finalizado')
-    const open = events.filter(
-      (event) => event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados',
-    )
-    const next = [...upcoming].sort((a, b) => a.dateISO.localeCompare(b.dateISO))[0]
-
-    return {
-      upcoming: upcoming.length,
-      open: open.length,
-      nextLabel: next?.date?.replace(/\s.*/, '') ?? '—',
-    }
-  }, [events])
-
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       if (filter === 'open') {
@@ -208,14 +148,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
         eyebrow="Temporada 2026"
         title="Calendario de eventos"
         description="Eventos oficiales PLU ARG con inscripción y estado actualizado."
-      >
-        <EventsHeroPanel
-          filter={filter}
-          listCount={listEvents.length}
-          onFilterChange={setFilter}
-          stats={stats}
-        />
-      </DesignPageHero>
+      />
 
       <div className="events-page__body">
         <div className="events-layout-v2">
@@ -234,12 +167,24 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
             )}
 
             <header className={`events-list-header ${showPitbull ? 'events-list-header--spaced' : ''}`}>
-              <div>
-                <span className="events-list-header__eyebrow">Agenda PLU ARG</span>
-                <h2 className="events-list-header__title">
-                  {filter === 'done' ? 'Eventos finalizados' : 'Próximos meets'}
-                </h2>
+              <div className="events-list-header__row">
+                <div>
+                  <span className="events-list-header__eyebrow">Agenda PLU ARG</span>
+                  <h2 className="events-list-header__title">
+                    {filter === 'done' ? 'Eventos finalizados' : 'Próximos meets'}
+                  </h2>
+                </div>
+                <span className="events-list-header__count" aria-live="polite">
+                  {listEvents.length} {listEvents.length === 1 ? 'evento' : 'eventos'}
+                </span>
               </div>
+              <FilterPills
+                active={filter}
+                ariaLabel="Filtrar eventos"
+                className="filter-pills--refined events-list-header__filters"
+                onChange={setFilter}
+                options={FILTERS}
+              />
             </header>
 
             {listEvents.length > 0 ? (
