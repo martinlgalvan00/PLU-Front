@@ -9,7 +9,7 @@ export default function LoginButton({ onClick, className = '', label = 'Acceder 
       title={compact ? label : undefined}
       aria-label={compact ? label : undefined}
     >
-      <LockKeyhole size={compact ? 15 : 16} />
+      <LockKeyhole size={compact ? 18 : 16} strokeWidth={compact ? 2.25 : 2} />
       {!compact && label}
     </button>
   )

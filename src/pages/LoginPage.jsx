@@ -9,6 +9,8 @@ const FEATURE_KEYS = ['login.featureProfile', 'login.featureMembership', 'login.
 export default function LoginPage({ onLogin, onNavigate }) {
   const { t } = useI18n()
   const oauth = usePluOAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -23,13 +25,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
     setSubmitError('')
     setIsSubmitting(true)
 
-    const formData = new FormData(event.currentTarget)
-
     try {
-      await enter({
-        email: formData.get('email'),
-        password: formData.get('password'),
-      })
+      await enter({ email, password })
     } catch {
       setSubmitError(t('login.errorInvalid'))
     } finally {
@@ -50,14 +47,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
     <main className="page login-page--design">
       <div className="login-shell">
         <section className="login-card" aria-labelledby="login-heading">
-          <div className="login-card__tricolor" aria-hidden />
-
           <header className="login-card__header">
             <div className="login-card__logos">
               <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />
               <BrandLogo variant="letterhead" imgClassName="login-card__logo" height={28} />
             </div>
-            <span className="login-card__eyebrow">{t('login.eyebrow')}</span>
+            <span className="login-card__eyebrow">
+              <span className="login-card__eyebrow-dot" aria-hidden />
+              {t('login.eyebrow')}
+            </span>
             <h1 id="login-heading">{t('login.title')}</h1>
             <p className="login-card__lead">{t('login.subtitle')}</p>
           </header>
@@ -65,7 +63,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
           {oauth.configured && (
             <button
               type="button"
-              className="login-submit"
+              className="login-submit login-submit--oauth"
               onClick={handleOAuthLogin}
               disabled={oauth.isLoading}
             >
@@ -80,10 +78,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <span className="login-field__control">
                 <Mail size={16} aria-hidden className="login-field__icon" />
                 <input
-                  type="email"
+                  type="text"
                   name="email"
-                  placeholder="nombre@pluarg.com.ar"
-                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="demo o demo@pluarg.com.ar"
+                  autoComplete="username"
                   autoFocus
                   required
                 />
@@ -102,10 +102,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   required
-                  minLength={8}
                 />
                 <button
                   type="button"
@@ -139,15 +140,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
               {t('login.joinLink')}
             </button>
           </p>
-
-          <details className="login-demo">
-            <summary>{t('login.demoTitle')}</summary>
-            <div className="login-demo__actions">
-              <button type="button" onClick={() => enter('athlete')}>
-                {t('login.demoAthlete')}
-              </button>
-            </div>
-          </details>
         </section>
 
         <aside className="login-brand">

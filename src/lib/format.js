@@ -20,6 +20,13 @@ export function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+export function formatShortDate(iso) {
+  if (!iso) return ''
+  const date = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '')
+}
+
 export function generateId(prefix, index) {
   return `${prefix}-${String(index).padStart(3, '0')}`
 }

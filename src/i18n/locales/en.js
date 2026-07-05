@@ -1,3 +1,5 @@
+import admin from './admin.en.js'
+
 export default {
   brand: {
     name: 'PLU ARG',
@@ -5,6 +7,9 @@ export default {
   },
   nav: {
     home: 'Home',
+    menu: 'Menu',
+    closeMenu: 'Close menu',
+    openMenu: 'Open menu',
     members: 'Membership',
     pitbull: 'Pitbull Classic',
     events: 'Events',
@@ -92,6 +97,34 @@ export default {
     rejected: 'Rejected',
     cancelled: 'Cancelled',
   },
+  status: {
+    pre_registrado: 'Pre-registered',
+    registrado: 'Registered',
+    afiliado_activo: 'Active member',
+    afiliado_vencido: 'Expired member',
+    bloqueado: 'Blocked',
+    pendiente_pago: 'Payment pending',
+    activa: 'Active',
+    vencida: 'Expired',
+    cancelada: 'Cancelled',
+    reembolsada: 'Refunded',
+    borrador: 'Draft',
+    pagada: 'Paid',
+    confirmada: 'Confirmed',
+    observada: 'Observed',
+    creado: 'Created',
+    pendiente: 'Pending',
+    aprobado: 'Approved',
+    rechazado: 'Rejected',
+    cancelado: 'Cancelled',
+    reembolsado: 'Refunded',
+    validacion_manual: 'Manual validation',
+    proximamente: 'Coming soon',
+    inscripcion_abierta: 'Registration open',
+    cupos_limitados: 'Limited slots',
+    cerrado: 'Closed',
+    finalizado: 'Finished',
+  },
   payment: {
     amount: 'Amount',
     method: 'Method',
@@ -108,12 +141,7 @@ export default {
     viewPanel: 'View in admin',
     backHome: 'Back to home',
   },
-  admin: {
-    dashboard: 'Dashboard',
-    searchPlaceholder: 'Search athlete, ID or event…',
-    alerts: 'Operational alerts',
-    exit: 'Back to site',
-  },
+  admin,
   footer: {
     brandDesc:
       'Argentine powerlifting federation with international standards. Operated by Maximal.',
@@ -166,6 +194,10 @@ export default {
     oauthLoading: 'Connecting OAuth…',
     errorOAuth: 'We could not sign you in with OAuth. Try again.',
     demoTitle: 'Demo access',
+    demoHint: 'User demo and password 123 sign in to the admin dashboard.',
+    demoUserLabel: 'User',
+    demoPassLabel: 'Password',
+    demoFill: 'Fill demo credentials',
     demoAdmin: 'Sign in as admin',
     demoAthlete: 'Sign in as athlete',
     separator: 'or',

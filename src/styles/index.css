@@ -4,6 +4,7 @@
 @import './themes/light.css';
 @import './themes/design-pages-theme.css';
 @import './base.css';
+@import './layout/responsive.css';
 @import './animations.css';
 @import './effects.css';
 @import './layout/header.css';
@@ -24,5 +25,8 @@
 @import './pages/design-phase2.css';
 @import './pages/rulebook.css';
 @import './pages/results.css';
+@import './pages/community.css';
+@import './pages/pitbull.css';
 @import url('/src/styles/pages/events.css');
 @import url('/src/styles/pages/members.css');
+@import url('/src/styles/components/event-share-card.css');

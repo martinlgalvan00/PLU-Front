@@ -378,7 +378,9 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
+  padding-inline: max(0px, env(safe-area-inset-left, 0px))
+    max(0px, env(safe-area-inset-right, 0px));
 }
 
 .admin-shell__backdrop {
@@ -540,6 +542,13 @@
    ============================================= */
 
 @media (max-width: 1024px) {
+  .admin-page-toolbar__search {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1024px) {
   .admin-shell__sidebar {
     left: 0;
     position: fixed;
@@ -645,7 +654,8 @@
 
   .admin-mobile-bar__actions .pref-toggle--compact {
     height: 36px;
-    width: 36px;
+    min-width: 36px;
+    padding: 0 8px;
   }
 
   .admin-page-toolbar {

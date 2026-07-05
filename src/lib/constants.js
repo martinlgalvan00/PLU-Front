@@ -80,19 +80,33 @@ export const NAV_RECURSOS_VIEWS = NAV_RECURSOS.map(({ key }) => key)
 export const NAV_ITEMS = [...NAV_PRIMARY, ...NAV_SECONDARY].map((key) => [key, key])
 
 export const REGISTRATION_FILTER_STATUSES = [
-  ['all', 'Todos los estados'],
-  ['pendiente_pago', 'Pendiente de pago'],
-  ['validacion_manual', 'Validación manual'],
-  ['confirmada', 'Confirmada'],
-  ['aprobado', 'Pago aprobado'],
+  ['all', 'allStatuses'],
+  ['pendiente_pago', 'status'],
+  ['validacion_manual', 'status'],
+  ['confirmada', 'status'],
+  ['aprobado', 'paymentApproved'],
 ]
 
 export const MEMBERSHIP_FILTER_STATUSES = [
-  ['all', 'Todos los estados'],
-  ['activa', 'Activas'],
-  ['pendiente_pago', 'Pendiente de pago'],
-  ['vencida', 'Vencidas'],
-  ['cancelada', 'Canceladas'],
+  ['all', 'allStatuses'],
+  ['activa', 'membershipActive'],
+  ['pendiente_pago', 'status'],
+  ['vencida', 'membershipExpired'],
+  ['cancelada', 'membershipCancelled'],
+]
+
+export const ATHLETE_FILTER_STATUSES = [
+  ['all', 'allStatuses'],
+  ['afiliado_activo', 'status'],
+  ['registrado', 'status'],
+  ['pre_registrado', 'status'],
+  ['afiliado_vencido', 'status'],
+  ['bloqueado', 'status'],
+]
+
+export const MEMBERSHIP_EXPIRING_FILTER_OPTIONS = [
+  ['all', 'allExpiring'],
+  ['soon', 'expiringSoon'],
 ]
 
 export const DEFAULT_FORM = {

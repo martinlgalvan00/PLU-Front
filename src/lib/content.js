@@ -133,17 +133,52 @@ export const MEMBERSHIP_PLANS = [
 ]
 
 export const MEMBERSHIP_BENEFITS = [
-  'Acceso a todos los eventos oficiales del año calendario',
-  'Código de afiliado único y credencial digital',
-  'Resultados registrados y reconocidos por PLU USA',
+  {
+    id: 'events',
+    title: 'Eventos oficiales',
+    text: 'Acceso a todos los meets PLU ARG del año calendario, incluida Pitbull Classic.',
+  },
+  {
+    id: 'credential',
+    title: 'Credencial digital',
+    text: 'Código de afiliado único y tarjeta digital lista para competir.',
+  },
+  {
+    id: 'results',
+    title: 'Resultados reconocidos',
+    text: 'Tus marcas quedan registradas bajo el estándar internacional PLU USA.',
+  },
 ]
 
 export const MEMBERSHIP_REQUIREMENTS = [
-  'DNI o pasaporte vigente',
-  'Edad mínima 14 años, con autorización de tutor si es menor',
-  'Apto médico o declaración jurada de salud',
-  'Foto reciente para la credencial digital',
+  {
+    id: 'id',
+    title: 'Documento vigente',
+    text: 'DNI o pasaporte al día para validar identidad.',
+  },
+  {
+    id: 'age',
+    title: 'Edad mínima 14 años',
+    text: 'Menores de 18 necesitan autorización de tutor legal.',
+  },
+  {
+    id: 'health',
+    title: 'Apto médico o DJ',
+    text: 'Certificado médico o declaración jurada de salud vigente.',
+  },
+  {
+    id: 'photo',
+    title: 'Foto para credencial',
+    text: 'Imagen reciente en formato digital para la tarjeta de miembro.',
+  },
 ]
+
+export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
+  athlete: 'Martín Delgado',
+  affiliateCode: 'PA-2847',
+  season: 'Temporada 2026',
+  status: 'Afiliación activa',
+}
 
 export const MEMBERSHIP_ANNUAL_STEPS = [
   {
@@ -207,6 +242,8 @@ export const PLATFORM_SECTIONS = [
 
 export const PITBULL_CLASSIC = {
   title: 'Pitbull Classic',
+  tagline:
+    'El primer gran meet oficial de PLU ARG. Categorías raw y equipped, jueces certificados y resultados reconocidos por PLU USA.',
   date: '12 y 13 de diciembre de 2026',
   dateDay: '12–13',
   dateMonth: 'Dic',
@@ -219,10 +256,10 @@ export const PITBULL_CLASSIC = {
 }
 
 export const PITBULL_CATEGORY_CARDS = [
-  { title: 'Equipamiento', text: `${PITBULL_CLASSIC.categories.join(' · ')} (ejemplo)` },
-  { title: 'Edad', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (ejemplo)` },
-  { title: 'Peso corporal', text: 'Categorías masculinas y femeninas por franja de peso (ejemplo).' },
-  { title: 'Género', text: 'Masculino y femenino, competencia separada (ejemplo).' },
+  { id: 'equipment', title: 'Equipamiento', text: `${PITBULL_CLASSIC.categories.join(' · ')} (ejemplo)` },
+  { id: 'age', title: 'Edad', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (ejemplo)` },
+  { id: 'weight', title: 'Peso corporal', text: 'Categorías masculinas y femeninas por franja de peso (ejemplo).' },
+  { id: 'gender', title: 'Género', text: 'Masculino y femenino, competencia separada (ejemplo).' },
 ]
 
 export const PITBULL_CREDENTIAL_SAMPLE = {
@@ -337,16 +374,32 @@ export const COMMUNITY_HIGHLIGHTS = [
 export const COMMUNITY_QUOTE =
   'No competimos entre gimnasios. Competimos bajo las mismas reglas — para que un récord en Rosario valga lo mismo que uno en Buenos Aires.'
 
-export const COMMUNITY_GYM_PLACEHOLDERS = Array.from({ length: 6 }, (_, i) => ({
-  id: `gym-${i + 1}`,
-  label: 'logo gimnasio',
-}))
+export const COMMUNITY_GYM_PLACEHOLDERS = [
+  { id: 'gym-ba', label: 'Buenos Aires', sub: 'Maximal Strength Club' },
+  { id: 'gym-cba', label: 'Córdoba', sub: 'Iron House' },
+  { id: 'gym-ros', label: 'Rosario', sub: 'Pitbull Barbell' },
+  { id: 'gym-mdz', label: 'Mendoza', sub: 'En expansión' },
+  { id: 'gym-nqn', label: 'Neuquén', sub: 'En expansión' },
+  { id: 'gym-tuc', label: 'Tucumán', sub: 'En expansión' },
+]
 
-export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = Array.from({ length: 3 }, (_, i) => ({
-  id: `testimonio-${i + 1}`,
-  photoLabel: 'foto de atleta',
-  text: 'Espacio para testimonio real de un atleta afiliado.',
-}))
+export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = [
+  {
+    id: 'testimonio-1',
+    role: 'Atleta · Open',
+    text: 'Próximamente — voces de atletas que compiten bajo el estándar PLU ARG.',
+  },
+  {
+    id: 'testimonio-2',
+    role: 'Coach · Gimnasio afiliado',
+    text: 'Próximamente — historias desde la red de sedes aliadas.',
+  },
+  {
+    id: 'testimonio-3',
+    role: 'Juez certificado',
+    text: 'Próximamente — mirada del cuerpo arbitral nacional.',
+  },
+]
 
 export const RULEBOOK_DOWNLOAD = {
   title: 'Reglamento completo — PDF',
@@ -391,33 +444,33 @@ export const RULEBOOK_JUDGING = [
 
 export const ADMIN_NAV_GROUPS = [
   {
-    label: 'Gestión',
+    labelKey: 'admin.nav.groups.management',
     items: [
-      ['dashboard', 'Dashboard', 'LayoutDashboard'],
-      ['athletes', 'Atletas', 'Users'],
-      ['memberships', 'Afiliaciones', 'BadgeCheck'],
+      ['dashboard', 'admin.nav.dashboard', 'LayoutDashboard'],
+      ['athletes', 'admin.nav.athletes', 'Users'],
+      ['memberships', 'admin.nav.memberships', 'BadgeCheck'],
     ],
   },
   {
-    label: 'Eventos',
+    labelKey: 'admin.nav.groups.events',
     items: [
-      ['events', 'Eventos', 'Calendar'],
-      ['registrations', 'Inscripciones', 'ClipboardList'],
-      ['results', 'Resultados', 'Trophy'],
+      ['events', 'admin.nav.events', 'Calendar'],
+      ['registrations', 'admin.nav.registrations', 'ClipboardList'],
+      ['results', 'admin.nav.results', 'Trophy'],
     ],
   },
   {
-    label: 'Finanzas',
+    labelKey: 'admin.nav.groups.finance',
     items: [
-      ['payments', 'Pagos', 'CreditCard'],
-      ['exports', 'Exportaciones', 'Download'],
+      ['payments', 'admin.nav.payments', 'CreditCard'],
+      ['exports', 'admin.nav.exports', 'Download'],
     ],
   },
   {
-    label: 'Sistema',
+    labelKey: 'admin.nav.groups.system',
     items: [
-      ['users', 'Usuarios', 'Shield'],
-      ['audit', 'Auditoría', 'ScrollText'],
+      ['users', 'admin.nav.users', 'Shield'],
+      ['audit', 'admin.nav.audit', 'ScrollText'],
     ],
   },
 ]

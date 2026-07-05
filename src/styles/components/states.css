@@ -247,45 +247,6 @@
 }
 
 /* =============================================
-   CONFIRMATION SCREEN
-   ============================================= */
-
-.confirmation-screen {
-  margin: 0 auto;
-  max-width: 520px;
-  padding: var(--space-2xl);
-  text-align: center;
-}
-
-.confirmation-screen__icon {
-  color: var(--color-brand-gold);
-  margin-bottom: var(--space-md);
-}
-
-.confirmation-screen__icon svg {
-  animation: float-sm 4s var(--ease-in-out) infinite;
-  filter: drop-shadow(var(--glow-gold-soft));
-}
-
-.confirmation-screen__steps {
-  margin: var(--space-lg) 0;
-  text-align: left;
-}
-
-.confirmation-screen__steps ol {
-  color: var(--color-text-secondary);
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-.confirmation-screen__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  justify-content: center;
-}
-
-/* =============================================
    AUDIT TIMELINE
    ============================================= */
 

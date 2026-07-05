@@ -1,6 +1,6 @@
-export default function FilterPills({ active, ariaLabel, onChange, options }) {
+export default function FilterPills({ active, ariaLabel, className = '', onChange, options }) {
   return (
-    <div className="filter-pills" role="tablist" aria-label={ariaLabel}>
+    <div className={`filter-pills ${className}`.trim()} role="tablist" aria-label={ariaLabel}>
       {options.map(([key, label]) => (
         <button
           key={key}

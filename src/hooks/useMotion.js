@@ -12,6 +12,8 @@ export function useInView(ref) {
       return undefined
     }
 
+    const bottomInset = Math.max(24, Math.round(window.innerHeight * 0.06))
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -20,8 +22,8 @@ export function useInView(ref) {
         }
       },
       {
-        threshold: 0.12,
-        rootMargin: '0px 0px -48px 0px',
+        threshold: 0.06,
+        rootMargin: `0px 0px -${bottomInset}px 0px`,
       },
     )
 

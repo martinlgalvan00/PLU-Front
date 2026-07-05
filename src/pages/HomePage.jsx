@@ -8,7 +8,6 @@ import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
-import HomeQuickBand from '../components/ui/HomeQuickBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
@@ -22,7 +21,6 @@ export default function HomePage({ onNavigate }) {
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
-      <HomeQuickBand onNavigate={onNavigate} />
 
       <Reveal as="section" className="home-section home-section--canvas-light home-section--about" id="que-es" variant="fade">
         <div className="home-section__inner">
@@ -42,14 +40,9 @@ export default function HomePage({ onNavigate }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--surface home-section--results" variant="fade">
-        <div className="home-section__inner">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--teasers" variant="fade">
+        <div className="home-section__inner home-teaser-duo">
           <HomeResultsTeaser onNavigate={onNavigate} />
-        </div>
-      </Reveal>
-
-      <Reveal as="section" className="home-section home-section--canvas-light home-section--rulebook" variant="fade">
-        <div className="home-section__inner">
           <HomeRulebookTeaser onNavigate={onNavigate} />
         </div>
       </Reveal>

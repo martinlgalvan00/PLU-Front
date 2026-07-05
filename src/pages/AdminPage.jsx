@@ -3,13 +3,15 @@ import AdminShell from '../components/layout/AdminShell.jsx'
 import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
 import AthletesSection from './admin/AthletesSection.jsx'
 import DashboardSection from './admin/DashboardSection.jsx'
+import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
 import PlaceholderSection from './admin/PlaceholderSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
 
 export default function AdminPage({
+  adminEvents,
   canEdit,
-  dashboard,
+  dashboardOverview,
   filters,
   filteredRegistrations,
   enrichedMemberships,
@@ -20,9 +22,11 @@ export default function AdminPage({
   onApprovePayment,
   onExportAdmin,
   onExportPluUsa,
+  onSaveEvent,
   onSetFilters,
   payments,
   athletes,
+  registrations,
   roleLabel,
   onExit,
 }) {
@@ -50,7 +54,7 @@ export default function AdminPage({
     if (section === 'dashboard') {
       return (
         <DashboardSection
-          dashboard={dashboard}
+          dashboardOverview={dashboardOverview}
           pendingActions={pendingActions}
           pendingPayments={pendingPayments}
           recentActivity={recentActivity}
@@ -91,6 +95,7 @@ export default function AdminPage({
           filters={filters}
           filteredRegistrations={filteredRegistrations}
           payments={payments}
+          registrationsCount={registrations.length}
           onApprovePayment={onApprovePayment}
           onExportAdmin={onExportAdmin}
           onExportPluUsa={onExportPluUsa}
@@ -99,7 +104,13 @@ export default function AdminPage({
       )
     }
 
-    if (['events', 'payments', 'results', 'exports', 'users', 'audit'].includes(section)) {
+    if (section === 'events') {
+      return (
+        <EventsSection adminEvents={adminEvents} canEdit={canEdit} onSaveEvent={onSaveEvent} />
+      )
+    }
+
+    if (['payments', 'results', 'exports', 'users', 'audit'].includes(section)) {
       return <PlaceholderSection section={section} />
     }
 

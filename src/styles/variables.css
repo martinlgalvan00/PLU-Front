@@ -71,8 +71,12 @@
   --max-width-page: 1200px;
   --max-width-text: 720px;
   --max-width-narrow: 560px;
-  --header-height: 76px;
-  --header-height-scrolled: 64px;
+  --layout-gutter: clamp(12px, 1.5vw, 28px);
+  --layout-gutter-sm: clamp(10px, 1.2vw, 16px);
+  --layout-gutter-lg: clamp(16px, 2.4vw, 40px);
+  --admin-content-max: min(1280px, 100%);
+  --header-height: 58px;
+  --header-height-scrolled: 50px;
   --admin-sidebar-width: 260px;
   --border-radius-sm: 6px;
   --border-radius-md: 10px;

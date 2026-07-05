@@ -1,11 +1,35 @@
 import { useMemo, useState } from 'react'
-import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
-import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
+import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { ATHLETE_FILTER_STATUSES } from '../../lib/constants.js'
+
+function AthleteIdentity({ email, name }) {
+  const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
+
+  return (
+    <div className="data-table__identity">
+      <span className="data-table__avatar" aria-hidden>
+        {initial}
+      </span>
+      <div className="data-table__identity-copy">
+        <strong>{name}</strong>
+        <span className="data-table__sub">{email}</span>
+      </div>
+    </div>
+  )
+}
 
 export default function AthletesSection({ athletes, onSelectAthlete }) {
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+
+  const statusOptions = useMemo(
+    () => translateFilterOptions(ATHLETE_FILTER_STATUSES, t),
+    [t],
+  )
 
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -23,50 +47,57 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
       .map((athlete) => ({ ...athlete, id: athlete.id }))
   }, [athletes, query, status])
 
-  const statusOptions = [
-    ['all', 'Todos los estados'],
-    ['afiliado_activo', 'Afiliado activo'],
-    ['registrado', 'Registrado'],
-    ['pre_registrado', 'Pre-registrado'],
-    ['afiliado_vencido', 'Afiliado vencido'],
-    ['bloqueado', 'Bloqueado'],
-  ]
+  const activeCount = useMemo(
+    () => athletes.filter((athlete) => athlete.status === 'afiliado_activo').length,
+    [athletes],
+  )
 
   return (
-    <>
-      <AdminPageHeader title="Atletas" subtitle={`${athletes.length} registros en base`} />
-      <AdminFilterBar
-        query={query}
-        onQueryChange={setQuery}
-        placeholder="Buscar por nombre, DNI o email"
-        filters={[{ id: 'status', value: status, onChange: setStatus, options: statusOptions }]}
-      />
+    <AdminListSection
+      filteredCount={rows.length}
+      placeholder={t('admin.search.athlete')}
+      query={query}
+      stats={[
+        { label: t('admin.stats.total'), value: athletes.length },
+        { label: t('admin.stats.active'), value: activeCount, tone: 'success' },
+        { label: t('admin.stats.filtered'), value: rows.length, tone: 'celeste' },
+      ]}
+      subtitle={t('admin.sections.athletes.subtitle')}
+      title={t('admin.sections.athletes.title')}
+      totalCount={athletes.length}
+      filters={[
+        {
+          id: 'status',
+          label: t('admin.filters.status'),
+          value: status,
+          onChange: setStatus,
+          options: statusOptions,
+        },
+      ]}
+      onQueryChange={setQuery}
+    >
       <DataTable
+        variant="admin"
         columns={[
           {
             key: 'fullName',
-            label: 'Atleta',
-            render: (row) => (
-              <>
-                <strong>{row.fullName}</strong>
-                <span className="data-table__sub">{row.email}</span>
-              </>
-            ),
+            label: t('admin.columns.athlete'),
+            render: (row) => <AthleteIdentity email={row.email} name={row.fullName} />,
           },
-          { key: 'documentId', label: 'Documento' },
-          { key: 'gym', label: 'Gimnasio' },
-          { key: 'division', label: 'División' },
+          { key: 'documentId', label: t('admin.columns.document') },
+          { key: 'gym', label: t('admin.columns.gym') },
+          { key: 'division', label: t('admin.columns.division') },
           {
             key: 'status',
-            label: 'Estado',
+            label: t('admin.columns.status'),
             render: (row) => <StatusBadge value={row.status} />,
           },
         ]}
         rows={rows}
-        emptyMessage="No hay atletas que coincidan con la búsqueda"
+        emptyMessage={t('admin.sections.athletes.empty')}
         onRowClick={(row) => onSelectAthlete?.(row.id)}
         rowClassName="data-table__row--clickable"
       />
-    </>
+    </AdminListSection>
   )
 }

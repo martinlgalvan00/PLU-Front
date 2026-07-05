@@ -1,0 +1,155 @@
+/* =============================================
+   RESPONSIVE — capa global (mobile → TV / 4K)
+   ============================================= */
+
+html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+#root,
+.app-shell,
+.admin-shell {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video,
+picture {
+  height: auto;
+  max-width: 100%;
+}
+
+/* ── Contenedores públicos ─────────────────────── */
+
+.page-section__inner,
+.home-section__inner {
+  width: 100%;
+}
+
+/* ── Desktop con sidebar admin ─────────────────── */
+
+@media (min-width: 1025px) {
+  :root {
+    --admin-content-max: min(
+      1480px,
+      calc(100vw - var(--admin-sidebar-width) - var(--layout-gutter) * 2)
+    );
+  }
+}
+
+/* ── Monitores grandes / TV 1080p+ ─────────────── */
+
+@media (min-width: 1440px) {
+  :root {
+    --max-width-content: min(1360px, calc(100vw - var(--layout-gutter-lg) * 2));
+    --admin-content-max: min(
+      1600px,
+      calc(100vw - var(--admin-sidebar-width) - var(--layout-gutter-lg) * 2)
+    );
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    --max-width-content: min(1480px, calc(100vw - var(--layout-gutter-lg) * 2));
+    --admin-content-max: min(
+      1760px,
+      calc(100vw - var(--admin-sidebar-width) - var(--layout-gutter-lg) * 2)
+    );
+  }
+}
+
+@media (min-width: 2560px) {
+  :root {
+    --max-width-content: min(1560px, 72vw);
+    --admin-content-max: min(
+      1880px,
+      calc(100vw - var(--admin-sidebar-width) - 48px)
+    );
+  }
+}
+
+/* ── Dark + monitores grandes (TV / 4K) ─────────── */
+
+@media (min-width: 1600px) {
+  [data-theme='dark'] {
+    --max-width-content: min(1640px, 88vw);
+  }
+
+  [data-theme='dark'] .app-shell {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -8%, rgba(116, 172, 223, 0.05), transparent 58%),
+      radial-gradient(ellipse 70% 45% at 50% 100%, rgba(225, 6, 0, 0.04), transparent 52%),
+      var(--color-page-canvas);
+  }
+}
+
+@media (min-width: 1920px) {
+  [data-theme='dark'] {
+    --max-width-content: min(1760px, 86vw);
+    --admin-content-max: min(
+      1840px,
+      calc(100vw - var(--admin-sidebar-width) - var(--layout-gutter-lg) * 2)
+    );
+  }
+}
+
+@media (min-width: 2560px) {
+  [data-theme='dark'] {
+    --max-width-content: min(1880px, 78vw);
+    --admin-content-max: min(
+      1960px,
+      calc(100vw - var(--admin-sidebar-width) - 56px)
+    );
+  }
+}
+
+@media (min-width: 1600px) {
+  [data-theme='dark'] .design-hero__inner,
+  [data-theme='dark'] .design-section,
+  [data-theme='dark'] .events-page--premium .events-page__body {
+    max-width: min(var(--max-width-content), calc(100vw - var(--layout-gutter-lg) * 2));
+  }
+
+  [data-theme='dark'] .admin-page {
+    max-width: var(--admin-content-max);
+  }
+
+  [data-theme='dark'] .admin-kpi-grid {
+    gap: 14px;
+  }
+
+  [data-theme='dark'] .admin-command-center {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  }
+
+  [data-theme='dark'] .admin-dashboard__panels {
+    gap: 14px;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+}
+
+/* ── Tablet / mobile admin (sin sidebar fijo) ──── */
+
+@media (max-width: 1024px) {
+  :root {
+    --admin-content-max: min(1280px, 100%);
+  }
+}
+
+/* ── Safe area TV / notch ──────────────────────── */
+
+.admin-shell__main,
+.app-shell > main,
+.site-header-shell {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.admin-shell__footer,
+.site-footer {
+  padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
+}

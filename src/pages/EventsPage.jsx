@@ -1,536 +1,295 @@
 import { useEffect, useMemo, useState } from 'react'
-
-import { CalendarDays, MapPin, ArrowRight, Users, CheckCircle2, Clock } from 'lucide-react'
-
+import { ArrowRight, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
-
 import FilterPills from '../components/ui/FilterPills.jsx'
-
 import Button from '../components/ui/Button.jsx'
-
 import EventCalendar from '../components/ui/EventCalendar.jsx'
-
 import EventCard from '../components/ui/EventCard.jsx'
-
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
-
 import Reveal from '../components/ui/Reveal.jsx'
-
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
-
-import StatusPill from '../components/ui/StatusPill.jsx'
-
 import { UPCOMING_EVENTS } from '../lib/events.js'
-
 import { getStatusMeta } from '../lib/status.js'
 
-
-
 const FILTERS = [
-
   ['all', 'Todos'],
-
   ['open', 'Inscripción abierta'],
-
   ['soon', 'Próximamente'],
-
   ['done', 'Finalizados'],
-
 ]
 
-
-
 const FILTER_LABELS = {
-
-  all: 'eventos activos',
-
+  all: 'activos',
   open: 'con inscripción abierta',
-
   soon: 'próximamente',
-
   done: 'finalizados',
-
 }
 
-
-
-function EventsStats({ stats }) {
+function EventsHeroPanel({ filter, listCount, onFilterChange, stats }) {
+  const statItems = [
+    { icon: CalendarDays, label: 'Próximos meets', value: stats.upcoming },
+    { icon: Users, label: 'Inscripción abierta', tone: 'open', value: stats.open },
+    { icon: Ticket, label: 'Siguiente fecha', tone: 'next', value: stats.nextLabel },
+  ]
 
   return (
+    <div className="events-hero-panel">
+      <div className="events-hero-panel__stats" aria-label="Resumen de eventos">
+        {statItems.map(({ icon: Icon, label, tone, value }) => (
+          <article
+            key={label}
+            className={`events-hero-stat${tone ? ` events-hero-stat--${tone}` : ''}`.trim()}
+          >
+            <span className="events-hero-stat__icon" aria-hidden>
+              <Icon size={14} />
+            </span>
+            <div className="events-hero-stat__copy">
+              <strong>{value}</strong>
+              <span>{label}</span>
+            </div>
+          </article>
+        ))}
+      </div>
 
-    <section className="events-page__stats events-page__stats--design" aria-label="Resumen de eventos">
-
-      <article className="events-stat events-stat--design">
-
-        <div className="events-stat__icon" aria-hidden>
-          <CalendarDays size={16} strokeWidth={2} />
+      <div className="events-hero-panel__controls">
+        <div className="events-hero-panel__controls-head">
+          <span className="events-hero-panel__controls-label">Filtrar eventos</span>
+          <span className="events-hero-panel__count-badge" aria-live="polite">
+            {listCount} {listCount === 1 ? 'evento' : 'eventos'}
+          </span>
         </div>
-
-        <strong>{stats.upcoming}</strong>
-
-        <span>Próximos meets</span>
-
-      </article>
-
-      <article className="events-stat events-stat--design events-stat--open">
-
-        <div className="events-stat__icon" aria-hidden>
-          <CheckCircle2 size={16} strokeWidth={2} />
-        </div>
-
-        <strong>{stats.open}</strong>
-
-        <span>Inscripción abierta</span>
-
-      </article>
-
-      <article className="events-stat events-stat--design events-stat--next">
-
-        <div className="events-stat__icon" aria-hidden>
-          <Clock size={16} strokeWidth={2} />
-        </div>
-
-        <strong>{stats.nextLabel}</strong>
-
-        <span>Siguiente en calendario</span>
-
-      </article>
-
-    </section>
-
+        <FilterPills
+          active={filter}
+          ariaLabel="Filtrar eventos"
+          className="filter-pills--refined"
+          onChange={onFilterChange}
+          options={FILTERS}
+        />
+        <p className="events-hero-panel__count">{FILTER_LABELS[filter]}</p>
+      </div>
+    </div>
   )
-
 }
 
+const EVENT_STATUS_COPY = {
+  proximamente: 'Las inscripciones abren próximamente.',
+  inscripcion_abierta: 'Hay cupos disponibles — podés inscribirte desde tu cuenta.',
+  cupos_limitados: 'Quedan pocos cupos. Confirmá tu lugar cuanto antes.',
+  cerrado: 'Inscripciones cerradas para este evento.',
+  finalizado: 'Evento finalizado.',
+}
 
-
+function EventStatusBadge({ status }) {
+  const { label, tone } = getStatusMeta(status)
+  return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
+}
 
 function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
-
   if (!event) {
-
     return (
-
       <div className="events-detail events-detail--empty">
-
         <CalendarDays size={28} strokeWidth={1.5} aria-hidden />
-
         <p>Seleccioná un evento de la lista o del calendario para ver el detalle.</p>
-
       </div>
-
     )
-
   }
 
-
-
-  const { label: statusLabel } = getStatusMeta(event.status)
-
   const isPitbull = event.featured
-
   const canRegister = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-
-
+  const statusCopy = EVENT_STATUS_COPY[event.status]
 
   return (
-
     <div className="events-detail">
-
-      <span className="events-detail__eyebrow">Evento seleccionado</span>
-
-      <h3 className="events-detail__title">{event.title}</h3>
-
-      <StatusPill value={event.status} />
-
-      <hr className="events-detail__divider" aria-hidden />
-
-      <ul className="events-detail__meta">
-
-        <li>
-
-          <CalendarDays size={13} aria-hidden />
-
-          {event.date}
-
-        </li>
-
-        <li>
-
-          <MapPin size={13} aria-hidden />
-
-          {event.venue}, {event.location}
-
-        </li>
-
-      </ul>
-
-      <p className="events-detail__status-copy">{statusLabel}</p>
-
-      <div className="events-detail__actions">
-
-        {canRegister && onRegister && (
-
-          <Button className="btn--small" onClick={onRegister}>
-
-            Inscribirme
-
-            <ArrowRight size={14} aria-hidden />
-
-          </Button>
-
-        )}
-
-        {isPitbull && onViewPitbull && (
-
-          <Button variant="outline" className="btn--small" onClick={onViewPitbull}>
-
-            Ver ficha completa
-
-          </Button>
-
-        )}
-
+      <div className="events-detail__head">
+        <div className="events-detail__head-copy">
+          <span className="events-detail__eyebrow">Evento seleccionado</span>
+          <h3 className="events-detail__title">{event.title}</h3>
+        </div>
+        <EventStatusBadge status={event.status} />
       </div>
 
+      <ul className="events-detail__meta">
+        <li>
+          <CalendarDays size={13} aria-hidden />
+          {event.date}
+        </li>
+        <li>
+          <MapPin size={13} aria-hidden />
+          {event.venue}, {event.location}
+        </li>
+      </ul>
+
+      {statusCopy && <p className="events-detail__status-copy">{statusCopy}</p>}
+
+      <div className="events-detail__actions">
+        {canRegister && onRegister && (
+          <Button className="btn--small" onClick={onRegister}>
+            Inscribirme
+            <ArrowRight size={14} aria-hidden />
+          </Button>
+        )}
+        {isPitbull && onViewPitbull && (
+          <Button variant="outline" className="btn--small" onClick={onViewPitbull}>
+            Ver ficha completa
+          </Button>
+        )}
+      </div>
     </div>
-
   )
-
 }
 
-
-
-export default function EventsPage({ onNavigate, onSelectEvent }) {
-
-  const pitbull = UPCOMING_EVENTS.find((event) => event.featured) ?? UPCOMING_EVENTS[0]
-
+export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMING_EVENTS }) {
+  const pitbull = events.find((event) => event.featured) ?? events[0]
   const [selected, setSelected] = useState(pitbull)
-
   const [filter, setFilter] = useState('all')
-
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
 
-
-
   const stats = useMemo(() => {
-
-    const upcoming = UPCOMING_EVENTS.filter((event) => event.status !== 'finalizado')
-
-    const open = UPCOMING_EVENTS.filter(
-
+    const upcoming = events.filter((event) => event.status !== 'finalizado')
+    const open = events.filter(
       (event) => event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados',
-
     )
-
     const next = [...upcoming].sort((a, b) => a.dateISO.localeCompare(b.dateISO))[0]
 
-
-
     return {
-
       upcoming: upcoming.length,
-
       open: open.length,
-
       nextLabel: next?.date?.replace(/\s.*/, '') ?? '—',
-
     }
-
-  }, [])
-
-
+  }, [events])
 
   const filteredEvents = useMemo(() => {
-
-    return UPCOMING_EVENTS.filter((event) => {
-
+    return events.filter((event) => {
       if (filter === 'open') {
-
         return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-
       }
-
       if (filter === 'soon') return event.status === 'proximamente'
-
       if (filter === 'done') return event.status === 'finalizado'
-
       return event.status !== 'finalizado'
-
     })
-
-  }, [filter])
-
-
+  }, [events, filter])
 
   const showPitbull = (filter === 'all' || filter === 'soon') && pitbull?.status !== 'finalizado'
 
-
-
   const listEvents = useMemo(() => {
-
     if (filter === 'done') return filteredEvents
-
     return filteredEvents.filter((event) => !event.featured || !showPitbull)
-
   }, [filter, filteredEvents, showPitbull])
 
-
-
   useEffect(() => {
-
     if (listEvents.length === 0) {
-
       setSelected(null)
-
       return
-
     }
-
-
 
     const stillVisible = listEvents.some((event) => event.slug === selected?.slug)
-
     if (!stillVisible) {
-
       const next = listEvents[0]
-
       setSelected(next)
-
       setCalendarFocus(next.dateISO)
-
     }
-
   }, [listEvents, selected?.slug])
 
-
-
   function focusEvent(event) {
-
     setSelected(event)
-
     setCalendarFocus(event.dateISO)
-
   }
-
-
 
   function handleRegister(event) {
-
     onSelectEvent?.(event)
-
   }
 
-
-
   return (
-
-    <main className="page page--design events-page--design">
-
+    <main className="page page--design events-page--design events-page--premium">
       <DesignPageHero
-
+        compact
         breadcrumbLabel="Eventos"
-
         onHome={() => onNavigate('home')}
-
         eyebrow="Temporada 2026"
-
         title="Calendario de eventos"
+        description="Eventos oficiales PLU ARG con inscripción y estado actualizado."
+      >
+        <EventsHeroPanel
+          filter={filter}
+          listCount={listEvents.length}
+          onFilterChange={setFilter}
+          stats={stats}
+        />
+      </DesignPageHero>
 
-        description="Todos los eventos oficiales de PLU ARG, con su estado de inscripción actualizado."
+      <div className="events-page__body">
+        <div className="events-layout-v2">
+          <div className="events-main-column">
+            {showPitbull && pitbull && (
+              <Reveal variant="from-left">
+                <PitbullSpotlight
+                  onDetail={() => onNavigate('pitbull')}
+                  onRegister={
+                    pitbull.status === 'inscripcion_abierta' || pitbull.status === 'cupos_limitados'
+                      ? () => handleRegister(pitbull)
+                      : undefined
+                  }
+                />
+              </Reveal>
+            )}
 
-      />
+            <header className={`events-list-header ${showPitbull ? 'events-list-header--spaced' : ''}`}>
+              <div>
+                <span className="events-list-header__eyebrow">Agenda PLU ARG</span>
+                <h2 className="events-list-header__title">
+                  {filter === 'done' ? 'Eventos finalizados' : 'Próximos meets'}
+                </h2>
+              </div>
+            </header>
 
-
-
-      <Reveal>
-
-        <EventsStats stats={stats} />
-
-      </Reveal>
-
-
-
-      <Reveal>
-
-        <div className="events-toolbar">
-
-          <div className="events-toolbar__row">
-
-            <FilterPills
-
-              active={filter}
-
-              ariaLabel="Filtrar eventos"
-
-              onChange={setFilter}
-
-              options={FILTERS}
-
-            />
-
-            <p className="events-toolbar__count" aria-live="polite">
-
-              {listEvents.length} {listEvents.length === 1 ? 'evento' : 'eventos'}{' '}
-
-              {FILTER_LABELS[filter]}
-
-            </p>
-
+            {listEvents.length > 0 ? (
+              <StaggerReveal className="events-list events-list--design" stagger={70}>
+                {listEvents.map((event) => (
+                  <EventCard
+                    key={event.slug}
+                    date={event.date}
+                    title={event.title}
+                    venue={event.venue}
+                    location={event.location}
+                    status={event.status}
+                    selected={selected?.slug === event.slug}
+                    onSelect={() => focusEvent(event)}
+                    onAction={
+                      event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+                        ? () => handleRegister(event)
+                        : () => focusEvent(event)
+                    }
+                    actionLabel="Inscribirme"
+                  />
+                ))}
+              </StaggerReveal>
+            ) : (
+              <div className="events-list__empty">
+                <CalendarDays size={32} strokeWidth={1.5} aria-hidden />
+                <p>No hay eventos {FILTER_LABELS[filter]} en este momento.</p>
+                <Button variant="outline" className="btn--small" onClick={() => setFilter('all')}>
+                  Ver todos los eventos
+                </Button>
+              </div>
+            )}
           </div>
 
+          <Reveal variant="from-right" as="aside" className="events-sidebar-card">
+            <EventCalendar
+              events={events}
+              initialDate="2026-12-01"
+              focusDateISO={calendarFocus}
+              selectedEventSlug={selected?.slug}
+              onEventSelect={focusEvent}
+            />
+            <EventsDetailPanel
+              event={selected}
+              onRegister={selected ? () => handleRegister(selected) : undefined}
+              onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
+            />
+          </Reveal>
         </div>
-
-      </Reveal>
-
-
-
-      <div className="events-layout-v2">
-
-        <div className="events-main-column">
-
-          {showPitbull && pitbull && (
-
-            <Reveal variant="from-left">
-
-              <PitbullSpotlight
-
-                onDetail={() => onNavigate('pitbull')}
-
-                onRegister={
-
-                  pitbull.status === 'inscripcion_abierta' || pitbull.status === 'cupos_limitados'
-
-                    ? () => handleRegister(pitbull)
-
-                    : undefined
-
-                }
-
-              />
-
-            </Reveal>
-
-          )}
-
-
-
-          <header className={`events-list-header ${showPitbull ? 'events-list-header--spaced' : ''}`}>
-
-            <div>
-
-              <span className="events-list-header__eyebrow">Agenda PLU ARG</span>
-
-              <h2 className="events-list-header__title">
-
-                {filter === 'done' ? 'Eventos finalizados' : 'Próximos meets'}
-
-              </h2>
-
-            </div>
-
-          </header>
-
-
-
-          {listEvents.length > 0 ? (
-
-            <StaggerReveal className="events-list events-list--design" stagger={70}>
-
-              {listEvents.map((event) => (
-
-                <EventCard
-
-                  key={event.slug}
-
-                  date={event.date}
-
-                  title={event.title}
-
-                  venue={event.venue}
-
-                  location={event.location}
-
-                  status={event.status}
-
-                  selected={selected?.slug === event.slug}
-
-                  onSelect={() => focusEvent(event)}
-
-                  onAction={
-
-                    event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-
-                      ? () => handleRegister(event)
-
-                      : () => focusEvent(event)
-
-                  }
-
-                  actionLabel="Inscribirme"
-
-                />
-
-              ))}
-
-            </StaggerReveal>
-
-          ) : (
-
-            <div className="events-list__empty">
-
-              <CalendarDays size={32} strokeWidth={1.5} aria-hidden />
-
-              <p>No hay eventos {FILTER_LABELS[filter]} en este momento.</p>
-
-              <Button variant="outline" className="btn--small" onClick={() => setFilter('all')}>
-
-                Ver todos los eventos
-
-              </Button>
-
-            </div>
-
-          )}
-
-        </div>
-
-
-
-        <Reveal variant="from-right" as="aside" className="events-sidebar-card">
-
-          <EventCalendar
-
-            events={UPCOMING_EVENTS}
-
-            initialDate="2026-12-01"
-
-            focusDateISO={calendarFocus}
-
-            selectedEventSlug={selected?.slug}
-
-            onEventSelect={focusEvent}
-
-          />
-
-          <EventsDetailPanel
-
-            event={selected}
-
-            onRegister={selected ? () => handleRegister(selected) : undefined}
-
-            onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
-
-          />
-
-        </Reveal>
-
       </div>
-
     </main>
-
   )
-
 }
-
-

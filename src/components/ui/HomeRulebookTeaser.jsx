@@ -1,17 +1,15 @@
+import { ArrowRight } from 'lucide-react'
 import { HOME_RULEBOOK } from '../../lib/content.js'
 
 export default function HomeRulebookTeaser({ onNavigate }) {
   return (
-    <div className="rulebook-teaser">
-      <div className="rulebook-teaser__copy">
-        <span className="rulebook-teaser__eyebrow">{HOME_RULEBOOK.eyebrow}</span>
-        <h2 className="rulebook-teaser__title">{HOME_RULEBOOK.title}</h2>
-      </div>
-      <div className="rulebook-teaser__action">
-        <button type="button" className="rulebook-teaser__btn" onClick={() => onNavigate('rulebook')}>
-          {HOME_RULEBOOK.cta}
-        </button>
-      </div>
-    </div>
+    <article className="home-teaser-card home-teaser-card--rulebook">
+      <span className="home-teaser-card__eyebrow">{HOME_RULEBOOK.eyebrow}</span>
+      <h2 className="home-teaser-card__title">{HOME_RULEBOOK.title}</h2>
+      <button type="button" className="home-teaser-card__link" onClick={() => onNavigate('rulebook')}>
+        {HOME_RULEBOOK.cta}
+        <ArrowRight size={14} aria-hidden />
+      </button>
+    </article>
   )
 }
