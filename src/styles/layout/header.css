@@ -772,6 +772,17 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+.site-header__logout-action {
+  border-color: color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  color: var(--color-brand-red);
+}
+
+.site-header__logout-action:hover {
+  background: color-mix(in srgb, var(--color-brand-red) 12%, transparent);
+  border-color: var(--color-brand-red);
+  color: var(--color-brand-red);
+}
+
 /* =============================================
    MOBILE BAR — cápsula unificada
    ============================================= */
@@ -2039,6 +2050,19 @@
 [data-theme='light'] .site-header__icon-action:hover {
   background: rgba(15, 17, 23, 0.04);
   color: rgba(15, 17, 23, 0.85);
+}
+
+[data-theme='light'] .site-header__logout-action,
+[data-theme='light'] .site-header__icon-action.site-header__logout-action {
+  border-color: color-mix(in srgb, var(--color-brand-red) 38%, transparent);
+  color: var(--color-brand-red);
+}
+
+[data-theme='light'] .site-header__logout-action:hover,
+[data-theme='light'] .site-header__icon-action.site-header__logout-action:hover {
+  background: color-mix(in srgb, var(--color-brand-red) 9%, transparent);
+  border-color: var(--color-brand-red);
+  color: var(--color-brand-red);
 }
 
 [data-theme='light'] .site-header__toggle {

@@ -41,6 +41,9 @@ export default function MembersPage({ onNavigate, session }) {
   const validityNotes = messages.pages.members.validityNotes
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const affiliationCta = isLoggedInAthlete
+    ? t('pages.members.ctaAuthenticated')
+    : t('pages.members.ctaGuest')
   const goToAffiliation = () => onNavigate(isLoggedInAthlete ? 'membership' : 'register')
   const scrollToPlans = () => document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
 
@@ -54,7 +57,11 @@ export default function MembersPage({ onNavigate, session }) {
         title={t('pages.members.heroTitle')}
         description={t('pages.members.heroDesc')}
       >
-        <MembersHeroRail onAffiliate={goToAffiliation} onViewPlans={scrollToPlans} />
+        <MembersHeroRail
+          actionLabel={affiliationCta}
+          onAffiliate={goToAffiliation}
+          onViewPlans={scrollToPlans}
+        />
       </DesignPageHero>
 
       <div className="members-page__body">
@@ -160,7 +167,7 @@ export default function MembersPage({ onNavigate, session }) {
           <div className="membership-grid membership-grid--editorial">
             {MEMBERSHIP_PLANS.map((plan, index) => (
               <Reveal key={plan.id} delay={index * 60}>
-                <MembershipCard {...plan} onSelect={goToAffiliation} />
+                <MembershipCard {...plan} ctaLabel={affiliationCta} onSelect={goToAffiliation} />
               </Reveal>
             ))}
           </div>

@@ -4,7 +4,7 @@ import { PRICING } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
-export default function MembersHeroRail({ onAffiliate, onViewPlans }) {
+export default function MembersHeroRail({ actionLabel, onAffiliate, onViewPlans }) {
   const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
   const { locale, messages } = useI18n()
   const rail = messages.pages.members.heroRail
@@ -31,7 +31,7 @@ export default function MembersHeroRail({ onAffiliate, onViewPlans }) {
 
         <div className="members-hero-rail__actions">
           <button type="button" className="members-hero-rail__cta members-hero-rail__cta--primary" onClick={onAffiliate}>
-            {rail.affiliateNow}
+            {actionLabel ?? rail.affiliateNow}
             <ArrowRight size={14} aria-hidden />
           </button>
           <button type="button" className="members-hero-rail__cta members-hero-rail__cta--muted" onClick={onViewPlans}>

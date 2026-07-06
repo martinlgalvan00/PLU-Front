@@ -175,8 +175,8 @@ export default function App() {
           athlete={app.athletes.find((item) => item.id === app.session.athleteId)}
           memberships={app.memberships}
           onNavigate={navigate}
-          onLogout={() => { app.logout(); navigate('home') }}
           registrations={app.registrations}
+          session={app.session}
         />
       </PrivateLayout>
     )

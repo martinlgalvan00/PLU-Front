@@ -32,8 +32,8 @@ function buildCompetitionSchema(t) {
     category: z.string().min(1, msg('category') ?? 'Seleccioná una categoría.'),
     estimatedWeight: z.string().refine((value) => {
       const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
-      return Number.isFinite(weight) && weight >= 20 && weight <= 400
-    }, msg('weight') ?? 'Ingresá un peso entre 20 y 400 kg.'),
+      return Number.isFinite(weight) && weight >= 10 && weight <= 250
+    }, msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.'),
     paymentMethod: z.enum(['mercado_pago', 'manual_link']),
   })
 }

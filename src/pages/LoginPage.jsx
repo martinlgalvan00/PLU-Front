@@ -82,7 +82,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                   name="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="demo o demo@pluarg.com.ar"
+                  placeholder="demo, demo2 o tu email"
                   autoComplete="username"
                   autoFocus
                   required

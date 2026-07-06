@@ -27,7 +27,7 @@ export const HOME_MEMBERSHIP = {
   title: 'Un paso, un año de competencia.',
   description:
     'La afiliación es el requisito único para competir en eventos oficiales de PLU ARG durante el año calendario.',
-  cta: 'Afiliarme ahora',
+  cta: 'Registrarme ahora',
   sampleNote: 'Precio de referencia',
 }
 

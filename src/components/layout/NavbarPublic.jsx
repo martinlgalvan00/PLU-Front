@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, ChevronDown, LockKeyhole, LogOut, User, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, LogOut, User, X } from 'lucide-react'
 import {
   NAV_EVENTOS,
   NAV_EVENTOS_VIEWS,
@@ -290,7 +290,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 />
                 <button
                   type="button"
-                  className="site-header__icon-action"
+                  className="site-header__icon-action site-header__logout-action"
                   onClick={onLogout}
                   title={t('nav.logout')}
                   aria-label={t('nav.logout')}
@@ -299,15 +299,14 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 </button>
               </>
             ) : (
-              <>
-                <LoginButton compact label={t('nav.login')} onClick={() => go('login')} />
-                <Button
-                  className="site-header__cta site-header__cta--lux site-header__cta--pill btn--small"
-                  onClick={() => go('register')}
-                >
-                  {t('nav.affiliate')}
-                </Button>
-              </>
+              <Button
+                className="site-header__cta site-header__cta--lux site-header__cta--pill btn--small"
+                onClick={() => go('login')}
+              >
+                <User size={15} aria-hidden />
+                {t('nav.login')}
+                <ArrowRight size={15} aria-hidden />
+              </Button>
             )}
             </div>
             </div>
@@ -330,7 +329,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   </button>
                   <button
                     type="button"
-                    className="site-header__mobile-chip site-header__mobile-chip--ghost"
+                    className="site-header__mobile-chip site-header__mobile-chip--ghost site-header__logout-action"
                     onClick={onLogout}
                     aria-label={t('nav.logout')}
                   >
@@ -338,25 +337,15 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    className="site-header__mobile-chip site-header__mobile-chip--ghost"
-                    onClick={() => go('login')}
-                    aria-label={t('nav.login')}
-                  >
-                    <LockKeyhole size={18} strokeWidth={2.25} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="site-header__mobile-chip site-header__mobile-chip--cta"
-                    onClick={() => go('register')}
-                    aria-label={t('nav.affiliate')}
-                  >
-                    <span className="site-header__mobile-chip-text">{t('nav.affiliate')}</span>
-                    <ArrowRight size={14} aria-hidden className="site-header__mobile-chip-arrow" />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="site-header__mobile-chip site-header__mobile-chip--cta"
+                  onClick={() => go('login')}
+                  aria-label={t('nav.login')}
+                >
+                  <User size={17} strokeWidth={2.25} aria-hidden />
+                  <span className="site-header__mobile-chip-text">{t('nav.login')}</span>
+                </button>
               )}
 
               <span className="site-header__mobile-cluster-divider" aria-hidden />
@@ -481,7 +470,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 </button>
                 <button
                   type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--ghost"
+                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--ghost site-header__logout-action"
                   onClick={onLogout}
                 >
                   <LogOut size={16} aria-hidden />
@@ -493,18 +482,11 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 <button
                   type="button"
                   className="site-header__drawer-foot-btn site-header__drawer-foot-btn--primary"
-                  onClick={() => go('register')}
-                >
-                  {t('nav.affiliate')}
-                  <ArrowRight size={16} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--outline"
                   onClick={() => go('login')}
                 >
-                  <LockKeyhole size={16} aria-hidden />
+                  <User size={16} aria-hidden />
                   {t('nav.login')}
+                  <ArrowRight size={16} aria-hidden />
                 </button>
               </div>
             )}
