@@ -269,6 +269,8 @@ export default {
       plansTitle: 'Choose your membership plan.',
       faqEyebrow: 'Membership questions',
       faqTitle: 'Before you start',
+      ctaAuthenticated: 'Get my membership',
+      ctaGuest: 'Register and join',
       heroRail: {
         adult: 'Adult',
         junior: 'Junior',
@@ -695,7 +697,7 @@ export default {
     gym: 'Enter your gym or team.',
     division: 'Select a division.',
     category: 'Select a category.',
-    weight: 'Enter a weight between 20 and 400 kg.',
+    weight: 'Enter a weight between 10 and 250 kg.',
     invalid: 'Invalid data',
     attendeeName: 'Enter full name.',
     attendeeDni: 'Invalid ID (7 or 8 digits, no dots).',

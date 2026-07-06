@@ -2130,3 +2130,23 @@
 [data-theme='light'] .platform-map__card {
   background: #ffffff;
 }
+
+.members-page--premium .membership-card__link {
+  background: var(--color-brand-red);
+  border: 1px solid var(--color-brand-red);
+  border-radius: 8px;
+  color: #fff;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 17px;
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.members-page--premium .membership-card__link:hover,
+.members-page--premium .membership-card--featured .membership-card__link:hover {
+  box-shadow: 0 10px 24px rgba(225, 6, 0, 0.28);
+  color: #fff;
+  transform: translateY(-1px);
+}

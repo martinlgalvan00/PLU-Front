@@ -414,6 +414,19 @@ export function useAppData() {
         return demoAdminSession
       }
 
+      if ((emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') && password === '123') {
+        const demoAthleteSession = {
+          id: 'demo-athlete',
+          role: 'athlete_plu',
+          athleteId: 'ath-001',
+          demoUnAffiliated: true,
+          name: 'Martina Rivas',
+          email: 'martina.rivas@example.com',
+        }
+        setSession(demoAthleteSession)
+        return demoAthleteSession
+      }
+
       // La cuenta de seguridad SÍ pasa por el backend real (más abajo, loginRequest):
       // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
       // a diferencia del resto de la demo que vive en localStorage.
