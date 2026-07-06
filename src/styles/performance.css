@@ -1,0 +1,155 @@
+/* =============================================
+   PERFORMANCE — mobile / notebook / touch
+   Reduce blur, animaciones y capas costosas
+   ============================================= */
+
+@media (max-width: 1199px), (hover: none) {
+  .site-header,
+  .site-header__inner,
+  .site-header__drawer,
+  .site-header__backdrop,
+  .site-header__dropdown-menu {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .site-header {
+    background: rgba(10, 10, 12, 0.94);
+  }
+
+  .site-header--over-hero:not(.site-header--scrolled):not(.site-header--menu-open) {
+    background: transparent;
+  }
+
+  .site-header--over-hero:not(.site-header--menu-open) .site-header__inner {
+    background:
+      radial-gradient(
+        ellipse 72% 140% at 0% 42%,
+        rgba(201, 185, 120, calc(0.08 * (1 - var(--header-scroll-progress)))) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 58% 120% at 100% 38%,
+        rgba(116, 172, 223, calc(0.06 * (1 - var(--header-scroll-progress)))) 0%,
+        transparent 54%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, calc(0.1 * (1 - var(--header-scroll-progress)))) 0%,
+        rgba(255, 255, 255, calc(0.03 * (1 - var(--header-scroll-progress)))) 36%,
+        transparent 100%
+      ),
+      rgba(10, 11, 14, calc(0.4 + 0.52 * var(--header-scroll-progress))) !important;
+  }
+
+  .site-header--over-hero.site-header--scrolled:not(.site-header--menu-open) .site-header__inner {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    margin-inline: 0 !important;
+    margin-top: 0 !important;
+    max-width: none !important;
+    transform: none !important;
+  }
+
+  .site-header--over-hero.site-header--scrolled:not(.site-header--menu-open) {
+    background: rgba(8, 8, 10, 0.98) !important;
+    border-bottom: 1px solid rgba(201, 185, 120, 0.14);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 12px 36px rgba(0, 0, 0, 0.38);
+  }
+
+  .site-header--scrolled {
+    background: rgba(8, 8, 10, 0.98);
+  }
+
+  [data-theme='light'] .site-header {
+    background: rgba(248, 249, 251, 0.96);
+  }
+
+  [data-theme='light'] .site-header--over-hero:not(.site-header--menu-open) .site-header__inner {
+    background:
+      radial-gradient(
+        ellipse 72% 140% at 0% 42%,
+        rgba(201, 185, 120, calc(0.07 * (1 - var(--header-scroll-progress)))) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 58% 120% at 100% 38%,
+        rgba(116, 172, 223, calc(0.05 * (1 - var(--header-scroll-progress)))) 0%,
+        transparent 54%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, calc(0.98 - 0.02 * var(--header-scroll-progress))) 0%,
+        rgba(255, 255, 255, calc(0.9 - 0.04 * var(--header-scroll-progress))) 100%
+      ) !important;
+    border-color: rgba(15, 17, 23, calc(0.09 * (1 - var(--header-scroll-progress)))) !important;
+  }
+
+  [data-theme='light'] .site-header--over-hero.site-header--scrolled:not(.site-header--menu-open) .site-header__inner {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    margin-inline: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  [data-theme='light'] .site-header--over-hero.site-header--scrolled:not(.site-header--menu-open) {
+    background: rgba(248, 249, 251, 0.98) !important;
+    border-bottom: 1px solid rgba(15, 17, 23, 0.08);
+    box-shadow: 0 8px 28px rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .site-header--scrolled {
+    background: rgba(248, 249, 251, 0.98);
+  }
+}
+
+@media (max-width: 1199px), (prefers-reduced-motion: reduce) {
+  .site-header__stripe::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1199px) {
+  [data-theme='dark'] .hero__ambient--red,
+  [data-theme='dark'] .hero__ambient--celeste {
+    animation: none;
+    filter: blur(56px);
+    opacity: 0.28;
+  }
+
+  .hero__eyebrow--design {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .hero-status-card,
+  .home-quick-band__chip {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .pitbull-feature-flip__hint {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .site-header__inner {
+    transition-duration: 0.01ms !important;
+  }
+
+  .site-header-shell {
+    --header-scroll-progress: 0;
+  }
+
+  .site-header--scrolled {
+    --header-scroll-progress: 1;
+  }
+}

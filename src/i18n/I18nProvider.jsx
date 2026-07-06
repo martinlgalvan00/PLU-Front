@@ -8,13 +8,22 @@ const LOCALES = { es, en }
 
 const I18nContext = createContext(null)
 
+function syncDocumentLocale(locale) {
+  if (typeof document === 'undefined') return
+  document.documentElement.lang = locale
+  document.documentElement.dataset.localeRegion = locale === 'es' ? 'ar' : 'us'
+}
+
 function getInitialLocale() {
   const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
   return stored === 'en' || stored === 'es' ? stored : 'es'
 }
 
+const initialLocale = getInitialLocale()
+syncDocumentLocale(initialLocale)
+
 export function I18nProvider({ children }) {
-  const [locale, setLocaleState] = useState(getInitialLocale)
+  const [locale, setLocaleState] = useState(initialLocale)
 
   const value = useMemo(() => {
     const messages = LOCALES[locale] ?? LOCALES.es
@@ -22,7 +31,7 @@ export function I18nProvider({ children }) {
     function setLocale(next) {
       if (!LOCALES[next]) return
       localStorage.setItem(LOCALE_STORAGE_KEY, next)
-      document.documentElement.lang = next
+      syncDocumentLocale(next)
       setLocaleState(next)
     }
 

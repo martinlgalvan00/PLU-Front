@@ -1,10 +1,10 @@
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 const STATUS_STATS = [
-  { labelKey: 'hero.statusRecognition', valueKey: 'hero.statPluUsa' },
+  { labelKey: 'hero.statusRecognition', valueKey: 'hero.statPluUsa', primary: true },
   { labelKey: 'hero.statusAdmin', valueKey: 'hero.statusAdminValue' },
   { labelKey: 'hero.statusHQ', valueKey: 'hero.statusHQValue' },
-  { labelKey: 'hero.statDigitalLabel', valueKey: 'hero.statDigital' },
+  { labelKey: 'hero.statDigitalLabel', valueKey: 'hero.statDigital', primary: true },
 ]
 
 export default function HeroStatusCard() {
@@ -25,8 +25,11 @@ export default function HeroStatusCard() {
           </div>
 
           <dl className="hero-status-card__stats">
-            {STATUS_STATS.map(({ labelKey, valueKey }) => (
-              <div key={labelKey} className="hero-status-card__stat">
+            {STATUS_STATS.map(({ labelKey, primary, valueKey }) => (
+              <div
+                key={labelKey}
+                className={`hero-status-card__stat${primary ? ' hero-status-card__stat--primary' : ''}`}
+              >
                 <dt>{t(labelKey)}</dt>
                 <dd>{t(valueKey)}</dd>
               </div>

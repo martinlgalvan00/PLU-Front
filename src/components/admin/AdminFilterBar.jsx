@@ -32,7 +32,7 @@ export default function AdminFilterBar({
   return (
     <div className={className}>
       {filters.length > 0 && (
-        <div className="admin-filters__groups">
+        <div className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}>
           {filters.map((filter) =>
             filter.variant === 'select' ? (
               <AdminFilterSelect key={filter.id} {...filter} />

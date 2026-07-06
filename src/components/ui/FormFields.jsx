@@ -1,7 +1,7 @@
-export function Field({ error, label, ...props }) {
+export function Field({ className = '', error, label, ...props }) {
   const errorId = `${props.name}-error`
   return (
-    <label className="field">
+    <label className={`field${className ? ` ${className}` : ''}`.trim()}>
       {label}
       <input {...props} aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)} />
       {error && <span className="field__error" id={errorId}>{error}</span>}

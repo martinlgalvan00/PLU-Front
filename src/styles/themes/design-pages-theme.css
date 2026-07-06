@@ -3,13 +3,13 @@
    ============================================= */
 
 [data-theme='dark'] {
-  --color-page-canvas: var(--plu-cool-800);
+  --color-page-canvas: var(--plu-cool-950);
   --color-section-muted: var(--plu-cool-750);
   --color-bg-about: var(--plu-cool-750);
   --color-text-on-light: var(--plu-ink-inverse);
   --color-text-muted-on-light: rgba(255, 255, 255, 0.52);
-  --color-surface-card: var(--plu-cool-700);
-  --color-surface-card-border: rgba(255, 255, 255, 0.1);
+  --color-surface-card: rgba(255, 255, 255, 0.025);
+  --color-surface-card-border: rgba(255, 255, 255, 0.06);
   --pitbull-section-bg: var(--plu-cool-800);
   --home-accent-bg: var(--plu-cool-750);
   --home-accent-border: rgba(255, 255, 255, 0.08);
@@ -23,32 +23,32 @@
   --home-card-title: #fff;
   --home-card-text: rgba(255, 255, 255, 0.32);
   --home-card-text-hover: rgba(255, 255, 255, 0.55);
-  --footer-bg: #141518;
-  --footer-border: rgba(255, 255, 255, 0.08);
-  --footer-border-subtle: rgba(255, 255, 255, 0.06);
-  --footer-text: rgba(255, 255, 255, 0.78);
-  --footer-text-hover: #fff;
-  --footer-text-muted: rgba(255, 255, 255, 0.48);
-  --footer-heading: rgba(255, 255, 255, 0.38);
-  --home-canvas-bg: var(--plu-cool-750);
+  --footer-bg: var(--plu-cool-950);
+  --footer-border: rgba(255, 255, 255, 0.05);
+  --footer-border-subtle: rgba(255, 255, 255, 0.04);
+  --footer-text: rgba(255, 255, 255, 0.72);
+  --footer-text-hover: rgba(255, 255, 255, 0.96);
+  --footer-text-muted: rgba(255, 255, 255, 0.42);
+  --footer-heading: rgba(255, 255, 255, 0.34);
+  --home-canvas-bg: var(--plu-cool-950);
   --home-canvas-fg: rgba(255, 255, 255, 0.92);
   --home-canvas-fg-muted: rgba(255, 255, 255, 0.58);
   --home-canvas-eyebrow: var(--plu-red-oklch);
-  --home-canvas-border: rgba(255, 255, 255, 0.1);
+  --home-canvas-border: rgba(255, 255, 255, 0.08);
   --home-canvas-hover: rgba(255, 255, 255, 0.05);
-  --home-canvas-outline-border: rgba(255, 255, 255, 0.18);
-  --home-canvas-outline-hover-bg: rgba(255, 255, 255, 0.06);
-  --home-canvas-outline-hover-border: rgba(255, 255, 255, 0.28);
-  --home-canvas-card-bg: var(--plu-cool-700);
-  --home-canvas-card-border: rgba(255, 255, 255, 0.1);
-  --home-canvas-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  --home-canvas-outline-border: rgba(255, 255, 255, 0.16);
+  --home-canvas-outline-hover-bg: rgba(255, 255, 255, 0.05);
+  --home-canvas-outline-hover-border: rgba(255, 255, 255, 0.24);
+  --home-canvas-card-bg: rgba(255, 255, 255, 0.02);
+  --home-canvas-card-border: rgba(255, 255, 255, 0.06);
+  --home-canvas-card-shadow: none;
   --home-canvas-index: rgba(255, 255, 255, 0.16);
   --home-canvas-faq-trigger: rgba(255, 255, 255, 0.9);
   --home-canvas-faq-panel: rgba(255, 255, 255, 0.58);
   --home-canvas-faq-icon: rgba(255, 255, 255, 0.7);
   --home-canvas-faq-more: var(--plu-celeste-oklch);
-  --home-surface-bg: var(--plu-cool-800);
-  --home-immersive-bg: var(--plu-cool-850);
+  --home-surface-bg: var(--plu-cool-850);
+  --home-immersive-bg: var(--plu-cool-950);
   --home-immersive-glow: var(--plu-celeste-alpha-18);
   --home-immersive-fg: #fff;
   --home-immersive-fg-muted: rgba(255, 255, 255, 0.58);
@@ -67,19 +67,65 @@
   --home-quick-band-chip-border: rgba(255, 255, 255, 0.1);
   --home-quick-band-chip-hover-bg: rgba(255, 255, 255, 0.06);
   --home-quick-band-chip-hover-border: rgba(255, 255, 255, 0.18);
-  --home-quick-band-dock-bg: rgba(255, 255, 255, 0.03);
-  --home-teaser-bg: rgba(255, 255, 255, 0.03);
-  --home-teaser-border: rgba(255, 255, 255, 0.08);
-  --home-teaser-border-hover: rgba(255, 255, 255, 0.14);
-  --home-teaser-divider: rgba(255, 255, 255, 0.08);
-  --home-teaser-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
-  --home-teaser-shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.28);
-  --home-hero-bg: var(--plu-cool-850);
-  --home-hero-copy-bg: var(--plu-gradient-hero-dark);
-  --home-hero-eyebrow-border: rgba(255, 255, 255, 0.12);
-  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.55);
+  --home-quick-band-dock-bg: rgba(14, 15, 18, 0.72);
+  --home-quick-band-shell-bg: rgba(255, 255, 255, 0.035);
+  --home-quick-band-shell-border: rgba(255, 255, 255, 0.08);
+  --home-quick-band-shell-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.28);
+  --home-quick-band-link-active-bg: rgba(255, 255, 255, 0.07);
+  --home-quick-band-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --home-teaser-bg: rgba(255, 255, 255, 0.02);
+  --home-teaser-border: rgba(255, 255, 255, 0.06);
+  --home-teaser-border-hover: rgba(255, 255, 255, 0.12);
+  --home-teaser-divider: rgba(255, 255, 255, 0.06);
+  --home-teaser-shadow: none;
+  --home-teaser-shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.18);
+  --home-teaser-icon-celeste-bg: rgba(116, 172, 223, 0.1);
+  --home-teaser-icon-celeste-border: rgba(116, 172, 223, 0.22);
+  --home-teaser-icon-red-bg: rgba(225, 6, 0, 0.1);
+  --home-teaser-icon-red-border: rgba(225, 6, 0, 0.2);
+  --home-teaser-link-bg: rgba(255, 255, 255, 0.04);
+  --home-teaser-link-border: rgba(255, 255, 255, 0.1);
+  --home-teaser-link-hover-bg: rgba(255, 255, 255, 0.07);
+  --home-teaser-link-hover-border: rgba(255, 255, 255, 0.16);
+  --home-mid-stack-divider: rgba(255, 255, 255, 0.08);
+  --home-membership-card-bg: rgba(255, 255, 255, 0.025);
+  --home-membership-card-border: rgba(255, 255, 255, 0.07);
+  --home-membership-card-border-hover: rgba(201, 185, 120, 0.24);
+  --home-membership-card-shadow: none;
+  --home-membership-card-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --home-membership-check-bg: rgba(116, 172, 223, 0.12);
+  --home-membership-check-border: rgba(116, 172, 223, 0.22);
+  --home-membership-check-fg: var(--color-brand-celeste);
+  --home-hero-bg: var(--plu-cool-950);
+  --home-hero-copy-bg:
+    radial-gradient(ellipse 72% 58% at 14% 0%, rgba(116, 172, 223, 0.07), transparent 58%),
+    radial-gradient(ellipse 58% 46% at 88% 24%, rgba(225, 6, 0, 0.05), transparent 54%);
+  --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
+  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.58);
+  --home-hero-eyebrow-stripe: linear-gradient(
+    90deg,
+    #5ba3d9 0%,
+    #5ba3d9 33.33%,
+    rgba(255, 255, 255, 0.92) 33.33%,
+    rgba(255, 255, 255, 0.92) 66.66%,
+    #5ba3d9 66.66%,
+    #5ba3d9 100%
+  );
+  --home-hero-editorial-rule: linear-gradient(
+    180deg,
+    var(--color-brand-red) 0%,
+    rgba(255, 255, 255, 0.72) 48%,
+    var(--color-brand-celeste) 100%
+  );
   --home-hero-title: #fff;
+  --home-hero-title-accent-fg: var(--plu-gold-400);
   --home-hero-lead: rgba(255, 255, 255, 0.58);
+  --home-hero-lead-meta: rgba(255, 255, 255, 0.36);
   --home-hero-metrics-border: rgba(255, 255, 255, 0.08);
   --home-hero-metric-value: #fff;
   --home-hero-metric-label: rgba(255, 255, 255, 0.42);
@@ -93,14 +139,14 @@
   --home-hero-account-icon-bg: rgba(255, 255, 255, 0.06);
   --home-hero-status-panel-bg: oklch(13% 0.006 260 / 0.72);
   --home-hero-status-panel-border: rgba(255, 255, 255, 0.08);
-  --home-hero-status-panel-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  --home-hero-status-panel-shadow: none;
   --home-hero-status-eyebrow: rgba(255, 255, 255, 0.52);
   --home-hero-status-year: #fff;
   --home-hero-status-label: rgba(255, 255, 255, 0.42);
   --home-hero-status-value: rgba(255, 255, 255, 0.78);
   --home-hero-status-live: rgba(255, 255, 255, 0.42);
-  --home-hero-status-live-border: rgba(255, 255, 255, 0.08);
-  --home-hero-proof-bg: rgba(255, 255, 255, 0.025);
+  --home-hero-status-live-border: rgba(255, 255, 255, 0.06);
+  --home-hero-proof-bg: rgba(255, 255, 255, 0.02);
   --home-hero-ambient-red: rgba(225, 6, 0, 0.14);
   --home-hero-ambient-celeste: rgba(116, 172, 223, 0.1);
   --home-hero-eyebrow-dot: var(--plu-red-oklch);
@@ -124,14 +170,12 @@
   --home-spotlight-community-eyebrow: var(--color-brand-celeste);
   --home-spotlight-photo-label: rgba(255, 255, 255, 0.38);
   --home-spotlight-link-border: rgba(116, 172, 223, 0.35);
-  --design-hero-bg: var(--plu-cool-850);
-  --design-hero-surface:
-    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(225, 6, 0, 0.12), transparent 55%),
-    radial-gradient(ellipse 55% 45% at 100% 20%, rgba(116, 172, 223, 0.1), transparent 50%),
-    linear-gradient(165deg, var(--plu-cool-800) 0%, var(--plu-cool-850) 100%);
+  --design-hero-bg: var(--plu-cool-950);
+  --design-hero-surface: transparent;
   --design-hero-fg: #fff;
   --design-hero-desc: rgba(255, 255, 255, 0.62);
   --design-hero-breadcrumb: rgba(255, 255, 255, 0.45);
+  --design-hero-breadcrumb-link: rgba(255, 255, 255, 0.72);
   --design-hero-breadcrumb-active: rgba(255, 255, 255, 0.78);
   --design-hero-breadcrumb-hover: #fff;
   --design-hero-breadcrumb-bg: rgba(255, 255, 255, 0.06);
@@ -150,9 +194,49 @@
   --design-hero-stats-strip-divider: rgba(255, 255, 255, 0.08);
   --events-toolbar-bg: var(--plu-cool-750);
   --events-toolbar-border: rgba(255, 255, 255, 0.06);
-  --events-spotlight-bg: var(--plu-cool-850);
-  --events-spotlight-border: rgba(255, 255, 255, 0.1);
-  --events-spotlight-shadow: 0 20px 48px rgba(0, 0, 0, 0.32);
+  --events-toolbar-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+  --events-toolbar-count-bg: rgba(255, 255, 255, 0.04);
+  --events-toolbar-count-border: rgba(255, 255, 255, 0.08);
+  --events-toolbar-count-fg: rgba(255, 255, 255, 0.72);
+  --events-control-rail-bg: rgba(255, 255, 255, 0.025);
+  --events-control-rail-border: rgba(255, 255, 255, 0.06);
+  --events-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --events-hero-eyebrow-bg: rgba(255, 255, 255, 0.05);
+  --events-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
+  --events-filter-shell-bg: rgba(255, 255, 255, 0.03);
+  --events-filter-shell-border: rgba(255, 255, 255, 0.06);
+  --events-filter-hover-bg: rgba(255, 255, 255, 0.06);
+  --events-filter-hover-fg: rgba(255, 255, 255, 0.88);
+  --events-filter-active-bg: rgba(116, 172, 223, 0.18);
+  --events-filter-active-fg: #fff;
+  --events-filter-segment-border: rgba(116, 172, 223, 0.24);
+  --events-filter-segment-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  --events-spotlight-bg: rgba(255, 255, 255, 0.018);
+  --events-spotlight-border: rgba(255, 255, 255, 0.06);
+  --events-spotlight-shadow: none;
+  --events-spotlight-title: #fff;
+  --events-spotlight-desc: rgba(255, 255, 255, 0.62);
+  --events-spotlight-meta: rgba(255, 255, 255, 0.72);
+  --events-spotlight-meta-icon: var(--color-brand-celeste);
+  --events-spotlight-eyebrow: #e2574c;
+  --events-spotlight-eyebrow-dot: #e2574c;
+  --events-spotlight-tag-bg: rgba(255, 255, 255, 0.03);
+  --events-spotlight-tag-border: rgba(255, 255, 255, 0.07);
+  --events-spotlight-tag-text: rgba(255, 255, 255, 0.38);
+  --events-spotlight-tag-hover-border: rgba(225, 6, 0, 0.28);
+  --events-spotlight-tag-hover-text: rgba(255, 255, 255, 0.68);
+  --events-spotlight-capacity-header: rgba(255, 255, 255, 0.75);
+  --events-spotlight-capacity-bar: rgba(255, 255, 255, 0.08);
+  --events-spotlight-capacity-small: rgba(255, 255, 255, 0.4);
+  --events-spotlight-soon-border: rgba(255, 255, 255, 0.12);
+  --events-spotlight-soon-text: rgba(255, 255, 255, 0.68);
+  --events-spotlight-visual-border: rgba(255, 255, 255, 0.08);
+  --events-spotlight-visual-shadow: none;
   --results-panel-bg: var(--color-surface-card);
   --results-panel-border: var(--color-surface-card-border);
   --results-panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
@@ -169,14 +253,14 @@
   --results-hero-stat-border: rgba(255, 255, 255, 0.08);
   --results-toolbar-bg: var(--plu-cool-750);
   --results-toolbar-border: rgba(255, 255, 255, 0.06);
-  --results-search-bg: rgba(255, 255, 255, 0.03);
-  --results-search-border: rgba(255, 255, 255, 0.08);
-  --results-archive-hover-border: rgba(116, 172, 223, 0.28);
-  --results-archive-hover-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-  --results-shell-bg: var(--color-surface-card);
-  --results-shell-border: var(--color-surface-card-border);
-  --results-shell-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
-  --results-shell-divider: rgba(255, 255, 255, 0.08);
+  --results-search-bg: rgba(255, 255, 255, 0.025);
+  --results-search-border: rgba(255, 255, 255, 0.06);
+  --results-archive-hover-border: rgba(116, 172, 223, 0.22);
+  --results-archive-hover-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --results-shell-bg: rgba(255, 255, 255, 0.025);
+  --results-shell-border: rgba(255, 255, 255, 0.06);
+  --results-shell-shadow: none;
+  --results-shell-divider: rgba(255, 255, 255, 0.06);
   --results-row-hover: rgba(255, 255, 255, 0.03);
   --results-row-published-bg: rgba(61, 154, 98, 0.04);
   --results-date-bg: rgba(255, 255, 255, 0.04);
@@ -185,22 +269,98 @@
   --results-filter-active-bg: rgba(116, 172, 223, 0.12);
   --results-filter-active-border: rgba(116, 172, 223, 0.32);
   --results-filter-hover-bg: rgba(255, 255, 255, 0.04);
+  --results-filter-active-fg: #fff;
+  --results-filter-hover-fg: rgba(255, 255, 255, 0.88);
+  --results-filter-shell-bg: rgba(0, 0, 0, 0.22);
+  --results-filter-shell-border: rgba(255, 255, 255, 0.08);
+  --results-toolbar-count-bg: rgba(255, 255, 255, 0.04);
+  --results-toolbar-count-border: rgba(255, 255, 255, 0.08);
+  --results-toolbar-count-fg: rgba(255, 255, 255, 0.72);
+  --results-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --results-hero-eyebrow-bg: rgba(255, 255, 255, 0.05);
+  --results-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
+  --results-hero-panel-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --results-hero-panel-border: rgba(255, 255, 255, 0.1);
+  --results-hero-panel-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 48px rgba(0, 0, 0, 0.22);
+  --results-hero-panel-stripe: linear-gradient(90deg, rgba(201, 185, 120, 0.65), rgba(116, 172, 223, 0.5));
+  --results-hero-panel-stats-bg: rgba(0, 0, 0, 0.18);
+  --results-hero-panel-stats-divider: rgba(255, 255, 255, 0.08);
+  --results-hero-panel-stat-value: #fff;
+  --results-hero-panel-stat-pending-value: var(--color-brand-celeste);
+  --results-hero-panel-stat-label: rgba(255, 255, 255, 0.48);
+  --results-hero-panel-hint: rgba(255, 255, 255, 0.45);
+  --results-hero-panel-icon-bg: rgba(201, 185, 120, 0.12);
+  --results-hero-panel-icon-border: rgba(201, 185, 120, 0.22);
+  --results-hero-panel-icon-fg: var(--color-brand-gold);
+  --results-hero-panel-icon-pending-bg: rgba(116, 172, 223, 0.12);
+  --results-hero-panel-icon-pending-border: rgba(116, 172, 223, 0.22);
+  --results-hero-panel-icon-pending-fg: var(--color-brand-celeste);
+  --pitbull-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --pitbull-hero-eyebrow-bg: rgba(255, 255, 255, 0.05);
+  --pitbull-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
+  --pitbull-rail-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --pitbull-rail-border: rgba(255, 255, 255, 0.1);
+  --pitbull-rail-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 48px rgba(0, 0, 0, 0.22);
+  --pitbull-rail-stripe: linear-gradient(90deg, rgba(225, 6, 0, 0.65), rgba(201, 185, 120, 0.55), rgba(116, 172, 223, 0.5));
+  --pitbull-rail-stats-bg: rgba(0, 0, 0, 0.18);
+  --pitbull-rail-stats-border: rgba(255, 255, 255, 0.07);
+  --pitbull-rail-divider: rgba(255, 255, 255, 0.08);
+  --pitbull-rail-stat-value: #fff;
+  --pitbull-rail-stat-label: rgba(255, 255, 255, 0.48);
+  --pitbull-rail-link: rgba(255, 255, 255, 0.52);
+  --pitbull-rail-link-hover: rgba(255, 255, 255, 0.88);
+  --pitbull-control-rail-bg: rgba(255, 255, 255, 0.025);
+  --pitbull-control-rail-border: rgba(255, 255, 255, 0.06);
+  --pitbull-feature-bg: var(--color-bg-surface);
+  --pitbull-feature-border: rgba(255, 255, 255, 0.1);
+  --pitbull-feature-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --pitbull-feature-stripe: var(--plu-gradient-stripe);
+  --pitbull-feature-panel-wash: linear-gradient(180deg, rgba(116, 172, 223, 0.12), transparent);
+  --pitbull-feature-capacity-bg: rgba(8, 8, 10, 0.62);
+  --pitbull-feature-capacity-border: rgba(255, 255, 255, 0.12);
+  --pitbull-feature-capacity-header: rgba(255, 255, 255, 0.82);
+  --pitbull-feature-capacity-small: rgba(255, 255, 255, 0.52);
+  --pitbull-inscription-bg: var(--plu-cool-800);
+  --pitbull-inscription-surface-bg: var(--color-bg-surface);
+  --pitbull-inscription-surface-border: rgba(255, 255, 255, 0.1);
+  --pitbull-inscription-surface-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
+  --pitbull-inscription-step-bg: rgba(255, 255, 255, 0.03);
+  --pitbull-inscription-step-border: rgba(255, 255, 255, 0.08);
+  --pitbull-inscription-step-icon-bg: rgba(116, 172, 223, 0.1);
+  --pitbull-inscription-step-icon-border: rgba(116, 172, 223, 0.2);
+  --pitbull-section-divider: rgba(255, 255, 255, 0.06);
+  --pitbull-checklist-bg: rgba(255, 255, 255, 0.03);
   --results-footnotes-border: rgba(255, 255, 255, 0.06);
   --results-footnotes-icon-bg: rgba(255, 255, 255, 0.04);
   --results-footnotes-icon-border: rgba(255, 255, 255, 0.08);
-  --community-highlight-bg: rgba(255, 255, 255, 0.04);
-  --community-highlight-border: rgba(255, 255, 255, 0.08);
-  --community-shell-bg: var(--color-surface-card);
-  --community-shell-border: var(--color-surface-card-border);
-  --community-shell-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
-  --community-shell-divider: rgba(255, 255, 255, 0.08);
-  --community-shell-link-border: rgba(255, 255, 255, 0.12);
+  --community-highlight-bg: rgba(255, 255, 255, 0.02);
+  --community-highlight-border: rgba(255, 255, 255, 0.06);
+  --community-section-divider: rgba(255, 255, 255, 0.06);
+  --community-shell-bg: transparent;
+  --community-shell-border: rgba(255, 255, 255, 0.06);
+  --community-shell-shadow: none;
+  --community-shell-divider: rgba(255, 255, 255, 0.06);
+  --community-shell-link-border: rgba(255, 255, 255, 0.1);
   --community-node-hover: rgba(255, 255, 255, 0.03);
-  --community-story-bg: var(--color-surface-card);
-  --community-story-border: rgba(255, 255, 255, 0.08);
-  --community-story-divider: rgba(255, 255, 255, 0.08);
-  --community-story-hover-border: rgba(201, 185, 120, 0.28);
-  --community-story-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  --community-story-bg: rgba(255, 255, 255, 0.02);
+  --community-story-border: rgba(255, 255, 255, 0.06);
+  --community-story-divider: rgba(255, 255, 255, 0.06);
+  --community-story-hover-border: rgba(201, 185, 120, 0.22);
+  --community-story-shadow: none;
   --register-page-glow: rgba(116, 172, 223, 0.1);
   --register-eyebrow: var(--color-brand-celeste);
   --register-eyebrow-dot: var(--plu-red-500);
@@ -220,6 +380,24 @@
   --register-perk-icon-bg: rgba(116, 172, 223, 0.1);
   --register-perk-icon-border: rgba(116, 172, 223, 0.18);
   --register-divider: rgba(255, 255, 255, 0.08);
+  --register-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(255, 255, 255, 0.92) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --register-intro-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --register-intro-border: rgba(255, 255, 255, 0.1);
+  --register-intro-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
+  --register-intro-stripe: var(--plu-gradient-stripe);
+  --register-intro-eyebrow-bg: rgba(255, 255, 255, 0.05);
+  --register-intro-eyebrow-border: rgba(255, 255, 255, 0.1);
+  --register-perk-bg: rgba(255, 255, 255, 0.03);
+  --register-perk-border: rgba(255, 255, 255, 0.07);
+  --register-section-bg: rgba(255, 255, 255, 0.025);
+  --register-section-border: rgba(255, 255, 255, 0.06);
+  --register-node-hover: rgba(255, 255, 255, 0.03);
+  --register-footer-bg: rgba(0, 0, 0, 0.14);
 }
 
 [data-theme='light'] {
@@ -288,21 +466,65 @@
   --home-quick-band-chip-hover-bg: rgba(15, 17, 23, 0.04);
   --home-quick-band-chip-hover-border: rgba(15, 17, 23, 0.18);
   --home-quick-band-dock-bg: rgba(255, 255, 255, 0.72);
+  --home-quick-band-shell-bg: rgba(255, 255, 255, 0.88);
+  --home-quick-band-shell-border: rgba(15, 17, 23, 0.08);
+  --home-quick-band-shell-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 8px 22px rgba(15, 17, 23, 0.06);
+  --home-quick-band-link-active-bg: rgba(15, 17, 23, 0.05);
+  --home-quick-band-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0%,
+    rgba(15, 17, 23, 0.22) 50%,
+    var(--color-brand-celeste) 100%
+  );
   --home-teaser-bg: #fff;
   --home-teaser-border: oklch(90% 0.004 260);
   --home-teaser-border-hover: oklch(84% 0.006 260);
   --home-teaser-divider: oklch(92% 0.004 260);
   --home-teaser-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(15, 17, 23, 0.04);
   --home-teaser-shadow-hover: 0 12px 32px rgba(15, 17, 23, 0.08);
+  --home-teaser-icon-celeste-bg: rgba(116, 172, 223, 0.1);
+  --home-teaser-icon-celeste-border: rgba(116, 172, 223, 0.2);
+  --home-teaser-icon-red-bg: rgba(225, 6, 0, 0.06);
+  --home-teaser-icon-red-border: rgba(225, 6, 0, 0.14);
+  --home-teaser-link-bg: rgba(15, 17, 23, 0.03);
+  --home-teaser-link-border: rgba(15, 17, 23, 0.1);
+  --home-teaser-link-hover-bg: rgba(15, 17, 23, 0.05);
+  --home-teaser-link-hover-border: rgba(15, 17, 23, 0.16);
+  --home-mid-stack-divider: rgba(15, 17, 23, 0.08);
+  --home-membership-card-bg: #fff;
+  --home-membership-card-border: oklch(90% 0.004 260);
+  --home-membership-card-border-hover: rgba(201, 185, 120, 0.45);
+  --home-membership-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px rgba(15, 17, 23, 0.06);
+  --home-membership-card-shadow-hover: 0 14px 36px rgba(15, 17, 23, 0.1);
+  --home-membership-check-bg: rgba(116, 172, 223, 0.1);
+  --home-membership-check-border: rgba(116, 172, 223, 0.18);
+  --home-membership-check-fg: oklch(52% 0.12 230);
   --home-hero-bg: var(--plu-warm-50);
   --home-hero-copy-bg:
     radial-gradient(ellipse 80% 60% at 0% 0%, rgba(225, 6, 0, 0.04), transparent 55%),
     radial-gradient(ellipse 60% 50% at 100% 100%, rgba(116, 172, 223, 0.06), transparent 50%),
     linear-gradient(165deg, var(--plu-warm-oklch-98) 0%, var(--plu-warm-100) 100%);
-  --home-hero-eyebrow-border: rgba(15, 17, 23, 0.12);
+  --home-hero-eyebrow-border: rgba(15, 17, 23, 0.1);
   --home-hero-eyebrow-fg: rgba(15, 17, 23, 0.48);
+  --home-hero-eyebrow-stripe: linear-gradient(
+    90deg,
+    #4a8fc4 0%,
+    #4a8fc4 33.33%,
+    rgba(255, 255, 255, 0.96) 33.33%,
+    rgba(255, 255, 255, 0.96) 66.66%,
+    #4a8fc4 66.66%,
+    #4a8fc4 100%
+  );
+  --home-hero-editorial-rule: linear-gradient(
+    180deg,
+    var(--color-brand-red) 0%,
+    rgba(15, 17, 23, 0.28) 48%,
+    var(--color-brand-celeste) 100%
+  );
   --home-hero-title: var(--plu-ink-900);
+  --home-hero-title-accent-fg: var(--plu-gold-600);
   --home-hero-lead: rgba(15, 17, 23, 0.58);
+  --home-hero-lead-meta: rgba(15, 17, 23, 0.4);
   --home-hero-metrics-border: rgba(15, 17, 23, 0.08);
   --home-hero-metric-value: var(--plu-ink-900);
   --home-hero-metric-label: rgba(15, 17, 23, 0.42);
@@ -355,6 +577,7 @@
   --design-hero-fg: var(--plu-ink-900);
   --design-hero-desc: rgba(15, 17, 23, 0.58);
   --design-hero-breadcrumb: rgba(15, 17, 23, 0.42);
+  --design-hero-breadcrumb-link: rgba(15, 17, 23, 0.68);
   --design-hero-breadcrumb-active: rgba(15, 17, 23, 0.78);
   --design-hero-breadcrumb-hover: var(--plu-ink-900);
   --design-hero-breadcrumb-bg: rgba(255, 255, 255, 0.72);
@@ -373,9 +596,49 @@
   --design-hero-stats-strip-divider: rgba(15, 17, 23, 0.08);
   --events-toolbar-bg: var(--plu-warm-oklch-98);
   --events-toolbar-border: rgba(15, 17, 23, 0.06);
-  --events-spotlight-bg: var(--plu-cool-850);
-  --events-spotlight-border: rgba(255, 255, 255, 0.1);
-  --events-spotlight-shadow: 0 20px 48px rgba(15, 17, 23, 0.14);
+  --events-toolbar-shadow: 0 10px 28px rgba(15, 17, 23, 0.06);
+  --events-toolbar-count-bg: rgba(15, 17, 23, 0.04);
+  --events-toolbar-count-border: rgba(15, 17, 23, 0.08);
+  --events-toolbar-count-fg: rgba(15, 17, 23, 0.62);
+  --events-control-rail-bg: rgba(255, 255, 255, 0.82);
+  --events-control-rail-border: rgba(15, 17, 23, 0.08);
+  --events-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(15, 17, 23, 0.55) 50%,
+    #1a6bb0 100%
+  );
+  --events-hero-eyebrow-bg: rgba(255, 255, 255, 0.82);
+  --events-hero-eyebrow-border: rgba(15, 17, 23, 0.08);
+  --events-filter-shell-bg: rgba(15, 17, 23, 0.02);
+  --events-filter-shell-border: rgba(15, 17, 23, 0.06);
+  --events-filter-hover-bg: rgba(15, 17, 23, 0.05);
+  --events-filter-hover-fg: rgba(15, 17, 23, 0.88);
+  --events-filter-active-bg: rgba(116, 172, 223, 0.14);
+  --events-filter-active-fg: #0f4a7a;
+  --events-filter-segment-border: rgba(26, 107, 176, 0.22);
+  --events-filter-segment-shadow: 0 2px 8px rgba(26, 107, 176, 0.1);
+  --events-spotlight-bg: #fff;
+  --events-spotlight-border: rgba(15, 17, 23, 0.08);
+  --events-spotlight-shadow: 0 10px 28px rgba(15, 17, 23, 0.06);
+  --events-spotlight-title: var(--plu-ink-900);
+  --events-spotlight-desc: rgba(15, 17, 23, 0.58);
+  --events-spotlight-meta: rgba(15, 17, 23, 0.68);
+  --events-spotlight-meta-icon: #1a6bb0;
+  --events-spotlight-eyebrow: #c93d32;
+  --events-spotlight-eyebrow-dot: #c93d32;
+  --events-spotlight-tag-bg: rgba(15, 17, 23, 0.03);
+  --events-spotlight-tag-border: rgba(15, 17, 23, 0.1);
+  --events-spotlight-tag-text: rgba(15, 17, 23, 0.55);
+  --events-spotlight-tag-hover-border: rgba(225, 6, 0, 0.3);
+  --events-spotlight-tag-hover-text: rgba(15, 17, 23, 0.8);
+  --events-spotlight-capacity-header: rgba(15, 17, 23, 0.72);
+  --events-spotlight-capacity-bar: rgba(15, 17, 23, 0.08);
+  --events-spotlight-capacity-small: rgba(15, 17, 23, 0.42);
+  --events-spotlight-soon-border: rgba(15, 17, 23, 0.12);
+  --events-spotlight-soon-text: rgba(15, 17, 23, 0.62);
+  --events-spotlight-visual-border: rgba(15, 17, 23, 0.08);
+  --events-spotlight-visual-shadow: 0 16px 40px rgba(15, 17, 23, 0.12);
   --results-panel-bg: #fff;
   --results-panel-border: rgba(15, 17, 23, 0.08);
   --results-panel-shadow: 0 12px 40px rgba(15, 17, 23, 0.06);
@@ -408,6 +671,75 @@
   --results-filter-active-bg: rgba(26, 107, 176, 0.08);
   --results-filter-active-border: rgba(26, 107, 176, 0.24);
   --results-filter-hover-bg: rgba(15, 17, 23, 0.03);
+  --results-filter-active-fg: #0f4a7a;
+  --results-filter-hover-fg: rgba(15, 17, 23, 0.88);
+  --results-filter-shell-bg: rgba(15, 17, 23, 0.04);
+  --results-filter-shell-border: rgba(15, 17, 23, 0.08);
+  --results-toolbar-count-bg: rgba(15, 17, 23, 0.04);
+  --results-toolbar-count-border: rgba(15, 17, 23, 0.08);
+  --results-toolbar-count-fg: rgba(15, 17, 23, 0.62);
+  --results-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(15, 17, 23, 0.55) 50%,
+    #1a6bb0 100%
+  );
+  --results-hero-eyebrow-bg: rgba(255, 255, 255, 0.82);
+  --results-hero-eyebrow-border: rgba(15, 17, 23, 0.08);
+  --results-hero-panel-bg: linear-gradient(165deg, #fff 0%, rgba(248, 250, 252, 0.96) 100%);
+  --results-hero-panel-border: rgba(15, 17, 23, 0.08);
+  --results-hero-panel-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
+  --results-hero-panel-stripe: linear-gradient(90deg, rgba(155, 143, 89, 0.72), rgba(26, 107, 176, 0.52));
+  --results-hero-panel-stats-bg: rgba(15, 17, 23, 0.03);
+  --results-hero-panel-stats-divider: rgba(15, 17, 23, 0.08);
+  --results-hero-panel-stat-value: var(--plu-ink-900);
+  --results-hero-panel-stat-pending-value: #1a6bb0;
+  --results-hero-panel-stat-label: rgba(15, 17, 23, 0.48);
+  --results-hero-panel-hint: rgba(15, 17, 23, 0.52);
+  --results-hero-panel-icon-bg: rgba(155, 143, 89, 0.1);
+  --results-hero-panel-icon-border: rgba(155, 143, 89, 0.2);
+  --results-hero-panel-icon-fg: #8a7340;
+  --results-hero-panel-icon-pending-bg: rgba(26, 107, 176, 0.08);
+  --results-hero-panel-icon-pending-border: rgba(26, 107, 176, 0.18);
+  --results-hero-panel-icon-pending-fg: #1a6bb0;
+  --pitbull-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(15, 17, 23, 0.55) 50%,
+    #1a6bb0 100%
+  );
+  --pitbull-hero-eyebrow-bg: rgba(255, 255, 255, 0.82);
+  --pitbull-hero-eyebrow-border: rgba(15, 17, 23, 0.08);
+  --pitbull-rail-bg: linear-gradient(165deg, #fff 0%, rgba(248, 250, 252, 0.96) 100%);
+  --pitbull-rail-border: rgba(15, 17, 23, 0.08);
+  --pitbull-rail-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
+  --pitbull-rail-stripe: linear-gradient(90deg, rgba(225, 6, 0, 0.72), rgba(155, 143, 89, 0.62), rgba(26, 107, 176, 0.52));
+  --pitbull-rail-stats-bg: rgba(15, 17, 23, 0.03);
+  --pitbull-rail-stats-border: rgba(15, 17, 23, 0.07);
+  --pitbull-rail-divider: rgba(15, 17, 23, 0.08);
+  --pitbull-rail-stat-value: var(--plu-ink-900);
+  --pitbull-rail-stat-label: rgba(15, 17, 23, 0.48);
+  --pitbull-rail-link: rgba(15, 17, 23, 0.48);
+  --pitbull-rail-link-hover: rgba(15, 17, 23, 0.82);
+  --pitbull-feature-bg: #fff;
+  --pitbull-feature-border: rgba(15, 17, 23, 0.08);
+  --pitbull-feature-shadow: 0 20px 48px rgba(15, 17, 23, 0.07);
+  --pitbull-feature-stripe: var(--plu-gradient-stripe);
+  --pitbull-feature-panel-wash: linear-gradient(180deg, rgba(26, 107, 176, 0.06), transparent);
+  --pitbull-feature-capacity-bg: rgba(15, 17, 23, 0.72);
+  --pitbull-feature-capacity-border: rgba(255, 255, 255, 0.14);
+  --pitbull-feature-capacity-header: rgba(255, 255, 255, 0.88);
+  --pitbull-feature-capacity-small: rgba(255, 255, 255, 0.58);
+  --pitbull-inscription-bg: var(--plu-warm-100);
+  --pitbull-inscription-surface-bg: #fff;
+  --pitbull-inscription-surface-border: rgba(15, 17, 23, 0.08);
+  --pitbull-inscription-surface-shadow: 0 16px 40px rgba(15, 17, 23, 0.06);
+  --pitbull-inscription-step-bg: rgba(15, 17, 23, 0.02);
+  --pitbull-inscription-step-border: rgba(15, 17, 23, 0.08);
+  --pitbull-inscription-step-icon-bg: rgba(26, 107, 176, 0.08);
+  --pitbull-inscription-step-icon-border: rgba(26, 107, 176, 0.18);
+  --pitbull-section-divider: rgba(15, 17, 23, 0.08);
+  --pitbull-checklist-bg: rgba(15, 17, 23, 0.03);
   --results-footnotes-border: rgba(15, 17, 23, 0.06);
   --results-footnotes-icon-bg: rgba(15, 17, 23, 0.03);
   --results-footnotes-icon-border: rgba(15, 17, 23, 0.08);
@@ -415,7 +747,9 @@
   --community-highlight-border: rgba(15, 17, 23, 0.08);
   --community-shell-bg: #fff;
   --community-shell-border: rgba(15, 17, 23, 0.08);
-  --community-shell-shadow: 0 12px 40px rgba(15, 17, 23, 0.06);
+  --community-section-divider: rgba(15, 17, 23, 0.08);
+  --community-shell-shadow: none;
+  --community-story-shadow: none;
   --community-shell-divider: rgba(15, 17, 23, 0.07);
   --community-shell-link-border: rgba(15, 17, 23, 0.1);
   --community-node-hover: rgba(15, 17, 23, 0.02);
@@ -423,7 +757,7 @@
   --community-story-border: rgba(15, 17, 23, 0.08);
   --community-story-divider: rgba(15, 17, 23, 0.07);
   --community-story-hover-border: rgba(155, 143, 89, 0.32);
-  --community-story-shadow: 0 10px 28px rgba(15, 17, 23, 0.08);
+  --community-story-shadow: none;
   --register-page-glow: rgba(116, 172, 223, 0.06);
   --register-eyebrow: #1a6bb0;
   --register-eyebrow-dot: var(--plu-red-500);
@@ -443,6 +777,24 @@
   --register-perk-icon-bg: rgba(26, 107, 176, 0.08);
   --register-perk-icon-border: rgba(26, 107, 176, 0.16);
   --register-divider: rgba(15, 17, 23, 0.08);
+  --register-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-red-500) 0%,
+    rgba(15, 17, 23, 0.55) 50%,
+    #1a6bb0 100%
+  );
+  --register-intro-bg: linear-gradient(165deg, #fff 0%, rgba(248, 250, 252, 0.96) 100%);
+  --register-intro-border: rgba(15, 17, 23, 0.08);
+  --register-intro-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
+  --register-intro-stripe: var(--plu-gradient-stripe);
+  --register-intro-eyebrow-bg: rgba(255, 255, 255, 0.82);
+  --register-intro-eyebrow-border: rgba(15, 17, 23, 0.08);
+  --register-perk-bg: rgba(15, 17, 23, 0.02);
+  --register-perk-border: rgba(15, 17, 23, 0.08);
+  --register-section-bg: rgba(15, 17, 23, 0.02);
+  --register-section-border: rgba(15, 17, 23, 0.06);
+  --register-node-hover: rgba(15, 17, 23, 0.03);
+  --register-footer-bg: rgba(15, 17, 23, 0.03);
 }
 
 [data-theme='light'] .events-status-badge--neutral {
@@ -496,7 +848,7 @@
 
 [data-theme='dark'] .events-stat--design span,
 [data-theme='dark'] .events-toolbar__count,
-[data-theme='dark'] .events-list-header__eyebrow,
+[data-theme='dark'] .events-toolbar__eyebrow,
 [data-theme='dark'] .events-detail__meta li,
 [data-theme='dark'] .events-detail__status-copy {
   color: var(--color-text-muted);
@@ -504,7 +856,7 @@
 
 [data-theme='dark'] .design-hero__stats .events-stat--design strong,
 [data-theme='dark'] .events-stat--design strong,
-[data-theme='dark'] .events-list-header__title,
+[data-theme='dark'] .events-toolbar__title,
 [data-theme='dark'] .events-detail__title,
 [data-theme='dark'] .events-page--design .event-card__title,
 [data-theme='dark'] .events-page--design .event-card__day {
@@ -539,7 +891,7 @@
 }
 
 [data-theme='dark'] .login-page--design {
-  background: var(--plu-cool-900);
+  background: var(--color-page-canvas);
 }
 
 [data-theme='light'] .login-page--design {
@@ -763,8 +1115,55 @@
   color: rgba(15, 17, 23, 0.52);
 }
 
+[data-theme='dark'] .site-footer--design {
+  background:
+    linear-gradient(180deg, rgba(116, 172, 223, 0.03) 0%, transparent 18%),
+    var(--plu-cool-950);
+  border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .site-footer--premium {
+  --footer-divider: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .site-footer--design::before {
+  opacity: 0.38;
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__brand-desc {
+  color: rgba(255, 255, 255, 0.46);
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__col h4,
+[data-theme='dark'] .site-footer--design .site-footer__col-subtitle {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__col button,
+[data-theme='dark'] .site-footer--design .site-footer__col a {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__col button:hover,
+[data-theme='dark'] .site-footer--design .site-footer__col a:hover {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__email {
+  color: var(--color-brand-celeste);
+}
+
+[data-theme='dark'] .site-footer--design .site-footer__bottom-bar {
+  border-top-color: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.34);
+}
+
 [data-theme='light'] .site-footer--design .site-footer__email {
   color: #1a6bb0;
+}
+
+[data-theme='light'] .site-footer--premium {
+  --footer-divider: rgba(15, 17, 23, 0.08);
 }
 
 /* ── CTA final home ── */

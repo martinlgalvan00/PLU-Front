@@ -92,9 +92,10 @@ export async function shareCard(blob, title = 'Mi inscripción PLU ARG 🏋️',
  * Genera un nombre de archivo sanitizado para la card.
  * @param {string} athleteName
  * @param {string} eventSlug
+ * @param {string} [suffix] \u2014 ej. 'historia' para distinguir el formato 9:16
  * @returns {string}
  */
-export function buildCardFilename(athleteName = '', eventSlug = '') {
+export function buildCardFilename(athleteName = '', eventSlug = '', suffix = '') {
   const safeName = athleteName
     .toLowerCase()
     .normalize('NFD')
@@ -104,5 +105,6 @@ export function buildCardFilename(athleteName = '', eventSlug = '') {
     .slice(0, 30)
 
   const safeSlug = eventSlug.slice(0, 20)
-  return `plu-arg-${safeName}-${safeSlug}.png`
+  const safeSuffix = suffix ? `-${suffix}` : ''
+  return `plu-arg-${safeName}-${safeSlug}${safeSuffix}.png`
 }

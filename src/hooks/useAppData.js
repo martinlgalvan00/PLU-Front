@@ -1,16 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
+import { ApiError, loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import {
   approvePayment as approvePaymentAction,
+  checkInRegistration,
   createAthleteProfile,
   createCompetitionOrder,
   createMembershipOrder,
   getInitialState,
 } from '../services/athleteService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
+import {
+  approveTicketOrder as approveTicketOrderRequest,
+  checkInTicket as checkInTicketRequest,
+  createTicketOrder as createTicketOrderRequest,
+  listTicketsForEvent as listTicketsForEventRequest,
+  mapApiTicket,
+} from '../services/ticketApi.js'
+import { createUser, getInitialUsers, updateUserRole } from '../services/userService.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -46,9 +55,13 @@ export function useAppData() {
     () => getInitialState(storedData).registrations,
   )
   const [payments, setPayments] = useState(() => getInitialState(storedData).payments)
+  // Las entradas viven en Postgres, no en localStorage — este estado es
+  // solo un cache de lo último que se creó/consultó vía la API real.
+  const [tickets, setTickets] = useState([])
   const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
   const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
   const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
+  const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
 
@@ -56,8 +69,17 @@ export function useAppData() {
   const userCanEdit = canEdit(role)
 
   useEffect(() => {
-    writeStorage({ athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents })
-  }, [athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents])
+    writeStorage({
+      athletes,
+      memberships,
+      registrations,
+      payments,
+      createdOrder,
+      auditLogs,
+      adminEvents,
+      users,
+    })
+  }, [athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents, users])
 
   useEffect(() => {
     let active = true
@@ -240,6 +262,119 @@ export function useAppData() {
     [athletes, form, payments, registrations, session],
   )
 
+  // Compra pública de entradas — no requiere cuenta ni sesión: cualquiera
+  // puede comprar para un evento dando el DNI de cada asistente. A
+  // diferencia del resto del dominio, esto habla con el backend real
+  // (Postgres): es la parte del sistema que necesita la garantía dura de
+  // "no se puede duplicar/reusar", y esa garantía no existe sin una base
+  // de datos real arbitrando el check-in.
+  const submitTicketPurchase = useCallback(
+    async (event, purchaseEvent, attendees, paymentMethod) => {
+      event.preventDefault()
+      try {
+        const { order, tickets: createdTickets } = await createTicketOrderRequest({
+          eventSlug: purchaseEvent.slug,
+          attendees,
+          provider: paymentMethod,
+        })
+        const mappedTickets = createdTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
+        setTickets((current) => [...mappedTickets, ...current])
+        const nextOrder = {
+          type: 'tickets',
+          orderId: order.id,
+          eventTitle: purchaseEvent.title,
+          quantity: createdTickets.length,
+          amount: order.amount,
+          paymentMethod: order.provider,
+          reference: order.reference,
+          status: order.status,
+          createdAt: order.createdAt,
+        }
+        setCreatedOrder(nextOrder)
+        return { tickets: mappedTickets, createdOrder: nextOrder }
+      } catch (error) {
+        return { error: error.message ?? 'No se pudo completar la compra.' }
+      }
+    },
+    [],
+  )
+
+  // Equivalente al "Simular pago" de afiliación/inscripción, pero para una
+  // orden de entradas completa (puede cubrir varios tickets a la vez).
+  const approveTicketPurchase = useCallback(async (orderId) => {
+    try {
+      const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
+      setTickets((current) => {
+        const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
+        return current.map((item) => (byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item))
+      })
+      setCreatedOrder((current) => (current?.orderId === orderId ? { ...current, status: order.status } : current))
+    } catch (error) {
+      console.error('approveTicketPurchase:', error)
+    }
+  }, [])
+
+  // Check-in en la puerta: el backend valida el qrToken y lo marca como
+  // usado de forma atómica — dos escaneos simultáneos del mismo QR no
+  // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
+  const checkInTicketAction = useCallback(async (qrToken) => {
+    try {
+      const { ticket, checkIn } = await checkInTicketRequest(qrToken)
+      const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
+      setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
+      return { outcome: 'ok', ticket: updated }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+      }
+      if (error instanceof ApiError && error.status === 404) {
+        return { outcome: 'not_found' }
+      }
+      throw error
+    }
+  }, [])
+
+  // Refresca la lista de entradas de un evento desde el backend real —
+  // la usa el panel de Seguridad, que necesita ver compras hechas desde
+  // cualquier dispositivo, no solo las de esta pestaña.
+  const refreshTickets = useCallback(async (eventSlug) => {
+    try {
+      const { tickets: apiTickets } = await listTicketsForEventRequest(eventSlug)
+      setTickets(apiTickets.map((ticket) => mapApiTicket(ticket)))
+    } catch (error) {
+      console.error('refreshTickets:', error)
+    }
+  }, [])
+
+  // Check-in en la puerta para un atleta inscripto (competidor) — separado
+  // del check-in de entradas porque los atletas no tienen ticketCode/QR de
+  // entrada, se buscan directo por su fila en el panel de seguridad.
+  const checkInRegistrationAction = useCallback(
+    (registrationId) => {
+      const result = checkInRegistration(registrationId, registrations)
+      if (result.outcome === 'ok') {
+        setRegistrations((current) =>
+          current.map((item) => (item.id === result.registration.id ? result.registration : item)),
+        )
+      }
+      return result
+    },
+    [registrations],
+  )
+
+  // Gestión de cuentas del panel: solo quien tiene canManageUsers puede
+  // cambiar roles o crear cuentas nuevas (se valida también en la UI).
+  const updateUserRoleAction = useCallback((userId, nextRole) => {
+    setUsers((current) => updateUserRole(current, userId, nextRole))
+  }, [])
+
+  const createUserAction = useCallback(
+    (draft) => {
+      setUsers((current) => createUser(current, draft))
+    },
+    [],
+  )
+
   const login = useCallback(async (credentialsOrAccountType) => {
     if (credentialsOrAccountType === 'athlete') {
       const demoAthleteSession = {
@@ -278,6 +413,10 @@ export function useAppData() {
         setSession(demoAdminSession)
         return demoAdminSession
       }
+
+      // La cuenta de seguridad SÍ pasa por el backend real (más abajo, loginRequest):
+      // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
+      // a diferencia del resto de la demo que vive en localStorage.
     }
 
     const { user } = await loginRequest(credentialsOrAccountType)
@@ -389,6 +528,7 @@ export function useAppData() {
     memberships,
     registrations,
     payments,
+    tickets,
     createdOrder,
     auditLogs,
     form,
@@ -408,6 +548,14 @@ export function useAppData() {
     registerAthlete,
     submitMembership,
     submitCompetition,
+    submitTicketPurchase,
+    approveTicketPurchase,
+    checkInTicketAction,
+    refreshTickets,
+    checkInRegistrationAction,
+    users,
+    updateUserRoleAction,
+    createUserAction,
     handleApprovePayment,
     exportAdminCsv,
     exportPluUsaCsv,

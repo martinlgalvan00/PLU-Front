@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BadgeCheck } from 'lucide-react'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
+import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AuditTimeline from '../../components/ui/AuditTimeline.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
@@ -124,14 +126,15 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
               key: 'action',
               label: t('admin.columns.action'),
               render: (row) => (
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => onApprovePayment?.(row.id)}
-                  disabled={!canEdit || row.status === 'aprobado'}
-                >
-                  {t('admin.actions.validate')}
-                </button>
+                <AdminTableActions>
+                  <AdminIconButton
+                    disabled={!canEdit || row.status === 'aprobado'}
+                    icon={BadgeCheck}
+                    label={t('admin.actions.validate')}
+                    onClick={() => onApprovePayment?.(row.id)}
+                    variant="celeste"
+                  />
+                </AdminTableActions>
               ),
             },
           ]}

@@ -3,6 +3,7 @@ import Reveal from '../ui/Reveal.jsx'
 
 export default function DesignPageHero({
   breadcrumbLabel,
+  className = '',
   compact = false,
   onHome,
   eyebrow,
@@ -16,7 +17,7 @@ export default function DesignPageHero({
   return (
     <Reveal>
       <header
-        className={`design-hero design-hero--${align} ${compact ? 'design-hero--compact' : ''}`.trim()}
+        className={`design-hero design-hero--${align} ${compact ? 'design-hero--compact' : ''} ${className}`.trim()}
       >
         <div className="design-hero__inner">
           <div className="design-hero__intro">

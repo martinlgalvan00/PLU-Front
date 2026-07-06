@@ -23,8 +23,11 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
         id: `action-pay-${payment.id}`,
         type: 'payment',
         priority: payment.status === 'validacion_manual' ? 'high' : 'medium',
-        title: `Validar pago de ${athlete?.fullName ?? 'atleta'}`,
-        detail: `${payment.concept} · ${money(payment.amount)}`,
+        subject: athlete?.fullName ?? 'Atleta',
+        summary:
+          payment.status === 'validacion_manual' ? 'Validar pago manual' : 'Pago pendiente de acreditación',
+        detail: payment.concept,
+        meta: money(payment.amount),
         section: 'payments',
         paymentId: payment.id,
       })
@@ -38,11 +41,11 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
         id: `action-reg-${registration.id}`,
         type: 'registration',
         priority: registration.status === 'observada' ? 'high' : 'medium',
-        title:
-          registration.status === 'observada'
-            ? `Revisar inscripción observada: ${athlete?.fullName ?? 'atleta'}`
-            : `Inscripción pendiente: ${athlete?.fullName ?? 'atleta'}`,
-        detail: `${registration.event} · ${registration.category}`,
+        subject: athlete?.fullName ?? 'Atleta',
+        summary:
+          registration.status === 'observada' ? 'Inscripción observada' : 'Inscripción pendiente de pago',
+        detail: registration.event,
+        meta: registration.category,
         section: 'registrations',
       })
     })
@@ -55,8 +58,10 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
         id: `action-mem-${membership.id}`,
         type: 'membership',
         priority: 'low',
-        title: `Afiliación por vencer: ${athlete?.fullName ?? 'atleta'}`,
-        detail: `Vence el ${membership.expirationDate}`,
+        subject: athlete?.fullName ?? 'Atleta',
+        summary: 'Afiliación por vencer',
+        detail: membership.memberCode ? `Código ${membership.memberCode}` : 'Renovación anual',
+        meta: `Vence ${membership.expirationDate}`,
         section: 'memberships',
       })
     })

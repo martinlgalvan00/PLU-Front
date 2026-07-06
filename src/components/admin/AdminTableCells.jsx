@@ -1,3 +1,5 @@
+import { StatusBadge } from '../ui/DataTable.jsx'
+
 export function AdminIdentityCell({ accent = 'celeste', name, sub }) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
 
@@ -15,4 +17,21 @@ export function AdminIdentityCell({ accent = 'celeste', name, sub }) {
       </div>
     </div>
   )
+}
+
+export function AdminPaymentCell({ amount, status }) {
+  if (!status && (!amount || amount === '—')) {
+    return <span className="admin-payment-cell__empty">—</span>
+  }
+
+  return (
+    <div className="admin-payment-cell">
+      {status ? <StatusBadge value={status} /> : null}
+      {amount && amount !== '—' ? <span className="admin-payment-cell__amount">{amount}</span> : null}
+    </div>
+  )
+}
+
+export function AdminTableActions({ children }) {
+  return <div className="admin-table-actions">{children}</div>
 }

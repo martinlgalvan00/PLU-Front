@@ -6,7 +6,7 @@
 
 
 
-  --color-bg-primary: var(--plu-cool-850);
+  --color-bg-primary: var(--plu-cool-950);
 
   --color-bg-secondary: var(--plu-cool-900);
 
@@ -24,7 +24,7 @@
 
   --color-bg-about: var(--plu-cool-750);
 
-  --color-page-canvas: var(--plu-cool-800);
+  --color-page-canvas: var(--plu-cool-950);
 
   --color-section-muted: var(--plu-cool-750);
 
@@ -81,8 +81,8 @@
   --results-rank-bg: rgba(255, 255, 255, 0.06);
 
   /* ── Events v2 tokens ──────────────────────── */
-  --events-stat-bg: var(--plu-cool-800);
-  --events-stat-border: rgba(255, 255, 255, 0.07);
+  --events-stat-bg: rgba(255, 255, 255, 0.018);
+  --events-stat-border: rgba(255, 255, 255, 0.05);
   --events-detail-bg: var(--plu-cool-800);
   --events-detail-border: rgba(255, 255, 255, 0.09);
   --events-calendar-bg: var(--plu-cool-800);

@@ -3,13 +3,15 @@ import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import { useAppData } from './hooks/useAppData.js'
+import { readCredentialParams } from './lib/credentialQr.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
-import { canViewAdmin, getRoleLabel } from './lib/roles.js'
+import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel } from './lib/roles.js'
 import AdminPage from './pages/AdminPage.jsx'
 import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
+import CredentialPage from './pages/CredentialPage.jsx'
 import ContactPage from './pages/ContactPage.jsx'
 import EventsPage from './pages/EventsPage.jsx'
 import FAQPage from './pages/FAQPage.jsx'
@@ -73,10 +75,29 @@ export default function App() {
     navigate('competition')
   }
 
+  // El QR de la card de inscripción/afiliación apunta a la home con este query
+  // param — se resuelve antes que cualquier otra vista, sin necesitar login.
+  const credential = readCredentialParams()
+  if (credential) {
+    return (
+      <CredentialPage
+        code={credential.code}
+        eventSlug={credential.eventSlug}
+        type={credential.type}
+        athletes={app.athletes}
+        memberships={app.memberships}
+        registrations={app.registrations}
+        onCheckIn={app.checkInTicketAction}
+      />
+    )
+  }
+
   if (view === 'admin' && canViewAdmin(app.session?.role)) {
     return (
       <AdminPage
+        canCheckIn={canCheckIn(app.session?.role)}
         canEdit={app.userCanEdit}
+        canManageUsers={canManageUsers(app.session?.role)}
         dashboardOverview={app.dashboardOverview}
         adminEvents={app.adminEvents}
         filters={app.filters}
@@ -87,13 +108,20 @@ export default function App() {
         recentActivity={app.recentActivity}
         getAthleteDetail={app.getAthleteDetail}
         onApprovePayment={app.handleApprovePayment}
+        onCheckInRegistration={app.checkInRegistrationAction}
+        onCheckInTicket={app.checkInTicketAction}
+        onRefreshTickets={app.refreshTickets}
+        onCreateUser={app.createUserAction}
         onExportAdmin={app.exportAdminCsv}
         onExportPluUsa={app.exportPluUsaCsv}
         onSaveEvent={app.saveAdminEvent}
         onSetFilters={app.setFilters}
+        onUpdateUserRole={app.updateUserRoleAction}
         payments={app.payments}
         athletes={app.athletes}
         registrations={app.registrations}
+        tickets={app.tickets}
+        users={app.users}
         roleLabel={getRoleLabel(app.session?.role)}
         onExit={() => navigate('home')}
       />
@@ -120,7 +148,16 @@ export default function App() {
           ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents }
         : view === 'home'
           ? { onNavigate: navigate, onSelectEvent: selectEvent }
-        : view === 'pitbull' || view === 'results'
+        : view === 'pitbull'
+          ? {
+              onNavigate: navigate,
+              events: app.adminEvents,
+              tickets: app.tickets,
+              createdOrder: app.createdOrder,
+              onSubmitTicketPurchase: app.submitTicketPurchase,
+              onApproveTicketPurchase: app.approveTicketPurchase,
+            }
+        : view === 'results'
           ? { onNavigate: navigate, events: app.adminEvents }
         : view === 'members'
           ? { onNavigate: navigate, session: app.session }

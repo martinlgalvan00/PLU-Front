@@ -6,6 +6,7 @@ import healthRoutes from './routes/health.js'
 import paymentRoutes from './routes/payments.js'
 import emailRoutes from './routes/emails.js'
 import { createAuthRoutes } from './routes/auth.js'
+import { createTicketRoutes } from './routes/tickets.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
 import { corsOrigin, requireTrustedMutation } from './lib/security.js'
@@ -30,6 +31,7 @@ export function createApp(deps = {}) {
   )
   app.use('/api/payments', paymentRoutes)
   app.use('/api/emails', emailRoutes)
+  app.use('/api/tickets', createTicketRoutes({ getPrisma: () => deps.prisma ?? getPrisma() }))
   app.use(notFoundHandler)
   app.use(errorHandler)
 

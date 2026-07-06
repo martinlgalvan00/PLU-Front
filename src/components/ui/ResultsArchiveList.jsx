@@ -1,25 +1,28 @@
-import { ArrowRight, CalendarDays, ChevronRight, MapPin } from 'lucide-react'
+import { CalendarDays, ChevronRight, MapPin } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
-function formatArchiveDate(dateISO) {
+function formatArchiveDate(dateISO, locale) {
   const date = new Date(`${dateISO}T12:00:00`)
   const day = date.getDate()
-  const month = date.toLocaleDateString('es-AR', { month: 'short' }).replace('.', '')
+  const month = date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', { month: 'short' })
+    .replace('.', '')
   const year = date.getFullYear()
 
   return { day, month, year }
 }
 
-function ResultsStatusBadge({ status }) {
+function ResultsStatusBadge({ status, t }) {
   return (
     <span className={`results-badge results-badge--${status}`}>
-      {status === 'published' ? 'Publicado' : 'En espera'}
+      {status === 'published' ? t('pages.results.listPublished') : t('pages.results.listPending')}
     </span>
   )
 }
 
-function ResultsArchiveRow({ entry, onNavigate }) {
+function ResultsArchiveRow({ entry, onNavigate, t, locale }) {
   const isPublished = entry.resultsStatus === 'published'
-  const { day, month, year } = formatArchiveDate(entry.dateISO)
+  const { day, month, year } = formatArchiveDate(entry.dateISO, locale)
 
   function handleAction() {
     if (isPublished) {
@@ -33,10 +36,10 @@ function ResultsArchiveRow({ entry, onNavigate }) {
   }
 
   const actionLabel = isPublished
-    ? 'Ver resultados'
+    ? t('pages.results.listViewResults')
     : entry.featured
-      ? 'Ver evento'
-      : 'Próximamente'
+      ? t('pages.results.listViewEvent')
+      : t('pages.results.listSoon')
 
   return (
     <article
@@ -51,7 +54,7 @@ function ResultsArchiveRow({ entry, onNavigate }) {
       <div className="results-archive-row__body">
         <div className="results-archive-row__title-row">
           <h3 className="results-archive-row__title">{entry.title}</h3>
-          {entry.featured && <span className="results-archive-row__tag">Próximo</span>}
+          {entry.featured && <span className="results-archive-row__tag">{t('pages.results.listNext')}</span>}
         </div>
         <p className="results-archive-row__meta">
           <MapPin size={12} aria-hidden />
@@ -60,7 +63,7 @@ function ResultsArchiveRow({ entry, onNavigate }) {
       </div>
 
       <div className="results-archive-row__aside">
-        <ResultsStatusBadge status={entry.resultsStatus} />
+        <ResultsStatusBadge status={entry.resultsStatus} t={t} />
         <button
           type="button"
           className={`results-archive-row__action ${isPublished || entry.featured ? 'results-archive-row__action--active' : ''}`.trim()}
@@ -76,14 +79,14 @@ function ResultsArchiveRow({ entry, onNavigate }) {
 }
 
 export default function ResultsArchiveList({ entries, onNavigate }) {
+  const { locale, t } = useI18n()
+
   if (!entries.length) {
     return (
       <div className="results-filter-empty">
         <CalendarDays size={20} aria-hidden className="results-filter-empty__icon" />
-        <p className="results-filter-empty__title">Sin coincidencias</p>
-        <p className="results-filter-empty__desc">
-          Probá con otro término o cambiá el filtro del archivo.
-        </p>
+        <p className="results-filter-empty__title">{t('pages.results.emptyNoMatchesTitle')}</p>
+        <p className="results-filter-empty__desc">{t('pages.results.emptyNoMatchesDesc')}</p>
       </div>
     )
   }
@@ -91,7 +94,7 @@ export default function ResultsArchiveList({ entries, onNavigate }) {
   return (
     <div className="results-archive-list">
       {entries.map((entry) => (
-        <ResultsArchiveRow key={entry.slug} entry={entry} onNavigate={onNavigate} />
+        <ResultsArchiveRow key={entry.slug} entry={entry} locale={locale} onNavigate={onNavigate} t={t} />
       ))}
     </div>
   )

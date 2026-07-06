@@ -199,6 +199,20 @@
   50%       { transform: translateY(-8px); }
 }
 
+@keyframes home-ambient-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(2.5%, -2%, 0) scale(1.05);
+  }
+
+  100% {
+    transform: translate3d(-2%, 2.5%, 0) scale(0.97);
+  }
+}
+
 @keyframes float-sm {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-4px); }

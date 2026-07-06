@@ -178,6 +178,13 @@
   box-shadow: var(--glow-gold-soft);
 }
 
+.export-btn--icon-only {
+  gap: 0;
+  min-width: 38px;
+  padding: 0;
+  width: 38px;
+}
+
 /* =============================================
    FOCUS VISIBLE
    ============================================= */

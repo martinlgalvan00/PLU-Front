@@ -8,6 +8,7 @@ const allowedRoles = new Set([
   'admin_plu_arg',
   'operador_plu_arg',
   'viewer_plu_usa',
+  'seguridad_plu_arg',
 ])
 
 function readSeedAdmin() {

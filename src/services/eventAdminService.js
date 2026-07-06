@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_PRICING, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 
 const DEFAULT_SLOTS = 80
@@ -45,6 +46,7 @@ export function getInitialAdminEvents(storedEvents) {
     ...event,
     slots: event.featured ? 120 : DEFAULT_SLOTS,
     registered: event.featured ? 48 : Math.floor(DEFAULT_SLOTS * 0.35),
+    pricing: { ...DEFAULT_EVENT_PRICING },
   }))
 
   if (!storedEvents?.length) return seed
@@ -105,6 +107,7 @@ export function createAdminEvent(events, payload) {
     featured: Boolean(payload.featured),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
     registered: 0,
+    pricing: normalizeEventPricingInput(payload.pricing),
   }
 
   return {
@@ -139,6 +142,7 @@ export function updateAdminEvent(events, eventId, payload) {
       featured: payload.featured ?? event.featured,
       slots: Number(payload.slots) || event.slots,
       slug: slugify(payload.title ?? event.title, dateISO),
+      pricing: normalizeEventPricingInput(payload.pricing ?? event.pricing),
     }
     return updated
   })
@@ -176,4 +180,30 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   status: 'proximamente',
   featured: false,
   slots: DEFAULT_SLOTS,
+  pricing: { ...DEFAULT_EVENT_PRICING },
+}
+
+/**
+ * Métricas de entradas (espectadores) para un evento en el panel admin.
+ */
+export function buildEventTicketStats(tickets, eventSlug) {
+  const eventTickets = tickets.filter((ticket) => ticket.eventSlug === eventSlug)
+  const paid = eventTickets.filter((ticket) => ticket.status === 'pagada' || ticket.status === 'usada')
+  const pending = eventTickets.filter((ticket) => ticket.status === 'pendiente_pago')
+  const checkedIn = eventTickets.filter((ticket) => Boolean(ticket.checkedInAt))
+  const revenue = paid.reduce((sum, ticket) => sum + (ticket.unitPrice ?? 0), 0)
+  const byPass = { day1: 0, day2: 0, both: 0 }
+
+  for (const ticket of paid) {
+    if (byPass[ticket.dayPass] !== undefined) byPass[ticket.dayPass] += 1
+  }
+
+  return {
+    total: eventTickets.length,
+    sold: paid.length,
+    pending: pending.length,
+    checkedIn: checkedIn.length,
+    revenue,
+    byPass,
+  }
 }

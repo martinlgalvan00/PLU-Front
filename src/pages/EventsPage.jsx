@@ -8,58 +8,37 @@ import EventCard from '../components/ui/EventCard.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
 
-const FILTERS = [
-  ['all', 'Todos'],
-  ['open', 'Inscripción abierta'],
-  ['soon', 'Próximamente'],
-  ['done', 'Finalizados'],
-]
-
-const FILTER_LABELS = {
-  all: 'activos',
-  open: 'con inscripción abierta',
-  soon: 'próximamente',
-  done: 'finalizados',
-}
-
-const EVENT_STATUS_COPY = {
-  proximamente: 'Las inscripciones abren próximamente.',
-  inscripcion_abierta: 'Hay cupos disponibles — podés inscribirte desde tu cuenta.',
-  cupos_limitados: 'Quedan pocos cupos. Confirmá tu lugar cuanto antes.',
-  cerrado: 'Inscripciones cerradas para este evento.',
-  finalizado: 'Evento finalizado.',
-}
-
-function EventStatusBadge({ status }) {
-  const { label, tone } = getStatusMeta(status)
+function EventStatusBadge({ status, t }) {
+  const { label, tone } = getStatusMeta(status, t)
   return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
 }
 
-function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
+function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
   if (!event) {
     return (
       <div className="events-detail events-detail--empty">
         <CalendarDays size={28} strokeWidth={1.5} aria-hidden />
-        <p>Seleccioná un evento de la lista o del calendario para ver el detalle.</p>
+        <p>{t('pages.events.emptyDetail')}</p>
       </div>
     )
   }
 
   const isPitbull = event.featured
   const canRegister = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-  const statusCopy = EVENT_STATUS_COPY[event.status]
+  const statusCopy = t(`pages.events.statusCopy.${event.status}`)
 
   return (
     <div className="events-detail">
       <div className="events-detail__head">
         <div className="events-detail__head-copy">
-          <span className="events-detail__eyebrow">Evento seleccionado</span>
+          <span className="events-detail__eyebrow">{t('pages.events.selectedEvent')}</span>
           <h3 className="events-detail__title">{event.title}</h3>
         </div>
-        <EventStatusBadge status={event.status} />
+        <EventStatusBadge status={event.status} t={t} />
       </div>
 
       <ul className="events-detail__meta">
@@ -73,18 +52,20 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
         </li>
       </ul>
 
-      {statusCopy && <p className="events-detail__status-copy">{statusCopy}</p>}
+      {statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}` && (
+        <p className="events-detail__status-copy">{statusCopy}</p>
+      )}
 
       <div className="events-detail__actions">
         {canRegister && onRegister && (
           <Button className="btn--small" onClick={onRegister}>
-            Inscribirme
+            {t('pages.events.register')}
             <ArrowRight size={14} aria-hidden />
           </Button>
         )}
         {isPitbull && onViewPitbull && (
           <Button variant="outline" className="btn--small" onClick={onViewPitbull}>
-            Ver ficha completa
+            {t('pages.events.viewFull')}
           </Button>
         )}
       </div>
@@ -93,10 +74,31 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull }) {
 }
 
 export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMING_EVENTS }) {
+  const { t } = useI18n()
   const pitbull = events.find((event) => event.featured) ?? events[0]
   const [selected, setSelected] = useState(pitbull)
   const [filter, setFilter] = useState('all')
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
+
+  const filters = useMemo(
+    () => [
+      ['all', t('pages.events.filters.all'), t('pages.events.filters.allShort')],
+      ['open', t('pages.events.filters.open'), t('pages.events.filters.openShort')],
+      ['soon', t('pages.events.filters.soon'), t('pages.events.filters.soonShort')],
+      ['done', t('pages.events.filters.done')],
+    ],
+    [t],
+  )
+
+  const filterLabels = useMemo(
+    () => ({
+      all: t('pages.events.filterLabels.all'),
+      open: t('pages.events.filterLabels.open'),
+      soon: t('pages.events.filterLabels.soon'),
+      done: t('pages.events.filterLabels.done'),
+    }),
+    [t],
+  )
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -139,16 +141,48 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
     onSelectEvent?.(event)
   }
 
+  const filterIndex = filters.findIndex(([key]) => key === filter)
+  const eventCountLabel =
+    listEvents.length === 1
+      ? t('pages.events.eventCount_one', { count: listEvents.length })
+      : t('pages.events.eventCount_other', { count: listEvents.length })
+
   return (
     <main className="page page--design events-page--design events-page--premium">
       <DesignPageHero
+        className="events-hero"
         compact
-        breadcrumbLabel="Eventos"
+        breadcrumbLabel={t('pages.events.heroBreadcrumb')}
         onHome={() => onNavigate('home')}
-        eyebrow="Temporada 2026"
-        title="Calendario de eventos"
-        description="Eventos oficiales PLU ARG con inscripción y estado actualizado."
-      />
+        title={t('pages.events.heroTitle')}
+        description={t('pages.events.heroDesc')}
+      >
+        <div className="events-hero__bar">
+          <div className="events-hero__control-rail">
+            <div className="events-hero__control-filters">
+              <div
+                className="events-hero__filters-shell events-toolbar__filters-shell--segmented"
+                style={{
+                  '--filter-active-index': Math.max(filterIndex, 0),
+                  '--filter-count': filters.length,
+                }}
+              >
+                <FilterPills
+                  active={filter}
+                  ariaLabel={t('pages.events.filterAria')}
+                  className="filter-pills--refined events-hero__filters segmented-switch--luxury"
+                  onChange={setFilter}
+                  options={filters}
+                  segmented
+                />
+              </div>
+            </div>
+            <span className="events-hero__count" aria-live="polite">
+              {eventCountLabel}
+            </span>
+          </div>
+        </div>
+      </DesignPageHero>
 
       <div className="events-page__body">
         <div className="events-layout-v2">
@@ -156,6 +190,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
             {showPitbull && pitbull && (
               <Reveal variant="from-left">
                 <PitbullSpotlight
+                  variant="events"
                   onDetail={() => onNavigate('pitbull')}
                   onRegister={
                     pitbull.status === 'inscripcion_abierta' || pitbull.status === 'cupos_limitados'
@@ -165,27 +200,6 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
                 />
               </Reveal>
             )}
-
-            <header className={`events-list-header ${showPitbull ? 'events-list-header--spaced' : ''}`}>
-              <div className="events-list-header__row">
-                <div>
-                  <span className="events-list-header__eyebrow">Agenda PLU ARG</span>
-                  <h2 className="events-list-header__title">
-                    {filter === 'done' ? 'Eventos finalizados' : 'Próximos meets'}
-                  </h2>
-                </div>
-                <span className="events-list-header__count" aria-live="polite">
-                  {listEvents.length} {listEvents.length === 1 ? 'evento' : 'eventos'}
-                </span>
-              </div>
-              <FilterPills
-                active={filter}
-                ariaLabel="Filtrar eventos"
-                className="filter-pills--refined events-list-header__filters"
-                onChange={setFilter}
-                options={FILTERS}
-              />
-            </header>
 
             {listEvents.length > 0 ? (
               <StaggerReveal className="events-list events-list--design" stagger={70}>
@@ -204,16 +218,16 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
                         ? () => handleRegister(event)
                         : () => focusEvent(event)
                     }
-                    actionLabel="Inscribirme"
+                    actionLabel={t('pages.events.register')}
                   />
                 ))}
               </StaggerReveal>
             ) : (
               <div className="events-list__empty">
                 <CalendarDays size={32} strokeWidth={1.5} aria-hidden />
-                <p>No hay eventos {FILTER_LABELS[filter]} en este momento.</p>
+                <p>{t('pages.events.emptyList', { filter: filterLabels[filter] })}</p>
                 <Button variant="outline" className="btn--small" onClick={() => setFilter('all')}>
-                  Ver todos los eventos
+                  {t('nav.viewAllEvents')}
                 </Button>
               </div>
             )}
@@ -231,6 +245,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
               event={selected}
               onRegister={selected ? () => handleRegister(selected) : undefined}
               onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
+              t={t}
             />
           </Reveal>
         </div>

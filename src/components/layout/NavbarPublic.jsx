@@ -7,8 +7,9 @@ import {
   NAV_RECURSOS_VIEWS,
 } from '../../lib/constants.js'
 import { canViewAdmin } from '../../lib/roles.js'
+import { sessionDisplayName, sessionInitial } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { useScrolled } from '../../hooks/useMotion.js'
+import { useHeaderScroll } from '../../hooks/useMotion.js'
 import Button from '../ui/Button.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import LoginButton from '../ui/LoginButton.jsx'
@@ -80,7 +81,7 @@ function DrawerSection({ accent = 'neutral', children, label }) {
   )
 }
 
-function DrawerItem({ active, children, className = '', featured = false, onClick }) {
+function DrawerItem({ active, children, className = '', featured = false, hint, onClick }) {
   return (
     <button
       type="button"
@@ -93,7 +94,11 @@ function DrawerItem({ active, children, className = '', featured = false, onClic
           aria-hidden
         />
       )}
-      <span className="site-header__drawer-item-label">{children}</span>
+      <span className="site-header__drawer-item-main">
+        <span className="site-header__drawer-item-label">{children}</span>
+        {hint && <span className="site-header__drawer-item-hint">{hint}</span>}
+      </span>
+      <ArrowRight size={14} aria-hidden className="site-header__drawer-item-chevron" />
     </button>
   )
 }
@@ -105,10 +110,14 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
   const recursosRef = useRef(null)
   const navRef = useRef(null)
   const navTrackRef = useRef(null)
+  const shellRef = useRef(null)
   const [indicator, setIndicator] = useState({ left: 0, width: 0, visible: false })
-  const scrolled = useScrolled(16)
+  const scrolled = useHeaderScroll(shellRef)
   const { t } = useI18n()
   const adminSession = canViewAdmin(session?.role)
+  const sessionShortName = session ? sessionDisplayName(session, { short: true }) : ''
+  const sessionFullName = session ? sessionDisplayName(session) : ''
+  const sessionInitialLetter = session ? sessionInitial(session) : ''
 
   const eventosActive = NAV_EVENTOS_VIEWS.includes(activeView)
   const recursosActive = NAV_RECURSOS_VIEWS.includes(activeView)
@@ -175,13 +184,16 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
   const navHint = (key) => t(`nav.${key}Hint`)
 
+  const heroBlendViews = ['home', 'events', 'results', 'rulebook', 'pitbull', 'community', 'members']
+  const isOverHero = heroBlendViews.includes(activeView) && !open
+
   return (
-    <div className={`site-header-shell${open ? ' site-header-shell--menu-open' : ''}`}>
+    <div ref={shellRef} className={`site-header-shell${open ? ' site-header-shell--menu-open' : ''}`}>
       <div className="site-header__stripe" aria-hidden />
       <div className="site-header__ambient" aria-hidden />
 
       <header
-        className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''} ${activeView === 'home' && !scrolled && !open ? 'site-header--over-hero' : ''}`}
+        className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''} ${isOverHero ? 'site-header--over-hero' : ''}`}
       >
         <div className="site-header__inner">
           <button className="site-header__logo site-header__logo--design" type="button" onClick={() => go('home')}>
@@ -273,15 +285,15 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               <>
                 <LoginButton
                   compact
-                  label={adminSession ? 'Panel' : 'Mi perfil'}
+                  label={sessionFullName || (adminSession ? 'Panel' : 'Mi perfil')}
                   onClick={() => go(adminSession ? 'admin' : 'profile')}
                 />
                 <button
                   type="button"
                   className="site-header__icon-action"
                   onClick={onLogout}
-                  title="Cerrar sesión"
-                  aria-label="Cerrar sesión"
+                  title={t('nav.logout')}
+                  aria-label={t('nav.logout')}
                 >
                   <LogOut size={16} />
                 </button>
@@ -309,17 +321,18 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                     type="button"
                     className="site-header__mobile-chip site-header__mobile-chip--account"
                     onClick={() => go(adminSession ? 'admin' : 'profile')}
+                    title={sessionFullName}
                   >
-                    <User size={15} aria-hidden />
-                    <span className="site-header__mobile-chip-text">
-                      {adminSession ? 'Panel' : 'Cuenta'}
+                    <span className="site-header__mobile-chip-avatar" aria-hidden>
+                      {sessionInitialLetter}
                     </span>
+                    <span className="site-header__mobile-chip-text">{sessionShortName}</span>
                   </button>
                   <button
                     type="button"
                     className="site-header__mobile-chip site-header__mobile-chip--ghost"
                     onClick={onLogout}
-                    aria-label="Cerrar sesión"
+                    aria-label={t('nav.logout')}
                   >
                     <LogOut size={15} aria-hidden />
                   </button>
@@ -338,6 +351,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                     type="button"
                     className="site-header__mobile-chip site-header__mobile-chip--cta"
                     onClick={() => go('register')}
+                    aria-label={t('nav.affiliate')}
                   >
                     <span className="site-header__mobile-chip-text">{t('nav.affiliate')}</span>
                     <ArrowRight size={14} aria-hidden className="site-header__mobile-chip-arrow" />
@@ -380,13 +394,19 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
         aria-label={t('nav.menu')}
       >
           <div className="site-header__drawer-head">
-            <button type="button" className="site-header__drawer-brand" onClick={() => go('home')}>
-              <BrandLogo
-                variant="letterhead"
-                imgClassName="site-header__drawer-logo site-header__logo-letterhead"
-                height={24}
-              />
-            </button>
+            <div className="site-header__drawer-head-brand">
+              <button type="button" className="site-header__drawer-brand" onClick={() => go('home')}>
+                <BrandLogo
+                  variant="letterhead"
+                  imgClassName="site-header__drawer-logo site-header__logo-letterhead"
+                  height={24}
+                />
+              </button>
+              <span className="site-header__drawer-head-tag">
+                <span className="site-header__drawer-flag" aria-hidden />
+                {t('nav.drawerTag')}
+              </span>
+            </div>
             <button
               type="button"
               className="site-header__drawer-close"
@@ -398,10 +418,11 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
           </div>
 
           <div className="site-header__drawer-body">
-            <nav className="site-header__drawer-nav" aria-label="Menú móvil">
+            <nav className="site-header__drawer-nav" aria-label={t('nav.mobileMenu')}>
               <DrawerItem
                 active={activeView === 'members'}
                 className="site-header__drawer-item--hero"
+                hint={t('nav.membersHint')}
                 onClick={() => go('members')}
               >
                 {t('nav.members')}
@@ -413,6 +434,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                     key={key}
                     active={activeView === key}
                     featured={featured}
+                    hint={navHint(key)}
                     onClick={() => go(key)}
                   >
                     {t(`nav.${key}`)}
@@ -426,11 +448,15 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
               <DrawerSection accent="celeste" label={t('nav.groupRecursos')}>
                 {NAV_RECURSOS.map(({ key }) => (
-                  <DrawerItem key={key} active={activeView === key} onClick={() => go(key)}>
+                  <DrawerItem key={key} active={activeView === key} hint={navHint(key)} onClick={() => go(key)}>
                     {t(`nav.${key}`)}
                   </DrawerItem>
                 ))}
-                <DrawerItem active={activeView === 'contact'} onClick={() => go('contact')}>
+                <DrawerItem
+                  active={activeView === 'contact'}
+                  hint={t('nav.contactHint')}
+                  onClick={() => go('contact')}
+                >
                   {t('nav.contact')}
                 </DrawerItem>
               </DrawerSection>
@@ -451,7 +477,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   onClick={() => go(adminSession ? 'admin' : 'profile')}
                 >
                   <User size={16} aria-hidden />
-                  {adminSession ? 'Panel PLU' : 'Mi perfil'}
+                  {sessionFullName || (adminSession ? 'Panel PLU' : 'Mi perfil')}
                 </button>
                 <button
                   type="button"
@@ -459,7 +485,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   onClick={onLogout}
                 >
                   <LogOut size={16} aria-hidden />
-                  Cerrar sesión
+                  {t('nav.logout')}
                 </button>
               </div>
             ) : (

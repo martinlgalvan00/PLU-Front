@@ -25,6 +25,7 @@ export const STATUS_LABELS = {
   cupos_limitados: 'Cupos limitados',
   cerrado: 'Cerrado',
   finalizado: 'Finalizado',
+  usada: 'Ingresó ✓',
 }
 
 const SUCCESS = new Set([
@@ -34,6 +35,7 @@ const SUCCESS = new Set([
   'pagada',
   'aprobado',
   'inscripcion_abierta',
+  'usada',
 ])
 
 const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'observada', 'borrador', 'creado', 'cupos_limitados'])
