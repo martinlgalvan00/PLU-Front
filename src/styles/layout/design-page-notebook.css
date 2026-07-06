@@ -23,54 +23,109 @@
     padding-inline: var(--layout-gutter);
   }
 
-  /* ── Members hero: 2 columnas (título + rail) ── */
+  /* ── Members hero: 2 columnas en notebook ── */
 
   .members-page--premium .members-hero .design-hero__inner {
-    align-items: end;
-    gap: clamp(14px, 2.4vw, 20px);
-    grid-template-columns: minmax(0, 1fr) minmax(228px, 300px);
+    align-items: start;
+    gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   }
 
   .members-page--premium .members-hero .design-hero__intro {
-    gap: 8px;
+    gap: clamp(10px, 1.4vw, 14px);
     max-width: none;
-    padding-left: clamp(14px, 1.8vw, 18px);
-    position: relative;
+    padding-left: clamp(16px, 2.4vw, 24px);
   }
 
+  /* regla tricolor visible en notebook */
   .members-page--premium .members-hero .design-hero__intro::before {
-    background: linear-gradient(180deg, rgba(116, 172, 223, 0.55) 0%, rgba(201, 185, 120, 0.45) 100%);
-    border-radius: 99px;
-    bottom: 2px;
-    content: '';
     display: block;
-    left: 0;
-    opacity: 0.65;
-    position: absolute;
-    top: 2px;
-    width: 2px;
   }
 
   .members-page--premium .members-hero .design-hero__title {
-    max-width: 14ch;
-    text-wrap: balance;
+    font-size: clamp(34px, 5.8vw, 52px);
+    max-width: 9ch;
   }
 
-  .members-hero-rail--editorial .members-hero-rail__rail {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 16px;
-    padding: 10px 12px;
+  .members-page--premium .members-hero .design-hero__desc {
+    font-size: clamp(13.5px, 1.85vw, 15px);
+    max-width: 32ch;
   }
 
-  .members-hero-rail--editorial .members-hero-rail__metric {
-    flex: 1 1 calc(33.333% - 4px);
-    min-width: 0;
+  /* ── Rail card: glass + gradiente tricolor top ── */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__bar {
+    backdrop-filter: blur(20px) saturate(1.45);
+    -webkit-backdrop-filter: blur(20px) saturate(1.45);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) padding-box,
+      linear-gradient(
+        90deg,
+        rgba(225, 6, 0, 0.92) 0%,
+        rgba(201, 185, 120, 0.82) 50%,
+        rgba(116, 172, 223, 0.72) 100%
+      ) border-box;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 2px 1px 1px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.09) inset,
+      0 28px 56px rgba(0, 0, 0, 0.36),
+      0 8px 18px rgba(0, 0, 0, 0.2);
+    padding: clamp(18px, 2.6vw, 24px);
   }
 
-  .members-hero-rail--editorial .members-hero-rail__credential {
-    font-size: 11px;
-    margin-top: 8px;
+  /* Precios: fuente ajustada para que quepan en 324px sin desbordarse */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__price dd {
+    font-size: clamp(22px, 3.2vw, 26px);
+    letter-spacing: -0.05em;
+  }
+
+  /* Label de tipo de plan más claro */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__price dt {
+    font-size: 8px;
+    letter-spacing: 0.16em;
+  }
+
+  /* Validity text más compacto */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__validity {
+    font-size: 9.5px;
+    gap: 5px;
+    letter-spacing: 0.1em;
+  }
+
+  /* CTA primario: ancho completo, altura fija */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__cta--primary {
+    flex: 1 0 100%;
+    font-size: 13px;
+    justify-content: center;
+    letter-spacing: 0.01em;
+    min-height: 42px;
+    padding: 12px 20px;
+  }
+
+  .members-hero-rail--luxury .members-hero-rail__sample {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  /* ── Intro: 2 columnas en notebook también ── */
+
+  .members-page--premium .members-intro {
+    gap: clamp(24px, 3.5vw, 40px);
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    padding-top: clamp(24px, 3.5vw, 36px);
+  }
+
+  .members-page--premium .members-intro__head {
+    padding-left: clamp(16px, 2.4vw, 24px);
+  }
+
+  .members-page--premium .members-intro__head::before {
+    display: block;
+  }
+
+  .members-benefit-list--luxury .members-benefit-list__item {
+    grid-template-columns: 36px minmax(0, 1fr);
   }
 
   /* ── Members body: una columna legible ── */
@@ -85,33 +140,76 @@
 
   .members-intro {
     gap: clamp(16px, 2.2vw, 22px);
-    grid-template-columns: 1fr;
-    padding: clamp(18px, 2.5vw, 24px);
+    padding: 0;
   }
 
   .members-intro__head {
-    max-width: 52ch;
-    padding-left: clamp(14px, 1.8vw, 18px);
-  }
-
-  .members-intro__head::before {
-    display: block;
+    max-width: none;
   }
 
   .members-benefit-list {
     gap: 8px;
   }
 
-  .members-requirements__body {
-    gap: clamp(14px, 2vw, 18px);
-    grid-template-columns: 1fr;
+  .members-requirements {
+    grid-template-columns: 36px minmax(0, 1fr);
+    padding-top: clamp(16px, 2.4vw, 20px);
   }
 
-  .members-validity-ledger {
-    border-left: none;
-    border-top: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
-    padding-left: 0;
-    padding-top: 14px;
+  .members-requirements__index {
+    font-size: 16px;
+    padding-top: 4px;
+  }
+
+  /* ── Requirements: split list | validity ── */
+  .members-page--premium .members-requirements {
+    grid-template-columns: clamp(28px, 3.5vw, 36px) minmax(0, 1fr);
+    padding-top: clamp(20px, 3vw, 28px);
+  }
+
+  .members-page--premium .members-requirements__index {
+    font-size: clamp(11px, 1.4vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding-top: 5px;
+  }
+
+  .members-page--premium .members-requirements__head .members-section__title {
+    font-size: clamp(22px, 3.2vw, 28px);
+    max-width: none;
+  }
+
+  .members-page--premium .members-requirements__content {
+    display: grid;
+    column-gap: clamp(24px, 3.5vw, 40px);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .members-page--premium .members-requirements__head {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-bottom: clamp(16px, 2.4vw, 22px);
+  }
+
+  .members-page--premium .members-requirements .members-req-list--editorial {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .members-page--premium .members-requirements__validity {
+    border-left: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+    border-top: none;
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
+    padding-left: clamp(20px, 3vw, 28px);
+    padding-top: 0;
+  }
+
+  .members-req-list--editorial .members-req-list__item {
+    padding: clamp(12px, 1.8vw, 16px) 0;
   }
 
   .members-process--timeline {
@@ -130,9 +228,58 @@
     padding: 14px 14px 14px 12px;
   }
 
+  /* Plans: 2 cols en notebook. Combo (red/featured) ocupa el ancho completo */
   .members-page--premium .membership-grid--editorial {
-    max-width: min(100%, 420px);
-    margin-inline: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    max-width: none;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red {
+    grid-column: 1 / -1;
+  }
+
+  /* Cards más elegantes en notebook: tinte de fondo + sombra suave */
+  .members-page--premium .membership-grid--editorial .membership-card {
+    background: rgba(255, 255, 255, 0.025);
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.14), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    padding: 18px 20px;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--celeste {
+    border-left: 3px solid var(--color-brand-celeste);
+    border-top: 1px solid rgba(116, 172, 223, 0.14);
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--gold {
+    border-left: 3px solid var(--color-brand-gold);
+    border-top: 1px solid rgba(201, 185, 120, 0.14);
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red {
+    border-left: 3px solid var(--color-brand-red);
+    border-top: 1px solid rgba(225, 6, 0, 0.18);
+    background: rgba(225, 6, 0, 0.04);
+  }
+
+  /* Combo card full-width: layout horizontal (info | precio+cta) */
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__top {
+    flex: 1 1 auto;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__amount {
+    font-size: clamp(22px, 3.4vw, 28px);
+  }
+
+  /* Precios en cards individuales */
+  .members-page--premium .membership-grid--editorial .membership-card__amount {
+    font-size: clamp(20px, 3vw, 24px);
+  }
+
+  /* Pie de card CTA más visible */
+  .members-page--premium .membership-grid--editorial .membership-card__foot {
+    margin-top: 6px;
   }
 
   .members-section__head--center {
@@ -140,26 +287,15 @@
     margin-inline: auto;
   }
 
-  /* ── Pitbull body: secciones contenidas ── */
+  /* ── Pitbull dossier ── */
 
-  .pitbull-page--premium .pitbull-feature {
-    gap: clamp(14px, 2.2vw, 18px);
+  .pitbull-dossier--minimal {
+    gap: clamp(28px, 4.5vw, 40px);
+    padding-top: clamp(18px, 2.8vw, 24px);
   }
 
-  .pitbull-page--premium .pitbull-feature__visual {
-    aspect-ratio: 2.35 / 1;
-    border-radius: 16px;
-    max-height: 190px;
-    overflow: hidden;
-  }
-
-  .pitbull-page--premium .pitbull-feature-flip {
-    max-height: 190px;
-    min-height: 190px;
-  }
-
-  .pitbull-page--premium .pitbull-feature__body {
-    padding: clamp(4px, 1vw, 8px) 0 0;
+  .pitbull-dossier--minimal .pitbull-dossier__visual-img {
+    max-height: 148px;
   }
 
   .pitbull-page--premium .pitbull-inscription__inner,
@@ -178,13 +314,48 @@
     padding-inline: 0;
   }
 
-  .pitbull-ticket-pass__body {
-    grid-template-columns: 1fr;
+  /* ── Credential card: más grande en notebook ── */
+  .pitbull-page--premium .pitbull-credential-showcase--solo .pitbull-credential__card,
+  .pitbull-page--premium .pitbull-credential-showcase__card .pitbull-credential__card {
+    box-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.06) inset,
+      0 0 0 1px rgba(255, 255, 255, 0.065),
+      0 48px 96px rgba(0, 0, 0, 0.6),
+      0 16px 40px rgba(0, 0, 0, 0.42);
+    max-width: min(100%, 460px);
   }
 
-  .pitbull-ticket-pass__cta {
-    justify-self: start;
-    width: 100%;
+  /* Benefits title más impactante en notebook */
+  .pitbull-benefits-hero__title {
+    font-size: clamp(24px, 3.8vw, 30px);
+    max-width: 11ch;
+  }
+
+  /* Benefits lane items: single-row (icon + title), desc oculta para evitar wrapping */
+  .pitbull-benefits-lane__desc {
+    display: none;
+  }
+
+  .pitbull-benefits-lane__item {
+    align-items: center;
+    grid-template-rows: auto;
+    padding: clamp(10px, 1.5vw, 13px) 0;
+  }
+
+  .pitbull-benefits-lane__icon {
+    grid-row: 1;
+  }
+
+  .pitbull-benefits-lane__title {
+    font-size: 12.5px;
+    grid-row: 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Shell header labels más prominentes */
+  .pitbull-benefits-shell__label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
   }
 
   [data-theme='light'] .members-hero-rail--editorial .members-hero-rail__rail {
@@ -199,79 +370,39 @@
 
   /* ── Events hero + body notebook ── */
 
+  /* ── Events hero: intro + filtros apilados ── */
+
   .events-page--premium .events-hero .design-hero__inner {
-    align-items: end;
-    gap: clamp(10px, 1.6vw, 14px);
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+    align-items: stretch;
+    gap: clamp(14px, 2.2vw, 20px);
+    grid-template-columns: 1fr;
   }
 
   .events-page--premium .events-hero .design-hero__intro {
-    gap: 6px;
-    grid-column: 1;
-    grid-row: 1;
+    gap: clamp(8px, 1.2vw, 10px);
     max-width: none;
-    padding-left: clamp(14px, 1.8vw, 18px);
+    padding-left: 0;
   }
 
   .events-page--premium .events-hero .design-hero__intro::before {
-    display: block;
-  }
-
-  .events-page--premium .events-hero .design-hero__title {
-    max-width: 12ch;
-    text-wrap: balance;
-  }
-
-  .events-page--premium .events-hero .design-hero__desc {
-    max-width: 38ch;
-  }
-
-  .events-page--premium .events-hero__bar {
-    grid-column: 2;
-    grid-row: 1;
-    margin-top: 0;
-  }
-
-  .events-page--premium .events-hero__control-rail {
-    align-items: stretch;
-    border-radius: 16px;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px;
-  }
-
-  .events-page--premium .events-hero__control-filters {
-    flex: none;
-    min-width: 0;
-    width: 100%;
-  }
-
-  .events-page--premium .events-hero__control-filters .segmented-switch__option {
-    font-size: 8px;
-    letter-spacing: 0.05em;
-    padding-inline: 4px;
-  }
-
-  .events-page--premium .events-hero .segmented-switch__label--full {
     display: none;
   }
 
-  .events-page--premium .events-hero .segmented-switch__label--short {
-    display: inline;
+  .events-page--premium .events-hero .design-hero__title {
+    max-width: none;
   }
 
-  .events-page--premium .events-hero__count {
-    align-self: center;
-    padding: 0 4px;
+  .events-page--premium .events-hero__toolbar {
+    padding-top: clamp(12px, 1.8vw, 16px);
   }
 
   .events-page--premium .events-main-column {
     gap: clamp(12px, 1.8vw, 18px);
   }
 
-  .events-page--premium .pitbull-spotlight--events {
-    border-radius: 16px;
-    overflow: hidden;
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__media-img {
+    max-height: 190px;
+    min-height: 0;
   }
 
   /* ── Community body ── */
@@ -359,9 +490,5 @@
   .community-page--premium .community-hero .design-hero__inner {
     align-items: end;
     grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
-  }
-
-  .events-page--premium .pitbull-spotlight--events {
-    grid-template-columns: minmax(0, 1fr) clamp(120px, 18cqi, 168px);
   }
 }

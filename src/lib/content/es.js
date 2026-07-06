@@ -280,11 +280,53 @@ export const PITBULL_CLASSIC = {
   divisions: ['Open', 'Junior', 'Sub-Junior', 'Master'],
 }
 
+export const PITBULL_VENUE = {
+  name: 'Maximal Strength Club',
+  address: 'Buenos Aires, Argentina',
+  mapsUrl: 'https://maps.google.com/?q=Maximal+Strength+Club+Buenos+Aires+Argentina',
+  mapsEmbedUrl:
+    'https://maps.google.com/maps?q=Maximal+Strength+Club+Buenos+Aires+Argentina&output=embed&z=15',
+}
+
+export const PITBULL_BENEFITS_ATHLETES = [
+  { id: 'standard', icon: 'Globe', title: 'Resultados PLU USA', desc: 'Reconocidos internacionalmente.' },
+  { id: 'credential', icon: 'QrCode', title: 'Credencial digital', desc: 'Card y QR de ingreso al confirmar.' },
+  { id: 'judging', icon: 'ShieldCheck', title: 'Jueces certificados', desc: 'Panel técnico PLU USA en tres plataformas.' },
+  { id: 'ops', icon: 'ClipboardList', title: 'Gestión sin papeles', desc: 'Pesaje, sorteo y cargas desde la app.' },
+]
+
+export const PITBULL_BENEFITS_SPECTATORS = [
+  { id: 'show', icon: 'Zap', title: 'Show en vivo', desc: 'Dos días, tres plataformas simultáneas.' },
+  { id: 'access', icon: 'Ticket', title: 'Sin afiliación', desc: 'Solo DNI. Online más barato que en puerta.' },
+  { id: 'community', icon: 'Users', title: 'Comunidad PLU', desc: 'Atletxs de todo el país. Ambiente institucional.' },
+]
+
+export const PITBULL_SCHEDULE = [
+  {
+    day: 'Día 1',
+    date: '12 Dic',
+    items: [
+      { time: 'AM', label: 'Pesaje — Categorías del Día 1' },
+      { time: 'MED', label: 'Briefing técnico obligatorio' },
+      { time: 'PM', label: 'Competencia — Categorías del Día 1' },
+    ],
+  },
+  {
+    day: 'Día 2',
+    date: '13 Dic',
+    items: [
+      { time: 'AM', label: 'Pesaje — Categorías del Día 2' },
+      { time: 'MED', label: 'Briefing técnico obligatorio' },
+      { time: 'PM', label: 'Competencia + Entrega de premios' },
+    ],
+  },
+]
+
 export const PITBULL_CATEGORY_CARDS = [
   { id: 'equipment', title: 'Equipamiento', text: `${PITBULL_CLASSIC.categories.join(' · ')} (ejemplo)` },
   { id: 'age', title: 'Edad', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (ejemplo)` },
-  { id: 'weight', title: 'Peso corporal', text: 'Categorías masculinas y femeninas por franja de peso (ejemplo).' },
-  { id: 'gender', title: 'Género', text: 'Masculino y femenino, competencia separada (ejemplo).' },
+  { id: 'weight', title: 'Peso corporal', text: 'Franjas masculinas y femeninas (ejemplo).' },
+  { id: 'gender', title: 'Género', text: 'Competencia separada M / F (ejemplo).' },
 ]
 
 export const PITBULL_CREDENTIAL_SAMPLE = {

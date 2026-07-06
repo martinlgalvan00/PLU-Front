@@ -212,6 +212,23 @@ export function checkInRegistration(registrationId, registrations) {
   return { outcome: 'ok', registration: updatedRegistration }
 }
 
+/**
+ * Actualiza los datos de contacto editables del perfil del atleta (no toca
+ * identidad/elegibilidad: documentId, birthDate, fullName, sex).
+ */
+export function updateAthleteProfile(athleteId, updates, athletes) {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(updates.email ?? '')) {
+    return { error: 'Email inválido.' }
+  }
+
+  const { email, phone, city, province, gym } = updates
+  const nextAthletes = athletes.map((item) =>
+    item.id === athleteId ? { ...item, email, phone, city, province, gym } : item,
+  )
+  return { athlete: nextAthletes.find((item) => item.id === athleteId), athletes: nextAthletes }
+}
+
 function createPayment({ athleteId, concept, amount, method, payments }) {
   return {
     id: generateId('pay', payments.length + 1),

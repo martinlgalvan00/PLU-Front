@@ -213,15 +213,15 @@
 
 .ticket-purchase--editorial .ticket-purchase__quantity {
   align-items: center;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-radius: 0;
+  background: var(--pitbull-ticket-pass-price-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--pitbull-ticket-pass-price-border, var(--color-border-subtle));
+  border-radius: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px 16px;
   justify-content: space-between;
-  padding: 0 0 clamp(12px, 1.8vw, 16px);
+  margin-top: clamp(12px, 1.8vw, 16px);
+  padding: 12px 14px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__quantity-main {
@@ -233,7 +233,7 @@
 
 .ticket-purchase--editorial .ticket-purchase__summary-inline {
   align-items: baseline;
-  display: none;
+  display: flex;
   gap: 8px;
   margin-left: auto;
 }
@@ -247,7 +247,7 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__summary-inline strong {
-  color: var(--color-text-primary);
+  color: var(--color-brand-celeste);
   font-family: var(--font-display);
   font-size: 16px;
   font-variant-numeric: tabular-nums;
@@ -255,10 +255,12 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__checkout--editorial {
-  border-top: 1px solid var(--color-border-subtle);
+  background: var(--pitbull-ticket-pass-price-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--pitbull-ticket-pass-price-border, var(--color-border-subtle));
+  border-radius: 14px;
   gap: 12px;
-  margin-top: 2px;
-  padding-top: clamp(12px, 1.8vw, 16px);
+  margin-top: clamp(14px, 2vw, 18px);
+  padding: 14px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__checkout-foot {
@@ -285,18 +287,36 @@
   text-transform: uppercase;
 }
 
+.ticket-purchase--editorial .ticket-purchase__stepper {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  gap: 4px;
+  padding: 3px;
+}
+
+[data-theme='light'] .ticket-purchase--editorial .ticket-purchase__stepper {
+  background: rgba(15, 17, 23, 0.02);
+}
+
 .ticket-purchase--editorial .ticket-purchase__stepper button {
   background: transparent;
-  border-color: var(--color-border-subtle);
-  border-radius: 8px;
-  height: 28px;
-  width: 28px;
+  border-color: transparent;
+  border-radius: 50%;
+  height: 30px;
+  width: 30px;
+}
+
+.ticket-purchase--editorial .ticket-purchase__stepper button:hover:not(:disabled) {
+  background: rgba(116, 172, 223, 0.1);
+  border-color: rgba(116, 172, 223, 0.22);
 }
 
 .ticket-purchase--editorial .ticket-purchase__stepper span {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
+  min-width: 24px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__unit-price {
@@ -307,14 +327,20 @@
 
 .ticket-purchase--editorial .ticket-purchase__attendees {
   gap: 0;
+  margin-top: clamp(12px, 1.8vw, 16px);
 }
 
 .ticket-purchase--editorial .ticket-purchase__attendee-row {
-  border: none;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-  gap: 10px;
-  padding: clamp(12px, 1.8vw, 16px) 0;
+  background: var(--pitbull-ticket-pass-price-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--pitbull-ticket-pass-price-border, var(--color-border-subtle));
+  border-radius: 14px;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 14px;
+}
+
+.ticket-purchase--editorial .ticket-purchase__attendee-row:first-of-type {
+  margin-top: 0;
 }
 
 .ticket-purchase--editorial .ticket-purchase__attendee-index {
@@ -391,30 +417,66 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__attendees-head {
-  border-bottom: 1px solid var(--color-border-subtle);
+  border: none;
   display: grid;
-  gap: 8px;
-  padding: 0 0 clamp(12px, 1.8vw, 16px);
+  gap: 0;
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  padding: 0;
+}
+
+.ticket-purchase--editorial .ticket-purchase__attendees-callout {
+  align-items: flex-start;
+  background: var(--pitbull-ticket-pass-qr-bg, rgba(116, 172, 223, 0.08));
+  border: 1px solid var(--pitbull-ticket-pass-qr-border, rgba(116, 172, 223, 0.2));
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.ticket-purchase--editorial .ticket-purchase__attendees-callout-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+[data-theme='light'] .ticket-purchase--editorial .ticket-purchase__attendees-callout-icon {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+.ticket-purchase--editorial .ticket-purchase__attendees-callout-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .ticket-purchase--editorial .ticket-purchase__attendees-lead {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.ticket-purchase--editorial .ticket-purchase__info-callout {
-  align-items: flex-start;
-  color: var(--color-text-muted);
-  display: flex;
-  font-size: 11px;
-  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.45;
   margin: 0;
 }
 
-.ticket-purchase--editorial .ticket-purchase__info-callout svg {
+.ticket-purchase--editorial .ticket-purchase__attendees-note {
+  align-items: flex-start;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.ticket-purchase--editorial .ticket-purchase__attendees-note svg {
   flex: none;
   margin-top: 1px;
   opacity: 0.72;
@@ -688,7 +750,6 @@
 @media (max-width: 640px) {
   .ticket-purchase--editorial .ticket-purchase__quantity {
     gap: 10px;
-    grid-template-columns: 1fr;
   }
 
   .ticket-purchase--editorial .ticket-purchase__quantity-main {
@@ -696,12 +757,14 @@
     width: 100%;
   }
 
+  .ticket-purchase--editorial .ticket-purchase__summary-inline {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .ticket-purchase--editorial .ticket-purchase__checkout--editorial {
-    background: color-mix(in srgb, var(--color-bg-elevated) 72%, transparent);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: 14px;
     gap: 0;
-    margin-top: 4px;
     padding: 12px;
   }
 

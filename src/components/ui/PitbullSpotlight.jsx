@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, MapPin } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import pitbullVisual from '../../assets/powerlifting-hero.png'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -19,68 +19,49 @@ export default function PitbullSpotlight({
 
   if (isEvents) {
     return (
-      <article className="pitbull-spotlight pitbull-spotlight--design pitbull-spotlight--events">
-        <div className="pitbull-spotlight__content">
-          <div className="pitbull-spotlight__top">
-            <span className="pitbull-spotlight__eyebrow">{t('pages.pitbull.spotlight.nextEvent')}</span>
-            <span className="pitbull-spotlight__soon">
-              <span className="pitbull-spotlight__soon-dot" aria-hidden />
-              {t('pages.pitbull.spotlight.registrationSoon')}
-            </span>
-          </div>
+      <article className="pitbull-spotlight pitbull-spotlight--events pitbull-spotlight--editorial">
+        <div className="pitbull-spotlight__stripe" aria-hidden />
 
-          <h2 className="pitbull-spotlight__title">{PITBULL_CLASSIC.title}</h2>
-          <p className="pitbull-spotlight__desc">{PITBULL_CLASSIC.tagline}</p>
+        <div className="pitbull-spotlight__layout">
+          <figure className="pitbull-spotlight__media">
+            <img
+              src={pitbullVisual}
+              alt=""
+              className="pitbull-spotlight__media-img"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
 
-          <div className="pitbull-spotlight__meta-rail">
-            <span className="pitbull-spotlight__meta-item">
-              <Calendar size={13} aria-hidden />
-              {PITBULL_CLASSIC.date}
-            </span>
-            <span className="pitbull-spotlight__meta-sep" aria-hidden>
-              ·
-            </span>
-            <span className="pitbull-spotlight__meta-item">
-              <MapPin size={13} aria-hidden />
-              {PITBULL_CLASSIC.location}
-            </span>
-          </div>
-
-          <div className="pitbull-spotlight__footer">
-            <div className="pitbull-spotlight__footer-main">
-              <span className="pitbull-spotlight__categories">
-                {PITBULL_CLASSIC.categories.join(' · ')}
+          <div className="pitbull-spotlight__panel">
+            <header className="pitbull-spotlight__head">
+              <span className="pitbull-spotlight__index" aria-hidden>
+                {t('pages.events.spotlightIndex')}
               </span>
-              <div className="pitbull-spotlight__capacity pitbull-spotlight__capacity--compact">
-                <CapacityBar
-                  current={PITBULL_CLASSIC.registered}
-                  total={PITBULL_CLASSIC.slots}
-                  label={t('pages.pitbull.slots')}
-                />
+              <div className="pitbull-spotlight__head-copy">
+                <span className="pitbull-spotlight__eyebrow">{t('pages.events.nextMeet')}</span>
+                <h2 className="pitbull-spotlight__title">{PITBULL_CLASSIC.title}</h2>
+                <p className="pitbull-spotlight__meta">
+                  <time dateTime="2026-12-12">{PITBULL_CLASSIC.date}</time>
+                  <span aria-hidden>·</span>
+                  <span>{PITBULL_CLASSIC.venue}</span>
+                  <span aria-hidden>·</span>
+                  <span>{PITBULL_CLASSIC.location}</span>
+                </p>
+                <p className="pitbull-spotlight__lead">{PITBULL_CLASSIC.tagline}</p>
               </div>
-            </div>
-            <div className="pitbull-spotlight__actions">
-              <Button variant="outline" onClick={onDetail}>
-                {t('pages.pitbull.spotlight.viewDetail')}
-              </Button>
-              {onRegister ? (
-                <Button onClick={onRegister}>{resolvedRegisterLabel}</Button>
-              ) : (
-                <button type="button" className="pitbull-spotlight__cta-link" onClick={onDetail}>
-                  {t('pages.pitbull.spotlight.fullCalendar')}
+            </header>
+
+            <footer className="pitbull-spotlight__foot">
+              <span className="pitbull-spotlight__status">{t('pages.pitbull.spotlight.registrationSoon')}</span>
+              <div className="pitbull-spotlight__actions">
+                <button type="button" className="pitbull-spotlight__link" onClick={onDetail}>
+                  {t('pages.pitbull.spotlight.viewDetail')}
                   <ArrowRight size={14} aria-hidden />
                 </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="pitbull-spotlight__visual pitbull-spotlight__visual--minimal" aria-hidden>
-          <img src={pitbullVisual} alt="" className="pitbull-spotlight__visual-img" />
-          <div className="pitbull-spotlight__visual-overlay" />
-          <div className="pitbull-spotlight__visual-date pitbull-spotlight__visual-date--compact">
-            <span className="pitbull-spotlight__visual-date-day">{PITBULL_CLASSIC.dateDay}</span>
-            <span className="pitbull-spotlight__visual-date-month">{PITBULL_CLASSIC.dateMonth} 2026</span>
+                {onRegister ? <Button onClick={onRegister}>{resolvedRegisterLabel}</Button> : null}
+              </div>
+            </footer>
           </div>
         </div>
       </article>
@@ -113,11 +94,9 @@ export default function PitbullSpotlight({
         ) : (
           <ul className="pitbull-spotlight__meta">
             <li>
-              <Calendar size={14} aria-hidden />
               {PITBULL_CLASSIC.date}
             </li>
             <li>
-              <MapPin size={14} aria-hidden />
               {PITBULL_CLASSIC.location}
             </li>
           </ul>

@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { CalendarDays, Eye, Link2, MapPin, Save, Star, Ticket, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { CalendarDays, Eye, Link2, MapPin, Radio, Save, Star, Ticket, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import Button from '../ui/Button.jsx'
 import EventCard from '../ui/EventCard.jsx'
@@ -9,6 +9,7 @@ import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   mapDraftToPreviewEvent,
+  upsertEventCalendarLiveFields,
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 
@@ -107,6 +108,8 @@ export default function AdminEventEditor({
   sourceEvent = null,
 }) {
   const { t } = useI18n()
+  const [syncError, setSyncError] = useState(null)
+  const [syncing, setSyncing] = useState(false)
 
   const statusOptions = useMemo(
     () =>
@@ -117,9 +120,29 @@ export default function AdminEventEditor({
     [t],
   )
 
+  // Calendario/directo/cupos viven en Supabase (ver eventAdminService.js);
+  // el resto del draft sigue guardándose en localStorage vía `onSubmit`,
+  // que no tocamos. Si la sincronización falla (ej. todavía no hay sesión
+  // de Supabase Auth para el panel), igual dejamos completar el guardado
+  // local — no bloqueamos el flujo existente por un problema de otra fase.
+  async function handleFormSubmit(event) {
+    event.preventDefault()
+    setSyncError(null)
+    setSyncing(true)
+    try {
+      const preview = mapDraftToPreviewEvent(draft, sourceEvent)
+      await upsertEventCalendarLiveFields({ ...draft, slug: preview.slug })
+    } catch (error) {
+      setSyncError(error.message)
+    } finally {
+      setSyncing(false)
+    }
+    onSubmit(event)
+  }
+
   return (
     <div className="admin-event-editor">
-      <form className="admin-event-form admin-event-form--editor" onSubmit={onSubmit} noValidate>
+      <form className="admin-event-form admin-event-form--editor" onSubmit={handleFormSubmit} noValidate>
         <div className="admin-event-form__head">
           <div>
             <h3>{draft.id ? t('admin.eventEditor.editTitle') : t('admin.eventEditor.createTitle')}</h3>
@@ -303,8 +326,178 @@ export default function AdminEventEditor({
           </span>
         </label>
 
+        <fieldset className="admin-event-form__pricing">
+          <legend>{t('admin.eventEditor.supabase.sectionTitle')}</legend>
+          <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.supabase.sectionLead')}</p>
+
+          <div className="admin-event-form__grid">
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.startsAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.startsAt ?? ''}
+                onChange={(event) => onChange({ ...draft, startsAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.endsAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.endsAt ?? ''}
+                onChange={(event) => onChange({ ...draft, endsAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+          </div>
+
+          <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.supabase.registrationWindowTitle')}</p>
+          <div className="admin-event-form__grid">
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.registrationOpensAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.registrationOpensAt ?? ''}
+                onChange={(event) => onChange({ ...draft, registrationOpensAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.registrationClosesAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.registrationClosesAt ?? ''}
+                onChange={(event) => onChange({ ...draft, registrationClosesAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+          </div>
+
+          <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.supabase.ticketSalesWindowTitle')}</p>
+          <div className="admin-event-form__grid">
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.ticketSalesOpensAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.ticketSalesOpensAt ?? ''}
+                onChange={(event) => onChange({ ...draft, ticketSalesOpensAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.ticketSalesClosesAt')}</span>
+              <input
+                type="datetime-local"
+                value={draft.ticketSalesClosesAt ?? ''}
+                onChange={(event) => onChange({ ...draft, ticketSalesClosesAt: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+          </div>
+
+          <p className="admin-event-form__pricing-lead">
+            {t('admin.eventEditor.supabase.capacityTitle')} — {t('admin.eventEditor.supabase.capacityHint')}
+          </p>
+          <div className="admin-event-form__grid admin-event-form__grid--pricing">
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.capacityDay1')}</span>
+              <input
+                min={0}
+                type="number"
+                value={draft.capacityDay1 ?? ''}
+                onChange={(event) => onChange({ ...draft, capacityDay1: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.capacityDay2')}</span>
+              <input
+                min={0}
+                type="number"
+                value={draft.capacityDay2 ?? ''}
+                onChange={(event) => onChange({ ...draft, capacityDay2: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.capacityBoth')}</span>
+              <input
+                min={0}
+                type="number"
+                value={draft.capacityBoth ?? ''}
+                onChange={(event) => onChange({ ...draft, capacityBoth: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+          </div>
+
+          <p className="admin-event-form__pricing-lead">
+            <Radio size={13} aria-hidden /> {t('admin.eventEditor.supabase.liveTitle')}
+          </p>
+          <div className="admin-event-form__grid">
+            <label className="admin-event-form__field admin-event-form__field--wide">
+              <span>{t('admin.eventEditor.supabase.liveStreamUrl')}</span>
+              <input
+                type="url"
+                placeholder="https://youtube.com/watch?v=..."
+                value={draft.liveStreamUrl ?? ''}
+                onChange={(event) => onChange({ ...draft, liveStreamUrl: event.target.value })}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.liveStreamProvider')}</span>
+              <select
+                value={draft.liveStreamProvider ?? 'youtube'}
+                onChange={(event) => onChange({ ...draft, liveStreamProvider: event.target.value })}
+                disabled={!canEdit}
+              >
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+                <option value="twitch">Twitch</option>
+              </select>
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.supabase.liveStatus')}</span>
+              <select
+                value={draft.liveStatus ?? 'offline'}
+                onChange={(event) => onChange({ ...draft, liveStatus: event.target.value })}
+                disabled={!canEdit}
+              >
+                <option value="offline">{t('admin.eventEditor.supabase.liveStatusOffline')}</option>
+                <option value="live">{t('admin.eventEditor.supabase.liveStatusLive')}</option>
+                <option value="ended">{t('admin.eventEditor.supabase.liveStatusEnded')}</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <label className="admin-event-form__toggle">
+          <input
+            checked={Boolean(draft.published)}
+            className="admin-event-form__toggle-input"
+            type="checkbox"
+            onChange={(event) => onChange({ ...draft, published: event.target.checked })}
+            disabled={!canEdit}
+          />
+          <span className="admin-event-form__toggle-ui" aria-hidden />
+          <span className="admin-event-form__toggle-copy">
+            <strong>
+              <Eye size={13} aria-hidden />
+              {t('admin.eventEditor.supabase.publishedTitle')}
+            </strong>
+            <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
+          </span>
+        </label>
+
+        {syncError && (
+          <p className="admin-event-form__pricing-lead" role="alert">
+            {t('admin.eventEditor.supabase.syncError', { message: syncError })}
+          </p>
+        )}
+
         <div className="admin-event-form__actions">
-          <Button type="submit" disabled={!canEdit}>
+          <Button type="submit" disabled={!canEdit || syncing}>
             <Save size={15} aria-hidden />
             {draft.id ? t('admin.eventEditor.saveChanges') : t('admin.eventEditor.publish')}
           </Button>

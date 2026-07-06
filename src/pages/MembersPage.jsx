@@ -1,13 +1,3 @@
-import {
-  Award,
-  BadgeCheck,
-  CreditCard,
-  Camera,
-  HeartPulse,
-  ShieldCheck,
-  Trophy,
-  Users,
-} from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembersHeroRail from '../components/ui/MembersHeroRail.jsx'
@@ -16,21 +6,7 @@ import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-const BENEFIT_ICONS = {
-  events: Trophy,
-  credential: BadgeCheck,
-  results: Award,
-}
-
-const REQUIREMENT_ICONS = {
-  id: CreditCard,
-  age: Users,
-  health: HeartPulse,
-  photo: Camera,
-}
-
-export default function MembersPage({ onNavigate, session }) {
-  const {
+export default function MembersPage({ onNavigate, session }) {  const {
     MEMBERSHIP_ANNUAL_STEPS,
     MEMBERSHIP_BENEFITS,
     MEMBERSHIP_FAQ,
@@ -53,6 +29,7 @@ export default function MembersPage({ onNavigate, session }) {
         className="members-hero"
         compact
         breadcrumbLabel={t('pages.members.heroBreadcrumb')}
+        eyebrow={t('pages.members.heroEyebrow')}
         onHome={() => onNavigate('home')}
         title={t('pages.members.heroTitle')}
         description={t('pages.members.heroDesc')}
@@ -67,76 +44,73 @@ export default function MembersPage({ onNavigate, session }) {
       <div className="members-page__body">
         <Reveal as="section" variant="up" className="members-section members-section--intro">
           <div className="members-intro">
-            <div className="members-intro__head">
-              <span className="members-section__eyebrow">{t('pages.members.introEyebrow')}</span>
-              <h2 className="members-section__title members-section__title--display">
-                {t('pages.members.introTitle')}
-              </h2>
-              <p className="members-section__text">{t('pages.members.introText')}</p>
-            </div>
+            <header className="members-intro__head">
+              <span className="members-intro__index" aria-hidden>
+                {t('pages.members.introIndex')}
+              </span>
+              <div className="members-intro__head-copy">
+                <span className="members-section__eyebrow">{t('pages.members.introEyebrow')}</span>
+                <h2 className="members-section__title members-section__title--display">
+                  {t('pages.members.introTitle')}
+                </h2>
+                <p className="members-section__text">{t('pages.members.introText')}</p>
+              </div>
+            </header>
 
-            <ul className="members-benefit-list" aria-label={t('pages.members.benefitsAria')}>
-              {MEMBERSHIP_BENEFITS.map((item) => {
-                const Icon = BENEFIT_ICONS[item.id] ?? ShieldCheck
-                return (
-                  <li key={item.id} className="members-benefit-list__item">
-                    <span className="members-benefit-list__icon" aria-hidden>
-                      <Icon size={17} strokeWidth={1.75} />
-                    </span>
-                    <div className="members-benefit-list__copy">
-                      <strong>{item.title}</strong>
-                      <span>{item.text}</span>
-                    </div>
-                  </li>
-                )
-              })}
+            <ul className="members-benefit-list members-benefit-list--luxury" aria-label={t('pages.members.benefitsAria')}>
+              {MEMBERSHIP_BENEFITS.map((item, index) => (
+                <li key={item.id} className="members-benefit-list__item">
+                  <span className="members-benefit-list__index" aria-hidden>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <div className="members-benefit-list__copy">
+                    <strong>{item.title}</strong>
+                    <p>{item.text}</p>
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
         </Reveal>
 
         <Reveal as="section" variant="up" className="members-section members-section--requirements">
           <div className="members-requirements">
-            <header className="members-requirements__head">
-              <span className="members-requirements__index" aria-hidden>
-                {t('pages.members.requirementsIndex')}
-              </span>
-              <div className="members-requirements__head-copy">
+            <span className="members-requirements__index" aria-hidden>
+              {t('pages.members.requirementsIndex')}
+            </span>
+
+            <div className="members-requirements__content">
+              <header className="members-requirements__head">
                 <span className="members-section__eyebrow">{t('pages.members.requirementsEyebrow')}</span>
                 <h2 className="members-section__title">{t('pages.members.requirementsTitle')}</h2>
-              </div>
-            </header>
+              </header>
 
-            <div className="members-requirements__body">
-              <ol className="members-req-timeline" aria-label={t('pages.members.requirementsAria')}>
-                {MEMBERSHIP_REQUIREMENTS.map((item, index) => {
-                  const Icon = REQUIREMENT_ICONS[item.id] ?? ShieldCheck
-                  return (
-                    <li key={item.id} className="members-req-timeline__item">
-                      <span className="members-req-timeline__index">{String(index + 1).padStart(2, '0')}</span>
-                      <div className="members-req-timeline__copy">
-                        <div className="members-req-timeline__title-row">
-                          <span className="members-req-timeline__icon" aria-hidden>
-                            <Icon size={13} strokeWidth={1.75} />
-                          </span>
-                          <strong>{item.title}</strong>
-                        </div>
-                        <p>{item.text}</p>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ol>
+              <ul className="members-req-list members-req-list--editorial" aria-label={t('pages.members.requirementsAria')}>
+                {MEMBERSHIP_REQUIREMENTS.map((item) => (
+                  <li key={item.id} className="members-req-list__item">
+                    <div className="members-req-list__copy">
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
-              <aside className="members-validity-ledger" aria-labelledby="members-validity-title">
-                <span className="members-validity-ledger__label">{t('pages.members.validityLabel')}</span>
-                <h3 id="members-validity-title">{t('pages.members.validityTitle')}</h3>
-                <p>{t('pages.members.validityText')}</p>
-                <ul className="members-validity-ledger__notes">
-                  {validityNotes.map((note) => (
-                    <li key={note}>{note}</li>
+              <div className="members-requirements__validity" aria-labelledby="members-validity-title">
+                <header className="members-requirements__validity-head">
+                  <span className="members-requirements__validity-label">{t('pages.members.validityLabel')}</span>
+                  <h3 id="members-validity-title">{t('pages.members.validityTitle')}</h3>
+                </header>
+                <p className="members-requirements__validity-text">{t('pages.members.validityText')}</p>
+                <p className="members-requirements__validity-notes">
+                  {validityNotes.map((note, index) => (
+                    <span key={note}>
+                      {index > 0 ? <span aria-hidden> · </span> : null}
+                      {note}
+                    </span>
                   ))}
-                </ul>
-              </aside>
+                </p>
+              </div>
             </div>
           </div>
         </Reveal>

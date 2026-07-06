@@ -7,6 +7,8 @@ export const PRICING = {
   combo: 78000,
   ticket: 12000,
   ticketBothDays: 20000,
+  ticketPresencial: 15000,
+  ticketBothDaysPresencial: 25000,
 }
 
 export const PROCEDURE_TYPES = {

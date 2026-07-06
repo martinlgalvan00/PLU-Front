@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, MapPin } from 'lucide-react'
+import { ArrowRight, CalendarDays, CalendarPlus, MapPin } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
+import EventLiveStream from '../components/ui/EventLiveStream.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
+import { buildGoogleCalendarUrl, downloadIcs } from '../lib/calendar.js'
+import { fetchPublishedEvents } from '../services/eventAdminService.js'
 
 function EventStatusBadge({ status, t }) {
   const { label, tone } = getStatusMeta(status, t)
@@ -69,14 +72,67 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
           </Button>
         )}
       </div>
+
+      <EventLiveStream
+        liveStatus={event.liveStatus}
+        liveStreamUrl={event.liveStreamUrl}
+        liveStreamProvider={event.liveStreamProvider}
+      />
+
+      {event.startsAt && event.endsAt && (
+        <div className="events-detail__calendar-actions">
+          <Button
+            variant="outline"
+            className="btn--small"
+            onClick={() => window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')}
+          >
+            <CalendarPlus size={14} aria-hidden />
+            {t('pages.events.addToGoogleCalendar')}
+          </Button>
+          <Button variant="outline" className="btn--small" onClick={() => downloadIcs(event)}>
+            <CalendarPlus size={14} aria-hidden />
+            {t('pages.events.downloadIcs')}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
 
-export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMING_EVENTS }) {
+export default function EventsPage({ onNavigate, onSelectEvent, events: eventsProp = UPCOMING_EVENTS }) {
   const { t } = useI18n()
+  // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
+  // (localStorage/mock); acá lo enriquecemos con lo que ya es real en
+  // Supabase (calendario/directo) matcheando por slug — sin bloquear el
+  // render si Supabase no responde (queda el evento tal cual vino).
+  const [supabaseBySlug, setSupabaseBySlug] = useState({})
+
+  useEffect(() => {
+    let active = true
+    fetchPublishedEvents()
+      .then((rows) => {
+        if (!active) return
+        setSupabaseBySlug(Object.fromEntries(rows.map((row) => [row.slug, row])))
+      })
+      .catch((error) => {
+        console.warn('No se pudieron cargar los eventos de Supabase.', error)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const events = useMemo(
+    () => eventsProp.map((event) => ({ ...event, ...supabaseBySlug[event.slug] })),
+    [eventsProp, supabaseBySlug],
+  )
+
   const pitbull = events.find((event) => event.featured) ?? events[0]
-  const [selected, setSelected] = useState(pitbull)
+  // Se guarda el slug (no el objeto) para que `selected` siempre refleje la
+  // versión más reciente del evento en `events` — incluidos los campos que
+  // llegan async desde Supabase (calendario/directo) después del primer render.
+  const [selectedSlug, setSelectedSlug] = useState(pitbull?.slug ?? null)
+  const selected = events.find((event) => event.slug === selectedSlug) ?? null
   const [filter, setFilter] = useState('all')
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
 
@@ -120,20 +176,20 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
 
   useEffect(() => {
     if (listEvents.length === 0) {
-      setSelected(null)
+      setSelectedSlug(null)
       return
     }
 
-    const stillVisible = listEvents.some((event) => event.slug === selected?.slug)
+    const stillVisible = listEvents.some((event) => event.slug === selectedSlug)
     if (!stillVisible) {
       const next = listEvents[0]
-      setSelected(next)
+      setSelectedSlug(next.slug)
       setCalendarFocus(next.dateISO)
     }
-  }, [listEvents, selected?.slug])
+  }, [listEvents, selectedSlug])
 
   function focusEvent(event) {
-    setSelected(event)
+    setSelectedSlug(event.slug)
     setCalendarFocus(event.dateISO)
   }
 
@@ -141,7 +197,6 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
     onSelectEvent?.(event)
   }
 
-  const filterIndex = filters.findIndex(([key]) => key === filter)
   const eventCountLabel =
     listEvents.length === 1
       ? t('pages.events.eventCount_one', { count: listEvents.length })
@@ -153,34 +208,23 @@ export default function EventsPage({ onNavigate, onSelectEvent, events = UPCOMIN
         className="events-hero"
         compact
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
+        eyebrow={t('pages.events.heroEyebrow')}
         onHome={() => onNavigate('home')}
         title={t('pages.events.heroTitle')}
         description={t('pages.events.heroDesc')}
       >
-        <div className="events-hero__bar">
-          <div className="events-hero__control-rail">
-            <div className="events-hero__control-filters">
-              <div
-                className="events-hero__filters-shell events-toolbar__filters-shell--segmented"
-                style={{
-                  '--filter-active-index': Math.max(filterIndex, 0),
-                  '--filter-count': filters.length,
-                }}
-              >
-                <FilterPills
-                  active={filter}
-                  ariaLabel={t('pages.events.filterAria')}
-                  className="filter-pills--refined events-hero__filters segmented-switch--luxury"
-                  onChange={setFilter}
-                  options={filters}
-                  segmented
-                />
-              </div>
-            </div>
-            <span className="events-hero__count" aria-live="polite">
-              {eventCountLabel}
-            </span>
-          </div>
+        <div className="events-hero__toolbar">
+          <FilterPills
+            active={filter}
+            ariaLabel={t('pages.events.filterAria')}
+            className="events-hero__filters segmented-switch--editorial"
+            onChange={setFilter}
+            options={filters}
+            segmented
+          />
+          <span className="events-hero__count" aria-live="polite">
+            {eventCountLabel}
+          </span>
         </div>
       </DesignPageHero>
 
