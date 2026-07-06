@@ -399,7 +399,7 @@
 }
 
 .members-hero-rail--luxury .members-hero-rail__price dt {
-  color: var(--color-brand-red);
+  color: rgba(255, 255, 255, 0.42);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -419,7 +419,26 @@
 }
 
 .members-hero-rail--luxury .members-hero-rail__price--junior dd {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .members-hero-rail--luxury .members-hero-rail__price dt {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .members-hero-rail--luxury .members-hero-rail__cta--primary {
+  background: rgba(15, 17, 23, 0.06);
+  border-color: rgba(15, 17, 23, 0.14);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .members-hero-rail--luxury .members-hero-rail__cta--primary:hover {
+  background: rgba(15, 17, 23, 0.09);
+  border-color: rgba(15, 17, 23, 0.22);
+}
+
+[data-theme='light'] .members-hero-rail--luxury .members-hero-rail__cta--ghost:hover {
+  color: var(--color-text-primary);
 }
 
 .members-hero-rail--luxury .members-hero-rail__validity {
@@ -466,17 +485,16 @@
 }
 
 .members-hero-rail--luxury .members-hero-rail__cta--primary {
-  background: linear-gradient(135deg, var(--plu-red-500), #c00804);
-  box-shadow:
-    0 8px 22px rgba(225, 6, 0, 0.24),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
   color: #fff;
 }
 
 .members-hero-rail--luxury .members-hero-rail__cta--primary:hover {
-  box-shadow:
-    0 12px 28px rgba(225, 6, 0, 0.32),
-    0 1px 0 rgba(255, 255, 255, 0.14) inset;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
   transform: translateY(-1px);
 }
 
@@ -492,7 +510,7 @@
 }
 
 .members-hero-rail--luxury .members-hero-rail__cta--ghost:hover {
-  color: var(--color-brand-celeste);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .members-hero-rail--luxury .members-hero-rail__cta:focus-visible {
