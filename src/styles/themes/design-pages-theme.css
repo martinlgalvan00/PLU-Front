@@ -58,20 +58,44 @@
   --home-quick-band-bg: var(--plu-cool-750);
   --home-quick-band-link-bg: var(--plu-cool-750);
   --home-quick-band-link-hover: var(--plu-cool-700);
-  --home-quick-band-fg: rgba(255, 255, 255, 0.78);
-  --home-quick-band-fg-hover: rgba(255, 255, 255, 0.96);
-  --home-quick-band-border: rgba(255, 255, 255, 0.08);
-  --home-quick-band-divider: rgba(255, 255, 255, 0.06);
-  --home-quick-band-arrow: rgba(255, 255, 255, 0.34);
-  --home-quick-band-label: rgba(255, 255, 255, 0.36);
+  --home-quick-band-fg: rgba(255, 255, 255, 0.9);
+  --home-quick-band-fg-hover: #fff;
+  --home-quick-band-border: rgba(255, 255, 255, 0.09);
+  --home-quick-band-divider: rgba(255, 255, 255, 0.08);
+  --home-quick-band-arrow: rgba(255, 255, 255, 0.38);
+  --home-quick-band-label: rgba(255, 255, 255, 0.55);
+  --home-quick-band-chip-border: rgba(255, 255, 255, 0.12);
+  --home-quick-band-chip-hover-bg: rgba(255, 255, 255, 0.08);
+  --home-quick-band-chip-hover-border: rgba(255, 255, 255, 0.22);
+  --home-quick-band-dock-bg: rgba(3, 3, 5, 0.98);
+  --home-quick-band-dock-ambient:
+    radial-gradient(ellipse 42% 120% at 4% 50%, rgba(201, 185, 120, 0.06) 0%, transparent 62%),
+    radial-gradient(ellipse 38% 120% at 96% 50%, rgba(116, 172, 223, 0.05) 0%, transparent 58%);
+  --home-quick-band-label-pill-bg: rgba(255, 255, 255, 0.04);
+  --home-quick-band-label-pill-border: rgba(255, 255, 255, 0.1);
+  --home-quick-band-label-rule: linear-gradient(
+    180deg,
+    var(--color-brand-red) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --home-quick-band-shell-bg: rgba(0, 0, 0, 0.42);
+  --home-quick-band-shell-border: rgba(255, 255, 255, 0.09);
+  --home-quick-band-shell-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 32px rgba(0, 0, 0, 0.45);
+  --home-quick-band-shell-glow: none;
+  --home-quick-band-link-active-bg: rgba(255, 255, 255, 0.1);
   --home-quick-band-chip-border: rgba(255, 255, 255, 0.1);
-  --home-quick-band-chip-hover-bg: rgba(255, 255, 255, 0.06);
-  --home-quick-band-chip-hover-border: rgba(255, 255, 255, 0.18);
-  --home-quick-band-dock-bg: rgba(14, 15, 18, 0.72);
-  --home-quick-band-shell-bg: rgba(255, 255, 255, 0.035);
-  --home-quick-band-shell-border: rgba(255, 255, 255, 0.08);
-  --home-quick-band-shell-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.28);
-  --home-quick-band-link-active-bg: rgba(255, 255, 255, 0.07);
+  --home-quick-band-accent-red-bg: rgba(225, 6, 0, 0.16);
+  --home-quick-band-accent-red-fg: rgba(255, 210, 208, 0.98);
+  --home-quick-band-accent-red-border: rgba(225, 6, 0, 0.32);
+  --home-quick-band-accent-gold-bg: rgba(201, 185, 120, 0.12);
+  --home-quick-band-accent-gold-fg: var(--plu-gold-300);
+  --home-quick-band-accent-gold-border: rgba(201, 185, 120, 0.28);
+  --home-quick-band-accent-celeste-bg: rgba(116, 172, 223, 0.12);
+  --home-quick-band-accent-celeste-fg: var(--plu-celeste-300);
+  --home-quick-band-accent-celeste-border: rgba(116, 172, 223, 0.26);
   --home-quick-band-stripe: linear-gradient(
     90deg,
     var(--color-brand-red) 0%,
@@ -103,8 +127,8 @@
   --home-membership-check-fg: var(--color-brand-celeste);
   --home-hero-bg: var(--plu-cool-950);
   --home-hero-copy-bg:
-    radial-gradient(ellipse 72% 58% at 14% 0%, rgba(116, 172, 223, 0.07), transparent 58%),
-    radial-gradient(ellipse 58% 46% at 88% 24%, rgba(225, 6, 0, 0.05), transparent 54%);
+    radial-gradient(ellipse 78% 62% at 12% 0%, rgba(116, 172, 223, 0.11), transparent 60%),
+    radial-gradient(ellipse 62% 50% at 90% 22%, rgba(225, 6, 0, 0.08), transparent 56%);
   --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
   --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.58);
   --home-hero-eyebrow-stripe: linear-gradient(
@@ -146,9 +170,9 @@
   --home-hero-status-value: rgba(255, 255, 255, 0.78);
   --home-hero-status-live: rgba(255, 255, 255, 0.42);
   --home-hero-status-live-border: rgba(255, 255, 255, 0.06);
-  --home-hero-proof-bg: rgba(255, 255, 255, 0.02);
-  --home-hero-ambient-red: rgba(225, 6, 0, 0.14);
-  --home-hero-ambient-celeste: rgba(116, 172, 223, 0.1);
+  --home-hero-proof-bg: rgba(255, 255, 255, 0.04);
+  --home-hero-ambient-red: rgba(225, 6, 0, 0.18);
+  --home-hero-ambient-celeste: rgba(116, 172, 223, 0.13);
   --home-hero-eyebrow-dot: var(--plu-red-oklch);
   --home-spotlight-section-bg: var(--home-immersive-bg);
   --home-spotlight-card-bg: transparent;
@@ -328,6 +352,10 @@
   --pitbull-feature-bg: var(--color-bg-surface);
   --pitbull-feature-border: rgba(255, 255, 255, 0.1);
   --pitbull-feature-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --pitbull-feature-band-bg:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
+    var(--color-bg-surface);
+  --pitbull-feature-band-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
   --pitbull-feature-stripe: var(--plu-gradient-stripe);
   --pitbull-feature-panel-wash: linear-gradient(180deg, rgba(116, 172, 223, 0.12), transparent);
   --pitbull-feature-capacity-bg: rgba(8, 8, 10, 0.62);
@@ -343,6 +371,44 @@
   --pitbull-inscription-step-icon-bg: rgba(116, 172, 223, 0.1);
   --pitbull-inscription-step-icon-border: rgba(116, 172, 223, 0.2);
   --pitbull-section-divider: rgba(255, 255, 255, 0.06);
+  --pitbull-categories-shell-bg:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%),
+    var(--color-bg-surface);
+  --pitbull-categories-shell-border: rgba(201, 185, 120, 0.14);
+  --pitbull-categories-shell-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 20px 48px rgba(0, 0, 0, 0.24);
+  --pitbull-categories-trigger-hover: rgba(255, 255, 255, 0.04);
+  --pitbull-categories-trigger-open-bg: rgba(255, 255, 255, 0.03);
+  --pitbull-categories-count-fg: rgba(255, 255, 255, 0.46);
+  --pitbull-categories-chip-label: rgba(255, 255, 255, 0.38);
+  --pitbull-categories-chip-bg: rgba(255, 255, 255, 0.05);
+  --pitbull-categories-chip-border: rgba(255, 255, 255, 0.1);
+  --pitbull-categories-chip-fg: rgba(255, 255, 255, 0.8);
+  --pitbull-categories-chip-category-bg: rgba(116, 172, 223, 0.1);
+  --pitbull-categories-chip-category-border: rgba(116, 172, 223, 0.22);
+  --pitbull-categories-chip-division-bg: rgba(201, 185, 120, 0.1);
+  --pitbull-categories-chip-division-border: rgba(201, 185, 120, 0.24);
+  --pitbull-categories-chevron-bg: rgba(255, 255, 255, 0.05);
+  --pitbull-categories-chevron-border: rgba(255, 255, 255, 0.1);
+  --pitbull-categories-chevron-fg: rgba(255, 255, 255, 0.56);
+  --pitbull-ticket-pass-bg:
+    linear-gradient(135deg, rgba(201, 185, 120, 0.07) 0%, rgba(116, 172, 223, 0.05) 52%, rgba(255, 255, 255, 0.02) 100%);
+  --pitbull-ticket-pass-border: rgba(201, 185, 120, 0.22);
+  --pitbull-ticket-pass-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 48px rgba(0, 0, 0, 0.22);
+  --pitbull-ticket-pass-price-bg: rgba(255, 255, 255, 0.04);
+  --pitbull-ticket-pass-price-border: rgba(255, 255, 255, 0.1);
+  --pitbull-ticket-pass-qr-bg: rgba(116, 172, 223, 0.1);
+  --pitbull-ticket-pass-qr-border: rgba(116, 172, 223, 0.24);
+  --pitbull-ticket-form-bg:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%),
+    var(--color-bg-surface);
+  --pitbull-ticket-form-border: rgba(201, 185, 120, 0.16);
+  --pitbull-ticket-form-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 18px 44px rgba(0, 0, 0, 0.2);
   --pitbull-checklist-bg: rgba(255, 255, 255, 0.03);
   --results-footnotes-border: rgba(255, 255, 255, 0.06);
   --results-footnotes-icon-bg: rgba(255, 255, 255, 0.04);
@@ -461,15 +527,40 @@
   --home-quick-band-border: rgba(15, 17, 23, 0.06);
   --home-quick-band-divider: rgba(15, 17, 23, 0.06);
   --home-quick-band-arrow: rgba(15, 17, 23, 0.38);
-  --home-quick-band-label: rgba(15, 17, 23, 0.42);
+  --home-quick-band-label: rgba(15, 17, 23, 0.5);
   --home-quick-band-chip-border: rgba(15, 17, 23, 0.1);
   --home-quick-band-chip-hover-bg: rgba(15, 17, 23, 0.04);
   --home-quick-band-chip-hover-border: rgba(15, 17, 23, 0.18);
-  --home-quick-band-dock-bg: rgba(255, 255, 255, 0.72);
-  --home-quick-band-shell-bg: rgba(255, 255, 255, 0.88);
-  --home-quick-band-shell-border: rgba(15, 17, 23, 0.08);
-  --home-quick-band-shell-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 8px 22px rgba(15, 17, 23, 0.06);
+  --home-quick-band-dock-bg: rgba(255, 255, 255, 0.82);
+  --home-quick-band-dock-ambient:
+    radial-gradient(ellipse 42% 120% at 8% 50%, rgba(201, 185, 120, 0.12) 0%, transparent 62%),
+    radial-gradient(ellipse 38% 120% at 92% 50%, rgba(116, 172, 223, 0.1) 0%, transparent 58%);
+  --home-quick-band-label-pill-bg: rgba(255, 255, 255, 0.92);
+  --home-quick-band-label-pill-border: rgba(15, 17, 23, 0.08);
+  --home-quick-band-label-rule: linear-gradient(
+    180deg,
+    var(--color-brand-red) 0%,
+    rgba(15, 17, 23, 0.2) 50%,
+    var(--color-brand-celeste) 100%
+  );
+  --home-quick-band-shell-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --home-quick-band-shell-border: rgba(201, 185, 120, 0.22);
+  --home-quick-band-shell-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 12px 32px rgba(15, 17, 23, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.75);
+  --home-quick-band-shell-glow: 0 0 40px rgba(201, 185, 120, 0.1);
   --home-quick-band-link-active-bg: rgba(15, 17, 23, 0.05);
+  --home-quick-band-accent-red-bg: rgba(225, 6, 0, 0.08);
+  --home-quick-band-accent-red-fg: var(--color-brand-red);
+  --home-quick-band-accent-red-border: rgba(225, 6, 0, 0.22);
+  --home-quick-band-accent-gold-bg: rgba(201, 185, 120, 0.14);
+  --home-quick-band-accent-gold-fg: oklch(48% 0.08 85);
+  --home-quick-band-accent-gold-border: rgba(201, 185, 120, 0.38);
+  --home-quick-band-accent-celeste-bg: rgba(116, 172, 223, 0.12);
+  --home-quick-band-accent-celeste-fg: oklch(52% 0.1 240);
+  --home-quick-band-accent-celeste-border: rgba(116, 172, 223, 0.28);
   --home-quick-band-stripe: linear-gradient(
     90deg,
     var(--color-brand-red) 0%,
@@ -724,6 +815,8 @@
   --pitbull-feature-bg: #fff;
   --pitbull-feature-border: rgba(15, 17, 23, 0.08);
   --pitbull-feature-shadow: 0 20px 48px rgba(15, 17, 23, 0.07);
+  --pitbull-feature-band-bg: #fff;
+  --pitbull-feature-band-shadow: 0 16px 40px rgba(15, 17, 23, 0.06);
   --pitbull-feature-stripe: var(--plu-gradient-stripe);
   --pitbull-feature-panel-wash: linear-gradient(180deg, rgba(26, 107, 176, 0.06), transparent);
   --pitbull-feature-capacity-bg: rgba(15, 17, 23, 0.72);
@@ -739,6 +832,42 @@
   --pitbull-inscription-step-icon-bg: rgba(26, 107, 176, 0.08);
   --pitbull-inscription-step-icon-border: rgba(26, 107, 176, 0.18);
   --pitbull-section-divider: rgba(15, 17, 23, 0.08);
+  --pitbull-categories-shell-bg:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --pitbull-categories-shell-border: rgba(201, 185, 120, 0.22);
+  --pitbull-categories-shell-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 16px 40px rgba(15, 17, 23, 0.07);
+  --pitbull-categories-trigger-hover: rgba(15, 17, 23, 0.03);
+  --pitbull-categories-trigger-open-bg: rgba(15, 17, 23, 0.02);
+  --pitbull-categories-count-fg: rgba(15, 17, 23, 0.46);
+  --pitbull-categories-chip-label: rgba(15, 17, 23, 0.42);
+  --pitbull-categories-chip-bg: rgba(15, 17, 23, 0.03);
+  --pitbull-categories-chip-border: rgba(15, 17, 23, 0.09);
+  --pitbull-categories-chip-fg: rgba(15, 17, 23, 0.78);
+  --pitbull-categories-chip-category-bg: rgba(116, 172, 223, 0.1);
+  --pitbull-categories-chip-category-border: rgba(116, 172, 223, 0.2);
+  --pitbull-categories-chip-division-bg: rgba(201, 185, 120, 0.12);
+  --pitbull-categories-chip-division-border: rgba(201, 185, 120, 0.28);
+  --pitbull-categories-chevron-bg: rgba(15, 17, 23, 0.03);
+  --pitbull-categories-chevron-border: rgba(15, 17, 23, 0.09);
+  --pitbull-categories-chevron-fg: rgba(15, 17, 23, 0.48);
+  --pitbull-ticket-pass-bg:
+    linear-gradient(135deg, rgba(201, 185, 120, 0.1) 0%, rgba(116, 172, 223, 0.06) 52%, rgba(255, 255, 255, 0.98) 100%);
+  --pitbull-ticket-pass-border: rgba(201, 185, 120, 0.28);
+  --pitbull-ticket-pass-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 16px 40px rgba(15, 17, 23, 0.08);
+  --pitbull-ticket-pass-price-bg: rgba(15, 17, 23, 0.02);
+  --pitbull-ticket-pass-price-border: rgba(15, 17, 23, 0.08);
+  --pitbull-ticket-pass-qr-bg: rgba(116, 172, 223, 0.1);
+  --pitbull-ticket-pass-qr-border: rgba(116, 172, 223, 0.2);
+  --pitbull-ticket-form-bg:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --pitbull-ticket-form-border: rgba(201, 185, 120, 0.24);
+  --pitbull-ticket-form-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 14px 36px rgba(15, 17, 23, 0.06);
   --pitbull-checklist-bg: rgba(15, 17, 23, 0.03);
   --results-footnotes-border: rgba(15, 17, 23, 0.06);
   --results-footnotes-icon-bg: rgba(15, 17, 23, 0.03);

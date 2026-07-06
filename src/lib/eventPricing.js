@@ -7,6 +7,8 @@ export const DEFAULT_EVENT_PRICING = {
   combo: PRICING.combo,
   ticketDay: PRICING.ticket,
   ticketBothDays: PRICING.ticketBothDays,
+  ticketDayPresencial: PRICING.ticketPresencial,
+  ticketBothDaysPresencial: PRICING.ticketBothDaysPresencial,
   ticketsEnabled: true,
 }
 
@@ -23,6 +25,8 @@ export function ticketPricingFromEvent(event) {
   return {
     day: pricing.ticketDay,
     bothDays: pricing.ticketBothDays,
+    dayPresencial: pricing.ticketDayPresencial,
+    bothDaysPresencial: pricing.ticketBothDaysPresencial,
   }
 }
 
@@ -33,6 +37,8 @@ export function normalizeEventPricingInput(pricing = {}) {
     combo: Number(pricing.combo) || DEFAULT_EVENT_PRICING.combo,
     ticketDay: Number(pricing.ticketDay) || DEFAULT_EVENT_PRICING.ticketDay,
     ticketBothDays: Number(pricing.ticketBothDays) || DEFAULT_EVENT_PRICING.ticketBothDays,
+    ticketDayPresencial: Number(pricing.ticketDayPresencial) || DEFAULT_EVENT_PRICING.ticketDayPresencial,
+    ticketBothDaysPresencial: Number(pricing.ticketBothDaysPresencial) || DEFAULT_EVENT_PRICING.ticketBothDaysPresencial,
     ticketsEnabled: pricing.ticketsEnabled !== false,
   }
 }

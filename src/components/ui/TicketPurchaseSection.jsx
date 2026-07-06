@@ -313,11 +313,18 @@ export default function TicketPurchaseSection({
       <div className="ticket-purchase__attendees">
         {editorial && (
           <header className="ticket-purchase__attendees-head">
-            <p className="ticket-purchase__attendees-lead">{t('pages.tickets.editorialNote')}</p>
-            <p className="ticket-purchase__info-callout">
-              <IdCard size={14} aria-hidden />
-              <span>{t('pages.tickets.dniWhy')}</span>
-            </p>
+            <div className="ticket-purchase__attendees-callout">
+              <span className="ticket-purchase__attendees-callout-icon" aria-hidden>
+                <QrCode size={18} strokeWidth={1.75} />
+              </span>
+              <div className="ticket-purchase__attendees-callout-copy">
+                <p className="ticket-purchase__attendees-lead">{t('pages.tickets.editorialNote')}</p>
+                <p className="ticket-purchase__attendees-note">
+                  <IdCard size={13} aria-hidden />
+                  <span>{t('pages.tickets.dniWhy')}</span>
+                </p>
+              </div>
+            </div>
           </header>
         )}
         {attendees.map((attendee, index) =>

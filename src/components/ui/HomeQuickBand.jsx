@@ -2,6 +2,31 @@ import { ArrowRight } from 'lucide-react'
 import { HOME_QUICK_LINKS } from '../../lib/content.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
+const QUICK_LINK_ACCENT = {
+  members: 'red',
+  pitbull: 'gold',
+  events: 'celeste',
+  results: 'neutral',
+  rulebook: 'neutral',
+}
+
+const FEATURED_QUICK_KEYS = new Set(['pitbull'])
+
+function quickLinkClassName(key) {
+  const accent = QUICK_LINK_ACCENT[key] ?? 'neutral'
+  const parts = ['home-quick-band__link']
+
+  if (accent !== 'neutral') {
+    parts.push(`home-quick-band__link--accent-${accent}`)
+  }
+
+  if (FEATURED_QUICK_KEYS.has(key)) {
+    parts.push('home-quick-band__link--featured')
+  }
+
+  return parts.join(' ')
+}
+
 export default function HomeQuickBand({ onNavigate, variant = 'default' }) {
   const { t } = useI18n()
   const isDock = variant === 'dock'
@@ -24,7 +49,7 @@ export default function HomeQuickBand({ onNavigate, variant = 'default' }) {
               <button
                 key={key}
                 type="button"
-                className="home-quick-band__link"
+                className={quickLinkClassName(key)}
                 onClick={() => onNavigate(key)}
               >
                 <span className="home-quick-band__link-text">{t(labelKey)}</span>

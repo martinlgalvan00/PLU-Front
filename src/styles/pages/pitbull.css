@@ -12,7 +12,10 @@
   isolation: isolate;
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: clamp(20px, 3vw, 28px) clamp(20px, 5vw, 64px) clamp(40px, 5vw, 56px);
+  padding:
+    clamp(20px, 3vw, 28px)
+    var(--layout-gutter)
+    clamp(40px, 5vw, 56px);
   position: relative;
   z-index: 2;
 }
@@ -50,7 +53,9 @@
 }
 
 .pitbull-page--premium .pitbull-hero .design-hero__intro {
-  gap: 6px;
+  display: grid;
+  gap: clamp(10px, 1.6vw, 14px);
+  grid-template-columns: minmax(0, 1fr);
   max-width: none;
   padding-left: 0;
 }
@@ -62,11 +67,36 @@
 .pitbull-page--premium .pitbull-hero .design-hero__breadcrumb {
   background: transparent;
   border: none;
+  display: flex;
+  flex-wrap: wrap;
   font-size: 11px;
   letter-spacing: 0.04em;
-  margin-bottom: 0;
+  margin: 0;
   opacity: 0.72;
   padding: 0;
+  width: fit-content;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: none;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  opacity: 0.88;
+  padding: 0;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__eyebrow-dot {
+  display: none;
 }
 
 .pitbull-page--premium .pitbull-hero .design-hero__title {
@@ -75,240 +105,8 @@
   font-weight: 700;
   letter-spacing: -0.034em;
   line-height: 1.08;
-  margin-top: 2px;
+  margin: 0;
   max-width: none;
-}
-
-.pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  opacity: 0.88;
-  text-transform: uppercase;
-}
-
-/* ── Hero spec sheet (editorial) ─────────────── */
-
-.pitbull-hero-spec {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 16px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 16px 40px rgba(0, 0, 0, 0.16);
-  display: grid;
-  gap: 0;
-  isolation: isolate;
-  margin: 0;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-
-.pitbull-hero-spec::before {
-  background: var(--plu-gradient-stripe);
-  content: '';
-  height: 2px;
-  left: 14px;
-  opacity: 0.85;
-  position: absolute;
-  right: 14px;
-  top: 0;
-  z-index: 1;
-}
-
-.pitbull-hero-spec__head {
-  padding: 14px 14px 0;
-}
-
-.pitbull-hero-spec__status {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-secondary);
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 600;
-  gap: 7px;
-  letter-spacing: 0.06em;
-  padding: 5px 10px;
-  text-transform: uppercase;
-}
-
-.pitbull-hero-spec__foot {
-  background: rgba(0, 0, 0, 0.12);
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
-  padding: 10px 14px 12px;
-}
-
-[data-theme='light'] .pitbull-hero-spec {
-  background: rgba(15, 17, 23, 0.02);
-  border-color: rgba(15, 17, 23, 0.09);
-  box-shadow: 0 12px 32px rgba(15, 17, 23, 0.06);
-}
-
-[data-theme='light'] .pitbull-hero-spec__status {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .pitbull-hero-spec__foot {
-  background: rgba(15, 17, 23, 0.02);
-}
-
-.pitbull-hero-spec__dot {
-  background: var(--color-text-muted);
-  border-radius: 50%;
-  flex: none;
-  height: 6px;
-  width: 6px;
-}
-
-.pitbull-hero-spec__dot--success {
-  background: var(--color-brand-celeste);
-  box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.18);
-}
-
-.pitbull-hero-spec__dot--warning {
-  background: #d4a017;
-}
-
-.pitbull-hero-spec__dot--danger {
-  background: var(--color-brand-red);
-}
-
-.pitbull-hero-spec__dot--neutral {
-  background: var(--color-text-muted);
-}
-
-.pitbull-hero-spec__facts {
-  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
-  display: grid;
-  gap: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-  padding: 12px 14px;
-}
-
-@media (min-width: 480px) {
-  .pitbull-hero-spec__facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.pitbull-hero-spec__fact {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 6px 0;
-}
-
-@media (min-width: 480px) {
-  .pitbull-hero-spec__fact:not(:last-child) {
-    border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
-    padding-right: clamp(10px, 1.8vw, 16px);
-  }
-
-  .pitbull-hero-spec__fact:not(:first-child) {
-    padding-left: clamp(10px, 1.8vw, 16px);
-  }
-}
-
-.pitbull-hero-spec__fact dt {
-  color: var(--color-text-muted);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.pitbull-hero-spec__fact dd {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(14px, 2vw, 16px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  margin: 0;
-}
-
-.pitbull-hero-spec__fact--open dd {
-  color: var(--color-brand-celeste);
-}
-
-.pitbull-hero-spec__fact--warn dd {
-  color: var(--color-brand-red);
-}
-
-.pitbull-hero-spec__actions {
-  align-items: stretch;
-  display: grid;
-  gap: 10px;
-}
-
-.pitbull-hero-spec__cta {
-  align-items: center;
-  background: transparent;
-  border: none;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 600;
-  gap: 7px;
-  padding: 0;
-  transition: color var(--transition-fast), gap var(--transition-fast);
-}
-
-.pitbull-hero-spec__cta:hover {
-  color: var(--color-brand-celeste);
-  gap: 9px;
-}
-
-.pitbull-hero-spec__cta--primary {
-  color: var(--color-brand-celeste);
-  justify-content: center;
-  width: 100%;
-}
-
-.pitbull-hero-spec__secondary {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  justify-content: center;
-}
-
-.pitbull-hero-spec__link {
-  align-items: center;
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 600;
-  gap: 5px;
-  letter-spacing: 0.02em;
-  padding: 4px 0;
-  transition: color var(--transition-fast);
-}
-
-.pitbull-hero-spec__link:hover {
-  color: var(--color-brand-celeste);
-}
-
-.pitbull-hero-spec__cta--muted {
-  color: var(--color-text-muted);
-}
-
-.pitbull-hero-spec__cta--muted:hover {
-  color: var(--color-text-secondary);
 }
 
 .pitbull-hero-rail {
@@ -510,7 +308,801 @@
 }
 
 .pitbull-page--premium .pitbull-page__body {
-  gap: clamp(20px, 3vw, 28px);
+  gap: 0;
+}
+
+.pitbull-page--premium .pitbull-page__body,
+.pitbull-page--premium .pitbull-dossier--minimal {
+  box-sizing: border-box;
+  margin-inline: auto;
+  max-width: var(--max-width-content);
+  width: 100%;
+}
+
+/* ── Dossier minimal (flujo continuo) ─────────── */
+
+.pitbull-dossier--minimal {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(36px, 5.5vw, 52px);
+  padding-top: clamp(24px, 3.5vw, 32px);
+}
+
+.pitbull-dossier--minimal > .pitbull-dossier__section--benefits,
+.pitbull-dossier--minimal > .pitbull-dossier__section,
+.pitbull-dossier--minimal > .pitbull-dossier__visual {
+  margin-inline: auto;
+  max-width: 52rem;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual {
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: none;
+  margin: 0;
+  overflow: hidden;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual-img {
+  display: block;
+  height: clamp(132px, 20vw, 168px);
+  object-fit: cover;
+  object-position: center 24%;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section {
+  border: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__head {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__kicker {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.62));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.034em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__body {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  margin-top: clamp(14px, 2.2vw, 18px);
+  max-width: none;
+  width: 100%;
+}
+
+/* ── 01 Feature — editorial split ─────────────── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__kicker {
+  gap: 6px 8px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__index::after {
+  color: var(--color-text-muted);
+  content: '·';
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 8px;
+  opacity: 0.45;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__item {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__label {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__value {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__actions--feature {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+@media (min-width: 960px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(26px, 3.5vw, 34px);
+    max-width: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    margin-top: clamp(14px, 2.2vw, 18px);
+  }
+}
+
+/* ── 02 Categories — chips matrix ───────────── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
+  max-width: 20ch;
+}
+
+.pitbull-dossier--minimal .pitbull-categories-foot {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+@media (min-width: 960px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(26px, 3.5vw, 34px);
+    max-width: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
+    margin-top: clamp(14px, 2.2vw, 18px);
+  }
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__status {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__status strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__actions {
+  align-items: center;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta:hover {
+  background: #d10504;
+  transform: translateY(-1px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  gap: 5px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast), gap var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link:hover {
+  color: var(--color-brand-red);
+  gap: 7px;
+  text-decoration-color: currentColor;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier {
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 4px 16px;
+  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr);
+  margin: 0;
+  padding: 12px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid__term {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link.pitbull-dossier__text-link--rulebook {
+  justify-self: start;
+  margin-top: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__pricing {
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price--both {
+  border: none;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price dt {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price dd {
+  font-size: clamp(17px, 2.4vw, 20px);
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__actions {
+  border: none;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__action-rail--primary {
+  border: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__price-note {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-desc {
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__cta--primary {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-link {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
+  text-underline-offset: 3px;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-link:hover {
+  color: var(--color-brand-red);
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__requirements--editorial {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__req-summary {
+  color: var(--color-text-secondary);
+  padding: 10px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__requirements .pitbull-inscription__timeline {
+  border-top: 1px solid var(--pitbull-section-divider);
+  padding: 12px 0 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__credential-toggle {
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  padding: 12px 0 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__credential-toggle:hover {
+  color: var(--color-brand-red);
+}
+
+.pitbull-dossier--minimal .pitbull-tickets__form-shell {
+  margin-top: 0;
+}
+
+.pitbull-dossier--minimal.pitbull-inscription,
+.pitbull-dossier--minimal .pitbull-dossier__section--inscription.pitbull-inscription,
+.pitbull-dossier--minimal .pitbull-dossier__section--tickets.pitbull-tickets {
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 901px) {
+  .pitbull-dossier--minimal .pitbull-dossier__visual {
+    display: block;
+  }
+}
+
+@media (max-width: 560px) {
+  .pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell {
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Legacy dossier grid — deprecado */
+.pitbull-dossier:not(.pitbull-dossier--minimal) {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  padding-top: clamp(20px, 3vw, 28px);
+}
+
+.pitbull-dossier__visual {
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: none;
+  margin: 0 0 clamp(4px, 1vw, 8px);
+  overflow: hidden;
+}
+
+.pitbull-dossier__visual-img {
+  display: block;
+  height: clamp(160px, 28vw, 220px);
+  object-fit: cover;
+  object-position: center 22%;
+  width: 100%;
+}
+
+.pitbull-dossier__section {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  grid-template-columns: 44px minmax(0, 1fr);
+  padding: clamp(22px, 3.2vw, 32px) 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier__section--first {
+  border-top: none;
+}
+
+.pitbull-dossier__visual + .pitbull-dossier__section--first {
+  border-top: none;
+  padding-top: clamp(22px, 3.2vw, 32px);
+}
+
+.pitbull-dossier__index {
+  align-self: start;
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-column: 1;
+  grid-row: 1;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 6px;
+}
+
+.pitbull-dossier__content {
+  grid-column: 2;
+  min-width: 0;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier__content::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-dossier__head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 24ch;
+  text-wrap: balance;
+}
+
+.pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.pitbull-dossier__status {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.06em;
+  margin: -6px 0 clamp(12px, 1.8vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-dossier__status strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.pitbull-dossier__actions {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__cta {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.pitbull-dossier__cta:hover {
+  background: #d10504;
+  transform: translateY(-1px);
+}
+
+.pitbull-dossier__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.pitbull-dossier__text-link {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-brand-red);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 0;
+  transition: gap var(--transition-fast), color var(--transition-fast);
+}
+
+.pitbull-dossier__text-link:hover {
+  color: var(--color-brand-celeste);
+  gap: 9px;
+}
+
+.pitbull-spec-grid--dossier {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin: 0;
+}
+
+.pitbull-dossier__section--tickets .pitbull-ticket-pass__pricing {
+  margin-top: 0;
+}
+
+.pitbull-dossier__section--inscription .pitbull-inscription__action-rail--primary {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  margin-top: 0;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__section--tickets .pitbull-tickets__form-shell {
+  margin-top: 0;
+}
+
+.pitbull-dossier__section--inscription.pitbull-inscription {
+  margin-top: 0;
+  padding-inline: 0;
+}
+
+.pitbull-dossier__section--tickets.pitbull-tickets {
+  margin-top: 0;
+  padding-inline: 0;
+}
+
+@media (min-width: 901px) {
+  .pitbull-dossier__visual {
+    display: block;
+  }
+}
+
+@media (max-width: 560px) {
+  .pitbull-dossier__section {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .pitbull-dossier__index {
+    font-size: 16px;
+    padding-top: 4px;
+  }
+
+  .pitbull-spec-grid--dossier {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-spec-grid--dossier .pitbull-spec-grid__cell:nth-child(odd) {
+    border-right: none;
+  }
 }
 
 /* Legacy flat bar — kept for reference, superseded by pitbull-hero-rail */
@@ -681,177 +1273,139 @@
   width: 100%;
 }
 
-/* Flip card — imagen / datos logísticos */
-.pitbull-feature-flip {
-  background: transparent;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
+/* Feature editorial — banda con franja + panel */
+.pitbull-page--premium .pitbull-feature--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
   display: block;
-  min-height: clamp(160px, 28vw, 220px);
-  padding: 0;
-  perspective: 1000px;
-  position: relative;
-  text-align: left;
-  width: 100%;
-}
-
-.pitbull-feature-flip:focus-visible {
-  outline: 2px solid rgba(116, 172, 223, 0.45);
-  outline-offset: 3px;
-}
-
-.pitbull-feature-flip__inner {
-  display: block;
-  min-height: inherit;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 620ms cubic-bezier(0.34, 1.12, 0.64, 1);
-  width: 100%;
-}
-
-.pitbull-feature-flip.is-flipped .pitbull-feature-flip__inner {
-  transform: rotateY(180deg);
-}
-
-.pitbull-feature-flip__face {
-  backface-visibility: hidden;
-  border-radius: 14px;
-  display: block;
-  inset: 0;
-  min-height: inherit;
+  gap: 0;
+  grid-template-columns: unset;
+  isolation: isolate;
   overflow: hidden;
-  position: absolute;
+}
+
+.pitbull-feature--editorial .pitbull-feature__stripe,
+.pitbull-section--editorial .pitbull-section__stripe {
+  background: var(--pitbull-rail-stripe);
+  height: 2px;
+  opacity: 0.88;
   width: 100%;
 }
 
-.pitbull-feature-flip__face--back {
-  background:
-    linear-gradient(145deg, rgba(225, 6, 0, 0.08) 0%, transparent 42%),
-    linear-gradient(180deg, rgba(24, 26, 31, 0.98) 0%, rgba(14, 15, 18, 1) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+.pitbull-feature--editorial .pitbull-feature__layout {
   display: grid;
-  gap: 10px;
-  grid-template-rows: 1fr auto;
-  padding: 16px 18px 12px;
-  transform: rotateY(180deg);
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  min-height: 0;
 }
 
-.pitbull-feature-flip__img {
+.pitbull-feature--editorial .pitbull-feature__media {
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.pitbull-feature--editorial .pitbull-feature__media-img {
   display: block;
   height: 100%;
-  min-height: inherit;
+  min-height: clamp(180px, 32vw, 260px);
   object-fit: cover;
   object-position: center 22%;
   width: 100%;
 }
 
-.pitbull-feature-flip__overlay {
-  background: linear-gradient(
-    180deg,
-    rgba(8, 8, 10, 0.02) 0%,
-    rgba(8, 8, 10, 0.18) 55%,
-    rgba(8, 8, 10, 0.5) 100%
-  );
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-.pitbull-feature-flip__hint {
-  align-items: center;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(8, 8, 10, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--border-radius-pill);
-  bottom: 12px;
-  color: rgba(255, 255, 255, 0.82);
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 600;
-  gap: 6px;
-  left: 12px;
-  letter-spacing: 0.06em;
-  padding: 6px 11px;
-  position: absolute;
-  text-transform: uppercase;
-  z-index: 1;
-}
-
-.pitbull-feature-flip__hint--back {
-  justify-self: start;
-  position: static;
-}
-
-.pitbull-feature-flip__back {
+.pitbull-feature--editorial .pitbull-feature__panel {
+  border-left: 1px solid var(--pitbull-section-divider);
   display: grid;
-  gap: 10px;
+  gap: clamp(16px, 2.4vw, 22px);
+  min-width: 0;
+  padding: clamp(18px, 2.6vw, 24px);
 }
 
-.pitbull-feature-flip__back-eyebrow {
-  color: rgba(201, 185, 120, 0.82);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.pitbull-feature--editorial .pitbull-feature__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
 }
 
-.pitbull-feature-flip__back-row {
-  align-items: flex-start;
-  color: rgba(255, 255, 255, 0.78);
-  display: flex;
-  font-size: 12.5px;
-  gap: 8px;
-  line-height: 1.45;
+.pitbull-feature--editorial .pitbull-feature__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
 }
 
-.pitbull-feature-flip__back-row strong {
-  color: #fff;
-  display: block;
-  font-weight: 600;
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 22ch;
+  text-wrap: balance;
 }
 
-.pitbull-feature-flip__back-row small {
-  color: rgba(255, 255, 255, 0.52);
-  display: block;
-  font-size: 11px;
-  margin-top: 2px;
-}
-
-.pitbull-feature-flip__back-row svg {
-  color: var(--color-brand-celeste);
-  flex: none;
-  margin-top: 2px;
-}
-
-.pitbull-feature-flip__tags {
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__meta {
+  align-items: center;
+  color: var(--color-text-muted);
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pitbull-feature-flip__tag {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-pill);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 4px 9px;
-  text-transform: uppercase;
-}
-
-.pitbull-feature-flip__divisions {
-  color: rgba(255, 255, 255, 0.48);
-  font-size: 11px;
+  font-size: 12px;
+  gap: 6px 8px;
   line-height: 1.45;
+  margin: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pitbull-feature-flip__inner {
-    transition-duration: 0.01ms;
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__meta time {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__actions {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: auto;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+@media (max-width: 960px) {
+  .pitbull-feature--editorial .pitbull-feature__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__panel {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider);
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__media-img {
+    aspect-ratio: 2.2 / 1;
+    max-height: 220px;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .pitbull-feature--editorial .pitbull-feature__media {
+    display: none;
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__panel {
+    border-top: none;
   }
 }
 
@@ -899,6 +1453,11 @@
   padding: clamp(2px, 0.6vw, 6px) 0 clamp(2px, 0.6vw, 6px) clamp(14px, 2.2vw, 22px);
 }
 
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__body {
+  border-left: none;
+  padding: 0;
+}
+
 .pitbull-page--premium .pitbull-feature__head {
   align-items: start;
   display: grid;
@@ -912,6 +1471,7 @@
   font-size: clamp(20px, 2.6vw, 26px);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
+  grid-row: span 2;
   letter-spacing: -0.05em;
   line-height: 0.92;
   padding-top: 4px;
@@ -1561,48 +2121,186 @@
   margin-inline: auto;
 }
 
-/* ── Category cards ───────────────────────────── */
+/* ── Categories — grilla de especificaciones ─── */
+
+.pitbull-section--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0 clamp(18px, 2.6vw, 24px) clamp(18px, 2.6vw, 24px);
+}
 
 .pitbull-section--categories {
-  padding-block: clamp(4px, 1.5vw, 12px);
+  padding-block: clamp(8px, 1.8vw, 16px);
 }
 
-.pitbull-categories__shell {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(15, 17, 23, 0.05);
-  overflow: hidden;
+.pitbull-section--editorial.pitbull-section--categories {
+  padding-block: 0;
 }
 
-.pitbull-categories__trigger {
-  align-items: flex-start;
-  background: none;
+/* ── Secciones en flujo (sin caja — ritmo Members) ── */
+
+.pitbull-page--premium .pitbull-section--flow,
+.pitbull-page--premium .pitbull-tickets.pitbull-section--flow {
+  background: transparent;
   border: none;
-  color: inherit;
-  cursor: pointer;
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
-  padding: clamp(16px, 2.4vw, 20px) clamp(16px, 2.6vw, 22px);
-  text-align: left;
-  transition: background var(--transition-fast);
-  width: 100%;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider);
+  box-shadow: none;
+  isolation: isolate;
+  margin-inline: 0;
+  margin-top: 0;
+  overflow: visible;
+  padding: clamp(18px, 2.6vw, 24px) 0 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
 }
 
-.pitbull-categories__trigger:hover {
-  background: var(--color-bg-muted);
+.pitbull-section--flow .pitbull-section__stripe {
+  display: none;
 }
 
-.pitbull-categories__trigger-copy {
+.pitbull-section--flow .pitbull-categories__head,
+.pitbull-section--flow .pitbull-tickets__head,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head--editorial {
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  padding-bottom: 0;
+}
+
+.pitbull-section--flow .pitbull-categories__head-copy,
+.pitbull-section--flow .pitbull-tickets__head-copy,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-section--flow .pitbull-categories__head-copy::before,
+.pitbull-section--flow .pitbull-tickets__head-copy::before,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-section--flow .pitbull-spec-grid {
+  border-top: 1px solid var(--pitbull-section-divider);
+}
+
+.pitbull-section--flow .pitbull-section__rulebook-link {
+  margin-top: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-page--premium .pitbull-tickets.pitbull-section--flow .pitbull-tickets__inner {
+  padding: 0;
+}
+
+.pitbull-section--editorial .pitbull-categories__head {
+  margin-bottom: 0;
+  padding: clamp(18px, 2.6vw, 24px) 0 clamp(14px, 2vw, 18px);
+}
+
+.pitbull-section--editorial .pitbull-categories__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-section--editorial .pitbull-categories__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-spec-grid {
+  border-top: 1px solid var(--pitbull-section-divider);
   display: grid;
-  gap: 4px;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-spec-grid__cell {
+  border-bottom: 1px solid var(--pitbull-section-divider);
+  margin: 0;
+  min-width: 0;
+  padding: clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-spec-grid__cell:nth-child(odd) {
+  border-right: 1px solid var(--pitbull-section-divider);
+}
+
+.pitbull-spec-grid__term {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.88));
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0 0 6px;
+}
+
+.pitbull-spec-grid__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-section--editorial .pitbull-section__rulebook-link {
+  margin-top: clamp(16px, 2.2vw, 20px);
+}
+
+@media (max-width: 640px) {
+  .pitbull-spec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-spec-grid__cell:nth-child(odd) {
+    border-right: none;
+  }
+}
+
+.pitbull-categories__head {
+  align-items: start;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: clamp(4px, 1vw, 8px);
+}
+
+.pitbull-categories__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-row: span 2;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 4px;
+}
+
+.pitbull-categories__head-copy {
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
 
 .pitbull-categories__eyebrow {
-  color: var(--color-brand-celeste);
-  font-size: 10px;
+  color: var(--color-brand-red);
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1613,127 +2311,21 @@
   font-size: clamp(18px, 2.6vw, 24px);
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
 }
 
-.pitbull-categories__summary {
-  color: var(--color-text-muted);
-  display: -webkit-box;
-  font-size: 12.5px;
-  -webkit-line-clamp: 2;
-  line-height: 1.5;
-  margin-top: 2px;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.pitbull-categories__chevron {
-  color: var(--color-text-muted);
-  flex: none;
-  margin-top: 4px;
-  transition: transform var(--transition-base), color var(--transition-fast);
-}
-
-.pitbull-section--categories-open .pitbull-categories__chevron {
-  color: var(--color-brand-red);
-  transform: rotate(180deg);
-}
-
-.pitbull-categories__body {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-base) var(--ease-out);
-}
-
-.pitbull-categories__body[data-open='true'] {
-  grid-template-rows: 1fr;
-}
-
-.pitbull-categories__body-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.pitbull-categories__body-inner .pitbull-category-grid {
-  padding: 0 clamp(16px, 2.6vw, 22px) 14px;
-}
-
-.pitbull-categories__desc {
-  border-top: 1px solid var(--color-border-subtle);
+.pitbull-categories__lead {
   color: var(--color-text-muted);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.58;
   margin: 0;
-  padding: 0 clamp(16px, 2.6vw, 22px) 14px;
+  max-width: 52ch;
 }
 
-.pitbull-categories__body-inner .pitbull-section__rulebook-link {
-  margin: 4px clamp(16px, 2.6vw, 22px) clamp(16px, 2.4vw, 20px);
-}
-
-.pitbull-category-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.pitbull-category-card {
-  border: 1px solid var(--color-border-subtle);
-  border-left: 3px solid var(--color-brand-red);
-  border-radius: 0 12px 12px 0;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  min-height: 100%;
-  padding: 18px 20px;
-  position: relative;
-  transition:
-    border-color var(--transition-base),
-    box-shadow var(--transition-base),
-    transform var(--transition-base);
-}
-
-.pitbull-category-card__icon {
-  align-items: center;
-  background: rgba(225, 6, 0, 0.08);
-  border: 1px solid rgba(225, 6, 0, 0.14);
-  border-radius: 10px;
-  color: var(--color-brand-red);
-  display: inline-flex;
-  grid-row: span 2;
-  height: 38px;
-  justify-content: center;
-  width: 38px;
-}
-
-.pitbull-category-card__title {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  grid-column: 2;
-  grid-row: 1;
-  letter-spacing: -0.01em;
-  margin: 0;
-  text-transform: none;
-}
-
-.pitbull-category-card__text {
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  grid-column: 2;
-  grid-row: 2;
-  line-height: 1.6;
-  margin: 4px 0 0;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pitbull-category-card:hover {
-    border-color: rgba(225, 6, 0, 0.22);
-    border-left-color: var(--color-brand-red);
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.09);
-    transform: translateY(-4px);
-  }
+.pitbull-section--categories .pitbull-section__rulebook-link {
+  margin-top: clamp(14px, 2vw, 18px);
 }
 
 .pitbull-section__rulebook-link {
@@ -2415,12 +3007,12 @@
 
 .pitbull-page--premium .pitbull-inscription__head--editorial {
   align-items: start;
-  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  border-bottom: none;
   display: grid;
   gap: 10px 14px;
   grid-template-columns: auto minmax(0, 1fr);
   margin-bottom: 0;
-  padding-bottom: clamp(14px, 2vw, 18px);
+  padding-bottom: 0;
 }
 
 .pitbull-page--premium .pitbull-inscription__index {
@@ -2628,14 +3220,56 @@
 }
 
 .pitbull-page--premium .pitbull-tickets__form-shell {
+  background: var(--pitbull-ticket-form-bg);
+  border: 1px solid var(--pitbull-ticket-form-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-ticket-form-shadow);
+  display: grid;
+  gap: 0;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-shell::before {
+  background: var(--pitbull-rail-stripe);
+  content: '';
+  height: 2px;
+  left: 0;
+  opacity: 0.9;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-head {
+  align-items: start;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
   display: grid;
   gap: 12px;
+  padding: clamp(16px, 2.4vw, 22px) clamp(16px, 2.6vw, 24px) clamp(12px, 1.8vw, 16px);
+  position: relative;
+  z-index: 2;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-head-copy {
+  align-items: start;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pitbull-page--premium .pitbull-tickets__form-shell .ticket-purchase--editorial {
+  padding: 0 clamp(16px, 2.6vw, 24px) clamp(16px, 2.4vw, 22px);
+  position: relative;
+  z-index: 2;
 }
 
 .pitbull-page--premium .pitbull-tickets__form-back {
   align-items: center;
   align-self: start;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-pill);
   color: var(--color-text-secondary);
@@ -2646,7 +3280,7 @@
   font-weight: 600;
   gap: 6px;
   letter-spacing: 0.04em;
-  padding: 6px 12px;
+  padding: 7px 12px;
   text-transform: uppercase;
   transition:
     background 0.22s var(--ease-design),
@@ -2655,157 +3289,197 @@
   width: fit-content;
 }
 
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-back {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.09);
+}
+
 .pitbull-page--premium .pitbull-tickets__form-back:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   border-color: rgba(201, 185, 120, 0.28);
   color: var(--color-text-primary);
 }
 
-/* ── Ticket pass (CTA antes del formulario) ─── */
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-back:hover {
+  background: rgba(15, 17, 23, 0.05);
+}
+
+/* ── Ticket pass (editorial) ─────────────────── */
 
 .pitbull-ticket-pass {
   margin: 0;
 }
 
-.pitbull-ticket-pass__stub {
-  background:
-    linear-gradient(135deg, rgba(201, 185, 120, 0.08) 0%, rgba(116, 172, 223, 0.06) 100%),
-    rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(201, 185, 120, 0.2);
-  border-radius: 18px;
+.pitbull-page--premium .pitbull-tickets--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
+  isolation: isolate;
+  margin-inline: 0;
+  margin-top: clamp(16px, 2.5vw, 24px);
   overflow: hidden;
-  position: relative;
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
 }
 
-.pitbull-ticket-pass__stripe {
-  background: var(--plu-gradient-stripe);
-  height: 3px;
+.pitbull-tickets--editorial .pitbull-tickets__stripe {
+  background: var(--pitbull-rail-stripe);
+  height: 2px;
+  opacity: 0.88;
   width: 100%;
 }
 
-.pitbull-ticket-pass__body {
-  display: grid;
-  gap: clamp(14px, 2vw, 18px);
-  padding: clamp(16px, 2.4vw, 22px);
+.pitbull-page--premium .pitbull-tickets--editorial .pitbull-tickets__inner {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: clamp(18px, 2.6vw, 24px);
 }
 
-.pitbull-ticket-pass__copy {
+.pitbull-tickets--editorial .pitbull-tickets__head {
+  align-items: start;
+  border-bottom: none;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pitbull-tickets--editorial .pitbull-tickets__head-copy {
   display: grid;
   gap: 6px;
   min-width: 0;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
 }
 
-.pitbull-ticket-pass__eyebrow {
-  color: var(--color-brand-red);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.pitbull-tickets--editorial .pitbull-tickets__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
 }
 
-.pitbull-ticket-pass__title {
-  font-family: var(--font-display);
-  font-size: clamp(18px, 2.8vw, 22px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.pitbull-ticket-pass__meta {
+.pitbull-page--premium .pitbull-tickets__meta {
   color: var(--color-text-muted);
   font-size: 12px;
+  line-height: 1.45;
   margin: 0;
 }
 
-.pitbull-ticket-pass__hint {
-  color: var(--color-text-secondary);
+.pitbull-page--premium .pitbull-tickets__lead {
+  color: var(--color-text-muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.58;
   margin: 0;
   max-width: 46ch;
 }
 
 .pitbull-ticket-pass__pricing {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  margin: 0;
-}
-
-.pitbull-ticket-pass__pricing > div {
+  border-top: 1px solid var(--pitbull-section-divider);
   display: grid;
-  gap: 2px;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: clamp(16px, 2.4vw, 20px) 0 0;
 }
 
-.pitbull-ticket-pass__pricing dt {
+.pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(14px, 2vw, 18px) 0;
+}
+
+.pitbull-ticket-pass__price--both {
+  border-left: 1px solid var(--pitbull-section-divider);
+  padding-left: clamp(16px, 2.2vw, 20px);
+  padding-right: 0;
+}
+
+.pitbull-ticket-pass__price dt {
   color: var(--color-text-muted);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.pitbull-ticket-pass__pricing dd {
+.pitbull-ticket-pass__price dd {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: clamp(18px, 2.6vw, 22px);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
   margin: 0;
 }
 
-.pitbull-ticket-pass__pricing-both dd {
+.pitbull-ticket-pass__price--both dd {
   color: var(--color-brand-celeste);
+}
+
+.pitbull-ticket-pass__actions {
+  border-top: 1px solid var(--pitbull-section-divider);
+  padding-top: clamp(14px, 2vw, 18px);
 }
 
 .pitbull-ticket-pass__cta {
   align-items: center;
-  background: linear-gradient(135deg, var(--plu-red-500), #c00804);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--color-brand-red);
+  border: none;
   border-radius: var(--border-radius-pill);
-  box-shadow:
-    0 8px 22px rgba(225, 6, 0, 0.28),
-    0 1px 0 rgba(255, 255, 255, 0.14) inset;
   color: #fff;
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   gap: 8px;
   justify-content: center;
-  letter-spacing: 0.04em;
   min-height: 44px;
   padding: 0 20px;
   transition:
-    box-shadow 0.24s var(--ease-design),
-    transform 0.24s var(--ease-design);
-  width: fit-content;
+    background var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
 }
 
 .pitbull-ticket-pass__cta:hover {
-  box-shadow:
-    0 12px 28px rgba(225, 6, 0, 0.36),
-    0 1px 0 rgba(255, 255, 255, 0.16) inset;
+  background: #d10504;
   transform: translateY(-1px);
 }
 
-@media (min-width: 720px) {
-  .pitbull-ticket-pass__body {
-    align-items: end;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
+.pitbull-ticket-pass__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
 
+@media (max-width: 560px) {
   .pitbull-ticket-pass__pricing {
-    grid-column: 1;
+    grid-template-columns: 1fr;
   }
 
-  .pitbull-ticket-pass__cta {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: end;
+  .pitbull-ticket-pass__price {
+    padding: clamp(12px, 1.8vw, 16px) 0;
+  }
+
+  .pitbull-ticket-pass__price--both {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider);
+    padding-left: 0;
+    padding-top: clamp(12px, 1.8vw, 16px);
   }
 }
 
@@ -3583,14 +4257,6 @@
   }
 }
 
-.pitbull-hero-spec__cta--ticket {
-  color: var(--color-brand-gold);
-}
-
-.pitbull-hero-spec__cta--ticket:hover {
-  color: #fff;
-}
-
 /* ── Hero notebook / tablet ─────────────────── */
 
 @media (min-width: 900px) and (max-width: 1199px) {
@@ -3599,9 +4265,9 @@
   }
 
   .pitbull-page--premium .pitbull-hero .design-hero__inner {
-    align-items: end;
+    align-items: stretch;
     gap: clamp(14px, 2.4vw, 20px);
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-columns: 1fr;
   }
 
   .pitbull-page--premium .pitbull-hero .design-hero__intro {
@@ -3627,16 +4293,15 @@
 
   .pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-pill);
+    background: transparent;
+    border: none;
     display: inline-flex;
     font-size: 9.5px;
     letter-spacing: 0.1em;
     line-height: 1.35;
-    margin-top: 0;
+    margin: 0;
     max-width: 100%;
-    padding: 5px 10px;
+    padding: 0;
     white-space: normal;
     width: fit-content;
   }
@@ -3676,19 +4341,6 @@
   .pitbull-page--premium .pitbull-hero .design-hero__inner {
     align-items: stretch;
     grid-template-columns: 1fr;
-  }
-
-  .pitbull-hero-spec__actions {
-    grid-template-columns: 1fr;
-  }
-
-  .pitbull-hero-spec__cta--primary {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .pitbull-hero-spec__secondary {
-    justify-content: center;
   }
 
   .pitbull-page--premium .pitbull-feature {
@@ -3811,13 +4463,14 @@
 /* ── Inscripción simplificada ─────────────────── */
 
 .pitbull-page--premium .pitbull-inscription__action-rail--primary {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
   display: grid;
   gap: 10px;
-  margin-bottom: clamp(14px, 2vw, 18px);
-  padding: clamp(14px, 2vw, 18px);
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  padding: clamp(14px, 2vw, 18px) 0;
 }
 
 .pitbull-page--premium .pitbull-inscription__price-note {
@@ -3833,10 +4486,12 @@
 }
 
 .pitbull-page--premium .pitbull-inscription__requirements--editorial {
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
   margin-bottom: clamp(12px, 1.8vw, 16px);
-  overflow: hidden;
+  overflow: visible;
+  padding: 0;
 }
 
 .pitbull-page--premium .pitbull-inscription__req-summary {
@@ -3846,7 +4501,7 @@
   gap: 8px 12px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   list-style: none;
-  padding: clamp(12px, 1.8vw, 16px);
+  padding: clamp(12px, 1.8vw, 16px) 0;
 }
 
 .pitbull-page--premium .pitbull-inscription__req-summary::-webkit-details-marker {
@@ -3882,28 +4537,25 @@
 .pitbull-page--premium .pitbull-inscription__credential-toggle {
   align-items: center;
   background: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  color: var(--color-text-secondary);
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.09));
+  color: rgba(255, 255, 255, 0.62);
   cursor: pointer;
   display: flex;
   font-family: var(--font-family);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   gap: 8px;
   justify-content: space-between;
-  padding: 12px 14px;
-  transition:
-    background 0.22s var(--ease-design),
-    border-color 0.22s var(--ease-design),
-    color 0.22s var(--ease-design);
+  letter-spacing: 0.02em;
+  padding: clamp(13px, 1.8vw, 17px) 0;
+  transition: color 0.22s var(--ease-design);
   width: 100%;
 }
 
 .pitbull-page--premium .pitbull-inscription__credential-toggle:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(201, 185, 120, 0.28);
-  color: var(--color-text-primary);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .pitbull-page--premium .pitbull-inscription__credential-toggle svg:last-child {
@@ -3917,14 +4569,58 @@
 }
 
 .pitbull-page--premium .pitbull-inscription__credential-panel {
+  background:
+    radial-gradient(ellipse 100% 55% at 50% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(15, 15, 18, 0.55) 0%, rgba(6, 6, 8, 0.82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: calc(var(--border-radius-lg) + 6px);
   display: grid;
-  gap: 12px;
-  padding-top: 12px;
+  gap: clamp(18px, 2.4vw, 26px);
+  justify-items: center;
+  padding: clamp(24px, 3.5vw, 36px) clamp(20px, 3vw, 32px);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-desc {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 50ch;
+  text-align: center;
 }
 
 .pitbull-credential-showcase--solo {
   grid-template-columns: minmax(0, 1fr);
-  justify-items: start;
+  justify-items: center;
+  overflow: visible;
+  position: relative;
+  width: 100%;
+}
+
+/* Spotlight neutral: luz desde arriba — efecto escenario premium */
+.pitbull-credential-showcase--solo::before {
+  background: radial-gradient(
+    ellipse 100% 65% at 50% -5%,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.02) 48%,
+    transparent 75%
+  );
+  border-radius: 50%;
+  content: '';
+  height: 130%;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 0;
+}
+
+.pitbull-credential-showcase--solo .pitbull-credential-showcase__card {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Entradas para el público ──────────────────── */
@@ -3975,6 +4671,10 @@
   margin-top: clamp(16px, 2.5vw, 24px);
   padding: 0;
   scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-page--premium .pitbull-tickets--editorial {
+  margin-top: clamp(16px, 2.5vw, 24px);
 }
 
 .pitbull-page--premium .pitbull-tickets__inner {
@@ -4168,17 +4868,23 @@
 }
 
 .pitbull-credential__card {
-  border-radius: 18px;
-  box-shadow: var(--color-shadow-lg);
-  max-width: 360px;
+  border-radius: 20px;
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.055) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 40px 80px rgba(0, 0, 0, 0.55),
+    0 12px 28px rgba(0, 0, 0, 0.38);
+  max-width: min(100%, clamp(300px, 72%, 460px));
   overflow: hidden;
   width: 100%;
 }
 
 .pitbull-credential__hint {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.65;
+  margin-top: 4px;
   max-width: 42ch;
   text-align: center;
 }
@@ -4240,10 +4946,6 @@
   .pitbull-inscription__timeline-item {
     grid-template-columns: auto minmax(0, 1fr);
     padding: 12px 0;
-  }
-
-  .pitbull-category-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pitbull-inscription__grid {
@@ -4418,10 +5120,6 @@
     padding: 0 0 0 18px;
     transform: rotate(90deg);
   }
-
-  .pitbull-category-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 560px) {
@@ -4479,14 +5177,6 @@
     radial-gradient(ellipse 80% 50% at 0% 0%, rgba(116, 172, 223, 0.07), transparent 55%),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(225, 6, 0, 0.05), transparent 50%),
     var(--pitbull-section-alt-bg);
-}
-
-[data-theme='dark'] .pitbull-categories__shell {
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
-    var(--color-bg-surface);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
 }
 
 [data-theme='dark'] .pitbull-feature__panel-meta,
@@ -4556,13 +5246,6 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
 }
 
-[data-theme='dark'] .pitbull-category-card {
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
-    var(--color-bg-surface);
-  border-color: rgba(255, 255, 255, 0.09);
-}
-
 [data-theme='dark'] .pitbull-shell__aside {
   --pitbull-aside-bg: rgba(116, 172, 223, 0.06);
   border-color: rgba(116, 172, 223, 0.16);
@@ -4580,8 +5263,7 @@
   --pitbull-section-alt-bg: var(--plu-warm-100);
 }
 
-[data-theme='light'] .pitbull-shell,
-[data-theme='light'] .pitbull-category-card {
+[data-theme='light'] .pitbull-shell {
   background: #fff;
   border-color: rgba(15, 17, 23, 0.08);
   box-shadow: 0 8px 24px rgba(15, 17, 23, 0.05);
@@ -4598,4 +5280,1336 @@
 
 [data-theme='light'] .pitbull-section .section-heading--ref .section-heading__desc {
   color: var(--plu-ink-500);
+}
+
+/* =============================================
+   PITBULL — BENEFITS PANEL (hero + spec shell)
+   ============================================= */
+
+.pitbull-benefits-panel {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(18px, 2.8vw, 24px);
+  margin: 0;
+  padding: clamp(24px, 3.5vw, 32px) 0 clamp(28px, 4vw, 36px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+  border: none;
+  padding-bottom: clamp(20px, 3vw, 28px);
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-dossier__head {
+  gap: clamp(10px, 1.5vw, 14px);
+  margin: 0;
+}
+
+.pitbull-benefits-panel__body {
+  margin-top: 0;
+}
+
+.pitbull-benefits-hero {
+  display: grid;
+  gap: clamp(10px, 1.5vw, 14px);
+  width: 100%;
+}
+
+.pitbull-benefits-hero__kicker-row {
+  align-items: center;
+  display: flex;
+  gap: clamp(10px, 1.6vw, 14px);
+  margin: 0;
+}
+
+.pitbull-benefits-hero__stripe {
+  background: var(--pitbull-rail-stripe, var(--plu-gradient-stripe));
+  border-radius: 99px;
+  display: block;
+  flex: 0 0 auto;
+  height: 2px;
+  opacity: 0.92;
+  width: clamp(36px, 6vw, 52px);
+}
+
+.pitbull-benefits-hero__main {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 12px);
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-benefits-hero__main::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+/* ── Notebook layout: header en fila con el shell ── */
+@media (min-width: 640px) and (max-width: 959px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    align-items: start;
+    column-gap: clamp(24px, 4vw, 36px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-hero {
+    grid-column: 1;
+    grid-row: 1;
+    padding-right: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-panel__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(22px, 3.6vw, 30px);
+  }
+}
+
+.pitbull-benefits-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5.2vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.044em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 13ch;
+  text-wrap: balance;
+}
+
+.pitbull-benefits-hero__lead {
+  color: var(--color-text-muted);
+  font-size: clamp(13.5px, 1.9vw, 15px);
+  line-height: 1.58;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.pitbull-benefits-shell {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-benefits-shell__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: none;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-benefits-shell__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.7;
+}
+
+.pitbull-benefits-shell__col-head {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: clamp(11px, 1.6vw, 13px) clamp(12px, 1.6vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-benefits-shell__col-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-benefits-shell__col-head--spectator {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pitbull-benefits-lanes {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.pitbull-benefits-lane {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 10px);
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-benefits-lane__label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-benefits-lane--spectator .pitbull-benefits-lane__label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pitbull-benefits-lane--spectator {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+}
+
+.pitbull-benefits-lane__list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-benefits-lane__item {
+  align-items: flex-start;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(10px, 1.4vw, 12px);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: clamp(11px, 1.6vw, 13px) 0;
+}
+
+.pitbull-benefits-lane__item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-benefits-lane__icon {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 22px;
+  justify-content: center;
+  margin-top: 1px;
+  width: 22px;
+}
+
+.pitbull-benefits-lane--spectator .pitbull-benefits-lane__icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pitbull-benefits-lane__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pitbull-benefits-lane__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(13px, 1.8vw, 14px);
+  font-weight: 700;
+  letter-spacing: -0.016em;
+  line-height: 1.25;
+}
+
+.pitbull-benefits-lane__desc {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .pitbull-benefits-shell__head {
+    display: grid;
+  }
+
+  .pitbull-benefits-lane__label {
+    display: none;
+  }
+
+  .pitbull-benefits-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-benefits-lane {
+    padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(18px, 2.4vw, 22px);
+  }
+
+  .pitbull-benefits-lane--spectator {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    border-top: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-panel__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(8px, 1.2vw, 12px);
+  }
+
+  .pitbull-benefits-hero__main {
+    max-width: none;
+    padding-left: clamp(18px, 2.4vw, 24px);
+  }
+
+  .pitbull-benefits-hero__title {
+    max-width: 14ch;
+  }
+
+  .pitbull-benefits-hero__lead {
+    max-width: 38ch;
+  }
+}
+
+@media (max-width: 959px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    display: grid;
+  }
+}
+
+[data-theme='light'] .pitbull-benefits-shell {
+  background: rgba(15, 17, 23, 0.025);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__label {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__item {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-benefits-lane--spectator {
+  border-left-color: rgba(15, 17, 23, 0.07);
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__icon {
+  color: rgba(15, 17, 23, 0.5);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head--spectator {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__head {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head:not(:last-child) {
+  border-right-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — PROGRAM MATRIX (logística)
+   ============================================= */
+
+.pitbull-program {
+  background: var(--pitbull-benefits-shell-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: 0;
+  margin-inline: auto;
+  margin-top: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-program__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-program__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.9;
+}
+
+.pitbull-program__day-head {
+  display: grid;
+  gap: 2px;
+  padding: clamp(12px, 1.8vw, 14px) clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-program__day-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-program__day-name {
+  color: var(--color-brand-gold);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-program__day-date {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(14px, 2vw, 16px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.pitbull-program__rows {
+  display: grid;
+  gap: 0;
+}
+
+.pitbull-program__row {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
+  display: grid;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-program__row:first-child {
+  border-top: none;
+}
+
+.pitbull-program__time {
+  align-items: center;
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  color: var(--color-brand-red);
+  display: flex;
+  font-size: 8.5px;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.12em;
+  padding: clamp(10px, 1.5vw, 12px) 6px;
+  text-transform: uppercase;
+}
+
+.pitbull-program__cell {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+  padding: clamp(10px, 1.5vw, 12px) clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-program__cell:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+@media (max-width: 640px) {
+  .pitbull-program {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pitbull-program::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pitbull-program__head,
+  .pitbull-program__row {
+    grid-template-columns: 44px repeat(2, minmax(132px, 1fr));
+    min-width: 360px;
+  }
+}
+
+[data-theme='light'] .pitbull-program {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-program__head,
+[data-theme='light'] .pitbull-program__row,
+[data-theme='light'] .pitbull-program__time,
+[data-theme='light'] .pitbull-program__cell:not(:last-child),
+[data-theme='light'] .pitbull-program__day-head:not(:last-child) {
+  border-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — CATEGORIES SHELL (chips matrix)
+   ============================================= */
+
+.pitbull-categories-shell {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.pitbull-categories-shell__matrix {
+  background: var(--pitbull-categories-shell-bg, var(--pitbull-benefits-shell-bg, rgba(255, 255, 255, 0.02)));
+  border: 1px solid var(--pitbull-categories-shell-border, var(--pitbull-section-divider, rgba(255, 255, 255, 0.07)));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-categories-shell-shadow, none);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-categories-shell__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: none;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-categories-shell__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.9;
+}
+
+.pitbull-categories-shell__col-head {
+  color: var(--color-brand-celeste);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: clamp(11px, 1.6vw, 13px) clamp(12px, 1.6vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-categories-shell__col-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-categories-shell__col-head--division {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-categories-shell__lanes {
+  display: grid;
+  gap: 0;
+}
+
+.pitbull-categories-shell__lane {
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-categories-shell__lane--division {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+}
+
+.pitbull-categories-shell__lane-label {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-categories-shell__lane--division .pitbull-categories-shell__lane-label {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-categories-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-categories-chips__item {
+  background: var(--pitbull-categories-chip-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--pitbull-categories-chip-border, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  color: var(--pitbull-categories-chip-fg, rgba(255, 255, 255, 0.8));
+  font-family: var(--font-display);
+  font-size: clamp(12px, 1.7vw, 13px);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+  padding: 7px 12px;
+}
+
+.pitbull-categories-chips__item--modality {
+  background: var(--pitbull-categories-chip-category-bg, rgba(116, 172, 223, 0.1));
+  border-color: var(--pitbull-categories-chip-category-border, rgba(116, 172, 223, 0.22));
+  color: var(--color-text-primary);
+}
+
+.pitbull-categories-chips__item--division {
+  background: var(--pitbull-categories-chip-division-bg, rgba(201, 185, 120, 0.1));
+  border-color: var(--pitbull-categories-chip-division-border, rgba(201, 185, 120, 0.24));
+  color: var(--color-text-primary);
+}
+
+.pitbull-categories-shell__details {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 0;
+  margin-top: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-categories-detail {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 4px;
+  padding: clamp(11px, 1.6vw, 13px) 0;
+}
+
+.pitbull-categories-detail:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-categories-detail__label {
+  color: var(--color-brand-red);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-categories-detail__text {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.52;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .pitbull-categories-shell__head {
+    display: grid;
+  }
+
+  .pitbull-categories-shell__lane-label {
+    display: none;
+  }
+
+  .pitbull-categories-shell__lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-categories-shell__lane {
+    padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(18px, 2.4vw, 22px);
+  }
+
+  .pitbull-categories-shell__lane--division {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    border-top: none;
+  }
+
+  .pitbull-categories-shell__details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(20px, 3vw, 28px);
+  }
+}
+
+[data-theme='light'] .pitbull-categories-shell__matrix {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-categories-shell__lane--division {
+  border-left-color: rgba(15, 17, 23, 0.07);
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-categories-detail {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-categories-shell__details {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+  border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  border-top: none;
+  display: grid;
+  gap: 5px;
+  padding: 14px 0 14px clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+  border-left: none;
+  padding-left: 0;
+  padding-top: 14px;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__label {
+  color: var(--color-brand-red);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__value {
+  color: var(--color-text-primary);
+  font-size: clamp(11.5px, 1.6vw, 13px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding: 10px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+/* =============================================
+   PITBULL — CATEGORY PILLS
+   ============================================= */
+
+.pitbull-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pitbull-category-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  padding: 6px 13px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pitbull-category-pill--division {
+  background: rgba(201, 185, 120, 0.06);
+  border-color: rgba(201, 185, 120, 0.18);
+  color: rgba(201, 185, 120, 0.9);
+}
+
+[data-theme='light'] .pitbull-category-pill {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: rgba(15, 17, 23, 0.09);
+  color: var(--plu-ink-800);
+}
+
+[data-theme='light'] .pitbull-category-pill--division {
+  background: rgba(185, 165, 107, 0.07);
+  border-color: rgba(185, 165, 107, 0.2);
+  color: #7a6530;
+}
+
+/* =============================================
+   PITBULL — INSCRIPTION COUNTER (LIVE)
+   ============================================= */
+
+.pitbull-inscription-counter {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.pitbull-inscription-counter__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+
+.pitbull-inscription-counter__stat {
+  align-items: baseline;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.pitbull-inscription-counter__value {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.2vw, 38px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.pitbull-inscription-counter__of {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2vw, 18px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  opacity: 0.72;
+}
+
+.pitbull-inscription-counter__unit {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-counter__badge {
+  align-items: center;
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-counter__badge-dot {
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  opacity: 0.85;
+  width: 6px;
+}
+
+.pitbull-inscription-counter__badge--success {
+  border-color: rgba(110, 207, 152, 0.28);
+  color: #6ecf98;
+}
+
+.pitbull-inscription-counter__badge--warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fbbf24;
+}
+
+.pitbull-inscription-counter__badge--danger {
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #f87171;
+}
+
+.pitbull-inscription-counter__badge--neutral {
+  border-color: var(--pitbull-section-divider, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted);
+}
+
+.pitbull-inscription-counter__bar {
+  background: var(--pitbull-counter-track, rgba(255, 255, 255, 0.07));
+  border-radius: var(--border-radius-pill);
+  height: 3px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-inscription-counter__fill {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-brand-red)) 100%
+  );
+  border-radius: var(--border-radius-pill);
+  height: 100%;
+  transform-origin: left;
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  width: var(--counter-pct, 0%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-inscription-counter__fill {
+    transition: none;
+  }
+  .pitbull-inscription-counter__value {
+    /* skip count-up animation in reduced motion */
+  }
+}
+
+[data-theme='light'] .pitbull-inscription-counter__bar {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+/* =============================================
+   PITBULL — INSCRIPTION SHELL
+   ============================================= */
+
+.pitbull-inscription-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-top-color: rgba(255, 255, 255, 0.12);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: 0;
+  margin-inline: auto;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* ── Mobile: stack vertical ── */
+.pitbull-inscription-shell__counter-col {
+  padding: clamp(16px, 2.4vw, 22px) clamp(16px, 2.4vw, 22px) clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-inscription-shell__card {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(12px, 1.8vw, 16px);
+  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.4vw, 22px) clamp(16px, 2.4vw, 22px);
+}
+
+/* ── Notebook+: 2 columnas ── */
+@media (min-width: 640px) {
+  .pitbull-inscription-shell {
+    grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+  }
+
+  .pitbull-inscription-shell__counter-col {
+    border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    padding: clamp(20px, 3vw, 28px);
+    /* centra el contador verticalmente */
+    align-content: start;
+    display: grid;
+    gap: 12px;
+  }
+
+  .pitbull-inscription-shell__card {
+    border-top: none;
+    border-left: none;
+    padding: clamp(20px, 3vw, 28px);
+  }
+}
+
+/* ── Precios ── */
+.pitbull-inscription-shell__pricing {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-inscription-shell__price {
+  display: grid;
+  gap: 4px;
+  padding: 0 clamp(12px, 2vw, 16px) 0 0;
+}
+
+.pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  padding-left: clamp(12px, 2vw, 16px);
+  padding-right: 0;
+}
+
+.pitbull-inscription-shell__price dt {
+  color: var(--color-brand-red);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-shell__price dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.pitbull-inscription-shell__desc {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.56;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.pitbull-inscription-shell__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+}
+
+/* ── Requirements + credential siguen siendo full-width ── */
+.pitbull-inscription-shell__extras {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  padding: 0 clamp(16px, 2.4vw, 22px);
+}
+
+@media (min-width: 640px) {
+  .pitbull-inscription-shell__extras {
+    grid-column: 1 / -1;
+    padding: 0 clamp(20px, 3vw, 28px);
+  }
+}
+
+.pitbull-dossier--minimal .pitbull-inscription-shell .pitbull-inscription__requirements--editorial {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription-shell .pitbull-inscription__credential--compact {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin-top: 0;
+}
+
+[data-theme='light'] .pitbull-inscription-shell {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__counter-col {
+  border-right-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__card,
+[data-theme='light'] .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__extras {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — LOCATION SECTION
+   ============================================= */
+
+.pitbull-location {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-location__map-shell {
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-location__map {
+  border: none;
+  border-radius: var(--border-radius-lg);
+  display: block;
+  height: clamp(180px, 28vw, 260px);
+  width: 100%;
+}
+
+.pitbull-location__map-overlay {
+  border-radius: var(--border-radius-lg);
+  bottom: 0;
+  box-shadow: inset 0 0 0 1px var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.pitbull-location__details {
+  display: grid;
+  gap: 12px;
+}
+
+.pitbull-location__dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.pitbull-location__row {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: minmax(72px, 88px) minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.pitbull-location__row:last-child {
+  border-bottom: none;
+}
+
+.pitbull-location__row dt {
+  align-items: center;
+  color: var(--color-brand-red);
+  display: flex;
+  font-size: 9px;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.pitbull-location__row dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pitbull-location__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-location__maps-link {
+  align-items: center;
+  background: var(--pitbull-benefit-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  justify-self: start;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.pitbull-location__maps-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.pitbull-location__maps-link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+@media (min-width: 640px) {
+  .pitbull-location {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: start;
+    gap: clamp(20px, 3vw, 32px);
+  }
+
+  .pitbull-location__map {
+    height: clamp(200px, 30vw, 280px);
+  }
+}
+
+[data-theme='light'] .pitbull-location__maps-link {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.08);
+  color: var(--plu-ink-900);
+}
+
+[data-theme='light'] .pitbull-location__maps-link:hover {
+  background: rgba(15, 17, 23, 0.06);
+  border-color: rgba(15, 17, 23, 0.14);
+}
+
+/* =============================================
+   PITBULL — TICKET CHANNELS (online vs presencial)
+   ============================================= */
+
+.pitbull-ticket-pass__channels {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-ticket-pass__channel {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: var(--border-radius-lg);
+  display: grid;
+  gap: 12px;
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-ticket-pass__channel--online {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 21, 21, 0.055) 0%,
+    transparent 55%
+  );
+  border-color: rgba(255, 21, 21, 0.16);
+}
+
+.pitbull-ticket-pass__channel--presencial {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.pitbull-ticket-pass__channel-badge {
+  align-items: center;
+  background: var(--color-brand-red);
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  display: inline-flex;
+  font-size: 8.5px;
+  font-weight: 700;
+  gap: 5px;
+  justify-self: start;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  text-transform: uppercase;
+}
+
+.pitbull-ticket-pass__channel-badge--muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.pitbull-ticket-pass__channel-note {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.72;
+}
+
+.pitbull-ticket-pass__channel-note--highlight {
+  color: var(--color-brand-gold);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Pricing inside channels: bigger numbers */
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__pricing {
+  border: none;
+  display: grid;
+  gap: 8px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dt {
+  color: var(--color-text-muted);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.pitbull-ticket-pass__channel--presencial .pitbull-ticket-pass__price dd {
+  opacity: 0.65;
+}
+
+@media (max-width: 480px) {
+  .pitbull-ticket-pass__channels {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel--online {
+  background: linear-gradient(145deg, rgba(225, 6, 0, 0.04) 0%, transparent 55%);
+  border-color: rgba(225, 6, 0, 0.12);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel--presencial {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel-badge--muted {
+  background: rgba(15, 17, 23, 0.06);
+  color: rgba(15, 17, 23, 0.4);
 }

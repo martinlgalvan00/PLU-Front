@@ -10,6 +10,7 @@ import {
   createCompetitionOrder,
   createMembershipOrder,
   getInitialState,
+  updateAthleteProfile,
 } from '../services/athleteService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
@@ -500,6 +501,16 @@ export function useAppData() {
     [userCanEdit, payments, athletes],
   )
 
+  const updateAthleteProfileAction = useCallback(
+    (athleteId, updates) => {
+      const result = updateAthleteProfile(athleteId, updates, athletes)
+      if (result.error) return result
+      setAthletes(result.athletes)
+      return result
+    },
+    [athletes],
+  )
+
   const exportAdminCsv = useCallback(() => {
     const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
     createCsv('plu-arg-admin-export.csv', rows)
@@ -558,6 +569,7 @@ export function useAppData() {
     recentActivity,
     getAthleteDetail,
     updateForm,
+    updateAthleteProfileAction,
     registerAthlete,
     submitMembership,
     submitCompetition,

@@ -278,11 +278,53 @@ export const PITBULL_CLASSIC = {
   divisions: ['Open', 'Junior', 'Sub-Junior', 'Master'],
 }
 
+export const PITBULL_VENUE = {
+  name: 'Maximal Strength Club',
+  address: 'Buenos Aires, Argentina',
+  mapsUrl: 'https://maps.google.com/?q=Maximal+Strength+Club+Buenos+Aires+Argentina',
+  mapsEmbedUrl:
+    'https://maps.google.com/maps?q=Maximal+Strength+Club+Buenos+Aires+Argentina&output=embed&z=15',
+}
+
+export const PITBULL_BENEFITS_ATHLETES = [
+  { id: 'standard', icon: 'Globe', title: 'PLU USA Results', desc: 'Internationally recognized.' },
+  { id: 'credential', icon: 'QrCode', title: 'Digital credential', desc: 'Card and entry QR on confirmation.' },
+  { id: 'judging', icon: 'ShieldCheck', title: 'Certified referees', desc: 'PLU USA panel across three platforms.' },
+  { id: 'ops', icon: 'ClipboardList', title: 'Paperless ops', desc: 'Weigh-in, draw and attempts in-app.' },
+]
+
+export const PITBULL_BENEFITS_SPECTATORS = [
+  { id: 'show', icon: 'Zap', title: 'Live show', desc: 'Two days, three platforms running.' },
+  { id: 'access', icon: 'Ticket', title: 'No membership', desc: 'ID only. Online cheaper than at the door.' },
+  { id: 'community', icon: 'Users', title: 'PLU community', desc: 'Athletes nationwide. Institutional atmosphere.' },
+]
+
+export const PITBULL_SCHEDULE = [
+  {
+    day: 'Day 1',
+    date: 'Dec 12',
+    items: [
+      { time: 'AM', label: 'Weigh-in — Day 1 categories' },
+      { time: 'MID', label: 'Mandatory technical briefing' },
+      { time: 'PM', label: 'Competition — Day 1 categories' },
+    ],
+  },
+  {
+    day: 'Day 2',
+    date: 'Dec 13',
+    items: [
+      { time: 'AM', label: 'Weigh-in — Day 2 categories' },
+      { time: 'MID', label: 'Mandatory technical briefing' },
+      { time: 'PM', label: 'Competition + Award ceremony' },
+    ],
+  },
+]
+
 export const PITBULL_CATEGORY_CARDS = [
   { id: 'equipment', title: 'Equipment', text: `${PITBULL_CLASSIC.categories.join(' · ')} (example)` },
   { id: 'age', title: 'Age', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (example)` },
-  { id: 'weight', title: 'Bodyweight', text: "Men's and women's weight classes (example)." },
-  { id: 'gender', title: 'Gender', text: 'Men and women, separate competition (example).' },
+  { id: 'weight', title: 'Bodyweight', text: "Men's and women's classes (example)." },
+  { id: 'gender', title: 'Gender', text: 'Separate M / F competition (example).' },
 ]
 
 export const PITBULL_CREDENTIAL_SAMPLE = {

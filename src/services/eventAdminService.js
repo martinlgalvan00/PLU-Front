@@ -1,5 +1,6 @@
 import { DEFAULT_EVENT_PRICING, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -181,6 +182,20 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   featured: false,
   slots: DEFAULT_SLOTS,
   pricing: { ...DEFAULT_EVENT_PRICING },
+  // Fase 1 — Supabase (calendario/directo/cupos), ver upsertEventCalendarLiveFields.
+  startsAt: '',
+  endsAt: '',
+  registrationOpensAt: '',
+  registrationClosesAt: '',
+  ticketSalesOpensAt: '',
+  ticketSalesClosesAt: '',
+  capacityDay1: '',
+  capacityDay2: '',
+  capacityBoth: '',
+  liveStreamUrl: '',
+  liveStreamProvider: 'youtube',
+  liveStatus: 'offline',
+  published: false,
 }
 
 /**
@@ -206,4 +221,108 @@ export function buildEventTicketStats(tickets, eventSlug) {
     revenue,
     byPass,
   }
+}
+
+/**
+ * Fase 1 — calendario/directo/cupos viven en Supabase (supabase/migrations/
+ * 20260706030000_phase1_events_ticketing.sql), no en localStorage. El resto
+ * del catálogo de eventos (título/venue/pricing/featured) sigue en
+ * localStorage por ahora — ver AdminEventEditor.jsx.
+ */
+export function mapSupabaseEventRow(row) {
+  return {
+    slug: row.slug,
+    title: row.title,
+    description: row.description ?? '',
+    venue: row.venue,
+    location: row.location,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    registrationOpensAt: row.registration_opens_at,
+    registrationClosesAt: row.registration_closes_at,
+    ticketSalesOpensAt: row.ticket_sales_opens_at,
+    ticketSalesClosesAt: row.ticket_sales_closes_at,
+    capacity: row.capacity,
+    status: row.status,
+    published: row.published,
+    requiresMembership: row.requires_membership,
+    price: row.price,
+    currency: row.currency,
+    liveStreamUrl: row.live_stream_url,
+    liveStreamProvider: row.live_stream_provider,
+    liveStatus: row.live_status,
+  }
+}
+
+/** Eventos visibles al público — usado por EventsPage para enriquecer los
+ * eventos mock con startsAt/endsAt/live antes de renderizarlos. */
+export async function fetchPublishedEvents() {
+  if (!isSupabaseConfigured || !supabase) return []
+
+  const { data, error } = await supabase.from('events').select('*').eq('published', true)
+  if (error) throw error
+  return (data ?? []).map(mapSupabaseEventRow)
+}
+
+/**
+ * Escribe los campos de calendario/directo/cupos de un evento en Supabase
+ * (upsert por slug). Requiere una sesión de Supabase con rol admin (RLS
+ * `events_write_admin`) — hasta que la fase de migración de auth conecte
+ * el login del panel a Supabase Auth, esta llamada va a fallar con un
+ * error de permisos; se deja implementada para que empiece a funcionar
+ * en cuanto esa fase esté lista, sin tener que reescribir el formulario.
+ */
+export async function upsertEventCalendarLiveFields(draft) {
+  if (!isSupabaseConfigured || !supabase) return null
+
+  if (!draft.slug) throw new Error('Falta el slug del evento.')
+
+  const startsAt = draft.startsAt || (draft.dateISO ? `${draft.dateISO}T00:00:00` : null)
+  const endsAt = draft.endsAt || startsAt
+  if (!startsAt || !endsAt) throw new Error('Falta la fecha del evento.')
+
+  const { data: event, error } = await supabase
+    .from('events')
+    .upsert(
+      {
+        slug: draft.slug,
+        title: draft.title,
+        venue: draft.venue,
+        location: draft.location,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        registration_opens_at: draft.registrationOpensAt || null,
+        registration_closes_at: draft.registrationClosesAt || null,
+        ticket_sales_opens_at: draft.ticketSalesOpensAt || null,
+        ticket_sales_closes_at: draft.ticketSalesClosesAt || null,
+        status: draft.status,
+        published: Boolean(draft.published),
+        price: Number(draft.pricing?.registration) || 0,
+        live_stream_url: draft.liveStreamUrl || null,
+        live_stream_provider: draft.liveStreamProvider || null,
+        live_status: draft.liveStatus || 'offline',
+      },
+      { onConflict: 'slug' },
+    )
+    .select()
+    .single()
+
+  if (error) throw error
+
+  const capacityRows = [
+    ['day1', draft.capacityDay1],
+    ['day2', draft.capacityDay2],
+    ['both', draft.capacityBoth],
+  ]
+    .filter(([, limit]) => limit !== '' && limit != null)
+    .map(([key, limit]) => ({ event_id: event.id, scope: 'day', key, limit_count: Number(limit) }))
+
+  if (capacityRows.length > 0) {
+    const { error: capacityError } = await supabase
+      .from('event_capacity_rules')
+      .upsert(capacityRows, { onConflict: 'event_id,scope,key' })
+    if (capacityError) throw capacityError
+  }
+
+  return mapSupabaseEventRow(event)
 }
