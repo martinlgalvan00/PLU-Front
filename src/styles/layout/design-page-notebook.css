@@ -52,25 +52,14 @@
     max-width: 32ch;
   }
 
-  /* ── Rail card: glass + gradiente tricolor top ── */
+  /* ── Rail card: panel neutro en notebook ── */
   .members-page--premium .members-hero-rail--luxury .members-hero-rail__bar {
-    backdrop-filter: blur(20px) saturate(1.45);
-    -webkit-backdrop-filter: blur(20px) saturate(1.45);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%) padding-box,
-      linear-gradient(
-        90deg,
-        rgba(225, 6, 0, 0.92) 0%,
-        rgba(201, 185, 120, 0.82) 50%,
-        rgba(116, 172, 223, 0.72) 100%
-      ) border-box;
-    border-color: transparent;
-    border-style: solid;
-    border-width: 2px 1px 1px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: calc(var(--border-radius-lg) + 2px);
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.09) inset,
-      0 28px 56px rgba(0, 0, 0, 0.36),
-      0 8px 18px rgba(0, 0, 0, 0.2);
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 16px 36px rgba(0, 0, 0, 0.22);
     padding: clamp(18px, 2.6vw, 24px);
   }
 
@@ -294,6 +283,12 @@
     padding-top: clamp(18px, 2.8vw, 24px);
   }
 
+  .pitbull-dossier--minimal > .pitbull-dossier__section,
+  .pitbull-dossier--minimal > .pitbull-dossier__section--benefits {
+    max-width: none;
+    min-width: 0;
+  }
+
   .pitbull-dossier--minimal .pitbull-dossier__visual-img {
     max-height: 148px;
   }
@@ -314,14 +309,13 @@
     padding-inline: 0;
   }
 
-  /* ── Credential card: más grande en notebook ── */
+  /* Credential card: sombra más liviana en notebook (menos jank al scrollear) */
   .pitbull-page--premium .pitbull-credential-showcase--solo .pitbull-credential__card,
   .pitbull-page--premium .pitbull-credential-showcase__card .pitbull-credential__card {
     box-shadow:
-      0 2px 0 rgba(255, 255, 255, 0.06) inset,
-      0 0 0 1px rgba(255, 255, 255, 0.065),
-      0 48px 96px rgba(0, 0, 0, 0.6),
-      0 16px 40px rgba(0, 0, 0, 0.42);
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 24px 48px rgba(0, 0, 0, 0.38);
     max-width: min(100%, 460px);
   }
 
