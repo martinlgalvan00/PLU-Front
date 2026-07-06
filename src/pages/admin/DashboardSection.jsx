@@ -1,6 +1,7 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowRight, BadgeCheck, CalendarDays, ChevronRight, ClipboardList, MapPin, Shield, Users } from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
+import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import RecentActivity from '../../components/admin/RecentActivity.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -64,6 +65,15 @@ function mapMetrics(items, t) {
   }))
 }
 
+function CommandCenterPaneHead({ eyebrow, subtitle, hideSubtitle = false }) {
+  return (
+    <header className="admin-command-center__head">
+      <span className="admin-command-center__eyebrow">{eyebrow}</span>
+      {!hideSubtitle && subtitle ? <p>{subtitle}</p> : null}
+    </header>
+  )
+}
+
 function DashboardSpotlightEvent({ event, onNavigate, t }) {
   if (!event) {
     return (
@@ -81,43 +91,37 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
   const fillPercent = event.slots > 0 ? Math.round((event.registered / event.slots) * 100) : 0
 
   return (
-    <article className="admin-spotlight admin-spotlight--luxury">
+    <article className="admin-spotlight admin-spotlight--luxury admin-spotlight--compact">
       <div className="admin-spotlight__main">
-        <div className="admin-spotlight__head">
-          <span className="admin-spotlight__eyebrow">{t('admin.dashboard.spotlightEyebrow')}</span>
+        <div className="admin-spotlight__title-row">
+          <h3 className="admin-spotlight__title">{event.title}</h3>
           <span className={`admin-spotlight__status admin-spotlight__status--${tone}`}>{statusLabel}</span>
         </div>
-        <h3 className="admin-spotlight__title">{event.title}</h3>
-        <ul className="admin-spotlight__meta">
+        <ul className="admin-spotlight__meta admin-spotlight__meta--inline">
           <li>
             <CalendarDays size={13} aria-hidden />
             {event.date}
           </li>
           <li>
             <MapPin size={13} aria-hidden />
-            {event.venue}, {event.location}
+            {event.venue}
           </li>
         </ul>
-      </div>
-
-      <div className="admin-spotlight__aside">
-        <div className="admin-spotlight__capacity">
-          <div className="admin-spotlight__capacity-head">
-            <span>{t('admin.dashboard.slots')}</span>
-            <strong>
-              {event.registered}/{event.slots}
-            </strong>
-            <em>{fillPercent}%</em>
-          </div>
+        <div className="admin-spotlight__fill" aria-label={t('admin.dashboard.slots')}>
+          <span className="admin-spotlight__fill-label">{t('admin.dashboard.slots')}</span>
           <div className="admin-spotlight__capacity-bar">
             <span style={{ width: `${fillPercent}%` }} />
           </div>
+          <strong>
+            {event.registered}/{event.slots}
+          </strong>
+          <em>{fillPercent}%</em>
         </div>
-        <button type="button" className="admin-spotlight__cta" onClick={() => onNavigate?.('events')}>
-          {t('admin.actions.manage')}
-          <ArrowRight size={13} aria-hidden />
-        </button>
       </div>
+      <button type="button" className="admin-spotlight__cta" onClick={() => onNavigate?.('events')}>
+        {t('admin.actions.manage')}
+        <ArrowRight size={13} aria-hidden />
+      </button>
     </article>
   )
 }
@@ -127,62 +131,66 @@ function DashboardFinancePanel({ canEdit, finance, onApprovePayment, onNavigate,
   const topPending = pendingItems[0]
 
   return (
-    <div className="admin-finance admin-finance--luxury">
-      <div className="admin-finance__hero" aria-label={t('admin.dashboard.financeAria')}>
-        <div className="admin-finance__hero-main">
+    <div className="admin-finance admin-finance--luxury admin-finance--compact">
+      <div className="admin-finance__strip" aria-label={t('admin.dashboard.financeAria')}>
+        <div className="admin-finance__strip-primary">
           <span>{t('admin.dashboard.financeOperated')}</span>
           <strong>{money(totalAmount)}</strong>
         </div>
-        <div className="admin-finance__hero-rate">
-          <strong>{collectionRate}%</strong>
-          <span>{t('admin.dashboard.financeRate')}</span>
-        </div>
-      </div>
-
-      <div className="admin-finance__breakdown">
-        <article className="admin-finance__breakdown-item admin-finance__breakdown-item--success">
-          <span>{t('admin.dashboard.financeCollected')}</span>
-          <strong>{money(collectedAmount)}</strong>
-        </article>
-        <article className="admin-finance__breakdown-item admin-finance__breakdown-item--pending">
-          <span>
-            {t('admin.dashboard.financePending')}
-            {pendingCount > 0 && <em>{pendingCount}</em>}
+        <div className="admin-finance__strip-stats">
+          <span className="admin-finance__strip-stat admin-finance__strip-stat--rate">
+            <em>{t('admin.dashboard.financeRate')}</em>
+            <strong>{collectionRate}%</strong>
           </span>
-          <strong>{money(pendingAmount)}</strong>
-        </article>
-      </div>
-
-      <div className="admin-finance__progress" aria-hidden>
-        <span style={{ width: `${collectionRate}%` }} />
+          <span className="admin-finance__strip-stat admin-finance__strip-stat--success">
+            <em>{t('admin.dashboard.financeCollected')}</em>
+            <strong>{money(collectedAmount)}</strong>
+          </span>
+          <span className="admin-finance__strip-stat admin-finance__strip-stat--pending">
+            <em>
+              {t('admin.dashboard.financePending')}
+              {pendingCount > 0 && <i>{pendingCount}</i>}
+            </em>
+            <strong>{money(pendingAmount)}</strong>
+          </span>
+        </div>
+        <div className="admin-finance__progress" aria-hidden>
+          <span style={{ width: `${collectionRate}%` }} />
+        </div>
       </div>
 
       {topPending && (
         <div className="admin-finance__pending">
           <div className="admin-finance__pending-copy">
-            <span>{t('admin.dashboard.financePending')}</span>
             <strong>{topPending.athlete}</strong>
             <p>
               {money(topPending.amount)} · {topPending.concept}
             </p>
           </div>
-          {canEdit && (
-            <button type="button" className="admin-dashboard-link" onClick={() => onApprovePayment?.(topPending.id)}>
-              {t('admin.actions.validate')}
-              <ChevronRight size={14} aria-hidden />
+          <div className="admin-finance__pending-actions">
+            {canEdit && (
+              <button type="button" className="admin-finance__pending-action" onClick={() => onApprovePayment?.(topPending.id)}>
+                {t('admin.actions.validate')}
+                <ChevronRight size={14} aria-hidden />
+              </button>
+            )}
+            <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+              {t('admin.actions.payments')}
             </button>
-          )}
+          </div>
         </div>
       )}
 
-      <div className="admin-finance__footer">
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
-          {t('admin.actions.registrations')}
-        </button>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
-          {t('admin.actions.payments')}
-        </button>
-      </div>
+      {!topPending && (
+        <div className="admin-finance__footer">
+          <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+            {t('admin.actions.registrations')}
+          </button>
+          <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+            {t('admin.actions.payments')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -199,20 +207,14 @@ export default function DashboardSection({
   onGlobalSearchChange,
 }) {
   const { t } = useI18n()
-  const actionQueueRef = useRef(null)
-
-  function scrollToActions() {
-    actionQueueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  const statusMessage =
-    pendingActions.length > 0
-      ? pendingActions.length === 1
-        ? t('admin.dashboard.tasksPending', { count: pendingActions.length })
-        : t('admin.dashboard.tasksPendingMany', { count: pendingActions.length })
-      : t('admin.dashboard.noUrgency')
+  const [alertsOpen, setAlertsOpen] = useState(false)
 
   const { finance, primary, secondary, spotlightEvent } = dashboardOverview
+
+  const financeSubtitle = t('admin.dashboard.financeSubtitleLive', {
+    pending: finance.pendingCount,
+    events: finance.openEvents,
+  })
 
   const primaryMetrics = useMemo(() => mapMetrics(primary, t), [primary, t])
   const secondaryMetrics = useMemo(() => mapMetrics(secondary, t), [secondary, t])
@@ -221,11 +223,20 @@ export default function DashboardSection({
     <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury">
       <AdminTopBar
         title={t('admin.dashboard.title')}
-        subtitle={pendingActions.length > 0 ? statusMessage : undefined}
         searchValue={globalSearch}
         onSearchChange={onGlobalSearchChange}
-        alertCount={pendingPayments}
-        onAlertClick={scrollToActions}
+        alertCount={pendingActions.length > 0 ? pendingActions.length : pendingPayments}
+        alertsOpen={alertsOpen}
+        onAlertClick={() => setAlertsOpen(true)}
+      />
+
+      <AdminActionDrawer
+        open={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        items={pendingActions}
+        onNavigate={onNavigate}
+        onApprovePayment={onApprovePayment}
+        canEdit={canEdit}
       />
 
       <section className="admin-dashboard-snapshot admin-dashboard__block" aria-label={t('admin.dashboard.metricsAria')}>
@@ -260,18 +271,15 @@ export default function DashboardSection({
 
       <section className="admin-command-center admin-dashboard__block">
         <article className="admin-command-center__pane admin-command-center__pane--spotlight">
-          <header className="admin-command-center__head">
-            <span className="admin-command-center__eyebrow">{t('admin.dashboard.spotlightTitle')}</span>
-            <p>{t('admin.dashboard.spotlightSubtitle')}</p>
-          </header>
+          <CommandCenterPaneHead eyebrow={t('admin.dashboard.spotlightTitle')} />
           <DashboardSpotlightEvent event={spotlightEvent} onNavigate={onNavigate} t={t} />
         </article>
 
         <article className="admin-command-center__pane admin-command-center__pane--finance">
-          <header className="admin-command-center__head">
-            <span className="admin-command-center__eyebrow">{t('admin.dashboard.financeTitle')}</span>
-            <p>{t('admin.dashboard.financeSubtitle')}</p>
-          </header>
+          <CommandCenterPaneHead
+            eyebrow={t('admin.dashboard.financeTitle')}
+            subtitle={financeSubtitle}
+          />
           <DashboardFinancePanel
             canEdit={canEdit}
             finance={finance}
@@ -283,7 +291,7 @@ export default function DashboardSection({
       </section>
 
       <div className="admin-dashboard__panels admin-dashboard__block">
-        <div ref={actionQueueRef} className="admin-dashboard__panel admin-dashboard__panel--queue">
+        <div className="admin-dashboard__panel admin-dashboard__panel--queue">
           <ActionQueue
             compact
             items={pendingActions}

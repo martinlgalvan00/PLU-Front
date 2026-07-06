@@ -1,12 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, Share2, X } from 'lucide-react'
 import EventShareCard from './EventShareCard.jsx'
+import SegmentedSwitch from './SegmentedSwitch.jsx'
 import {
   buildCardFilename,
   downloadCard,
   generateEventCard,
   shareCard,
 } from '../../services/eventCardService.js'
+
+const FORMAT_OPTIONS = [
+  ['square', 'Cuadrada', 'Post'],
+  ['story', 'Historia', 'Story'],
+]
+
+function buildShareText(cardData) {
+  if (cardData.variant === 'membership') return '¡Ya soy socio de PLU ARG! 🏋️'
+  if (cardData.variant === 'ticket') return `¡Voy a ${cardData.eventTitle ?? 'PLU ARG'}! 🎟️`
+  return `¡Compito en ${cardData.eventTitle ?? 'PLU ARG'}! 🏋️`
+}
 
 /**
  * CardPreviewModal — PLU ARG
@@ -20,13 +32,14 @@ import {
  *   cardData       {
  *     athleteName, athleteCode?, eventTitle, eventDate?,
  *     eventVenue?, eventLocation?, category?, division?,
- *     eventSlug?, variant?
+ *     eventSlug?, attendeeDocument?, dayPassLabel?, variant?
  *   }
  */
 export default function CardPreviewModal({ open, onClose, cardData = {} }) {
   const captureRef = useRef(null)
   const [status, setStatus] = useState('idle') // 'idle' | 'generating' | 'done' | 'error'
   const [blob, setBlob] = useState(null)
+  const [format, setFormat] = useState('square') // 'square' | 'story'
   const canShare =
     typeof navigator !== 'undefined' &&
     typeof navigator.share === 'function'
@@ -36,8 +49,16 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
     if (open) {
       setStatus('idle')
       setBlob(null)
+      setFormat('square')
     }
   }, [open])
+
+  // El blob generado corresponde a un solo formato — si el usuario cambia de
+  // formato hay que regenerarlo antes de descargar/compartir de nuevo.
+  useEffect(() => {
+    setStatus('idle')
+    setBlob(null)
+  }, [format])
 
   // Cerrar con Escape
   useEffect(() => {
@@ -51,7 +72,8 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
 
   if (!open) return null
 
-  const filename = buildCardFilename(cardData.athleteName, cardData.eventSlug ?? 'evento')
+  const isStory = format === 'story'
+  const filename = buildCardFilename(cardData.athleteName, cardData.eventSlug ?? 'evento', isStory ? 'historia' : '')
 
   async function handleDownload() {
     setStatus('generating')
@@ -71,7 +93,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
     try {
       const generated = blob ?? (await generateEventCard(captureRef.current))
       setBlob(generated)
-      await shareCard(generated, `¡Compito en ${cardData.eventTitle ?? 'PLU ARG'}! 🏋️`, filename)
+      await shareCard(generated, buildShareText(cardData), filename)
       setStatus('done')
     } catch (err) {
       console.error('CardPreviewModal share:', err)
@@ -89,8 +111,8 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
           por eso acá el nodo capturado queda en flujo normal (sin fixed/offset
           propio) y es el CONTENEDOR el que lo recorta a 0×0 visualmente. */}
       <div style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div ref={captureRef} style={{ width: '1080px', height: '1080px' }}>
-          <EventShareCard {...cardData} preview={false} />
+        <div ref={captureRef} style={{ width: '1080px', height: isStory ? '1920px' : '1080px' }}>
+          <EventShareCard {...cardData} preview={false} format={format} />
         </div>
       </div>
 
@@ -119,17 +141,29 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
             </button>
           </div>
 
+          {/* Formato: cuadrada (post) o historia */}
+          <div className="card-modal__format-switch">
+            <SegmentedSwitch
+              active={format}
+              ariaLabel="Formato de la card"
+              onChange={setFormat}
+              options={FORMAT_OPTIONS}
+            />
+          </div>
+
           {/* Preview escalado */}
           <div className="card-modal__preview-wrap">
-            <div className="card-modal__preview-inner">
-              <EventShareCard {...cardData} preview={true} />
+            <div className={`card-modal__preview-inner ${isStory ? 'card-modal__preview-inner--story' : ''}`}>
+              <EventShareCard {...cardData} preview={true} format={format} />
             </div>
           </div>
 
           {/* Hint */}
           <div className="card-modal__hint">
             <span className="card-modal__hint-dot" aria-hidden />
-            PNG 1080×1080 · Listo para Instagram y redes sociales
+            {isStory
+              ? 'PNG 1080×1920 · Formato historia de Instagram'
+              : 'PNG 1080×1080 · Listo para Instagram y redes sociales'}
           </div>
 
           {/* Acciones */}

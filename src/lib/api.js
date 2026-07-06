@@ -56,6 +56,12 @@ export function apiPost(path, payload) {
   })
 }
 
+export function apiGet(path) {
+  return apiRequest(path)
+}
+
+export { ApiError }
+
 export function loginRequest(credentials) {
   return apiPost('/api/auth/login', credentials)
 }

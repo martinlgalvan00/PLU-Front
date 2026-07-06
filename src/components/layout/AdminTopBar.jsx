@@ -9,6 +9,7 @@ export default function AdminTopBar({
   onSearchChange,
   showSearch = true,
   alertCount = 0,
+  alertsOpen = false,
   onAlertClick,
   showAlerts = true,
   searchPlaceholder,
@@ -48,6 +49,8 @@ export default function AdminTopBar({
             <button
               type="button"
               className={`admin-page-toolbar__alert${alertCount > 0 ? ' has-alerts' : ''}`}
+              aria-controls="admin-action-drawer"
+              aria-expanded={alertsOpen}
               aria-label={alertLabel}
               onClick={onAlertClick}
             >

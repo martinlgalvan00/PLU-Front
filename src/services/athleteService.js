@@ -62,23 +62,27 @@ const initialRegistrations = [
     id: 'reg-001',
     athleteId: 'ath-001',
     event: 'Pitbull Classic',
+    eventSlug: 'pitbull-classic-2026',
     category: 'Raw',
     division: 'Open',
     bodyweight: '67.5',
     status: 'confirmada',
     paymentStatus: 'aprobado',
     notes: 'Afiliación e inscripción pagadas por Mercado Pago.',
+    checkedInAt: null,
   },
   {
     id: 'reg-002',
     athleteId: 'ath-002',
     event: 'Pitbull Classic',
+    eventSlug: 'pitbull-classic-2026',
     category: 'Classic Raw',
     division: 'Junior',
     bodyweight: '82.5',
     status: 'pendiente_pago',
     paymentStatus: 'validacion_manual',
     notes: 'Pendiente de validación manual.',
+    checkedInAt: null,
   },
 ]
 
@@ -180,6 +184,7 @@ export function createCompetitionOrder({ athlete, event, form, registrations, pa
     status: 'pendiente_pago',
     paymentStatus: payment.status,
     notes: '',
+    checkedInAt: null,
   }
   return {
     registration,
@@ -187,6 +192,24 @@ export function createCompetitionOrder({ athlete, event, form, registrations, pa
     createdOrder: createOrder(athlete, payment, 'competition'),
     auditLog: createAuditLog('registration.created', 'registration', registration.id, athlete.id),
   }
+}
+
+/**
+ * Check-in en la puerta para un atleta inscripto (competidor). Separado del
+ * `status` de la inscripción (que refleja el pago) — un check-in no debería
+ * poder "deshacer" una confirmación ya validada administrativamente.
+ * @param {string} registrationId
+ * @param {object[]} registrations
+ */
+export function checkInRegistration(registrationId, registrations) {
+  const registration = registrations.find((item) => item.id === registrationId)
+
+  if (!registration) return { outcome: 'not_found' }
+  if (registration.checkedInAt) return { outcome: 'already_used', registration }
+  if (registration.status === 'cancelada') return { outcome: 'not_paid', registration }
+
+  const updatedRegistration = { ...registration, checkedInAt: new Date().toISOString() }
+  return { outcome: 'ok', registration: updatedRegistration }
 }
 
 function createPayment({ athleteId, concept, amount, method, payments }) {

@@ -54,28 +54,13 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
     [memberships, query, status, expiring],
   )
 
-  const activeCount = useMemo(
-    () => memberships.filter((item) => item.status === 'activa').length,
-    [memberships],
-  )
-
-  const expiringSoonCount = useMemo(
-    () => filterMemberships(memberships, { expiring: 'soon' }).length,
-    [memberships],
-  )
-
   return (
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.search.membership')}
       query={query}
-      stats={[
-        { label: t('admin.stats.total'), value: memberships.length },
-        { label: t('admin.stats.active'), value: activeCount, tone: 'success' },
-        { label: t('admin.stats.expiringSoon'), value: expiringSoonCount, tone: 'warning' },
-      ]}
-      subtitle={t('admin.sections.memberships.subtitle')}
-      title={t('admin.sections.memberships.title')}
+      showHeader={false}
+      showStats={false}
       totalCount={memberships.length}
       filters={[
         {

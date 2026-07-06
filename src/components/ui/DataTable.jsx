@@ -4,6 +4,7 @@ export default function DataTable({
   columns,
   rows,
   emptyMessage = 'Sin registros',
+  getRowClassName,
   onRowClick,
   rowClassName = '',
   variant = 'default',
@@ -50,7 +51,11 @@ export default function DataTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className={rowClassName} {...getRowInteractionProps(row)}>
+              <tr
+                key={row.id}
+                className={[rowClassName, getRowClassName?.(row)].filter(Boolean).join(' ')}
+                {...getRowInteractionProps(row)}
+              >
                 {columns.map((col) => (
                   <td key={col.key} data-label={col.label}>
                     {col.render ? col.render(row) : row[col.key]}
@@ -66,7 +71,14 @@ export default function DataTable({
         {rows.map((row) => (
           <article
             key={row.id}
-            className={`data-table-card${rowClassName ? ` ${rowClassName}` : ''}${variant === 'admin' ? ' data-table-card--admin' : ''}`.trim()}
+            className={[
+              'data-table-card',
+              rowClassName,
+              getRowClassName?.(row),
+              variant === 'admin' ? 'data-table-card--admin' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             {...getRowInteractionProps(row)}
           >
             {columns.map((col) => (

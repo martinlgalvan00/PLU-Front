@@ -1,39 +1,59 @@
-import { FAQ_GROUPS } from '../lib/content.js'
+import { ArrowRight } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SubNav from '../components/ui/SubNav.jsx'
-
-const SUB_NAV_ITEMS = FAQ_GROUPS.map((group) => ({ href: `#${group.id}`, label: group.title }))
+import { useContent } from '../hooks/useContent.js'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
 export default function FAQPage({ onNavigate }) {
+  const { FAQ_GROUPS } = useContent()
+  const { t } = useI18n()
+
+  const subNavItems = FAQ_GROUPS.map((group) => ({
+    href: `#${group.id}`,
+    label: group.title,
+    shortLabel: group.shortLabel ?? group.title,
+  }))
+
   return (
-    <main className="page faq-page">
+    <main className="page page--design faq-page faq-page--premium">
       <DesignPageHero
-        breadcrumbLabel="FAQ"
+        className="faq-hero"
+        compact
+        breadcrumbLabel={t('pages.faq.heroBreadcrumb')}
         onHome={() => onNavigate?.('home')}
-        eyebrow="FAQ"
-        title="Preguntas frecuentes"
-        description="Todo lo que necesitás saber sobre afiliación, inscripción, pagos y resultados."
+        title={t('pages.faq.heroTitle')}
+        description={t('pages.faq.heroDesc')}
       />
 
-      <SubNav items={SUB_NAV_ITEMS} />
+      <SubNav
+        className="sub-nav--faq-premium"
+        items={subNavItems}
+        label={t('pages.faq.categoriesAria')}
+      />
 
-      <div className="page__inner page__inner--narrow faq-groups">
-        {FAQ_GROUPS.map((group, i) => (
-          <Reveal key={group.id} delay={i * 60}>
-            <section id={group.id} className="anchor-target faq-group">
-              <h2 className="faq-group__title">{group.title}</h2>
-              <FAQAccordion items={group.items} />
+      <div className="faq-page__inner">
+        {FAQ_GROUPS.map((group, index) => (
+          <Reveal key={group.id} delay={index * 40}>
+            <section id={group.id} className="anchor-target faq-section">
+              <header className="faq-section__head">
+                <span className="faq-section__index" aria-hidden>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <h2 className="faq-section__title">{group.title}</h2>
+              </header>
+              <FAQAccordion items={group.items} numbered variant="ref" />
             </section>
           </Reveal>
         ))}
 
-        <Reveal>
-          <div className="page__action">
-            <p className="faq-groups__closing">¿No encontraste lo que buscabas?</p>
-            <button type="button" className="btn" onClick={() => onNavigate('contact')}>
-              Contactanos
+        <Reveal delay={FAQ_GROUPS.length * 40}>
+          <div className="faq-page__cta">
+            <p className="faq-page__cta-copy">{t('pages.faq.notFoundTitle')}</p>
+            <button type="button" className="faq-page__cta-link" onClick={() => onNavigate('contact')}>
+              {t('pages.faq.notFoundCta')}
+              <ArrowRight size={14} aria-hidden />
             </button>
           </div>
         </Reveal>

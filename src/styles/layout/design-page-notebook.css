@@ -1,0 +1,367 @@
+/* =============================================
+   DESIGN PAGES — notebook / tablet (641–1199px)
+   Ritmo y distribución unificados para cuerpos
+   de página premium (Pitbull, Members, Events…)
+   ============================================= */
+
+@media (min-width: 641px) and (max-width: 1199px) {
+  .pitbull-page__body,
+  .members-page__body,
+  .events-page--premium .events-page__body,
+  .community-page__inner {
+    gap: clamp(14px, 2.2vw, 20px);
+    padding:
+      clamp(12px, 1.8vw, 18px)
+      var(--layout-gutter)
+      clamp(32px, 4vw, 48px);
+  }
+
+  .pitbull-page--premium .pitbull-hero.design-hero--compact,
+  .members-page--premium .design-hero--compact,
+  .community-page--premium .community-hero.design-hero--compact,
+  .events-page--premium .events-hero.design-hero--compact {
+    padding-inline: var(--layout-gutter);
+  }
+
+  /* ── Members hero: 2 columnas (título + rail) ── */
+
+  .members-page--premium .members-hero .design-hero__inner {
+    align-items: end;
+    gap: clamp(14px, 2.4vw, 20px);
+    grid-template-columns: minmax(0, 1fr) minmax(228px, 300px);
+  }
+
+  .members-page--premium .members-hero .design-hero__intro {
+    gap: 8px;
+    max-width: none;
+    padding-left: clamp(14px, 1.8vw, 18px);
+    position: relative;
+  }
+
+  .members-page--premium .members-hero .design-hero__intro::before {
+    background: linear-gradient(180deg, rgba(116, 172, 223, 0.55) 0%, rgba(201, 185, 120, 0.45) 100%);
+    border-radius: 99px;
+    bottom: 2px;
+    content: '';
+    display: block;
+    left: 0;
+    opacity: 0.65;
+    position: absolute;
+    top: 2px;
+    width: 2px;
+  }
+
+  .members-page--premium .members-hero .design-hero__title {
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  .members-hero-rail--editorial .members-hero-rail__rail {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    padding: 10px 12px;
+  }
+
+  .members-hero-rail--editorial .members-hero-rail__metric {
+    flex: 1 1 calc(33.333% - 4px);
+    min-width: 0;
+  }
+
+  .members-hero-rail--editorial .members-hero-rail__credential {
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  /* ── Members body: una columna legible ── */
+
+  .members-section {
+    padding-block: clamp(14px, 2vw, 22px);
+  }
+
+  .members-section--intro {
+    padding-top: clamp(6px, 1vw, 10px);
+  }
+
+  .members-intro {
+    gap: clamp(16px, 2.2vw, 22px);
+    grid-template-columns: 1fr;
+    padding: clamp(18px, 2.5vw, 24px);
+  }
+
+  .members-intro__head {
+    max-width: 52ch;
+    padding-left: clamp(14px, 1.8vw, 18px);
+  }
+
+  .members-intro__head::before {
+    display: block;
+  }
+
+  .members-benefit-list {
+    gap: 8px;
+  }
+
+  .members-requirements__body {
+    gap: clamp(14px, 2vw, 18px);
+    grid-template-columns: 1fr;
+  }
+
+  .members-validity-ledger {
+    border-left: none;
+    border-top: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: 0;
+    padding-top: 14px;
+  }
+
+  .members-process--timeline {
+    gap: clamp(12px, 2vw, 16px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .members-process--timeline::before {
+    display: none;
+  }
+
+  .members-process-step {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 14px 14px 14px 12px;
+  }
+
+  .members-page--premium .membership-grid--editorial {
+    max-width: min(100%, 420px);
+    margin-inline: auto;
+  }
+
+  .members-section__head--center {
+    max-width: 42ch;
+    margin-inline: auto;
+  }
+
+  /* ── Pitbull body: secciones contenidas ── */
+
+  .pitbull-page--premium .pitbull-feature {
+    gap: clamp(14px, 2.2vw, 18px);
+  }
+
+  .pitbull-page--premium .pitbull-feature__visual {
+    aspect-ratio: 2.35 / 1;
+    border-radius: 16px;
+    max-height: 190px;
+    overflow: hidden;
+  }
+
+  .pitbull-page--premium .pitbull-feature-flip {
+    max-height: 190px;
+    min-height: 190px;
+  }
+
+  .pitbull-page--premium .pitbull-feature__body {
+    padding: clamp(4px, 1vw, 8px) 0 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__inner,
+  .pitbull-page--premium .pitbull-tickets__inner {
+    padding: clamp(18px, 2.5vw, 24px);
+  }
+
+  .pitbull-page--premium .pitbull-tickets {
+    margin-inline: 0;
+    margin-top: clamp(12px, 2vw, 18px);
+    padding: clamp(16px, 2.4vw, 22px) 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .pitbull-ticket-pass__body {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-ticket-pass__cta {
+    justify-self: start;
+    width: 100%;
+  }
+
+  [data-theme='light'] .members-hero-rail--editorial .members-hero-rail__rail {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .members-process-step {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  /* ── Events hero + body notebook ── */
+
+  .events-page--premium .events-hero .design-hero__inner {
+    align-items: end;
+    gap: clamp(10px, 1.6vw, 14px);
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  }
+
+  .events-page--premium .events-hero .design-hero__intro {
+    gap: 6px;
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+    padding-left: clamp(14px, 1.8vw, 18px);
+  }
+
+  .events-page--premium .events-hero .design-hero__intro::before {
+    display: block;
+  }
+
+  .events-page--premium .events-hero .design-hero__title {
+    max-width: 12ch;
+    text-wrap: balance;
+  }
+
+  .events-page--premium .events-hero .design-hero__desc {
+    max-width: 38ch;
+  }
+
+  .events-page--premium .events-hero__bar {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .events-page--premium .events-hero__control-rail {
+    align-items: stretch;
+    border-radius: 16px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .events-page--premium .events-hero__control-filters {
+    flex: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .events-page--premium .events-hero__control-filters .segmented-switch__option {
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    padding-inline: 4px;
+  }
+
+  .events-page--premium .events-hero .segmented-switch__label--full {
+    display: none;
+  }
+
+  .events-page--premium .events-hero .segmented-switch__label--short {
+    display: inline;
+  }
+
+  .events-page--premium .events-hero__count {
+    align-self: center;
+    padding: 0 4px;
+  }
+
+  .events-page--premium .events-main-column {
+    gap: clamp(12px, 1.8vw, 18px);
+  }
+
+  .events-page--premium .pitbull-spotlight--events {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* ── Community body ── */
+
+  .community-page--premium .community-hero .design-hero__inner {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .community-section__head {
+    grid-template-columns: auto 1fr;
+  }
+
+  .community-section__link {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 4px;
+  }
+
+  .community-stories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .community-manifesto {
+    margin-top: 2px;
+    max-width: none;
+  }
+
+  .community-manifesto blockquote {
+    font-size: clamp(15px, 2.1vw, 17px);
+    line-height: 1.6;
+    max-width: none;
+  }
+
+  .community-page__grid {
+    gap: clamp(14px, 2.2vw, 18px);
+  }
+
+  .community-section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding: clamp(14px, 2vw, 18px);
+  }
+
+  .community-section--stories {
+    padding: clamp(16px, 2.2vw, 20px);
+  }
+
+  .community-gym-list {
+    gap: 0;
+  }
+
+  .community-gym-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 10px 0;
+  }
+
+  .community-gym-card:first-child {
+    border-top: none;
+    padding-top: 2px;
+  }
+
+  .community-story-card {
+    min-height: 0;
+  }
+
+  [data-theme='light'] .community-stats-rail {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .community-section {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .community-page--premium .community-hero .design-hero__inner {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  }
+
+  .events-page--premium .pitbull-spotlight--events {
+    grid-template-columns: minmax(0, 1fr) clamp(120px, 18cqi, 168px);
+  }
+}

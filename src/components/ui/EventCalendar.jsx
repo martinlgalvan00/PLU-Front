@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
+import { getStatusMeta } from '../../lib/status.js'
 
-const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
+function getWeekdayLabels(locale) {
+  const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', { weekday: 'short' })
+  const monday = new Date(2026, 0, 5)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + index)
+    return formatter.format(date).replace('.', '')
+  })
+}
 
 function toKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -31,6 +37,8 @@ export default function EventCalendar({
   focusDateISO,
   selectedEventSlug,
 }) {
+  const { locale, t } = useI18n()
+  const weekdays = useMemo(() => getWeekdayLabels(locale), [locale])
   const seed = initialDate ? new Date(initialDate) : new Date(2026, 7, 1)
   const [cursor, setCursor] = useState({ year: seed.getFullYear(), month: seed.getMonth() })
 
@@ -76,23 +84,26 @@ export default function EventCalendar({
 
   const today = new Date()
   const todayKey = toKey(today.getFullYear(), today.getMonth(), today.getDate())
+  const monthTitle = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    month: 'long',
+  }).format(new Date(cursor.year, cursor.month, 1))
 
   return (
     <div className="event-calendar event-calendar--premium">
       <header className="event-calendar__header">
-        <button type="button" className="event-calendar__nav" onClick={prevMonth} aria-label="Mes anterior">
+        <button type="button" className="event-calendar__nav" onClick={prevMonth} aria-label={t('pages.events.calendarPrev')}>
           <ChevronLeft size={20} />
         </button>
         <h3 className="event-calendar__title">
-          {MONTHS[cursor.month]} <span>{cursor.year}</span>
+          {monthTitle} <span>{cursor.year}</span>
         </h3>
-        <button type="button" className="event-calendar__nav" onClick={nextMonth} aria-label="Mes siguiente">
+        <button type="button" className="event-calendar__nav" onClick={nextMonth} aria-label={t('pages.events.calendarNext')}>
           <ChevronRight size={20} />
         </button>
       </header>
 
       <div className="event-calendar__weekdays">
-        {WEEKDAYS.map((day) => (
+        {weekdays.map((day) => (
           <span key={day}>{day}</span>
         ))}
       </div>
@@ -149,7 +160,7 @@ export default function EventCalendar({
           {Object.entries(EVENT_STATUS).slice(0, 3).map(([key, meta]) => (
             <span key={key} className="event-calendar__legend-item">
               <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
-              {meta.label}
+              {getStatusMeta(key, t).label}
             </span>
           ))}
         </div>
@@ -160,7 +171,7 @@ export default function EventCalendar({
             onClick={() => onEventSelect?.(nextEvent)}
           >
             <span className="event-calendar__jump-copy">
-              <span className="event-calendar__jump-label">Próximo meet</span>
+              <span className="event-calendar__jump-label">{t('pages.events.nextMeet')}</span>
               <strong>{nextEvent.title}</strong>
             </span>
             <ArrowRight size={16} aria-hidden />

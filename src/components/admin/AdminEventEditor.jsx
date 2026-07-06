@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CalendarDays, Eye, Link2, MapPin, Save, Star, X } from 'lucide-react'
+import { CalendarDays, Eye, Link2, MapPin, Save, Star, Ticket, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import Button from '../ui/Button.jsx'
 import EventCard from '../ui/EventCard.jsx'
@@ -10,6 +10,18 @@ import {
   ADMIN_EVENT_STATUS_OPTIONS,
   mapDraftToPreviewEvent,
 } from '../../services/eventAdminService.js'
+import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
+
+function updatePricingField(draft, field, value) {
+  return {
+    ...draft,
+    pricing: {
+      ...DEFAULT_EVENT_PRICING,
+      ...(draft.pricing ?? {}),
+      [field]: value,
+    },
+  }
+}
 
 function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEvent }) {
   const { t } = useI18n()
@@ -181,6 +193,70 @@ export default function AdminEventEditor({
           </label>
         </div>
 
+        <fieldset className="admin-event-form__pricing">
+          <legend>{t('admin.eventEditor.pricingTitle')}</legend>
+          <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.pricingLead')}</p>
+          <div className="admin-event-form__grid admin-event-form__grid--pricing">
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.priceMembership')}</span>
+              <input
+                min={0}
+                required
+                type="number"
+                value={draft.pricing?.membership ?? DEFAULT_EVENT_PRICING.membership}
+                onChange={(event) => onChange(updatePricingField(draft, 'membership', event.target.value))}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.priceRegistration')}</span>
+              <input
+                min={0}
+                required
+                type="number"
+                value={draft.pricing?.registration ?? DEFAULT_EVENT_PRICING.registration}
+                onChange={(event) => onChange(updatePricingField(draft, 'registration', event.target.value))}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.priceCombo')}</span>
+              <input
+                min={0}
+                required
+                type="number"
+                value={draft.pricing?.combo ?? DEFAULT_EVENT_PRICING.combo}
+                onChange={(event) => onChange(updatePricingField(draft, 'combo', event.target.value))}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.priceTicketDay')}</span>
+              <input
+                min={0}
+                required
+                type="number"
+                value={draft.pricing?.ticketDay ?? DEFAULT_EVENT_PRICING.ticketDay}
+                onChange={(event) => onChange(updatePricingField(draft, 'ticketDay', event.target.value))}
+                disabled={!canEdit}
+              />
+            </label>
+            <label className="admin-event-form__field">
+              <span>{t('admin.eventEditor.priceTicketBoth')}</span>
+              <input
+                min={0}
+                required
+                type="number"
+                value={draft.pricing?.ticketBothDays ?? DEFAULT_EVENT_PRICING.ticketBothDays}
+                onChange={(event) =>
+                  onChange(updatePricingField(draft, 'ticketBothDays', event.target.value))
+                }
+                disabled={!canEdit}
+              />
+            </label>
+          </div>
+        </fieldset>
+
         <AdminFilterChipGroup
           compact
           disabled={!canEdit}
@@ -206,6 +282,24 @@ export default function AdminEventEditor({
               {t('admin.eventEditor.featuredTitle')}
             </strong>
             <small>{t('admin.eventEditor.featuredHint')}</small>
+          </span>
+        </label>
+
+        <label className="admin-event-form__toggle">
+          <input
+            checked={draft.pricing?.ticketsEnabled !== false}
+            className="admin-event-form__toggle-input"
+            type="checkbox"
+            onChange={(event) => onChange(updatePricingField(draft, 'ticketsEnabled', event.target.checked))}
+            disabled={!canEdit}
+          />
+          <span className="admin-event-form__toggle-ui" aria-hidden />
+          <span className="admin-event-form__toggle-copy">
+            <strong>
+              <Ticket size={13} aria-hidden />
+              {t('admin.eventEditor.ticketsEnabledTitle')}
+            </strong>
+            <small>{t('admin.eventEditor.ticketsEnabledHint')}</small>
           </span>
         </label>
 

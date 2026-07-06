@@ -2,15 +2,19 @@ import { useState } from 'react'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
 import AthletesSection from './admin/AthletesSection.jsx'
+import CheckInSection from './admin/CheckInSection.jsx'
 import DashboardSection from './admin/DashboardSection.jsx'
 import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
 import PlaceholderSection from './admin/PlaceholderSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
+import UsersSection from './admin/UsersSection.jsx'
 
 export default function AdminPage({
   adminEvents,
+  canCheckIn,
   canEdit,
+  canManageUsers,
   dashboardOverview,
   filters,
   filteredRegistrations,
@@ -20,13 +24,20 @@ export default function AdminPage({
   recentActivity,
   getAthleteDetail,
   onApprovePayment,
+  onCheckInRegistration,
+  onCheckInTicket,
+  onRefreshTickets,
+  onCreateUser,
   onExportAdmin,
   onExportPluUsa,
   onSaveEvent,
   onSetFilters,
+  onUpdateUserRole,
   payments,
   athletes,
   registrations,
+  tickets,
+  users,
   roleLabel,
   onExit,
 }) {
@@ -106,11 +117,36 @@ export default function AdminPage({
 
     if (section === 'events') {
       return (
-        <EventsSection adminEvents={adminEvents} canEdit={canEdit} onSaveEvent={onSaveEvent} />
+        <EventsSection adminEvents={adminEvents} canEdit={canEdit} onSaveEvent={onSaveEvent} tickets={tickets} />
       )
     }
 
-    if (['payments', 'results', 'exports', 'users', 'audit'].includes(section)) {
+    if (section === 'checkin') {
+      return (
+        <CheckInSection
+          athletes={athletes}
+          canCheckIn={canCheckIn}
+          onCheckInRegistration={onCheckInRegistration}
+          onCheckInTicket={onCheckInTicket}
+          onRefreshTickets={onRefreshTickets}
+          registrations={registrations}
+          tickets={tickets}
+        />
+      )
+    }
+
+    if (section === 'users') {
+      return (
+        <UsersSection
+          canManageUsers={canManageUsers}
+          onCreateUser={onCreateUser}
+          onUpdateRole={onUpdateUserRole}
+          users={users}
+        />
+      )
+    }
+
+    if (['payments', 'results', 'exports', 'audit'].includes(section)) {
       return <PlaceholderSection section={section} />
     }
 

@@ -1,20 +1,47 @@
 import { UPCOMING_EVENTS } from '../lib/events.js'
 
-/** Slugs con resultados ya publicados (mock hasta integrar backend). */
+/** Slugs with published results (mock until backend integration). */
 const PUBLISHED_RESULT_SLUGS = new Set(['spring-classic-2025'])
 
+export function getResultsFilters(t) {
+  return [
+    ['all', t('pages.results.filters.all'), t('pages.results.filters.allShort')],
+    ['published', t('pages.results.filters.published'), t('pages.results.filters.publishedShort')],
+    ['pending', t('pages.results.filters.pending'), t('pages.results.filters.pendingShort')],
+  ]
+}
+
+export function getResultsSorts(t) {
+  return [
+    ['recent', t('pages.results.sorts.recent'), t('pages.results.sorts.recentShort')],
+    ['oldest', t('pages.results.sorts.oldest'), t('pages.results.sorts.oldestShort')],
+    ['name', t('pages.results.sorts.name'), t('pages.results.sorts.nameShort')],
+  ]
+}
+
+export function getResultsFilterLabels(t) {
+  return {
+    all: t('pages.results.filterLabels.all'),
+    published: t('pages.results.filterLabels.published'),
+    pending: t('pages.results.filterLabels.pending'),
+  }
+}
+
+/** @deprecated use getResultsFilters(t) */
 export const RESULTS_FILTERS = [
-  ['all', 'Todos'],
-  ['published', 'Publicados'],
-  ['pending', 'En espera'],
+  ['all', 'Todos', 'Todos'],
+  ['published', 'Publicados', 'Pub.'],
+  ['pending', 'En espera', 'Espera'],
 ]
 
+/** @deprecated use getResultsSorts(t) */
 export const RESULTS_SORTS = [
-  ['recent', 'Más recientes'],
-  ['oldest', 'Más antiguos'],
-  ['name', 'A → Z'],
+  ['recent', 'Más recientes', 'Recientes'],
+  ['oldest', 'Más antiguos', 'Antiguos'],
+  ['name', 'A → Z', 'A → Z'],
 ]
 
+/** @deprecated use getResultsFilterLabels(t) */
 export const RESULTS_FILTER_LABELS = {
   all: 'en el archivo',
   published: 'publicados',
@@ -53,11 +80,12 @@ export function filterResultsArchive(entries, { query = '', filter = 'all' } = {
   })
 }
 
-export function sortResultsArchive(entries, sort = 'recent') {
+export function sortResultsArchive(entries, sort = 'recent', locale = 'es') {
   const list = [...entries]
+  const collator = locale === 'en' ? 'en' : 'es'
 
   if (sort === 'name') {
-    return list.sort((a, b) => a.title.localeCompare(b.title, 'es'))
+    return list.sort((a, b) => a.title.localeCompare(b.title, collator))
   }
 
   if (sort === 'oldest') {

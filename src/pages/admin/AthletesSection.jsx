@@ -47,23 +47,13 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
       .map((athlete) => ({ ...athlete, id: athlete.id }))
   }, [athletes, query, status])
 
-  const activeCount = useMemo(
-    () => athletes.filter((athlete) => athlete.status === 'afiliado_activo').length,
-    [athletes],
-  )
-
   return (
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.search.athlete')}
       query={query}
-      stats={[
-        { label: t('admin.stats.total'), value: athletes.length },
-        { label: t('admin.stats.active'), value: activeCount, tone: 'success' },
-        { label: t('admin.stats.filtered'), value: rows.length, tone: 'celeste' },
-      ]}
-      subtitle={t('admin.sections.athletes.subtitle')}
-      title={t('admin.sections.athletes.title')}
+      showHeader={false}
+      showStats={false}
       totalCount={athletes.length}
       filters={[
         {

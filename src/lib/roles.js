@@ -43,3 +43,7 @@ export function canApproveManualPayments(role) {
 export function canApprovePayments(role) {
   return canApproveManualPayments(role)
 }
+
+export function canCheckIn(role) {
+  return permission(role, 'canCheckIn')
+}

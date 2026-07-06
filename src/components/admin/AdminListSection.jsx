@@ -7,30 +7,60 @@ export default function AdminListSection({
   children,
   filteredCount,
   filters = [],
+  meta,
   onQueryChange,
   placeholder,
   query,
+  showHeader = true,
+  showStats = true,
   stats = [],
   subtitle,
   title,
   totalCount,
+  variant,
 }) {
   const { t } = useI18n()
   const resultLabel = formatRecordCount(t, filteredCount, totalCount)
   const searchPlaceholder = placeholder ?? t('admin.search.default')
+  const shellClass = [
+    'admin-list-shell surface-card surface-card--flat',
+    variant ? `admin-list-shell--${variant}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const showStatsStrip = showStats && (stats.length > 0 || totalCount != null)
 
   return (
-    <div className="admin-list-section">
-      <section className="admin-list-shell surface-card surface-card--flat">
-        <header className="admin-list-shell__header">
-          <div className="admin-list-shell__intro">
-            <h1 className="admin-list-shell__title">{title}</h1>
-            {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
-          </div>
-          {actions && <div className="admin-list-shell__actions">{actions}</div>}
-        </header>
+    <div className={`admin-list-section${variant ? ` admin-list-section--${variant}` : ''}`}>
+      <section className={shellClass}>
+        {showHeader && (
+          <header className="admin-list-shell__header">
+            <div className="admin-list-shell__intro">
+              {title && <h1 className="admin-list-shell__title">{title}</h1>}
+              {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
+              {meta && (
+                <span className="admin-list-shell__meta" aria-live="polite">
+                  {meta}
+                </span>
+              )}
+            </div>
+            {actions && <div className="admin-list-shell__actions">{actions}</div>}
+          </header>
+        )}
 
-        {(stats.length > 0 || totalCount != null) && (
+        {!showHeader && (actions || meta) && (
+          <div className="admin-list-shell__toolbar">
+            {meta && (
+              <span className="admin-list-shell__meta" aria-live="polite">
+                {meta}
+              </span>
+            )}
+            {actions && <div className="admin-list-shell__actions">{actions}</div>}
+          </div>
+        )}
+
+        {showStatsStrip && (
           <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')}>
             {stats.map(({ label, tone = 'default', value }) => (
               <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>

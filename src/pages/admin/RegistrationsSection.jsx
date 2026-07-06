@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { BadgeCheck } from 'lucide-react'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
+import { AdminIdentityCell, AdminPaymentCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -45,19 +47,6 @@ export default function RegistrationsSection({
     [filteredRegistrations, payments],
   )
 
-  const confirmedCount = useMemo(
-    () => registrationRows.filter((row) => ['confirmada', 'acreditada'].includes(row.status)).length,
-    [registrationRows],
-  )
-
-  const pendingPaymentCount = useMemo(
-    () =>
-      registrationRows.filter((row) =>
-        ['pendiente', 'pendiente_pago', 'validacion_manual'].includes(row.paymentStatus),
-      ).length,
-    [registrationRows],
-  )
-
   function handleQueryChange(value) {
     onSetFilters((current) => ({ ...current, query: value }))
   }
@@ -67,18 +56,18 @@ export default function RegistrationsSection({
       filteredCount={registrationRows.length}
       placeholder={t('admin.search.registration')}
       query={filters.query ?? ''}
-      stats={[
-        { label: t('admin.stats.total'), value: registrationRows.length },
-        { label: t('admin.stats.confirmed'), value: confirmedCount, tone: 'success' },
-        { label: t('admin.stats.pendingPayments'), value: pendingPaymentCount, tone: 'warning' },
-      ]}
-      subtitle={t('admin.sections.registrations.subtitle')}
-      title={t('admin.sections.registrations.title')}
+      showHeader={false}
+      showStats={false}
       totalCount={registrationsCount ?? registrationRows.length}
       actions={
         <>
-          <ExportButton label={t('admin.actions.exportCsvAdmin')} onClick={onExportAdmin} disabled={!canEdit} />
-          <ExportButton label={t('admin.actions.exportPluUsa')} onClick={onExportPluUsa} variant="gold" />
+          <ExportButton iconOnly label={t('admin.actions.exportCsvAdmin')} onClick={onExportAdmin} disabled={!canEdit} />
+          <ExportButton
+            iconOnly
+            label={t('admin.actions.exportPluUsa')}
+            onClick={onExportPluUsa}
+            variant="gold"
+          />
         </>
       }
       filters={[
@@ -88,6 +77,7 @@ export default function RegistrationsSection({
           value: filters.status,
           onChange: (value) => onSetFilters((current) => ({ ...current, status: value })),
           options: statusOptions,
+          variant: 'select',
         },
       ]}
       onQueryChange={handleQueryChange}
@@ -110,25 +100,21 @@ export default function RegistrationsSection({
           {
             key: 'payment',
             label: t('admin.columns.payment'),
-            render: (row) => (
-              <>
-                <StatusBadge value={row.paymentStatus} />
-                <span className="data-table__sub">{row.amount}</span>
-              </>
-            ),
+            render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
           },
           {
             key: 'action',
             label: t('admin.columns.action'),
             render: (row) => (
-              <button
-                type="button"
-                className="btn btn--small"
-                onClick={() => onApprovePayment(row.paymentId)}
-                disabled={!canEdit || row.paymentStatus === 'aprobado'}
-              >
-                {t('admin.actions.validate')}
-              </button>
+              <AdminTableActions>
+                <AdminIconButton
+                  disabled={!canEdit || row.paymentStatus === 'aprobado'}
+                  icon={BadgeCheck}
+                  label={t('admin.actions.validate')}
+                  onClick={() => onApprovePayment(row.paymentId)}
+                  variant="celeste"
+                />
+              </AdminTableActions>
             ),
           },
         ]}

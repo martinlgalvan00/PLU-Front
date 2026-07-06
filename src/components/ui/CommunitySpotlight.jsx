@@ -1,7 +1,11 @@
 import { ArrowRight } from 'lucide-react'
-import { HOME_COMMUNITY } from '../../lib/content.js'
+import { useContent } from '../../hooks/useContent.js'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function CommunitySpotlight({ onNavigate }) {
+  const { HOME_COMMUNITY } = useContent()
+  const { t } = useI18n()
+
   return (
     <article className="community-spotlight">
       <div className="community-spotlight__grid">
@@ -31,7 +35,7 @@ export default function CommunitySpotlight({ onNavigate }) {
 
         <div className="community-spotlight__visual" aria-hidden>
           <div className="community-spotlight__visual-overlay" />
-          <span className="community-spotlight__visual-badge">Red PLU ARG</span>
+          <span className="community-spotlight__visual-badge">{t('pages.home.communityBadge')}</span>
           <span className="community-spotlight__visual-caption">{HOME_COMMUNITY.visualCaption}</span>
         </div>
       </div>

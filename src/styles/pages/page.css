@@ -195,38 +195,23 @@
 }
 
 [data-theme='light'] .membership-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.72);
   border-color: rgba(15, 17, 23, 0.08);
 }
 
-[data-theme='light'] .membership-card__features li {
+[data-theme='light'] .membership-card__features-line {
   color: rgba(15, 17, 23, 0.64);
 }
 
-[data-theme='light'] .membership-card:hover .membership-card__features li {
-  color: rgba(15, 17, 23, 0.82);
-}
-
 [data-theme='light'] .membership-card__period {
-  color: rgba(15, 17, 23, 0.62);
+  color: rgba(15, 17, 23, 0.52);
 }
 
-[data-theme='light'] .membership-card__compare-row {
+[data-theme='light'] .membership-card__compare-inline {
   color: rgba(15, 17, 23, 0.58);
 }
 
-[data-theme='light'] .membership-card__compare-row--total {
-  border-top-color: rgba(15, 17, 23, 0.22);
-  text-decoration-color: rgba(15, 17, 23, 0.4);
-}
-
-[data-theme='light'] .membership-card__check {
-  background: rgba(15, 17, 23, 0.05);
-  color: rgba(15, 17, 23, 0.55);
-}
-
 [data-theme='light'] .membership-card--featured {
-  background:
-    radial-gradient(ellipse 120% 80% at 0% 0%, rgba(225, 6, 0, 0.10) 0%, transparent 55%),
-    #ffffff;
+  background: rgba(225, 6, 0, 0.04);
+  border-color: rgba(225, 6, 0, 0.16);
 }

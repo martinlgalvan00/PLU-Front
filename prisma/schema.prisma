@@ -12,6 +12,7 @@ enum UserRole {
   admin_plu_arg
   operador_plu_arg
   viewer_plu_usa
+  seguridad_plu_arg
 }
 
 enum UserStatus {
@@ -86,6 +87,23 @@ enum PaymentProvider {
   mercado_pago
   manual
   mock
+}
+
+enum TicketDayPass {
+  day1
+  day2
+  both
+}
+
+enum TicketStatus {
+  pendiente_pago
+  pagada
+  cancelada
+}
+
+enum AttendeeKind {
+  athlete
+  spectator
 }
 
 enum ExportType {
@@ -178,6 +196,7 @@ model User {
   recentEntities          UserRecentEntity[]
   exports                 ExportJob[]
   auditLogs               AuditLog[]
+  checkIns                CheckIn[]
 
   @@index([role, status])
 }
@@ -438,6 +457,9 @@ model Event {
 
   registrations EventRegistration[]
   results       LiftingResult[]
+  ticketOrders  TicketOrder[]
+  tickets       Ticket[]
+  checkIns      CheckIn[]
 
   @@index([status, eventDate])
   @@index([eventDate])
@@ -464,6 +486,7 @@ model EventRegistration {
   paymentOrder PaymentOrder?       @relation("RegistrationPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
   payment      Payment?            @relation("RegistrationPayment", fields: [paymentId], references: [id], onDelete: SetNull)
   allocations  PaymentAllocation[]
+  checkIn      CheckIn?
 
   @@unique([eventId, athleteId])
   @@index([athleteId, status])
@@ -471,6 +494,76 @@ model EventRegistration {
   @@index([membershipId])
   @@index([paymentOrderId])
   @@index([paymentId])
+}
+
+/// Una compra de entradas generales (espectadores). Puede cubrir varios
+/// asistentes (un Ticket por persona) bajo un mismo pago.
+model TicketOrder {
+  id            String          @id @default(cuid())
+  eventId       String
+  buyerName     String?
+  buyerEmail    String?
+  buyerPhone    String?
+  amount        Int
+  currency      String          @default("ARS")
+  provider      PaymentProvider @default(mercado_pago)
+  status        PaymentStatus   @default(creado)
+  reference     String?         @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  tickets Ticket[]
+
+  @@index([eventId, status])
+}
+
+/// Una entrada individual (un asistente, un DNI, un día habilitado). El QR
+/// de la card apunta a `qrToken` — no a `ticketCode` — porque el código
+/// humano es secuencial y adivinable; el token es opaco y de alta entropía.
+model Ticket {
+  id           String        @id @default(cuid())
+  ticketCode   String        @unique
+  qrToken      String        @unique @default(cuid())
+  orderId      String
+  eventId      String
+  attendeeName String
+  attendeeDni  String
+  dayPass      TicketDayPass
+  unitPrice    Int
+  status       TicketStatus  @default(pendiente_pago)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  order   TicketOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  event   Event       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  checkIn CheckIn?
+
+  @@index([eventId, status])
+  @@index([attendeeDni])
+}
+
+/// Registro de ingreso — el árbitro real de "validado una sola vez". Un
+/// Ticket o una EventRegistration (nunca ambos) tienen a lo sumo un
+/// CheckIn gracias a los @unique de abajo: un segundo intento de insertar
+/// choca contra la restricción y falla, sin importar si dos escaneos
+/// llegan al mismo tiempo desde dos puertas distintas.
+model CheckIn {
+  id             String       @id @default(cuid())
+  eventId        String
+  attendeeKind   AttendeeKind
+  ticketId       String?      @unique
+  registrationId String?      @unique
+  scannedById    String?
+  gate           String?
+  scannedAt      DateTime     @default(now())
+
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  ticket       Ticket?            @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  registration EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  scannedBy    User?              @relation(fields: [scannedById], references: [id], onDelete: SetNull)
+
+  @@index([eventId, scannedAt])
 }
 
 model PaymentOrder {

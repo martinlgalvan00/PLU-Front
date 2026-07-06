@@ -5,7 +5,7 @@ Este proyecto usa **agent skills** internas en [`/agent-skills`](./agent-skills/
 ## Antes de implementar
 
 1. Leer [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) y [`docs/BUSINESS_RULES.md`](./docs/BUSINESS_RULES.md)
-2. Identificar la skill relevante en `/agent-skills/` (UI: `design-upgrade` + `design-system-plu`)
+2. Identificar la skill relevante en `/agent-skills/` (UI: `design-upgrade` + `design-system-plu` + `design-ux-ui` para refinar secciones)
 3. Seguir el procedimiento de la skill paso a paso
 
 ## Skills disponibles
@@ -16,6 +16,7 @@ Este proyecto usa **agent skills** internas en [`/agent-skills`](./agent-skills/
 | `business-analysis` | Reglas de negocio y backlog |
 | `design-system-plu` | CSS y componentes visuales |
 | `design-upgrade` | Mejora visual, UX, responsive y QA por pantalla |
+| `design-ux-ui` | Refinar sección concreta: CSS moderno, dock, editorial, glass |
 | `auth-rbac` | Roles y permisos |
 | `database-modeling` | Prisma schema y migraciones |
 | `mercado-pago` | Pagos Checkout Pro |

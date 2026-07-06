@@ -1,19 +1,21 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import AdminEventEditor, { AdminEventLivePreview } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
+import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import Button from '../../components/ui/Button.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { formatRecordCount, translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
   ADMIN_EVENT_FORM_DEFAULT,
   ADMIN_EVENT_STATUS_OPTIONS,
-  buildEventAdminStats,
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
 
-export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
+export default function EventsSection({ adminEvents, canEdit, onSaveEvent, tickets = [] }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
@@ -31,7 +33,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
     [adminEvents, query, status],
   )
 
-  const stats = useMemo(() => buildEventAdminStats(adminEvents), [adminEvents])
+  const resultMeta = formatRecordCount(t, rows.length, adminEvents.length)
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
   const editingSource = draft.id ? adminEvents.find((event) => event.id === draft.id) ?? selectedEvent : null
 
@@ -52,6 +54,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
       status: event.status,
       featured: event.featured,
       slots: event.slots,
+      pricing: event.pricing,
     })
     setFormOpen(true)
   }
@@ -72,17 +75,13 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
   return (
     <AdminListSection
       filteredCount={rows.length}
+      meta={resultMeta}
       placeholder={t('admin.search.event')}
       query={query}
-      stats={[
-        { label: t('admin.stats.total'), value: adminEvents.length },
-        { label: t('admin.stats.activeEvents'), value: stats.active, tone: 'celeste' },
-        { label: t('admin.stats.openRegistration'), value: stats.open, tone: 'success' },
-        { label: t('admin.stats.featured'), value: stats.featured, tone: 'warning' },
-      ]}
-      subtitle={t('admin.sections.events.subtitle')}
-      title={t('admin.sections.events.title')}
+      showHeader={false}
+      showStats={false}
       totalCount={adminEvents.length}
+      variant="events"
       actions={
         canEdit ? (
           <Button className="btn--small" onClick={openCreateForm}>
@@ -98,6 +97,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
           value: status,
           onChange: setStatus,
           options: statusOptions,
+          variant: 'select',
         },
       ]}
       onQueryChange={setQuery}
@@ -116,6 +116,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
           <div className="admin-events-workspace__main">
             <DataTable
               variant="admin"
+              getRowClassName={(row) => (row.id === selectedEvent?.id ? 'data-table__row--selected' : '')}
               columns={[
                 {
                   key: 'title',
@@ -152,17 +153,18 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
                   key: 'actions',
                   label: t('admin.columns.action'),
                   render: (row) => (
-                    <button
-                      type="button"
-                      className="btn btn--small btn--outline"
-                      disabled={!canEdit}
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        openEditForm(row)
-                      }}
-                    >
-                      {t('admin.sections.events.edit')}
-                    </button>
+                    <AdminTableActions>
+                      <AdminIconButton
+                        disabled={!canEdit}
+                        icon={Pencil}
+                        label={t('admin.sections.events.edit')}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openEditForm(row)
+                        }}
+                        variant="ghost"
+                      />
+                    </AdminTableActions>
                   ),
                 },
               ]}
@@ -174,24 +176,23 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent }) {
           </div>
 
           {selectedEvent && (
-            <aside className="admin-event-preview admin-event-preview--panel">
+            <aside
+              className="admin-event-preview admin-event-preview--panel"
+              aria-label={t('admin.sections.events.previewLabel')}
+            >
               <div className="admin-event-preview__head">
-                <div className="admin-event-preview__head-copy">
-                  <span className="admin-event-preview__label">{t('admin.sections.events.previewLabel')}</span>
-                  <p>{t('admin.sections.events.previewHint')}</p>
-                </div>
+                <span className="admin-event-preview__label">{t('admin.sections.events.previewLabel')}</span>
                 {canEdit && (
-                  <button
-                    type="button"
-                    className="btn btn--small btn--outline"
+                  <AdminIconButton
+                    icon={Pencil}
+                    label={t('admin.sections.events.customize')}
                     onClick={() => openEditForm(selectedEvent)}
-                  >
-                    <Pencil size={13} aria-hidden />
-                    {t('admin.sections.events.customize')}
-                  </button>
+                    variant="ghost"
+                  />
                 )}
               </div>
               <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
+              <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />
             </aside>
           )}
         </div>

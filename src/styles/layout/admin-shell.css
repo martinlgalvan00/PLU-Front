@@ -652,10 +652,9 @@
     gap: 6px;
   }
 
-  .admin-mobile-bar__actions .pref-toggle--compact {
-    height: 36px;
-    min-width: 36px;
-    padding: 0 8px;
+  .admin-mobile-bar__actions .locale-switch--compact {
+    --locale-track-w: 56px;
+    --locale-thumb-w: 24px;
   }
 
   .admin-page-toolbar {

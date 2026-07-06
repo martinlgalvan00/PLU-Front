@@ -4,7 +4,7 @@ function getSectionId(href) {
   return href.replace(/^#/, '')
 }
 
-export default function SubNav({ items, label = 'Navegación de sección' }) {
+export default function SubNav({ className = '', items, label = 'Navegación de sección' }) {
   const [activeId, setActiveId] = useState(() => getSectionId(items[0]?.href ?? ''))
   const innerRef = useRef(null)
   const linkRefs = useRef(new Map())
@@ -65,7 +65,7 @@ export default function SubNav({ items, label = 'Navegación de sección' }) {
   }
 
   return (
-    <nav className="sub-nav" aria-label={label}>
+    <nav className={`sub-nav ${className}`.trim()} aria-label={label}>
       <div className="sub-nav__inner" ref={innerRef}>
         {items.map((item) => {
           const id = getSectionId(item.href)

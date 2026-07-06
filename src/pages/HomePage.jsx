@@ -1,9 +1,4 @@
-import {
-  ABOUT_PILLARS,
-  HOME_FAQ,
-  HOME_FAQ_ITEMS,
-  MEMBERSHIP_PLANS,
-} from '../lib/content.js'
+import { useContent } from '../hooks/useContent.js'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
@@ -15,16 +10,17 @@ import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
 
-const ATHLETE_PLAN = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete') ?? MEMBERSHIP_PLANS[0]
-
 export default function HomePage({ onNavigate }) {
+  const { HOME_FAQ, HOME_FAQ_ITEMS, MEMBERSHIP_PLANS } = useContent()
+  const athletePlan = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete') ?? MEMBERSHIP_PLANS[0]
+
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
 
       <Reveal as="section" className="home-section home-section--canvas-light home-section--about" id="que-es" variant="fade">
         <div className="home-section__inner">
-          <AboutSection pillars={ABOUT_PILLARS} />
+          <AboutSection />
         </div>
       </Reveal>
 
@@ -34,16 +30,16 @@ export default function HomePage({ onNavigate }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--canvas-light home-section--membership" variant="scale">
-        <div className="home-section__inner">
-          <HomeMembershipBand plan={ATHLETE_PLAN} onNavigate={onNavigate} />
-        </div>
-      </Reveal>
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--mid-stack" variant="fade">
+        <div className="home-section__inner home-mid-stack">
+          <HomeMembershipBand plan={athletePlan} onNavigate={onNavigate} />
 
-      <Reveal as="section" className="home-section home-section--canvas-light home-section--teasers" variant="fade">
-        <div className="home-section__inner home-teaser-duo">
-          <HomeResultsTeaser onNavigate={onNavigate} />
-          <HomeRulebookTeaser onNavigate={onNavigate} />
+          <div className="home-mid-stack__divider" aria-hidden />
+
+          <div className="home-teaser-duo">
+            <HomeResultsTeaser onNavigate={onNavigate} />
+            <HomeRulebookTeaser onNavigate={onNavigate} />
+          </div>
         </div>
       </Reveal>
 

@@ -1,110 +1,240 @@
 import { ArrowRight } from 'lucide-react'
-import {
-  COMMUNITY_GYM_PLACEHOLDERS,
-  COMMUNITY_HIGHLIGHTS,
-  COMMUNITY_QUOTE,
-  COMMUNITY_TESTIMONIAL_PLACEHOLDERS,
-} from '../lib/content.js'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import { useContent } from '../hooks/useContent.js'
+import { useI18n } from '../i18n/I18nProvider.jsx'
+import {
+  formatMemberSince,
+  getAffiliatedGyms,
+  getCommunityStats,
+  getGymMonogram,
+  getMemberInitials,
+  getRecentMembers,
+} from '../services/communityService.js'
 
-function CommunityHeroHighlights() {
+function CommunityStatsRail({ className = '', stats, t }) {
   return (
-    <div className="design-hero__stats community-highlights" aria-label="Pilares de la comunidad">
-      {COMMUNITY_HIGHLIGHTS.map(({ title, text }) => (
-        <article key={title} className="community-highlight">
-          <strong>{title}</strong>
-          <span>{text}</span>
-        </article>
-      ))}
-    </div>
+    <dl className={`community-stats-rail ${className}`.trim()} aria-label={t('pages.community.statsAria')}>
+      <div className="community-stats-rail__metric">
+        <dt>{t('pages.community.statsActiveGyms')}</dt>
+        <dd>{stats.activeGymCount}</dd>
+      </div>
+      <div className="community-stats-rail__metric">
+        <dt>{t('pages.community.statsRecentMembers')}</dt>
+        <dd>{stats.memberCount}</dd>
+      </div>
+      <div className="community-stats-rail__metric">
+        <dt>{t('pages.community.statsProvinces')}</dt>
+        <dd>{stats.provinceCount}</dd>
+      </div>
+    </dl>
+  )
+}
+
+function CommunityGymsSection({ gyms, onNavigate, t }) {
+  return (
+    <section className="community-section" aria-labelledby="community-gyms-title">
+      <header className="community-section__head">
+        <span className="community-section__index" aria-hidden>
+          {t('pages.community.gymsEyebrow')}
+        </span>
+        <div className="community-section__copy">
+          <h2 className="community-section__title" id="community-gyms-title">
+            {t('pages.community.gymsTitle')}
+          </h2>
+          <p className="community-section__lead">{t('pages.community.gymsLead')}</p>
+        </div>
+        <button type="button" className="community-section__link" onClick={() => onNavigate?.('contact')}>
+          {t('pages.community.gymsCta')}
+          <ArrowRight size={14} aria-hidden />
+        </button>
+      </header>
+
+      <ul className="community-gym-list">
+        {gyms.map((gym) => (
+          <li key={gym.id} className={`community-gym-card community-gym-card--${gym.status}`}>
+            <span className="community-gym-card__monogram" aria-hidden>
+              {getGymMonogram(gym.city)}
+            </span>
+            <div className="community-gym-card__main">
+              <strong className="community-gym-card__name">{gym.name}</strong>
+              <span className="community-gym-card__city">
+                {gym.city}, {gym.province}
+              </span>
+            </div>
+            <span className="community-gym-card__status">
+              <span className="community-gym-card__status-dot" aria-hidden />
+              {gym.status === 'active' ? t('pages.community.statusActive') : t('pages.community.statusSoon')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function CommunityMembersFeed({ members, onNavigate, locale, t }) {
+  return (
+    <section className="community-section" aria-labelledby="community-members-title">
+      <header className="community-section__head">
+        <span className="community-section__index" aria-hidden>
+          {t('pages.community.membersEyebrow')}
+        </span>
+        <div className="community-section__copy">
+          <h2 className="community-section__title" id="community-members-title">
+            {t('pages.community.membersTitle')}
+          </h2>
+          <p className="community-section__lead">{t('pages.community.membersLead')}</p>
+        </div>
+        <button type="button" className="community-section__link" onClick={() => onNavigate?.('members')}>
+          {t('pages.community.membersCta')}
+          <ArrowRight size={14} aria-hidden />
+        </button>
+      </header>
+
+      <div className="community-member-table">
+        <table className="community-member-table__grid">
+          <thead>
+            <tr>
+              <th scope="col">{t('pages.community.tableAthlete')}</th>
+              <th scope="col">{t('pages.community.tableGym')}</th>
+              <th scope="col" className="community-member-table__col--division">
+                {t('pages.community.tableDivision')}
+              </th>
+              <th scope="col" className="community-member-table__col--code">
+                {t('pages.community.tableCode')}
+              </th>
+              <th scope="col" className="community-member-table__col--date">
+                {t('pages.community.tableAffiliation')}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {members.map((member) => (
+              <tr key={member.id}>
+                <td
+                  className="community-member-table__cell community-member-table__cell--athlete"
+                  data-label={t('pages.community.tableAthlete')}
+                >
+                  <span className="community-member-table__athlete">
+                    <span className="community-member-table__monogram" aria-hidden>
+                      {getMemberInitials(member.name)}
+                    </span>
+                    <span className="community-member-table__name">{member.name}</span>
+                  </span>
+                </td>
+                <td className="community-member-table__cell" data-label={t('pages.community.tableGym')}>
+                  {member.gym}
+                </td>
+                <td
+                  className="community-member-table__cell community-member-table__col--division"
+                  data-label={t('pages.community.tableDivision')}
+                >
+                  {member.division}
+                </td>
+                <td
+                  className="community-member-table__cell community-member-table__cell--code community-member-table__col--code"
+                  data-label={t('pages.community.tableCode')}
+                >
+                  <code>{member.memberCode}</code>
+                </td>
+                <td
+                  className="community-member-table__cell community-member-table__cell--date community-member-table__col--date"
+                  data-label={t('pages.community.tableAffiliation')}
+                >
+                  <time dateTime={member.affiliatedAt}>{formatMemberSince(member.affiliatedAt, locale)}</time>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function CommunityStoriesSection({ testimonials, t }) {
+  return (
+    <section className="community-section community-section--stories" aria-labelledby="community-stories-title">
+      <header className="community-section__head community-section__head--compact">
+        <span className="community-section__index" aria-hidden>
+          {t('pages.community.storiesEyebrow')}
+        </span>
+        <div className="community-section__copy">
+          <h2 className="community-section__title" id="community-stories-title">
+            {t('pages.community.storiesTitle')}
+          </h2>
+          <p className="community-section__lead">{t('pages.community.storiesLead')}</p>
+        </div>
+      </header>
+
+      <div className="community-stories-grid">
+        {testimonials.map((item, index) => (
+          <article key={item.id} className="community-story-card">
+            <header className="community-story-card__head">
+              <span className="community-story-card__index" aria-hidden>
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="community-story-card__badge">{t('pages.community.storySoon')}</span>
+            </header>
+            <p className="community-story-card__text">{item.text}</p>
+            <footer className="community-story-card__foot">
+              <span className="community-story-card__role">{item.role}</span>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
 export default function CommunityPage({ onNavigate }) {
+  const { COMMUNITY_QUOTE, COMMUNITY_TESTIMONIAL_PLACEHOLDERS } = useContent()
+  const { locale, t } = useI18n()
+  const stats = getCommunityStats(locale)
+  const gyms = getAffiliatedGyms(locale)
+  const recentMembers = getRecentMembers(undefined, locale)
+
   return (
-    <main className="page page--design community-page--design">
+    <main className="page page--design community-page--design community-page--premium">
       <DesignPageHero
-        breadcrumbLabel="Comunidad"
+        className="community-hero"
+        compact
+        breadcrumbLabel={t('pages.community.heroBreadcrumb')}
+        eyebrow={t('pages.community.heroEyebrow')}
         onHome={() => onNavigate?.('home')}
-        eyebrow="Red PLU ARG"
-        title="El powerlifting argentino crece de a un gimnasio por vez."
-        description="Atletas y sedes en distintas provincias, entrenando bajo el mismo estándar internacional."
+        title={t('pages.community.heroTitle')}
+        description={t('pages.community.heroDesc')}
       >
-        <CommunityHeroHighlights />
+        <CommunityStatsRail stats={stats} t={t} className="community-stats-rail--hero" />
       </DesignPageHero>
 
       <div className="community-page__inner">
-        <Reveal>
-          <figure className="community-manifesto">
+        <Reveal variant="fade">
+          <figure className="community-manifesto community-manifesto--panel">
             <blockquote>{COMMUNITY_QUOTE}</blockquote>
           </figure>
         </Reveal>
 
-        <Reveal>
-          <section className="community-shell" aria-labelledby="community-network-title">
-            <header className="community-shell__head">
-              <div className="community-shell__head-copy">
-                <span className="community-shell__eyebrow">Gimnasios afiliados</span>
-                <h2 className="community-shell__title" id="community-network-title">
-                  Red en expansión
-                </h2>
-                <p className="community-shell__lead">
-                  Sedes aliadas en el AMBA, el litoral y el interior. Pronto, mapa y directorio
-                  completo.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="community-shell__link"
-                onClick={() => onNavigate?.('contact')}
-              >
-                Sumar mi gimnasio
-                <ArrowRight size={14} aria-hidden />
-              </button>
-            </header>
+        <div className="community-page__grid">
+          <Reveal variant="fade">
+            <CommunityGymsSection gyms={gyms} onNavigate={onNavigate} t={t} />
+          </Reveal>
 
-            <div className="community-network">
-              {COMMUNITY_GYM_PLACEHOLDERS.map((gym) => (
-                <article key={gym.id} className="community-network__node">
-                  <span className="community-network__city">{gym.label}</span>
-                  <span className="community-network__venue">{gym.sub}</span>
-                </article>
-              ))}
-            </div>
-          </section>
-        </Reveal>
+          <Reveal delay={40} variant="fade">
+            <CommunityMembersFeed members={recentMembers} onNavigate={onNavigate} locale={locale} t={t} />
+          </Reveal>
+        </div>
 
-        <Reveal delay={60}>
-          <section className="community-stories" aria-labelledby="community-stories-title">
-            <header className="community-stories__head">
-              <span className="community-stories__eyebrow">Historias</span>
-              <h2 className="community-stories__title" id="community-stories-title">
-                Voces de la comunidad
-              </h2>
-            </header>
-
-            <div className="community-stories__grid">
-              {COMMUNITY_TESTIMONIAL_PLACEHOLDERS.map((item) => (
-                <article key={item.id} className="community-story-card">
-                  <span className="community-story-card__mark" aria-hidden>
-                    “
-                  </span>
-                  <p>{item.text}</p>
-                  <footer className="community-story-card__foot">
-                    <span className="community-story-card__role">{item.role}</span>
-                  </footer>
-                </article>
-              ))}
-            </div>
-          </section>
+        <Reveal delay={60} variant="fade">
+          <CommunityStoriesSection testimonials={COMMUNITY_TESTIMONIAL_PLACEHOLDERS} t={t} />
         </Reveal>
       </div>
 
       <CTASection
-        title="¿Tu gimnasio quiere ser parte de PLU ARG?"
-        primaryLabel="Quiero ser parte"
+        title={t('pages.community.ctaTitle')}
+        primaryLabel={t('pages.community.ctaPrimary')}
         onPrimary={() => onNavigate?.('contact')}
       />
     </main>

@@ -8,6 +8,7 @@ import {
   Download,
   LayoutDashboard,
   Menu,
+  ScanLine,
   ScrollText,
   Shield,
   Trophy,
@@ -31,6 +32,7 @@ const ICONS = {
   Download,
   Shield,
   ScrollText,
+  ScanLine,
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
