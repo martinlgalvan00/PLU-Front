@@ -362,7 +362,7 @@
 
 .results-archive-row__tag {
   background: rgba(225, 6, 0, 0.1);
-  border: 1px solid rgba(225, 6, 0, 0.18);
+  border: 1px solid var(--color-accent-red-border-subtle);
   border-radius: var(--border-radius-pill);
   color: var(--color-brand-red);
   font-size: 10px;
@@ -968,7 +968,7 @@
 
 .podium-athlete__total-wrap {
   background: rgba(201, 185, 120, 0.08);
-  border: 1px solid rgba(201, 185, 120, 0.18);
+  border: 1px solid var(--color-accent-gold-border-subtle);
   border-radius: var(--border-radius-lg);
   margin-top: var(--space-sm);
   padding: 6px 14px;
@@ -2384,7 +2384,7 @@
 
 .results-page--premium .results-archive-row__action--active {
   background: rgba(116, 172, 223, 0.1);
-  border: 1px solid rgba(116, 172, 223, 0.22);
+  border: 1px solid var(--color-accent-celeste-border-medium);
   border-radius: 999px;
   font-size: 11px;
   padding: 7px 12px;

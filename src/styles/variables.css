@@ -5,12 +5,25 @@
   --glow-red:          0 4px 20px var(--plu-red-alpha-30);
   --glow-red-soft:     0 2px 14px var(--plu-red-alpha-16);
   --glow-red-strong:   0 8px 32px var(--plu-red-alpha-45);
-  --glow-gold:         0 4px 20px rgba(201, 185, 120, 0.28);
-  --glow-gold-soft:    0 2px 14px rgba(201, 185, 120, 0.16);
-  --glow-gold-strong:  0 8px 32px rgba(201, 185, 120, 0.40);
+  --glow-gold:         0 4px 20px var(--plu-gold-alpha-22);
+  --glow-gold-soft:    0 2px 14px var(--plu-gold-alpha-12);
+  --glow-gold-strong:  0 8px 32px var(--plu-gold-alpha-35);
   --glow-celeste:      0 4px 20px var(--plu-celeste-alpha-35);
   --glow-celeste-soft: 0 2px 14px var(--plu-celeste-alpha-18);
   --glow-celeste-strong: 0 8px 32px rgba(116, 172, 223, 0.42);
+
+  /* ── Acento por marca — tiers consolidados (border/bg) ────
+     Reemplazan las alphas sueltas (0.12/0.18/0.22/0.28/0.32/0.35...)
+     repetidas ad hoc en admin/plu-ui/events. Un solo lugar por tier. ── */
+  --color-accent-red-border-subtle: var(--plu-red-alpha-16);
+  --color-accent-red-border-medium: var(--plu-red-alpha-30);
+  --color-accent-red-border-strong: var(--plu-red-alpha-45);
+  --color-accent-gold-border-subtle: var(--plu-gold-alpha-12);
+  --color-accent-gold-border-medium: var(--plu-gold-alpha-22);
+  --color-accent-gold-border-strong: var(--plu-gold-alpha-35);
+  --color-accent-celeste-border-subtle: var(--plu-celeste-alpha-18);
+  --color-accent-celeste-border-medium: var(--plu-celeste-alpha-26);
+  --color-accent-celeste-border-strong: var(--plu-celeste-alpha-35);
 
   /* ── Card premium tokens ───────────────────────── */
   --card-gradient-red:

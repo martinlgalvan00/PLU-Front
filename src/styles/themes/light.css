@@ -11,6 +11,8 @@
   --color-bg-input: #f8f8fa;
   --color-bg-code: #eef0f4;
   --color-bg-muted: #e0e0e8;
+  --color-bg-glass: rgba(15, 17, 23, 0.03);
+  --color-bg-glass-border: rgba(15, 17, 23, 0.06);
   --color-bg-steel: linear-gradient(145deg, #ffffff 0%, #eef0f4 100%);
 
   --color-text-primary: #0d0e12;

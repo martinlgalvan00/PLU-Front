@@ -20,6 +20,10 @@
 
   --color-bg-muted: var(--plu-cool-700);
 
+  --color-bg-glass: rgba(255, 255, 255, 0.03);
+
+  --color-bg-glass-border: rgba(255, 255, 255, 0.06);
+
   --color-bg-steel: linear-gradient(145deg, var(--plu-cool-750) 0%, var(--plu-cool-900) 100%);
 
   --color-bg-about: var(--plu-cool-750);
@@ -65,6 +69,13 @@
   --color-shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
 
   --color-hero-gradient: var(--plu-gradient-hero-dark);
+
+  /* ── Status chips — dark-safe (los de :root en variables.css
+     asumen fondo claro y quedan ilegibles/desentonan sobre dark) ── */
+  --color-warning-bg: rgba(180, 83, 9, 0.18);
+  --color-warning-text: #f0b45e;
+  --color-danger-bg: rgba(153, 27, 27, 0.2);
+  --color-danger-text: #ff8b86;
 
   --color-nav-bg: oklch(10% 0.006 260 / 0.94);
 

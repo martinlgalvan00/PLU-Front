@@ -17,7 +17,7 @@
 /* ── Sections ──────────────────────────────── */
 
 .members-section {
-  padding: clamp(28px, 4vw, 48px) 0;
+  padding-block: var(--section-pad-sm);
 }
 
 .members-section--intro {
@@ -788,6 +788,7 @@
   border-radius: 0;
   gap: 2px;
   padding: 10px 12px;
+  transition: background var(--transition-fast);
 }
 
 .members-hero-rail--minimal .members-hero-metric:not(:last-child) {
@@ -994,8 +995,8 @@
   padding: 0 16px 16px;
   position: relative;
   transition:
-    transform 0.32s var(--ease-design),
-    box-shadow 0.32s var(--ease-design);
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .members-credential-preview:hover {

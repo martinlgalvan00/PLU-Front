@@ -59,7 +59,7 @@
 }
 
 .events-stat--open:hover {
-  border-color: rgba(116, 172, 223, 0.38);
+  border-color: var(--color-accent-celeste-border-strong);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(116, 172, 223, 0.12);
 }
 
@@ -68,11 +68,11 @@
 }
 
 .events-stat--next {
-  border-color: rgba(225, 6, 0, 0.18);
+  border-color: var(--color-accent-red-border-subtle);
 }
 
 .events-stat--next:hover {
-  border-color: rgba(225, 6, 0, 0.32);
+  border-color: var(--color-accent-red-border-medium);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), var(--glow-red-soft);
 }
 
@@ -1723,8 +1723,8 @@
 /* ── Premium sidebar + calendario ─────────────── */
 
 .events-page--premium .events-sidebar-card {
-  background: rgba(255, 255, 255, 0.018);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 16px;
   box-shadow: none;
   gap: 0;
@@ -1732,13 +1732,13 @@
 }
 
 .events-page--premium .event-calendar--premium {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--color-bg-glass-border);
   padding: 18px 20px 16px;
 }
 
 .events-page--premium .event-calendar--premium .event-calendar__header {
   background: rgba(0, 0, 0, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 12px;
   margin-bottom: 14px;
   padding: 8px 10px;

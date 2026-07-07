@@ -91,8 +91,8 @@
   align-items: center;
   animation: admin-kpi-enter 0.38s var(--ease-out) both;
   animation-delay: calc(var(--kpi-index, 0) * 45ms + 60ms);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
   cursor: pointer;
   display: flex;
@@ -131,14 +131,14 @@
 }
 
 .admin-kpi-tile--gold .admin-kpi-tile__icon {
-  background: rgba(201, 185, 120, 0.12);
-  border-color: rgba(201, 185, 120, 0.22);
+  background: var(--color-accent-gold-border-subtle);
+  border-color: var(--color-accent-gold-border-medium);
   color: var(--color-brand-gold);
 }
 
 .admin-kpi-tile--alert .admin-kpi-tile__icon {
-  background: rgba(225, 6, 0, 0.1);
-  border-color: rgba(225, 6, 0, 0.2);
+  background: var(--color-accent-red-border-subtle);
+  border-color: var(--color-accent-red-border-medium);
   color: var(--color-brand-red);
 }
 
@@ -336,8 +336,8 @@
 
 .admin-command-center {
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.008) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+    linear-gradient(165deg, var(--color-bg-glass) 0%, transparent 100%);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 16px;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
@@ -379,8 +379,8 @@
 }
 
 .admin-command-center__eyebrow {
-  background: rgba(116, 172, 223, 0.1);
-  border: 1px solid rgba(116, 172, 223, 0.22);
+  background: var(--color-accent-celeste-border-subtle);
+  border: 1px solid var(--color-accent-celeste-border-medium);
   border-radius: var(--border-radius-pill);
   color: var(--color-brand-celeste);
   font-size: 10px;
@@ -403,8 +403,8 @@
 
 .admin-spotlight--luxury {
   align-items: stretch;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 12px;
   display: grid;
   gap: 14px;
@@ -457,8 +457,8 @@
 }
 
 .admin-spotlight__metric {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 10px;
   display: grid;
   gap: 2px;
@@ -504,14 +504,14 @@
 }
 
 .admin-spotlight--luxury .admin-spotlight__cta:hover {
-  background: rgba(116, 172, 223, 0.1);
-  border-color: rgba(116, 172, 223, 0.28);
+  background: var(--color-accent-celeste-border-subtle);
+  border-color: var(--color-accent-celeste-border-medium);
 }
 
 .admin-spotlight--compact {
   align-items: center;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 12px;
   display: grid;
   gap: 12px;
@@ -584,8 +584,8 @@
 }
 
 .admin-finance__strip {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 12px;
   display: grid;
   gap: 8px;
@@ -702,8 +702,8 @@
 }
 
 .admin-finance__summary {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 12px;
   display: grid;
   gap: 12px;
@@ -738,8 +738,8 @@
 }
 
 .admin-finance__stat {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 10px;
   display: grid;
   gap: 3px;
@@ -804,8 +804,8 @@
 
 .admin-finance__pending {
   align-items: center;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
   border-radius: 10px;
   display: flex;
   flex-wrap: wrap;
@@ -1003,8 +1003,8 @@
 .admin-dashboard--luxury .admin-dashboard__panels .action-queue,
 .admin-dashboard--luxury .admin-dashboard__panels .recent-activity {
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.008) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+    linear-gradient(165deg, var(--color-bg-glass) 0%, transparent 100%);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 16px;
   box-shadow: none;
 }

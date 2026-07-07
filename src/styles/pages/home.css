@@ -419,10 +419,10 @@
   font-size: 14.5px;
   gap: 8px;
   transition:
-    transform 0.25s var(--ease-design),
-    box-shadow 0.25s ease,
-    background 0.25s ease,
-    border-color 0.25s ease;
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    background var(--transition-base),
+    border-color var(--transition-base);
 }
 
 .hero__cta-icon {
@@ -450,6 +450,10 @@
   transform: translateY(-2px);
 }
 
+.hero__cta--primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
 .hero__cta--outline {
   background: transparent;
   border: 1.5px solid var(--home-hero-outline-border);
@@ -461,6 +465,10 @@
 .hero__cta--outline:hover {
   background: var(--home-hero-outline-hover-bg);
   border-color: var(--home-hero-outline-hover-border);
+}
+
+.hero__cta--outline:active {
+  transform: scale(0.98);
 }
 
 .hero__metrics {
@@ -1507,7 +1515,7 @@
   padding: var(--space-xl) var(--space-xl);
   position: relative;
   text-align: left;
-  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--transition-base);
 }
 
 /* Barra vertical roja que crece desde arriba */
@@ -1585,7 +1593,7 @@
   padding: 0;
   position: relative;
   transition:
-    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--transition-base),
     border-color var(--transition-base),
     box-shadow var(--transition-base);
 }
@@ -1778,17 +1786,17 @@
   background: var(--home-canvas-bg);
   border-block: none;
   color: var(--home-canvas-fg);
-  padding-block: clamp(64px, 9vw, 112px);
+  padding-block: var(--section-pad-lg);
 }
 
 .home-section--canvas-light.home-section--compact {
-  padding-block: clamp(56px, 8vw, 96px);
+  padding-block: var(--section-pad-md);
 }
 
 .home-section--membership,
 .home-section--teasers,
 .home-section--mid-stack {
-  padding-block: clamp(48px, 7vw, 80px);
+  padding-block: var(--section-pad-md);
 }
 
 .home-mid-stack {
@@ -1809,7 +1817,7 @@
 }
 
 .home-section--faq {
-  padding-block: clamp(64px, 9vw, 112px);
+  padding-block: var(--section-pad-lg);
   position: relative;
 }
 
@@ -2025,7 +2033,7 @@
 
 .home-faq__panel .faq-accordion--ref .faq-item__icon-ref-bar--vert {
   transform: rotate(90deg);
-  transition: transform 0.25s ease;
+  transition: transform var(--transition-fast);
 }
 
 .home-faq__panel .faq-accordion--ref .faq-item--open .faq-item__icon-ref-bar {
@@ -2686,11 +2694,16 @@
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .rulebook-teaser__btn:hover {
   border-color: var(--home-canvas-fg);
+}
+
+.rulebook-teaser__btn:active {
+  transform: scale(0.98);
 }
 
 /* ── Membership band (home) ─────────────────── */
@@ -2750,6 +2763,10 @@
 .home-membership-band__cta:hover {
   box-shadow: 0 12px 24px rgba(225, 6, 0, 0.32);
   transform: translateY(-2px);
+}
+
+.home-membership-band__cta:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .home-membership-card {
@@ -2901,12 +2918,17 @@
   padding: 14px 24px;
   transition:
     background var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .home-results-teaser__btn:hover {
   background: var(--home-canvas-fg);
   color: var(--home-canvas-bg);
+}
+
+.home-results-teaser__btn:active {
+  transform: scale(0.98);
 }
 
 /* ── Community spotlight (home) ─────────────── */
@@ -3014,10 +3036,10 @@
   margin-top: 28px;
   padding: 12px 22px;
   transition:
-    background 0.22s var(--ease-design),
-    border-color 0.22s var(--ease-design),
-    color 0.22s var(--ease-design),
-    transform 0.22s var(--ease-design);
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .community-spotlight__cta:hover {
@@ -3025,6 +3047,10 @@
   border-color: rgba(116, 172, 223, 0.55);
   color: #fff;
   transform: translateY(-2px);
+}
+
+.community-spotlight__cta:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .community-spotlight__visual {
@@ -3426,6 +3452,10 @@
 .pitbull-spotlight__cta-primary:hover {
   box-shadow: 0 12px 26px oklch(56% 0.18 25 / 0.4);
   transform: translateY(-2px);
+}
+
+.pitbull-spotlight__cta-primary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .pitbull-spotlight--home .pitbull-spotlight__soon {

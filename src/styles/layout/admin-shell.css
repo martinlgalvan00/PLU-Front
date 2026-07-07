@@ -197,7 +197,7 @@
 
 .admin-shell__nav-icon {
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-glass);
   border: 1px solid transparent;
   border-radius: 10px;
   color: inherit;
@@ -231,13 +231,13 @@
 }
 
 .admin-shell__nav button.active {
-  background: linear-gradient(90deg, rgba(225, 6, 0, 0.16) 0%, rgba(225, 6, 0, 0.03) 100%);
+  background: linear-gradient(90deg, var(--color-accent-red-border-subtle) 0%, transparent 100%);
   color: var(--color-text-primary);
 }
 
 .admin-shell__nav button.active .admin-shell__nav-icon {
-  background: rgba(225, 6, 0, 0.12);
-  border-color: rgba(225, 6, 0, 0.22);
+  background: var(--color-accent-red-border-subtle);
+  border-color: var(--color-accent-red-border-medium);
   color: var(--color-brand-red);
   opacity: 1;
 }
