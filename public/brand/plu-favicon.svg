@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="PLU ARG">
+  <rect width="32" height="32" rx="6" fill="#141518"/>
+  <rect x="5" y="14.5" width="22" height="2" fill="#c9b978"/>
+  <rect x="3" y="11" width="3.5" height="9" rx="0.5" fill="#c9b978"/>
+  <rect x="25.5" y="11" width="3.5" height="9" rx="0.5" fill="#c9b978"/>
+  <rect x="7.5" y="12.5" width="2" height="6" fill="#9b8f59"/>
+  <rect x="22.5" y="12.5" width="2" height="6" fill="#9b8f59"/>
+</svg>

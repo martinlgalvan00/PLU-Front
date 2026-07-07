@@ -1,36 +1,60 @@
 :root {
-  --color-brand-red: #e10600;
-  --color-brand-red-hover: #ff1a14;
-  --color-brand-gold: #c9b978;
-  --color-brand-gold-light: #ddc992;
-  --color-brand-gold-dark: #9b8f59;
-  --color-brand-celeste: #74acdf;
-  --color-brand-celeste-dim: rgba(116, 172, 223, 0.15);
-  --color-brand-celeste-glow: rgba(116, 172, 223, 0.35);
+  /* Primitivos de marca → ver src/styles/tokens/palette.css (--plu-*) */
 
-  /* Sombras sutiles — sin glow exagerado */
-  --glow-red: 0 4px 16px rgba(225, 6, 0, 0.2);
-  --glow-red-soft: 0 2px 12px rgba(225, 6, 0, 0.12);
-  --glow-gold: 0 4px 16px rgba(201, 185, 120, 0.18);
-  --glow-gold-soft: 0 2px 12px rgba(201, 185, 120, 0.12);
-  --glow-celeste: 0 4px 16px rgba(116, 172, 223, 0.18);
-  --glow-celeste-soft: 0 2px 12px rgba(116, 172, 223, 0.1);
+  /* ── Glows sutiles ─────────────────────────────── */
+  --glow-red:          0 4px 20px var(--plu-red-alpha-30);
+  --glow-red-soft:     0 2px 14px var(--plu-red-alpha-16);
+  --glow-red-strong:   0 8px 32px var(--plu-red-alpha-45);
+  --glow-gold:         0 4px 20px var(--plu-gold-alpha-22);
+  --glow-gold-soft:    0 2px 14px var(--plu-gold-alpha-12);
+  --glow-gold-strong:  0 8px 32px var(--plu-gold-alpha-35);
+  --glow-celeste:      0 4px 20px var(--plu-celeste-alpha-35);
+  --glow-celeste-soft: 0 2px 14px var(--plu-celeste-alpha-18);
+  --glow-celeste-strong: 0 8px 32px rgba(116, 172, 223, 0.42);
 
-  --color-success-bg: #dcfce7;
-  --color-success-text: #166534;
+  /* ── Acento por marca — tiers consolidados (border/bg) ────
+     Reemplazan las alphas sueltas (0.12/0.18/0.22/0.28/0.32/0.35...)
+     repetidas ad hoc en admin/plu-ui/events. Un solo lugar por tier. ── */
+  --color-accent-red-border-subtle: var(--plu-red-alpha-16);
+  --color-accent-red-border-medium: var(--plu-red-alpha-30);
+  --color-accent-red-border-strong: var(--plu-red-alpha-45);
+  --color-accent-gold-border-subtle: var(--plu-gold-alpha-12);
+  --color-accent-gold-border-medium: var(--plu-gold-alpha-22);
+  --color-accent-gold-border-strong: var(--plu-gold-alpha-35);
+  --color-accent-celeste-border-subtle: var(--plu-celeste-alpha-18);
+  --color-accent-celeste-border-medium: var(--plu-celeste-alpha-26);
+  --color-accent-celeste-border-strong: var(--plu-celeste-alpha-35);
+
+  /* ── Card premium tokens ───────────────────────── */
+  --card-gradient-red:
+    linear-gradient(135deg, var(--plu-red-alpha-16) 0%, transparent 60%);
+  --card-gradient-gold:
+    linear-gradient(135deg, var(--plu-gold-alpha-18) 0%, transparent 60%);
+  --card-gradient-celeste:
+    linear-gradient(135deg, var(--plu-celeste-alpha-18) 0%, transparent 60%);
+  --card-gradient-neutral:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+
+  /* ── Status ────────────────────────────────────── */
+  --color-success-bg: var(--plu-success-bg);
+  --color-success-text: var(--plu-success-600);
   --color-warning-bg: #fef3c7;
   --color-warning-text: #92400e;
   --color-danger-bg: #fee2e2;
   --color-danger-text: #991b1b;
 
+  /* ── Tipografía ────────────────────────────────── */
   --font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Barlow Condensed', 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease-design: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-weight-bold: 700;
   --font-weight-black: 800;
   --letter-spacing-wide: 0.05em;
   --letter-spacing-wider: 0.12em;
   --letter-spacing-display: 0.04em;
 
+  /* ── Easings ───────────────────────────────────── */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -45,6 +69,7 @@
   --transition-base: var(--duration-base) var(--ease-out);
   --transition-slow: var(--duration-slow) var(--ease-out);
 
+  /* ── Espaciado ─────────────────────────────────── */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -54,12 +79,17 @@
   --space-3xl: 72px;
   --space-4xl: 96px;
 
+  /* ── Layout ────────────────────────────────────── */
   --max-width-content: 1240px;
   --max-width-page: 1200px;
   --max-width-text: 720px;
   --max-width-narrow: 560px;
-  --header-height: 76px;
-  --header-height-scrolled: 64px;
+  --layout-gutter: clamp(12px, 1.5vw, 28px);
+  --layout-gutter-sm: clamp(10px, 1.2vw, 16px);
+  --layout-gutter-lg: clamp(16px, 2.4vw, 40px);
+  --admin-content-max: min(1280px, 100%);
+  --header-height: 62px;
+  --header-height-scrolled: 52px;
   --admin-sidebar-width: 260px;
   --border-radius-sm: 6px;
   --border-radius-md: 10px;

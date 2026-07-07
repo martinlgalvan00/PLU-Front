@@ -18,6 +18,17 @@
   to   { opacity: 1; }
 }
 
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
 @keyframes scale-in {
   from {
     opacity: 0;
@@ -62,19 +73,42 @@
   }
 }
 
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes page-enter-back {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-exit-back {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
 /* =============================================
    HERO ANIMATIONS
    ============================================= */
-
-@keyframes hero-glow {
-  0%, 100% { opacity: 0.45; }
-  50%       { opacity: 0.78; }
-}
-
-@keyframes hero-glow-gold {
-  0%, 100% { opacity: 0.2; }
-  50%       { opacity: 0.42; }
-}
 
 @keyframes noise-drift {
   0%   { transform: translate(0, 0); }
@@ -129,6 +163,14 @@
   100% { background-position: 200% center; }
 }
 
+/* Card shimmer — sweep diagonal de luz suave */
+@keyframes card-shimmer {
+  0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(120%) skewX(-15deg); opacity: 0; }
+}
+
 /* =============================================
    GROW / DRAW
    ============================================= */
@@ -157,6 +199,20 @@
   50%       { transform: translateY(-8px); }
 }
 
+@keyframes home-ambient-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(2.5%, -2%, 0) scale(1.05);
+  }
+
+  100% {
+    transform: translate3d(-2%, 2.5%, 0) scale(0.97);
+  }
+}
+
 @keyframes float-sm {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-4px); }
@@ -176,6 +232,38 @@
 @keyframes glow-pulse-gold {
   0%, 100% { box-shadow: var(--glow-gold-soft); }
   50%       { box-shadow: var(--glow-gold); }
+}
+
+@keyframes glow-pulse-celeste {
+  0%, 100% { box-shadow: var(--glow-celeste-soft); }
+  50%       { box-shadow: var(--glow-celeste); }
+}
+
+/* =============================================
+   NUMBER POP — entrada para valores numéricos grandes
+   ============================================= */
+
+@keyframes number-pop {
+  0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
+  60%  { opacity: 1; transform: scale(1.06) translateY(-2px); }
+  80%  { transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* =============================================
+   GRADIENT ROTATE — borde con gradiente giratorio
+   ============================================= */
+
+@keyframes gradient-rotate {
+  0%   { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+/* Glow sweep para metric cards */
+@keyframes metric-glow-sweep {
+  0%   { opacity: 0; transform: translateY(100%); }
+  40%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-100%); }
 }
 
 /* =============================================
@@ -210,16 +298,6 @@
 @keyframes dot-bounce {
   0%, 100% { transform: scale(1); opacity: 1; }
   50%       { transform: scale(1.5); opacity: 0.6; }
-}
-
-/* =============================================
-   FLAG WAVE
-   ============================================= */
-
-@keyframes flag-wave {
-  0%, 100% { transform: scaleX(1) skewY(0deg); }
-  25%       { transform: scaleX(1.04) skewY(1deg); }
-  75%       { transform: scaleX(0.97) skewY(-1deg); }
 }
 
 /* =============================================
@@ -266,17 +344,110 @@
    ============================================= */
 
 .page-transition {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-transition--enter.page-transition--dir-forward {
   animation: page-enter var(--duration-slow) var(--ease-out) both;
 }
 
-/* Hero: sin stagger — el contenido aparece de una */
+.page-transition--exit.page-transition--dir-forward {
+  animation: page-exit 200ms var(--ease-sharp) both;
+  pointer-events: none;
+}
+
+.page-transition--enter.page-transition--dir-back {
+  animation: page-enter-back var(--duration-base) var(--ease-out) both;
+}
+
+.page-transition--exit.page-transition--dir-back {
+  animation: page-exit-back 200ms var(--ease-sharp) both;
+  pointer-events: none;
+}
+
+.page-transition--idle {
+  animation: none;
+}
+
+/* =============================================
+   STAGGER REVEAL
+   ============================================= */
+
+.stagger-reveal > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--duration-reveal) var(--ease-out),
+    transform var(--duration-reveal) var(--ease-out);
+  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-step, 80ms));
+}
+
+.stagger-reveal--scale > * {
+  transform: scale(0.97);
+}
+
+.stagger-reveal--from-left > * {
+  transform: translateX(-24px);
+}
+
+.stagger-reveal--from-right > * {
+  transform: translateX(24px);
+}
+
+.stagger-reveal.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 549px) {
+  .stagger-reveal > * {
+    transition-delay: calc(min(var(--stagger-index, 0), 2) * var(--stagger-step, 80ms));
+  }
+}
 
 /* =============================================
    ADMIN
    ============================================= */
 
 .admin-section-enter {
-  animation: page-enter var(--duration-base) var(--ease-out) both;
+  animation: admin-section-enter 0.36s var(--ease-out) both;
+}
+
+@keyframes admin-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-block-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-metric-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* =============================================
@@ -295,9 +466,43 @@
     transition: none;
   }
 
-  .page-transition,
+  .page-transition--enter,
+  .page-transition--exit,
+  .page-transition--enter.page-transition--dir-forward,
+  .page-transition--exit.page-transition--dir-forward,
+  .page-transition--enter.page-transition--dir-back,
+  .page-transition--exit.page-transition--dir-back {
+    animation: none;
+  }
+
+  .stagger-reveal > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hero--design .hero__copy-inner > *,
+  .hero--design .hero__metric,
+  .hero--design .hero__proof,
+  .hero-status-card,
+  .hero-status-card__live-dot {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+    transition: none !important;
+  }
+
   .admin-section-enter {
     animation: none;
+  }
+
+  .admin-dashboard__block,
+  .admin-metric--compact {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 
   *,

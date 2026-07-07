@@ -1,0 +1,7186 @@
+/* =============================================
+   PITBULL CLASSIC — event landing page
+   ============================================= */
+
+.pitbull-page.page {
+  padding: 0;
+}
+
+.pitbull-page__body {
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
+  isolation: isolate;
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  min-width: 0;
+  overflow-x: clip;
+  padding:
+    clamp(20px, 3vw, 28px)
+    var(--layout-gutter)
+    clamp(40px, 5vw, 56px);
+  position: relative;
+  width: 100%;
+  z-index: 2;
+}
+
+.pitbull-page--premium .pitbull-page__body {
+  gap: 0;
+  margin-inline: 0;
+  max-width: none;
+  padding-inline: var(--layout-gutter-lg);
+  width: 100%;
+}
+
+/* Un solo Reveal envuelve todo el dossier — sin translateY para no trabar el scroll. */
+.pitbull-page__body > .reveal {
+  transform: none;
+  width: 100%;
+}
+
+.pitbull-page__body > .reveal.is-visible {
+  transform: none;
+}
+
+/* ── Premium hero ─────────────────────────────── */
+
+.pitbull-page--premium .pitbull-hero.design-hero--compact {
+  background:
+    linear-gradient(180deg, transparent 88%, var(--design-hero-fade, var(--color-page-canvas)) 100%),
+    var(--design-hero-surface, var(--design-hero-bg, #181a1f));
+  margin-top: calc(-1 * var(--header-height));
+  padding:
+    calc(var(--header-height) + clamp(8px, 1.4vw, 12px))
+    var(--layout-gutter-lg)
+    clamp(14px, 2.2vw, 20px);
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-page--premium .pitbull-hero.design-hero--compact::before,
+.pitbull-page--premium .pitbull-hero.design-hero--compact::after {
+  opacity: 0.42;
+}
+
+.pitbull-page--premium .pitbull-hero.design-hero--compact::before {
+  background: radial-gradient(ellipse 62% 80% at 6% 24%, rgba(225, 6, 0, 0.1) 0%, transparent 56%);
+}
+
+.pitbull-page--premium .pitbull-hero.design-hero--compact::after {
+  background: radial-gradient(ellipse 48% 62% at 94% 28%, rgba(116, 172, 223, 0.1) 0%, transparent 58%);
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__inner {
+  gap: clamp(14px, 2.2vw, 20px);
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__intro {
+  display: grid;
+  gap: clamp(10px, 1.6vw, 14px);
+  grid-template-columns: minmax(0, 1fr);
+  max-width: none;
+  padding-left: 0;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__intro::before {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__breadcrumb {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin: 0;
+  opacity: 0.72;
+  padding: 0;
+  width: fit-content;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: none;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  opacity: 0.88;
+  padding: 0;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__eyebrow-dot {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-hero .design-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.034em;
+  line-height: 1.08;
+  margin: 0;
+  max-width: none;
+}
+
+.pitbull-hero-rail {
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-hero-rail--luxury {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pitbull-page--premium .pitbull-hero-rail {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.pitbull-hero-rail__rail {
+  align-items: center;
+  background: var(--pitbull-control-rail-bg, rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--pitbull-control-rail-border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--border-radius-pill);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 3px 4px;
+  width: 100%;
+}
+
+.pitbull-hero-rail__status {
+  align-items: center;
+  display: flex;
+  flex: none;
+  padding: 6px 10px 6px 12px;
+}
+
+.pitbull-hero-rail__status .events-status-badge {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 5px 9px;
+}
+
+.pitbull-hero-rail__divider {
+  align-self: stretch;
+  background: var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  flex: none;
+  width: 1px;
+}
+
+.pitbull-hero-rail__metrics {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.pitbull-hero-rail__metric {
+  align-items: baseline;
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: 7px;
+  margin: 0;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.pitbull-hero-rail__metric:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-hero-rail__metric dt {
+  align-items: center;
+  color: var(--pitbull-rail-stat-label, rgba(255, 255, 255, 0.42));
+  display: inline-flex;
+  flex: none;
+  font-size: 9px;
+  font-weight: 600;
+  gap: 4px;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pitbull-hero-rail__metric dt svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+  opacity: 0.82;
+}
+
+.pitbull-hero-rail__metric dd {
+  color: var(--pitbull-rail-stat-value, rgba(255, 255, 255, 0.9));
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pitbull-hero-rail__metric--open dd {
+  color: #6ecf98;
+}
+
+.pitbull-hero-rail__metric--open dt svg {
+  color: #6ecf98;
+}
+
+.pitbull-hero-rail__actions {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  justify-content: flex-end;
+  padding: 4px 6px 4px 4px;
+}
+
+.pitbull-hero-rail__cta {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0.02em;
+  min-height: 34px;
+  padding: 0 12px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.pitbull-hero-rail__cta:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.pitbull-hero-rail__cta:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.42);
+  outline-offset: 1px;
+}
+
+.pitbull-hero-rail__cta:active {
+  transform: scale(0.98);
+}
+
+.pitbull-hero-rail__cta--primary {
+  background: rgba(225, 6, 0, 0.12);
+  color: #fff;
+}
+
+.pitbull-hero-rail__cta--primary:hover {
+  background: rgba(225, 6, 0, 0.2);
+}
+
+.pitbull-hero-rail__cta--muted {
+  color: rgba(255, 255, 255, 0.52);
+  font-weight: 500;
+}
+
+.pitbull-hero-rail__cta--muted:hover {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+[data-theme='light'] .pitbull-hero-rail__cta {
+  color: var(--plu-ink-900);
+}
+
+[data-theme='light'] .pitbull-hero-rail__cta:hover {
+  background: rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .pitbull-hero-rail__cta--primary {
+  background: rgba(225, 6, 0, 0.08);
+  color: #c80500;
+}
+
+[data-theme='light'] .pitbull-hero-rail__cta--muted {
+  color: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .pitbull-hero-rail__cta--muted:hover {
+  color: var(--plu-ink-900);
+}
+
+.pitbull-page--premium .pitbull-page__body,
+.pitbull-page--premium .pitbull-dossier--minimal {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal {
+  align-items: stretch;
+  max-width: none;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__section--benefits,
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__section {
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__visual {
+  margin-inline: 0;
+  width: 100%;
+}
+
+/* ── Dossier minimal (flujo continuo) ─────────── */
+
+.pitbull-dossier--minimal {
+  align-items: stretch;
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(36px, 5.5vw, 52px);
+  padding-top: clamp(24px, 3.5vw, 32px);
+  width: 100%;
+}
+
+.pitbull-dossier--minimal > .pitbull-dossier__section--benefits,
+.pitbull-dossier--minimal > .pitbull-dossier__section {
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal > .pitbull-dossier__visual {
+  margin-inline: 0;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 20px 44px rgba(0, 0, 0, 0.28);
+  display: none;
+  isolation: isolate;
+  margin: 0;
+  max-width: min(880px, 72vw);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual::after {
+  background: linear-gradient(180deg, transparent 58%, rgba(8, 9, 12, 0.42) 100%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual-img {
+  aspect-ratio: 21 / 9;
+  display: block;
+  height: auto;
+  max-height: min(320px, 34vw);
+  min-height: 200px;
+  object-fit: cover;
+  object-position: center 28%;
+  width: 100%;
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__visual {
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 18px 36px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__visual::after {
+  background: linear-gradient(180deg, transparent 62%, rgba(247, 246, 243, 0.28) 100%);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section {
+  border: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__head {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__kicker {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.62));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.034em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__body {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  margin-top: clamp(14px, 2.2vw, 18px);
+  max-width: none;
+  width: 100%;
+}
+
+/* ── 01 Feature — editorial split ─────────────── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__kicker {
+  gap: 6px 8px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__index::after {
+  color: var(--color-text-muted);
+  content: '·';
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 8px;
+  opacity: 0.45;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__item {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__label {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts__value {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__actions--feature {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+@media (min-width: 1200px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(26px, 3.5vw, 34px);
+    max-width: none;
+  }
+}
+
+@media (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    margin-top: clamp(14px, 2.2vw, 18px);
+  }
+}
+
+/* ── 02 Categories — chips matrix ───────────── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
+  max-width: 20ch;
+}
+
+.pitbull-dossier--minimal .pitbull-categories-foot {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+@media (min-width: 1200px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(26px, 3.5vw, 34px);
+    max-width: none;
+  }
+}
+
+@media (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
+    margin-top: clamp(14px, 2.2vw, 18px);
+  }
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__status {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__status strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__actions {
+  align-items: center;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta:hover {
+  background: #d10504;
+  transform: translateY(-1px);
+}
+
+.pitbull-dossier__cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  gap: 5px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast), gap var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link:hover {
+  color: var(--color-brand-red);
+  gap: 7px;
+  text-decoration-color: currentColor;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier {
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 4px 16px;
+  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr);
+  margin: 0;
+  padding: 12px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid__term {
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-spec-grid__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__text-link.pitbull-dossier__text-link--rulebook {
+  justify-self: start;
+  margin-top: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__pricing {
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price--both {
+  border: none;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price dt {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__price dd {
+  font-size: clamp(17px, 2.4vw, 20px);
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__actions {
+  border: none;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__action-rail--primary {
+  border: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__price-note {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-desc {
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__cta--primary {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-link {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__card-link:hover {
+  color: var(--color-brand-red);
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__requirements--editorial {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__req-summary {
+  color: var(--color-text-secondary);
+  padding: 10px 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__requirements .pitbull-inscription__timeline {
+  border-top: 1px solid var(--pitbull-section-divider);
+  padding: 12px 0 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__credential-toggle {
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  padding: 12px 0 0;
+  transition: color var(--transition-fast);
+}
+
+.pitbull-dossier--minimal .pitbull-inscription__credential-toggle:hover {
+  color: var(--color-brand-red);
+}
+
+.pitbull-dossier--minimal .pitbull-tickets__form-shell {
+  margin-top: 0;
+}
+
+.pitbull-dossier--minimal.pitbull-inscription,
+.pitbull-dossier--minimal .pitbull-dossier__section--inscription.pitbull-inscription,
+.pitbull-dossier--minimal .pitbull-dossier__section--tickets.pitbull-tickets {
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 1200px) {
+  .pitbull-dossier--minimal .pitbull-dossier__visual {
+    display: block;
+  }
+}
+
+@media (max-width: 560px) {
+  .pitbull-dossier--minimal .pitbull-spec-grid--dossier .pitbull-spec-grid__cell {
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Legacy dossier grid — deprecado */
+.pitbull-dossier:not(.pitbull-dossier--minimal) {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  padding-top: clamp(20px, 3vw, 28px);
+}
+
+.pitbull-dossier__visual {
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: none;
+  margin: 0 0 clamp(4px, 1vw, 8px);
+  overflow: hidden;
+}
+
+.pitbull-dossier__visual-img {
+  display: block;
+  height: clamp(160px, 28vw, 220px);
+  object-fit: cover;
+  object-position: center 22%;
+  width: 100%;
+}
+
+.pitbull-dossier__section {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  grid-template-columns: 44px minmax(0, 1fr);
+  padding: clamp(22px, 3.2vw, 32px) 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier__section--first {
+  border-top: none;
+}
+
+.pitbull-dossier__visual + .pitbull-dossier__section--first {
+  border-top: none;
+  padding-top: clamp(22px, 3.2vw, 32px);
+}
+
+.pitbull-dossier__index {
+  align-self: start;
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-column: 1;
+  grid-row: 1;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 6px;
+}
+
+.pitbull-dossier__content {
+  grid-column: 2;
+  min-width: 0;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier__content::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-dossier__head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 24ch;
+  text-wrap: balance;
+}
+
+.pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.pitbull-dossier__status {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.06em;
+  margin: -6px 0 clamp(12px, 1.8vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-dossier__status strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.pitbull-dossier__actions {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__cta {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.pitbull-dossier__cta:hover {
+  background: #d10504;
+  transform: translateY(-1px);
+}
+
+.pitbull-dossier__cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.pitbull-dossier__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.pitbull-dossier__text-link {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-brand-red);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 0;
+  transition: gap var(--transition-fast), color var(--transition-fast);
+}
+
+.pitbull-dossier__text-link:hover {
+  color: var(--color-brand-celeste);
+  gap: 9px;
+}
+
+.pitbull-spec-grid--dossier {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin: 0;
+}
+
+.pitbull-dossier__section--tickets .pitbull-ticket-pass__pricing {
+  margin-top: 0;
+}
+
+.pitbull-dossier__section--inscription .pitbull-inscription__action-rail--primary {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  margin-top: 0;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-dossier__section--tickets .pitbull-tickets__form-shell {
+  margin-top: 0;
+}
+
+.pitbull-dossier__section--inscription.pitbull-inscription {
+  margin-top: 0;
+  padding-inline: 0;
+}
+
+.pitbull-dossier__section--tickets.pitbull-tickets {
+  margin-top: 0;
+  padding-inline: 0;
+}
+
+@media (min-width: 901px) {
+  .pitbull-dossier__visual {
+    display: block;
+  }
+}
+
+@media (max-width: 560px) {
+  .pitbull-dossier__section {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .pitbull-dossier__index {
+    font-size: 16px;
+    padding-top: 4px;
+  }
+
+  .pitbull-spec-grid--dossier {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-spec-grid--dossier .pitbull-spec-grid__cell:nth-child(odd) {
+    border-right: none;
+  }
+}
+
+/* Legacy flat bar — kept for reference, superseded by pitbull-hero-rail */
+.pitbull-hero__bar {
+  border-top: 1px solid var(--pitbull-rail-stats-border, rgba(255, 255, 255, 0.08));
+  display: grid;
+  gap: clamp(10px, 1.8vw, 14px);
+  padding-top: clamp(12px, 2vw, 16px);
+  width: 100%;
+}
+
+.pitbull-hero__bar-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: space-between;
+}
+
+.pitbull-hero__actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: flex-end;
+}
+
+.pitbull-hero__actions .btn--small {
+  border-radius: var(--border-radius-pill);
+  flex: none;
+  font-size: 12px;
+  min-height: 34px;
+  padding-inline: 14px;
+}
+
+.pitbull-hero__link {
+  background: none;
+  border: none;
+  color: var(--pitbull-rail-link);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--pitbull-rail-link) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.pitbull-hero__link:hover {
+  color: var(--pitbull-rail-link-hover);
+  text-decoration-color: currentColor;
+}
+
+.pitbull-hero__metrics {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.pitbull-hero__metric {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.pitbull-hero__metric dt {
+  align-items: center;
+  color: var(--pitbull-rail-stat-label);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 500;
+  gap: 4px;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.pitbull-hero__metric dt svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+  opacity: 0.75;
+}
+
+.pitbull-hero__metric dd {
+  color: var(--pitbull-rail-stat-value);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+}
+
+.pitbull-hero__metric--open dd {
+  color: #3d9a62;
+}
+
+.pitbull-hero__metric--open dt svg {
+  color: #3d9a62;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero .design-hero__breadcrumb {
+  opacity: 0.8;
+}
+
+.pitbull-hero-rail__soon-pill {
+  align-items: center;
+  background: rgba(201, 185, 120, 0.14);
+  border: 1px solid rgba(201, 185, 120, 0.28);
+  border-radius: 999px;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  text-transform: uppercase;
+}
+
+.pitbull-hero-rail__soon-dot {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+/* ── Feature split (visual + panel) ───────────── */
+
+.pitbull-feature {
+  background: var(--pitbull-feature-bg);
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: 20px;
+  box-shadow: var(--pitbull-feature-shadow);
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-page--premium .pitbull-feature::before {
+  display: none;
+}
+
+/* Feature premium — canvas transparente, solo imagen con radio */
+.pitbull-page--premium .pitbull-feature {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  gap: clamp(16px, 2.5vw, 22px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  overflow: visible;
+}
+
+.pitbull-page--premium .pitbull-feature__visual {
+  border-radius: 14px;
+  isolation: isolate;
+  max-height: 280px;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Feature editorial — banda con franja + panel */
+.pitbull-page--premium .pitbull-feature--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
+  display: block;
+  gap: 0;
+  grid-template-columns: unset;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.pitbull-feature--editorial .pitbull-feature__stripe,
+.pitbull-section--editorial .pitbull-section__stripe {
+  background: var(--pitbull-rail-stripe);
+  height: 2px;
+  opacity: 0.88;
+  width: 100%;
+}
+
+.pitbull-feature--editorial .pitbull-feature__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  min-height: 0;
+}
+
+.pitbull-feature--editorial .pitbull-feature__media {
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.pitbull-feature--editorial .pitbull-feature__media-img {
+  display: block;
+  height: 100%;
+  min-height: clamp(180px, 32vw, 260px);
+  object-fit: cover;
+  object-position: center 22%;
+  width: 100%;
+}
+
+.pitbull-feature--editorial .pitbull-feature__panel {
+  border-left: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+  min-width: 0;
+  padding: clamp(18px, 2.6vw, 24px);
+}
+
+.pitbull-feature--editorial .pitbull-feature__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-feature--editorial .pitbull-feature__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__meta {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px 8px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__meta time {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__actions {
+  border-top: 1px solid var(--pitbull-section-divider);
+  margin-top: auto;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+@media (max-width: 960px) {
+  .pitbull-feature--editorial .pitbull-feature__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__panel {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider);
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__media-img {
+    aspect-ratio: 2.2 / 1;
+    max-height: 220px;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .pitbull-feature--editorial .pitbull-feature__media {
+    display: none;
+  }
+
+  .pitbull-feature--editorial .pitbull-feature__panel {
+    border-top: none;
+  }
+}
+
+.pitbull-page--premium .pitbull-feature__visual.is-reorienting .pitbull-feature__visual-img {
+  animation: pitbull-feature-visual-settle 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pitbull-feature-visual-settle {
+  0% {
+    opacity: 0.82;
+    transform: scale(0.97);
+  }
+
+  45% {
+    opacity: 0.96;
+    transform: scale(1.015);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-page--premium .pitbull-feature__visual.is-reorienting .pitbull-feature__visual-img {
+    animation: none;
+  }
+}
+
+.pitbull-page--premium .pitbull-feature__visual-overlay--soft {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 10, 0.02) 0%,
+    rgba(8, 8, 10, 0.12) 55%,
+    rgba(8, 8, 10, 0.32) 100%
+  );
+}
+
+.pitbull-page--premium .pitbull-feature__body {
+  border-left: 1px solid var(--pitbull-feature-rail, rgba(201, 185, 120, 0.18));
+  display: grid;
+  gap: clamp(14px, 2vw, 20px);
+  min-width: 0;
+  padding: clamp(2px, 0.6vw, 6px) 0 clamp(2px, 0.6vw, 6px) clamp(14px, 2.2vw, 22px);
+}
+
+.pitbull-page--premium .pitbull-feature--editorial .pitbull-feature__body {
+  border-left: none;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-feature__head {
+  align-items: start;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pitbull-page--premium .pitbull-feature__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-row: span 2;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 4px;
+}
+
+.pitbull-page--premium .pitbull-feature__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-page--premium .pitbull-feature__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-feature__hook {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(14px, 1.6vw, 16px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 36ch;
+  opacity: 0.92;
+}
+
+.pitbull-page--premium .pitbull-feature__requirement-line {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 40ch;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-band {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 4px;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-meta {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-pct {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-main {
+  display: grid;
+  gap: 8px;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-value {
+  align-items: baseline;
+  color: var(--color-text-primary);
+  display: flex;
+  font-family: var(--font-display);
+  gap: 2px;
+  line-height: 1;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-value strong {
+  font-size: clamp(28px, 3.6vw, 34px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-sep {
+  color: var(--color-text-muted);
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 500;
+  opacity: 0.55;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-total {
+  color: var(--color-text-secondary);
+  font-size: clamp(16px, 2vw, 20px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-track {
+  background: var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-track span {
+  background: linear-gradient(90deg, var(--color-brand-celeste), rgba(116, 172, 223, 0.72));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  min-width: 0;
+  transition: width 320ms var(--ease-out);
+}
+
+.pitbull-page--premium .pitbull-feature__specs {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding-top: 2px;
+}
+
+.pitbull-page--premium .pitbull-feature__specs--matrix {
+  gap: 0 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-page--premium .pitbull-feature__spec {
+  align-content: start;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 11px 0;
+}
+
+.pitbull-page--premium .pitbull-feature__spec--wide {
+  grid-column: 1 / -1;
+}
+
+.pitbull-page--premium .pitbull-feature__spec:last-child {
+  border-bottom: none;
+}
+
+.pitbull-page--premium .pitbull-feature__spec dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  line-height: 1.3;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-feature__spec dd {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+}
+
+.pitbull-page--premium .pitbull-feature__spec-emphasis {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.pitbull-page--premium .pitbull-feature__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pitbull-page--premium .pitbull-feature__token {
+  border: 1px solid var(--pitbull-feature-token-border, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.pitbull-page--premium .pitbull-feature__spec--capacity dd {
+  align-items: center;
+}
+
+.pitbull-page--premium .pitbull-feature__capacity-inline {
+  align-items: center;
+  display: grid;
+  gap: 6px 8px;
+  grid-template-columns: auto 1fr auto;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-feature__actions {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding-top: 12px;
+}
+
+.pitbull-page--premium .pitbull-feature__cta {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  letter-spacing: 0.01em;
+  padding: 0;
+  transition: color var(--transition-fast), gap var(--transition-fast);
+}
+
+.pitbull-page--premium .pitbull-feature__cta:hover {
+  color: var(--color-brand-celeste);
+  gap: 9px;
+}
+
+.pitbull-page--premium .pitbull-feature__text-link {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.pitbull-page--premium .pitbull-feature__cta:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.42);
+  outline-offset: 3px;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-feature__chip {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-feature__body {
+  --pitbull-feature-rail: rgba(166, 132, 58, 0.28);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-feature__token {
+  --pitbull-feature-token-border: rgba(15, 17, 23, 0.1);
+  background: rgba(15, 17, 23, 0.02);
+}
+
+.pitbull-feature__visual {
+  align-items: center;
+  border-radius: 0;
+  display: grid;
+  justify-items: center;
+  max-height: 420px;
+  min-height: 280px;
+  overflow: hidden;
+  place-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-feature__visual-img {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: center center;
+  transition:
+    object-position var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+  width: 100%;
+}
+
+@media (orientation: landscape) {
+  .pitbull-page--premium .pitbull-feature__visual-img {
+    object-position: center 42%;
+  }
+}
+
+@media (orientation: portrait) {
+  .pitbull-page--premium .pitbull-feature__visual-img {
+    object-position: center center;
+  }
+}
+
+.pitbull-feature__visual-overlay {
+  background:
+    linear-gradient(180deg, rgba(8, 8, 10, 0.04) 0%, rgba(8, 8, 10, 0.55) 58%, rgba(8, 8, 10, 0.88) 100%),
+    linear-gradient(90deg, rgba(8, 8, 10, 0.28) 0%, transparent 48%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.pitbull-feature__badge {
+  backdrop-filter: blur(8px);
+  background: rgba(225, 6, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--border-radius-pill);
+  box-shadow: 0 8px 20px rgba(225, 6, 0, 0.28);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  left: 14px;
+  letter-spacing: 0.1em;
+  padding: 5px 11px;
+  position: absolute;
+  text-transform: uppercase;
+  top: 14px;
+}
+
+.pitbull-feature__visual-foot {
+  align-items: flex-end;
+  background: linear-gradient(180deg, transparent 0%, rgba(8, 8, 10, 0.72) 42%, rgba(8, 8, 10, 0.92) 100%);
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  left: 0;
+  padding: 24px 14px 12px;
+  position: absolute;
+  right: 0;
+  z-index: 1;
+}
+
+.pitbull-feature__category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: min(100%, 320px);
+}
+
+.pitbull-feature__category-tag {
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--border-radius-pill);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.pitbull-feature__categories {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  max-width: 42%;
+  text-transform: uppercase;
+}
+
+.pitbull-feature__capacity {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: var(--pitbull-feature-capacity-bg);
+  border: 1px solid var(--pitbull-feature-capacity-border);
+  border-radius: 10px;
+  flex: 1 1 180px;
+  max-width: min(100%, 240px);
+  padding: 8px 10px;
+}
+
+.pitbull-feature__capacity .capacity-widget {
+  margin-bottom: 0;
+}
+
+.pitbull-feature__capacity .capacity-widget__header {
+  color: var(--pitbull-feature-capacity-header);
+  font-size: 9px;
+  gap: 8px;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.pitbull-feature__capacity .capacity-widget__header strong {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.pitbull-feature__capacity .capacity-widget small {
+  color: var(--pitbull-feature-capacity-small);
+}
+
+.pitbull-feature__capacity .capacity-bar {
+  background: rgba(255, 255, 255, 0.12);
+  height: 3px;
+}
+
+.capacity-widget--compact .capacity-widget__header {
+  margin-bottom: 5px;
+}
+
+.capacity-widget--compact .capacity-bar {
+  height: 3px;
+}
+
+.pitbull-feature__panel {
+  border-radius: 0;
+  display: grid;
+  gap: 12px;
+  padding: clamp(18px, 2.6vw, 26px);
+  position: relative;
+}
+
+.pitbull-feature__panel::before {
+  background: var(--pitbull-feature-panel-wash);
+  content: '';
+  height: 120px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.pitbull-feature__panel-title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+  position: relative;
+  text-transform: none;
+  z-index: 1;
+}
+
+.pitbull-feature__panel-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-feature__panel-meta {
+  align-items: center;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  line-height: 1.2;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.pitbull-feature__panel-meta svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.pitbull-feature__panel-lead {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 48ch;
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-feature__facts {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 12.5px;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  line-height: 1.45;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-feature__facts li {
+  align-items: center;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  display: flex;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.pitbull-feature__facts svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.pitbull-feature__highlights {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 13.5px;
+  gap: 8px;
+  line-height: 1.45;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-feature__highlights li {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.pitbull-feature__highlights svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+  margin-top: 2px;
+}
+
+.pitbull-feature__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pitbull-feature__tag {
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  text-transform: uppercase;
+}
+
+.pitbull-feature__actions {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.pitbull-feature__text-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.pitbull-feature__text-link:hover {
+  color: var(--color-brand-celeste);
+}
+
+/* ── Sections ─────────────────────────────────── */
+
+.pitbull-section {
+  scroll-margin-top: calc(var(--header-height-scrolled) + 16px);
+}
+
+.pitbull-section--alt {
+  margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+  padding-inline: clamp(20px, 5vw, 64px);
+}
+
+.pitbull-section--alt,
+.pitbull-section--credential {
+  background: var(--pitbull-section-alt-bg, var(--color-section-muted));
+  border-block: 1px solid var(--color-border-subtle);
+  margin-top: 8px;
+  padding-block: clamp(28px, 4vw, 40px);
+}
+
+.pitbull-section--credential {
+  margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+  padding-inline: clamp(20px, 5vw, 64px);
+}
+
+.pitbull-section .section-heading--ref {
+  margin-bottom: clamp(18px, 2.5vw, 24px);
+}
+
+.pitbull-section .section-heading--ref .section-heading__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+
+.pitbull-section .section-heading--ref .section-heading__title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  text-transform: none;
+}
+
+.pitbull-section .section-heading--ref .section-heading__desc {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin-top: 8px;
+  max-width: 52ch;
+}
+
+.pitbull-section .section-heading--center .section-heading__desc {
+  margin-inline: auto;
+}
+
+/* ── Categories — grilla de especificaciones ─── */
+
+.pitbull-section--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0 clamp(18px, 2.6vw, 24px) clamp(18px, 2.6vw, 24px);
+}
+
+.pitbull-section--categories {
+  padding-block: clamp(8px, 1.8vw, 16px);
+}
+
+.pitbull-section--editorial.pitbull-section--categories {
+  padding-block: 0;
+}
+
+/* ── Secciones en flujo (sin caja — ritmo Members) ── */
+
+.pitbull-page--premium .pitbull-section--flow,
+.pitbull-page--premium .pitbull-tickets.pitbull-section--flow {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider);
+  box-shadow: none;
+  isolation: isolate;
+  margin-inline: 0;
+  margin-top: 0;
+  overflow: visible;
+  padding: clamp(18px, 2.6vw, 24px) 0 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-section--flow .pitbull-section__stripe {
+  display: none;
+}
+
+.pitbull-section--flow .pitbull-categories__head,
+.pitbull-section--flow .pitbull-tickets__head,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head--editorial {
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  padding-bottom: 0;
+}
+
+.pitbull-section--flow .pitbull-categories__head-copy,
+.pitbull-section--flow .pitbull-tickets__head-copy,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-section--flow .pitbull-categories__head-copy::before,
+.pitbull-section--flow .pitbull-tickets__head-copy::before,
+.pitbull-page--premium .pitbull-section--flow .pitbull-inscription__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-section--flow .pitbull-spec-grid {
+  border-top: 1px solid var(--pitbull-section-divider);
+}
+
+.pitbull-section--flow .pitbull-section__rulebook-link {
+  margin-top: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-page--premium .pitbull-tickets.pitbull-section--flow .pitbull-tickets__inner {
+  padding: 0;
+}
+
+.pitbull-section--editorial .pitbull-categories__head {
+  margin-bottom: 0;
+  padding: clamp(18px, 2.6vw, 24px) 0 clamp(14px, 2vw, 18px);
+}
+
+.pitbull-section--editorial .pitbull-categories__head-copy {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-section--editorial .pitbull-categories__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-spec-grid {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-spec-grid__cell {
+  border-bottom: 1px solid var(--pitbull-section-divider);
+  margin: 0;
+  min-width: 0;
+  padding: clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-spec-grid__cell:nth-child(odd) {
+  border-right: 1px solid var(--pitbull-section-divider);
+}
+
+.pitbull-spec-grid__term {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.88));
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 0 0 6px;
+}
+
+.pitbull-spec-grid__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-section--editorial .pitbull-section__rulebook-link {
+  margin-top: clamp(16px, 2.2vw, 20px);
+}
+
+@media (max-width: 640px) {
+  .pitbull-spec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-spec-grid__cell:nth-child(odd) {
+    border-right: none;
+  }
+}
+
+.pitbull-categories__head {
+  align-items: start;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: clamp(4px, 1vw, 8px);
+}
+
+.pitbull-categories__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-row: span 2;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 4px;
+}
+
+.pitbull-categories__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-categories__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-categories__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.pitbull-categories__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-section--categories .pitbull-section__rulebook-link {
+  margin-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-section__rulebook-link {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-brand-red);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 0;
+  transition: gap var(--transition-fast), opacity var(--transition-fast);
+}
+
+.pitbull-section__rulebook-link:hover {
+  gap: 9px;
+  opacity: 0.88;
+}
+
+/* ── Inscripción (referencia #inscripcion) ─────── */
+
+.pitbull-inscription {
+  background: var(--pitbull-inscription-bg);
+  margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+  margin-top: var(--space-2xl);
+  padding-block: var(--section-pad-sm);
+  padding-inline: clamp(20px, 5vw, 64px);
+  scroll-margin-top: 96px;
+}
+
+.pitbull-inscription__inner {
+  background: var(--pitbull-inscription-surface-bg);
+  border: 1px solid var(--pitbull-inscription-surface-border);
+  border-radius: 20px;
+  box-shadow: var(--pitbull-inscription-surface-shadow);
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  overflow: hidden;
+  padding: clamp(24px, 3.5vw, 36px);
+  position: relative;
+}
+
+.pitbull-inscription__inner::before {
+  background: var(--pitbull-rail-stripe);
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.pitbull-inscription__grid {
+  display: grid;
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.pitbull-inscription__eyebrow {
+  background: rgba(225, 6, 0, 0.08);
+  border: 1px solid rgba(225, 6, 0, 0.16);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-red);
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 10px 0 0;
+  max-width: 22ch;
+}
+
+.pitbull-inscription__lead {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 14px 0 0;
+  max-width: 52ch;
+}
+
+.pitbull-inscription__requirements {
+  container-name: pitbull-inscription-reqs;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.pitbull-inscription__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  position: relative;
+}
+
+.pitbull-inscription__timeline-item {
+  align-items: flex-start;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  gap: 12px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 14px 0;
+  position: relative;
+}
+
+.pitbull-inscription__timeline-item:not(:last-child) {
+  border-bottom: 1px solid var(--pitbull-inscription-step-border);
+}
+
+.pitbull-inscription__timeline-item:not(:last-child)::after {
+  display: none;
+}
+
+.pitbull-inscription__timeline-rail {
+  align-items: center;
+  display: grid;
+  flex: none;
+  gap: 8px;
+  justify-items: center;
+  padding-top: 2px;
+  position: relative;
+}
+
+.pitbull-inscription__timeline-item:not(:last-child) .pitbull-inscription__timeline-rail::after {
+  background: var(--pitbull-inscription-step-border);
+  bottom: -18px;
+  content: '';
+  left: 50%;
+  position: absolute;
+  top: calc(100% + 2px);
+  transform: translateX(-50%);
+  width: 1px;
+}
+
+.pitbull-inscription__timeline-step {
+  align-items: center;
+  background: rgba(225, 6, 0, 0.08);
+  border: 1px solid rgba(225, 6, 0, 0.16);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-red);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  height: 20px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-width: 32px;
+  padding: 0 7px;
+  width: auto;
+}
+
+.pitbull-inscription__timeline-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pitbull-inscription__timeline-icon {
+  align-items: center;
+  background: var(--pitbull-inscription-step-icon-bg);
+  border: 1px solid var(--pitbull-inscription-step-icon-border);
+  border-radius: 8px;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.pitbull-inscription__timeline-copy strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.pitbull-inscription__timeline-copy p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+@supports (container-type: inline-size) {
+  @container pitbull-inscription-reqs (min-width: 720px) {
+    .pitbull-inscription__timeline {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .pitbull-inscription__timeline-item {
+      background: var(--pitbull-inscription-step-bg);
+      border: 1px solid var(--pitbull-inscription-step-border);
+      border-bottom: 1px solid var(--pitbull-inscription-step-border);
+      border-radius: 12px;
+      gap: 10px;
+      grid-template-columns: 1fr;
+      padding: 14px;
+    }
+
+    .pitbull-inscription__timeline-item:not(:last-child) .pitbull-inscription__timeline-rail::after {
+      display: none;
+    }
+
+    .pitbull-inscription__timeline-rail {
+      align-items: center;
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+      justify-items: start;
+      width: 100%;
+    }
+
+    .pitbull-inscription__timeline-copy strong {
+      font-size: 13px;
+    }
+
+    .pitbull-inscription__timeline-copy p {
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      display: -webkit-box;
+      overflow: hidden;
+    }
+  }
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item {
+  transition: opacity var(--transition-fast);
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item:hover {
+  background: transparent;
+  opacity: 0.9;
+}
+
+@container pitbull-inscription-reqs (min-width: 720px) {
+  .pitbull-page--premium .pitbull-inscription__timeline-item:hover {
+    background: transparent;
+    border-color: transparent;
+    opacity: 0.9;
+  }
+}
+
+.pitbull-inscription__pricing {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  margin-top: 24px;
+}
+
+.pitbull-inscription__pricing-arrow {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: center;
+  opacity: 0.45;
+  padding-top: 18px;
+}
+
+.pitbull-inscription__price-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.pitbull-inscription__price-card--event {
+  border-color: rgba(225, 6, 0, 0.16);
+}
+
+.pitbull-inscription__price-step {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__price-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.8vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.pitbull-inscription__price-card--event .pitbull-inscription__price-value {
+  color: var(--color-brand-red);
+}
+
+.pitbull-inscription__price-card p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pitbull-inscription__status-card {
+  align-self: start;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  padding: clamp(22px, 3vw, 28px);
+  position: relative;
+}
+
+.pitbull-inscription__status-card::before {
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-gold), var(--color-brand-celeste));
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+@media (min-width: 961px) {
+  .pitbull-inscription__status-card {
+    position: sticky;
+    top: calc(var(--header-height-scrolled, 72px) + 20px);
+  }
+}
+
+.pitbull-inscription__next-step {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__card-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__card-status {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pitbull-inscription__status-dot {
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  flex: none;
+  height: 9px;
+  width: 9px;
+}
+
+.pitbull-inscription__status-dot--success {
+  background: #3d9a62;
+}
+
+.pitbull-inscription__status-dot--warning {
+  background: var(--color-brand-gold);
+}
+
+.pitbull-inscription__status-dot--neutral {
+  background: var(--color-text-muted);
+}
+
+.pitbull-inscription__status-dot--danger {
+  background: var(--color-brand-red);
+}
+
+.pitbull-inscription__card-status strong {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pitbull-inscription__card-desc {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0 0;
+}
+
+.pitbull-inscription__checklist {
+  background: var(--pitbull-checklist-bg, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+}
+
+.pitbull-inscription__checklist li {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.pitbull-inscription__checklist li svg {
+  flex: none;
+  opacity: 0.35;
+}
+
+.pitbull-inscription__checklist li.is-current {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.pitbull-inscription__checklist li.is-current svg {
+  color: var(--color-brand-gold);
+  opacity: 1;
+}
+
+.pitbull-inscription__checklist li.is-done {
+  color: var(--color-text-secondary);
+}
+
+.pitbull-inscription__checklist li.is-done svg {
+  color: #3d9a62;
+  opacity: 1;
+}
+
+.pitbull-inscription__card-cta {
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.pitbull-inscription__card-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 12px;
+  padding: 0;
+  text-align: center;
+  transition: color var(--transition-fast);
+  width: 100%;
+}
+
+.pitbull-inscription__card-link:hover {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-inscription__credential {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: clamp(28px, 4vw, 40px);
+  padding-top: clamp(24px, 3.5vw, 32px);
+}
+
+.pitbull-inscription__credential-head {
+  margin: 0 auto clamp(24px, 4vw, 32px);
+  max-width: 52ch;
+  text-align: center;
+}
+
+.pitbull-inscription__credential-eyebrow {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__credential-title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 10px 0 0;
+}
+
+.pitbull-inscription__credential-desc {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 10px 0 0;
+}
+
+.pitbull-inscription__credential-qr-note {
+  align-items: center;
+  background: rgba(201, 185, 120, 0.1);
+  border: 1px solid rgba(201, 185, 120, 0.28);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 14px 0 0;
+  max-width: 46ch;
+  padding: 8px 16px;
+  text-align: left;
+}
+
+.pitbull-inscription__credential-qr-note svg {
+  color: #9b8f59;
+  flex-shrink: 0;
+}
+
+/* ── Inscripción premium (minimal) ─────────────── */
+
+.pitbull-page--premium .pitbull-inscription {
+  background: transparent;
+  margin-inline: 0;
+  margin-top: clamp(16px, 2.5vw, 24px);
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-page--premium .pitbull-inscription__inner {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-inscription__inner::before {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__head {
+  display: grid;
+  gap: clamp(12px, 2vw, 16px);
+  margin-bottom: clamp(12px, 2vw, 16px);
+}
+
+.pitbull-inscription__head-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pitbull-inscription__head-lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-inscription__pricing-strip {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pitbull-inscription__price-chip {
+  align-items: flex-start;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  display: grid;
+  flex: 1 1 100px;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.pitbull-inscription__price-chip span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__price-chip strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.pitbull-inscription__price-chip--event strong {
+  color: var(--color-brand-red);
+}
+
+.pitbull-inscription__price-plus {
+  align-self: center;
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.5;
+}
+
+.pitbull-inscription__price-total {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, var(--color-bg-muted));
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 22%, var(--color-border-subtle));
+  border-radius: 12px;
+  display: grid;
+  flex: 1 1 100px;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.pitbull-inscription__price-total span {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__price-total strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.pitbull-inscription__head-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  justify-content: space-between;
+}
+
+.pitbull-page--premium .pitbull-inscription__eyebrow {
+  background: none;
+  border: none;
+  color: var(--color-brand-red);
+  display: inline;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-inscription__head--editorial {
+  align-items: start;
+  border-bottom: none;
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-row: span 2;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 4px;
+}
+
+.pitbull-page--premium .pitbull-inscription__status-inline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  grid-column: 2;
+}
+
+.pitbull-page--premium .pitbull-inscription__status-inline strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-page--premium .pitbull-inscription__pricing-bar {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  padding: clamp(12px, 1.8vw, 16px) 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-sep {
+  align-self: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.45;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-sep--eq {
+  opacity: 0.65;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-metric--combo dd {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements--editorial {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(14px, 2vw, 18px) 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-head {
+  align-items: start;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: 10px;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-head-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-head .pitbull-inscription__req-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__action-rail {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 12px;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.01em;
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li span {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  opacity: 0.72;
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li.is-current {
+  color: var(--color-text-primary);
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li.is-current span {
+  color: var(--color-brand-gold);
+  opacity: 1;
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li.is-done {
+  color: var(--color-text-secondary);
+}
+
+.pitbull-page--premium .pitbull-inscription__steps-ledger li.is-done span {
+  color: var(--color-text-secondary);
+  opacity: 0.9;
+}
+
+.pitbull-page--premium .pitbull-inscription__cta {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  padding: 0;
+  transition: color var(--transition-fast), gap var(--transition-fast);
+}
+
+.pitbull-page--premium .pitbull-inscription__cta:hover {
+  color: var(--color-brand-celeste);
+  gap: 9px;
+}
+
+.pitbull-page--premium .pitbull-inscription__grid {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-tickets__head--editorial {
+  align-items: start;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: clamp(14px, 2vw, 18px);
+  max-width: none;
+  padding-bottom: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-page--premium .pitbull-tickets__index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  grid-row: span 2;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  padding-top: 4px;
+}
+
+.pitbull-page--premium .pitbull-tickets__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-page--premium .pitbull-tickets__eyebrow {
+  color: var(--color-brand-red);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-tickets__head--compact {
+  align-items: start;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: clamp(14px, 2vw, 18px);
+  padding-bottom: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-page--premium .pitbull-tickets__form-shell {
+  background: var(--pitbull-ticket-form-bg);
+  border: 1px solid var(--pitbull-ticket-form-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-ticket-form-shadow);
+  display: grid;
+  gap: 0;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-shell::before {
+  background: var(--pitbull-rail-stripe);
+  content: '';
+  height: 2px;
+  left: 0;
+  opacity: 0.9;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-head {
+  align-items: start;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 12px;
+  padding: clamp(16px, 2.4vw, 22px) clamp(16px, 2.6vw, 24px) clamp(12px, 1.8vw, 16px);
+  position: relative;
+  z-index: 2;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-head-copy {
+  align-items: start;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pitbull-page--premium .pitbull-tickets__form-shell .ticket-purchase--editorial {
+  padding: clamp(12px, 1.8vw, 16px) clamp(16px, 2.6vw, 24px) clamp(16px, 2.4vw, 22px);
+  position: relative;
+  z-index: 2;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-toolbar {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  padding: clamp(14px, 2.2vw, 20px) clamp(16px, 2.6vw, 24px) clamp(12px, 1.8vw, 16px);
+  position: relative;
+  z-index: 2;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-toolbar {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+.pitbull-page--premium .pitbull-tickets__form-back {
+  align-items: center;
+  align-self: start;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  padding: 7px 12px;
+  text-transform: uppercase;
+  transition:
+    background 0.22s var(--ease-design),
+    border-color 0.22s var(--ease-design),
+    color 0.22s var(--ease-design);
+  width: fit-content;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-back {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.09);
+}
+
+.pitbull-page--premium .pitbull-tickets__form-back:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(201, 185, 120, 0.28);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-back:hover {
+  background: rgba(15, 17, 23, 0.05);
+}
+
+/* ── Ticket pass (editorial) ─────────────────── */
+
+.pitbull-ticket-pass {
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-tickets--editorial {
+  background: var(--pitbull-feature-band-bg, var(--pitbull-feature-bg));
+  border: 1px solid var(--pitbull-feature-border);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-feature-band-shadow, var(--pitbull-feature-shadow));
+  isolation: isolate;
+  margin-inline: 0;
+  margin-top: clamp(16px, 2.5vw, 24px);
+  overflow: hidden;
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-tickets--editorial .pitbull-tickets__stripe {
+  background: var(--pitbull-rail-stripe);
+  height: 2px;
+  opacity: 0.88;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-tickets--editorial .pitbull-tickets__inner {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
+  padding: clamp(18px, 2.6vw, 24px);
+  width: 100%;
+}
+
+.pitbull-tickets--editorial .pitbull-tickets__head {
+  align-items: start;
+  border-bottom: none;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pitbull-tickets--editorial .pitbull-tickets__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-tickets--editorial .pitbull-tickets__head-copy::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+.pitbull-page--premium .pitbull-tickets__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-tickets__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.58;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.pitbull-ticket-pass__pricing {
+  border-top: 1px solid var(--pitbull-section-divider);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: clamp(16px, 2.4vw, 20px) 0 0;
+}
+
+.pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(14px, 2vw, 18px) 0;
+}
+
+.pitbull-ticket-pass__price--both {
+  border-left: 1px solid var(--pitbull-section-divider);
+  padding-left: clamp(16px, 2.2vw, 20px);
+  padding-right: 0;
+}
+
+.pitbull-ticket-pass__price dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-ticket-pass__price dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0;
+}
+
+.pitbull-ticket-pass__price--both dd {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-ticket-pass__actions {
+  border-top: 1px solid var(--pitbull-section-divider);
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-ticket-pass__cta {
+  align-items: center;
+  background: var(--color-brand-red);
+  border: none;
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
+}
+
+.pitbull-ticket-pass__cta:hover {
+  background: #d10504;
+  transform: translateY(-1px);
+}
+
+.pitbull-ticket-pass__cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.pitbull-ticket-pass__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .pitbull-ticket-pass__pricing {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-ticket-pass__price {
+    padding: clamp(12px, 1.8vw, 16px) 0;
+  }
+
+  .pitbull-ticket-pass__price--both {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider);
+    padding-left: 0;
+    padding-top: clamp(12px, 1.8vw, 16px);
+  }
+}
+
+.pitbull-page--premium .pitbull-tickets__lead {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-page--premium .pitbull-tickets__pricing-bar {
+  align-items: baseline;
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 clamp(12px, 1.8vw, 16px);
+  padding: 0 0 clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-page--premium .pitbull-tickets__price-metric {
+  display: grid;
+  gap: 2px;
+}
+
+.pitbull-page--premium .pitbull-tickets__price-metric dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-page--premium .pitbull-tickets__price-metric dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-tickets__price-metric--both dd {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-page--premium .pitbull-tickets__price-sep {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  opacity: 0.45;
+}
+
+.pitbull-tickets__closed-note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-icon {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-title-row {
+  gap: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item {
+  align-items: start;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item:not(:last-child) {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-index {
+  color: var(--pitbull-feature-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  padding-top: 2px;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-copy p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 4px 0 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__title {
+  font-size: clamp(18px, 2.4vw, 22px);
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.pitbull-page--premium .pitbull-inscription__status-inline .pitbull-inscription__step-badge {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__head-lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.pitbull-inscription__pricing-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+.pitbull-inscription__price-metric {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.pitbull-inscription__price-metric dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__price-metric dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+}
+
+.pitbull-inscription__price-metric--event dd {
+  color: var(--color-brand-red);
+}
+
+.pitbull-inscription__pricing-bar--inline {
+  border-top: none;
+  gap: 8px 18px;
+  margin: 0;
+  padding-top: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__grid {
+  gap: clamp(14px, 2.2vw, 20px);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.pitbull-page--premium .pitbull-inscription__status-card {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.pitbull-inscription__status-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+}
+
+.pitbull-inscription__step-badge {
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pitbull-inscription__progress {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.pitbull-inscription__progress li {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.pitbull-inscription__progress li span {
+  align-items: center;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.pitbull-inscription__progress li.is-current {
+  color: var(--color-text-primary);
+}
+
+.pitbull-inscription__progress li.is-current span {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, var(--color-bg-muted));
+  border-color: color-mix(in srgb, var(--color-brand-gold) 40%, var(--color-border-subtle));
+  color: var(--color-brand-gold);
+}
+
+.pitbull-inscription__progress li.is-done {
+  color: var(--color-text-secondary);
+}
+
+.pitbull-inscription__progress li.is-done span {
+  background: color-mix(in srgb, #3d9a62 14%, var(--color-bg-muted));
+  border-color: color-mix(in srgb, #3d9a62 35%, var(--color-border-subtle));
+  color: #3d9a62;
+}
+
+.pitbull-inscription__card-actions {
+  display: grid;
+  gap: 0;
+  margin-top: 14px;
+}
+
+.pitbull-inscription__requirements {
+  align-self: start;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.pitbull-inscription__req-trigger {
+  align-items: flex-start;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: clamp(14px, 2.2vw, 18px);
+  text-align: left;
+  transition: background var(--transition-fast);
+  width: 100%;
+}
+
+.pitbull-inscription__req-trigger:hover {
+  background: var(--color-bg-muted);
+}
+
+.pitbull-inscription__req-trigger-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pitbull-inscription__req-eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription__req-title {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2vw, 17px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.pitbull-inscription__req-summary {
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  font-size: 12px;
+  -webkit-line-clamp: 2;
+  line-height: 1.45;
+  margin-top: 2px;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pitbull-inscription__req-chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  margin-top: 2px;
+  transition: transform var(--transition-base), color var(--transition-fast);
+}
+
+.pitbull-inscription__requirements--open .pitbull-inscription__req-chevron {
+  color: var(--color-brand-red);
+  transform: rotate(180deg);
+}
+
+.pitbull-inscription__req-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-base) var(--ease-out);
+}
+
+.pitbull-inscription__req-body[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.pitbull-inscription__req-body-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pitbull-inscription__req-body-inner .pitbull-inscription__timeline {
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0;
+  padding: 12px clamp(14px, 2.2vw, 18px) clamp(14px, 2.2vw, 18px);
+}
+
+.pitbull-inscription__timeline-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.pitbull-page--premium .pitbull-inscription__pricing-strip {
+  border-bottom: 1px solid var(--pitbull-section-divider, var(--color-border-subtle));
+  border-top: 1px solid var(--pitbull-section-divider, var(--color-border-subtle));
+  gap: 0 14px;
+  padding: 10px 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-chip,
+.pitbull-page--premium .pitbull-inscription__price-total {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-plus {
+  opacity: 0.42;
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  overflow: visible;
+  padding-top: clamp(16px, 2.5vw, 22px);
+}
+
+.pitbull-page--premium .pitbull-inscription__req-trigger {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: none;
+  display: grid;
+  gap: 12px 14px;
+  grid-template-columns: auto 1fr auto;
+  padding: 0 0 clamp(12px, 2vw, 16px);
+}
+
+.pitbull-page--premium .pitbull-inscription__req-trigger:hover {
+  background: transparent;
+  opacity: 1;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-index {
+  color: var(--pitbull-req-index-fg, rgba(201, 185, 120, 0.82));
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 2.6rem;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-trigger-copy {
+  gap: 4px;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-title {
+  font-size: clamp(15px, 2.1vw, 17px);
+}
+
+.pitbull-page--premium .pitbull-inscription__req-summary {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-chevron {
+  color: var(--color-text-muted);
+  margin-top: 0;
+  opacity: 0.62;
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements--open .pitbull-inscription__req-chevron {
+  color: var(--plu-gold-400);
+  opacity: 1;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-body-inner .pitbull-inscription__timeline {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  padding: clamp(4px, 0.8vw, 8px) 0 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item {
+  align-items: start;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: clamp(14px, 2.2vw, 18px) 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-item:first-child {
+  border-top: none;
+  padding-top: clamp(10px, 1.6vw, 14px);
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-index {
+  color: var(--pitbull-req-index-fg, rgba(201, 185, 120, 0.72));
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.2vw, 18px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  min-width: 1.8rem;
+  padding-top: 2px;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-icon {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-copy strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.pitbull-page--premium .pitbull-inscription__timeline-copy p {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 0;
+  overflow: visible;
+}
+
+@media (min-width: 720px) {
+  .pitbull-page--premium .pitbull-inscription__req-chevron {
+    display: none;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__req-trigger {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__req-body {
+    grid-template-rows: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__req-summary {
+    display: none;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline {
+    gap: clamp(10px, 1.6vw, 14px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-top: clamp(8px, 1.2vw, 12px);
+  }
+
+  .pitbull-page--premium .pitbull-inscription__req-body-inner .pitbull-inscription__timeline {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline-item {
+    border-top: none;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline-item:not(:first-child) {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: clamp(12px, 1.8vw, 16px);
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline-item:first-child {
+    padding-top: 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline-index {
+    font-size: clamp(20px, 2.4vw, 24px);
+    min-width: 0;
+  }
+}
+
+@media (max-width: 719px) {
+  .pitbull-page--premium .pitbull-inscription__req-trigger {
+    align-items: start;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__req-chevron {
+    margin-top: 4px;
+  }
+}
+
+.pitbull-page--premium .pitbull-inscription__status-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: 1px solid var(--pitbull-section-divider, var(--color-border-subtle));
+  border-radius: 14px;
+  box-shadow: none;
+  gap: 0;
+  padding: clamp(14px, 2.2vw, 18px);
+}
+
+.pitbull-page--premium .pitbull-inscription__step-badge {
+  background: transparent;
+  border-color: var(--pitbull-section-divider, var(--color-border-subtle));
+}
+
+.pitbull-page--premium .pitbull-inscription__progress li span {
+  background: transparent;
+  border-color: var(--pitbull-section-divider, var(--color-border-subtle));
+}
+
+.pitbull-page--premium .pitbull-inscription__progress li.is-current span {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+}
+
+.pitbull-page--premium .pitbull-inscription__progress li.is-done span {
+  background: color-mix(in srgb, #3d9a62 10%, transparent);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential {
+  background: transparent;
+  border-top: 1px solid var(--pitbull-section-divider, var(--color-border-subtle));
+  margin-top: clamp(16px, 2.5vw, 24px);
+  padding-top: clamp(16px, 2.5vw, 22px);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-qr-note {
+  background: transparent;
+  border: none;
+  border-left: 2px solid var(--color-brand-gold);
+  border-radius: 0;
+  display: flex;
+  margin-top: 10px;
+  max-width: none;
+  padding: 0 0 0 12px;
+}
+
+.pitbull-page--premium .pitbull-credential-showcase {
+  gap: clamp(16px, 2.5vw, 24px);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.pitbull-page--premium .pitbull-credential-showcase__story-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  opacity: 0.72;
+}
+
+.pitbull-page--premium .pitbull-credential__card--story {
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  max-width: 180px;
+}
+
+.pitbull-page--premium .pitbull-inscription__status-card::before {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-label,
+.pitbull-page--premium .pitbull-inscription__next-step {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-status {
+  margin-top: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-status strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.pitbull-page--premium .pitbull-inscription__checklist {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__checklist li {
+  font-size: 12px;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-cta {
+  border-radius: var(--border-radius-pill);
+  font-size: 13px;
+  margin-top: 0;
+  min-height: 40px;
+}
+
+.pitbull-page--premium .pitbull-inscription__card-link {
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: left;
+  width: auto;
+}
+
+@media (max-width: 900px) {
+  .pitbull-hero-rail__rail {
+    align-items: stretch;
+    border-radius: 14px;
+    flex-direction: column;
+    padding: 4px;
+  }
+
+  .pitbull-hero-rail__status {
+    justify-content: space-between;
+    padding: 8px 10px;
+    width: 100%;
+  }
+
+  .pitbull-hero-rail__divider {
+    display: none;
+  }
+
+  .pitbull-hero-rail__divider--actions {
+    display: block;
+    height: 1px;
+    width: 100%;
+  }
+
+  .pitbull-hero-rail__metrics {
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .pitbull-hero-rail__metrics::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pitbull-hero-rail__metric {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+
+  .pitbull-hero-rail__actions {
+    justify-content: stretch;
+    padding: 4px;
+    width: 100%;
+  }
+
+  .pitbull-hero-rail__cta {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* ── Hero notebook / tablet ─────────────────── */
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .pitbull-page--premium .pitbull-hero.design-hero--compact {
+    padding-bottom: clamp(16px, 2.5vw, 22px);
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__inner {
+    align-items: stretch;
+    gap: clamp(14px, 2.4vw, 20px);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__intro {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding-left: clamp(14px, 1.8vw, 18px);
+    position: relative;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__intro::before {
+    background: linear-gradient(180deg, rgba(225, 6, 0, 0.55) 0%, rgba(116, 172, 223, 0.45) 100%);
+    border-radius: 99px;
+    bottom: 2px;
+    content: '';
+    display: block;
+    left: 0;
+    opacity: 0.65;
+    position: absolute;
+    top: 2px;
+    width: 2px;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
+    align-items: center;
+    background: transparent;
+    border: none;
+    display: inline-flex;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    line-height: 1.35;
+    margin: 0;
+    max-width: 100%;
+    padding: 0;
+    white-space: normal;
+    width: fit-content;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__title {
+    font-size: clamp(26px, 4.2vw, 32px);
+    line-height: 1.06;
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 899px) {
+  .pitbull-page--premium .pitbull-hero.design-hero--compact {
+    padding-bottom: clamp(16px, 2.5vw, 22px);
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__intro {
+    gap: 8px;
+    padding-left: clamp(14px, 1.8vw, 18px);
+    position: relative;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__intro::before {
+    background: linear-gradient(180deg, rgba(225, 6, 0, 0.55) 0%, rgba(116, 172, 223, 0.45) 100%);
+    border-radius: 99px;
+    bottom: 2px;
+    content: '';
+    display: block;
+    left: 0;
+    opacity: 0.65;
+    position: absolute;
+    top: 2px;
+    width: 2px;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__inner {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-feature__body {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-feature-rail, rgba(201, 185, 120, 0.18));
+    padding: clamp(14px, 2vw, 18px) 0 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: var(--layout-gutter-sm);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title,
+  .pitbull-benefits-hero__title {
+    max-width: none;
+  }
+
+  .pitbull-page--premium .pitbull-hero.design-hero--compact {
+    padding-bottom: clamp(16px, 3vw, 22px);
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__inner {
+    gap: 12px;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__intro {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__breadcrumb {
+    flex-wrap: wrap;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    line-height: 1.45;
+    margin-top: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .pitbull-page--premium .pitbull-hero .design-hero__title {
+    font-size: clamp(22px, 6.5vw, 28px);
+    line-height: 1.1;
+    margin-top: 2px;
+    max-width: none;
+    text-wrap: balance;
+  }
+
+  .pitbull-hero-rail__metric dd {
+    font-size: 11px;
+  }
+
+  .pitbull-inscription__head-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__head--editorial {
+    gap: 8px 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pitbull-page--premium .pitbull-inscription__status-inline {
+    grid-column: 1 / -1;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__price-metric {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-metric--event {
+    justify-self: start;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-metric--combo {
+    flex-direction: row;
+  }
+
+  .pitbull-page--premium .pitbull-credential-showcase__card .pitbull-credential__card {
+    max-width: min(100%, 280px);
+  }
+
+  .pitbull-page--premium .pitbull-credential__card--story {
+    max-width: min(100%, 220px);
+  }
+
+  .pitbull-page--premium .pitbull-feature__panel {
+    padding: 0;
+  }
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-head {
+  margin: 0 0 clamp(18px, 2.8vw, 24px);
+  max-width: none;
+  text-align: left;
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-eyebrow {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-title {
+  font-size: clamp(17px, 2.4vw, 20px);
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-desc {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ── Inscripción simplificada ─────────────────── */
+
+.pitbull-page--premium .pitbull-inscription__action-rail--primary {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 10px;
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  padding: clamp(14px, 2vw, 18px) 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__price-note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__cta--primary {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements--editorial {
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin-bottom: clamp(12px, 1.8vw, 16px);
+  overflow: visible;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  list-style: none;
+  padding: clamp(12px, 1.8vw, 16px) 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-summary::-webkit-details-marker {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-summary-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__req-chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements[open] .pitbull-inscription__req-chevron {
+  transform: rotate(180deg);
+}
+
+.pitbull-page--premium .pitbull-inscription__requirements .pitbull-inscription__timeline {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin: 0;
+  padding: clamp(10px, 1.6vw, 14px);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential--compact {
+  margin-top: 0;
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-toggle {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.09));
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: space-between;
+  letter-spacing: 0.02em;
+  padding: clamp(13px, 1.8vw, 17px) 0;
+  transition: color var(--duration-fast) var(--ease-out);
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-toggle:hover {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-toggle svg:last-child {
+  flex: none;
+  opacity: 0.6;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-toggle svg:last-child.is-open {
+  transform: rotate(180deg);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-panel {
+  background:
+    radial-gradient(ellipse 100% 55% at 50% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(15, 15, 18, 0.55) 0%, rgba(6, 6, 8, 0.82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: calc(var(--border-radius-lg) + 6px);
+  display: grid;
+  gap: clamp(18px, 2.4vw, 26px);
+  justify-items: center;
+  padding: clamp(24px, 3.5vw, 36px) clamp(20px, 3vw, 32px);
+}
+
+.pitbull-page--premium .pitbull-inscription__credential-desc {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 50ch;
+  text-align: center;
+}
+
+.pitbull-credential-showcase--solo {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  overflow: visible;
+  position: relative;
+  width: 100%;
+}
+
+/* Spotlight neutral: luz desde arriba — efecto escenario premium */
+.pitbull-credential-showcase--solo::before {
+  background: radial-gradient(
+    ellipse 100% 65% at 50% -5%,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.02) 48%,
+    transparent 75%
+  );
+  border-radius: 50%;
+  content: '';
+  height: 130%;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 0;
+}
+
+.pitbull-credential-showcase--solo .pitbull-credential-showcase__card {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Entradas para el público ──────────────────── */
+
+.pitbull-tickets {
+  background: var(--pitbull-inscription-bg);
+  margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+  margin-top: var(--space-2xl);
+  padding-block: var(--section-pad-sm);
+  padding-inline: clamp(20px, 5vw, 64px);
+  scroll-margin-top: 96px;
+}
+
+.pitbull-tickets__inner {
+  background: var(--pitbull-inscription-surface-bg);
+  border: 1px solid var(--pitbull-inscription-surface-border);
+  border-radius: 20px;
+  box-shadow: var(--pitbull-inscription-surface-shadow);
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  overflow: hidden;
+  padding: clamp(24px, 3.5vw, 36px);
+  position: relative;
+}
+
+.pitbull-tickets__head {
+  margin-bottom: clamp(16px, 2.5vw, 24px);
+  max-width: 60ch;
+}
+
+.pitbull-tickets__title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.pitbull-tickets__lead {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.pitbull-page--premium .pitbull-tickets {
+  background: transparent;
+  margin-inline: 0;
+  margin-top: clamp(16px, 2.5vw, 24px);
+  padding: 0;
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-page--premium .pitbull-tickets--editorial {
+  margin-top: clamp(16px, 2.5vw, 24px);
+}
+
+.pitbull-page--premium .pitbull-tickets__inner {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-tickets__title {
+  font-size: clamp(18px, 2.4vw, 22px);
+  letter-spacing: -0.03em;
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-tickets,
+[data-theme='dark'] .pitbull-page--premium .pitbull-tickets__inner {
+  background: transparent;
+  box-shadow: none;
+}
+
+.pitbull-credential-showcase {
+  align-items: start;
+  display: grid;
+  gap: clamp(24px, 4vw, 40px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+}
+
+.pitbull-credential-showcase__card,
+.pitbull-credential-showcase__story {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pitbull-credential-showcase__story-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Contenedor de la card real en formato historia (9:16) dentro del
+   showcase — más angosto que la cuadrada para no dominar la sección. */
+.pitbull-credential__card--story {
+  max-width: 220px;
+}
+
+.pitbull-inscription__credential .pitbull-credential__preview {
+  margin-top: 0;
+}
+
+/* ── Meet info shell (legacy) ─────────────────── */
+
+.pitbull-shell {
+  border-radius: var(--border-radius-xl);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  overflow: hidden;
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.pitbull-shell__title {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+.pitbull-shell__facts {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 14px;
+  gap: 10px;
+  line-height: 1.5;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.pitbull-shell__facts li {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.pitbull-shell__facts svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+  margin-top: 2px;
+}
+
+.pitbull-shell__facts strong {
+  color: var(--color-text-primary);
+}
+
+.pitbull-shell__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pitbull-shell__aside {
+  background: var(--pitbull-aside-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.pitbull-shell__aside-label {
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-shell__aside h3 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.pitbull-shell__aside p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pitbull-shell__aside-note {
+  color: var(--color-text-muted) !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+.pitbull-shell__checklist {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 13.5px;
+  gap: 8px;
+  line-height: 1.45;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-shell__checklist li {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.pitbull-shell__checklist li::before {
+  background: rgba(116, 172, 223, 0.18);
+  border-radius: 50%;
+  color: var(--color-brand-celeste);
+  content: '✓';
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  width: 18px;
+}
+
+/* ── Credential preview ───────────────────────── */
+
+.pitbull-credential {
+  margin: 0 auto;
+  max-width: 640px;
+}
+
+.pitbull-credential__preview {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.pitbull-credential__card {
+  border-radius: 20px;
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.055) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 40px 80px rgba(0, 0, 0, 0.55),
+    0 12px 28px rgba(0, 0, 0, 0.38);
+  max-width: min(100%, clamp(300px, 72%, 460px));
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-credential__hint {
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.65;
+  margin-top: 4px;
+  max-width: 42ch;
+  text-align: center;
+}
+
+/* ── Responsive ───────────────────────────────── */
+
+@media (max-width: 960px) {
+  .pitbull-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-feature {
+    gap: clamp(18px, 3vw, 24px);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-feature__visual {
+    aspect-ratio: 2.2 / 1;
+    max-height: 200px;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .pitbull-page--premium .pitbull-feature__body {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  .pitbull-page--premium .pitbull-feature__specs--matrix {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-feature__spec {
+    padding: 10px 0;
+  }
+
+  .pitbull-page--premium .pitbull-feature__spec--wide {
+    grid-column: auto;
+  }
+
+  .pitbull-feature__visual {
+    aspect-ratio: 2.65 / 1;
+    max-height: 220px;
+    min-height: 168px;
+  }
+
+  .pitbull-feature__visual-img {
+    min-height: 0;
+  }
+
+  .pitbull-feature__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription__timeline {
+    gap: 0;
+  }
+
+  .pitbull-inscription__timeline-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 12px 0;
+  }
+
+  .pitbull-inscription__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__requirements,
+  .pitbull-page--premium .pitbull-inscription__status-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-strip {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__price-total {
+    border-top: 1px solid var(--pitbull-section-divider, var(--color-border-subtle));
+    flex-basis: 100%;
+    margin-top: 4px;
+    padding-top: 8px;
+  }
+
+  .pitbull-inscription__pricing-strip {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .pitbull-inscription__price-chip:first-of-type {
+    grid-column: 1;
+  }
+
+  .pitbull-inscription__price-chip--event {
+    grid-column: 3;
+  }
+
+  .pitbull-inscription__price-plus {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .pitbull-inscription__price-total {
+    grid-column: 1 / -1;
+  }
+
+  .pitbull-credential-showcase {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .pitbull-page--premium .pitbull-credential-showcase {
+    gap: clamp(20px, 4vw, 28px);
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .pitbull-page--premium .pitbull-credential-showcase__card,
+  .pitbull-page--premium .pitbull-credential-showcase__story {
+    align-items: center;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pitbull-page--premium .pitbull-credential-showcase__card .pitbull-credential__card {
+    max-width: min(100%, 300px);
+  }
+
+  .pitbull-page--premium .pitbull-credential__card--story {
+    max-width: min(100%, 240px);
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar {
+    align-items: stretch;
+    display: grid;
+    gap: 10px 12px;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-metric:first-of-type {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-sep:not(.pitbull-inscription__price-sep--eq) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-metric--event {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-sep--eq {
+    display: none;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__pricing-bar .pitbull-inscription__price-metric--combo {
+    align-items: center;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding-top: 10px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .pitbull-page--premium .pitbull-feature__visual {
+    aspect-ratio: 16 / 10;
+  }
+
+  .pitbull-page--premium .pitbull-feature__actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pitbull-page--premium .pitbull-feature__cta,
+  .pitbull-page--premium .pitbull-feature__text-link {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .pitbull-feature__visual {
+    aspect-ratio: 2.45 / 1;
+    max-height: 188px;
+    min-height: 152px;
+  }
+
+  .pitbull-page--premium .pitbull-feature__panel {
+    gap: 8px;
+    padding: 0;
+  }
+
+  .pitbull-feature__panel {
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .pitbull-feature__panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pitbull-feature__capacity {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .pitbull-inscription__pricing {
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription__pricing-arrow {
+    justify-content: flex-start;
+    padding: 0 0 0 18px;
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .pitbull-feature__panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pitbull-hero-rail__actions,
+  .pitbull-feature__actions,
+  .pitbull-shell__actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pitbull-hero-rail__actions .btn,
+  .pitbull-feature__actions .btn,
+  .pitbull-shell__actions .btn,
+  .pitbull-inscription__card-cta {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* ── Dark theme ───────────────────────────────── */
+
+[data-theme='dark'] .pitbull-page {
+  background: var(--color-page-canvas);
+  color: var(--color-text-primary);
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact {
+  background: transparent;
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact::before,
+[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact::after {
+  opacity: 0.2;
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-hero-rail__rail {
+  --pitbull-control-rail-bg: rgba(255, 255, 255, 0.02);
+  --pitbull-control-rail-border: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-hero-rail__cta--primary {
+  background: rgba(225, 6, 0, 0.14);
+}
+
+[data-theme='dark'] .pitbull-section--alt,
+[data-theme='dark'] .pitbull-section--credential {
+  --pitbull-section-alt-bg: var(--plu-cool-800);
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(116, 172, 223, 0.07), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(225, 6, 0, 0.05), transparent 50%),
+    var(--pitbull-section-alt-bg);
+}
+
+[data-theme='dark'] .pitbull-feature__panel-meta,
+[data-theme='dark'] .pitbull-feature__facts li {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-feature,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__inner,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__status-card,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__requirements {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-feature__panel-meta,
+[data-theme='dark'] .pitbull-page--premium .pitbull-feature__facts li {
+  background: transparent;
+  border-color: transparent;
+}
+
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__price-chip,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__price-total,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__step-badge,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__progress li span,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__timeline-item,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__timeline-icon,
+[data-theme='dark'] .pitbull-page--premium .pitbull-inscription__timeline-step {
+  background: transparent;
+}
+
+[data-theme='dark'] .pitbull-feature {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+    var(--pitbull-feature-bg);
+}
+
+[data-theme='dark'] .pitbull-inscription {
+  background:
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(116, 172, 223, 0.06), transparent 55%),
+    var(--pitbull-inscription-bg);
+}
+
+[data-theme='dark'] .pitbull-inscription__inner,
+[data-theme='dark'] .pitbull-inscription__status-card,
+[data-theme='dark'] .pitbull-inscription__requirements,
+[data-theme='dark'] .pitbull-inscription__price-card {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+    var(--pitbull-inscription-surface-bg);
+}
+
+[data-theme='dark'] .pitbull-inscription__price-chip,
+[data-theme='dark'] .pitbull-inscription__step-badge,
+[data-theme='dark'] .pitbull-inscription__progress li span {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .pitbull-shell {
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 45%),
+    var(--color-bg-surface);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme='dark'] .pitbull-shell__aside {
+  --pitbull-aside-bg: rgba(116, 172, 223, 0.06);
+  border-color: rgba(116, 172, 223, 0.16);
+}
+
+/* ── Light theme ──────────────────────────────── */
+
+[data-theme='light'] .pitbull-page {
+  background: var(--color-page-canvas);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .pitbull-section--alt,
+[data-theme='light'] .pitbull-section--credential {
+  --pitbull-section-alt-bg: var(--plu-warm-100);
+}
+
+[data-theme='light'] .pitbull-shell {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow: 0 8px 24px rgba(15, 17, 23, 0.05);
+}
+
+[data-theme='light'] .pitbull-shell__aside {
+  --pitbull-aside-bg: rgba(116, 172, 223, 0.06);
+  border-color: rgba(116, 172, 223, 0.14);
+}
+
+[data-theme='light'] .pitbull-section .section-heading--ref .section-heading__title {
+  color: var(--plu-ink-900);
+}
+
+[data-theme='light'] .pitbull-section .section-heading--ref .section-heading__desc {
+  color: var(--plu-ink-500);
+}
+
+/* =============================================
+   PITBULL — BENEFITS PANEL (hero + spec shell)
+   ============================================= */
+
+.pitbull-benefits-panel {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(18px, 2.8vw, 24px);
+  margin: 0;
+  padding: clamp(24px, 3.5vw, 32px) 0 clamp(28px, 4vw, 36px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+  border: none;
+  padding-bottom: clamp(20px, 3vw, 28px);
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-dossier__head {
+  gap: clamp(10px, 1.5vw, 14px);
+  margin: 0;
+}
+
+.pitbull-benefits-panel__body {
+  margin-top: 0;
+}
+
+.pitbull-benefits-hero {
+  display: grid;
+  gap: clamp(10px, 1.5vw, 14px);
+  width: 100%;
+}
+
+.pitbull-benefits-hero__kicker-row {
+  align-items: center;
+  display: flex;
+  gap: clamp(10px, 1.6vw, 14px);
+  margin: 0;
+}
+
+.pitbull-benefits-hero__stripe {
+  background: var(--pitbull-rail-stripe, var(--plu-gradient-stripe));
+  border-radius: 99px;
+  display: block;
+  flex: 0 0 auto;
+  height: 2px;
+  opacity: 0.92;
+  width: clamp(36px, 6vw, 52px);
+}
+
+.pitbull-benefits-hero__main {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 12px);
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-benefits-hero__main::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 2px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 2px;
+  width: 2px;
+}
+
+/* ── Notebook / tablet: header arriba, shell abajo ── */
+@media (min-width: 641px) and (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    column-gap: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: clamp(16px, 2.4vw, 22px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-hero,
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-panel__body {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 0;
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(24px, 3.8vw, 32px);
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    max-width: min(100%, 48ch);
+  }
+}
+
+.pitbull-benefits-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5.2vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.044em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: min(100%, 22ch);
+  text-wrap: balance;
+}
+
+.pitbull-benefits-hero__lead {
+  color: var(--color-text-muted);
+  font-size: clamp(13.5px, 1.9vw, 15px);
+  line-height: 1.58;
+  margin: 0;
+  max-width: min(100%, 52ch);
+}
+
+.pitbull-benefits-shell {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-benefits-shell__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: none;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-benefits-shell__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.7;
+}
+
+.pitbull-benefits-shell__col-head {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: clamp(11px, 1.6vw, 13px) clamp(12px, 1.6vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-benefits-shell__col-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-benefits-shell__col-head--spectator {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pitbull-benefits-lanes {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.pitbull-benefits-lane {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 10px);
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-benefits-lane__label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-benefits-lane--spectator .pitbull-benefits-lane__label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pitbull-benefits-lane--spectator {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+}
+
+.pitbull-benefits-lane__list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-benefits-lane__item {
+  align-items: flex-start;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(10px, 1.4vw, 12px);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: clamp(11px, 1.6vw, 13px) 0;
+}
+
+.pitbull-benefits-lane__item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-benefits-lane__icon {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 22px;
+  justify-content: center;
+  margin-top: 1px;
+  width: 22px;
+}
+
+.pitbull-benefits-lane--spectator .pitbull-benefits-lane__icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pitbull-benefits-lane__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pitbull-benefits-lane__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(13px, 1.8vw, 14px);
+  font-weight: 700;
+  letter-spacing: -0.016em;
+  line-height: 1.25;
+}
+
+.pitbull-benefits-lane__desc {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .pitbull-benefits-shell__head {
+    display: grid;
+  }
+
+  .pitbull-benefits-lane__label {
+    display: none;
+  }
+
+  .pitbull-benefits-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-benefits-lane {
+    padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(18px, 2.4vw, 22px);
+  }
+
+  .pitbull-benefits-lane--spectator {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    border-top: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    align-items: start;
+    column-gap: clamp(28px, 5vw, 48px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-panel__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: clamp(8px, 1.2vw, 12px);
+  }
+
+  .pitbull-benefits-hero__main {
+    max-width: none;
+    padding-left: clamp(18px, 2.4vw, 24px);
+  }
+
+  .pitbull-benefits-hero__title {
+    max-width: min(100%, 24ch);
+  }
+
+  .pitbull-benefits-hero__lead {
+    max-width: min(100%, 48ch);
+  }
+}
+
+@media (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme='light'] .pitbull-benefits-shell {
+  background: rgba(15, 17, 23, 0.025);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__label {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__item {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-benefits-lane--spectator {
+  border-left-color: rgba(15, 17, 23, 0.07);
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-benefits-lane__icon {
+  color: rgba(15, 17, 23, 0.5);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head--spectator {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__head {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-benefits-shell__col-head:not(:last-child) {
+  border-right-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — PROGRAM MATRIX (logística)
+   ============================================= */
+
+.pitbull-program {
+  background: var(--pitbull-benefits-shell-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: 0;
+  margin-inline: auto;
+  margin-top: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-program__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-program__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.9;
+}
+
+.pitbull-program__day-head {
+  display: grid;
+  gap: 2px;
+  padding: clamp(12px, 1.8vw, 14px) clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-program__day-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-program__day-name {
+  color: var(--color-brand-gold);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-program__day-date {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(14px, 2vw, 16px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.pitbull-program__rows {
+  display: grid;
+  gap: 0;
+}
+
+.pitbull-program__row {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
+  display: grid;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-program__row:first-child {
+  border-top: none;
+}
+
+.pitbull-program__time {
+  align-items: center;
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  color: var(--color-brand-red);
+  display: flex;
+  font-size: 8.5px;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0.12em;
+  padding: clamp(10px, 1.5vw, 12px) 6px;
+  text-transform: uppercase;
+}
+
+.pitbull-program__cell {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+  padding: clamp(10px, 1.5vw, 12px) clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-program__cell:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+@media (max-width: 899px) {
+  .pitbull-program {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pitbull-program::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pitbull-program__head,
+  .pitbull-program__row {
+    grid-template-columns: 44px repeat(2, minmax(128px, 1fr));
+    min-width: min(100%, 480px);
+  }
+
+  .pitbull-benefits-lanes,
+  .pitbull-categories-shell__lanes {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-benefits-lane--spectator,
+  .pitbull-categories-shell__lane--division {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  }
+
+  .pitbull-categories-shell__details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .pitbull-program__head,
+  .pitbull-program__row {
+    grid-template-columns: 44px repeat(2, minmax(132px, 1fr));
+    min-width: 360px;
+  }
+}
+
+[data-theme='light'] .pitbull-program {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-program__head,
+[data-theme='light'] .pitbull-program__row,
+[data-theme='light'] .pitbull-program__time,
+[data-theme='light'] .pitbull-program__cell:not(:last-child),
+[data-theme='light'] .pitbull-program__day-head:not(:last-child) {
+  border-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — CATEGORIES SHELL (chips matrix)
+   ============================================= */
+
+.pitbull-categories-shell {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.pitbull-categories-shell__matrix {
+  background: var(--pitbull-categories-shell-bg, var(--pitbull-benefits-shell-bg, rgba(255, 255, 255, 0.02)));
+  border: 1px solid var(--pitbull-categories-shell-border, var(--pitbull-section-divider, rgba(255, 255, 255, 0.07)));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow: var(--pitbull-categories-shell-shadow, none);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-categories-shell__head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: none;
+  gap: 0;
+  grid-template-columns: 52px repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-categories-shell__corner {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0% 33.33%,
+    #fff    33.33% 66.66%,
+    #74acdf 66.66% 100%
+  );
+  opacity: 0.9;
+}
+
+.pitbull-categories-shell__col-head {
+  color: var(--color-brand-celeste);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: clamp(11px, 1.6vw, 13px) clamp(12px, 1.6vw, 16px);
+  text-transform: uppercase;
+}
+
+.pitbull-categories-shell__col-head:not(:last-child) {
+  border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+}
+
+.pitbull-categories-shell__col-head--division {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-categories-shell__lanes {
+  display: grid;
+  gap: 0;
+}
+
+.pitbull-categories-shell__lane {
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-categories-shell__lane--division {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+}
+
+.pitbull-categories-shell__lane-label {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-categories-shell__lane--division .pitbull-categories-shell__lane-label {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-categories-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-categories-chips__item {
+  background: var(--pitbull-categories-chip-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--pitbull-categories-chip-border, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  color: var(--pitbull-categories-chip-fg, rgba(255, 255, 255, 0.8));
+  font-family: var(--font-display);
+  font-size: clamp(12px, 1.7vw, 13px);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+  padding: 7px 12px;
+}
+
+.pitbull-categories-chips__item--modality {
+  background: var(--pitbull-categories-chip-category-bg, rgba(116, 172, 223, 0.1));
+  border-color: var(--pitbull-categories-chip-category-border, rgba(116, 172, 223, 0.22));
+  color: var(--color-text-primary);
+}
+
+.pitbull-categories-chips__item--division {
+  background: var(--pitbull-categories-chip-division-bg, rgba(201, 185, 120, 0.1));
+  border-color: var(--pitbull-categories-chip-division-border, rgba(201, 185, 120, 0.24));
+  color: var(--color-text-primary);
+}
+
+.pitbull-categories-shell__details {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 0;
+  margin-top: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-categories-detail {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 4px;
+  padding: clamp(11px, 1.6vw, 13px) 0;
+}
+
+.pitbull-categories-detail:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pitbull-categories-detail__label {
+  color: var(--color-brand-red);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pitbull-categories-detail__text {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.52;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .pitbull-categories-shell__head {
+    display: grid;
+  }
+
+  .pitbull-categories-shell__lane-label {
+    display: none;
+  }
+
+  .pitbull-categories-shell__lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-categories-shell__lane {
+    padding: clamp(14px, 2vw, 18px) clamp(16px, 2.2vw, 20px) clamp(18px, 2.4vw, 22px);
+  }
+
+  .pitbull-categories-shell__lane--division {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    border-top: none;
+  }
+
+  .pitbull-categories-shell__details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(20px, 3vw, 28px);
+  }
+}
+
+[data-theme='light'] .pitbull-categories-shell__matrix {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-categories-shell__lane--division {
+  border-left-color: rgba(15, 17, 23, 0.07);
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-categories-detail {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-categories-shell__details {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+  border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  border-top: none;
+  display: grid;
+  gap: 5px;
+  padding: 14px 0 14px clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+  border-left: none;
+  padding-left: 0;
+  padding-top: 14px;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__label {
+  color: var(--color-brand-red);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__value {
+  color: var(--color-text-primary);
+  font-size: clamp(11.5px, 1.6vw, 13px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+@media (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding: 12px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(-n + 2) {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(odd) {
+    padding-right: clamp(10px, 2vw, 16px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even) {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: clamp(10px, 2vw, 16px);
+  }
+}
+
+@media (max-width: 520px) {
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding: 10px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(-n + 2) {
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-top: 10px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even) {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+/* =============================================
+   PITBULL — CATEGORY PILLS
+   ============================================= */
+
+.pitbull-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pitbull-category-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  padding: 6px 13px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pitbull-category-pill--division {
+  background: rgba(201, 185, 120, 0.06);
+  border-color: rgba(201, 185, 120, 0.18);
+  color: rgba(201, 185, 120, 0.9);
+}
+
+[data-theme='light'] .pitbull-category-pill {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: rgba(15, 17, 23, 0.09);
+  color: var(--plu-ink-800);
+}
+
+[data-theme='light'] .pitbull-category-pill--division {
+  background: rgba(185, 165, 107, 0.07);
+  border-color: rgba(185, 165, 107, 0.2);
+  color: #7a6530;
+}
+
+/* =============================================
+   PITBULL — INSCRIPTION COUNTER (LIVE)
+   ============================================= */
+
+.pitbull-inscription-counter {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.pitbull-inscription-counter__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+
+.pitbull-inscription-counter__stat {
+  align-items: baseline;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.pitbull-inscription-counter__value {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.2vw, 38px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.pitbull-inscription-counter__of {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2vw, 18px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  opacity: 0.72;
+}
+
+.pitbull-inscription-counter__unit {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-counter__badge {
+  align-items: center;
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-counter__badge-dot {
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  opacity: 0.85;
+  width: 6px;
+}
+
+.pitbull-inscription-counter__badge--success {
+  border-color: rgba(110, 207, 152, 0.28);
+  color: #6ecf98;
+}
+
+.pitbull-inscription-counter__badge--warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fbbf24;
+}
+
+.pitbull-inscription-counter__badge--danger {
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #f87171;
+}
+
+.pitbull-inscription-counter__badge--neutral {
+  border-color: var(--pitbull-section-divider, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted);
+}
+
+.pitbull-inscription-counter__bar {
+  background: var(--pitbull-counter-track, rgba(255, 255, 255, 0.07));
+  border-radius: var(--border-radius-pill);
+  height: 3px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pitbull-inscription-counter__fill {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-brand-red)) 100%
+  );
+  border-radius: var(--border-radius-pill);
+  height: 100%;
+  transform-origin: left;
+  transition: width var(--duration-xslow) var(--ease-out);
+  width: var(--counter-pct, 0%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-inscription-counter__fill {
+    transition: none;
+  }
+  .pitbull-inscription-counter__value {
+    /* skip count-up animation in reduced motion */
+  }
+}
+
+[data-theme='light'] .pitbull-inscription-counter__bar {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+/* =============================================
+   PITBULL — INSCRIPTION SHELL
+   ============================================= */
+
+.pitbull-inscription-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 60%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-radius: calc(var(--border-radius-lg) + 4px);
+  display: grid;
+  gap: 0;
+  margin-inline: auto;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+[data-theme='light'] .pitbull-inscription-shell {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 17, 23, 0.08);
+  border-top-color: rgba(15, 17, 23, 0.12);
+  box-shadow: 0 2px 20px rgba(15, 17, 23, 0.06);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__price dt {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-left-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__card,
+[data-theme='light'] .pitbull-inscription-shell__extras {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__counter-col {
+  border-right-color: rgba(15, 17, 23, 0.07);
+}
+
+/* ── Mobile: stack vertical ── */
+.pitbull-inscription-shell__counter-col {
+  padding: clamp(16px, 2.4vw, 22px) clamp(16px, 2.4vw, 22px) clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-inscription-shell__card {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: clamp(12px, 1.8vw, 16px);
+  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.4vw, 22px) clamp(16px, 2.4vw, 22px);
+}
+
+/* ── Notebook+: 2 columnas (solo desde 900px; debajo apila) ── */
+@media (min-width: 900px) {
+  .pitbull-inscription-shell {
+    grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+  }
+
+  .pitbull-inscription-shell__counter-col {
+    align-content: start;
+    border-bottom: none;
+    border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    display: grid;
+    gap: 12px;
+    padding: clamp(20px, 3vw, 28px);
+  }
+
+  .pitbull-inscription-shell__card {
+    border-left: none;
+    border-top: none;
+    padding: clamp(20px, 3vw, 28px);
+  }
+}
+
+/* ── Precios ── */
+.pitbull-inscription-shell__pricing {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-inscription-shell__price {
+  display: grid;
+  gap: 4px;
+  padding: 0 clamp(12px, 2vw, 16px) 0 0;
+}
+
+.pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  padding-left: clamp(12px, 2vw, 16px);
+  padding-right: 0;
+}
+
+.pitbull-inscription-shell__price dt {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-shell__price dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.pitbull-inscription-shell__desc {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.56;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.pitbull-inscription-shell__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+}
+
+/* ── Requirements + credential siguen siendo full-width ── */
+.pitbull-inscription-shell__extras {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  padding: 0 clamp(16px, 2.4vw, 22px);
+}
+
+@media (min-width: 640px) {
+  .pitbull-inscription-shell__extras {
+    grid-column: 1 / -1;
+    padding: 0 clamp(20px, 3vw, 28px);
+  }
+}
+
+.pitbull-dossier--minimal .pitbull-inscription-shell .pitbull-inscription__requirements--editorial {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-inscription-shell .pitbull-inscription__credential--compact {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  margin-top: 0;
+}
+
+[data-theme='light'] .pitbull-inscription-shell {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__counter-col {
+  border-right-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__card,
+[data-theme='light'] .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__extras {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+/* =============================================
+   PITBULL — LOCATION SECTION
+   ============================================= */
+
+.pitbull-location {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-location__map-shell {
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-location__map {
+  border: none;
+  border-radius: var(--border-radius-lg);
+  display: block;
+  height: clamp(180px, 28vw, 260px);
+  width: 100%;
+}
+
+.pitbull-location__map-overlay {
+  border-radius: var(--border-radius-lg);
+  bottom: 0;
+  box-shadow: inset 0 0 0 1px var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.pitbull-location__details {
+  display: grid;
+  gap: 12px;
+}
+
+.pitbull-location__dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.pitbull-location__row {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: minmax(72px, 88px) minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.pitbull-location__row:last-child {
+  border-bottom: none;
+}
+
+.pitbull-location__row dt {
+  align-items: center;
+  color: var(--color-brand-red);
+  display: flex;
+  font-size: 9px;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.pitbull-location__row dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pitbull-location__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.pitbull-location__maps-link {
+  align-items: center;
+  background: var(--pitbull-benefit-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  justify-self: start;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.pitbull-location__maps-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.pitbull-location__maps-link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+/* ── Location — editorial head + map stack en notebook ── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__title {
+  max-width: none;
+}
+
+@media (min-width: 900px) {
+  .pitbull-location {
+    align-items: start;
+    gap: clamp(20px, 3vw, 32px);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+
+  .pitbull-location__map {
+    height: clamp(200px, 30vw, 280px);
+  }
+}
+
+@media (max-width: 899px) {
+  .pitbull-location {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-location__map {
+    height: clamp(180px, 42vw, 240px);
+  }
+}
+
+[data-theme='light'] .pitbull-location__maps-link {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.08);
+  color: var(--plu-ink-900);
+}
+
+[data-theme='light'] .pitbull-location__maps-link:hover {
+  background: rgba(15, 17, 23, 0.06);
+  border-color: rgba(15, 17, 23, 0.14);
+}
+
+/* =============================================
+   PITBULL — TICKET CHANNELS (online vs presencial)
+   ============================================= */
+
+.pitbull-ticket-pass__channels {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-ticket-pass__channel {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: var(--border-radius-lg);
+  display: grid;
+  gap: 12px;
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-ticket-pass__channel--online {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 21, 21, 0.055) 0%,
+    transparent 55%
+  );
+  border-color: rgba(255, 21, 21, 0.16);
+}
+
+.pitbull-ticket-pass__channel--presencial {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.pitbull-ticket-pass__channel-badge {
+  align-items: center;
+  background: var(--color-brand-red);
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  display: inline-flex;
+  font-size: 8.5px;
+  font-weight: 700;
+  gap: 5px;
+  justify-self: start;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  text-transform: uppercase;
+}
+
+.pitbull-ticket-pass__channel-badge--muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.pitbull-ticket-pass__channel-note {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.72;
+}
+
+.pitbull-ticket-pass__channel-note--highlight {
+  color: var(--color-brand-gold);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Pricing inside channels: bigger numbers */
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__pricing {
+  border: none;
+  display: grid;
+  gap: 8px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price {
+  background: transparent;
+  border: none;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dt {
+  color: var(--color-text-muted);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.6vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.pitbull-ticket-pass__channel--presencial .pitbull-ticket-pass__price dd {
+  opacity: 0.65;
+}
+
+@media (max-width: 480px) {
+  .pitbull-ticket-pass__channels {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel--online {
+  background: linear-gradient(145deg, rgba(225, 6, 0, 0.04) 0%, transparent 55%);
+  border-color: rgba(225, 6, 0, 0.12);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel--presencial {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .pitbull-ticket-pass__channel-badge--muted {
+  background: rgba(15, 17, 23, 0.06);
+  color: rgba(15, 17, 23, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════
+   EDITORIAL UPGRADE — NOTEBOOK 900-1199px
+   Layout: kicker/título anclado a la izquierda,
+   contenido fluyendo a la derecha. Estilo dossier lujoso.
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 900px) and (max-width: 1199px) {
+
+  /* ── Más aire entre secciones ── */
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: clamp(28px, 5vw, 64px);
+  }
+
+  .pitbull-dossier--minimal {
+    gap: clamp(56px, 7.5vw, 80px);
+    padding-top: clamp(36px, 5vw, 52px);
+  }
+
+  /* ── Layout editorial 2-col: cabecera izq, contenido der ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets {
+    align-items: start;
+    column-gap: clamp(36px, 5vw, 60px);
+    display: grid;
+    grid-template-columns: clamp(200px, 29%, 270px) minmax(0, 1fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+    max-width: none;
+  }
+
+  /* ── Benefits: header full-width, lanes debajo ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-benefits-panel__body {
+    margin-top: clamp(22px, 3vw, 28px);
+  }
+
+  /* ── Index: gran número decorativo dorado ── */
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(40px, 6vw, 60px);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    line-height: 0.88;
+    margin-bottom: 14px;
+    opacity: 0.85;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px 0;
+    margin-bottom: 10px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 3vw, 28px);
+    letter-spacing: -0.038em;
+    line-height: 1.06;
+    max-width: none;
+    text-wrap: balance;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 13.5px;
+    line-height: 1.68;
+    margin-top: 10px;
+    max-width: none;
+    opacity: 0.82;
+  }
+
+  /* ── Eyebrow refinado ── */
+  .pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  /* ── Feature facts: más espacio entre items ── */
+  .pitbull-dossier--minimal .pitbull-feature-facts__item {
+    padding: 14px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__label {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__value {
+    font-size: clamp(14px, 2vw, 16px);
+  }
+
+  /* ── Benefits: título más impactante ── */
+  .pitbull-benefits-hero__title {
+    font-size: clamp(26px, 4vw, 36px);
+    letter-spacing: -0.05em;
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    font-size: 13.5px;
+    max-width: none;
+  }
+
+  /* ── Benefits lanes: más altas ── */
+  .pitbull-benefits-lane__item {
+    padding: 14px 0;
+  }
+
+  .pitbull-benefits-lane__title {
+    font-size: 14px;
+  }
+
+  /* ── Inscripción shell: apilado ordenado ── */
+  .pitbull-inscription-shell {
+    display: grid;
+    gap: clamp(16px, 2.4vw, 22px);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription-shell__counter-col {
+    grid-column: 1;
+  }
+
+  .pitbull-inscription-shell__card {
+    grid-column: 1;
+  }
+
+  .pitbull-inscription-shell__extras {
+    grid-column: 1;
+  }
+
+  /* ── Ticket: layout más compacto ── */
+  .pitbull-ticket-pass__channels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ── Separador de sección: más élégant ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section {
+    border-top-color: rgba(255, 255, 255, 0.05);
+    padding-top: clamp(36px, 5vw, 52px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   TABLET 641-899px — single column but spacious
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 641px) and (max-width: 899px) {
+
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: clamp(20px, 4vw, 40px);
+  }
+
+  .pitbull-dossier--minimal {
+    gap: clamp(44px, 7vw, 60px);
+    padding-top: clamp(28px, 4vw, 40px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    font-size: clamp(32px, 6vw, 48px);
+    letter-spacing: -0.07em;
+    line-height: 0.88;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 4.5vw, 30px);
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 14px;
+    max-width: min(100%, 52ch);
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(26px, 5vw, 34px);
+    max-width: none;
+  }
+
+  .pitbull-inscription-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE ≤640px — single column, índices grandes
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  .pitbull-dossier--minimal {
+    gap: clamp(40px, 10vw, 56px);
+    padding-top: clamp(24px, 5vw, 36px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section {
+    padding-top: clamp(28px, 7vw, 40px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: baseline;
+    flex-direction: row;
+    gap: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    font-size: clamp(14px, 5vw, 20px);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 7.5vw, 30px);
+    letter-spacing: -0.038em;
+    line-height: 1.06;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: none;
+    opacity: 0.82;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__body {
+    margin-top: clamp(14px, 4vw, 20px);
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(24px, 8vw, 30px);
+    letter-spacing: -0.05em;
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    font-size: 13.5px;
+  }
+
+  .pitbull-benefits-lane__item {
+    padding: 13px 0;
+  }
+
+  .pitbull-inscription-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-feature-facts__item {
+    padding: 13px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__value {
+    font-size: 15px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MEJORAS GLOBALES — refinamiento visual en todos los
+   breakpoints para un look más lujoso y editorial
+   ═══════════════════════════════════════════════════════ */
+
+/* Eyebrow en rojo más elegante */
+.pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+  color: color-mix(in srgb, var(--color-brand-red) 85%, rgba(201, 185, 120, 0.4));
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Index número dorado más refinado */
+.pitbull-dossier--minimal .pitbull-dossier__index {
+  color: color-mix(in srgb, var(--plu-gold-400, rgba(201, 185, 120, 1)) 72%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Título con mejor letterSpacing */
+.pitbull-dossier--minimal .pitbull-dossier__title {
+  letter-spacing: -0.036em;
+  line-height: 1.08;
+}
+
+/* Lead con color más suave */
+.pitbull-dossier--minimal .pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: clamp(13.5px, 1.85vw, 15px);
+  line-height: 1.68;
+}
+
+/* Divisores de sección más finos y elegantes */
+.pitbull-dossier--minimal .pitbull-dossier__section {
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section {
+  border-top-color: rgba(15, 17, 23, 0.065);
+}
+
+/* Feature facts label más elegante */
+.pitbull-dossier--minimal .pitbull-feature-facts__label {
+  color: color-mix(in srgb, var(--color-brand-red) 90%, rgba(201, 185, 120, 0.3));
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}

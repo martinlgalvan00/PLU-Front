@@ -12,6 +12,48 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
+/* ── Text selection — gold tint ── */
+::selection {
+  background: rgba(201, 185, 120, 0.28);
+  color: #fff;
+}
+
+[data-theme='light'] ::selection {
+  background: rgba(155, 143, 89, 0.22);
+  color: rgba(15, 17, 23, 0.96);
+}
+
+/* ── Scrollbar premium — tokens por tema ── */
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.14)) var(--scrollbar-track, transparent);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1));
+  border-radius: 99px;
+  transition: background 0.22s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, rgba(201, 185, 120, 0.42));
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track, transparent);
 }
 
 body {
@@ -19,9 +61,10 @@ body {
   min-width: 320px;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  /* Transición suave de todos los tokens al cambiar tema */
   transition:
-    background-color var(--transition-base),
-    color var(--transition-base);
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 h1,
@@ -30,10 +73,17 @@ h3,
 h4 {
   font-family: var(--font-display);
   letter-spacing: var(--letter-spacing-display);
+  line-height: 1.1;
 }
 
-html {
-  scroll-behavior: smooth;
+h5,
+h6 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+}
+
+p {
+  line-height: 1.65;
 }
 
 a {
@@ -66,5 +116,110 @@ button:disabled {
 .app-shell {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+/* =============================================
+   THEME TRANSITION — View Transition API + fallback CSS
+   ============================================= */
+
+/* ── Duración del cambio de tema (usada en toda la capa) */
+:root {
+  --transition-theme: 160ms ease-out;
+}
+
+/* Fallback: transición CSS en todos los elementos afectados por tema
+   (solo activa cuando View Transition API no está disponible) */
+.site-header,
+.app-shell,
+.stat-block,
+.event-card,
+.events-stat,
+.events-detail,
+.event-calendar,
+.filter-pills,
+.filter-pills__item,
+.events-sidebar-card,
+.events-list--design .event-card,
+.result-card,
+.results-podium,
+.podium-card,
+.results-table-row,
+.community-card,
+.membership-card,
+.admin-metric,
+.admin-welcome,
+.action-queue,
+.recent-activity,
+.faq-item,
+.cta-section__inner,
+.about-pillar,
+.pitbull-spotlight,
+.design-page-hero,
+.site-footer__main,
+.site-footer__bottom {
+  transition:
+    background var(--transition-theme),
+    background-color var(--transition-theme),
+    border-color var(--transition-theme),
+    box-shadow var(--transition-theme),
+    color var(--transition-theme);
+}
+
+/* ── View Transition API — cross-fade suave (Chrome 111+) ─────────────
+   Se usa solo opacity en la salida para evitar GPU pressure con blur.
+   El clip-path en la entrada ya provee suficiente dramatismo visual.
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Cross-fade simple: mucho más liviano que clip-path circle().
+   clip-path fuerza re-paint full-page en cada frame — con cross-fade
+   solo cambia opacity de dos capas, lo que el compositor maneja en GPU. */
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes theme-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+::view-transition-old(root) {
+  animation: 130ms ease-out both theme-fade-out;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  animation: 170ms ease-out both theme-fade-in;
+  mix-blend-mode: normal;
+  z-index: 2;
+}
+
+/* ── Icono del toggle con spin al cambiar ── */
+.pref-toggle {
+  position: relative;
+}
+
+.pref-toggle svg {
+  transition: transform 0.4s var(--ease-spring), opacity 0.25s;
+}
+
+.pref-toggle:active svg {
+  transform: rotate(180deg) scale(0.85);
+  opacity: 0.7;
+}
+
+/* ── Efecto visual de "cambio" en el ícono del toggle ── */
+@keyframes theme-icon-swap {
+  0%   { transform: rotate(0deg) scale(1); opacity: 1; }
+  30%  { transform: rotate(90deg) scale(0.7); opacity: 0; }
+  60%  { transform: rotate(-30deg) scale(1.15); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+.pref-toggle--switching svg {
+  animation: theme-icon-swap 0.5s var(--ease-spring) forwards;
 }

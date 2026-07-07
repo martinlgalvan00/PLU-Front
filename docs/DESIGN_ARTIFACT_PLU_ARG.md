@@ -1,242 +1,218 @@
-# Design Artifact — PLU ARG / Maximal
+# Design Artifact — PLU ARG / Maximal (v2)
 
-Documento de referencia visual y de experiencia para la plataforma PLU ARG.  
-**Estado en código:** Poppins integrada, calendario de eventos, badges de estado, motion system y páginas públicas/admin alineadas a este artefacto.
-
----
-
-## 1. Visión visual
-
-PLU ARG / Maximal debe verse como una federación argentina de powerlifting moderna, fuerte, confiable y con estándar internacional.
-
-La web pública debe generar impacto y conversión. El panel privado debe permitir operar con claridad y velocidad.
-
-**Referencia base:** Powerlifting United.
-
-**Dirección propia:**
-
-- Más moderna.
-- Más premium.
-- Más argentina.
-- Más clara.
-- Más eficiente.
-- Más integrada al negocio.
+Documento maestro de referencia visual, navegación y experiencia.  
+**Última actualización:** implementación afiliación anual premium, mapa de plataforma, eventos interactivos y admin operativo.
 
 ---
 
-## 2. Concepto
+## 1. Visión
 
-> Powerlifting argentino con estándar internacional.
+PLU ARG debe sentirse como una **federación argentina de powerlifting premium**: fuerte, institucional, moderna, clara y lista para operar afiliaciones, eventos y pagos.
 
-La plataforma debe comunicar:
+| Capa | Tono | Objetivo |
+|------|------|----------|
+| **Pública** | Emocional + conversión | Impacto, confianza, CTAs |
+| **Conversión** | Directa, sin fricción | Afiliación, inscripción, registro |
+| **Privada (admin)** | Sobria, operativa | Velocidad, tablas, acciones |
+| **Portal atleta** | Personal, claro | Estado, pagos, perfil |
 
-- Fuerza.
-- Orden.
-- Comunidad.
-- Competencia.
-- Profesionalismo.
-- Transparencia.
-- Crecimiento del deporte.
-- Conexión con PLU USA.
+**Referencias estructurales (no copiar):** Powerlifting United, Join It (patrones UX admin/CRM).
 
 ---
 
-## 3. Personalidad visual
+## 2. Mapa de navegación
 
-**Debe sentirse:** fuerte, técnica, institucional, competitiva, premium, argentina, directa, confiable, moderna.
+### Navbar público (`NavbarPublic`)
 
-**No debe sentirse:** amateur, genérica, copiada, infantil, saturada, desordenada, demasiado fitness comercial.
+| Grupo | Vista | Ruta interna | Componente | Estado diseño |
+|-------|-------|--------------|------------|---------------|
+| — | Inicio | `home` | `HomePage` | ✅ Mejorado |
+| Competencia | Afiliación | `members` | `MembersPage` | ✅ v2 afiliación anual |
+| Competencia | Pitbull Classic | `pitbull` | `PitbullPage` | 🟡 Base |
+| Competencia | Eventos | `events` | `EventsPage` | ✅ Calendario + lista |
+| Competencia | Resultados | `results` | `ResultsPage` | 🟡 Base |
+| Institucional | Reglamento | `rulebook` | `RulebookPage` | 🟡 Base |
+| Institucional | Comunidad | `community` | `CommunityPage` | 🟡 Base |
+| Institucional | FAQ | `faq` | `FAQPage` | 🟡 Base |
+| Institucional | Contacto | `contact` | `ContactPage` | 🟡 Base |
+| Acción | Login | `login` | `LoginPage` | ✅ |
+| Acción | Registro | `register` | `RegisterPage` | 🟡 Base |
+
+**Mobile:** menú drawer + prefs (tema/idioma) en header, no en drawer.
+
+### Flujos privados
+
+| Vista | Rol | Componente |
+|-------|-----|------------|
+| Panel admin | `admin_plu` | `AdminPage` + secciones |
+| Perfil atleta | `athlete_plu` | `AthleteProfilePage` |
+| Afiliación (flujo) | atleta | `RegisterPage` flow membership |
+| Inscripción evento | atleta | `RegisterPage` flow competition |
+
+### Admin (`ADMIN_NAV_GROUPS`)
+
+| Grupo | Módulo | Estado |
+|-------|--------|--------|
+| Gestión | Dashboard, Atletas, Afiliaciones | ✅ Funcional |
+| Eventos | Eventos, Inscripciones, Resultados | 🟡 Parcial |
+| Finanzas | Pagos, Exportaciones | 🔲 Placeholder |
+| Sistema | Usuarios, Auditoría | 🔲 Placeholder |
 
 ---
 
-## 4. Paleta
+## 3. Paleta y tokens
 
-### Base
-
-| Token CSS | Uso |
-|-----------|-----|
-| `--color-bg-primary` | Fondo principal (negro carbón) |
-| `--color-bg-surface` | Bloques secundarios (grafito) |
-| `--color-text-primary` | Textos principales (blanco) |
-| `--color-border` | Bordes y separadores (gris acero) |
-
-### Acentos
+Archivo fuente: `src/styles/variables.css`
 
 | Token | Uso |
 |-------|-----|
-| `--color-brand-red` | CTAs principales |
-| `--color-brand-celeste` | Identidad argentina sutil |
-| `--color-brand-gold` | Logros, records, premium |
-| Estados success/warning/danger | Aprobados, pendientes, rechazados |
+| `--color-bg-primary` | Fondo global |
+| `--color-bg-surface` | Cards, paneles |
+| `--color-brand-red` | CTA primario, urgencia |
+| `--color-brand-celeste` | Identidad AR, acentos |
+| `--color-brand-gold` | Premium, precios, records |
+| `--font-display` | Títulos (Barlow Condensed) |
+| `--font-family` | Cuerpo (Poppins) |
 
-**Regla:** no abusar del celeste y blanco. Identidad argentina sutil, no patriótica excesiva.
-
----
-
-## 5. Tipografía
-
-### Implementación actual
-
-- **Familia única:** [Poppins](https://fonts.google.com/specimen/Poppins) (`index.html`, `--font-family`, `--font-display`).
-- **Títulos:** peso 700–800, mayúsculas, `--letter-spacing-display`.
-- **Cuerpo:** peso 400–500, legible en mobile y panel admin.
-
-### Archivos
-
-- `index.html` — carga Google Fonts
-- `src/styles/variables.css` — tokens tipográficos
-- `src/styles/base.css` — jerarquía de headings
+**Regla:** identidad argentina sutil. No patriótica excesiva.
 
 ---
 
-## 6. Estilo de layout
+## 4. Componentes del design system
 
-### Landing pública
+| Componente | Archivo | Uso |
+|------------|---------|-----|
+| `PageHero` | layout | Cabecera de páginas internas |
+| `SectionHeading` | ui | Títulos de sección |
+| `MembershipCard` | ui | Planes de afiliación |
+| `PitbullSpotlight` | ui | Hero evento insignia (home) |
+| `EventCalendar` | ui | Calendario interactivo |
+| `EventCard` | ui | Tarjeta de meet |
+| `PlatformMap` | ui | Mapa de navegación (home) |
+| `StatBlock` / `AdminMetricCard` | ui | Métricas |
+| `StatusPill` | ui | Estados de negocio |
+| `Reveal` | ui | Motion scroll |
+| `AdminShell` | layout | Panel admin |
 
-- Alto contraste, hero grande, CTAs claros.
-- Secciones con aire, cards con bordes fuertes.
-- Texturas sutiles vía `effects.css` (grain, glow, shimmer).
-- Motion: `Reveal`, `PageTransition`, `animations.css`.
+Estilos por dominio:
 
-### Panel privado
-
-- Sidebar fija (`AdminShell`).
-- Header funcional con buscador y alertas (`AdminTopBar`).
-- Cards de resumen, tablas limpias, badges de estado.
-
----
-
-## 7. Estructura pública
-
-| Ruta / vista | Componente / página |
-|--------------|---------------------|
-| Inicio | `HomePage.jsx` |
-| Afiliación | `MembersPage.jsx` |
-| Pitbull Classic | `PitbullPage.jsx` |
-| Eventos + calendario | `EventsPage.jsx` + `EventCalendar.jsx` |
-| Resultados | `ResultsPage.jsx` |
-| Reglamento | `RulebookPage.jsx` |
-| Comunidad | `CommunityPage.jsx` |
-| FAQ | `FAQPage.jsx` |
-| Contacto | `ContactPage.jsx` |
-| Login | `LoginPage.jsx` |
-| Registro | `RegisterPage.jsx` |
-
-**Navbar:** `NAV_ITEMS` en `src/lib/constants.js`.
+```
+src/styles/pages/home.css      → Landing
+src/styles/pages/members.css   → Afiliación
+src/styles/pages/events.css    → Eventos
+src/styles/pages/admin.css     → Panel admin
+src/styles/layout/header.css   → Navbar
+```
 
 ---
 
-## 8. Panel privado
+## 5. Página de afiliación anual (`MembersPage`)
 
-**Módulos:** definidos en `ADMIN_SECTIONS` (`src/lib/content.js`).
+### Estructura visual
 
-| Módulo | Estado |
-|--------|--------|
-| Dashboard | Funcional |
-| Atletas | Funcional |
-| Inscripciones | Funcional |
-| Afiliaciones, Eventos, Pagos, Resultados, Exportaciones, Usuarios, Auditoría | Placeholder (`EmptyState`) |
+1. **PageHero** — “Afiliación anual 2026”
+2. **Stats** — 3 planes · desde $28.000 · vigencia 2026
+3. **Intro split** — copy + mock tarjeta digital PLU ARG
+4. **Beneficios** — 4 iconos (código, eventos, estándar, respaldo)
+5. **Pasos** — 4 pasos (`MEMBERSHIP_ANNUAL_STEPS`)
+6. **Planes** — `MembershipCard` × 3
+7. **Comparativa** — tabla Atleta / Juvenil / Combo
+8. **CTA final** — afiliación o eventos
 
----
+### Planes (`MEMBERSHIP_PLANS`)
 
-## 9. Componentes
+| Plan | Precio | Destacado |
+|------|--------|-----------|
+| Atleta | $38.000/año | Celeste |
+| Juvenil | $28.000/año | Gold |
+| Combo Pitbull | $78.000/temporada | Rojo, featured |
 
-| Componente | Archivo |
-|------------|---------|
-| StatusBadge / StatusPill | `src/components/ui/StatusPill.jsx` |
-| DataTable | `src/components/ui/DataTable.jsx` |
-| EventCard | `src/components/ui/EventCard.jsx` |
-| EventCalendar | `src/components/ui/EventCalendar.jsx` |
-| MembershipCard, ResultCard, StatBlock | `src/components/ui/` |
-| LoadingState, ErrorState | `src/components/ui/` |
-| FormSection | `src/components/ui/FormSection.jsx` |
-| Reveal, PageTransition | motion system |
+### Criterios de calidad
 
-### Estados de evento
-
-Definidos en `src/lib/events.js` → `EVENT_STATUS`:
-
-- Próximamente
-- Inscripción abierta
-- Cupos limitados
-- Cerrado
-- Finalizado
+- [ ] Jerarquía clara: qué es afiliación anual vs inscripción a evento
+- [ ] Comparativa legible en mobile (scroll horizontal)
+- [ ] CTA visible en hero, intro y footer
+- [ ] Tarjeta digital como promesa visual (futuro: QR real)
 
 ---
 
-## 10. Mobile
+## 6. Home — mapa de plataforma
 
-- Navbar colapsable (`Header`).
-- Cards apiladas, grids responsivos.
-- Calendario y formularios adaptados (`events-layout`, `form-grid`).
-- CTAs de tamaño táctil (`buttons.css`).
+Sección **“Explorá toda la plataforma”** con `PlatformMap` + `PLATFORM_SECTIONS`:
 
----
-
-## 11. Microcopy
-
-Tono: claro, directo, profesional, deportivo, argentino sin exceso informal.
-
-Ver textos en `src/lib/content.js`, `FAQ_ITEMS`, botones en páginas y `status.js`.
+- Agrupa Competencia vs Institucional
+- Cards clickeables → navegación directa
+- Iconos por sección, hover celeste
 
 ---
 
-## 12. Reglas anti-copia
+## 7. Eventos (`EventsPage`)
 
-No copiar logos, imágenes, textos, estructura exacta ni colores exactos de Powerlifting United.
-
-Sí tomar: idea de federación, jerarquía institucional, secciones principales, CTAs, portal de miembros, eventos, resultados, rulebook, comunidad, FAQ.
-
----
-
-## 13. Checklist de diseño (por pantalla)
-
-- [ ] ¿Acción principal clara?
-- [ ] ¿Se entiende en mobile?
-- [ ] ¿Se ve profesional?
-- [ ] ¿Identidad PLU ARG?
-- [ ] ¿Mejora la referencia sin copiar?
-- [ ] ¿Estados vacíos, error y loading?
-- [ ] ¿Jerarquía y componentes reutilizables?
-- [ ] ¿Roles respetados en panel?
-- [ ] ¿Conectado al flujo de negocio?
+- Stats del calendario
+- Calendario sticky + lista sincronizada
+- Filtros y panel de evento seleccionado
+- Cards con estado `selected`
 
 ---
 
-## 14. Prioridad de mejora
+## 8. Panel admin
 
-1. Home PLU ARG — **en progreso**
-2. Página de afiliación
-3. Página Pitbull Classic
-4. Login — **mejorado**
-5. Dashboard admin — **mejorado**
-6. Atletas
-7. Afiliaciones
-8. Inscripciones
-9. Pagos
-10. Exportaciones
-11. Resultados
-12. PLU USA read-only
-13. FAQ / Contacto
-14. Estados vacíos y errores — **componentes base creados**
+- Sidebar agrupada con badges
+- Dashboard con cola de acciones
+- Ficha atleta CRM (tabs)
+- Toolbar minimalista (sin redundancia de alertas)
 
 ---
 
-## 15. Resultado esperado
+## 9. Responsive
 
-Plataforma real de federación: visualmente fuerte, operativamente clara, escalable, argentina, integrada a Maximal, profesional frente a PLU USA y más moderna que la referencia.
+| Breakpoint | Comportamiento |
+|------------|----------------|
+| ≤640px | Grids 1 columna, CTAs full-width |
+| ≤900px | Calendario arriba, lista abajo |
+| ≤1024px | Admin sidebar drawer, navbar mobile |
+| ≥1080px | Nav desktop completo |
 
 ---
 
-## 16. Cómo seguir mejorando (próximos pasos técnicos)
+## 10. Checklist por pantalla
 
-1. **Hero con imagen real** de competencia y video loop sutil.
-2. **PaymentStatusCard** en panel y post-registro.
-3. **ConfirmationScreen** tras pago exitoso.
-4. **Módulo Eventos admin** con el mismo `EventCalendar` editable.
-5. **Skeleton loaders** en tablas mientras carga API real.
-6. **Dark/light** no requerido — mantener dark premium.
-7. **Backend** reemplazando localStorage para estados reales de pago/evento.
-8. **Accesibilidad:** focus visible, `aria-live` en cambios de estado de pago.
+Antes de cerrar cualquier pantalla:
 
-Para iterar pantallas usar la skill `agent-skills/design-upgrade/SKILL.md`.
+1. ¿Acción principal evidente?
+2. ¿Mobile usable sin zoom?
+3. ¿Usa tokens CSS (no hex sueltos)?
+4. ¿Estados vacío/error considerados?
+5. ¿Coherente con identidad PLU ARG?
+6. ¿Conectado al flujo de negocio (`BUSINESS_RULES.md`)?
+
+---
+
+## 11. Roadmap visual (prioridad)
+
+| # | Pantalla | Prioridad |
+|---|----------|-----------|
+| 1 | Afiliación anual | ✅ Hecho v2 |
+| 2 | Home + PlatformMap | ✅ Hecho |
+| 3 | Eventos | ✅ Hecho |
+| 4 | Pitbull Classic page | Alta |
+| 5 | Registro / flujo pago | Alta |
+| 6 | Resultados | Media |
+| 7 | Reglamento, Comunidad, FAQ, Contacto | Media |
+| 8 | Admin: Pagos, Eventos CRUD | Alta operativa |
+| 9 | Tarjeta digital afiliado (QR) | Diferenciador |
+
+---
+
+## 12. Cómo usar este artifact
+
+1. **Diseñadores / devs:** leer antes de tocar UI.
+2. **Agentes:** seguir `agent-skills/design-upgrade` + este doc.
+3. **QA visual:** recorrer mapa §2 y validar checklist §10.
+4. **Iteración:** actualizar estado (✅/🟡/🔲) al cerrar cada pantalla.
+
+---
+
+## 13. Resultado esperado
+
+Una plataforma que se vea y opere como producto federativo premium: conversión clara en afiliación, exploración intuitiva de todas las secciones, y panel admin al estilo CRM moderno (Join It) con identidad PLU ARG propia.

@@ -1,0 +1,129 @@
+/* Banderas y franjas por idioma: ES → Argentina, EN → Estados Unidos */
+
+html[lang='es'] {
+  --plu-locale-stripe-h: linear-gradient(
+    90deg,
+    #5ba3d9 0%,
+    #5ba3d9 33.33%,
+    rgba(255, 255, 255, 0.88) 33.33%,
+    rgba(255, 255, 255, 0.88) 66.66%,
+    #5ba3d9 66.66%,
+    #5ba3d9 100%
+  );
+  --home-hero-eyebrow-stripe: linear-gradient(
+    90deg,
+    #5ba3d9 0%,
+    #5ba3d9 33.33%,
+    rgba(255, 255, 255, 0.92) 33.33%,
+    rgba(255, 255, 255, 0.92) 66.66%,
+    #5ba3d9 66.66%,
+    #5ba3d9 100%
+  );
+  --home-hero-eyebrow-pill-bg: linear-gradient(
+    135deg,
+    rgba(116, 172, 223, 0.1) 0%,
+    rgba(255, 255, 255, 0.04) 42%,
+    rgba(116, 172, 223, 0.06) 100%
+  );
+  --home-hero-eyebrow-pill-border: rgba(116, 172, 223, 0.2);
+}
+
+html[lang='en'] {
+  --plu-locale-stripe-h: linear-gradient(
+    90deg,
+    #b22234 0%,
+    #b22234 33.33%,
+    #ffffff 33.33%,
+    #ffffff 66.66%,
+    #3c3b6e 66.66%,
+    #3c3b6e 100%
+  );
+  --home-hero-eyebrow-stripe: linear-gradient(
+    90deg,
+    #b22234 0%,
+    #b22234 33.33%,
+    rgba(255, 255, 255, 0.96) 33.33%,
+    rgba(255, 255, 255, 0.96) 66.66%,
+    #3c3b6e 66.66%,
+    #3c3b6e 100%
+  );
+  --home-hero-eyebrow-pill-bg: linear-gradient(
+    135deg,
+    rgba(178, 34, 52, 0.1) 0%,
+    rgba(255, 255, 255, 0.04) 42%,
+    rgba(60, 59, 110, 0.08) 100%
+  );
+  --home-hero-eyebrow-pill-border: rgba(178, 34, 52, 0.22);
+}
+
+/* —— Argentina —— */
+html[lang='es'] .hero__eyebrow-flag,
+html[lang='es'] .site-header__drawer-flag {
+  background: linear-gradient(
+    180deg,
+    #74acdf 0%,
+    #74acdf 33.33%,
+    #fff 33.33%,
+    #fff 66.66%,
+    #74acdf 66.66%,
+    #74acdf 100%
+  );
+}
+
+html[lang='es'] .hero__eyebrow-flag::after,
+html[lang='es'] .site-header__drawer-flag::after {
+  background: radial-gradient(circle, #f6b40e 0%, #e8a800 72%, transparent 73%);
+  border-radius: 50%;
+  content: '';
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+html[lang='es'] .hero__eyebrow-flag::after {
+  height: 5px;
+  width: 5px;
+}
+
+html[lang='es'] .site-header__drawer-flag::after {
+  height: 4px;
+  width: 4px;
+}
+
+/* —— Estados Unidos —— */
+html[lang='en'] .hero__eyebrow-flag,
+html[lang='en'] .site-header__drawer-flag {
+  background: repeating-linear-gradient(
+    180deg,
+    #b22234 0,
+    #b22234 2px,
+    #ffffff 2px,
+    #ffffff 4px
+  );
+}
+
+html[lang='en'] .hero__eyebrow-flag::before,
+html[lang='en'] .site-header__drawer-flag::before {
+  background: #3c3b6e;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0;
+  z-index: 1;
+}
+
+html[lang='en'] .hero__eyebrow-flag::before {
+  height: 58%;
+  width: 46%;
+}
+
+html[lang='en'] .site-header__drawer-flag::before {
+  height: 58%;
+  width: 48%;
+}
+
+html[lang='en'] .hero__eyebrow-flag::after,
+html[lang='en'] .site-header__drawer-flag::after {
+  display: none;
+}

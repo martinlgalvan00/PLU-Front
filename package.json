@@ -18,12 +18,23 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",
+    "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.20.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-oauth2-jwt-bearer": "^1.9.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^1.22.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "zod": "^3.25.76"

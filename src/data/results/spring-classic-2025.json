@@ -1,0 +1,59 @@
+{
+  "slug": "spring-classic-2025",
+  "eventTitle": "Spring Classic 2025",
+  "venue": "Maximal Strength Club",
+  "location": "Buenos Aires",
+  "dateISO": "2025-05-18",
+  "podium": [
+    {
+      "athlete": "Nicolás Aguirre",
+      "event": "Spring Classic 2025",
+      "total": "582.5 kg",
+      "place": "1° Open Raw M 83"
+    },
+    {
+      "athlete": "Martina Rivas",
+      "event": "Spring Classic 2025",
+      "total": "412.5 kg",
+      "place": "2° Open Raw F 63"
+    },
+    {
+      "athlete": "Tomás Benedetti",
+      "event": "Spring Classic 2025",
+      "total": "398 kg",
+      "place": "3° Junior Raw M 74"
+    }
+  ],
+  "divisions": [
+    {
+      "name": "Open Raw · Hombres -83 kg",
+      "lifters": [
+        { "place": 1, "name": "Nicolás Aguirre", "bodyweight": 82.4, "squat": 210, "bench": 142.5, "deadlift": 230, "total": 582.5, "dots": 451.2 },
+        { "place": 2, "name": "Diego Morales", "bodyweight": 81.8, "squat": 200, "bench": 135, "deadlift": 220, "total": 555, "dots": 432.8 },
+        { "place": 3, "name": "Facundo López", "bodyweight": 82.9, "squat": 195, "bench": 130, "deadlift": 215, "total": 540, "dots": 416.5 }
+      ]
+    },
+    {
+      "name": "Open Raw · Mujeres -63 kg",
+      "lifters": [
+        { "place": 1, "name": "Martina Rivas", "bodyweight": 62.1, "squat": 145, "bench": 82.5, "deadlift": 185, "total": 412.5, "dots": 398.4 },
+        { "place": 2, "name": "Lucía Fernández", "bodyweight": 62.8, "squat": 140, "bench": 77.5, "deadlift": 175, "total": 392.5, "dots": 374.1 },
+        { "place": 3, "name": "Camila Soto", "bodyweight": 61.5, "squat": 132.5, "bench": 72.5, "deadlift": 170, "total": 375, "dots": 366.2 }
+      ]
+    },
+    {
+      "name": "Junior Raw · Hombres -74 kg",
+      "lifters": [
+        { "place": 1, "name": "Tomás Benedetti", "bodyweight": 73.2, "squat": 150, "bench": 102.5, "deadlift": 145.5, "total": 398, "dots": 342.6 },
+        { "place": 2, "name": "Joaquín Pérez", "bodyweight": 73.8, "squat": 145, "bench": 95, "deadlift": 140, "total": 380, "dots": 324.1 }
+      ]
+    },
+    {
+      "name": "Master I Raw · Hombres -93 kg",
+      "lifters": [
+        { "place": 1, "name": "Gustavo Rinaldi", "bodyweight": 91.5, "squat": 180, "bench": 120, "deadlift": 210, "total": 510, "dots": 368.9 },
+        { "place": 2, "name": "Pablo Herrera", "bodyweight": 92.1, "squat": 175, "bench": 115, "deadlift": 200, "total": 490, "dots": 352.4 }
+      ]
+    }
+  ]
+}

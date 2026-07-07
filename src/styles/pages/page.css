@@ -62,76 +62,156 @@
   margin: 0;
 }
 
-.pitbull-detail {
+/* Pitbull page styles → src/styles/pages/pitbull.css */
+
+/* =============================================
+   MEMBERS PAGE
+   ============================================= */
+
+.members-page .page-section--benefits {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-xl);
+}
+
+.members-page .page-section--plans {
+  padding-top: var(--space-2xl);
+}
+
+.members-benefits {
   display: grid;
-  gap: var(--space-2xl);
-  grid-template-columns: 1.2fr 0.8fr;
-}
-
-.pitbull-detail__title,
-.pitbull-detail__aside h4 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  margin: 0 0 var(--space-md);
-  text-transform: uppercase;
-}
-
-.pitbull-detail__list {
-  color: var(--color-text-secondary);
-  display: grid;
-  font-size: 15px;
-  gap: 8px;
-  line-height: 1.5;
-  margin: var(--space-md) 0 var(--space-lg);
-  padding-left: 18px;
-}
-
-.pitbull-detail__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: var(--space-md);
-}
-
-.capacity-bar {
-  background: var(--color-bg-muted);
-  border-radius: var(--border-radius-pill);
-  height: 8px;
-  margin: 8px 0;
+  gap: 1px;
+  grid-template-columns: repeat(4, 1fr);
   overflow: hidden;
 }
 
-.capacity-bar__fill {
-  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste));
-  height: 100%;
-  transition: width var(--duration-slow) var(--ease-out);
+.members-benefit {
+  align-items: flex-start;
+  cursor: default;
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  position: relative;
+  transition:
+    background 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.pitbull-detail__capacity small {
-  color: var(--color-text-muted);
+/* Borde-top que aparece en hover */
+.members-benefit::before {
+  background: var(--gradient-brand);
+  content: '';
+  height: 1.5px;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  transition: opacity var(--transition-base);
+  width: 100%;
 }
 
-.pitbull-detail__aside {
-  border-left: 1px solid var(--color-border-subtle);
-  padding-left: var(--space-xl);
+.members-benefit:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.pitbull-detail__aside p {
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+.members-benefit:hover::before {
+  opacity: 1;
 }
 
-@media (max-width: 800px) {
-  .pitbull-detail {
+.members-benefit__icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: flex;
+  flex-shrink: 0;
+  height: 40px;
+  justify-content: center;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base),
+    transform var(--transition-base);
+  width: 40px;
+}
+
+.members-benefit:hover .members-benefit__icon {
+  background: rgba(116, 172, 223, 0.10);
+  border-color: rgba(116, 172, 223, 0.22);
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.members-benefit__label {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+  transition: color var(--transition-fast);
+}
+
+.members-benefit__desc {
+  color: rgba(255, 255, 255, 0.30);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  transition: color var(--transition-fast);
+}
+
+.members-benefit:hover .members-benefit__desc {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+/* ── Responsive benefits ─────────────── */
+@media (max-width: 960px) {
+  .members-benefits {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .members-benefits {
     grid-template-columns: 1fr;
   }
+}
 
-  .pitbull-detail__aside {
-    border-left: 0;
-    border-top: 1px solid var(--color-border-subtle);
-    padding-left: 0;
-    padding-top: var(--space-lg);
-  }
+/* ── Light theme ─────────────────────── */
+[data-theme='light'] .members-benefit:hover {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .members-benefit__icon {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .members-benefit__desc {
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .members-benefit:hover .members-benefit__desc {
+  color: rgba(15, 17, 23, 0.65);
+}
+
+[data-theme='light'] .membership-card {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .membership-card__features-line {
+  color: rgba(15, 17, 23, 0.64);
+}
+
+[data-theme='light'] .membership-card__period {
+  color: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .membership-card__compare-inline {
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .membership-card--featured {
+  background: rgba(225, 6, 0, 0.04);
+  border-color: rgba(225, 6, 0, 0.16);
 }

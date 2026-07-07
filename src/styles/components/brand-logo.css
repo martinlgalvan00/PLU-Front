@@ -1,0 +1,37 @@
+/**
+ * Letterhead PLU (PNG: texto blanco + fondo negro embebido).
+ *
+ * dark  → sin filtro; letras blancas sobre fondos oscuros sólidos.
+ * light → silueta negra (brightness).
+ * --blend (solo dark) → funde el negro del PNG en headers / superficies translúcidas.
+ */
+
+.brand-logo-letterhead {
+  display: block;
+  object-fit: contain;
+  transition:
+    filter var(--transition-base),
+    opacity var(--transition-base);
+}
+
+[data-theme='dark'] .brand-logo-letterhead {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+[data-theme='dark'] .brand-logo-letterhead--blend {
+  mix-blend-mode: screen;
+}
+
+/* En hover del header, screen + filter rompe la letra — mantener sin filtro */
+.site-header__logo:hover .brand-logo-letterhead--blend {
+  filter: none;
+  mix-blend-mode: screen;
+  opacity: 1;
+}
+
+[data-theme='light'] .brand-logo-letterhead {
+  filter: brightness(0);
+  mix-blend-mode: normal;
+  opacity: 0.9;
+}
