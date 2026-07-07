@@ -69,7 +69,7 @@ export function useScrolled(threshold = 20) {
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
  */
-export function useHeaderScroll(shellRef, { range = 120, threshold = 12 } = {}) {
+export function useHeaderScroll(shellRef, { range = 80, threshold = 80 } = {}) {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export function useHeaderScroll(shellRef, { range = 120, threshold = 12 } = {}) 
       shell.style.setProperty('--header-scroll-progress', progress.toFixed(4))
       shell.style.setProperty('--header-scroll-y', `${Math.round(y)}px`)
 
-      const nextScrolled = y > threshold
+      const nextScrolled = progress >= 0.99 || y > threshold
       if (nextScrolled !== lastScrolled) {
         lastScrolled = nextScrolled
         setScrolled(nextScrolled)

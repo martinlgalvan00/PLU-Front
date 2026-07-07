@@ -17,7 +17,17 @@
   color: var(--color-text-primary);
   min-height: 44px;
   padding: 9px 11px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
   width: 100%;
+}
+
+.field input:hover:not(:focus),
+.field select:hover:not(:focus),
+.filters input:hover:not(:focus),
+.filters select:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .field input:focus,

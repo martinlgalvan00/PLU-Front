@@ -70,24 +70,27 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 45% at 82% 12%, rgba(225, 6, 0, 0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 8% 92%, rgba(116, 172, 223, 0.06) 0%, transparent 55%),
-    linear-gradient(175deg, #17181d 0%, #0d0e11 55%, #0a0b0d 100%);
+    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(225, 6, 0, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(255, 255, 255, 0.025) 0%, transparent 60%),
+    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
   z-index: 0;
 }
 
 .share-card--membership .share-card__bg {
   background:
-    radial-gradient(ellipse 60% 45% at 82% 12%, rgba(201, 185, 120, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 8% 92%, rgba(116, 172, 223, 0.06) 0%, transparent 55%),
-    linear-gradient(175deg, #17181d 0%, #0d0e11 55%, #0a0b0d 100%);
+    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(201, 185, 120, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.09) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(201, 185, 120, 0.04) 0%, transparent 60%),
+    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
 }
 
 .share-card--ticket .share-card__bg {
   background:
-    radial-gradient(ellipse 60% 45% at 82% 12%, rgba(116, 172, 223, 0.14) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 45% at 8% 92%, rgba(201, 185, 120, 0.05) 0%, transparent 55%),
-    linear-gradient(175deg, #17181d 0%, #0d0e11 55%, #0a0b0d 100%);
+    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(116, 172, 223, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(201, 185, 120, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(116, 172, 223, 0.04) 0%, transparent 60%),
+    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
 }
 
 /* ─── Monograma personalizado ───────────────────────────────────────
@@ -101,18 +104,37 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: rgba(255, 255, 255, 0.035);
+  color: transparent;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.075) 0%,
+    rgba(255, 255, 255, 0.03) 60%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
   pointer-events: none;
   user-select: none;
   z-index: 1;
 }
 
 .share-card--membership .share-card__monogram {
-  color: rgba(201, 185, 120, 0.05);
+  background: linear-gradient(
+    140deg,
+    rgba(201, 185, 120, 0.14) 0%,
+    rgba(201, 185, 120, 0.04) 60%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .share-card--ticket .share-card__monogram {
-  color: rgba(116, 172, 223, 0.05);
+  background: linear-gradient(
+    140deg,
+    rgba(116, 172, 223, 0.14) 0%,
+    rgba(116, 172, 223, 0.04) 60%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .share-card--story .share-card__monogram {
@@ -127,17 +149,32 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--card-red);
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--card-red) 0%,
+    rgba(255, 255, 255, 0.72) 50%,
+    var(--card-celeste) 100%
+  );
   z-index: 10;
 }
 
 .share-card--membership .share-card__stripe-top {
-  background: var(--card-gold);
+  background: linear-gradient(
+    90deg,
+    var(--card-red) 0%,
+    var(--card-gold) 50%,
+    var(--card-celeste) 100%
+  );
 }
 
 .share-card--ticket .share-card__stripe-top {
-  background: var(--card-celeste);
+  background: linear-gradient(
+    90deg,
+    var(--card-celeste) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    var(--card-red) 100%
+  );
 }
 
 /* ─── Header ────────────────────────────────────────────────────── */
@@ -259,9 +296,9 @@
 
 /* Divisor */
 .share-card__divider {
-  width: 64px;
-  height: 4px;
-  background: var(--card-red);
+  width: 96px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--card-red) 0%, rgba(255, 255, 255, 0.55) 55%, var(--card-celeste) 100%);
   border-radius: 999px;
 }
 
@@ -271,7 +308,7 @@
 }
 
 .share-card--membership .share-card__divider {
-  background: var(--card-gold);
+  background: linear-gradient(90deg, var(--card-gold) 0%, rgba(255, 255, 255, 0.45) 55%, var(--card-celeste) 100%);
 }
 
 /* Variante entrada: acento celeste (el tercer color de la bandera) */
@@ -280,7 +317,7 @@
 }
 
 .share-card--ticket .share-card__divider {
-  background: var(--card-celeste);
+  background: linear-gradient(90deg, var(--card-celeste) 0%, rgba(255, 255, 255, 0.5) 55%, var(--card-red) 100%);
 }
 
 /* Sección evento */
@@ -338,33 +375,37 @@
   position: relative;
   z-index: 5;
   margin: 0 72px;
-  border-top: 2.5px dashed rgba(255, 255, 255, 0.14);
+  border-top: 2px dashed rgba(255, 255, 255, 0.18);
 }
 
 .share-card__stub-dot {
   position: absolute;
-  top: -5px;
-  width: 10px;
-  height: 10px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--card-red);
-  opacity: 0.7;
+  background: var(--card-bg);
+  border: 2px solid var(--card-red);
+  box-shadow: 0 0 10px rgba(225, 6, 0, 0.5);
+  opacity: 1;
 }
 
 .share-card--membership .share-card__stub-dot {
-  background: var(--card-gold);
+  border-color: var(--card-gold);
+  box-shadow: 0 0 10px rgba(201, 185, 120, 0.5);
 }
 
 .share-card--ticket .share-card__stub-dot {
-  background: var(--card-celeste);
+  border-color: var(--card-celeste);
+  box-shadow: 0 0 10px rgba(116, 172, 223, 0.5);
 }
 
 .share-card__stub-dot--left {
-  left: -5px;
+  left: -7px;
 }
 
 .share-card__stub-dot--right {
-  right: -5px;
+  right: -7px;
 }
 
 /* ─── Footer ────────────────────────────────────────────────────── */
@@ -394,10 +435,10 @@
 
 .share-card__tagline {
   font-size: 19px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .share-card__url {
@@ -405,7 +446,7 @@
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.35);
   white-space: nowrap;
 }
 
@@ -418,8 +459,10 @@
   height: 148px;
   padding: 12px;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: 18px;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.1) inset;
 }
 
 .share-card--story .share-card__qr-chip {

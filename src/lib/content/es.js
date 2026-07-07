@@ -556,56 +556,6 @@ export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = [
   },
 ]
 
-export const RULEBOOK_DOWNLOAD = {
-  title: 'Reglamento completo',
-  subtitle: 'Versión 2026 · próxima publicación',
-  action: 'Descargar PDF',
-  format: 'PDF',
-}
-
-export const RULEBOOK_WEIGHT_CATEGORIES = [
-  {
-    title: 'Masculino',
-    weights: ['59', '66', '74', '83', '93', '105', '120', '120+'],
-    unit: 'kg',
-  },
-  {
-    title: 'Femenino',
-    weights: ['47', '52', '57', '63', '69', '76', '84', '84+'],
-    unit: 'kg',
-  },
-]
-
-export const RULEBOOK_DIVISIONS = [
-  { title: 'Sub-junior', range: '14–18 años' },
-  { title: 'Junior', range: '19–23 años' },
-  { title: 'Open', range: 'Sin límite' },
-  { title: 'Master', range: '40+ años' },
-]
-
-export const RULEBOOK_EQUIPMENT = [
-  {
-    title: 'Raw',
-    text: 'Cinturón, rodilleras, muñequeras y calzado reglamentario. Sin trajes de soporte.',
-  },
-  {
-    title: 'Equipped',
-    text: 'Traje de soporte homologado para sentadilla y press de banca, además del equipo raw.',
-  },
-]
-
-export const RULEBOOK_JUDGING = [
-  { numeral: 'I', text: 'Tres intentos por movimiento: sentadilla, press de banca y despegue.' },
-  {
-    numeral: 'II',
-    text: 'Panel de tres jueces; se requieren dos señales a favor para un levantamiento válido.',
-  },
-  {
-    numeral: 'III',
-    text: 'El atleta compite en la categoría de peso corporal declarada al pesaje oficial.',
-  },
-]
-
 export const ADMIN_NAV_GROUPS = [
   {
     labelKey: 'admin.nav.groups.management',

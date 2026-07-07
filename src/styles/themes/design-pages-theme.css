@@ -161,9 +161,11 @@
   --home-hero-outline-hover-border: rgba(255, 255, 255, 0.28);
   --home-hero-account-border: rgba(255, 255, 255, 0.08);
   --home-hero-account-icon-bg: rgba(255, 255, 255, 0.06);
-  --home-hero-status-panel-bg: oklch(13% 0.006 260 / 0.72);
-  --home-hero-status-panel-border: rgba(255, 255, 255, 0.08);
-  --home-hero-status-panel-shadow: none;
+  --home-hero-status-panel-bg: oklch(13% 0.006 260 / 0.78);
+  --home-hero-status-panel-border: rgba(255, 255, 255, 0.1);
+  --home-hero-status-panel-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 48px rgba(0, 0, 0, 0.32);
   --home-hero-status-eyebrow: rgba(255, 255, 255, 0.52);
   --home-hero-status-year: #fff;
   --home-hero-status-label: rgba(255, 255, 255, 0.42);
@@ -208,8 +210,8 @@
   --design-hero-eyebrow-border: rgba(255, 255, 255, 0.12);
   --design-hero-eyebrow-dot: var(--plu-red-500);
   --design-hero-fade: var(--color-page-canvas);
-  --design-hero-ambient-red: rgba(225, 6, 0, 0.14);
-  --design-hero-ambient-celeste: rgba(116, 172, 223, 0.12);
+  --design-hero-ambient-red: rgba(225, 6, 0, 0.16);
+  --design-hero-ambient-celeste: rgba(116, 172, 223, 0.14);
   --design-hero-stats-border: rgba(255, 255, 255, 0.08);
   --design-hero-stats-bg: rgba(255, 255, 255, 0.04);
   --design-hero-stats-border-card: rgba(255, 255, 255, 0.08);
@@ -422,11 +424,11 @@
   --community-shell-divider: rgba(255, 255, 255, 0.06);
   --community-shell-link-border: rgba(255, 255, 255, 0.1);
   --community-node-hover: rgba(255, 255, 255, 0.03);
-  --community-story-bg: rgba(255, 255, 255, 0.02);
-  --community-story-border: rgba(255, 255, 255, 0.06);
+  --community-story-bg: rgba(255, 255, 255, 0.025);
+  --community-story-border: rgba(255, 255, 255, 0.07);
   --community-story-divider: rgba(255, 255, 255, 0.06);
-  --community-story-hover-border: rgba(201, 185, 120, 0.22);
-  --community-story-shadow: none;
+  --community-story-hover-border: rgba(201, 185, 120, 0.28);
+  --community-story-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --register-page-glow: rgba(116, 172, 223, 0.1);
   --register-eyebrow: var(--color-brand-celeste);
   --register-eyebrow-dot: var(--plu-red-500);
@@ -1030,8 +1032,33 @@
 [data-theme='light'] .login-brand h1,
 [data-theme='light'] .login-brand__title,
 [data-theme='light'] .login-brand__desc,
-[data-theme='light'] .login-brand__features li {
+[data-theme='light'] .login-brand__feature-text {
   color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .login-brand__desc {
+  opacity: 0.72;
+}
+
+[data-theme='light'] .login-brand__feature {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .login-brand__feature:hover {
+  background: rgba(15, 17, 23, 0.045);
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .login-brand__feature-icon {
+  background: rgba(116, 172, 223, 0.1);
+  border-color: rgba(116, 172, 223, 0.22);
+}
+
+[data-theme='light'] .login-brand__secure {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.1);
+  color: rgba(15, 17, 23, 0.52);
 }
 
 [data-theme='light'] .login-card__header h1,
@@ -1048,7 +1075,7 @@
 }
 
 [data-theme='light'] .login-brand__desc,
-[data-theme='light'] .login-brand__features li {
+[data-theme='light'] .login-brand__feature-text {
   opacity: 0.85;
 }
 

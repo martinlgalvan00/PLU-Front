@@ -1,10 +1,20 @@
-export function Field({ className = '', error, label, ...props }) {
+export function Field({ className = '', error, hideLabel = false, label, ...props }) {
   const errorId = `${props.name}-error`
+  const fieldClass = ['field', className, hideLabel ? 'field--headless' : ''].filter(Boolean).join(' ')
   return (
-    <label className={`field${className ? ` ${className}` : ''}`.trim()}>
-      {label}
-      <input {...props} aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)} />
-      {error && <span className="field__error" id={errorId}>{error}</span>}
+    <label className={fieldClass}>
+      {!hideLabel ? label : null}
+      <input
+        {...props}
+        aria-label={hideLabel ? label : undefined}
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={Boolean(error)}
+      />
+      {error ? (
+        <span className="field__error" id={errorId} title={error}>
+          {error}
+        </span>
+      ) : null}
     </label>
   )
 }

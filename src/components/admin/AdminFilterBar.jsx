@@ -13,6 +13,7 @@ import AdminFilterSelect from './AdminFilterSelect.jsx'
  */
 
 export default function AdminFilterBar({
+  className = '',
   compact = false,
   inline = false,
   query,
@@ -20,17 +21,18 @@ export default function AdminFilterBar({
   filters = [],
   placeholder = 'Buscar…',
 }) {
-  const className = [
+  const rootClassName = [
     'admin-filters',
     'admin-filters--chips',
     compact ? 'admin-filters--compact' : '',
     inline ? 'admin-filters--inline' : '',
+    className,
   ]
     .filter(Boolean)
     .join(' ')
 
   return (
-    <div className={className}>
+    <div className={rootClassName}>
       {filters.length > 0 && (
         <div className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}>
           {filters.map((filter) =>

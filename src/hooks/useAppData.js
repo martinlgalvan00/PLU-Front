@@ -17,9 +17,13 @@ import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
   createTicketOrder as createTicketOrderRequest,
+  listPendingTicketOrders as listPendingTicketOrdersRequest,
   listTicketsForEvent as listTicketsForEventRequest,
   mapApiTicket,
+  redeemTicketAddon as redeemTicketAddonRequest,
+  registerTicketPaymentProof as registerTicketPaymentProofRequest,
 } from '../services/ticketApi.js'
+import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
 import { createUser, getInitialUsers, updateUserRole } from '../services/userService.js'
 import {
   buildAdminExportRows,
@@ -59,6 +63,7 @@ export function useAppData() {
   // Las entradas viven en Postgres, no en localStorage — este estado es
   // solo un cache de lo último que se creó/consultó vía la API real.
   const [tickets, setTickets] = useState([])
+  const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
   const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
   const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
@@ -144,13 +149,13 @@ export function useAppData() {
   )
 
   const pendingActions = useMemo(
-    () => buildPendingActions({ payments, athletes, memberships, registrations }),
-    [payments, athletes, memberships, registrations],
+    () => buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders }),
+    [payments, athletes, memberships, registrations, pendingTicketOrders],
   )
 
   const adminNavBadges = useMemo(
-    () => getAdminNavBadges({ payments, registrations }),
-    [payments, registrations],
+    () => getAdminNavBadges({ payments, registrations, pendingTicketOrders }),
+    [payments, registrations, pendingTicketOrders],
   )
 
   const recentActivity = useMemo(
@@ -272,11 +277,18 @@ export function useAppData() {
   const submitTicketPurchase = useCallback(
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
+      const provider =
+        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' ? 'manual' : paymentMethod
       try {
         const { order, tickets: createdTickets } = await createTicketOrderRequest({
           eventSlug: purchaseEvent.slug,
-          attendees,
-          provider: paymentMethod,
+          attendees: attendees.map((attendee) => ({
+            fullName: attendee.fullName,
+            dni: attendee.dni,
+            dayPass: attendee.dayPass,
+            addonIds: attendee.addonIds ?? [],
+          })),
+          provider,
         })
         const mappedTickets = createdTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
         setTickets((current) => [...mappedTickets, ...current])
@@ -289,6 +301,8 @@ export function useAppData() {
           paymentMethod: order.provider,
           reference: order.reference,
           status: order.status,
+          paymentProofPath: order.paymentProofPath,
+          paymentProofUploadedAt: order.paymentProofUploadedAt,
           createdAt: order.createdAt,
         }
         setCreatedOrder(nextOrder)
@@ -310,14 +324,64 @@ export function useAppData() {
         return current.map((item) => (byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item))
       })
       setCreatedOrder((current) => (current?.orderId === orderId ? { ...current, status: order.status } : current))
+      setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
     } catch (error) {
       console.error('approveTicketPurchase:', error)
+      throw error
     }
   }, [])
+
+  const uploadTicketPaymentProofAction = useCallback(async (orderId, file) => {
+    try {
+      const { storagePath } = await uploadTicketPaymentProof(orderId, file)
+      const { order } = await registerTicketPaymentProofRequest(orderId, storagePath)
+      setCreatedOrder((current) =>
+        current?.orderId === orderId
+          ? {
+              ...current,
+              status: order.status,
+              paymentProofPath: order.paymentProofPath,
+              paymentProofUploadedAt: order.paymentProofUploadedAt,
+            }
+          : current,
+      )
+      setPendingTicketOrders((current) =>
+        current.map((item) =>
+          item.orderId === orderId
+            ? {
+                ...item,
+                status: order.status,
+                paymentProofPath: order.paymentProofPath,
+                paymentProofUploadedAt: order.paymentProofUploadedAt,
+              }
+            : item,
+        ),
+      )
+      return { order }
+    } catch (error) {
+      return { error: error.message ?? 'No se pudo enviar el comprobante.' }
+    }
+  }, [])
+
+  const refreshPendingTicketOrders = useCallback(async () => {
+    if (!userCanEdit) return
+    try {
+      const { orders } = await listPendingTicketOrdersRequest()
+      setPendingTicketOrders(orders)
+    } catch (error) {
+      console.error('refreshPendingTicketOrders:', error)
+    }
+  }, [userCanEdit])
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
   // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
+  useEffect(() => {
+    if (!userCanEdit) return undefined
+    refreshPendingTicketOrders()
+    return undefined
+  }, [userCanEdit, refreshPendingTicketOrders])
+
   const checkInTicketAction = useCallback(async (qrToken) => {
     try {
       const { ticket, checkIn } = await checkInTicketRequest(qrToken)
@@ -332,6 +396,23 @@ export function useAppData() {
         return { outcome: 'not_found' }
       }
       throw error
+    }
+  }, [])
+
+  const redeemTicketAddonAction = useCallback(async (qrToken, addonId) => {
+    try {
+      const { ticket } = await redeemTicketAddonRequest(qrToken, addonId)
+      const updated = mapApiTicket(ticket)
+      setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
+      return { ticket: updated }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return { error: error.message ?? 'Este beneficio ya fue canjeado.' }
+      }
+      if (error instanceof ApiError && error.status === 404) {
+        return { error: error.message ?? 'Beneficio no encontrado.' }
+      }
+      return { error: error.message ?? 'No se pudo canjear el beneficio.' }
     }
   }, [])
 
@@ -553,6 +634,7 @@ export function useAppData() {
     registrations,
     payments,
     tickets,
+    pendingTicketOrders,
     createdOrder,
     auditLogs,
     form,
@@ -574,8 +656,11 @@ export function useAppData() {
     submitMembership,
     submitCompetition,
     submitTicketPurchase,
+    uploadTicketPaymentProofAction,
     approveTicketPurchase,
+    refreshPendingTicketOrders,
     checkInTicketAction,
+    redeemTicketAddonAction,
     refreshTickets,
     checkInRegistrationAction,
     users,

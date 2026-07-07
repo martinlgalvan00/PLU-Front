@@ -138,7 +138,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-sm) var(--space-md) var(--space-md);
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   scrollbar-width: thin;
 }
 
@@ -147,12 +147,12 @@
 }
 
 .admin-shell__nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--scrollbar-thumb);
   border-radius: var(--border-radius-pill);
 }
 
 .admin-shell__nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--scrollbar-thumb-hover);
 }
 
 .admin-shell__group {

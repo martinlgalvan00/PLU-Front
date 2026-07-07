@@ -74,7 +74,7 @@ export default function SegmentedSwitch({
       <span className="segmented-switch__thumb" aria-hidden />
 
       {options.map(([key, label, shortLabel]) => {
-        const display = shortLabel ?? label
+        const displayShort = shortLabel ?? label
 
         return (
           <button
@@ -86,9 +86,7 @@ export default function SegmentedSwitch({
             onClick={() => onChange(key)}
           >
             <span className="segmented-switch__label segmented-switch__label--full">{label}</span>
-            {shortLabel && shortLabel !== label && (
-              <span className="segmented-switch__label segmented-switch__label--short">{display}</span>
-            )}
+            <span className="segmented-switch__label segmented-switch__label--short">{displayShort}</span>
           </button>
         )
       })}

@@ -468,36 +468,6 @@ export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = [
   { id: 'testimonio-3', role: 'Certified referee', text: 'Coming soon — perspective from the national judging body.' },
 ]
 
-export const RULEBOOK_DOWNLOAD = {
-  title: 'Full rulebook',
-  subtitle: '2026 version · upcoming release',
-  action: 'Download PDF',
-  format: 'PDF',
-}
-
-export const RULEBOOK_WEIGHT_CATEGORIES = [
-  { title: 'Men', weights: ['59', '66', '74', '83', '93', '105', '120', '120+'], unit: 'kg' },
-  { title: 'Women', weights: ['47', '52', '57', '63', '69', '76', '84', '84+'], unit: 'kg' },
-]
-
-export const RULEBOOK_DIVISIONS = [
-  { title: 'Sub-junior', range: '14–18 years' },
-  { title: 'Junior', range: '19–23 years' },
-  { title: 'Open', range: 'No limit' },
-  { title: 'Master', range: '40+ years' },
-]
-
-export const RULEBOOK_EQUIPMENT = [
-  { title: 'Raw', text: 'Belt, knee sleeves, wrist wraps and approved footwear. No supportive suits.' },
-  { title: 'Equipped', text: 'Approved supportive suit for squat and bench, plus raw equipment.' },
-]
-
-export const RULEBOOK_JUDGING = [
-  { numeral: 'I', text: 'Three attempts per lift: squat, bench press and deadlift.' },
-  { numeral: 'II', text: 'Panel of three referees; two white lights required for a good lift.' },
-  { numeral: 'III', text: 'Athletes compete in the bodyweight class declared at the official weigh-in.' },
-]
-
 export const ADMIN_NAV_GROUPS = [
   {
     labelKey: 'admin.nav.groups.management',

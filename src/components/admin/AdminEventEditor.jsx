@@ -12,6 +12,7 @@ import {
   upsertEventCalendarLiveFields,
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
+import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 
 function updatePricingField(draft, field, value) {
   return {
@@ -279,6 +280,12 @@ export default function AdminEventEditor({
             </label>
           </div>
         </fieldset>
+
+        <AdminTicketAddonsEditor
+          addons={draft.pricing?.ticketAddons ?? []}
+          canEdit={canEdit}
+          onChange={(ticketAddons) => onChange(updatePricingField(draft, 'ticketAddons', ticketAddons))}
+        />
 
         <AdminFilterChipGroup
           compact

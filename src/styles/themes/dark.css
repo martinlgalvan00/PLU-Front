@@ -2,10 +2,6 @@
 
 [data-theme='dark'] {
 
-  color-scheme: dark;
-
-
-
   --color-bg-primary: var(--plu-cool-950);
 
   --color-bg-secondary: var(--plu-cool-900);
@@ -104,5 +100,13 @@
   --filter-pill-text: rgba(255, 255, 255, 0.52);
   --filter-pill-active-text: #fff;
 
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(201, 185, 120, 0.42);
+  --scrollbar-track: transparent;
+
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
 }
 

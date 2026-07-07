@@ -1,4 +1,4 @@
-import { ApiError } from '../lib/api.js'
+import { ApiError, apiGet, apiPost } from '../lib/api.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 
 /**
@@ -84,6 +84,7 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     attendeeDni: row.attendee_dni,
     dayPass: row.day_pass,
     unitPrice: row.unit_price,
+    addons: Array.isArray(row.addons) ? row.addons : [],
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -105,6 +106,8 @@ function toCamelOrder(row) {
     provider: row.provider,
     status: row.status,
     reference: row.reference,
+    paymentProofPath: row.payment_proof_path,
+    paymentProofUploadedAt: row.payment_proof_uploaded_at,
     createdAt: row.created_at,
   }
 }
@@ -135,11 +138,109 @@ export async function createTicketOrder({ eventSlug, attendees, buyer, provider 
 }
 
 export async function approveTicketOrder(orderId) {
-  const result = await callRpc('approve_ticket_order', { p_order_id: orderId })
-  return {
-    order: toCamelOrder(result.order),
-    tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+  try {
+    const result = await callRpc('approve_ticket_order', { p_order_id: orderId })
+    return {
+      order: toCamelOrder(result.order),
+      tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+    }
+  } catch (error) {
+    if (error instanceof ApiError && [401, 403, 42501].includes(error.status)) {
+      const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
+      return {
+        order: {
+          id: result.order.id,
+          eventId: result.order.eventId,
+          amount: result.order.amount,
+          provider: result.order.provider,
+          status: result.order.status,
+          reference: result.order.reference,
+          paymentProofPath: result.order.paymentProofPath,
+          paymentProofUploadedAt: result.order.paymentProofUploadedAt,
+          createdAt: result.order.createdAt,
+        },
+        tickets: result.tickets.map((ticket) => ({
+          id: ticket.id,
+          ticketCode: ticket.ticketCode,
+          qrToken: ticket.qrToken,
+          orderId: ticket.orderId,
+          attendeeName: ticket.attendeeName,
+          attendeeDni: ticket.attendeeDni,
+          dayPass: ticket.dayPass,
+          status: ticket.status,
+        })),
+      }
+    }
+    throw error
   }
+}
+
+export async function registerTicketPaymentProof(orderId, proofPath) {
+  try {
+    const result = await callRpc('register_ticket_payment_proof', {
+      p_order_id: orderId,
+      p_proof_path: proofPath,
+    })
+    return { order: toCamelOrder(result.order) }
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 503) throw error
+    return apiPost(`/api/tickets/orders/${orderId}/proof`, { proofPath })
+  }
+}
+
+function mapPendingTicketOrderRow(row) {
+  const order = toCamelOrder(row.order ?? row)
+  const event = row.event ?? {}
+  return {
+    orderId: order.id,
+    reference: order.reference,
+    amount: order.amount,
+    status: order.status,
+    provider: order.provider,
+    paymentProofPath: order.paymentProofPath,
+    paymentProofUploadedAt: order.paymentProofUploadedAt,
+    createdAt: order.createdAt,
+    eventSlug: event.slug,
+    eventTitle: event.title,
+    ticketCount: row.ticketCount ?? row.ticket_count ?? 0,
+    attendees: row.attendees ?? [],
+  }
+}
+
+export async function listPendingTicketOrders() {
+  try {
+    const { orders } = await apiGet('/api/tickets/orders/pending-manual')
+    return {
+      orders: orders.map((row) => ({
+        orderId: row.order.id,
+        reference: row.order.reference,
+        amount: row.order.amount,
+        status: row.order.status,
+        provider: row.order.provider,
+        paymentProofPath: row.order.paymentProofPath,
+        paymentProofUploadedAt: row.order.paymentProofUploadedAt,
+        createdAt: row.order.createdAt,
+        eventSlug: row.event?.slug,
+        eventTitle: row.event?.title,
+        ticketCount: row.ticketCount,
+        attendees: row.attendees ?? [],
+      })),
+    }
+  } catch (error) {
+    if (!(error instanceof ApiError) || ![401, 403].includes(error.status)) {
+      if (!isSupabaseConfigured || !supabase) throw error
+    }
+  }
+
+  const rows = await callRpc('list_pending_ticket_orders', {})
+  const list = Array.isArray(rows) ? rows : []
+  return { orders: list.map(mapPendingTicketOrderRow) }
+}
+
+export async function getTicketPaymentProofUrl(orderId) {
+  if (!orderId) return null
+  const { url } = await apiGet(`/api/tickets/orders/${orderId}/proof-url`)
+  return url
 }
 
 export async function verifyTicketByQrToken(qrToken) {
@@ -155,6 +256,26 @@ export async function listTicketsForEvent(eventSlug) {
 export async function checkInTicket(qrToken, gate) {
   const result = await callRpc('check_in_ticket', { p_qr_token: qrToken, p_gate: gate })
   return { ticket: toCamelTicket(result.ticket), checkIn: toCamelCheckIn(result.checkIn) }
+}
+
+export async function redeemTicketAddon(qrToken, addonId) {
+  try {
+    const result = await callRpc('redeem_ticket_addon', {
+      p_qr_token: qrToken,
+      p_addon_id: addonId,
+    })
+    return {
+      ticket: toCamelTicket(result.ticket, { checkIn: result.checkIn }),
+    }
+  } catch (error) {
+    if (error instanceof ApiError && [401, 403, 42501].includes(error.status)) {
+      const result = await apiPost(`/api/tickets/checkin/${qrToken}/addons/${addonId}/redeem`, {})
+      return {
+        ticket: toCamelTicket(result.ticket, { checkIn: result.ticket?.checkIn }),
+      }
+    }
+    throw error
+  }
 }
 
 export async function checkInRegistration(registrationId, gate) {
@@ -184,6 +305,8 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     attendeeName: apiTicket.attendeeName,
     attendeeDni: apiTicket.attendeeDni,
     dayPass: apiTicket.dayPass,
+    unitPrice: apiTicket.unitPrice,
+    addons: Array.isArray(apiTicket.addons) ? apiTicket.addons : [],
     status: apiTicket.status,
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
     eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug,

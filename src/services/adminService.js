@@ -12,8 +12,23 @@ const ACTION_LABELS = {
   'event.updated': 'Evento actualizado',
 }
 
-export function buildPendingActions({ payments, athletes, memberships, registrations }) {
+export function buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders = [] }) {
   const actions = []
+
+  pendingTicketOrders.forEach((order) => {
+    const attendeeLabel = order.attendees?.[0]?.name ?? 'Comprador'
+    actions.push({
+      id: `action-tord-${order.orderId}`,
+      type: 'ticket_order',
+      priority: order.paymentProofPath ? 'high' : 'medium',
+      subject: attendeeLabel,
+      summary: order.paymentProofPath ? 'Validar transferencia de entrada' : 'Entrada pendiente de pago',
+      detail: order.eventTitle ?? order.reference,
+      meta: money(order.amount),
+      section: 'payments',
+      orderId: order.orderId,
+    })
+  })
 
   payments
     .filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status))
@@ -135,9 +150,11 @@ export function buildRecentActivity(
     }))
 }
 
-export function getAdminNavBadges({ payments, registrations }) {
+export function getAdminNavBadges({ payments, registrations, pendingTicketOrders = [] }) {
   return {
-    payments: payments.filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status)).length,
+    payments:
+      payments.filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status)).length +
+      pendingTicketOrders.length,
     registrations: registrations.filter((registration) =>
       ['pendiente_pago', 'observada'].includes(registration.status),
     ).length,

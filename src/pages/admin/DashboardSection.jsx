@@ -202,6 +202,7 @@ export default function DashboardSection({
   recentActivity = [],
   onNavigate,
   onApprovePayment,
+  onApproveTicketOrder,
   canEdit,
   globalSearch,
   onGlobalSearchChange,
@@ -236,6 +237,7 @@ export default function DashboardSection({
         items={pendingActions}
         onNavigate={onNavigate}
         onApprovePayment={onApprovePayment}
+        onApproveTicketOrder={onApproveTicketOrder}
         canEdit={canEdit}
       />
 
@@ -297,6 +299,7 @@ export default function DashboardSection({
             items={pendingActions}
             onNavigate={onNavigate}
             onApprovePayment={onApprovePayment}
+            onApproveTicketOrder={onApproveTicketOrder}
             canEdit={canEdit}
           />
         </div>

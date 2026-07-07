@@ -15,7 +15,6 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
-import pitbullVisual from '../assets/powerlifting-hero.png'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventShareCard from '../components/ui/EventShareCard.jsx'
@@ -665,6 +664,7 @@ export default function PitbullPage({
   createdOrder,
   onSubmitTicketPurchase,
   onApproveTicketPurchase,
+  onUploadPaymentProof,
 }) {
   const {
     PITBULL_BENEFITS_ATHLETES,
@@ -727,16 +727,6 @@ export default function PitbullPage({
       <div className="pitbull-page__body">
         <Reveal variant="up">
           <div className="pitbull-dossier pitbull-dossier--minimal">
-            <figure className="pitbull-dossier__visual">
-              <img
-                src={pitbullVisual}
-                alt={t('pages.pitbull.visualAlt')}
-                className="pitbull-dossier__visual-img"
-                loading="lazy"
-                decoding="async"
-              />
-            </figure>
-
             <PitbullBenefitsSection
               benefitsAthletes={PITBULL_BENEFITS_ATHLETES ?? []}
               benefitsSpectators={PITBULL_BENEFITS_SPECTATORS ?? []}
@@ -793,14 +783,16 @@ export default function PitbullPage({
                 ) : (
                   <div id="pitbull-ticket-form" className="pitbull-tickets__form-shell">
                     {!hasTicketOrder ? (
-                      <button
-                        type="button"
-                        className="pitbull-tickets__form-back"
-                        onClick={() => setTicketFormOpen(false)}
-                      >
-                        <ArrowLeft size={14} aria-hidden />
-                        {t('pages.pitbull.ticketsCloseForm')}
-                      </button>
+                      <div className="pitbull-tickets__form-toolbar">
+                        <button
+                          type="button"
+                          className="pitbull-tickets__form-back"
+                          onClick={() => setTicketFormOpen(false)}
+                        >
+                          <ArrowLeft size={14} aria-hidden />
+                          {t('pages.pitbull.ticketsCloseForm')}
+                        </button>
+                      </div>
                     ) : null}
 
                     <TicketPurchaseSection
@@ -812,6 +804,7 @@ export default function PitbullPage({
                       createdOrder={createdOrder}
                       onSubmit={onSubmitTicketPurchase}
                       onApprovePayment={onApproveTicketPurchase}
+                      onUploadPaymentProof={onUploadPaymentProof}
                     />
                   </div>
                 )}

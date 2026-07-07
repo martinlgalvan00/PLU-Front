@@ -10,6 +10,7 @@ export default function AdminActionDrawer({
   items = [],
   onNavigate,
   onApprovePayment,
+  onApproveTicketOrder,
   canEdit,
 }) {
   const { t } = useI18n()
@@ -87,6 +88,7 @@ export default function AdminActionDrawer({
             items={items}
             onNavigate={handleNavigate}
             onApprovePayment={onApprovePayment}
+            onApproveTicketOrder={onApproveTicketOrder}
             canEdit={canEdit}
           />
         </div>

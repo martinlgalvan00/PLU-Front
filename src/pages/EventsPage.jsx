@@ -141,7 +141,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
       ['all', t('pages.events.filters.all'), t('pages.events.filters.allShort')],
       ['open', t('pages.events.filters.open'), t('pages.events.filters.openShort')],
       ['soon', t('pages.events.filters.soon'), t('pages.events.filters.soonShort')],
-      ['done', t('pages.events.filters.done')],
+      ['done', t('pages.events.filters.done'), t('pages.events.filters.doneShort')],
     ],
     [t],
   )

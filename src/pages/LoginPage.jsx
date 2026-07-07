@@ -46,6 +46,35 @@ export default function LoginPage({ onLogin, onNavigate }) {
   return (
     <main className="page login-page--design">
       <div className="login-shell">
+        <aside className="login-brand" aria-label={t('login.brandAria')}>
+          <div className="login-brand__logos">
+            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={44} />
+            <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={34} />
+          </div>
+
+          <div className="login-brand__intro">
+            <span className="login-brand__eyebrow">{t('login.eyebrow')}</span>
+            <h1 className="login-brand__title">{t('login.title')}</h1>
+            <p className="login-brand__desc">{t('login.subtitle')}</p>
+          </div>
+
+          <ul className="login-brand__features" role="list">
+            {FEATURE_KEYS.map((key) => (
+              <li key={key} className="login-brand__feature">
+                <span className="login-brand__feature-icon" aria-hidden>
+                  <Check size={13} strokeWidth={2.5} />
+                </span>
+                <span className="login-brand__feature-text">{t(key)}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="login-brand__secure">
+            <span className="login-secure-note__dot" aria-hidden />
+            <span className="login-brand__secure-text">{t('login.secureNote')}</span>
+          </div>
+        </aside>
+
         <section className="login-card" aria-labelledby="login-heading">
           <header className="login-card__header">
             <div className="login-card__logos">
@@ -141,28 +170,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
             </button>
           </p>
         </section>
-
-        <aside className="login-brand">
-          <div className="login-brand__logos">
-            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={44} />
-            <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={34} />
-          </div>
-          <span className="login-brand__eyebrow">{t('login.eyebrow')}</span>
-          <p className="login-brand__title">{t('login.title')}</p>
-          <p className="login-brand__desc">{t('login.subtitle')}</p>
-          <ul className="login-brand__features">
-            {FEATURE_KEYS.map((key) => (
-              <li key={key}>
-                <Check size={14} strokeWidth={2.5} aria-hidden />
-                {t(key)}
-              </li>
-            ))}
-          </ul>
-          <p className="login-brand__secure">
-            <span className="login-secure-note__dot" aria-hidden />
-            {t('login.secureNote')}
-          </p>
-        </aside>
       </div>
 
       <p className="login-page__footer">

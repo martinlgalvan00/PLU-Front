@@ -17,7 +17,9 @@
 
 .site-footer__cta-band {
   background:
-    linear-gradient(180deg, transparent, rgba(225, 6, 0, 0.06)),
+    radial-gradient(ellipse 70% 140% at 0% 50%, rgba(201, 185, 120, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 120% at 100% 50%, rgba(116, 172, 223, 0.04) 0%, transparent 58%),
+    linear-gradient(180deg, transparent, rgba(225, 6, 0, 0.04)),
     var(--color-bg-secondary);
   border-top: 1px solid var(--color-border-subtle);
   padding: var(--space-2xl) 0 var(--space-xl);
@@ -25,9 +27,14 @@
 
 .footer-cta {
   align-items: center;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(135deg, rgba(201, 185, 120, 0.05) 0%, transparent 50%),
+    rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--border-radius-2xl);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 56px rgba(0, 0, 0, 0.22);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-lg);
@@ -41,14 +48,36 @@
     transform var(--transition-base);
 }
 
+.footer-cta::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 185, 120, 0.45) 50%,
+    transparent
+  );
+  content: '';
+  height: 1px;
+  left: 10%;
+  opacity: 0.7;
+  pointer-events: none;
+  position: absolute;
+  right: 10%;
+  top: 0;
+}
+
 .footer-cta:hover {
-  border-color: rgba(225, 6, 0, 0.28);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  border-color: rgba(201, 185, 120, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 28px 64px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(201, 185, 120, 0.06);
   transform: translateY(-2px);
 }
 
 .footer-cta__glow {
-  background: radial-gradient(ellipse 60% 80% at 0% 50%, rgba(225, 6, 0, 0.14), transparent 60%);
+  background:
+    radial-gradient(ellipse 55% 80% at 4% 50%, rgba(225, 6, 0, 0.1), transparent 58%),
+    radial-gradient(ellipse 35% 60% at 96% 50%, rgba(116, 172, 223, 0.06), transparent 55%);
   inset: 0;
   pointer-events: none;
   position: absolute;
@@ -107,9 +136,13 @@
 /* ── Main grid ────────────────────────────── */
 
 .site-footer__main {
-  background: var(--color-bg-secondary);
+  background:
+    radial-gradient(ellipse 68% 120% at 6% 30%, rgba(201, 185, 120, 0.04) 0%, transparent 55%),
+    radial-gradient(ellipse 52% 100% at 94% 70%, rgba(116, 172, 223, 0.04) 0%, transparent 52%),
+    var(--color-bg-secondary);
   border-top: 1px solid var(--color-border-subtle);
   padding: var(--space-2xl) 0 var(--space-xl);
+  position: relative;
 }
 
 .site-footer__grid {
@@ -178,9 +211,12 @@
 
 .site-footer__badges > span:first-child {
   align-items: center;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
+  background:
+    linear-gradient(135deg, rgba(201, 185, 120, 0.08) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(201, 185, 120, 0.18);
   border-radius: var(--border-radius-pill);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
   color: var(--color-text-secondary);
   display: inline-flex;
   font-size: 11px;
