@@ -24,6 +24,36 @@ function priceForDayPass(dayPass) {
   return TICKET_PRICE_BY_DAY[dayPass] ?? 0
 }
 
+function ticketAddonsCatalog(event) {
+  const rules = event?.rules
+  if (!rules || typeof rules !== 'object' || !Array.isArray(rules.ticketAddons)) return []
+  return rules.ticketAddons.filter((addon) => addon?.enabled !== false && String(addon?.label ?? '').trim())
+}
+
+function buildAddonSnapshot(catalog, addonIds = []) {
+  return (addonIds ?? [])
+    .map((addonId) => {
+      const addon = catalog.find((item) => item.id === addonId)
+      if (!addon) return null
+      return {
+        id: addon.id,
+        label: addon.label,
+        price: Number(addon.price) || 0,
+        redeemLabel: addon.redeemLabel ?? '',
+        redeemedAt: null,
+      }
+    })
+    .filter(Boolean)
+}
+
+function addonsTotal(catalog, addonIds = []) {
+  return buildAddonSnapshot(catalog, addonIds).reduce((sum, addon) => sum + addon.price, 0)
+}
+
+function attendeeTotal(attendee, catalog) {
+  return priceForDayPass(attendee.dayPass) + addonsTotal(catalog, attendee.addonIds)
+}
+
 function buildTicketCode(sequence) {
   return `TCK-${String(sequence).padStart(5, '0')}`
 }
@@ -44,9 +74,11 @@ export async function createTicketOrder({ prisma, eventSlug, attendees, buyer = 
   const event = await prisma.event.findUnique({ where: { slug: eventSlug } })
   if (!event) throw new HttpError(404, 'Evento no encontrado.')
 
-  const amount = attendees.reduce((sum, attendee) => sum + priceForDayPass(attendee.dayPass), 0)
+  const catalog = ticketAddonsCatalog(event)
+  const amount = attendees.reduce((sum, attendee) => sum + attendeeTotal(attendee, catalog), 0)
 
   return prisma.$transaction(async (tx) => {
+    const orderStatus = provider === 'manual' ? 'pendiente' : 'creado'
     const order = await tx.ticketOrder.create({
       data: {
         eventId: event.id,
@@ -55,7 +87,7 @@ export async function createTicketOrder({ prisma, eventSlug, attendees, buyer = 
         buyerPhone: buyer.phone ?? null,
         amount,
         provider,
-        status: 'creado',
+        status: orderStatus,
         reference: `TORD-${randomBytes(6).toString('hex')}`,
       },
     })
@@ -65,6 +97,14 @@ export async function createTicketOrder({ prisma, eventSlug, attendees, buyer = 
 
     for (let index = 0; index < attendees.length; index += 1) {
       const attendee = attendees[index]
+      const addons = buildAddonSnapshot(catalog, attendee.addonIds)
+      const invalidAddon = (attendee.addonIds ?? []).find(
+        (addonId) => catalog.length > 0 && !catalog.some((item) => item.id === addonId),
+      )
+      if (invalidAddon) {
+        throw new HttpError(400, `Beneficio de entrada no disponible: ${invalidAddon}`)
+      }
+      const unitPrice = attendeeTotal(attendee, catalog)
       // eslint-disable-next-line no-await-in-loop -- son inserts secuenciales dentro de la misma transacción, no hay paralelismo real que ganar acá
       const ticket = await tx.ticket.create({
         data: {
@@ -74,7 +114,8 @@ export async function createTicketOrder({ prisma, eventSlug, attendees, buyer = 
           attendeeName: attendee.fullName,
           attendeeDni: attendee.dni,
           dayPass: attendee.dayPass,
-          unitPrice: priceForDayPass(attendee.dayPass),
+          unitPrice,
+          addons,
           status: 'pendiente_pago',
         },
       })
@@ -131,4 +172,58 @@ export async function listTicketsForEvent({ prisma, eventSlug }) {
     include: { checkIn: true, event: true },
     orderBy: { createdAt: 'desc' },
   })
+}
+
+export async function listPendingManualTicketOrders({ prisma }) {
+  const orders = await prisma.ticketOrder.findMany({
+    where: {
+      provider: 'manual',
+      status: { in: ['creado', 'pendiente'] },
+    },
+    include: {
+      event: { select: { slug: true, title: true } },
+      tickets: {
+        select: { attendeeName: true, attendeeDni: true },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return orders.map((order) => ({
+    order,
+    event: order.event,
+    ticketCount: order.tickets.length,
+    attendees: order.tickets.map((ticket) => ({
+      name: ticket.attendeeName,
+      dni: ticket.attendeeDni,
+    })),
+  }))
+}
+
+export async function registerTicketPaymentProof({ prisma, orderId, proofPath }) {
+  if (!proofPath?.trim()) throw new HttpError(400, 'Falta la ruta del comprobante.')
+
+  const order = await prisma.ticketOrder.findUnique({ where: { id: orderId } })
+  if (!order) throw new HttpError(404, 'Orden no encontrada.')
+  if (order.provider !== 'manual') {
+    throw new HttpError(400, 'Esta orden no admite comprobante de transferencia.')
+  }
+  if (!['creado', 'pendiente'].includes(order.status)) {
+    throw new HttpError(400, 'Esta orden ya no acepta comprobantes.')
+  }
+  if (!proofPath.startsWith(`${orderId}/`)) {
+    throw new HttpError(400, 'Ruta de comprobante inválida.')
+  }
+
+  const updatedOrder = await prisma.ticketOrder.update({
+    where: { id: orderId },
+    data: {
+      paymentProofPath: proofPath,
+      paymentProofUploadedAt: new Date(),
+      status: 'pendiente',
+    },
+  })
+
+  return { order: updatedOrder }
 }

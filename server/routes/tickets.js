@@ -7,16 +7,22 @@ import {
   approveTicketOrder,
   createTicketOrder,
   getTicketByQrToken,
+  listPendingManualTicketOrders,
   listTicketsForEvent,
+  registerTicketPaymentProof,
 } from '../modules/ticketing/ticketWorkflow.js'
 import { checkInRegistration, checkInTicket } from '../modules/ticketing/checkinWorkflow.js'
+import { redeemTicketAddon } from '../modules/ticketing/ticketAddonRedemptionWorkflow.js'
+import { createTicketPaymentProofSignedUrl } from '../modules/ticketing/ticketProofWorkflow.js'
 
 const CHECKIN_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg', 'seguridad_plu_arg']
+const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
   dni: z.string().trim().regex(/^\d{7,8}$/),
   dayPass: z.enum(['day1', 'day2', 'both']),
+  addonIds: z.array(z.string().trim().min(1)).optional().default([]),
 })
 
 const createOrderSchema = z.object({
@@ -36,6 +42,17 @@ export function createTicketRoutes({ getPrisma }) {
   const router = Router()
   const prisma = getPrisma()
   const guard = requireRole(CHECKIN_ROLES, { prisma })
+  const financeGuard = requireRole(FINANCE_ROLES, { prisma })
+  const [financeAuth, financeRole] = financeGuard
+
+  async function approveOrderHandler(req, res, next) {
+    try {
+      const result = await approveTicketOrder({ prisma, orderId: req.params.orderId })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
 
   // Compra pública — no requiere cuenta.
   router.post('/orders', validateBody(createOrderSchema), async (req, res, next) => {
@@ -47,12 +64,60 @@ export function createTicketRoutes({ getPrisma }) {
     }
   })
 
-  // "Simular pago": es un stand-in del webhook de Mercado Pago (server-to-server),
-  // no una acción de seguridad — por eso es público, igual que el resto de los
-  // botones "Simular pago" de la demo (afiliación/inscripción).
+  // "Simular pago": stand-in del webhook de Mercado Pago. Órdenes manuales
+  // requieren rol operativo (validación de transferencias).
   router.post('/orders/:orderId/approve', async (req, res, next) => {
     try {
-      const result = await approveTicketOrder({ prisma, orderId: req.params.orderId })
+      const order = await prisma.ticketOrder.findUnique({ where: { id: req.params.orderId } })
+      if (!order) throw new HttpError(404, 'Orden no encontrada.')
+      if (order.provider === 'manual') {
+        return financeAuth(req, res, (authError) => {
+          if (authError) return next(authError)
+          return financeRole(req, res, (roleError) => {
+            if (roleError) return next(roleError)
+            return approveOrderHandler(req, res, next)
+          })
+        })
+      }
+
+      return approveOrderHandler(req, res, next)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/orders/pending-manual', ...financeGuard, async (req, res, next) => {
+    try {
+      const orders = await listPendingManualTicketOrders({ prisma })
+      res.json({ orders })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  const proofSchema = z.object({
+    proofPath: z.string().trim().min(3),
+  })
+
+  router.post('/orders/:orderId/proof', validateBody(proofSchema), async (req, res, next) => {
+    try {
+      const result = await registerTicketPaymentProof({
+        prisma,
+        orderId: req.params.orderId,
+        proofPath: req.validatedBody.proofPath,
+      })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/orders/:orderId/proof-url', ...financeGuard, async (req, res, next) => {
+    try {
+      const result = await createTicketPaymentProofSignedUrl({
+        prisma,
+        orderId: req.params.orderId,
+      })
       res.json(result)
     } catch (error) {
       next(error)
@@ -88,6 +153,19 @@ export function createTicketRoutes({ getPrisma }) {
         qrToken: req.params.qrToken,
         scannedById: req.auth.user.id,
         gate: req.body?.gate,
+      })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/checkin/:qrToken/addons/:addonId/redeem', ...guard, async (req, res, next) => {
+    try {
+      const result = await redeemTicketAddon({
+        prisma,
+        qrToken: req.params.qrToken,
+        addonId: req.params.addonId,
       })
       res.json(result)
     } catch (error) {

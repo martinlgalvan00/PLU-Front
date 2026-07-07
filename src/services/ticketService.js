@@ -1,4 +1,10 @@
 import { generateId, todayISO } from '../lib/format.js'
+import {
+  attendeeTicketTotal,
+  buildTicketAddonSnapshot,
+  orderTicketTotal,
+  ticketAddonsTotal,
+} from '../lib/ticketAddons.js'
 import { createPaymentReference, getPaymentStatusForMethod } from './paymentService.js'
 
 /**
@@ -29,6 +35,14 @@ export function priceForDayPass(dayPass, pricing) {
   return dayPass === 'both' ? pricing.bothDays : pricing.day
 }
 
+export function priceForAttendee(attendee, pricing, catalog = pricing?.addons ?? []) {
+  return attendeeTicketTotal(attendee, pricing, catalog, priceForDayPass)
+}
+
+export function priceForOrder(attendees, pricing, catalog = pricing?.addons ?? []) {
+  return orderTicketTotal(attendees, pricing, catalog, priceForDayPass)
+}
+
 /**
  * Crea una orden de entradas: un ticket individual por asistente. Cada
  * asistente elige su propio día (día 1, día 2 o ambos) — no es un valor
@@ -42,32 +56,39 @@ export function priceForDayPass(dayPass, pricing) {
  * }} params
  */
 export function createTicketOrder({ event, attendees, paymentMethod, pricing, tickets }) {
+  const catalog = pricing?.addons ?? []
   const orderId = generateId('tord', tickets.length + 1)
-  const amount = attendees.reduce((sum, attendee) => sum + priceForDayPass(attendee.dayPass, pricing), 0)
+  const amount = priceForOrder(attendees, pricing, catalog)
   const status = getPaymentStatusForMethod(paymentMethod) === 'validacion_manual' ? 'validacion_manual' : 'pendiente'
   const reference = createPaymentReference(paymentMethod)
   const createdAt = todayISO()
 
   const startIndex = tickets.length
-  const newTickets = attendees.map((attendee, index) => ({
-    id: generateId('tkt', startIndex + index + 1),
-    orderId,
-    eventSlug: event.slug,
-    eventTitle: event.title,
-    eventDate: event.date,
-    eventVenue: event.venue,
-    eventLocation: event.location,
-    ticketCode: buildTicketCode(startIndex + index + 1),
-    attendeeName: attendee.fullName.trim(),
-    attendeeDni: attendee.dni.trim(),
-    dayPass: attendee.dayPass,
-    paymentMethod,
-    reference,
-    unitPrice: priceForDayPass(attendee.dayPass, pricing),
-    status: 'pendiente_pago',
-    checkedInAt: null,
-    createdAt,
-  }))
+  const newTickets = attendees.map((attendee, index) => {
+    const passPrice = priceForDayPass(attendee.dayPass, pricing)
+    const addons = buildTicketAddonSnapshot(catalog, attendee.addonIds)
+    const unitPrice = passPrice + ticketAddonsTotal(catalog, attendee.addonIds)
+    return {
+      id: generateId('tkt', startIndex + index + 1),
+      orderId,
+      eventSlug: event.slug,
+      eventTitle: event.title,
+      eventDate: event.date,
+      eventVenue: event.venue,
+      eventLocation: event.location,
+      ticketCode: buildTicketCode(startIndex + index + 1),
+      attendeeName: attendee.fullName.trim(),
+      attendeeDni: attendee.dni.trim(),
+      dayPass: attendee.dayPass,
+      paymentMethod,
+      reference,
+      unitPrice,
+      addons,
+      status: 'pendiente_pago',
+      checkedInAt: null,
+      createdAt,
+    }
+  })
 
   const createdOrder = {
     type: 'tickets',

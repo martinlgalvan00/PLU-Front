@@ -38,42 +38,50 @@ export default function MembershipCard({
         .filter(Boolean)
         .join(' ')}
     >
-      <header className="membership-card__top">
-        <div className="membership-card__identity">
-          {highlighted && <span className="membership-card__badge">{t('pages.membershipCard.featured')}</span>}
-          <h3 className="membership-card__title">{title}</h3>
-        </div>
-        <div className="membership-card__price-block">
-          <span className="membership-card__amount">{money(price, locale)}</span>
-          {hasCompare ? (
-            <span className="membership-card__save">
-              {t('pages.membershipCard.save', { amount: money(savings, locale) })}
-            </span>
-          ) : (
-            <span className="membership-card__period">/{resolvedPeriod}</span>
-          )}
-        </div>
-      </header>
+      <span className="membership-card__stripe" aria-hidden />
 
-      {hasCompare && (
-        <p className="membership-card__compare-inline">
-          <span className="membership-card__compare-strike">{money(compareTotal, locale)}</span>
-          <span>{t('pages.membershipCard.separate')}</span>
-          <span className="membership-card__compare-sep" aria-hidden>
-            ·
-          </span>
-          <span>{t('pages.membershipCard.comboIncludes')}</span>
-        </p>
-      )}
+      <div className="membership-card__body">
+        <header className="membership-card__top">
+          <div className="membership-card__identity">
+            {highlighted && (
+              <span className="membership-card__badge">{t('pages.membershipCard.featured')}</span>
+            )}
+            <h3 className="membership-card__title">{title}</h3>
+          </div>
+          <div className="membership-card__price-block">
+            <span className="membership-card__amount">{money(price, locale)}</span>
+            {hasCompare ? (
+              <span className="membership-card__save">
+                {t('pages.membershipCard.save', { amount: money(savings, locale) })}
+              </span>
+            ) : (
+              <span className="membership-card__period">/{resolvedPeriod}</span>
+            )}
+          </div>
+        </header>
 
-      <p className="membership-card__features-line">{features.join(' · ')}</p>
+        {hasCompare && (
+          <p className="membership-card__compare-inline">
+            <span className="membership-card__compare-strike">{money(compareTotal, locale)}</span>
+            <span>{t('pages.membershipCard.separate')}</span>
+            <span className="membership-card__compare-sep" aria-hidden>·</span>
+            <span>{t('pages.membershipCard.comboIncludes')}</span>
+          </p>
+        )}
 
-      <footer className="membership-card__foot">
-        <button type="button" className="membership-card__link" onClick={onSelect}>
-          {resolvedCtaLabel}
-          <ArrowRight size={14} aria-hidden />
-        </button>
-      </footer>
+        <ul className="membership-card__features-list" aria-label="Beneficios incluidos">
+          {features.map((feature, i) => (
+            <li key={i} className="membership-card__feature">{feature}</li>
+          ))}
+        </ul>
+
+        <footer className="membership-card__foot">
+          <button type="button" className="membership-card__link" onClick={onSelect}>
+            {resolvedCtaLabel}
+            <ArrowRight size={14} aria-hidden />
+          </button>
+        </footer>
+      </div>
     </article>
   )
 }

@@ -108,9 +108,12 @@ export default function App() {
         recentActivity={app.recentActivity}
         getAthleteDetail={app.getAthleteDetail}
         onApprovePayment={app.handleApprovePayment}
+        onApproveTicketPurchase={app.approveTicketPurchase}
         onCheckInRegistration={app.checkInRegistrationAction}
         onCheckInTicket={app.checkInTicketAction}
+        onRedeemTicketAddon={app.redeemTicketAddonAction}
         onRefreshTickets={app.refreshTickets}
+        onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
         onCreateUser={app.createUserAction}
         onExportAdmin={app.exportAdminCsv}
         onExportPluUsa={app.exportPluUsaCsv}
@@ -118,6 +121,7 @@ export default function App() {
         onSetFilters={app.setFilters}
         onUpdateUserRole={app.updateUserRoleAction}
         payments={app.payments}
+        pendingTicketOrders={app.pendingTicketOrders}
         athletes={app.athletes}
         registrations={app.registrations}
         tickets={app.tickets}
@@ -156,6 +160,7 @@ export default function App() {
               createdOrder: app.createdOrder,
               onSubmitTicketPurchase: app.submitTicketPurchase,
               onApproveTicketPurchase: app.approveTicketPurchase,
+              onUploadPaymentProof: app.uploadTicketPaymentProofAction,
             }
         : view === 'results'
           ? { onNavigate: navigate, events: app.adminEvents }

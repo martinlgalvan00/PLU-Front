@@ -12,6 +12,48 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
+/* ── Text selection — gold tint ── */
+::selection {
+  background: rgba(201, 185, 120, 0.28);
+  color: #fff;
+}
+
+[data-theme='light'] ::selection {
+  background: rgba(155, 143, 89, 0.22);
+  color: rgba(15, 17, 23, 0.96);
+}
+
+/* ── Scrollbar premium — tokens por tema ── */
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.14)) var(--scrollbar-track, transparent);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1));
+  border-radius: 99px;
+  transition: background 0.22s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, rgba(201, 185, 120, 0.42));
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track, transparent);
 }
 
 body {
@@ -31,10 +73,17 @@ h3,
 h4 {
   font-family: var(--font-display);
   letter-spacing: var(--letter-spacing-display);
+  line-height: 1.1;
 }
 
-html {
-  scroll-behavior: smooth;
+h5,
+h6 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+}
+
+p {
+  line-height: 1.65;
 }
 
 a {
@@ -78,10 +127,11 @@ button:disabled {
 
 /* ── Duración del cambio de tema (usada en toda la capa) */
 :root {
-  --transition-theme: 380ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-theme: 160ms ease-out;
 }
 
-/* Fallback: transición CSS en todos los elementos afectados por tema */
+/* Fallback: transición CSS en todos los elementos afectados por tema
+   (solo activa cuando View Transition API no está disponible) */
 .site-header,
 .app-shell,
 .stat-block,
@@ -118,41 +168,32 @@ button:disabled {
     color var(--transition-theme);
 }
 
-/* ── View Transition API premium (Chrome 111+) ── */
+/* ── View Transition API — cross-fade suave (Chrome 111+) ─────────────
+   Se usa solo opacity en la salida para evitar GPU pressure con blur.
+   El clip-path en la entrada ya provee suficiente dramatismo visual.
+   ──────────────────────────────────────────────────────────────────── */
 
-/* Animación circular que se expande desde el centro de la pantalla */
-@keyframes theme-reveal-new {
-  from {
-    clip-path: circle(0% at 50% 50%);
-    opacity: 0.92;
-  }
-  to {
-    clip-path: circle(150% at 50% 50%);
-    opacity: 1;
-  }
+/* Cross-fade simple: mucho más liviano que clip-path circle().
+   clip-path fuerza re-paint full-page en cada frame — con cross-fade
+   solo cambia opacity de dos capas, lo que el compositor maneja en GPU. */
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-@keyframes theme-reveal-old {
-  from {
-    opacity: 1;
-    filter: blur(0) saturate(1);
-    transform: scale(1);
-  }
-  to {
-    opacity: 0.1;
-    filter: blur(4px) saturate(0.4);
-    transform: scale(0.99);
-  }
+@keyframes theme-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 ::view-transition-old(root) {
-  animation: 280ms cubic-bezier(0.4, 0, 0.2, 1) both theme-reveal-old;
+  animation: 130ms ease-out both theme-fade-out;
   mix-blend-mode: normal;
   z-index: 1;
 }
 
 ::view-transition-new(root) {
-  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both theme-reveal-new;
+  animation: 170ms ease-out both theme-fade-in;
   mix-blend-mode: normal;
   z-index: 2;
 }

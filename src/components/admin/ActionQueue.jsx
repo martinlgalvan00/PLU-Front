@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ArrowRight, BadgeCheck, ClipboardList, CreditCard } from 'lucide-react'
+import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Ticket } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 const PRIORITY_ORDER = ['high', 'medium', 'low']
@@ -8,6 +8,7 @@ const TYPE_ICONS = {
   payment: CreditCard,
   registration: ClipboardList,
   membership: BadgeCheck,
+  ticket_order: Ticket,
 }
 
 export default function ActionQueue({
@@ -17,6 +18,7 @@ export default function ActionQueue({
   items = [],
   onNavigate,
   onApprovePayment,
+  onApproveTicketOrder,
   canEdit,
 }) {
   const { t } = useI18n()
@@ -123,6 +125,18 @@ export default function ActionQueue({
                           onClick={(event) => {
                             event.stopPropagation()
                             onApprovePayment?.(item.paymentId)
+                          }}
+                        >
+                          {t('admin.actions.validate')}
+                        </button>
+                      )}
+                      {item.orderId && canEdit && (
+                        <button
+                          type="button"
+                          className="btn btn--small action-queue__btn action-queue__btn--primary"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onApproveTicketOrder?.(item.orderId)
                           }}
                         >
                           {t('admin.actions.validate')}

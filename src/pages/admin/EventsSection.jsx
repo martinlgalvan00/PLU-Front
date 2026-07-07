@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Plus } from 'lucide-react'
+import { CalendarDays, MapPin, Pencil, Plus, Users } from 'lucide-react'
 import AdminEventEditor, { AdminEventLivePreview } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import Button from '../../components/ui/Button.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount, translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { getStatusMeta } from '../../lib/status.js'
 import {
   ADMIN_EVENT_FORM_DEFAULT,
   ADMIN_EVENT_STATUS_OPTIONS,
@@ -97,7 +98,6 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
           value: status,
           onChange: setStatus,
           options: statusOptions,
-          variant: 'select',
         },
       ]}
       onQueryChange={setQuery}
@@ -114,65 +114,89 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
       ) : (
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
-            <DataTable
-              variant="admin"
-              getRowClassName={(row) => (row.id === selectedEvent?.id ? 'data-table__row--selected' : '')}
-              columns={[
-                {
-                  key: 'title',
-                  label: t('admin.columns.event'),
-                  render: (row) => (
-                    <>
-                      <strong>{row.title}</strong>
-                      <span className="data-table__sub">{row.slug}</span>
-                    </>
-                  ),
-                },
-                { key: 'date', label: t('admin.columns.date') },
-                {
-                  key: 'venue',
-                  label: t('admin.columns.venue'),
-                  render: (row) => (
-                    <>
-                      {row.venue}
-                      <span className="data-table__sub">{row.location}</span>
-                    </>
-                  ),
-                },
-                {
-                  key: 'status',
-                  label: t('admin.columns.status'),
-                  render: (row) => <StatusBadge value={row.status} />,
-                },
-                {
-                  key: 'slots',
-                  label: t('admin.columns.slots'),
-                  render: (row) => `${row.registered}/${row.slots}`,
-                },
-                {
-                  key: 'actions',
-                  label: t('admin.columns.action'),
-                  render: (row) => (
-                    <AdminTableActions>
-                      <AdminIconButton
-                        disabled={!canEdit}
-                        icon={Pencil}
-                        label={t('admin.sections.events.edit')}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          openEditForm(row)
-                        }}
-                        variant="ghost"
-                      />
-                    </AdminTableActions>
-                  ),
-                },
-              ]}
-              rows={rows.map((row) => ({ ...row, id: row.id }))}
-              emptyMessage={t('admin.sections.events.empty')}
-              onRowClick={(row) => setSelectedId(row.id)}
-              rowClassName="data-table__row--clickable"
-            />
+            {rows.length === 0 ? (
+              <p className="admin-event-list__empty">{t('admin.sections.events.empty')}</p>
+            ) : (
+              <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
+                {rows.map((row) => {
+                  const fill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
+                  const { tone } = getStatusMeta(row.status)
+                  const isSelected = row.id === selectedEvent?.id
+                  return (
+                    <li
+                      key={row.id}
+                      className={[
+                        'admin-event-row',
+                        `admin-event-row--${tone}`,
+                        isSelected ? 'admin-event-row--selected' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedId(row.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setSelectedId(row.id)
+                        }
+                      }}
+                    >
+                      <div className="admin-event-row__accent" aria-hidden />
+
+                      <div className="admin-event-row__body">
+                        <div className="admin-event-row__title-wrap">
+                          <strong className="admin-event-row__title">{row.title}</strong>
+                          <code className="admin-event-row__slug">{row.slug}</code>
+                        </div>
+
+                        <div className="admin-event-row__meta">
+                          <span className="admin-event-row__meta-item">
+                            <CalendarDays size={12} aria-hidden />
+                            {row.date}
+                          </span>
+                          <span className="admin-event-row__meta-item">
+                            <MapPin size={12} aria-hidden />
+                            {row.venue}
+                            {row.location ? `, ${row.location}` : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="admin-event-row__capacity">
+                        <div className="admin-event-row__capacity-bar">
+                          <div
+                            className="admin-event-row__capacity-fill"
+                            style={{ width: `${fill}%` }}
+                          />
+                        </div>
+                        <span className="admin-event-row__capacity-label">
+                          <Users size={11} aria-hidden />
+                          {row.registered}/{row.slots}
+                        </span>
+                      </div>
+
+                      <div className="admin-event-row__badge">
+                        <StatusPill value={row.status} />
+                      </div>
+
+                      <div
+                        className="admin-event-row__actions"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <AdminIconButton
+                          disabled={!canEdit}
+                          icon={Pencil}
+                          label={t('admin.sections.events.edit')}
+                          onClick={() => openEditForm(row)}
+                          variant="ghost"
+                        />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
 
           {selectedEvent && (
@@ -193,6 +217,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
               </div>
               <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
               <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />
+              <AdminEventTicketAddonReport event={selectedEvent} tickets={tickets} />
             </aside>
           )}
         </div>

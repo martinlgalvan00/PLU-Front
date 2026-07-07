@@ -28,18 +28,26 @@ export default function AdminFilterChipGroup({
         </span>
       )}
       <div className="admin-filter-chips">
-        {options.map(([optionValue, optionLabel]) => {
+        {options.map((option) => {
+          const [optionValue, optionLabel, optionCount] = option
           const active = value === optionValue
+          const showCount = optionCount !== undefined && optionCount !== null && optionCount !== ''
+
           return (
             <button
               key={optionValue}
               type="button"
-              className={`admin-filter-chip${active ? ' is-active' : ''}`.trim()}
+              className={`admin-filter-chip${active ? ' is-active' : ''}${showCount ? ' admin-filter-chip--counted' : ''}`.trim()}
               aria-pressed={active}
               disabled={disabled}
               onClick={() => onChange(optionValue)}
             >
-              {optionLabel}
+              <span className="admin-filter-chip__label">{optionLabel}</span>
+              {showCount ? (
+                <span className="admin-filter-chip__count" aria-hidden>
+                  {optionCount}
+                </span>
+              ) : null}
             </button>
           )
         })}

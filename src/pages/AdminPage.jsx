@@ -8,6 +8,7 @@ import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
 import PlaceholderSection from './admin/PlaceholderSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
+import TicketOrdersSection from './admin/TicketOrdersSection.jsx'
 import UsersSection from './admin/UsersSection.jsx'
 
 export default function AdminPage({
@@ -24,9 +25,12 @@ export default function AdminPage({
   recentActivity,
   getAthleteDetail,
   onApprovePayment,
+  onApproveTicketPurchase,
   onCheckInRegistration,
   onCheckInTicket,
+  onRedeemTicketAddon,
   onRefreshTickets,
+  onRefreshPendingTicketOrders,
   onCreateUser,
   onExportAdmin,
   onExportPluUsa,
@@ -34,6 +38,7 @@ export default function AdminPage({
   onSetFilters,
   onUpdateUserRole,
   payments,
+  pendingTicketOrders,
   athletes,
   registrations,
   tickets,
@@ -71,6 +76,7 @@ export default function AdminPage({
           recentActivity={recentActivity}
           onNavigate={handleSectionChange}
           onApprovePayment={onApprovePayment}
+          onApproveTicketOrder={onApproveTicketPurchase}
           canEdit={canEdit}
           globalSearch={globalSearch}
           onGlobalSearchChange={setGlobalSearch}
@@ -106,6 +112,7 @@ export default function AdminPage({
           filters={filters}
           filteredRegistrations={filteredRegistrations}
           payments={payments}
+          registrations={registrations}
           registrationsCount={registrations.length}
           onApprovePayment={onApprovePayment}
           onExportAdmin={onExportAdmin}
@@ -126,8 +133,10 @@ export default function AdminPage({
         <CheckInSection
           athletes={athletes}
           canCheckIn={canCheckIn}
+          memberships={enrichedMemberships}
           onCheckInRegistration={onCheckInRegistration}
           onCheckInTicket={onCheckInTicket}
+          onRedeemTicketAddon={onRedeemTicketAddon}
           onRefreshTickets={onRefreshTickets}
           registrations={registrations}
           tickets={tickets}
@@ -146,7 +155,18 @@ export default function AdminPage({
       )
     }
 
-    if (['payments', 'results', 'exports', 'audit'].includes(section)) {
+    if (section === 'payments') {
+      return (
+        <TicketOrdersSection
+          canEdit={canEdit}
+          pendingTicketOrders={pendingTicketOrders}
+          onApproveTicketOrder={onApproveTicketPurchase}
+          onRefresh={onRefreshPendingTicketOrders}
+        />
+      )
+    }
+
+    if (['results', 'exports', 'audit'].includes(section)) {
       return <PlaceholderSection section={section} />
     }
 

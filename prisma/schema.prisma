@@ -509,6 +509,8 @@ model TicketOrder {
   provider      PaymentProvider @default(mercado_pago)
   status        PaymentStatus   @default(creado)
   reference     String?         @unique
+  paymentProofPath        String?
+  paymentProofUploadedAt  DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -531,6 +533,7 @@ model Ticket {
   attendeeDni  String
   dayPass      TicketDayPass
   unitPrice    Int
+  addons       Json     @default("[]")
   status       TicketStatus  @default(pendiente_pago)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

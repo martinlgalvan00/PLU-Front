@@ -230,14 +230,15 @@
 
 .members-page--premium .members-hero.design-hero--compact {
   background:
-    radial-gradient(ellipse 58% 82% at 82% 38%, rgba(225, 6, 0, 0.07) 0%, transparent 66%),
-    radial-gradient(ellipse 48% 65% at 10% 52%, rgba(116, 172, 223, 0.06) 0%, transparent 62%),
+    radial-gradient(ellipse 72% 88% at 88% 24%, rgba(225, 6, 0, 0.16) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 70% at 6% 68%, rgba(116, 172, 223, 0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 50% at 50% 90%, rgba(201, 185, 120, 0.06) 0%, transparent 60%),
     transparent;
 }
 
 .members-page--premium .members-hero.design-hero--compact::before,
 .members-page--premium .members-hero.design-hero--compact::after {
-  opacity: 0.22;
+  opacity: 0.44;
 }
 
 /* ── Hero inner: 1 col mobile → 2 col notebook ── */
@@ -267,22 +268,23 @@
   background: linear-gradient(180deg, var(--plu-red-500) 0%, var(--plu-gold-400, #c9b978) 50%, var(--color-brand-celeste, #74acdf) 100%);
   border-radius: 99px;
   bottom: 4px;
+  box-shadow: 0 0 10px rgba(225, 6, 0, 0.35);
   content: '';
   left: 0;
-  opacity: 0.88;
+  opacity: 1;
   position: absolute;
   top: 4px;
-  width: 2px;
+  width: 2.5px;
 }
 
 .members-page--premium .design-hero--compact .design-hero__eyebrow {
   align-items: center;
   color: var(--color-brand-red);
   display: inline-flex;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   gap: 0;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   margin: 0;
   text-transform: uppercase;
   width: fit-content;
@@ -305,10 +307,10 @@
 
 .members-page--premium .design-hero--compact .design-hero__title {
   font-family: var(--font-display);
-  font-size: clamp(32px, 5.8vw, 52px);
+  font-size: clamp(34px, 6.4vw, 60px);
   font-weight: 800;
-  letter-spacing: -0.046em;
-  line-height: 1.0;
+  letter-spacing: -0.052em;
+  line-height: 0.97;
   margin: 0;
   max-width: 14ch;
   text-wrap: balance;
@@ -316,7 +318,7 @@
 
 @media (min-width: 560px) {
   .members-page--premium .design-hero--compact .design-hero__title {
-    font-size: clamp(30px, 5vw, 46px);
+    font-size: clamp(32px, 5.4vw, 52px);
   }
 }
 
@@ -1158,7 +1160,100 @@
 }
 
 .members-page--premium .membership-grid--editorial {
-  gap: 10px;
+  gap: 8px;
+}
+
+/* Cards premium — hereda el diseño base de plu-ui.css, solo refinamos sombra */
+.members-page--premium .membership-grid--editorial .membership-card {
+  border-radius: 16px;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.members-page--premium .membership-grid--editorial .membership-card:hover {
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.07) inset;
+}
+
+/* Light mode — fondos claros con tinte de acento */
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card {
+  box-shadow: 0 2px 12px rgba(15, 17, 23, 0.05), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--celeste {
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(116, 172, 223, 0.08) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.92);
+  border-color: rgba(116, 172, 223, 0.2);
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--gold {
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(201, 185, 120, 0.08) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.92);
+  border-color: rgba(201, 185, 120, 0.2);
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--red {
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(225, 6, 0, 0.06) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.92);
+  border-color: rgba(225, 6, 0, 0.18);
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card:hover {
+  box-shadow: 0 8px 28px rgba(15, 17, 23, 0.09), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--celeste:hover {
+  border-color: rgba(116, 172, 223, 0.38);
+  box-shadow: 0 10px 32px rgba(116, 172, 223, 0.12), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--gold:hover {
+  border-color: rgba(201, 185, 120, 0.38);
+  box-shadow: 0 10px 32px rgba(201, 185, 120, 0.12), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+[data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--red:hover {
+  border-color: rgba(225, 6, 0, 0.3);
+  box-shadow: 0 10px 32px rgba(225, 6, 0, 0.1), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+/* Feature list separators en light mode */
+[data-theme='light'] .members-page--premium .membership-card__features-list {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+/* Feature dots en light mode — más saturados */
+[data-theme='light'] .members-page--premium .membership-card--celeste .membership-card__feature::before {
+  background: rgba(26, 107, 176, 0.65);
+  box-shadow: none;
+}
+
+[data-theme='light'] .members-page--premium .membership-card--gold .membership-card__feature::before {
+  background: rgba(155, 143, 89, 0.72);
+  box-shadow: none;
+}
+
+[data-theme='light'] .members-page--premium .membership-card--red .membership-card__feature::before {
+  background: rgba(225, 6, 0, 0.62);
+  box-shadow: none;
+}
+
+/* Badge en light mode */
+[data-theme='light'] .members-page--premium .membership-card__badge {
+  background: rgba(225, 6, 0, 0.07);
+  border-color: rgba(225, 6, 0, 0.18);
+}
+
+/* Title y precio en light mode */
+[data-theme='light'] .members-page--premium .membership-card__title {
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .members-page--premium .membership-card__feature {
+  color: rgba(15, 17, 23, 0.62);
 }
 
 @media (min-width: 961px) {
@@ -1468,42 +1563,49 @@
 }
 
 .members-req-list--editorial {
-  gap: 0;
+  display: grid;
+  gap: clamp(8px, 1.2vw, 10px);
   grid-template-columns: 1fr;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+.members-req-list.members-req-list--editorial {
+  gap: clamp(8px, 1.2vw, 10px);
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+
 .members-req-list--editorial .members-req-list__item {
   align-items: start;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  border-top: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: 12px;
   display: grid;
   gap: 4px;
   grid-template-columns: minmax(0, 1fr);
-  padding: clamp(14px, 2vw, 18px) 0;
-  transition: none;
+  margin-bottom: 0;
+  padding: clamp(14px, 1.8vw, 18px) clamp(16px, 2vw, 20px);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.members-req-list--editorial .members-req-list__item:first-child {
-  border-top: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+.members-req-list--editorial .members-req-list__item:last-child {
+  margin-bottom: 0;
 }
 
 .members-req-list--editorial .members-req-list__item:hover {
-  border-color: var(--members-section-divider, rgba(255, 255, 255, 0.06));
-  transform: none;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .members-req-list--editorial .members-req-list__copy {
-  gap: 4px;
+  gap: 6px;
   padding-top: 0;
 }
 
 .members-req-list--editorial .members-req-list__copy strong {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.35;
@@ -1511,9 +1613,20 @@
 
 .members-req-list--editorial .members-req-list__copy p {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.58;
   margin: 0;
+}
+
+[data-theme='light'] .members-req-list--editorial .members-req-list__item {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(15, 17, 23, 0.07);
+  box-shadow: 0 1px 4px rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .members-req-list--editorial .members-req-list__item:hover {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.12);
 }
 
 .members-requirements__validity {
@@ -2581,22 +2694,98 @@
   background: #ffffff;
 }
 
+/* ── CTA buttons — por acento de plan ─────── */
 .members-page--premium .membership-card__link {
-  background: var(--color-brand-red);
-  border: 1px solid var(--color-brand-red);
-  border-radius: 8px;
-  color: #fff;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 17px;
+  letter-spacing: 0.01em;
+  min-height: 40px;
+  padding: 0 18px;
   transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
     box-shadow var(--transition-fast),
+    color var(--transition-fast),
+    gap var(--transition-fast),
     transform var(--transition-fast);
+  width: 100%;
 }
 
-.members-page--premium .membership-card__link:hover,
+/* Celeste — plan Atleta */
+.members-page--premium .membership-card--celeste .membership-card__link {
+  background: rgba(116, 172, 223, 0.1);
+  border: 1px solid rgba(116, 172, 223, 0.28);
+  color: var(--color-brand-celeste);
+}
+
+.members-page--premium .membership-card--celeste .membership-card__link:hover {
+  background: rgba(116, 172, 223, 0.16);
+  border-color: rgba(116, 172, 223, 0.42);
+  box-shadow: 0 8px 22px rgba(116, 172, 223, 0.14);
+  color: var(--color-brand-celeste);
+  transform: translateY(-1px);
+}
+
+/* Gold — plan Juvenil */
+.members-page--premium .membership-card--gold .membership-card__link {
+  background: rgba(201, 185, 120, 0.1);
+  border: 1px solid rgba(201, 185, 120, 0.28);
+  color: var(--color-brand-gold);
+}
+
+.members-page--premium .membership-card--gold .membership-card__link:hover {
+  background: rgba(201, 185, 120, 0.16);
+  border-color: rgba(201, 185, 120, 0.42);
+  box-shadow: 0 8px 22px rgba(201, 185, 120, 0.14);
+  color: var(--color-brand-gold);
+  transform: translateY(-1px);
+}
+
+/* Red — Combo Pitbull Classic (featured) */
+.members-page--premium .membership-card--red .membership-card__link,
+.members-page--premium .membership-card--featured .membership-card__link {
+  background: linear-gradient(135deg, var(--plu-red-500), #c00804);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 8px 24px rgba(225, 6, 0, 0.28);
+  color: #fff;
+}
+
+.members-page--premium .membership-card--red .membership-card__link:hover,
 .members-page--premium .membership-card--featured .membership-card__link:hover {
-  box-shadow: 0 10px 24px rgba(225, 6, 0, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 12px 30px rgba(225, 6, 0, 0.36);
   color: #fff;
   transform: translateY(-1px);
+}
+
+/* Light mode CTAs */
+[data-theme='light'] .members-page--premium .membership-card--celeste .membership-card__link {
+  background: rgba(116, 172, 223, 0.1);
+  border-color: rgba(116, 172, 223, 0.32);
+  color: #1a6bb0;
+}
+
+[data-theme='light'] .members-page--premium .membership-card--celeste .membership-card__link:hover {
+  background: rgba(116, 172, 223, 0.16);
+  border-color: rgba(116, 172, 223, 0.48);
+  box-shadow: 0 6px 18px rgba(116, 172, 223, 0.15);
+  color: #1a6bb0;
+}
+
+[data-theme='light'] .members-page--premium .membership-card--gold .membership-card__link {
+  background: rgba(201, 185, 120, 0.1);
+  border-color: rgba(155, 143, 89, 0.32);
+  color: var(--plu-gold-600, #8a7c45);
+}
+
+[data-theme='light'] .members-page--premium .membership-card--gold .membership-card__link:hover {
+  background: rgba(201, 185, 120, 0.16);
+  border-color: rgba(155, 143, 89, 0.48);
+  box-shadow: 0 6px 18px rgba(201, 185, 120, 0.15);
+  color: var(--plu-gold-600, #8a7c45);
 }

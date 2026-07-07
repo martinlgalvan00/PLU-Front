@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Download, ShieldCheck, Trophy } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -21,6 +21,11 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('recent')
+  const [selectedSlug, setSelectedSlug] = useState(null)
+
+  function handleSelectSlug(slug) {
+    setSelectedSlug((current) => (current === slug ? null : slug))
+  }
 
   const resultsFilters = useMemo(() => getResultsFilters(t), [t])
   const resultsSorts = useMemo(() => getResultsSorts(t), [t])
@@ -58,6 +63,12 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
     const filtered = filterResultsArchive(archive, { query, filter })
     return sortResultsArchive(filtered, sort, locale)
   }, [archive, filter, query, sort, locale])
+
+  useEffect(() => {
+    if (selectedSlug && !filteredEvents.some((entry) => entry.slug === selectedSlug)) {
+      setSelectedSlug(null)
+    }
+  }, [filteredEvents, selectedSlug])
 
   const showPublishedEmpty = summary.published === 0 && (filter === 'all' || filter === 'published')
 
@@ -106,7 +117,12 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
       <div className="results-page__inner">
         <Reveal>
           <section className="results-shell results-shell--minimal" aria-label={t('pages.results.archiveAria')}>
-            <ResultsArchiveList entries={filteredEvents} onNavigate={onNavigate} />
+            <ResultsArchiveList
+              entries={filteredEvents}
+              onNavigate={onNavigate}
+              onSelect={handleSelectSlug}
+              selectedSlug={selectedSlug}
+            />
           </section>
         </Reveal>
 

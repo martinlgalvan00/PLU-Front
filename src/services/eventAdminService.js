@@ -298,6 +298,9 @@ export async function upsertEventCalendarLiveFields(draft) {
         status: draft.status,
         published: Boolean(draft.published),
         price: Number(draft.pricing?.registration) || 0,
+        rules: {
+          ticketAddons: normalizeEventPricingInput(draft.pricing).ticketAddons,
+        },
         live_stream_url: draft.liveStreamUrl || null,
         live_stream_provider: draft.liveStreamProvider || null,
         live_status: draft.liveStatus || 'offline',

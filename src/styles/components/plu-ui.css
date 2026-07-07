@@ -42,7 +42,9 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-pill);
   color: var(--color-text-muted);
+  cursor: pointer;
   flex: none;
+  font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -337,12 +339,26 @@
 }
 
 .section-heading__eyebrow::before {
-  background: var(--color-brand-red);
-  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0%,
+    rgba(255, 255, 255, 0.72) 55%,
+    var(--color-brand-celeste) 100%
+  );
+  border-radius: 99px;
   content: '';
   flex-shrink: 0;
   height: 1.5px;
-  width: 18px;
+  width: 22px;
+}
+
+[data-theme='light'] .section-heading__eyebrow::before {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0%,
+    rgba(155, 143, 89, 0.7) 55%,
+    var(--color-brand-celeste) 100%
+  );
 }
 
 .section-heading--left .section-heading__eyebrow {
@@ -425,65 +441,108 @@
 }
 
 /* =============================================
-   MEMBERSHIP CARD — editorial compact
+   MEMBERSHIP CARD — editorial premium
    ============================================= */
 
 .membership-card {
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   overflow: hidden;
-  padding: 14px 16px;
+  padding: 0;
   position: relative;
-  transition: border-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .membership-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: none;
-  transform: none;
+  transform: translateY(-2px);
 }
 
+/* ── Top accent stripe per plan ───────────── */
+.membership-card__stripe {
+  display: block;
+  height: 2.5px;
+  width: 100%;
+}
+
+.membership-card--celeste .membership-card__stripe {
+  background: linear-gradient(90deg, var(--color-brand-celeste) 0%, rgba(116, 172, 223, 0.25) 100%);
+}
+
+.membership-card--gold .membership-card__stripe {
+  background: linear-gradient(90deg, var(--color-brand-gold) 0%, rgba(201, 185, 120, 0.25) 100%);
+}
+
+.membership-card--red .membership-card__stripe {
+  background: var(--plu-gradient-stripe);
+}
+
+/* ── Accent tints per variant ─────────────── */
 .membership-card--celeste {
-  border-left: 2px solid var(--color-brand-celeste);
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(116, 172, 223, 0.07) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.025);
+  border-color: rgba(116, 172, 223, 0.18);
 }
 
 .membership-card--celeste:hover {
-  border-color: var(--color-accent-celeste-border-medium);
-  box-shadow: none;
+  border-color: rgba(116, 172, 223, 0.32);
+  box-shadow:
+    0 12px 40px rgba(116, 172, 223, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
 .membership-card--gold {
-  border-left: 2px solid var(--color-brand-gold);
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(201, 185, 120, 0.07) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.025);
+  border-color: rgba(201, 185, 120, 0.18);
 }
 
 .membership-card--gold:hover {
-  border-color: var(--color-accent-gold-border-medium);
-  box-shadow: none;
+  border-color: rgba(201, 185, 120, 0.32);
+  box-shadow:
+    0 12px 40px rgba(201, 185, 120, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
 .membership-card--red {
-  border-left: 2px solid var(--color-brand-red);
-}
-
-.membership-card--red:hover {
-  border-color: var(--color-accent-red-border-medium);
-  box-shadow: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(225, 6, 0, 0.08) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.025);
+  border-color: rgba(225, 6, 0, 0.2);
 }
 
 .membership-card--featured {
-  background: rgba(225, 6, 0, 0.03);
-  border-color: var(--color-accent-red-border-subtle);
+  background:
+    radial-gradient(ellipse 90% 70% at 0% 0%, rgba(225, 6, 0, 0.1) 0%, transparent 60%),
+    rgba(255, 255, 255, 0.03);
+  border-color: rgba(225, 6, 0, 0.24);
 }
 
 .membership-card--featured:hover {
-  border-color: var(--color-accent-red-border-medium);
-  box-shadow: none;
+  border-color: rgba(225, 6, 0, 0.38);
+  box-shadow:
+    0 16px 44px rgba(225, 6, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
+/* ── Body wrapper ─────────────────────────── */
+.membership-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 12px;
+  padding: 18px 20px 20px;
+}
+
+/* ── Top header ──────────────────────────── */
 .membership-card__top {
   align-items: flex-start;
   display: flex;
@@ -493,26 +552,45 @@
 
 .membership-card__identity {
   display: grid;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 
+/* ── Badge ──────────────────────────────── */
 .membership-card__badge {
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
+  align-items: center;
+  background: rgba(225, 6, 0, 0.12);
+  border: 1px solid rgba(225, 6, 0, 0.26);
+  border-radius: var(--border-radius-pill);
   color: var(--color-brand-red);
-  font-size: 8px;
+  display: inline-flex;
+  font-size: 8.5px;
   font-weight: 700;
-  left: auto;
-  letter-spacing: 0.12em;
-  padding: 0;
-  position: static;
+  gap: 5px;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
   text-transform: uppercase;
   width: fit-content;
 }
 
+.membership-card__badge::before {
+  animation: badge-pulse 2.4s ease-in-out infinite;
+  background: var(--color-brand-red);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 4px;
+  width: 4px;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Title ───────────────────────────────── */
 .membership-card__title {
+  color: var(--color-text-primary);
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;
@@ -521,23 +599,23 @@
   margin: 0;
 }
 
+/* ── Price block ─────────────────────────── */
 .membership-card__price-block {
-  align-items: baseline;
+  align-items: flex-end;
   display: flex;
   flex: none;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 3px;
   text-align: right;
 }
 
 .membership-card__amount {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(18px, 2.4vw, 22px);
+  font-size: clamp(19px, 2.4vw, 23px);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   line-height: 1;
 }
 
@@ -547,21 +625,24 @@
 
 .membership-card__period {
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
 }
 
 .membership-card__save {
-  background: var(--color-accent-gold-border-subtle);
+  background: rgba(201, 185, 120, 0.12);
+  border: 1px solid rgba(201, 185, 120, 0.26);
   border-radius: var(--border-radius-pill);
   color: var(--color-brand-gold);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 3px 8px;
+  text-align: center;
   white-space: nowrap;
 }
 
+/* ── Compare inline ──────────────────────── */
 .membership-card__compare-inline {
   align-items: center;
   color: var(--color-text-muted);
@@ -584,6 +665,53 @@
   opacity: 0.45;
 }
 
+/* ── Features list ───────────────────────── */
+.membership-card__features-list {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 0;
+}
+
+.membership-card__feature {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 11.5px;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.membership-card__feature::before {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 4px;
+  min-width: 4px;
+  width: 4px;
+}
+
+.membership-card--celeste .membership-card__feature::before {
+  background: rgba(116, 172, 223, 0.72);
+  box-shadow: 0 0 5px rgba(116, 172, 223, 0.3);
+}
+
+.membership-card--gold .membership-card__feature::before {
+  background: rgba(201, 185, 120, 0.72);
+  box-shadow: 0 0 5px rgba(201, 185, 120, 0.3);
+}
+
+.membership-card--red .membership-card__feature::before {
+  background: rgba(225, 6, 0, 0.7);
+  box-shadow: 0 0 5px rgba(225, 6, 0, 0.25);
+}
+
+/* ── Features line (legacy, kept for compat) ─ */
 .membership-card__features-line {
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
@@ -593,6 +721,7 @@
   padding-top: 10px;
 }
 
+/* ── Footer CTA ──────────────────────────── */
 .membership-card__foot {
   align-items: center;
   display: flex;
@@ -613,11 +742,14 @@
   gap: 6px;
   letter-spacing: 0.01em;
   padding: 0;
-  transition: color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    gap var(--transition-fast);
 }
 
 .membership-card__link:hover {
   color: var(--color-brand-celeste);
+  gap: 9px;
 }
 
 .membership-card__link:focus-visible {
@@ -1488,11 +1620,17 @@
 }
 
 [data-theme='light'] .data-table th {
+  background: rgba(15, 17, 23, 0.03);
   color: rgba(15, 17, 23, 0.58);
 }
 
 [data-theme='light'] .data-table tbody tr:hover {
-  background: rgba(15, 17, 23, 0.02);
+  background: rgba(15, 17, 23, 0.03);
+  box-shadow: inset 2px 0 0 rgba(225, 6, 0, 0.55);
+}
+
+[data-theme='light'] .data-table tbody tr:hover td:first-child {
+  color: var(--plu-ink-900);
 }
 
 [data-theme='light'] .event-calendar__nav {

@@ -1,6 +1,10 @@
 [data-theme='light'] {
   color-scheme: light;
 
+  --scrollbar-thumb: rgba(15, 17, 23, 0.16);
+  --scrollbar-thumb-hover: rgba(155, 143, 89, 0.48);
+  --scrollbar-track: transparent;
+
   --color-bg-primary: var(--plu-warm-50);
   --color-bg-secondary: var(--plu-warm-100);
   --color-page-canvas: var(--plu-warm-50);
@@ -28,6 +32,8 @@
   --color-border-light: rgba(15, 17, 23, 0.18);
   --color-border-subtle: rgba(15, 17, 23, 0.06);
   --color-border-accent: rgba(29, 95, 158, 0.22);
+  --color-nav-bg: rgba(248, 249, 251, 0.88);
+  --color-nav-bg-scrolled: rgba(248, 249, 251, 0.96);
   --color-overlay: rgba(240, 240, 244, 0.90);
   --color-focus-ring: rgba(225, 6, 0, 0.16);
   --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.10);
@@ -101,10 +107,6 @@
 
 [data-theme='light'] .admin-shell__nav-icon {
   background: rgba(15, 17, 23, 0.03);
-}
-
-[data-theme='light'] .admin-shell__nav::-webkit-scrollbar-thumb {
-  background: rgba(15, 17, 23, 0.12);
 }
 
 [data-theme='light'] .admin-mobile-bar {

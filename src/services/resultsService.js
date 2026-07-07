@@ -1,7 +1,13 @@
 import { UPCOMING_EVENTS } from '../lib/events.js'
 
+import springClassic2025 from '../data/results/spring-classic-2025.json'
+
 /** Slugs with published results (mock until backend integration). */
 const PUBLISHED_RESULT_SLUGS = new Set(['spring-classic-2025'])
+
+const EVENT_RESULTS_BY_SLUG = {
+  'spring-classic-2025': springClassic2025,
+}
 
 export function getResultsFilters(t) {
   return [
@@ -53,6 +59,14 @@ export function getResultsArchive(events = UPCOMING_EVENTS) {
     ...event,
     resultsStatus: PUBLISHED_RESULT_SLUGS.has(event.slug) ? 'published' : 'pending',
   }))
+}
+
+export function getEventResults(slug) {
+  return EVENT_RESULTS_BY_SLUG[slug] ?? null
+}
+
+export function hasEventResults(slug) {
+  return Boolean(EVENT_RESULTS_BY_SLUG[slug])
 }
 
 export function getResultsSummary(entries = getResultsArchive()) {

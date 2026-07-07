@@ -11,8 +11,10 @@
 }
 
 .surface-card:hover {
-  border-color: var(--color-border-light);
-  box-shadow: var(--color-shadow-card);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 48px rgba(0, 0, 0, 0.32);
   transform: translateY(-2px);
 }
 
@@ -24,6 +26,19 @@
 .admin-dashboard--compact .surface-card--flat:hover {
   border-color: var(--color-border-light);
   box-shadow: none;
+}
+
+/* ── Light mode — corrige hover: borde blanco y sombra oscura se ven mal ── */
+[data-theme='light'] .surface-card:hover {
+  border-color: rgba(15, 17, 23, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 24px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .surface-card--flat:hover {
+  border-color: rgba(15, 17, 23, 0.09);
+  box-shadow: 0 4px 14px rgba(15, 17, 23, 0.06);
 }
 
 .surface-card--spotlight {
@@ -192,4 +207,44 @@
 
 .value-shimmer:hover {
   animation: shimmer-text 1.2s var(--ease-in-out) infinite;
+}
+
+/* =============================================
+   MINERAL CARD — card base sutil para dark mode
+   ============================================= */
+
+.mineral-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  position: relative;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.mineral-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 16px 40px rgba(0, 0, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+[data-theme='light'] .mineral-card {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+[data-theme='light'] .mineral-card:hover {
+  background: rgba(15, 17, 23, 0.035);
+  border-color: rgba(15, 17, 23, 0.14);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 12px 28px rgba(15, 17, 23, 0.07);
 }

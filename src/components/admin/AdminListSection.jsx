@@ -4,6 +4,7 @@ import { formatRecordCount } from '../../i18n/adminHelpers.js'
 
 export default function AdminListSection({
   actions,
+  beforeFilters,
   children,
   filteredCount,
   filters = [],
@@ -18,6 +19,7 @@ export default function AdminListSection({
   title,
   totalCount,
   variant,
+  eyebrow,
 }) {
   const { t } = useI18n()
   const resultLabel = formatRecordCount(t, filteredCount, totalCount)
@@ -37,6 +39,7 @@ export default function AdminListSection({
         {showHeader && (
           <header className="admin-list-shell__header">
             <div className="admin-list-shell__intro">
+              {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
               {title && <h1 className="admin-list-shell__title">{title}</h1>}
               {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
               {meta && (
@@ -76,7 +79,10 @@ export default function AdminListSection({
           </div>
         )}
 
+        {beforeFilters}
+
         <AdminFilterBar
+          className={variant ? `admin-filters--${variant}` : ''}
           compact
           inline
           filters={filters}

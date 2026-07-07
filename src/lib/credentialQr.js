@@ -52,3 +52,30 @@ export function readCredentialParams() {
   if (!code) return null
   return { code, eventSlug: params.get('evento'), type: params.get('tipo') }
 }
+
+/**
+ * Interpreta el texto crudo de un escaneo QR o pegado manual.
+ * Acepta URL completa con query params o solo el código/token.
+ * @param {string} raw
+ * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
+ */
+export function parseCredentialScan(raw) {
+  const value = raw?.trim()
+  if (!value) return null
+
+  try {
+    const url = value.includes('://') ? new URL(value) : new URL(value, 'https://plu-arg.com')
+    const code = url.searchParams.get('credencial')
+    if (code) {
+      return {
+        code,
+        eventSlug: url.searchParams.get('evento'),
+        type: url.searchParams.get('tipo'),
+      }
+    }
+  } catch {
+    // No era una URL — seguimos con el valor plano.
+  }
+
+  return { code: value, eventSlug: null, type: null }
+}

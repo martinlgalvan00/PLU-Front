@@ -23,6 +23,14 @@
   z-index: 2;
 }
 
+.pitbull-page--premium .pitbull-page__body {
+  gap: 0;
+  margin-inline: 0;
+  max-width: none;
+  padding-inline: var(--layout-gutter-lg);
+  width: 100%;
+}
+
 /* Un solo Reveal envuelve todo el dossier — sin translateY para no trabar el scroll. */
 .pitbull-page__body > .reveal {
   transform: none;
@@ -42,7 +50,7 @@
   margin-top: calc(-1 * var(--header-height));
   padding:
     calc(var(--header-height) + clamp(8px, 1.4vw, 12px))
-    clamp(20px, 5vw, 64px)
+    var(--layout-gutter-lg)
     clamp(14px, 2.2vw, 20px);
   position: relative;
   z-index: 1;
@@ -63,6 +71,9 @@
 
 .pitbull-page--premium .pitbull-hero .design-hero__inner {
   gap: clamp(14px, 2.2vw, 20px);
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
 }
 
 .pitbull-page--premium .pitbull-hero .design-hero__intro {
@@ -325,50 +336,97 @@
   color: var(--plu-ink-900);
 }
 
-.pitbull-page--premium .pitbull-page__body {
-  gap: 0;
-}
-
 .pitbull-page--premium .pitbull-page__body,
 .pitbull-page--premium .pitbull-dossier--minimal {
   box-sizing: border-box;
-  margin-inline: auto;
-  max-width: var(--max-width-content);
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal {
+  align-items: stretch;
+  max-width: none;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__section--benefits,
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__section {
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.pitbull-page--premium .pitbull-dossier--minimal > .pitbull-dossier__visual {
+  margin-inline: 0;
   width: 100%;
 }
 
 /* ── Dossier minimal (flujo continuo) ─────────── */
 
 .pitbull-dossier--minimal {
-  align-items: center;
+  align-items: stretch;
   border-top: 1px solid var(--pitbull-section-divider);
   display: flex;
   flex-direction: column;
   gap: clamp(36px, 5.5vw, 52px);
   padding-top: clamp(24px, 3.5vw, 32px);
+  width: 100%;
 }
 
 .pitbull-dossier--minimal > .pitbull-dossier__section--benefits,
-.pitbull-dossier--minimal > .pitbull-dossier__section,
+.pitbull-dossier--minimal > .pitbull-dossier__section {
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
 .pitbull-dossier--minimal > .pitbull-dossier__visual {
-  margin-inline: auto;
-  max-width: 52rem;
+  margin-inline: 0;
   width: 100%;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__visual {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
   border-radius: calc(var(--border-radius-lg) + 2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 20px 44px rgba(0, 0, 0, 0.28);
   display: none;
+  isolation: isolate;
   margin: 0;
+  max-width: min(880px, 72vw);
   overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__visual::after {
+  background: linear-gradient(180deg, transparent 58%, rgba(8, 9, 12, 0.42) 100%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__visual-img {
+  aspect-ratio: 21 / 9;
   display: block;
-  height: clamp(132px, 20vw, 168px);
+  height: auto;
+  max-height: min(320px, 34vw);
+  min-height: 200px;
   object-fit: cover;
-  object-position: center 24%;
+  object-position: center 28%;
   width: 100%;
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__visual {
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 18px 36px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__visual::after {
+  background: linear-gradient(180deg, transparent 62%, rgba(247, 246, 243, 0.28) 100%);
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section {
@@ -514,7 +572,7 @@
   padding-top: 14px;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1200px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--feature {
     align-items: start;
     column-gap: clamp(28px, 5vw, 48px);
@@ -536,7 +594,7 @@
   }
 }
 
-@media (max-width: 959px) {
+@media (max-width: 1199px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--feature {
     display: block;
   }
@@ -574,7 +632,7 @@
   padding-top: 14px;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1200px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--categories {
     align-items: start;
     column-gap: clamp(28px, 5vw, 48px);
@@ -596,7 +654,7 @@
   }
 }
 
-@media (max-width: 959px) {
+@media (max-width: 1199px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--categories {
     display: block;
   }
@@ -874,7 +932,7 @@
   padding: 0;
 }
 
-@media (min-width: 901px) {
+@media (min-width: 1200px) {
   .pitbull-dossier--minimal .pitbull-dossier__visual {
     display: block;
   }
@@ -2909,7 +2967,10 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
   padding: 0;
+  width: 100%;
 }
 
 .pitbull-page--premium .pitbull-inscription__inner::before {
@@ -3290,9 +3351,20 @@
 }
 
 .pitbull-page--premium .pitbull-tickets__form-shell .ticket-purchase--editorial {
-  padding: 0 clamp(16px, 2.6vw, 24px) clamp(16px, 2.4vw, 22px);
+  padding: clamp(12px, 1.8vw, 16px) clamp(16px, 2.6vw, 24px) clamp(16px, 2.4vw, 22px);
   position: relative;
   z-index: 2;
+}
+
+.pitbull-page--premium .pitbull-tickets__form-toolbar {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  padding: clamp(14px, 2.2vw, 20px) clamp(16px, 2.6vw, 24px) clamp(12px, 1.8vw, 16px);
+  position: relative;
+  z-index: 2;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-tickets__form-toolbar {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
 }
 
 .pitbull-page--premium .pitbull-tickets__form-back {
@@ -3363,7 +3435,10 @@
   background: transparent;
   border: none;
   box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
   padding: clamp(18px, 2.6vw, 24px);
+  width: 100%;
 }
 
 .pitbull-tickets--editorial .pitbull-tickets__head {
@@ -4388,6 +4463,15 @@
 }
 
 @media (max-width: 640px) {
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: var(--layout-gutter-sm);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title,
+  .pitbull-benefits-hero__title {
+    max-width: none;
+  }
+
   .pitbull-page--premium .pitbull-hero.design-hero--compact {
     padding-bottom: clamp(16px, 3vw, 22px);
   }
@@ -4716,7 +4800,10 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
+  margin-inline: 0;
+  max-width: none;
   padding: 0;
+  width: 100%;
 }
 
 .pitbull-page--premium .pitbull-tickets__title {
@@ -5385,8 +5472,8 @@
   width: 2px;
 }
 
-/* ── Notebook layout: header arriba, shell abajo (evita columnas apretadas) ── */
-@media (min-width: 640px) and (max-width: 959px) {
+/* ── Notebook / tablet: header arriba, shell abajo ── */
+@media (min-width: 641px) and (max-width: 1199px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
     column-gap: 0;
     display: grid;
@@ -5402,8 +5489,12 @@
   }
 
   .pitbull-benefits-hero__title {
-    font-size: clamp(22px, 3.6vw, 30px);
+    font-size: clamp(24px, 3.8vw, 32px);
     max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    max-width: min(100%, 48ch);
   }
 }
 
@@ -5414,7 +5505,7 @@
   letter-spacing: -0.044em;
   line-height: 1.02;
   margin: 0;
-  max-width: 13ch;
+  max-width: min(100%, 22ch);
   text-wrap: balance;
 }
 
@@ -5423,7 +5514,7 @@
   font-size: clamp(13.5px, 1.9vw, 15px);
   line-height: 1.58;
   margin: 0;
-  max-width: 36ch;
+  max-width: min(100%, 52ch);
 }
 
 .pitbull-benefits-shell {
@@ -5582,7 +5673,7 @@
   }
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1200px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
     align-items: start;
     column-gap: clamp(28px, 5vw, 48px);
@@ -5607,17 +5698,18 @@
   }
 
   .pitbull-benefits-hero__title {
-    max-width: 14ch;
+    max-width: min(100%, 24ch);
   }
 
   .pitbull-benefits-hero__lead {
-    max-width: 38ch;
+    max-width: min(100%, 48ch);
   }
 }
 
-@media (max-width: 959px) {
+@media (max-width: 1199px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
     display: grid;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -6053,7 +6145,33 @@
   line-height: 1.45;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1199px) {
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding: 12px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(-n + 2) {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(odd) {
+    padding-right: clamp(10px, 2vw, 16px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even) {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: clamp(10px, 2vw, 16px);
+  }
+}
+
+@media (max-width: 520px) {
   .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
     grid-template-columns: 1fr;
   }
@@ -6062,6 +6180,16 @@
     border-left: none;
     border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
     padding: 10px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(-n + 2) {
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-top: 10px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even) {
+    border-left: none;
+    padding-left: 0;
   }
 
   .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
@@ -6250,16 +6378,40 @@
 
 .pitbull-inscription-shell {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-top-color: rgba(255, 255, 255, 0.12);
-  border-radius: calc(var(--border-radius-lg) + 2px);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 60%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-radius: calc(var(--border-radius-lg) + 4px);
   display: grid;
   gap: 0;
   margin-inline: auto;
   overflow: hidden;
   position: relative;
   width: 100%;
+}
+
+[data-theme='light'] .pitbull-inscription-shell {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 17, 23, 0.08);
+  border-top-color: rgba(15, 17, 23, 0.12);
+  box-shadow: 0 2px 20px rgba(15, 17, 23, 0.06);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__price dt {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+  border-left-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__card,
+[data-theme='light'] .pitbull-inscription-shell__extras {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__counter-col {
+  border-right-color: rgba(15, 17, 23, 0.07);
 }
 
 /* ── Mobile: stack vertical ── */
@@ -6317,7 +6469,7 @@
 }
 
 .pitbull-inscription-shell__price dt {
-  color: var(--color-brand-red);
+  color: rgba(255, 255, 255, 0.42);
   font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -6513,15 +6665,47 @@
   outline-offset: 3px;
 }
 
-@media (min-width: 640px) {
+/* ── Location — editorial head + map stack en notebook ── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head {
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__title {
+  max-width: none;
+}
+
+@media (min-width: 900px) {
   .pitbull-location {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
     align-items: start;
     gap: clamp(20px, 3vw, 32px);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   }
 
   .pitbull-location__map {
     height: clamp(200px, 30vw, 280px);
+  }
+}
+
+@media (max-width: 899px) {
+  .pitbull-location {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-location__map {
+    height: clamp(180px, 42vw, 240px);
   }
 }
 
@@ -6665,4 +6849,338 @@
 [data-theme='light'] .pitbull-ticket-pass__channel-badge--muted {
   background: rgba(15, 17, 23, 0.06);
   color: rgba(15, 17, 23, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════
+   EDITORIAL UPGRADE — NOTEBOOK 900-1199px
+   Layout: kicker/título anclado a la izquierda,
+   contenido fluyendo a la derecha. Estilo dossier lujoso.
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 900px) and (max-width: 1199px) {
+
+  /* ── Más aire entre secciones ── */
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: clamp(28px, 5vw, 64px);
+  }
+
+  .pitbull-dossier--minimal {
+    gap: clamp(56px, 7.5vw, 80px);
+    padding-top: clamp(36px, 5vw, 52px);
+  }
+
+  /* ── Layout editorial 2-col: cabecera izq, contenido der ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets {
+    align-items: start;
+    column-gap: clamp(36px, 5vw, 60px);
+    display: grid;
+    grid-template-columns: clamp(200px, 29%, 270px) minmax(0, 1fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--inscription .pitbull-dossier__body,
+  .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+    max-width: none;
+  }
+
+  /* ── Benefits: header full-width, lanes debajo ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-benefits-panel__body {
+    margin-top: clamp(22px, 3vw, 28px);
+  }
+
+  /* ── Index: gran número decorativo dorado ── */
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(40px, 6vw, 60px);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    line-height: 0.88;
+    margin-bottom: 14px;
+    opacity: 0.85;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px 0;
+    margin-bottom: 10px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 3vw, 28px);
+    letter-spacing: -0.038em;
+    line-height: 1.06;
+    max-width: none;
+    text-wrap: balance;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 13.5px;
+    line-height: 1.68;
+    margin-top: 10px;
+    max-width: none;
+    opacity: 0.82;
+  }
+
+  /* ── Eyebrow refinado ── */
+  .pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  /* ── Feature facts: más espacio entre items ── */
+  .pitbull-dossier--minimal .pitbull-feature-facts__item {
+    padding: 14px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__label {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__value {
+    font-size: clamp(14px, 2vw, 16px);
+  }
+
+  /* ── Benefits: título más impactante ── */
+  .pitbull-benefits-hero__title {
+    font-size: clamp(26px, 4vw, 36px);
+    letter-spacing: -0.05em;
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    font-size: 13.5px;
+    max-width: none;
+  }
+
+  /* ── Benefits lanes: más altas ── */
+  .pitbull-benefits-lane__item {
+    padding: 14px 0;
+  }
+
+  .pitbull-benefits-lane__title {
+    font-size: 14px;
+  }
+
+  /* ── Inscripción shell: apilado ordenado ── */
+  .pitbull-inscription-shell {
+    display: grid;
+    gap: clamp(16px, 2.4vw, 22px);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription-shell__counter-col {
+    grid-column: 1;
+  }
+
+  .pitbull-inscription-shell__card {
+    grid-column: 1;
+  }
+
+  .pitbull-inscription-shell__extras {
+    grid-column: 1;
+  }
+
+  /* ── Ticket: layout más compacto ── */
+  .pitbull-ticket-pass__channels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ── Separador de sección: más élégant ── */
+  .pitbull-dossier--minimal .pitbull-dossier__section {
+    border-top-color: rgba(255, 255, 255, 0.05);
+    padding-top: clamp(36px, 5vw, 52px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   TABLET 641-899px — single column but spacious
+   ═══════════════════════════════════════════════════════ */
+@media (min-width: 641px) and (max-width: 899px) {
+
+  .pitbull-page--premium .pitbull-page__body {
+    padding-inline: clamp(20px, 4vw, 40px);
+  }
+
+  .pitbull-dossier--minimal {
+    gap: clamp(44px, 7vw, 60px);
+    padding-top: clamp(28px, 4vw, 40px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    font-size: clamp(32px, 6vw, 48px);
+    letter-spacing: -0.07em;
+    line-height: 0.88;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 4.5vw, 30px);
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 14px;
+    max-width: min(100%, 52ch);
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(26px, 5vw, 34px);
+    max-width: none;
+  }
+
+  .pitbull-inscription-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE ≤640px — single column, índices grandes
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  .pitbull-dossier--minimal {
+    gap: clamp(40px, 10vw, 56px);
+    padding-top: clamp(24px, 5vw, 36px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section {
+    padding-top: clamp(28px, 7vw, 40px);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__kicker {
+    align-items: baseline;
+    flex-direction: row;
+    gap: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__index {
+    font-size: clamp(14px, 5vw, 20px);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__title {
+    font-size: clamp(22px, 7.5vw, 30px);
+    letter-spacing: -0.038em;
+    line-height: 1.06;
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__lead {
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: none;
+    opacity: 0.82;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__body {
+    margin-top: clamp(14px, 4vw, 20px);
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(24px, 8vw, 30px);
+    letter-spacing: -0.05em;
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    font-size: 13.5px;
+  }
+
+  .pitbull-benefits-lane__item {
+    padding: 13px 0;
+  }
+
+  .pitbull-inscription-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-feature-facts__item {
+    padding: 13px 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts__value {
+    font-size: 15px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MEJORAS GLOBALES — refinamiento visual en todos los
+   breakpoints para un look más lujoso y editorial
+   ═══════════════════════════════════════════════════════ */
+
+/* Eyebrow en rojo más elegante */
+.pitbull-dossier--minimal .pitbull-dossier__eyebrow {
+  color: color-mix(in srgb, var(--color-brand-red) 85%, rgba(201, 185, 120, 0.4));
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Index número dorado más refinado */
+.pitbull-dossier--minimal .pitbull-dossier__index {
+  color: color-mix(in srgb, var(--plu-gold-400, rgba(201, 185, 120, 1)) 72%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Título con mejor letterSpacing */
+.pitbull-dossier--minimal .pitbull-dossier__title {
+  letter-spacing: -0.036em;
+  line-height: 1.08;
+}
+
+/* Lead con color más suave */
+.pitbull-dossier--minimal .pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: clamp(13.5px, 1.85vw, 15px);
+  line-height: 1.68;
+}
+
+/* Divisores de sección más finos y elegantes */
+.pitbull-dossier--minimal .pitbull-dossier__section {
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section {
+  border-top-color: rgba(15, 17, 23, 0.065);
+}
+
+/* Feature facts label más elegante */
+.pitbull-dossier--minimal .pitbull-feature-facts__label {
+  color: color-mix(in srgb, var(--color-brand-red) 90%, rgba(201, 185, 120, 0.3));
+  font-size: 9px;
+  letter-spacing: 0.16em;
 }
