@@ -2,6 +2,13 @@
    SECCIONES COMPARTIDAS — Home y páginas públicas
    ============================================= */
 
+:root {
+  /* ── Ritmo vertical fluido, compartido entre home/pitbull/members ── */
+  --section-pad-lg: clamp(64px, 9vw, 112px);
+  --section-pad-md: clamp(48px, 7vw, 80px);
+  --section-pad-sm: clamp(28px, 4vw, 48px);
+}
+
 .page-section,
 .home-section {
   padding: var(--space-3xl) var(--layout-gutter-lg);

@@ -452,7 +452,7 @@
 }
 
 .membership-card--celeste:hover {
-  border-color: rgba(116, 172, 223, 0.28);
+  border-color: var(--color-accent-celeste-border-medium);
   box-shadow: none;
 }
 
@@ -461,7 +461,7 @@
 }
 
 .membership-card--gold:hover {
-  border-color: rgba(201, 185, 120, 0.28);
+  border-color: var(--color-accent-gold-border-medium);
   box-shadow: none;
 }
 
@@ -470,17 +470,17 @@
 }
 
 .membership-card--red:hover {
-  border-color: rgba(225, 6, 0, 0.32);
+  border-color: var(--color-accent-red-border-medium);
   box-shadow: none;
 }
 
 .membership-card--featured {
   background: rgba(225, 6, 0, 0.03);
-  border-color: rgba(225, 6, 0, 0.18);
+  border-color: var(--color-accent-red-border-subtle);
 }
 
 .membership-card--featured:hover {
-  border-color: rgba(225, 6, 0, 0.32);
+  border-color: var(--color-accent-red-border-medium);
   box-shadow: none;
 }
 
@@ -552,7 +552,7 @@
 }
 
 .membership-card__save {
-  background: rgba(201, 185, 120, 0.1);
+  background: var(--color-accent-gold-border-subtle);
   border-radius: var(--border-radius-pill);
   color: var(--color-brand-gold);
   font-size: 9px;
@@ -979,7 +979,7 @@
 }
 
 .cta-section__inner:hover {
-  border-color: rgba(225, 6, 0, 0.18);
+  border-color: var(--color-accent-red-border-subtle);
   box-shadow: var(--glow-red-soft), 0 32px 80px rgba(0, 0, 0, 0.32);
 }
 
@@ -1237,7 +1237,7 @@
 }
 
 .data-table-card.data-table__row--clickable:hover {
-  border-color: rgba(225, 6, 0, 0.28);
+  border-color: var(--color-accent-red-border-medium);
   box-shadow: inset 3px 0 0 var(--color-brand-red);
 }
 
@@ -1371,20 +1371,20 @@
 }
 
 .event-calendar__cell--today {
-  border-color: rgba(116, 172, 223, 0.35);
+  border-color: var(--color-accent-celeste-border-strong);
   color: var(--color-brand-celeste);
 }
 
 .event-calendar__cell--event:not(:disabled) {
   background: rgba(225, 6, 0, 0.08);
-  border-color: rgba(225, 6, 0, 0.18);
+  border-color: var(--color-accent-red-border-subtle);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .event-calendar__cell--event:not(:disabled):hover {
   background: rgba(225, 6, 0, 0.13);
-  border-color: rgba(225, 6, 0, 0.35);
+  border-color: var(--color-accent-red-border-medium);
   color: var(--color-text-primary);
   transform: translateY(-2px);
 }

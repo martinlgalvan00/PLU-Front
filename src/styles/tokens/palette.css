@@ -20,6 +20,7 @@
   --plu-celeste-300: #9ec5eb;
   --plu-celeste-oklch: oklch(78% 0.06 230);
   --plu-celeste-alpha-18: oklch(78% 0.06 230 / 0.18);
+  --plu-celeste-alpha-26: rgba(116, 172, 223, 0.26);
   --plu-celeste-alpha-35: rgba(116, 172, 223, 0.35);
 
   /* ── Dorado / acento premium ──────────────────── */
@@ -28,6 +29,9 @@
   --plu-gold-400: #ddc992;
   --plu-gold-oklch: oklch(74% 0.11 85);
   --plu-gold-alpha-18: oklch(74% 0.11 85 / 0.18);
+  --plu-gold-alpha-12: rgba(201, 185, 120, 0.12);
+  --plu-gold-alpha-22: rgba(201, 185, 120, 0.22);
+  --plu-gold-alpha-35: rgba(201, 185, 120, 0.35);
 
   /* ── Neutros cálidos (páginas claras) ─────────── */
   --plu-warm-50: #f7f6f3;
