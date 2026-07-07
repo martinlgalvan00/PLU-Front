@@ -45,3 +45,31 @@ Los componentes solo renderizan y delegan eventos.
 ## Integraciones
 
 Todas las integraciones externas usan adaptadores con fallback mock si faltan credenciales.
+
+## Flujo server-side de integraciones
+
+Las integraciones no se procesan como llamadas sueltas desde la UI. El backend
+las registra como eventos idempotentes y las conecta con entidades del dominio:
+
+```
+UI / proveedor externo
+  -> API route
+  -> workflow de aplicacion
+  -> IntegrationEvent
+  -> entidad de negocio
+  -> adapter externo
+```
+
+Componentes actuales:
+
+| Capa | Archivos |
+|------|----------|
+| Store de eventos | `server/modules/integrations/integrationEventStore.js` |
+| Pagos | `server/modules/payments/paymentWorkflow.js` |
+| Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
+| Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
+| Contrato de DB | `prisma/schema.prisma` (`IntegrationEvent`, `IntegrationAttempt`) |
+
+El store actual es en memoria para el MVP y tests. El contrato de entidades ya
+esta modelado en Prisma para migrarlo a persistencia real sin cambiar la forma
+en que los controllers llaman a los workflows.

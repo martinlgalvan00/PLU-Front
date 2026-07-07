@@ -10,6 +10,7 @@ Skills internas reutilizables para agentes de código que trabajan en este proye
 | 2 | [business-analysis](./business-analysis/SKILL.md) | Reglas de negocio, MVP, backlog |
 | 3 | [design-system-plu](./design-system-plu/SKILL.md) | CSS, componentes visuales PLU ARG |
 | 3b | [design-upgrade](./design-upgrade/SKILL.md) | Proceso de mejora visual y QA por pantalla |
+| 3c | [design-ux-ui](./design-ux-ui/SKILL.md) | Refinar secciones con UX + CSS moderno (dock, editorial, glass) |
 | 4 | [auth-rbac](./auth-rbac/SKILL.md) | Roles, permisos, guards |
 | 5 | [database-modeling](./database-modeling/SKILL.md) | Prisma, migraciones, seeds |
 | 6 | [mercado-pago](./mercado-pago/SKILL.md) | Checkout Pro, webhooks, pagos |

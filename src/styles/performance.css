@@ -1,0 +1,92 @@
+/* =============================================
+   PERFORMANCE — mobile / notebook / touch
+   Reduce blur, animaciones y capas costosas
+   ============================================= */
+
+@media (max-width: 1199px), (hover: none) {
+  .site-header,
+  .site-header__inner,
+  .site-header__drawer,
+  .site-header__backdrop,
+  .site-header__dropdown-menu {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .site-header:not(.site-header--over-hero) {
+    background: rgba(10, 10, 12, 0.94);
+  }
+
+  .site-header--scrolled:not(.site-header--over-hero) {
+    background: rgba(8, 8, 10, 0.98);
+  }
+
+  [data-theme='light'] .site-header:not(.site-header--over-hero) {
+    background: rgba(248, 249, 251, 0.96);
+  }
+
+  [data-theme='light'] .site-header--scrolled:not(.site-header--over-hero) {
+    background: rgba(248, 249, 251, 0.98);
+  }
+}
+
+@media (max-width: 1199px), (prefers-reduced-motion: reduce) {
+  .site-header__stripe::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .site-header__inner {
+    transition-duration: 0.01ms !important;
+  }
+
+  .site-header-shell {
+    --header-scroll-progress: 0;
+  }
+
+  .site-header-shell:has(.site-header--scrolled) {
+    --header-scroll-progress: 1;
+  }
+}
+
+@media (max-width: 1199px) {
+  [data-theme='dark'] .hero__ambient--red,
+  [data-theme='dark'] .hero__ambient--celeste {
+    animation: none;
+    filter: blur(56px);
+    opacity: 0.28;
+  }
+
+  .hero__eyebrow--design {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .hero-status-card,
+  .home-quick-band__chip {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Reveal sin translate en bloques grandes — evita scroll trabado */
+  .pitbull-page__body > .reveal,
+  .members-page__body > .reveal,
+  .events-page__body > .reveal {
+    transform: none;
+  }
+
+  .pitbull-page__body > .reveal.is-visible,
+  .members-page__body > .reveal.is-visible,
+  .events-page__body > .reveal.is-visible {
+    transform: none;
+  }
+
+  .pitbull-feature__badge,
+  .pitbull-feature__category-tag {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

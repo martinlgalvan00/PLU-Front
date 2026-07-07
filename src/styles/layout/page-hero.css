@@ -69,14 +69,14 @@
 }
 
 .page-hero__title {
-  font-family: var(--font-display);
+  font-family: var(--font-family);
   font-size: clamp(32px, 5vw, 52px);
-  font-weight: 800;
-  letter-spacing: var(--letter-spacing-display);
-  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
   margin: 0 0 var(--space-md);
   position: relative;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .page-hero__desc {
@@ -152,54 +152,24 @@
   margin-top: 6px;
 }
 
+.capacity-bar {
+  background: var(--color-bg-muted);
+  border-radius: var(--border-radius-pill);
+  height: 8px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.capacity-bar__fill {
+  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste));
+  height: 100%;
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
 /* Si la barra de capacidad (que existe en inline o page.css) está animada via custom prop */
 .capacity-widget__bar-fill {
   animation: grow-line-full 1.2s var(--ease-out) both;
   transform-origin: left;
-}
-
-/* =============================================
-   FOOTER CTA
-   ============================================= */
-
-.footer-cta {
-  background: linear-gradient(135deg, rgba(225, 6, 0, 0.12), rgba(116, 172, 223, 0.08));
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  margin-bottom: var(--space-2xl);
-  padding: var(--space-xl);
-  text-align: center;
-  transition:
-    transform var(--transition-base),
-    border-color var(--transition-base),
-    box-shadow var(--transition-base);
-}
-
-.footer-cta:hover {
-  border-color: rgba(225, 6, 0, 0.25);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  transform: translateY(-4px);
-}
-
-.footer-cta h3 {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: var(--letter-spacing-display);
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-.footer-cta p {
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-md);
-}
-
-.footer-cta__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
 }
 
 /* =============================================

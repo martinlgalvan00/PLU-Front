@@ -2,16 +2,81 @@
    SECCIONES COMPARTIDAS — Home y páginas públicas
    ============================================= */
 
-.page-section,
-.home-section {
-  padding: var(--space-3xl) var(--space-lg);
-  position: relative;
+:root {
+  /* ── Ritmo vertical fluido, compartido entre home/pitbull/members ── */
+  --section-pad-lg: clamp(64px, 9vw, 112px);
+  --section-pad-md: clamp(48px, 7vw, 80px);
+  --section-pad-sm: clamp(28px, 4vw, 48px);
 }
 
-.page-section--alt,
-.home-section--dark {
+.page-section,
+.home-section {
+  padding: var(--space-3xl) var(--layout-gutter-lg);
+  position: relative;
+  scroll-margin-top: calc(var(--header-height-scrolled) + 16px);
+}
+
+.page-section--alt {
   background: var(--color-bg-secondary);
   border-block: 1px solid var(--color-border-subtle);
+}
+
+/* Banda intermedia — más clara que el canvas, sin llegar al negro del header */
+.home-section--muted {
+  background: var(--color-section-muted);
+  border-block: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .section-heading__eyebrow {
+  color: var(--color-brand-celeste);
+}
+
+.home-section--muted .section-heading__title {
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .section-heading__desc {
+  color: var(--color-text-muted);
+}
+
+.home-section--muted .btn--outline {
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.home-section--muted .btn--outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+/* Sección de acento oscuro — usar solo en bloques puntuales */
+.home-section--dark {
+  background: var(--home-accent-bg, var(--plu-cool-900));
+  border-block: 1px solid var(--home-accent-border, rgba(255, 255, 255, 0.08));
+  color: var(--home-accent-title, #fff);
+}
+
+.home-section--dark .section-heading__eyebrow {
+  color: var(--home-accent-eyebrow, var(--color-brand-celeste));
+}
+
+.home-section--dark .section-heading__title {
+  color: var(--home-accent-title, #fff);
+}
+
+.home-section--dark .section-heading__desc {
+  color: var(--home-accent-desc, rgba(255, 255, 255, 0.58));
+}
+
+.home-section--dark .btn--outline {
+  border-color: var(--home-accent-outline-border, rgba(255, 255, 255, 0.28));
+  color: var(--home-accent-outline-text, #fff);
+}
+
+.home-section--dark .btn--outline:hover:not(:disabled) {
+  background: var(--home-accent-outline-hover-bg, rgba(255, 255, 255, 0.06));
+  border-color: var(--home-accent-outline-hover-border, rgba(255, 255, 255, 0.45));
 }
 
 .page-section--stats,
@@ -30,6 +95,10 @@
 .page-section__inner--narrow,
 .home-section__inner--narrow {
   max-width: 760px;
+}
+
+.home-section--compact {
+  padding-block: var(--space-2xl);
 }
 
 .page-section__action,
@@ -52,12 +121,42 @@
 
 .membership-teaser {
   margin: 0 auto;
-  max-width: 400px;
+  max-width: 420px;
+}
+
+.membership-band {
+  background: var(--home-band-bg, var(--color-bg-surface));
+  border: 1px solid var(--home-band-border, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: var(--space-lg);
+  padding: clamp(24px, 4vw, 36px);
+}
+
+.membership-band .section-heading {
+  margin-bottom: 0;
+}
+
+.membership-band__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 @media (max-width: 900px) {
   .page-split,
   .home-split {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-section,
+  .home-section {
+    padding-block: var(--space-2xl);
+  }
+
+  .home-section--compact {
+    padding-block: var(--space-xl);
   }
 }

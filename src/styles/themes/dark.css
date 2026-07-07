@@ -1,32 +1,112 @@
 :root,
+
 [data-theme='dark'] {
-  color-scheme: dark;
 
-  --color-bg-primary: #0a0a0c;
-  --color-bg-secondary: #050506;
-  --color-bg-surface: #101014;
-  --color-bg-elevated: #16161c;
+  --color-bg-primary: var(--plu-cool-950);
+
+  --color-bg-secondary: var(--plu-cool-900);
+
+  --color-bg-surface: var(--plu-cool-800);
+
+  --color-bg-elevated: var(--plu-cool-750);
+
   --color-bg-input: #121218;
-  --color-bg-code: #1a1a22;
-  --color-bg-muted: #2a2a32;
-  --color-bg-steel: linear-gradient(145deg, #1a1a20 0%, #0e0e12 100%);
 
-  --color-text-primary: #ffffff;
+  --color-bg-code: #1a1a22;
+
+  --color-bg-muted: var(--plu-cool-700);
+
+  --color-bg-glass: rgba(255, 255, 255, 0.03);
+
+  --color-bg-glass-border: rgba(255, 255, 255, 0.06);
+
+  --color-bg-steel: linear-gradient(145deg, var(--plu-cool-750) 0%, var(--plu-cool-900) 100%);
+
+  --color-bg-about: var(--plu-cool-750);
+
+  --color-page-canvas: var(--plu-cool-950);
+
+  --color-section-muted: var(--plu-cool-750);
+
+  --color-text-on-light: var(--plu-ink-900);
+
+  --color-text-muted-on-light: var(--plu-ink-500);
+
+
+
+  --color-text-primary: var(--plu-ink-inverse);
+
   --color-text-secondary: #d4d4dc;
+
   --color-text-muted: #9a9aa8;
-  --color-text-accent: #c9b978;
-  --color-text-price: #8ec8ff;
+
+  --color-text-ghost: rgba(255, 255, 255, 0.12);
+
+  --color-text-accent: var(--plu-gold-500);
+
+  --color-text-price: var(--plu-celeste-300);
+
+
 
   --color-border: rgba(255, 255, 255, 0.14);
+
   --color-border-light: rgba(255, 255, 255, 0.28);
+
   --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-accent: rgba(116, 172, 223, 0.35);
+
+  --color-border-accent: var(--plu-celeste-alpha-35);
+
   --color-overlay: rgba(5, 5, 8, 0.82);
-  --color-focus-ring: rgba(225, 6, 0, 0.22);
+
+  --color-focus-ring: var(--plu-red-alpha-16);
+
   --color-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+
   --color-shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
-  --color-hero-gradient:
-    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.22), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.12), transparent 50%),
-    linear-gradient(180deg, #0a0a0c 0%, #050506 100%);
+
+  --color-hero-gradient: var(--plu-gradient-hero-dark);
+
+  /* ── Status chips — dark-safe (los de :root en variables.css
+     asumen fondo claro y quedan ilegibles/desentonan sobre dark) ── */
+  --color-warning-bg: rgba(180, 83, 9, 0.18);
+  --color-warning-text: #f0b45e;
+  --color-danger-bg: rgba(153, 27, 27, 0.2);
+  --color-danger-text: #ff8b86;
+
+  --color-nav-bg: oklch(10% 0.006 260 / 0.94);
+
+  --color-nav-bg-scrolled: oklch(8% 0.006 260 / 0.98);
+
+  --color-nav-stripe: var(--plu-gradient-stripe);
+
+  /* ── Results tokens ────────────────────────── */
+  --results-podium-bg: var(--plu-cool-800);
+  --results-podium-border: rgba(255, 255, 255, 0.08);
+  --results-row-bg: var(--plu-cool-800);
+  --results-row-hover: var(--plu-cool-750);
+  --results-row-border: rgba(255, 255, 255, 0.06);
+  --results-rank-bg: rgba(255, 255, 255, 0.06);
+
+  /* ── Events v2 tokens ──────────────────────── */
+  --events-stat-bg: rgba(255, 255, 255, 0.018);
+  --events-stat-border: rgba(255, 255, 255, 0.05);
+  --events-detail-bg: var(--plu-cool-800);
+  --events-detail-border: rgba(255, 255, 255, 0.09);
+  --events-calendar-bg: var(--plu-cool-800);
+  --events-calendar-header: rgba(255, 255, 255, 0.04);
+  --events-calendar-day-hover: rgba(255, 255, 255, 0.06);
+  --filter-pill-bg: var(--plu-cool-800);
+  --filter-pill-border: rgba(255, 255, 255, 0.08);
+  --filter-pill-text: rgba(255, 255, 255, 0.52);
+  --filter-pill-active-text: #fff;
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(201, 185, 120, 0.42);
+  --scrollbar-track: transparent;
+
 }
+
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+

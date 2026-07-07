@@ -1,0 +1,186 @@
+{
+  "download": {
+    "title": "Estándares de Competición",
+    "subtitle": "Versión 26.1 · Powerlifting United"
+  },
+  "summary": [
+    {
+      "id": "sequence",
+      "title": "Tres levantamientos",
+      "text": "Sentadilla, press de banca y peso muerto en esa secuencia en toda competición oficial."
+    },
+    {
+      "id": "attempts",
+      "title": "Tres intentos",
+      "text": "Cada movimiento permite hasta tres intentos. El total se arma con el mejor válido de cada uno."
+    },
+    {
+      "id": "judges",
+      "title": "Panel de jueces",
+      "text": "Tres árbitros en plataforma. Ante la duda, la decisión favorece al levantador."
+    },
+    {
+      "id": "weighin",
+      "title": "Pesaje oficial",
+      "text": "El atleta compite en la categoría de peso corporal declarada en el pesaje del evento."
+    }
+  ],
+  "framework": [
+    {
+      "title": "Full Power",
+      "text": "Sentadilla, press de banca y peso muerto en la misma competición."
+    },
+    {
+      "title": "Push / Pull",
+      "text": "Press de banca y peso muerto, sin sentadilla."
+    },
+    {
+      "title": "Especialistas",
+      "text": "Modalidades de especialista en sentadilla, banca o peso muerto."
+    },
+    {
+      "title": "Secuencia obligatoria",
+      "text": "En todo evento el orden es sentadilla → press de banca → peso muerto."
+    }
+  ],
+  "weightClasses": [
+    {
+      "id": "women-n",
+      "title": "Mujeres y género neutro (N)",
+      "unit": "kg",
+      "classes": [
+        { "label": "44", "range": "hasta 44,0 kg" },
+        { "label": "48", "range": "44,01 – 48,0 kg" },
+        { "label": "52", "range": "48,01 – 52,0 kg" },
+        { "label": "56", "range": "52,01 – 56,0 kg" },
+        { "label": "60", "range": "56,01 – 60,0 kg" },
+        { "label": "67,5", "range": "60,01 – 67,5 kg" },
+        { "label": "75", "range": "67,51 – 75,0 kg" },
+        { "label": "82,5", "range": "75,01 – 82,5 kg" },
+        { "label": "90", "range": "82,51 – 90,0 kg" },
+        { "label": "100", "range": "90,01 – 100,0 kg" },
+        { "label": "110", "range": "100,01 – 110,0 kg" },
+        { "label": "125", "range": "110,01 – 125,0 kg" },
+        { "label": "140", "range": "125,01 – 140,0 kg" },
+        { "label": "140+", "range": "140,01 kg o más" }
+      ]
+    },
+    {
+      "id": "men",
+      "title": "Hombres",
+      "unit": "kg",
+      "classes": [
+        { "label": "52", "range": "hasta 52,0 kg" },
+        { "label": "56", "range": "52,01 – 56,0 kg" },
+        { "label": "60", "range": "56,01 – 60,0 kg" },
+        { "label": "67,5", "range": "60,01 – 67,5 kg" },
+        { "label": "75", "range": "67,51 – 75,0 kg" },
+        { "label": "82,5", "range": "75,01 – 82,5 kg" },
+        { "label": "90", "range": "82,51 – 90,0 kg" },
+        { "label": "100", "range": "90,01 – 100,0 kg" },
+        { "label": "110", "range": "100,01 – 110,0 kg" },
+        { "label": "125", "range": "110,01 – 125,0 kg" },
+        { "label": "140", "range": "125,01 – 140,0 kg" },
+        { "label": "140+", "range": "140,01 kg o más" }
+      ]
+    }
+  ],
+  "ageDivisions": [
+    { "title": "Juvenil", "range": "10 – 12 años" },
+    { "title": "Junior 13–15", "range": "13 – 15 años" },
+    { "title": "Junior 16–17", "range": "16 – 17 años" },
+    { "title": "Junior 18–19", "range": "18 – 19 años" },
+    { "title": "Junior 20–23", "range": "20 – 23 años" },
+    { "title": "Open", "range": "10 años o más" },
+    { "title": "Sub-Máster", "range": "35 – 39 años" },
+    { "title": "Máster 40–44", "range": "40 – 44 años" },
+    { "title": "Máster 45–49", "range": "45 – 49 años" },
+    { "title": "Máster 50–54", "range": "50 – 54 años" },
+    { "title": "Máster 55–59", "range": "55 – 59 años" },
+    { "title": "Máster 60–64", "range": "60 – 64 años" },
+    { "title": "Máster 65–69", "range": "65 – 69 años" },
+    { "title": "Máster 70–74", "range": "70 – 74 años" },
+    { "title": "Máster 75–79", "range": "75 – 79 años" },
+    { "title": "Máster 80+", "range": "80 años o más" }
+  ],
+  "equipment": [
+    {
+      "title": "Raw",
+      "text": "Modalidad sin trajes de soporte. Permite el equipo básico reglamentario: singlet, cinturón, rodilleras, muñequeras y calzado según el capítulo de equipo del atleta."
+    },
+    {
+      "title": "Raw con vendas",
+      "text": "Modalidad raw que admite vendaje sin asistencia adicional, dentro de las especificaciones del reglamento para muñequeras, rodilleras y vendas permitidas."
+    },
+    {
+      "title": "Single ply",
+      "text": "División equipada de capa única. Trajes y camisetas de press de banca deben cumplir las especificaciones de poliéster de una sola capa del capítulo VII."
+    },
+    {
+      "title": "Multi ply",
+      "text": "División equipada de varias capas. Permite trajes de mayor soporte con las restricciones de confección, velcro y longitud descritas en el reglamento."
+    },
+    {
+      "title": "Sin límite",
+      "text": "Modalidad unlimited sin tope de capas en el equipamiento de soporte, sujeta a inspección y a las normas de seguridad de la competición."
+    }
+  ],
+  "lifts": [
+    {
+      "id": "squat",
+      "title": "Sentadilla",
+      "section": "§6.1",
+      "points": [
+        "El árbitro principal da las órdenes de squat y rack.",
+        "El levantador debe cumplir profundidad y posición final reglamentarias.",
+        "Las causas de descalificación están detalladas en el PDF oficial."
+      ]
+    },
+    {
+      "id": "bench",
+      "title": "Press de banca",
+      "section": "§6.2",
+      "points": [
+        "Órdenes del árbitro: start, press y rack.",
+        "La barra debe tocar el pecho o abdomen y volver a la posición inicial.",
+        "Glúteos en contacto con el banco; pies en la plataforma."
+      ]
+    },
+    {
+      "id": "deadlift",
+      "title": "Peso muerto",
+      "section": "§6.3",
+      "points": [
+        "No hay orden de inicio: el intento debe comenzar antes de que expire el tiempo.",
+        "Posición final con hombros, caderas y rodillas extendidos.",
+        "El árbitro principal da la orden down para bajar la barra."
+      ]
+    }
+  ],
+  "judging": [
+    {
+      "numeral": "I",
+      "text": "Tres intentos por movimiento: sentadilla, press de banca y peso muerto. El total oficial usa el mejor intento válido de cada uno."
+    },
+    {
+      "numeral": "II",
+      "text": "La secuencia es fija en toda competición: sentadilla, press de banca y peso muerto."
+    },
+    {
+      "numeral": "III",
+      "text": "Tres árbitros evalúan cada intento en plataforma. Ante la duda, la decisión favorece al levantador."
+    },
+    {
+      "numeral": "IV",
+      "text": "El árbitro principal da las órdenes verbales y gestos de inicio, press/rack o down según el movimiento."
+    },
+    {
+      "numeral": "V",
+      "text": "El atleta compite en la categoría de peso corporal declarada en el pesaje oficial del evento."
+    },
+    {
+      "numeral": "VI",
+      "text": "Las apelaciones por decisión 2–1 deben presentarse dentro de los 60 segundos posteriores al intento."
+    }
+  ]
+}

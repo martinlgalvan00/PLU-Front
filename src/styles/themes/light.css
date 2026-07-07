@@ -1,59 +1,199 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --color-bg-primary: #f4f5f7;
-  --color-bg-secondary: #e8eaef;
+  --scrollbar-thumb: rgba(15, 17, 23, 0.16);
+  --scrollbar-thumb-hover: rgba(155, 143, 89, 0.48);
+  --scrollbar-track: transparent;
+
+  --color-bg-primary: var(--plu-warm-50);
+  --color-bg-secondary: var(--plu-warm-100);
+  --color-page-canvas: var(--plu-warm-50);
+  --color-section-muted: var(--plu-warm-100);
+  --color-text-on-light: var(--plu-ink-900);
   --color-bg-surface: #ffffff;
-  --color-bg-elevated: #ffffff;
-  --color-bg-input: #f8f9fb;
+  --color-bg-elevated: #fafafa;
+  --color-bg-input: #f8f8fa;
   --color-bg-code: #eef0f4;
-  --color-bg-muted: #d8dce6;
+  --color-bg-muted: #e0e0e8;
+  --color-bg-glass: rgba(15, 17, 23, 0.03);
+  --color-bg-glass-border: rgba(15, 17, 23, 0.06);
   --color-bg-steel: linear-gradient(145deg, #ffffff 0%, #eef0f4 100%);
 
-  --color-text-primary: #0f1117;
-  --color-text-secondary: #2a2f3a;
-  --color-text-muted: #5c6475;
+  --color-text-primary: #0d0e12;
+  --color-text-secondary: #2c2f3c;
+  --color-text-muted: #636878;
+
+  --color-text-ghost: rgba(15, 17, 23, 0.12);
+
   --color-text-accent: #7a6b2e;
   --color-text-price: #1d5f9e;
 
-  --color-border: rgba(15, 17, 23, 0.12);
-  --color-border-light: rgba(15, 17, 23, 0.2);
+  --color-border: rgba(15, 17, 23, 0.10);
+  --color-border-light: rgba(15, 17, 23, 0.18);
   --color-border-subtle: rgba(15, 17, 23, 0.06);
-  --color-border-accent: rgba(29, 95, 158, 0.28);
-  --color-overlay: rgba(244, 245, 247, 0.88);
-  --color-focus-ring: rgba(225, 6, 0, 0.18);
-  --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.12);
-  --color-shadow-card: 0 16px 40px rgba(15, 17, 23, 0.08);
+  --color-border-accent: rgba(29, 95, 158, 0.22);
+  --color-nav-bg: rgba(248, 249, 251, 0.88);
+  --color-nav-bg-scrolled: rgba(248, 249, 251, 0.96);
+  --color-overlay: rgba(240, 240, 244, 0.90);
+  --color-focus-ring: rgba(225, 6, 0, 0.16);
+  --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.10);
+  --color-shadow-card: 0 12px 32px rgba(15, 17, 23, 0.07);
   --color-hero-gradient:
-    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.1), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.14), transparent 50%),
-    linear-gradient(180deg, #f4f5f7 0%, #e8eaef 100%);
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(225, 6, 0, 0.11), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(116, 172, 223, 0.16), transparent 50%),
+    linear-gradient(180deg, #f5f5f7 0%, #ebebef 100%);
+
+  /* ── Glows — recalibrados para leer sobre fondos claros ──
+     Los mismos halos que en dark (variables.css) quedan casi
+     imperceptibles sobre blanco con ese alpha; acá suben de
+     intensidad para conservar la misma sensación "premium". ── */
+  --glow-red:            0 6px 22px rgba(225, 6, 0, 0.38);
+  --glow-red-soft:       0 3px 16px rgba(225, 6, 0, 0.22);
+  --glow-red-strong:     0 10px 34px rgba(225, 6, 0, 0.52);
+  --glow-gold:           0 6px 22px rgba(201, 185, 120, 0.38);
+  --glow-gold-soft:      0 3px 16px rgba(201, 185, 120, 0.22);
+  --glow-gold-strong:    0 10px 34px rgba(201, 185, 120, 0.50);
+  --glow-celeste:        0 6px 22px rgba(116, 172, 223, 0.45);
+  --glow-celeste-soft:   0 3px 16px rgba(116, 172, 223, 0.26);
+  --glow-celeste-strong: 0 10px 34px rgba(116, 172, 223, 0.52);
+
+  /* ── Results tokens ────────────────────────── */
+  --results-podium-bg: #ffffff;
+  --results-podium-border: rgba(15, 17, 23, 0.08);
+  --results-row-bg: #ffffff;
+  --results-row-hover: #f7f6f3;
+  --results-row-border: rgba(15, 17, 23, 0.06);
+  --results-rank-bg: rgba(15, 17, 23, 0.05);
+
+  /* ── Events v2 tokens ──────────────────────── */
+  --events-stat-bg: #ffffff;
+  --events-stat-border: rgba(15, 17, 23, 0.08);
+  --events-detail-bg: #ffffff;
+  --events-detail-border: rgba(15, 17, 23, 0.08);
+  --events-calendar-bg: #ffffff;
+  --events-calendar-header: rgba(15, 17, 23, 0.03);
+  --events-calendar-day-hover: rgba(15, 17, 23, 0.04);
+  --filter-pill-bg: #ffffff;
+  --filter-pill-border: rgba(15, 17, 23, 0.10);
+  --filter-pill-text: rgba(15, 17, 23, 0.55);
+  --filter-pill-active-text: #fff;
 }
 
-[data-theme='light'] .site-header {
-  background: rgba(255, 255, 255, 0.92);
-}
-
-[data-theme='light'] .site-header--scrolled {
-  box-shadow: 0 8px 24px rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .site-header__link:hover {
-  background: rgba(15, 17, 23, 0.04);
-}
-
-[data-theme='light'] .stat-block__value {
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  color: var(--color-text-primary);
-}
-
-[data-theme='light'] .hero__overlay {
-  background: linear-gradient(105deg, rgba(244, 245, 247, 0.94) 0%, rgba(244, 245, 247, 0.55) 45%, rgba(244, 245, 247, 0.2) 100%);
-}
+/* =============================================
+   ADMIN — light overrides
+   ============================================= */
 
 [data-theme='light'] .admin-shell__sidebar {
   background: #ffffff;
   border-right-color: var(--color-border-subtle);
+}
+
+[data-theme='light'] .admin-shell__brand-mark {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+[data-theme='light'] .admin-shell__footer {
+  background: transparent;
+}
+
+[data-theme='light'] .admin-shell__account {
+  background: #ffffff;
+}
+
+[data-theme='light'] .admin-shell__nav button:hover .admin-shell__nav-icon {
+  background: rgba(15, 17, 23, 0.04);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme='light'] .admin-shell__nav-icon {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+[data-theme='light'] .admin-mobile-bar {
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+}
+
+[data-theme='light'] .admin-page-toolbar__search,
+[data-theme='light'] .admin-page-toolbar__alert,
+[data-theme='light'] .admin-metric,
+[data-theme='light'] .action-queue,
+[data-theme='light'] .recent-activity,
+[data-theme='light'] .admin-welcome {
+  background: #ffffff;
+}
+
+/* =============================================
+   STAT BLOCK en home — light override
+   ============================================= */
+
+[data-theme='light'] .stat-block:hover .stat-block__value {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: initial;
+  animation: none;
+  color: var(--color-text-primary);
+}
+
+/* =============================================
+   SECTION HEADING eyebrow — luz no pierde contraste
+   ============================================= */
+
+[data-theme='light'] .section-heading__eyebrow {
+  color: #1a6bb0;
+}
+
+/* =============================================
+   CARDS — light no tienen glow oscuro
+   ============================================= */
+
+[data-theme='light'] .result-card,
+[data-theme='light'] .membership-card {
+  background: #ffffff;
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .about-pillar {
+  background: #ffffff;
+}
+
+[data-theme='light'] .membership-card--featured {
+  border-color: rgba(225, 6, 0, 0.22);
+}
+
+/* =============================================
+   FAQ — light
+   ============================================= */
+
+[data-theme='light'] .faq-item {
+  border-bottom-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .faq-item:first-child {
+  border-top-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .faq-item__trigger {
+  color: rgba(15, 17, 23, 0.65);
+}
+
+[data-theme='light'] .faq-item--open .faq-item__trigger,
+[data-theme='light'] .faq-item__trigger:hover {
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .footer-cta {
+  background: #ffffff;
+}
+
+[data-theme='light'] .footer-cta:hover {
+  box-shadow: 0 12px 40px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .site-footer__main {
+  background: var(--footer-bg, #eef0f4);
+}
+
+[data-theme='light'] .site-footer__bottom {
+  background: var(--footer-bg, #f4f5f7);
 }

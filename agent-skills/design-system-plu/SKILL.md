@@ -6,6 +6,8 @@ Mantener una identidad visual **propia de PLU ARG / Maximal** — oscura, atlét
 
 Para el **proceso de mejora visual por pantalla** (auditoría, UX, responsive, QA), usar también [`design-upgrade`](../design-upgrade/SKILL.md).
 
+Para **refinar una sección concreta** (hero dock, cards, nav) con patrones CSS modernos, usar [`design-ux-ui`](../design-ux-ui/SKILL.md).
+
 ## Cuándo usarla
 
 - Crear o modificar páginas en `src/pages/`.

@@ -25,6 +25,7 @@ export const STATUS_LABELS = {
   cupos_limitados: 'Cupos limitados',
   cerrado: 'Cerrado',
   finalizado: 'Finalizado',
+  usada: 'Ingresó ✓',
 }
 
 const SUCCESS = new Set([
@@ -34,22 +35,28 @@ const SUCCESS = new Set([
   'pagada',
   'aprobado',
   'inscripcion_abierta',
+  'usada',
 ])
 
 const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'observada', 'borrador', 'creado', 'cupos_limitados'])
 
 const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado'])
 
-export function getStatusMeta(value) {
+export function getStatusMeta(value, t) {
   let tone = 'neutral'
   if (SUCCESS.has(value)) tone = 'success'
   else if (WARNING.has(value)) tone = 'warning'
   else if (DANGER.has(value)) tone = 'danger'
 
-  return {
-    label: STATUS_LABELS[value] ?? value ?? '—',
-    tone,
+  let label = STATUS_LABELS[value] ?? value ?? '—'
+  if (t && value) {
+    const translated = t(`status.${value}`)
+    if (translated !== `status.${value}`) {
+      label = translated
+    }
   }
+
+  return { label, tone }
 }
 
 const LEGACY_STATUS_MAP = {

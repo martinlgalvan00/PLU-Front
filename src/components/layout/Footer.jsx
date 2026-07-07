@@ -1,75 +1,72 @@
-import { Mail } from 'lucide-react'
-import { NAV_ITEMS } from '../../lib/constants.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import BrandLogo from '../ui/BrandLogo.jsx'
+
+const FOOTER_PLATFORM = ['members', 'pitbull', 'events', 'results', 'rulebook']
+const FOOTER_COMMUNITY = ['community', 'faq', 'contact']
 
 export default function Footer({ onNavigate }) {
   const { t } = useI18n()
+  const year = new Date().getFullYear()
 
   return (
-    <footer className="site-footer">
+    <footer className="site-footer site-footer--design site-footer--premium">
       <div className="site-footer__wrap">
-        <div className="footer-cta">
-          <h3>¿Listo para competir con PLU ARG?</h3>
-          <p>Afiliate, inscribite a Pitbull Classic o accedé al panel operativo.</p>
-          <div className="footer-cta__actions">
-            <button type="button" className="btn" onClick={() => onNavigate('register')}>
-              {t('nav.register')}
-            </button>
-            <button type="button" className="btn btn--outline" onClick={() => onNavigate('pitbull')}>
-              {t('nav.pitbull')}
-            </button>
-          </div>
-        </div>
-
-        <div className="site-footer__grid">
+        <div className="site-footer__shell">
           <div className="site-footer__brand">
-            <strong>{t('brand.name')}</strong>
-            <p>Federación argentina de powerlifting. Operación junto a Maximal.</p>
-            <span className="site-footer__flag" aria-hidden="true" />
+            <button type="button" className="site-footer__logo" onClick={() => onNavigate('home')}>
+              <BrandLogo variant="letterhead" imgClassName="site-footer__logo-img" height={32} />
+            </button>
+            <p className="site-footer__brand-desc site-footer__brand-desc--full">{t('footer.brandDesc')}</p>
+            <p className="site-footer__brand-desc site-footer__brand-desc--short">{t('footer.brandDescShort')}</p>
           </div>
-          <div>
-            <h4>Navegación</h4>
-            <ul>
-              {NAV_ITEMS.map(([key]) => (
-                <li key={key}>
-                  <button type="button" onClick={() => onNavigate(key)}>
-                    {t(`nav.${key}`)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Acciones</h4>
-            <ul>
-              <li>
-                <button type="button" onClick={() => onNavigate('register')}>
-                  {t('nav.register')}
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => onNavigate('pitbull')}>
-                  {t('nav.pitbull')}
-                </button>
-              </li>
-              <li>
-                <button type="button" onClick={() => onNavigate('login')}>
-                  {t('nav.login')}
-                </button>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4>Contacto</h4>
-            <a href="mailto:soporte@pluarg.com">
-              <Mail size={16} /> soporte@pluarg.com
+
+          <div className="site-footer__contact-bar" aria-label={t('footer.directContact')}>
+            <a href="mailto:hola@pluarg.com.ar" className="site-footer__contact-link site-footer__email">
+              hola@pluarg.com.ar
             </a>
+            <span className="site-footer__contact-sep" aria-hidden>
+              ·
+            </span>
+            <span className="site-footer__contact-text">{t('footer.locationShort')}</span>
+            <button type="button" className="site-footer__contact-login" onClick={() => onNavigate('login')}>
+              {t('footer.loginLinkShort')}
+            </button>
+          </div>
+
+          <div className="site-footer__nav-rail">
+            <nav className="site-footer__nav-group" aria-label={t('footer.navPlatform')}>
+              <h4>{t('footer.navPlatform')}</h4>
+              <ul>
+                {FOOTER_PLATFORM.map((key) => (
+                  <li key={key}>
+                    <button type="button" onClick={() => onNavigate(key)}>
+                      {t(`nav.${key}`)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <nav className="site-footer__nav-group" aria-label={t('footer.navCommunity')}>
+              <h4>{t('footer.navCommunity')}</h4>
+              <ul>
+                {FOOTER_COMMUNITY.map((key) => (
+                  <li key={key}>
+                    <button type="button" onClick={() => onNavigate(key)}>
+                      {t(`nav.${key}`)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
         </div>
 
-        <div className="site-footer__bottom">
-          <span>© {new Date().getFullYear()} PLU ARG · Maximal</span>
-          <span>Powerlifting con estándar internacional</span>
+        <div className="site-footer__bottom-bar">
+          <span>
+            © {year} {t('brand.name')} · {t('footer.copyright')}
+          </span>
+          <span>{t('footer.poweredBy')}</span>
         </div>
       </div>
     </footer>
