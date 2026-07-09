@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, CalendarPlus, MapPin } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowRight, CalendarDays, MapPin } from 'lucide-react'
+import EventsPluHero from '../components/layout/EventsPluHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
@@ -12,7 +12,8 @@ import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
-import { buildGoogleCalendarUrl, downloadIcs } from '../lib/calendar.js'
+import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
+import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 
 function EventStatusBadge({ status, t }) {
@@ -47,7 +48,7 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
       <ul className="events-detail__meta">
         <li>
           <CalendarDays size={13} aria-hidden />
-          {event.date}
+          {event.displayDate}
         </li>
         <li>
           <MapPin size={13} aria-hidden />
@@ -79,28 +80,13 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
         liveStreamProvider={event.liveStreamProvider}
       />
 
-      {event.startsAt && event.endsAt && (
-        <div className="events-detail__calendar-actions">
-          <Button
-            variant="outline"
-            className="btn--small"
-            onClick={() => window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')}
-          >
-            <CalendarPlus size={14} aria-hidden />
-            {t('pages.events.addToGoogleCalendar')}
-          </Button>
-          <Button variant="outline" className="btn--small" onClick={() => downloadIcs(event)}>
-            <CalendarPlus size={14} aria-hidden />
-            {t('pages.events.downloadIcs')}
-          </Button>
-        </div>
-      )}
+      <EventCalendarActions event={event} />
     </div>
   )
 }
 
 export default function EventsPage({ onNavigate, onSelectEvent, events: eventsProp = UPCOMING_EVENTS }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
   // (localStorage/mock); acá lo enriquecemos con lo que ya es real en
   // Supabase (calendario/directo) matcheando por slug — sin bloquear el
@@ -122,9 +108,36 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
     }
   }, [])
 
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      }),
+    [locale],
+  )
+
+  const formatEventDate = useCallback(
+    (dateISO) => {
+      const parts = dateFormatter.formatToParts(new Date(dateISO))
+      const day = parts.find((part) => part.type === 'day')?.value ?? ''
+      const month = parts.find((part) => part.type === 'month')?.value ?? ''
+      return `${day} ${month}`
+    },
+    [dateFormatter],
+  )
+
   const events = useMemo(
-    () => eventsProp.map((event) => ({ ...event, ...supabaseBySlug[event.slug] })),
-    [eventsProp, supabaseBySlug],
+    () =>
+      eventsProp.map((event) => {
+        const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
+        return {
+          ...merged,
+          displayDate: merged.dateISO ? formatEventDate(merged.dateISO) : merged.date,
+        }
+      }),
+    [eventsProp, supabaseBySlug, formatEventDate],
   )
 
   const pitbull = events.find((event) => event.featured) ?? events[0]
@@ -176,7 +189,12 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
 
   useEffect(() => {
     if (listEvents.length === 0) {
-      setSelectedSlug(null)
+      if (showPitbull && pitbull?.slug) {
+        setSelectedSlug(pitbull.slug)
+        setCalendarFocus(pitbull.dateISO)
+      } else {
+        setSelectedSlug(null)
+      }
       return
     }
 
@@ -186,7 +204,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
       setSelectedSlug(next.slug)
       setCalendarFocus(next.dateISO)
     }
-  }, [listEvents, selectedSlug])
+  }, [listEvents, selectedSlug, showPitbull, pitbull])
 
   function focusEvent(event) {
     setSelectedSlug(event.slug)
@@ -197,44 +215,37 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
     onSelectEvent?.(event)
   }
 
+  const visibleEventCount = listEvents.length + (showPitbull && pitbull ? 1 : 0)
+
   const eventCountLabel =
-    listEvents.length === 1
-      ? t('pages.events.eventCount_one', { count: listEvents.length })
-      : t('pages.events.eventCount_other', { count: listEvents.length })
+    visibleEventCount === 1
+      ? t('pages.events.eventCount_one', { count: visibleEventCount })
+      : t('pages.events.eventCount_other', { count: visibleEventCount })
 
   return (
-    <main className="page page--design events-page--design events-page--premium">
-      <DesignPageHero
-        className="events-hero"
-        compact
-        breadcrumbLabel={t('pages.events.heroBreadcrumb')}
-        eyebrow={t('pages.events.heroEyebrow')}
-        onHome={() => onNavigate('home')}
-        title={t('pages.events.heroTitle')}
-        description={t('pages.events.heroDesc')}
-      >
-        <div className="events-hero__toolbar">
+    <main className="page page--design events-page--design events-page--plu-ref">
+      <EventsPluHero onHome={() => onNavigate('home')} />
+
+      <div className="events-page__body">
+        <div className="events-page__toolbar">
           <FilterPills
             active={filter}
             ariaLabel={t('pages.events.filterAria')}
-            className="events-hero__filters segmented-switch--editorial"
+            className="events-page__filters filter-pills--refined"
             onChange={setFilter}
             options={filters}
-            segmented
           />
-          <span className="events-hero__count" aria-live="polite">
+          <span className="events-page__count" aria-live="polite">
             {eventCountLabel}
           </span>
         </div>
-      </DesignPageHero>
-
-      <div className="events-page__body">
         <div className="events-layout-v2">
           <div className="events-main-column">
             {showPitbull && pitbull && (
               <Reveal variant="from-left">
                 <PitbullSpotlight
                   variant="events"
+                  event={pitbull}
                   onDetail={() => onNavigate('pitbull')}
                   onRegister={
                     pitbull.status === 'inscripcion_abierta' || pitbull.status === 'cupos_limitados'
@@ -250,7 +261,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                 {listEvents.map((event) => (
                   <EventCard
                     key={event.slug}
-                    date={event.date}
+                    date={event.displayDate}
                     title={event.title}
                     venue={event.venue}
                     location={event.location}
@@ -266,6 +277,10 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                   />
                 ))}
               </StaggerReveal>
+            ) : showPitbull ? (
+              <div className="events-list__note">
+                <p>{t('pages.events.moreEventsSoon')}</p>
+              </div>
             ) : (
               <div className="events-list__empty">
                 <CalendarDays size={32} strokeWidth={1.5} aria-hidden />

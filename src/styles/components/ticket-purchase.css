@@ -766,7 +766,7 @@
 
 .ticket-purchase--editorial .ticket-purchase__submit--primary {
   align-items: center;
-  background: var(--color-brand-red);
+  background: var(--color-brand-action);
   border: none;
   border-radius: var(--border-radius-pill);
   color: #fff;
@@ -785,13 +785,13 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__submit--primary:hover {
-  background: color-mix(in srgb, var(--color-brand-red) 88%, #000);
+  background: var(--color-brand-action-hover);
   color: #fff;
   gap: 8px;
 }
 
 .ticket-purchase--editorial .ticket-purchase__submit--primary:focus-visible {
-  outline: 2px solid rgba(225, 6, 0, 0.45);
+  outline: 2px solid rgba(31, 95, 158, 0.45);
   outline-offset: 3px;
 }
 
@@ -1120,8 +1120,8 @@
 }
 
 .ticket-purchase__addon.is-selected {
-  background: rgba(225, 6, 0, 0.08);
-  border-color: rgba(225, 6, 0, 0.28);
+  background: rgba(31, 95, 158, 0.08);
+  border-color: rgba(31, 95, 158, 0.28);
 }
 
 .ticket-purchase__addon-copy {

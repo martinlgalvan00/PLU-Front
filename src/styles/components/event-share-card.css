@@ -8,7 +8,7 @@
   --card-bg: #0d0e11;
   --card-surface: #141518;
   --card-border: rgba(255, 255, 255, 0.08);
-  --card-red: #e10600;
+  --card-red: #1f5f9e;
   --card-celeste: #74acdf;
   --card-gold: #c9b978;
   --card-text: #ffffff;
@@ -70,7 +70,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(225, 6, 0, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(242, 183, 5, 0.18) 0%, transparent 55%),
     radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.12) 0%, transparent 50%),
     radial-gradient(ellipse 45% 40% at 50% 50%, rgba(255, 255, 255, 0.025) 0%, transparent 60%),
     linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
@@ -386,7 +386,7 @@
   border-radius: 50%;
   background: var(--card-bg);
   border: 2px solid var(--card-red);
-  box-shadow: 0 0 10px rgba(225, 6, 0, 0.5);
+  box-shadow: 0 0 10px rgba(242, 183, 5, 0.5);
   opacity: 1;
 }
 
@@ -665,7 +665,7 @@
   width: 28px;
   height: 28px;
   border: 2.5px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #e10600;
+  border-top-color: #f2b705;
   border-radius: 50%;
   animation: card-spin 700ms linear infinite;
 }
@@ -680,8 +680,8 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, rgba(225, 6, 0, 0.15), rgba(116, 172, 223, 0.10));
-  border: 1px solid rgba(225, 6, 0, 0.3);
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.15), rgba(31, 95, 158, 0.10));
+  border: 1px solid rgba(242, 183, 5, 0.3);
   border-radius: 10px;
   color: #fff;
   font-family: inherit;
@@ -695,8 +695,8 @@
 }
 
 .card-trigger-btn:hover {
-  background: linear-gradient(135deg, rgba(225, 6, 0, 0.22), rgba(116, 172, 223, 0.15));
-  border-color: rgba(225, 6, 0, 0.5);
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.22), rgba(31, 95, 158, 0.15));
+  border-color: rgba(242, 183, 5, 0.5);
   transform: translateY(-1px);
 }
 
@@ -704,15 +704,16 @@
   transform: translateY(0);
 }
 
-.card-trigger-btn__emoji {
-  font-size: 16px;
+.card-trigger-btn__icon {
+  color: var(--plu-gold-500);
+  flex: none;
 }
 
 /* Sección "Mi card" en el perfil */
 .account-card-share {
   position: relative;
-  background: linear-gradient(135deg, rgba(225, 6, 0, 0.08) 0%, rgba(116, 172, 223, 0.06) 100%);
-  border: 1px solid rgba(225, 6, 0, 0.2);
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.08) 0%, rgba(31, 95, 158, 0.06) 100%);
+  border: 1px solid rgba(242, 183, 5, 0.2);
   border-radius: 14px;
   padding: 24px;
   display: flex;
@@ -725,7 +726,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #e10600;
+  color: #a9790f;
 }
 
 .account-card-share h2 {

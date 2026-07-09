@@ -4,10 +4,10 @@
 
 .btn {
   align-items: center;
-  background: var(--color-brand-red);
+  background: var(--color-brand-action);
+  color: var(--color-brand-action-text);
   border: none;
   border-radius: var(--border-radius-md);
-  color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
@@ -29,14 +29,14 @@
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--color-brand-red-hover);
-  box-shadow: var(--glow-red-soft);
+  background: var(--color-brand-action-hover);
+  box-shadow: var(--elevation-sm);
   transform: translateY(-1px);
 }
 
 .btn:active:not(:disabled) {
   opacity: 0.9;
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0);
 }
 
 /* =============================================
@@ -49,7 +49,7 @@
 
 .btn--secondary:hover:not(:disabled) {
   background: var(--color-bg-elevated);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--elevation-sm);
 }
 
 .btn--celeste {
@@ -59,7 +59,7 @@
 
 .btn--celeste:hover:not(:disabled) {
   background: #8ec0f0;
-  box-shadow: var(--glow-celeste-soft);
+  box-shadow: var(--elevation-sm);
 }
 
 .btn--outline {
@@ -70,7 +70,7 @@
 .btn--outline:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.45);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
+  box-shadow: var(--elevation-sm);
 }
 
 .btn--ghost {
@@ -93,7 +93,7 @@
 
 .btn--gold:hover:not(:disabled) {
   background: var(--color-brand-gold-light);
-  box-shadow: var(--glow-gold-soft);
+  box-shadow: var(--elevation-sm);
 }
 
 /* Size variants */
@@ -163,7 +163,7 @@
 
 .export-btn:hover:not(:disabled) {
   border-color: var(--color-border-light);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--elevation-sm);
   transform: translateY(-1px);
 }
 

@@ -2,9 +2,30 @@
 
 ## Tipografía
 
-- **Poppins** en todo el proyecto (pesos 300–900).
+- **Poppins** en todo el proyecto (pesos 300–900). Es la única familia — no introducir una segunda
+  (ej. Barlow Condensed) sin guideline oficial de PLU USA que lo pida.
+- `--font-display` y `--font-family` resuelven ambos a Poppins; la jerarquía editorial (hero, PageHero)
+  se logra con peso (`--font-weight-black: 800`) + `--letter-spacing-display`, no con una tipografía distinta.
 - Títulos: uppercase o semibold, letter-spacing display.
 - Cuerpo: 400–500, line-height generoso en mobile.
+
+## Gramática visual — un solo énfasis por hover
+
+Regla base desde la auditoría de diseño de jul. 2026: **cada elemento dispara un solo efecto de
+énfasis en hover/focus — lift, glow o cambio de borde, nunca dos o tres a la vez.** Es la diferencia
+entre "plataforma federativa" y "mockup generado". Antes de sumar un hover nuevo:
+
+- **Elevación:** usar `--elevation-sm` / `--elevation-md` / `--elevation-lg` (`src/styles/variables.css`).
+  Se adaptan solas a light/dark vía `--color-shadow-tint` — no escribir un `box-shadow` rgba ad hoc.
+- **Cards** (`benefit-card`, `info-card`, `pricing-card`): `translateY` + cambio de `border-color`.
+  Sin borde-gradiente animado, sin glow de ícono, sin `scale`.
+- **Botones:** el glow de color en hover (`--glow-*-soft`) cuenta como *el* énfasis — no sumarle
+  `scale` en `:active`, alcanza con `translateY(0)`.
+- **Glassmorphism (`backdrop-filter`):** deprecado salvo dimming real de un overlay/drawer/modal sobre
+  contenido que sigue siendo visible detrás (fondo con alpha bajo). Si el fondo del elemento ya es
+  ≥95% opaco, el blur no hace nada visible — sacarlo. No usar glass como decoración de superficie.
+- **Badges / status pills** (`status.css`) y **tablas** (`tables.css`) ya son el estándar a imitar:
+  color semántico plano, sin sombra ni gradiente, separado del acento de marca.
 
 ## Temas
 

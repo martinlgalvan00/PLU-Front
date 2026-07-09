@@ -66,6 +66,48 @@ export function useScrolled(threshold = 20) {
 }
 
 /**
+ * Parallax muy leve para una imagen de fondo (ej. hero): desplaza
+ * `--hero-parallax-shift` en px mientras el elemento está en pantalla, vía
+ * rAF (sin re-render). No hace nada si `prefers-reduced-motion: reduce`.
+ */
+export function useParallaxShift(ref, { strength = 22 } = {}) {
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return undefined
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined
+    }
+
+    let rafId = null
+
+    function tick() {
+      rafId = null
+      const rect = node.getBoundingClientRect()
+      const viewportH = window.innerHeight
+      if (rect.bottom < 0 || rect.top > viewportH) return
+      const progress = 1 - Math.min(1, Math.max(0, rect.top / viewportH))
+      const shift = (progress - 0.5) * strength
+      node.style.setProperty('--hero-parallax-shift', `${shift.toFixed(1)}px`)
+    }
+
+    function onScroll() {
+      if (rafId == null) rafId = requestAnimationFrame(tick)
+    }
+
+    tick()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (rafId != null) cancelAnimationFrame(rafId)
+      node.style.removeProperty('--hero-parallax-shift')
+    }
+  }, [ref, strength])
+}
+
+/**
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
  */

@@ -1,15 +1,19 @@
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import { CalendarCheck, ClipboardList, CreditCard, ShieldCheck } from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
-import MembersHeroRail from '../components/ui/MembersHeroRail.jsx'
+import MembersPluHero from '../components/ui/MembersPluHero.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-export default function MembersPage({ onNavigate, session }) {  const {
+const PROCESS_STEP_ICONS = [ClipboardList, CreditCard, ShieldCheck, CalendarCheck]
+
+export default function MembersPage({ onNavigate, session }) {
+  const {
     MEMBERSHIP_ANNUAL_STEPS,
     MEMBERSHIP_BENEFITS,
     MEMBERSHIP_FAQ,
+    MEMBERSHIP_INSTITUTIONAL,
     MEMBERSHIP_PLANS,
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
@@ -21,137 +25,116 @@ export default function MembersPage({ onNavigate, session }) {  const {
     ? t('pages.members.ctaAuthenticated')
     : t('pages.members.ctaGuest')
   const goToAffiliation = () => onNavigate(isLoggedInAthlete ? 'membership' : 'register')
-  const scrollToPlans = () => document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
 
   return (
-    <main className="page page--design members-page--design members-page--premium">
-      <DesignPageHero
-        className="members-hero"
-        compact
-        breadcrumbLabel={t('pages.members.heroBreadcrumb')}
-        eyebrow={t('pages.members.heroEyebrow')}
-        onHome={() => onNavigate('home')}
-        title={t('pages.members.heroTitle')}
-        description={t('pages.members.heroDesc')}
-      >
-        <MembersHeroRail
-          actionLabel={affiliationCta}
-          onAffiliate={goToAffiliation}
-          onViewPlans={scrollToPlans}
-        />
-      </DesignPageHero>
+    <main className="page page--design members-page members-page--plu-ref">
+      <Reveal>
+        <MembersPluHero onHome={() => onNavigate('home')} onNavigate={onNavigate} session={session} />
+      </Reveal>
 
       <div className="members-page__body">
-        <Reveal as="section" variant="up" className="members-section members-section--intro">
-          <div className="members-intro">
-            <header className="members-intro__head">
-              <span className="members-intro__index" aria-hidden>
-                {t('pages.members.introIndex')}
-              </span>
-              <div className="members-intro__head-copy">
-                <span className="members-section__eyebrow">{t('pages.members.introEyebrow')}</span>
-                <h2 className="members-section__title members-section__title--display">
-                  {t('pages.members.introTitle')}
-                </h2>
-                <p className="members-section__text">{t('pages.members.introText')}</p>
-              </div>
-            </header>
+        <section className="members-section members-section--plans members-plu-plans" id="planes">
+          <div className="membership-grid membership-grid--plu">
+            {MEMBERSHIP_PLANS.map((plan) => (
+              <MembershipCard
+                key={plan.id}
+                {...plan}
+                ctaLabel={affiliationCta}
+                onSelect={goToAffiliation}
+                variant="plu"
+              />
+            ))}
+          </div>
+        </section>
 
-            <ul className="members-benefit-list members-benefit-list--luxury" aria-label={t('pages.members.benefitsAria')}>
-              {MEMBERSHIP_BENEFITS.map((item, index) => (
-                <li key={item.id} className="members-benefit-list__item">
-                  <span className="members-benefit-list__index" aria-hidden>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <div className="members-benefit-list__copy">
+        <Reveal as="section" variant="up" className="members-plu-block">
+          <header className="members-plu-block__head">
+            <h2 className="members-plu-block__title">{t('pages.members.introTitle')}</h2>
+            <p className="members-plu-block__lead">{t('pages.members.introText')}</p>
+          </header>
+          <ul className="members-plu-tiles" aria-label={t('pages.members.benefitsAria')}>
+            {MEMBERSHIP_BENEFITS.map((item) => (
+              <li key={item.id} className="members-plu-tile">
+                <strong className="members-plu-tile__title">{item.title}</strong>
+                <p className="members-plu-tile__text">{item.text}</p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--process">
+          <header className="members-plu-block__head members-plu-block__head--process">
+            <p className="members-plu-process__eyebrow">{t('pages.members.processEyebrow')}</p>
+            <h2 className="members-plu-block__title">{t('pages.members.processTitle')}</h2>
+            <p className="members-plu-block__lead">{t('pages.members.processLead')}</p>
+          </header>
+          <ol className="members-plu-process" aria-label={t('pages.members.processAria')}>
+            {MEMBERSHIP_ANNUAL_STEPS.map((step, index) => {
+              const Icon = PROCESS_STEP_ICONS[index] ?? ClipboardList
+              const isLast = index === MEMBERSHIP_ANNUAL_STEPS.length - 1
+
+              return (
+                <li key={step.step} className="members-plu-process__step">
+                  <div className="members-plu-process__track" aria-hidden>
+                    <span className="members-plu-process__num">{step.step}</span>
+                    {!isLast ? <span className="members-plu-process__rail" /> : null}
+                  </div>
+                  <article className="members-plu-process__card" data-step={step.step}>
+                    <span className="members-plu-process__icon" aria-hidden>
+                      <Icon size={16} strokeWidth={1.75} />
+                    </span>
+                    <div className="members-plu-process__copy">
+                      <h3>{step.title}</h3>
+                      <p>{step.text}</p>
+                    </div>
+                  </article>
+                </li>
+              )
+            })}
+          </ol>
+        </Reveal>
+
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--requirements">
+          <header className="members-plu-block__head">
+            <h2 className="members-plu-block__title">{t('pages.members.requirementsTitle')}</h2>
+            <p className="members-plu-block__lead">{t('pages.members.requirementsLead')}</p>
+          </header>
+
+          <div className="members-plu-requirements">
+            <ul className="members-plu-checklist" aria-label={t('pages.members.requirementsAria')}>
+              {MEMBERSHIP_REQUIREMENTS.map((item) => (
+                <li key={item.id} className="members-plu-checklist__item">
+                  <span className="members-plu-checklist__marker" aria-hidden />
+                  <div className="members-plu-checklist__copy">
                     <strong>{item.title}</strong>
                     <p>{item.text}</p>
                   </div>
                 </li>
               ))}
             </ul>
-          </div>
-        </Reveal>
 
-        <Reveal as="section" variant="up" className="members-section members-section--requirements">
-          <div className="members-requirements">
-            <span className="members-requirements__index" aria-hidden>
-              {t('pages.members.requirementsIndex')}
-            </span>
-
-            <div className="members-requirements__content">
-              <header className="members-requirements__head">
-                <span className="members-section__eyebrow">{t('pages.members.requirementsEyebrow')}</span>
-                <h2 className="members-section__title">{t('pages.members.requirementsTitle')}</h2>
-              </header>
-
-              <ul className="members-req-list members-req-list--editorial" aria-label={t('pages.members.requirementsAria')}>
-                {MEMBERSHIP_REQUIREMENTS.map((item) => (
-                  <li key={item.id} className="members-req-list__item">
-                    <div className="members-req-list__copy">
-                      <strong>{item.title}</strong>
-                      <p>{item.text}</p>
-                    </div>
-                  </li>
+            <aside className="members-plu-validity-card" aria-labelledby="members-validity-title">
+              <h3 id="members-validity-title" className="members-plu-validity-card__title">
+                {t('pages.members.validityTitle')}
+              </h3>
+              <p className="members-plu-validity-card__text">{t('pages.members.validityText')}</p>
+              <ul className="members-plu-validity-card__notes">
+                {validityNotes.map((note) => (
+                  <li key={note}>{note}</li>
                 ))}
               </ul>
-
-              <div className="members-requirements__validity" aria-labelledby="members-validity-title">
-                <header className="members-requirements__validity-head">
-                  <span className="members-requirements__validity-label">{t('pages.members.validityLabel')}</span>
-                  <h3 id="members-validity-title">{t('pages.members.validityTitle')}</h3>
-                </header>
-                <p className="members-requirements__validity-text">{t('pages.members.validityText')}</p>
-                <p className="members-requirements__validity-notes">
-                  {validityNotes.map((note, index) => (
-                    <span key={note}>
-                      {index > 0 ? <span aria-hidden> · </span> : null}
-                      {note}
-                    </span>
-                  ))}
-                </p>
-              </div>
-            </div>
+            </aside>
           </div>
         </Reveal>
 
-        <Reveal as="section" variant="up" className="members-section">
-          <div className="members-section__head members-section__head--center">
-            <span className="members-section__eyebrow">{t('pages.members.processEyebrow')}</span>
-            <h2 className="members-section__title">{t('pages.members.processTitle')}</h2>
-          </div>
-          <div className="members-process members-process--timeline">
-            {MEMBERSHIP_ANNUAL_STEPS.map((step) => (
-              <article key={step.step} className="members-process-step">
-                <span className="members-process-step__num">{step.step}</span>
-                <div className="members-process-step__copy">
-                  <h3>{step.title}</h3>
-                  <p>{step.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--note">
+          <p className="members-plu-note">{MEMBERSHIP_INSTITUTIONAL.text}</p>
         </Reveal>
 
-        <section className="members-section" id="planes">
-          <div className="members-section__head members-section__head--center">
-            <span className="members-section__eyebrow">{t('pages.members.plansEyebrow')}</span>
-            <h2 className="members-section__title">{t('pages.members.plansTitle')}</h2>
-          </div>
-          <div className="membership-grid membership-grid--editorial">
-            {MEMBERSHIP_PLANS.map((plan, index) => (
-              <Reveal key={plan.id} delay={index * 60}>
-                <MembershipCard {...plan} ctaLabel={affiliationCta} onSelect={goToAffiliation} />
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        <Reveal as="section" variant="up" className="members-section members-section--narrow">
-          <div className="members-section__head members-section__head--center">
-            <span className="members-section__eyebrow">{t('pages.members.faqEyebrow')}</span>
-            <h2 className="members-section__title">{t('pages.members.faqTitle')}</h2>
-          </div>
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--faq">
+          <header className="members-plu-block__head">
+            <h2 className="members-plu-block__title">{t('pages.members.faqTitle')}</h2>
+          </header>
           <FAQAccordion items={MEMBERSHIP_FAQ} />
         </Reveal>
       </div>

@@ -7,6 +7,7 @@ import DashboardSection from './admin/DashboardSection.jsx'
 import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
 import PlaceholderSection from './admin/PlaceholderSection.jsx'
+import PluUsaSection from './admin/PluUsaSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
 import TicketOrdersSection from './admin/TicketOrdersSection.jsx'
 import UsersSection from './admin/UsersSection.jsx'
@@ -39,14 +40,17 @@ export default function AdminPage({
   onUpdateUserRole,
   payments,
   pendingTicketOrders,
+  pendingTicketOrdersLoading,
+  pendingTicketOrdersError,
   athletes,
   registrations,
   tickets,
   users,
   roleLabel,
+  isPluUsaPartner = false,
   onExit,
 }) {
-  const [section, setSection] = useState('dashboard')
+  const [section, setSection] = useState(isPluUsaPartner ? 'plu-usa' : 'dashboard')
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
 
@@ -160,8 +164,21 @@ export default function AdminPage({
         <TicketOrdersSection
           canEdit={canEdit}
           pendingTicketOrders={pendingTicketOrders}
+          isLoading={pendingTicketOrdersLoading}
+          loadError={pendingTicketOrdersError}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRefresh={onRefreshPendingTicketOrders}
+        />
+      )
+    }
+
+    if (section === 'plu-usa') {
+      return (
+        <PluUsaSection
+          athletes={athletes}
+          memberships={enrichedMemberships}
+          registrations={registrations}
+          onExportPluUsa={onExportPluUsa}
         />
       )
     }
@@ -180,6 +197,7 @@ export default function AdminPage({
       onExit={onExit}
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
+      restrictedNav={isPluUsaPartner}
     >
       <div className="admin-page admin-section-enter" key={`${section}-${selectedAthleteId ?? 'list'}`}>
         {renderSection()}

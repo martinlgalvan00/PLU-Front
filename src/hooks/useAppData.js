@@ -64,6 +64,8 @@ export function useAppData() {
   // solo un cache de lo último que se creó/consultó vía la API real.
   const [tickets, setTickets] = useState([])
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
+  const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
+  const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
   const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
   const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
@@ -365,11 +367,16 @@ export function useAppData() {
 
   const refreshPendingTicketOrders = useCallback(async () => {
     if (!userCanEdit) return
+    setPendingTicketOrdersLoading(true)
+    setPendingTicketOrdersError(null)
     try {
       const { orders } = await listPendingTicketOrdersRequest()
       setPendingTicketOrders(orders)
     } catch (error) {
       console.error('refreshPendingTicketOrders:', error)
+      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las órdenes pendientes.')
+    } finally {
+      setPendingTicketOrdersLoading(false)
     }
   }, [userCanEdit])
 
@@ -509,6 +516,17 @@ export function useAppData() {
         return demoAthleteSession
       }
 
+      if ((emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') && password === '123') {
+        const demoPluUsaSession = {
+          id: 'demo-plu-usa',
+          role: 'viewer_plu_usa',
+          name: 'PLU USA',
+          email: 'demo3@pluarg.com.ar',
+        }
+        setSession(demoPluUsaSession)
+        return demoPluUsaSession
+      }
+
       // La cuenta de seguridad SÍ pasa por el backend real (más abajo, loginRequest):
       // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
       // a diferencia del resto de la demo que vive en localStorage.
@@ -635,6 +653,8 @@ export function useAppData() {
     payments,
     tickets,
     pendingTicketOrders,
+    pendingTicketOrdersLoading,
+    pendingTicketOrdersError,
     createdOrder,
     auditLogs,
     form,

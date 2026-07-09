@@ -25,22 +25,317 @@
       "text": "El atleta compite en la categoría de peso corporal declarada en el pesaje del evento."
     }
   ],
-  "framework": [
+  "chapters": [
     {
-      "title": "Full Power",
-      "text": "Sentadilla, press de banca y peso muerto en la misma competición."
+      "id": "framework",
+      "numeral": "I",
+      "title": "Marco de la competición",
+      "sourceLabel": "Secciones 1.1 – 1.8",
+      "includeAgeWeight": true,
+      "cards": [
+        {
+          "title": "Levantamientos y modalidades",
+          "text": "Full Power (sentadilla, press de banca y peso muerto), Push-Pull (banca y muerto) y modalidades de especialista en un solo levantamiento, siempre en la secuencia sentadilla → banca → muerto."
+        },
+        {
+          "title": "Divisiones con y sin control antidopaje",
+          "text": "Las competencias pueden sancionarse con control antidopaje, sin control, o ambas; incluyen además la División de Género Neutral (N) y la División de Parasports para atletas adaptados."
+        },
+        {
+          "title": "Definición de ganadores",
+          "text": "Gana quien logre el mayor total válido en su división, categoría de equipo, clase de peso y grupo de edad. El Mejor Levantador se define por coeficiente DOTS (fórmula de McCulloch para Máster)."
+        },
+        {
+          "title": "Equipos",
+          "text": "De 4 a 15 levantadores por equipo, puntuación por el promedio DOTS de los 5 mejores puntajes, categoría de equipo uniforme (Raw, Raw con vendas, Single o Multi ply) y mínimo 3 equipos para entrega de premios."
+        },
+        {
+          "title": "Récords",
+          "text": "Registrados por el Presidente Oficial de Récords de Powerlifting United; un récord nuevo debe superar al anterior por al menos 0,5 kg y se valida tras la revisión de equipo en plataforma."
+        },
+        {
+          "title": "Membresía en Powerlifting United",
+          "text": "Atletas, árbitros y oficiales deben ser miembros activos al momento del pesaje. La membresía se paga anualmente, no es reembolsable ni transferible, y se renueva automáticamente cada 12 meses."
+        }
+      ]
     },
     {
-      "title": "Push / Pull",
-      "text": "Press de banca y peso muerto, sin sentadilla."
+      "id": "equipment-specs",
+      "numeral": "II",
+      "title": "Equipo y especificaciones",
+      "sourceLabel": "Secciones 2.1 – 2.8",
+      "cards": [
+        {
+          "title": "Básculas",
+          "text": "Digitales, calibradas en kilogramos y recertificadas cada 2 años; mínimo dos básculas disponibles, al menos una con capacidad de 250 kg o más."
+        },
+        {
+          "title": "Plataforma",
+          "text": "Entre 8×8 y 12×12 pies, altura máxima de 3 pulgadas, superficie de moqueta de una sola pieza sobre al menos dos capas de madera contrachapada."
+        },
+        {
+          "title": "Barras y collarines",
+          "text": "Barras de fabricación industrial de 2,2 a 2,5 m (2,4 m en peso muerto), diámetro de 27 a 32 mm y peso de 25, 30 o 35 kg; collarines de 2,5 kg cada uno con bloqueo giratorio."
+        },
+        {
+          "title": "Discos de competición",
+          "text": "Fabricados en fábrica, dentro del 0,25 % o 10 g de su peso nominal, en la escala de 0,25 a 25 kg (además discos de 50 kg), con colores y orden de carga estandarizados."
+        },
+        {
+          "title": "Soportes para sentadillas",
+          "text": "Monolift hidráulico o combo rack estándar, ajustables entre 1,00 y 1,70 m de altura en incrementos de 5 cm."
+        },
+        {
+          "title": "Banco",
+          "text": "Construcción robusta con medidas reglamentarias (largo mínimo 1,22 m, montantes ajustables de 75 a 110 cm) y topes de fallo ajustables."
+        },
+        {
+          "title": "Sistema de luces y tarjetas",
+          "text": "Tres luces blancas y tres rojas, una por árbitro, más tarjetas de color: roja (posición), azul (técnica), amarilla (órdenes y otros), para transparencia en el arbitraje."
+        },
+        {
+          "title": "Relojes y cronómetros",
+          "text": "Reloj de intento de 60 segundos obligatorio en todos los niveles, temporizador de descanso condicional para grupos de menos de 10 levantadores y temporizador de sumisión de 60 segundos."
+        }
+      ]
     },
     {
-      "title": "Especialistas",
-      "text": "Modalidades de especialista en sentadilla, banca o peso muerto."
+      "id": "athlete-equipment",
+      "numeral": "III",
+      "title": "Equipo del atleta",
+      "sourceLabel": "Secciones 3.1 – 3.12",
+      "cards": [
+        {
+          "title": "Singlet",
+          "text": "Una sola pieza, ajustado al cuerpo, de tela sin soporte adicional; mangas siempre sobre los hombros. Aplica a levantadores raw y raw con vendas. Para equipados, ver Capítulo VII."
+        },
+        {
+          "title": "Remera",
+          "text": "Camiseta de mezcla de algodón, sin botones ni costuras reforzadas, obligatoria bajo el singlet en sentadilla y press de banca; opcional en peso muerto."
+        },
+        {
+          "title": "Ropa interior y calcetines",
+          "text": "Calzoncillo sin piernas de algodón, nylon o poliéster (no obligatorio) y un solo par de medias o calcetines por levantador."
+        },
+        {
+          "title": "Cinturón y calzado",
+          "text": "Equipamiento personal permitido según las especificaciones de ancho, grosor y materiales del reglamento oficial."
+        },
+        {
+          "title": "Muñequeras y rodilleras",
+          "text": "Vendas y rodilleras permitidas dentro de las longitudes y materiales autorizados; deben usarse sobre la manga cuando se usa un traje de cuerpo completo."
+        },
+        {
+          "title": "Vendaje sin asistencia",
+          "text": "El levantador debe poder colocarse y ajustarse su propio equipo personal sin asistencia externa en la plataforma."
+        },
+        {
+          "title": "Inspección del equipo personal",
+          "text": "Todo el equipo personal se revisa antes de la competencia para verificar que cumple las especificaciones aprobadas."
+        },
+        {
+          "title": "Manejo de fluidos corporales",
+          "text": "Sangre o restos de piel en la barra o la plataforma deben limpiarse de inmediato antes de continuar la competencia."
+        }
+      ]
     },
     {
-      "title": "Secuencia obligatoria",
-      "text": "En todo evento el orden es sentadilla → press de banca → peso muerto."
+      "id": "procedures",
+      "numeral": "IV",
+      "title": "Procedimientos de la competición",
+      "sourceLabel": "Secciones 4.1 – 4.4",
+      "cards": [
+        {
+          "title": "Sistema de rondas",
+          "text": "Grupos de hasta 15 levantadores; la sentadilla se completa para todo el grupo antes de pasar a banca, y banca antes de peso muerto. Cambio mínimo de peso: 2,5 kg. No se permiten cuartos intentos."
+        },
+        {
+          "title": "Los oficiales",
+          "text": "Presentador/locutor, Director de Competencia, jurado de apelaciones, cronometrador y anotadores oficiales, cada uno con responsabilidades específicas durante la tanda."
+        },
+        {
+          "title": "Reglas generales",
+          "text": "El árbitro principal controla la carga de la barra y el orden en plataforma; tres intentos fallidos en un mismo levantamiento descalifican al atleta de ese movimiento."
+        },
+        {
+          "title": "Descuidos, infracciones y trampas",
+          "text": "El reglamento distingue descuidos menores corregibles, infracciones que deben subsanarse antes de competir, y trampas deliberadas, cada categoría con su propio tratamiento disciplinario."
+        }
+      ]
+    },
+    {
+      "id": "weighins",
+      "numeral": "V",
+      "title": "Pesaje",
+      "sourceLabel": "Sección 5.1",
+      "cards": [
+        {
+          "title": "Ventana de pesaje",
+          "text": "Se realiza dentro de las 24 horas previas a la competencia, en un espacio privado; el atleta puede pesarse sin ropa, en ropa interior o con singlet."
+        },
+        {
+          "title": "Protocolo para menores",
+          "text": "Los menores de 18 años se pesan con singlet (se descuentan 200 g) y requieren la presencia de su tutor legal y dos oficiales del mismo sexo de nacimiento."
+        },
+        {
+          "title": "Registro oficial",
+          "text": "El peso, la división, la categoría y los datos del atleta quedan asentados en la tarjeta oficial y cargados en LiftingCast, firmados por el atleta y el oficial de pesaje."
+        },
+        {
+          "title": "Revisión de equipo",
+          "text": "Antes o después del pesaje, un oficial de Powerlifting United revisa el equipo personal del atleta contra las especificaciones del Capítulo III."
+        }
+      ]
+    },
+    {
+      "id": "lifts",
+      "numeral": "VI",
+      "title": "Reglas de la competición",
+      "sourceLabel": "Secciones 6.1 – 6.3",
+      "lifts": [
+        {
+          "id": "squat",
+          "title": "Sentadilla",
+          "section": "§6.1",
+          "points": [
+            "El árbitro principal da las órdenes de squat y rack.",
+            "El levantador debe cumplir profundidad y posición final reglamentarias.",
+            "Las causas de descalificación están detalladas en el PDF oficial."
+          ]
+        },
+        {
+          "id": "bench",
+          "title": "Press de banca",
+          "section": "§6.2",
+          "points": [
+            "Órdenes del árbitro: start, press y rack.",
+            "La barra debe tocar el pecho o abdomen y volver a la posición inicial.",
+            "Glúteos en contacto con el banco; pies en la plataforma."
+          ]
+        },
+        {
+          "id": "deadlift",
+          "title": "Peso muerto",
+          "section": "§6.3",
+          "points": [
+            "No hay orden de inicio: el intento debe comenzar antes de que expire el tiempo.",
+            "Posición final con hombros, caderas y rodillas extendidos.",
+            "El árbitro principal da la orden down para bajar la barra."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "equipped",
+      "numeral": "VII",
+      "title": "División equipada",
+      "sourceLabel": "Secciones 7.1 – 7.3",
+      "cards": [
+        {
+          "title": "Single ply (capa única)",
+          "text": "Traje de sentadilla/peso muerto y camiseta de banca de una sola capa de tela, con especificaciones de costura y material detalladas en el reglamento oficial."
+        },
+        {
+          "title": "Multi ply (multi capa)",
+          "text": "Traje de sentadilla/peso muerto de tela en varias capas; se permite camiseta de compresión/erectores y medias mallas, y \"lift off\" de tres personas según la categoría."
+        },
+        {
+          "title": "Unlimited (sin límite)",
+          "text": "División que permite camisetas de banca sin límite de capas; no es obligatorio usar remera debajo, y el resto de las reglas de equipamiento se mantiene sin cambios."
+        }
+      ]
+    },
+    {
+      "id": "referees",
+      "numeral": "VIII",
+      "title": "Árbitros",
+      "sourceLabel": "Secciones 8.1 – 8.2",
+      "canon": [
+        {
+          "numeral": "I",
+          "text": "Tres intentos por movimiento: sentadilla, press de banca y peso muerto. El total oficial usa el mejor intento válido de cada uno."
+        },
+        {
+          "numeral": "II",
+          "text": "La secuencia es fija en toda competición: sentadilla, press de banca y peso muerto."
+        },
+        {
+          "numeral": "III",
+          "text": "Tres árbitros evalúan cada intento en plataforma. Ante la duda, la decisión favorece al levantador."
+        },
+        {
+          "numeral": "IV",
+          "text": "El árbitro principal da las órdenes verbales y gestos de inicio, press/rack o down según el movimiento."
+        },
+        {
+          "numeral": "V",
+          "text": "El atleta compite en la categoría de peso corporal declarada en el pesaje oficial del evento."
+        },
+        {
+          "numeral": "VI",
+          "text": "Las apelaciones por decisión 2–1 deben presentarse dentro de los 60 segundos posteriores al intento."
+        },
+        {
+          "numeral": "VII",
+          "text": "Requisitos de árbitro Nivel 1: aprobación provincial, verificación de antecedentes, examen en línea y práctico, mínimo 3 eventos competidos, 18 años o más, y arbitrar al menos una vez cada 365 días."
+        },
+        {
+          "numeral": "VIII",
+          "text": "Requisitos de árbitro Nivel 2 (Nacional): mínimo 1 año de experiencia como árbitro y catálogo de competencias completado (tandas juzgadas, control de puntuación, spotting y pesaje)."
+        }
+      ]
+    },
+    {
+      "id": "adaptive",
+      "numeral": "IX",
+      "title": "Levantamiento adaptado",
+      "sourceLabel": "Secciones 9.1 – 9.6",
+      "cards": [
+        {
+          "title": "Definición",
+          "text": "Modificación de técnicas o equipo de levantamiento para atletas con discapacidad u otras limitaciones: bancos adaptados, ganchos protésicos o señales manuales, entre otras adaptaciones."
+        },
+        {
+          "title": "Elegibilidad y certificación",
+          "text": "Se solicita a adaptive@powerliftingunited.com; cada caso se evalúa y se emite una certificación de equipo adaptado válida en plataforma."
+        },
+        {
+          "title": "Categorías de competición",
+          "text": "Con equipo certificado, el atleta puede competir en todas las categorías, divisiones, clases y levantamientos, sin restricciones adicionales."
+        },
+        {
+          "title": "Seguridad y asistencia",
+          "text": "Se permite asistencia para trasladar, preparar y centrar el peso; no para iniciar o completar el levantamiento. No hay reloj de intento para estos levantadores."
+        },
+        {
+          "title": "Responsabilidades",
+          "text": "El levantador debe tramitar su certificación con dos semanas de anticipación; el Director de Competencia y los entrenadores deben conocer y atender las adaptaciones certificadas."
+        }
+      ]
+    },
+    {
+      "id": "policies",
+      "numeral": "",
+      "title": "Políticas y anexos",
+      "sourceLabel": "Políticas y apéndices",
+      "cards": [
+        {
+          "title": "Política antidiscriminación",
+          "text": "Tolerancia cero ante discriminación o acoso por discapacidad; las quejas se envían a support@powerliftingunited.com y se responden dentro de 5 días hábiles."
+        },
+        {
+          "title": "Verificación de antecedentes",
+          "text": "Todo el personal, directores y funcionarios pasan una verificación de antecedentes penales; delitos violentos, sexuales o contra menores implican rescisión automática del vínculo con PLU."
+        },
+        {
+          "title": "Lista de sustancias prohibidas",
+          "text": "Categorías de sustancias no permitidas en divisiones con control antidopaje (esteroides anabólicos, hormonas peptídicas, estimulantes, diuréticos y enmascarantes, entre otras), listado completo en el PDF oficial, págs. 66–67."
+        },
+        {
+          "title": "Apéndices",
+          "text": "Apéndice A: formulario de solicitud de récord. Apéndice B: Código de Conducta para miembros, árbitros y oficiales de Powerlifting United."
+        }
+      ]
     }
   ],
   "weightClasses": [
@@ -102,85 +397,5 @@
     { "title": "Máster 70–74", "range": "70 – 74 años" },
     { "title": "Máster 75–79", "range": "75 – 79 años" },
     { "title": "Máster 80+", "range": "80 años o más" }
-  ],
-  "equipment": [
-    {
-      "title": "Raw",
-      "text": "Modalidad sin trajes de soporte. Permite el equipo básico reglamentario: singlet, cinturón, rodilleras, muñequeras y calzado según el capítulo de equipo del atleta."
-    },
-    {
-      "title": "Raw con vendas",
-      "text": "Modalidad raw que admite vendaje sin asistencia adicional, dentro de las especificaciones del reglamento para muñequeras, rodilleras y vendas permitidas."
-    },
-    {
-      "title": "Single ply",
-      "text": "División equipada de capa única. Trajes y camisetas de press de banca deben cumplir las especificaciones de poliéster de una sola capa del capítulo VII."
-    },
-    {
-      "title": "Multi ply",
-      "text": "División equipada de varias capas. Permite trajes de mayor soporte con las restricciones de confección, velcro y longitud descritas en el reglamento."
-    },
-    {
-      "title": "Sin límite",
-      "text": "Modalidad unlimited sin tope de capas en el equipamiento de soporte, sujeta a inspección y a las normas de seguridad de la competición."
-    }
-  ],
-  "lifts": [
-    {
-      "id": "squat",
-      "title": "Sentadilla",
-      "section": "§6.1",
-      "points": [
-        "El árbitro principal da las órdenes de squat y rack.",
-        "El levantador debe cumplir profundidad y posición final reglamentarias.",
-        "Las causas de descalificación están detalladas en el PDF oficial."
-      ]
-    },
-    {
-      "id": "bench",
-      "title": "Press de banca",
-      "section": "§6.2",
-      "points": [
-        "Órdenes del árbitro: start, press y rack.",
-        "La barra debe tocar el pecho o abdomen y volver a la posición inicial.",
-        "Glúteos en contacto con el banco; pies en la plataforma."
-      ]
-    },
-    {
-      "id": "deadlift",
-      "title": "Peso muerto",
-      "section": "§6.3",
-      "points": [
-        "No hay orden de inicio: el intento debe comenzar antes de que expire el tiempo.",
-        "Posición final con hombros, caderas y rodillas extendidos.",
-        "El árbitro principal da la orden down para bajar la barra."
-      ]
-    }
-  ],
-  "judging": [
-    {
-      "numeral": "I",
-      "text": "Tres intentos por movimiento: sentadilla, press de banca y peso muerto. El total oficial usa el mejor intento válido de cada uno."
-    },
-    {
-      "numeral": "II",
-      "text": "La secuencia es fija en toda competición: sentadilla, press de banca y peso muerto."
-    },
-    {
-      "numeral": "III",
-      "text": "Tres árbitros evalúan cada intento en plataforma. Ante la duda, la decisión favorece al levantador."
-    },
-    {
-      "numeral": "IV",
-      "text": "El árbitro principal da las órdenes verbales y gestos de inicio, press/rack o down según el movimiento."
-    },
-    {
-      "numeral": "V",
-      "text": "El atleta compite en la categoría de peso corporal declarada en el pesaje oficial del evento."
-    },
-    {
-      "numeral": "VI",
-      "text": "Las apelaciones por decisión 2–1 deben presentarse dentro de los 60 segundos posteriores al intento."
-    }
   ]
 }

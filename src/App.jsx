@@ -7,7 +7,7 @@ import { readCredentialParams } from './lib/credentialQr.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
-import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel } from './lib/roles.js'
+import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isPluUsaPartner } from './lib/roles.js'
 import AdminPage from './pages/AdminPage.jsx'
 import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
@@ -19,6 +19,7 @@ import HomePage from './pages/HomePage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import MembersPage from './pages/MembersPage.jsx'
 import PitbullPage from './pages/PitbullPage.jsx'
+import RecordsPage from './pages/RecordsPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ResultsPage from './pages/ResultsPage.jsx'
 import RulebookPage from './pages/RulebookPage.jsx'
@@ -29,6 +30,7 @@ const PUBLIC_VIEWS = {
   pitbull: PitbullPage,
   events: EventsPage,
   results: ResultsPage,
+  records: RecordsPage,
   rulebook: RulebookPage,
   community: CommunityPage,
   faq: FAQPage,
@@ -122,11 +124,14 @@ export default function App() {
         onUpdateUserRole={app.updateUserRoleAction}
         payments={app.payments}
         pendingTicketOrders={app.pendingTicketOrders}
+        pendingTicketOrdersLoading={app.pendingTicketOrdersLoading}
+        pendingTicketOrdersError={app.pendingTicketOrdersError}
         athletes={app.athletes}
         registrations={app.registrations}
         tickets={app.tickets}
         users={app.users}
         roleLabel={getRoleLabel(app.session?.role)}
+        isPluUsaPartner={isPluUsaPartner(app.session?.role)}
         onExit={() => navigate('home')}
       />
     )

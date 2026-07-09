@@ -69,7 +69,7 @@ export function downloadCard(blob, filename = 'plu-arg-card.png') {
  * @param {string} [filename]
  * @returns {Promise<boolean>} — true si se usó la Share API
  */
-export async function shareCard(blob, title = 'Mi inscripción PLU ARG 🏋️', filename = 'plu-arg-card.png') {
+export async function shareCard(blob, title = 'Mi inscripción PLU ARG', filename = 'plu-arg-card.png') {
   const file = new File([blob], filename, { type: 'image/png' })
   const canShare =
     typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })

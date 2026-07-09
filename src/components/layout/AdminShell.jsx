@@ -6,6 +6,7 @@ import {
   ClipboardList,
   CreditCard,
   Download,
+  Eye,
   LayoutDashboard,
   Menu,
   ScanLine,
@@ -33,6 +34,7 @@ const ICONS = {
   Shield,
   ScrollText,
   ScanLine,
+  Eye,
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
@@ -43,10 +45,16 @@ export default function AdminShell({
   onExit,
   navBadges = {},
   roleLabel = 'Sin rol',
+  restrictedNav = false,
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { t } = useI18n()
+
+  const navGroups = useMemo(
+    () => (restrictedNav ? ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa') : ADMIN_NAV_GROUPS),
+    [restrictedNav],
+  )
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
@@ -84,10 +92,12 @@ export default function AdminShell({
             </div>
             <div className="admin-shell__brand-copy">
               <div className="admin-shell__brand-title">
-                <strong>PLU ARG</strong>
-                <span className="admin-shell__brand-tag">{t('admin.shell.brandTag')}</span>
+                <strong>{t('brand.name')}</strong>
+                <span className="admin-shell__brand-tag">
+                  {restrictedNav ? t('admin.shell.brandTagPartner') : t('admin.shell.brandTag')}
+                </span>
               </div>
-              <span>{t('admin.shell.brandSubtitle')}</span>
+              <span>{restrictedNav ? t('admin.shell.brandSubtitlePartner') : t('admin.shell.brandSubtitle')}</span>
             </div>
           </div>
           <button
@@ -102,7 +112,7 @@ export default function AdminShell({
 
         <div className="admin-shell__nav-scroll">
           <nav className="admin-shell__nav" aria-label={t('admin.shell.navAria')}>
-            {ADMIN_NAV_GROUPS.map((group) => (
+            {navGroups.map((group) => (
               <div key={group.labelKey} className="admin-shell__group">
                 <span className="admin-shell__group-label">{t(group.labelKey)}</span>
                 {group.items.map(([key, labelKey, iconName]) => {

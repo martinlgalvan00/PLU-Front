@@ -36,6 +36,10 @@ export function canExportPluUsa(role) {
   return permission(role, 'canExportPluUsa')
 }
 
+export function isPluUsaPartner(role) {
+  return permission(role, 'isPluUsaPartner')
+}
+
 export function canApproveManualPayments(role) {
   return permission(role, 'canApproveManualPayments')
 }
