@@ -355,7 +355,7 @@
 
 .contact-form__submit {
   align-items: center;
-  background: var(--color-brand-red);
+  background: var(--color-brand-action);
   border: none;
   border-radius: var(--border-radius-pill);
   color: #fff;
@@ -378,7 +378,7 @@
 
 .contact-form__submit:hover {
   background: #c80500;
-  box-shadow: 0 8px 20px rgba(225, 6, 0, 0.28);
+  box-shadow: 0 8px 20px rgba(31, 95, 158, 0.28);
   gap: 10px;
 }
 
@@ -723,7 +723,7 @@
 
   .contact-form__submit {
     align-items: center;
-    background: var(--color-brand-red);
+    background: var(--color-brand-action);
     border-radius: var(--border-radius-pill);
     color: #fff;
     font-size: 13px;
@@ -735,7 +735,7 @@
   }
 
   .contact-form__submit:hover {
-    background: color-mix(in srgb, var(--color-brand-red) 88%, #000);
+    background: color-mix(in srgb, var(--color-brand-action) 88%, #000);
     color: #fff;
     gap: 8px;
   }

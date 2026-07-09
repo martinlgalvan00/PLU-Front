@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ExternalLink, Ticket } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import ErrorState from '../../components/ui/ErrorState.jsx'
+import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { getTicketPaymentProofUrl } from '../../services/ticketApi.js'
@@ -19,12 +21,15 @@ function formatUploadedAt(value, locale) {
 export default function TicketOrdersSection({
   canEdit,
   pendingTicketOrders = [],
+  isLoading = false,
+  loadError = null,
   onApproveTicketOrder,
   onRefresh,
 }) {
   const { locale, t } = useI18n()
   const [openingProofId, setOpeningProofId] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
+  const [actionError, setActionError] = useState(null)
 
   const rows = useMemo(
     () =>
@@ -50,24 +55,28 @@ export default function TicketOrdersSection({
   const handleOpenProof = useCallback(async (row) => {
     if (!row.paymentProofPath) return
     setOpeningProofId(row.id)
+    setActionError(null)
     try {
       const url = await getTicketPaymentProofUrl(row.id)
       if (url) window.open(url, '_blank', 'noopener,noreferrer')
     } catch (error) {
       console.error('getTicketPaymentProofUrl:', error)
+      setActionError(error.message ?? t('admin.ticketOrders.proofErrorFallback'))
     } finally {
       setOpeningProofId(null)
     }
-  }, [])
+  }, [t])
 
   async function handleApprove(orderId) {
     if (!canEdit) return
     setApprovingId(orderId)
+    setActionError(null)
     try {
       await onApproveTicketOrder?.(orderId)
       await onRefresh?.()
     } catch (error) {
       console.error('approve ticket order:', error)
+      setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
     } finally {
       setApprovingId(null)
     }
@@ -86,6 +95,12 @@ export default function TicketOrdersSection({
       title={t('admin.ticketOrders.title')}
       subtitle={t('admin.ticketOrders.subtitle')}
     >
+      {actionError && <p className="form-submit-error">{actionError}</p>}
+      {isLoading && rows.length === 0 ? (
+        <LoadingState label={t('admin.ticketOrders.loading')} />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={onRefresh} retryLabel={t('common.retry')} />
+      ) : (
       <DataTable
         columns={[
           { key: 'reference', label: t('admin.columns.reference') },
@@ -137,10 +152,9 @@ export default function TicketOrdersSection({
           },
         ]}
         rows={rows}
-        rowIcon={Ticket}
-        emptyTitle={t('admin.ticketOrders.empty')}
-        emptyDescription={t('admin.ticketOrders.emptyHint')}
+        emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
       />
+      )}
     </AdminListSection>
   )
 }

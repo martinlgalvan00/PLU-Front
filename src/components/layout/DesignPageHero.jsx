@@ -9,6 +9,7 @@ export default function DesignPageHero({
   eyebrow,
   title,
   description,
+  introExtra,
   children,
   align = 'left',
 }) {
@@ -38,6 +39,7 @@ export default function DesignPageHero({
             )}
             <h1 className="design-hero__title">{title}</h1>
             {description && <p className="design-hero__desc">{description}</p>}
+            {introExtra}
           </div>
           {children}
         </div>

@@ -1,7 +1,7 @@
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 
-const FOOTER_PLATFORM = ['members', 'pitbull', 'events', 'results', 'rulebook']
+const FOOTER_PLATFORM = ['members', 'pitbull', 'events', 'results', 'records', 'rulebook']
 const FOOTER_COMMUNITY = ['community', 'faq', 'contact']
 
 export default function Footer({ onNavigate }) {

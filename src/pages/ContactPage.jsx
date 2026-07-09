@@ -31,7 +31,7 @@ export default function ContactPage({ onNavigate }) {
                 03
               </span>
               <div className="contact-sidebar__head-copy">
-                <p className="contact-sidebar__eyebrow">{t('brand.name')} · {t('brand.tagline')}</p>
+                <p className="contact-sidebar__eyebrow">{t('brand.federationLine')}</p>
                 <h2 className="contact-sidebar__title">{t('contact.sidebarTitle')}</h2>
               </div>
             </header>

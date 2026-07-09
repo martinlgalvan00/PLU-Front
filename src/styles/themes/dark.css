@@ -50,6 +50,8 @@
 
   --color-border: rgba(255, 255, 255, 0.14);
 
+  --color-border-strong: rgba(255, 255, 255, 0.32);
+
   --color-border-light: rgba(255, 255, 255, 0.28);
 
   --color-border-subtle: rgba(255, 255, 255, 0.08);
@@ -58,11 +60,13 @@
 
   --color-overlay: rgba(5, 5, 8, 0.82);
 
-  --color-focus-ring: var(--plu-red-alpha-16);
+  --color-focus-ring: var(--plu-celeste-alpha-18);
 
   --color-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
 
   --color-shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
+
+  --color-shadow-tint: rgba(0, 0, 0, 0.22);
 
   --color-hero-gradient: var(--plu-gradient-hero-dark);
 

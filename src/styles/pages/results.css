@@ -67,7 +67,7 @@
 }
 
 .results-panel__eyebrow {
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   display: block;
   font-size: 10.5px;
   font-weight: 600;
@@ -291,7 +291,7 @@
 }
 
 .results-archive-row--featured::before {
-  background: var(--color-brand-red);
+  background: var(--color-brand-action);
   bottom: 0;
   content: '';
   left: 0;
@@ -361,10 +361,10 @@
 }
 
 .results-archive-row__tag {
-  background: rgba(225, 6, 0, 0.1);
-  border: 1px solid var(--color-accent-red-border-subtle);
+  background: rgba(31, 95, 158, 0.1);
+  border: 1px solid var(--color-accent-celeste-border-subtle);
   border-radius: var(--border-radius-pill);
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -893,12 +893,14 @@
 
 .podium-athlete__medal {
   display: block;
-  font-size: 32px;
-  line-height: 1;
+  width: 32px;
+  height: 32px;
   opacity: 0;
+  color: rgba(190, 190, 210, 0.85);
 }
 
-.podium-slot--first .podium-athlete__medal { font-size: 40px; }
+.podium-slot--first .podium-athlete__medal { width: 40px; height: 40px; color: var(--color-brand-gold); }
+.podium-slot--third .podium-athlete__medal { color: rgba(184, 115, 51, 0.85); }
 
 .podium-stage--visible .podium-athlete__medal {
   animation: podium-medal-bounce 0.7s var(--ease-spring) calc(0.9s + var(--entry-delay, 0s)) both;
@@ -1253,9 +1255,13 @@
 
 .result-card__medal {
   display: block;
-  font-size: 20px;
-  line-height: 1;
+  width: 20px;
+  height: 20px;
 }
+
+.result-card__medal--gold { color: var(--color-brand-gold); }
+.result-card__medal--silver { color: rgba(190, 190, 210, 0.85); }
+.result-card__medal--bronze { color: rgba(184, 115, 51, 0.85); }
 
 .result-card__rank-label {
   background: var(--results-rank-bg, rgba(255, 255, 255, 0.06));
@@ -1280,10 +1286,10 @@
   color: var(--color-text-primary);
   font-family: var(--font-display);
   font-size: clamp(15px, 1.8vw, 17px);
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .result-card__category {
@@ -1536,11 +1542,13 @@
   }
 
   .podium-athlete__medal {
-    font-size: 22px;
+    width: 22px;
+    height: 22px;
   }
 
   .podium-slot--first .podium-athlete__medal {
-    font-size: 28px;
+    width: 28px;
+    height: 28px;
   }
 
   .podium-athlete__total-wrap {

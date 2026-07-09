@@ -25,6 +25,14 @@
   --color-accent-celeste-border-medium: var(--plu-celeste-alpha-26);
   --color-accent-celeste-border-strong: var(--plu-celeste-alpha-35);
 
+  /* ── Elevación genérica (un solo énfasis de hover) ─
+     Escala compartida para lift de card/botón/modal.
+     No usar box-shadow ad hoc en componentes nuevos — sumar
+     un tier acá si ninguno alcanza. Tono por tema en themes/*.css. ── */
+  --elevation-sm: 0 2px 8px var(--color-shadow-tint, rgba(0, 0, 0, 0.14));
+  --elevation-md: 0 8px 20px var(--color-shadow-tint, rgba(0, 0, 0, 0.18));
+  --elevation-lg: 0 20px 48px var(--color-shadow-tint, rgba(0, 0, 0, 0.28));
+
   /* ── Card premium tokens ───────────────────────── */
   --card-gradient-red:
     linear-gradient(135deg, var(--plu-red-alpha-16) 0%, transparent 60%);
@@ -36,8 +44,12 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
 
   /* ── Status ────────────────────────────────────── */
+  --color-status-success: var(--plu-success-500);
   --color-success-bg: var(--plu-success-bg);
   --color-success-text: var(--plu-success-600);
+  --color-manual-note-bg: var(--plu-warm-100);
+  --color-manual-note-border: rgba(15, 17, 23, 0.14);
+  --hero-image: url('../../assets/PLU Argentina.jpg');
   --color-warning-bg: #fef3c7;
   --color-warning-text: #92400e;
   --color-danger-bg: #fee2e2;

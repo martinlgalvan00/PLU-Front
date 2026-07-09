@@ -88,28 +88,32 @@
 }
 
 .admin-kpi-tile {
-  align-items: center;
+  align-items: flex-start;
   animation: admin-kpi-enter 0.38s var(--ease-out) both;
   animation-delay: calc(var(--kpi-index, 0) * 45ms + 60ms);
   background: var(--color-bg-glass);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
-  gap: 12px;
-  min-height: 72px;
-  padding: 14px 16px;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 108px;
+  padding: 18px 18px 16px;
+  position: relative;
   text-align: left;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 
 .admin-kpi-tile:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(116, 172, 223, 0.28);
-  transform: translateY(-1px);
+  border-color: rgba(116, 172, 223, 0.3);
+  box-shadow: var(--elevation-sm);
+  transform: translateY(-2px);
 }
 
 .admin-kpi-tile:focus-visible {
@@ -125,9 +129,9 @@
   color: var(--color-brand-celeste);
   display: inline-flex;
   flex: none;
-  height: 36px;
+  height: 38px;
   justify-content: center;
-  width: 36px;
+  width: 38px;
 }
 
 .admin-kpi-tile--gold .admin-kpi-tile__icon {
@@ -152,11 +156,11 @@
 .admin-kpi-tile__value {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(22px, 4vw, 28px);
+  font-size: clamp(26px, 4.4vw, 34px);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .admin-kpi-tile--alert .admin-kpi-tile__value {
@@ -346,12 +350,7 @@
 }
 
 .admin-command-center::before {
-  background: linear-gradient(
-    90deg,
-    var(--color-brand-red) 0%,
-    var(--color-brand-celeste) 50%,
-    var(--color-brand-gold) 100%
-  );
+  background: var(--gradient-brand);
   content: '';
   height: 3px;
   inset: 0 0 auto;
@@ -1311,7 +1310,7 @@
 }
 
 .admin-spotlight__eyebrow {
-  color: var(--color-brand-red);
+  color: var(--color-brand-gold);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -1398,7 +1397,7 @@
 }
 
 .admin-spotlight__capacity-bar span {
-  background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-celeste));
+  background: linear-gradient(90deg, var(--color-brand-gold), var(--color-brand-celeste));
   border-radius: inherit;
   display: block;
   height: 100%;
@@ -2671,8 +2670,8 @@
 .admin-welcome {
   align-items: center;
   background:
-    radial-gradient(ellipse 80% 120% at 0% 50%, rgba(225, 6, 0, 0.09) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 100% at 100% 50%, rgba(116, 172, 223, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 120% at 0% 50%, rgba(242, 183, 5, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 100% at 100% 50%, rgba(31, 95, 158, 0.07) 0%, transparent 50%),
     var(--color-bg-surface);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: var(--border-radius-xl);
@@ -2777,7 +2776,7 @@
 }
 
 .admin-metric:focus-visible {
-  outline: 2px solid var(--color-brand-red);
+  outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
 
@@ -4151,9 +4150,9 @@
 .admin-list-shell--registrations .admin-list-shell__intro::before {
   background: linear-gradient(
     180deg,
-    rgba(225, 6, 0, 0.65) 0%,
+    rgba(31, 95, 158, 0.65) 0%,
     rgba(255, 255, 255, 0.85) 50%,
-    rgba(116, 172, 223, 0.65) 100%
+    rgba(242, 183, 5, 0.65) 100%
   );
   border-radius: 99px;
   bottom: 2px;
@@ -4298,6 +4297,101 @@
 
 .admin-list-shell--registrations .data-table--admin table {
   min-width: 640px;
+}
+
+/* ── PLU USA partner portal ──────────────────────
+   Misma estructura que el resto del admin — solo un acento
+   celeste (identidad AR sutil) para señalar "vista de socio",
+   no un componente nuevo. */
+
+.admin-list-shell--plu-usa {
+  border-top: 2px solid rgba(116, 172, 223, 0.4);
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__header {
+  align-items: start;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__eyebrow {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  gap: 7px;
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__eyebrow::before {
+  background: var(--color-brand-celeste);
+  border-radius: 50%;
+  content: '';
+  flex: none;
+  height: 5px;
+  width: 5px;
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__title {
+  font-size: clamp(20px, 2.6vw, 24px);
+  letter-spacing: -0.02em;
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__subtitle {
+  color: var(--color-text-muted);
+  max-width: 52ch;
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__stats-strip {
+  background: rgba(116, 172, 223, 0.04);
+}
+
+.admin-list-shell--plu-usa .admin-list-shell__actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-list-shell--plu-usa .admin-readonly-tag {
+  align-items: center;
+  border: 1px solid var(--color-accent-celeste-border-medium);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+[data-theme='light'] .admin-list-shell--plu-usa {
+  border-top-color: rgba(26, 107, 176, 0.3);
+}
+
+[data-theme='light'] .admin-list-shell--plu-usa .admin-list-shell__stats-strip {
+  background: rgba(26, 107, 176, 0.03);
+}
+
+@media (max-width: 720px) {
+  .admin-list-shell--plu-usa .admin-list-shell__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-list-shell--plu-usa .admin-list-shell__actions {
+    flex-wrap: wrap;
+  }
+}
+
+.admin-list-shell__note {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 68ch;
+  padding: 12px var(--admin-registrations-gutter, 20px) 0;
 }
 
 [data-theme='light'] .admin-filters--registrations.admin-filters--inline.admin-filters--compact {
@@ -5654,8 +5748,8 @@
 }
 
 .detail-tabs button.is-active {
-  background: rgba(225, 6, 0, 0.12);
-  border-color: rgba(225, 6, 0, 0.35);
+  background: rgba(31, 95, 158, 0.12);
+  border-color: rgba(31, 95, 158, 0.35);
   color: var(--color-text-primary);
 }
 
@@ -5712,7 +5806,7 @@
 }
 
 .data-table__row--clickable:focus-visible {
-  outline: 2px solid var(--color-brand-red);
+  outline: 2px solid var(--color-brand-celeste);
   outline-offset: -2px;
 }
 

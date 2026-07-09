@@ -45,11 +45,8 @@ export function getRulebookContent(locale = 'es') {
     pdfLocale,
     download: content.download,
     summary: content.summary,
-    framework: content.framework,
-    lifts: content.lifts,
+    chapters: content.chapters,
     weightClasses: content.weightClasses,
     ageDivisions: content.ageDivisions,
-    equipment: content.equipment,
-    judging: content.judging,
   }
 }

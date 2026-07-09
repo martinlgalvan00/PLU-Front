@@ -12,7 +12,7 @@
     {
       "id": "attempts",
       "title": "Three attempts",
-      "text": "Each lift allows up to three attempts. The official total uses the best valid attempt from each lift."
+      "text": "Each lift allows up to three attempts. The total is built from the best valid attempt of each."
     },
     {
       "id": "judges",
@@ -22,31 +22,326 @@
     {
       "id": "weighin",
       "title": "Official weigh-in",
-      "text": "Athletes compete in the bodyweight class declared at the event weigh-in."
+      "text": "The athlete competes in the body weight class declared at the event weigh-in."
     }
   ],
-  "framework": [
+  "chapters": [
     {
-      "title": "Full Power",
-      "text": "Squat, bench press and deadlift in the same competition."
+      "id": "framework",
+      "numeral": "I",
+      "title": "Competition Framework",
+      "sourceLabel": "Sections 1.1 – 1.8",
+      "includeAgeWeight": true,
+      "cards": [
+        {
+          "title": "Lifts and formats",
+          "text": "Full Power (squat, bench press, deadlift), Push-Pull (bench press and deadlift), and single-lift specialist formats, always in the squat → bench press → deadlift sequence."
+        },
+        {
+          "title": "Drug Tested and Non-Tested divisions",
+          "text": "Competitions can be sanctioned as Drug Tested, Non-Tested, or Both; PLU also recognizes the Gender Neutral (N) Division and the Parasports Division for adaptive athletes."
+        },
+        {
+          "title": "Defining winners",
+          "text": "First place goes to the highest valid total within division, equipment category, weight class and age group. Best Lifter is decided by DOTS coefficient (McCulloch formula for Masters)."
+        },
+        {
+          "title": "Teams",
+          "text": "Teams of 4 to 15 registered lifters, scored on the average of the team's top 5 DOTS scores, uniform equipment category (Raw, Raw With Wraps, Single-Ply or Multi-Ply), minimum 3 teams for awards."
+        },
+        {
+          "title": "Records",
+          "text": "Recorded by the Powerlifting United Official Records Chair; a new record must exceed the previous one by at least 0.5 kg and is validated after an on-platform equipment check."
+        },
+        {
+          "title": "Membership in Powerlifting United",
+          "text": "Athletes, referees and officials must be active PLU members at the time of weigh-in. Membership is paid annually, is non-refundable and non-transferable, and auto-renews every 12 months."
+        }
+      ]
     },
     {
-      "title": "Push / Pull",
-      "text": "Bench press and deadlift without squat."
+      "id": "equipment-specs",
+      "numeral": "II",
+      "title": "Equipment and Specifications",
+      "sourceLabel": "Sections 2.1 – 2.8",
+      "cards": [
+        {
+          "title": "Scales",
+          "text": "Digital, calibrated in kilograms and recertified every 2 years; a minimum of two scales must be available, with at least one rated for 250 kg or more."
+        },
+        {
+          "title": "Platform",
+          "text": "Between 8×8 and 12×12 feet, no more than 3 inches above the surrounding floor, with a one-piece carpet surface over at least two layers of plywood."
+        },
+        {
+          "title": "Bars and collars",
+          "text": "Factory-made bars 2.2–2.5 m long (2.4 m max for deadlift bars), 27–32 mm in diameter, weighing 25, 30 or 35 kg; collars weighing 2.5 kg each with a rotating lock mechanism."
+        },
+        {
+          "title": "Competition discs/plates",
+          "text": "Factory-manufactured, within 0.25% or 10 g of nominal weight, ranging from 0.25 to 25 kg (plus 50 kg plates available), with standardized colors and loading order."
+        },
+        {
+          "title": "Squat racks",
+          "text": "Hydraulic monolift or a standard powerlifting combo rack, adjustable between 1.00 and 1.70 m in 5 cm increments."
+        },
+        {
+          "title": "Bench",
+          "text": "Sturdy construction meeting official dimensions (minimum 1.22 m length, uprights adjustable 75–110 cm) with adjustable fail-safe catches."
+        },
+        {
+          "title": "Judging lights and card system",
+          "text": "Three white and three red lights, one per referee, plus a color-card system: red (position), blue (technical), yellow (commands/other), for transparent judging."
+        },
+        {
+          "title": "Clocks and timers",
+          "text": "A mandatory 60-second attempt clock at every level of competition, a conditional rest timer for flights under 10 lifters, and a 60-second submission timer."
+        }
+      ]
     },
     {
-      "title": "Specialists",
-      "text": "Squat-only, bench-only or deadlift-only competition formats."
+      "id": "athlete-equipment",
+      "numeral": "III",
+      "title": "Athlete Equipment",
+      "sourceLabel": "Sections 3.1 – 3.12",
+      "cards": [
+        {
+          "title": "Singlet",
+          "text": "A single piece, form-fitting, made of fabric that provides no additional support; straps must stay on the shoulders at all times. Applies to raw and raw-with-wraps lifters. See Chapter VII for equipped."
+        },
+        {
+          "title": "T-shirt",
+          "text": "A cotton-blend shirt with no buttons or reinforced seams, required under the singlet for squat and bench press; optional for deadlift."
+        },
+        {
+          "title": "Underwear and socks",
+          "text": "Legless briefs of cotton, nylon or polyester (not mandatory), and only one pair of socks per lifter."
+        },
+        {
+          "title": "Belt and footwear",
+          "text": "Personal equipment allowed within the width, thickness and material specifications of the official rulebook."
+        },
+        {
+          "title": "Wrist wraps and knee sleeves",
+          "text": "Wraps and sleeves allowed within approved lengths and materials; must be worn over the sleeve when a full bodysuit is used."
+        },
+        {
+          "title": "Non-supportive bandages",
+          "text": "The lifter must be able to put on and adjust their own personal equipment without outside assistance on the platform."
+        },
+        {
+          "title": "Inspection of personal equipment",
+          "text": "All personal equipment is inspected before competition to confirm it meets approved specifications."
+        },
+        {
+          "title": "Bodily fluid management",
+          "text": "Blood or skin particles on the bar or platform must be cleaned immediately before competition continues."
+        }
+      ]
     },
     {
-      "title": "Fixed order",
-      "text": "Every event runs squat → bench press → deadlift."
+      "id": "procedures",
+      "numeral": "IV",
+      "title": "Competition Procedures",
+      "sourceLabel": "Sections 4.1 – 4.4",
+      "cards": [
+        {
+          "title": "The round system",
+          "text": "Flights of up to 15 lifters; all squat attempts finish for the flight before bench press begins, and bench press before deadlift. Minimum weight change: 2.5 kg. No fourth attempts allowed."
+        },
+        {
+          "title": "The officials",
+          "text": "Announcer, Meet Director, jury of appeals, timekeeper and official scorers, each with defined responsibilities during the flight."
+        },
+        {
+          "title": "General rules",
+          "text": "The head referee controls bar loading and platform order; three failed attempts on a given lift disqualify the athlete from that lift."
+        },
+        {
+          "title": "Minor oversight, infractions and cheating",
+          "text": "The rulebook distinguishes correctable minor oversights, infractions that must be fixed before lifting, and deliberate cheating, each with its own disciplinary handling."
+        }
+      ]
+    },
+    {
+      "id": "weighins",
+      "numeral": "V",
+      "title": "Weigh-Ins",
+      "sourceLabel": "Section 5.1",
+      "cards": [
+        {
+          "title": "Weigh-in window",
+          "text": "Held within 24 hours before competition, in a private setting; the athlete may weigh in nude, in underwear, or in a singlet."
+        },
+        {
+          "title": "Minor lifter protocol",
+          "text": "Lifters under 18 weigh in wearing a singlet (200 g is deducted) and require their legal guardian plus two officials of the same sex present."
+        },
+        {
+          "title": "Official record",
+          "text": "Weight, division, category and athlete data are logged on the official card and entered into LiftingCast, signed by the athlete and the weigh-in official."
+        },
+        {
+          "title": "Equipment check",
+          "text": "Before or after weigh-in, a Powerlifting United official inspects the athlete's personal equipment against the Chapter III specifications."
+        }
+      ]
+    },
+    {
+      "id": "lifts",
+      "numeral": "VI",
+      "title": "Rules of Competition",
+      "sourceLabel": "Sections 6.1 – 6.3",
+      "lifts": [
+        {
+          "id": "squat",
+          "title": "Squat",
+          "section": "§6.1",
+          "points": [
+            "The head referee gives the squat and rack commands.",
+            "The lifter must meet the required depth and final position.",
+            "Grounds for disqualification are detailed in the official PDF."
+          ]
+        },
+        {
+          "id": "bench",
+          "title": "Bench Press",
+          "section": "§6.2",
+          "points": [
+            "Referee commands: start, press and rack.",
+            "The bar must touch the chest or abdomen and return to the starting position.",
+            "Buttocks in contact with the bench; feet on the platform."
+          ]
+        },
+        {
+          "id": "deadlift",
+          "title": "Deadlift",
+          "section": "§6.3",
+          "points": [
+            "There is no start command: the attempt must begin before the clock expires.",
+            "Final position with shoulders, hips and knees fully extended.",
+            "The head referee gives the down command to lower the bar."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "equipped",
+      "numeral": "VII",
+      "title": "Equipped Division",
+      "sourceLabel": "Sections 7.1 – 7.3",
+      "cards": [
+        {
+          "title": "Single-Ply",
+          "text": "A single-layer-fabric squat/deadlift suit and bench shirt, with seam and material specifications detailed in the official rulebook."
+        },
+        {
+          "title": "Multi-Ply",
+          "text": "A multi-layer-fabric squat/deadlift suit; a compression/erector shirt and briefs may be worn, and a three-person lift-off is allowed depending on category."
+        },
+        {
+          "title": "Unlimited",
+          "text": "A division allowing bench shirts with no layer limit; a t-shirt underneath is not required, and all other equipment rules remain unchanged."
+        }
+      ]
+    },
+    {
+      "id": "referees",
+      "numeral": "VIII",
+      "title": "Referees",
+      "sourceLabel": "Sections 8.1 – 8.2",
+      "canon": [
+        {
+          "numeral": "I",
+          "text": "Three attempts per lift: squat, bench press and deadlift. The official total uses the best valid attempt of each."
+        },
+        {
+          "numeral": "II",
+          "text": "The sequence is fixed at every competition: squat, bench press, deadlift."
+        },
+        {
+          "numeral": "III",
+          "text": "Three referees judge every attempt on the platform. When in doubt, the decision favors the lifter."
+        },
+        {
+          "numeral": "IV",
+          "text": "The head referee gives the verbal commands and hand signals for start, press/rack, or down depending on the lift."
+        },
+        {
+          "numeral": "V",
+          "text": "The athlete competes in the body weight class declared at the event's official weigh-in."
+        },
+        {
+          "numeral": "VI",
+          "text": "Appeals of a 2–1 decision must be filed within 60 seconds of the attempt."
+        },
+        {
+          "numeral": "VII",
+          "text": "Level 1 referee requirements: Provincial Chair approval, a completed background check, the online and in-person practical exams, a minimum of 3 sanctioned events competed in, age 18 or older, and referee at least once every 365 days."
+        },
+        {
+          "numeral": "VIII",
+          "text": "Level 2 (National) referee requirements: a minimum of 1 year of referee experience and a completed competency catalog (flights judged, scoring control, spotting/loading and weigh-ins)."
+        }
+      ]
+    },
+    {
+      "id": "adaptive",
+      "numeral": "IX",
+      "title": "Adaptive Lifting",
+      "sourceLabel": "Sections 9.1 – 9.6",
+      "cards": [
+        {
+          "title": "Definition",
+          "text": "Modifying lifting technique or equipment for athletes with a disability or other limitation: adapted benches, prosthetic hooks, or hand signals, among other adaptations."
+        },
+        {
+          "title": "Eligibility and certification",
+          "text": "Requested at adaptive@powerliftingunited.com; each case is reviewed and a certification of adapted equipment is issued for use on the platform."
+        },
+        {
+          "title": "Competition categories",
+          "text": "With certified equipment, the athlete may compete in every category, division, class and lift, with no additional restrictions."
+        },
+        {
+          "title": "Safety and assistance",
+          "text": "Assistance is allowed to move, set up and center the weight; not to start or complete the lift. There is no attempt clock for these lifters."
+        },
+        {
+          "title": "Responsibilities",
+          "text": "The lifter must obtain certification at least two weeks in advance; the Meet Director and coaches must know and accommodate certified adaptations."
+        }
+      ]
+    },
+    {
+      "id": "policies",
+      "numeral": "",
+      "title": "Policies and Appendices",
+      "sourceLabel": "Policies and appendices",
+      "cards": [
+        {
+          "title": "Anti-discrimination policy",
+          "text": "Zero tolerance for discrimination or harassment based on disability or impairment; complaints go to support@powerliftingunited.com and are answered within 5 business days."
+        },
+        {
+          "title": "Background check policy",
+          "text": "All staff, directors and officials undergo a criminal background check; violent, sexual, or child-related offenses result in automatic termination from PLU."
+        },
+        {
+          "title": "Banned substances list",
+          "text": "Categories of substances not permitted in drug-tested divisions (anabolic steroids, peptide hormones, stimulants, diuretics and masking agents, among others), full list in the official PDF, pages 66–67."
+        },
+        {
+          "title": "Appendices",
+          "text": "Appendix A: record request form. Appendix B: Code of Conduct for members, referees and officials of Powerlifting United."
+        }
+      ]
     }
   ],
   "weightClasses": [
     {
       "id": "women-n",
-      "title": "Women and gender-neutral (N)",
+      "title": "Women and Gender Neutral (N)",
       "unit": "kg",
       "classes": [
         { "label": "44", "range": "up to 44.0 kg" },
@@ -62,7 +357,7 @@
         { "label": "110", "range": "100.01 – 110.0 kg" },
         { "label": "125", "range": "110.01 – 125.0 kg" },
         { "label": "140", "range": "125.01 – 140.0 kg" },
-        { "label": "140+", "range": "140.01 kg or more" }
+        { "label": "140+", "range": "140.01 kg and up" }
       ]
     },
     {
@@ -81,17 +376,17 @@
         { "label": "110", "range": "100.01 – 110.0 kg" },
         { "label": "125", "range": "110.01 – 125.0 kg" },
         { "label": "140", "range": "125.01 – 140.0 kg" },
-        { "label": "140+", "range": "140.01 kg or more" }
+        { "label": "140+", "range": "140.01 kg and up" }
       ]
     }
   ],
   "ageDivisions": [
-    { "title": "Youth", "range": "10 – 12 years" },
+    { "title": "Sub-Junior", "range": "10 – 12 years" },
     { "title": "Junior 13–15", "range": "13 – 15 years" },
     { "title": "Junior 16–17", "range": "16 – 17 years" },
     { "title": "Junior 18–19", "range": "18 – 19 years" },
     { "title": "Junior 20–23", "range": "20 – 23 years" },
-    { "title": "Open", "range": "10 years or older" },
+    { "title": "Open", "range": "10 years and up" },
     { "title": "Sub-Master", "range": "35 – 39 years" },
     { "title": "Master 40–44", "range": "40 – 44 years" },
     { "title": "Master 45–49", "range": "45 – 49 years" },
@@ -101,86 +396,6 @@
     { "title": "Master 65–69", "range": "65 – 69 years" },
     { "title": "Master 70–74", "range": "70 – 74 years" },
     { "title": "Master 75–79", "range": "75 – 79 years" },
-    { "title": "Master 80+", "range": "80 years or older" }
-  ],
-  "equipment": [
-    {
-      "title": "Raw",
-      "text": "No supportive suits. Allows regulated basic gear: singlet, belt, knee sleeves, wrist wraps and footwear per the athlete equipment chapter."
-    },
-    {
-      "title": "Raw with wraps",
-      "text": "Raw division that allows non-supportive wrapping within the rulebook limits for wrists, knees and permitted wraps."
-    },
-    {
-      "title": "Single ply",
-      "text": "Single-ply equipped division. Suits and bench shirts must meet the single-layer polyester specifications in chapter VII."
-    },
-    {
-      "title": "Multi ply",
-      "text": "Multi-ply equipped division. Allows higher-support suits with the construction, velcro and length limits defined in the rulebook."
-    },
-    {
-      "title": "Unlimited",
-      "text": "Unlimited division with no ply cap on supportive equipment, subject to inspection and competition safety rules."
-    }
-  ],
-  "lifts": [
-    {
-      "id": "squat",
-      "title": "Squat",
-      "section": "§6.1",
-      "points": [
-        "The head referee gives the squat and rack commands.",
-        "The lifter must hit required depth and the final position.",
-        "Disqualification causes are listed in the official PDF."
-      ]
-    },
-    {
-      "id": "bench",
-      "title": "Bench press",
-      "section": "§6.2",
-      "points": [
-        "Referee commands: start, press and rack.",
-        "The bar must touch the chest or abdomen and return to the start position.",
-        "Glutes stay on the bench; feet remain on the platform."
-      ]
-    },
-    {
-      "id": "deadlift",
-      "title": "Deadlift",
-      "section": "§6.3",
-      "points": [
-        "There is no start command — the attempt must begin before time expires.",
-        "Final position requires shoulders, hips and knees fully extended.",
-        "The head referee gives the down command to lower the bar."
-      ]
-    }
-  ],
-  "judging": [
-    {
-      "numeral": "I",
-      "text": "Three attempts per lift: squat, bench press and deadlift. The official total uses the best valid attempt from each lift."
-    },
-    {
-      "numeral": "II",
-      "text": "Lift order is fixed at every competition: squat, bench press, then deadlift."
-    },
-    {
-      "numeral": "III",
-      "text": "Three referees judge each attempt on the platform. When in doubt, the decision favors the lifter."
-    },
-    {
-      "numeral": "IV",
-      "text": "The head referee gives the verbal commands and arm signals to start, press/rack or down depending on the lift."
-    },
-    {
-      "numeral": "V",
-      "text": "Athletes compete in the bodyweight class declared at the official event weigh-in."
-    },
-    {
-      "numeral": "VI",
-      "text": "Appeals for a 2–1 decision must be filed within 60 seconds after the attempt ends."
-    }
+    { "title": "Master 80+", "range": "80 years and up" }
   ]
 }

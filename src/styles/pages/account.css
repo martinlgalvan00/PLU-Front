@@ -43,7 +43,7 @@
 }
 
 .account-hero::after {
-  background: var(--plu-gradient-stripe, linear-gradient(90deg, #e10600 0 42%, #c9b978 42% 72%, #74acdf 72%));
+  background: var(--plu-gradient-stripe, linear-gradient(90deg, #1f5f9e 0 50%, #f2b705 50% 100%));
   content: '';
   height: 3px;
   inset: 0 0 auto 0;
@@ -308,7 +308,7 @@
 }
 
 .account-credential__face::after {
-  background: linear-gradient(90deg, #e10600 0 42%, #c9b978 42% 72%, #74acdf 72%);
+  background: linear-gradient(90deg, #1f5f9e 0 50%, #f2b705 50% 100%);
   bottom: 0;
   content: '';
   height: 4px;
@@ -339,7 +339,7 @@
 
 .account-credential__monogram {
   align-items: center;
-  background: #e10600;
+  background: #1f5f9e;
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 50%;
   display: flex;
@@ -465,8 +465,8 @@
 }
 
 .account-credential__flip:hover {
-  border-color: var(--color-brand-red);
-  color: var(--color-brand-red);
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -496,8 +496,8 @@
 }
 
 [data-theme='light'] .account-hero .account-credential__flip:hover {
-  border-color: var(--color-brand-red);
-  color: var(--color-brand-red);
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
 }
 
 [data-theme='light'] .account-hero__stats {
@@ -611,7 +611,7 @@
 
 .account-card__link {
   background: transparent;
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   display: inline-block;
   font-size: 12.5px;
   font-weight: 600;
@@ -669,8 +669,8 @@
 }
 
 .account-nav__item.is-active {
-  background: var(--color-brand-red);
-  box-shadow: var(--glow-red-soft);
+  background: var(--color-brand-action);
+  box-shadow: var(--glow-celeste-soft);
   color: #fff;
 }
 
@@ -710,7 +710,7 @@
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
-  border-top: 3px solid var(--color-brand-red);
+  border-top: 3px solid var(--color-brand-celeste);
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.08);
   padding: clamp(24px, 4vw, 36px);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
@@ -753,10 +753,10 @@
 
 .account-section__icon {
   align-items: center;
-  background: color-mix(in srgb, var(--color-brand-red) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-red) 24%, transparent);
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
   border-radius: 8px;
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   display: flex;
   height: 44px;
   justify-content: center;
@@ -848,13 +848,13 @@
 }
 
 .account-payment-options label.is-selected {
-  border-color: var(--color-brand-red);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-red) 12%, transparent);
-  color: var(--color-brand-red);
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  color: var(--color-brand-celeste);
 }
 
 .account-payment-options input {
-  accent-color: var(--color-brand-red);
+  accent-color: var(--color-brand-celeste);
 }
 
 .account-payment-options label span {
@@ -873,8 +873,8 @@
 }
 
 .account-primary-action {
-  background: var(--color-brand-red);
-  border: 1px solid var(--color-brand-red);
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
   border-radius: 8px;
   color: #fff;
   font-size: 13px;
@@ -884,7 +884,7 @@
 }
 
 .account-primary-action:hover {
-  box-shadow: 0 10px 24px rgba(225, 6, 0, 0.25);
+  box-shadow: 0 10px 24px rgba(31, 95, 158, 0.25);
   transform: translateY(-1px);
 }
 
@@ -921,7 +921,7 @@
 }
 
 .account-events-list time {
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   font-size: 15px;
   font-weight: 800;
 }
@@ -958,8 +958,8 @@
 }
 
 .account-events-list button:not(:disabled):hover {
-  border-color: var(--color-brand-red);
-  color: var(--color-brand-red);
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
 }
 
 .account-events-list button:disabled {
@@ -1014,7 +1014,7 @@
 }
 
 .account-payment-modal header span {
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;

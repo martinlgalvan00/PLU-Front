@@ -18,50 +18,42 @@
     transform var(--transition-base);
 }
 
-/* Borde top gradiente */
-.benefit-card::before,
-.info-card::before {
-  background: var(--gradient-brand);
-  border-radius: 0;
-  content: '';
-  height: 1.5px;
-  left: 20%;
-  opacity: 0;
-  position: absolute;
-  top: 0;
-  transition:
-    opacity var(--transition-base),
-    left var(--transition-base),
-    width var(--transition-base);
-  width: 60%;
+.info-card {
+  border-radius: var(--border-radius-lg);
+  gap: 16px;
+  justify-items: start;
+  padding: 30px 28px;
+  text-align: left;
 }
+
+.info-card::before {
+  background: var(--color-brand-celeste);
+  content: '';
+  inset: 0 auto 0 0;
+  opacity: 0.7;
+  position: absolute;
+  width: 3px;
+}
+
+.info-card:nth-of-type(2)::before { background: var(--color-brand-gold); }
+.info-card:nth-of-type(3)::before { background: var(--color-brand-celeste); }
+
+.info-card svg {
+  color: var(--color-brand-celeste);
+}
+
+.info-card:nth-of-type(2) svg { color: var(--color-brand-gold); }
+.info-card:nth-of-type(3) svg { color: var(--color-brand-celeste); }
 
 .benefit-card:hover,
 .info-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.26);
-  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: var(--elevation-md);
+  transform: translateY(-3px);
 }
 
-.benefit-card:hover::before,
-.info-card:hover::before {
-  left: 8%;
-  opacity: 1;
-  width: 84%;
-}
-
-/* Icono con glow */
 .benefit-card svg {
-  filter: drop-shadow(0 0 0px rgba(225, 6, 0, 0));
   margin-bottom: 22px;
-  transition:
-    transform var(--transition-base),
-    filter var(--transition-base);
-}
-
-.benefit-card:hover svg {
-  filter: drop-shadow(0 2px 10px rgba(225, 6, 0, 0.35));
-  transform: scale(1.10) translateY(-2px);
 }
 
 /* =============================================
@@ -74,11 +66,11 @@
 .event-row h3 {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .benefit-card p,
@@ -177,24 +169,6 @@
   gap: 14px;
 }
 
-/* =============================================
-   CARD GLOW VARIANTS
-   ============================================= */
-
-.card--glow-red:hover {
-  border-color: rgba(225, 6, 0, 0.28);
-  box-shadow: var(--glow-red), 0 20px 56px rgba(0, 0, 0, 0.32);
-}
-
-.card--glow-gold:hover {
-  border-color: rgba(201, 185, 120, 0.32);
-  box-shadow: var(--glow-gold), 0 20px 56px rgba(0, 0, 0, 0.32);
-}
-
-.card--glow-celeste:hover {
-  border-color: rgba(116, 172, 223, 0.32);
-  box-shadow: var(--glow-celeste), 0 20px 56px rgba(0, 0, 0, 0.32);
-}
 
 /* =============================================
    RESPONSIVE
@@ -227,11 +201,6 @@
 [data-theme='light'] .benefit-card,
 [data-theme='light'] .info-card {
   background: #ffffff;
-}
-
-[data-theme='light'] .benefit-card:hover,
-[data-theme='light'] .info-card:hover {
-  box-shadow: 0 12px 36px rgba(15, 17, 23, 0.09);
 }
 
 [data-theme='light'] .pricing-card li svg {

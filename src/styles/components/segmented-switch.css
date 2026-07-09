@@ -16,8 +16,6 @@
   --switch-option-fg: var(--color-text-muted);
   --switch-option-active-fg: var(--color-text-primary);
 
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   background: var(--switch-track-bg);
   border: 1px solid var(--switch-track-border);
   border-radius: var(--border-radius-pill);

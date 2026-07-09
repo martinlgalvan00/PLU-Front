@@ -1,22 +1,16 @@
 import PageFrame from '../components/layout/PageFrame.jsx'
 import { InfoCard } from '../components/ui/Cards.jsx'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
 export default function TeamPage() {
+  const { t } = useI18n()
+
   return (
-    <PageFrame eyebrow="Unite al equipo" title="Construí la liga desde adentro">
+    <PageFrame eyebrow={t('pages.team.eyebrow')} title={t('pages.team.title')} description={t('pages.team.description')}>
       <div className="content-grid">
-        <InfoCard
-          title="Oficiales y jueces"
-          text="Registro de jueces, planillas y certificaciones."
-        />
-        <InfoCard
-          title="Directores de evento"
-          text="Herramientas para sedes, calendarios, categorías, pagos y exportaciones."
-        />
-        <InfoCard
-          title="Gimnasios afiliados"
-          text="Registro de equipos, gimnasios y responsables técnicos por provincia."
-        />
+        <InfoCard title={t('pages.team.officialsTitle')} text={t('pages.team.officialsText')} />
+        <InfoCard title={t('pages.team.meetDirectorTitle')} text={t('pages.team.meetDirectorText')} />
+        <InfoCard title={t('pages.team.hostFacilityTitle')} text={t('pages.team.hostFacilityText')} />
       </div>
     </PageFrame>
   )

@@ -213,7 +213,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
             </span>
           </button>
 
-          <nav ref={navRef} className="site-header__nav site-header__nav--design" aria-label="Principal">
+          <nav ref={navRef} className="site-header__nav site-header__nav--design" aria-label={t('nav.mainAria')}>
             <div className="site-header__nav-track" ref={navTrackRef}>
             <NavLink active={activeView === 'members'} onClick={() => go('members')}>
               {t('nav.members')}
@@ -285,7 +285,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               <>
                 <LoginButton
                   compact
-                  label={sessionFullName || (adminSession ? 'Panel' : 'Mi perfil')}
+                  label={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
                   onClick={() => go(adminSession ? 'admin' : 'profile')}
                 />
                 <button
@@ -417,7 +417,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 {t('nav.members')}
               </DrawerItem>
 
-              <DrawerSection accent="red" label={t('nav.groupEventos')}>
+              <DrawerSection accent="celeste" label={t('nav.groupEventos')}>
                 {NAV_EVENTOS.map(({ key, featured }) => (
                   <DrawerItem
                     key={key}
@@ -466,7 +466,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   onClick={() => go(adminSession ? 'admin' : 'profile')}
                 >
                   <User size={16} aria-hidden />
-                  {sessionFullName || (adminSession ? 'Panel PLU' : 'Mi perfil')}
+                  {sessionFullName || (adminSession ? t('nav.adminMobile') : t('nav.myProfile'))}
                 </button>
                 <button
                   type="button"

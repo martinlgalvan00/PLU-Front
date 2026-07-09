@@ -1244,6 +1244,20 @@
   margin: 0;
 }
 
+/* Apéndice edad/peso embebido en el capítulo I */
+.rulebook-chapter-appendix {
+  display: grid;
+  gap: clamp(20px, 3vw, 28px);
+  margin-top: clamp(20px, 3vw, 28px);
+  padding-top: clamp(20px, 3vw, 28px);
+  border-top: 1px solid var(--rulebook-modality-border, rgba(255, 255, 255, 0.06));
+}
+
+.rulebook-chapter-appendix__block {
+  display: grid;
+  gap: 10px;
+}
+
 /* Levantamientos */
 .rulebook-lifts-grid {
   display: grid;

@@ -1,9 +1,9 @@
-import { Trophy, Calendar, MapPin } from 'lucide-react'
+import { Trophy, Calendar, MapPin, Medal } from 'lucide-react'
 
 const PLACE_MEDALS = {
-  '1°': { icon: '🥇', className: 'result-card__medal--gold' },
-  '2°': { icon: '🥈', className: 'result-card__medal--silver' },
-  '3°': { icon: '🥉', className: 'result-card__medal--bronze' },
+  '1°': { className: 'result-card__medal--gold' },
+  '2°': { className: 'result-card__medal--silver' },
+  '3°': { className: 'result-card__medal--bronze' },
 }
 
 function getPlace(place) {
@@ -21,9 +21,7 @@ export default function ResultCard({ athlete, event, total, place, date, feature
       <div className="result-card__top">
         <div className="result-card__rank" aria-label={`Posición: ${rankLabel}`}>
           {medal ? (
-            <span className={`result-card__medal ${medal.className}`} aria-hidden>
-              {medal.icon}
-            </span>
+            <Medal className={`result-card__medal ${medal.className}`} aria-hidden strokeWidth={1.6} />
           ) : (
             <span className="result-card__rank-label">{rankLabel}</span>
           )}

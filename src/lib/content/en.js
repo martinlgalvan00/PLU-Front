@@ -1,9 +1,8 @@
 import { PRICING } from '../constants.js'
 
 export const HOME_STATS = [
-  { value: '2026', label: 'Launch year' },
-  { value: 'PLU USA', label: 'International recognition' },
-  { value: '100%', label: 'Digital management' },
+  { value: '2026', label: 'Current season' },
+  { value: 'PLU USA', label: 'International standard' },
 ]
 
 export const HOME_QUICK_LINKS = [
@@ -15,53 +14,49 @@ export const HOME_QUICK_LINKS = [
 ]
 
 export const ABOUT_INTRO = {
-  eyebrow: 'What is PLU ARG',
-  title: 'The federation that organizes Argentine powerlifting.',
+  eyebrow: 'About us',
+  title: 'Memberships, competitions and results under one standard.',
   description:
-    'Connects athletes, gyms and referees under one membership, competition and results system — with the administrative rigor required to report to PLU USA.',
+    'Powerlifting United Argentina connects athletes, gyms and referees with annual membership, an official calendar and results aligned with the PLU USA standard.',
 }
 
 export const HOME_MEMBERSHIP = {
   eyebrow: 'Annual membership',
-  title: 'One step, a full year of competition.',
-  description:
-    'Membership is the only requirement to compete in official PLU ARG events during the calendar year.',
-  cta: 'Join now',
-  sampleNote: 'Reference price',
+  title: 'Enabled to compete',
+  description: 'Annual membership gives you access to the official PLU Argentina calendar.',
+  cta: 'View plans',
+  planLabel: 'Adult athlete',
+  cardCta: 'Join',
 }
 
 export const HOME_RESULTS = {
   eyebrow: 'Results',
   title: 'No results published yet.',
   description:
-    'Pitbull Classic results will be available here as soon as the event ends, with export ready for PLU USA.',
+    'Pitbull Classic results will be posted here after the event, with export for PLU USA.',
 }
 
 export const HOME_RULEBOOK = {
   eyebrow: 'Rulebook',
-  title: 'The same rules for everyone, without ambiguity.',
+  title: 'Official PLU competition rules.',
   cta: 'View categories and divisions',
 }
 
 export const HOME_COMMUNITY = {
   eyebrow: 'Community',
-  title: 'Every gym that joins makes the federation stronger.',
+  title: 'PLU gyms and athletes',
   description:
-    'From Buenos Aires to Bariloche, PLU ARG connects athletes and gyms under one international standard.',
-  cta: 'Explore the community',
-  visualCaption: 'photo — community, gym, chalk on platform',
-  stats: [
-    { value: '40+', label: 'Affiliated gyms' },
-    { value: '850+', label: 'Registered athletes' },
-    { value: '12', label: 'Provinces' },
-  ],
+    'Browse affiliate venues and members competing on the official PLU Argentina calendar.',
+  cta: 'Explore community',
+  visualCaption: 'Community gallery · coming soon',
+  stats: [],
 }
 
 export const HOME_FAQ = {
   eyebrow: 'FAQ',
-  title: 'What every athlete asks before getting started.',
+  title: 'Membership, events and results.',
   description:
-    'Clear answers about membership, events and results — no runaround or fine print.',
+    'Direct answers about procedures, registrations and the rulebook.',
   cta: 'View all questions',
   quickLinks: [
     { label: 'Membership', view: 'members' },
@@ -86,9 +81,9 @@ export const HOME_FAQ_ITEMS = [
 ]
 
 export const HOME_MEMBERSHIP_FEATURES = [
-  'Access to all official events of the year',
-  'Affiliate code and digital credential',
-  'Results recognized by PLU USA',
+  'PLU ARG calendar events',
+  'Digital member credential',
+  'Results under PLU USA standard',
 ]
 
 export const ABOUT_PILLARS = [
@@ -127,25 +122,25 @@ export const MEMBERSHIP_PLANS = [
     title: 'Athlete',
     price: PRICING.membership,
     period: 'annual',
-    features: ['18 years and older', 'PLU ARG code', 'Digital member card', 'Access to official events'],
+    features: ['Ages 18+', 'Digital credential', 'PLU ARG calendar events'],
     highlighted: false,
     procedureType: 'membership',
   },
   {
     id: 'junior',
-    title: 'Junior athlete',
+    title: 'Junior',
     price: PRICING.membershipJunior,
     period: 'annual',
-    features: ['Ages 10–17', 'Annual membership', 'PLU ARG junior events'],
+    features: ['Ages 10–17', 'Digital credential', 'PLU ARG junior events'],
     highlighted: false,
     procedureType: 'membership',
   },
   {
     id: 'combo',
-    title: 'Pitbull Classic combo',
+    title: 'Pitbull combo',
     price: PRICING.combo,
     period: '2026 season',
-    features: ['Annual membership', 'Pitbull Classic registration', 'Administrative validation'],
+    features: ['Annual membership', 'Pitbull Classic registration', 'Single checkout'],
     highlighted: true,
     procedureType: 'both',
     compareWith: [
@@ -158,41 +153,53 @@ export const MEMBERSHIP_PLANS = [
 export const MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Official events',
-    text: 'Access to all PLU ARG meets of the calendar year, including Pitbull Classic.',
+    title: 'PLU ARG calendar events',
+    text: 'Lets you register for official meets during the year.',
   },
   {
-    id: 'credential',
-    title: 'Digital credential',
-    text: 'Unique affiliate code and digital card ready to compete.',
+    id: 'registry',
+    title: 'Athlete code and credential',
+    text: 'You receive your federation ID in digital format.',
   },
   {
     id: 'results',
-    title: 'Recognized results',
-    text: 'Your marks are recorded under the international PLU USA standard.',
+    title: 'Results on your profile',
+    text: 'Your marks are recorded under the PLU standard.',
+  },
+  {
+    id: 'standard',
+    title: 'Aligned with PLU USA',
+    text: 'Same rules and reporting as the international circuit.',
   },
 ]
+
+export const MEMBERSHIP_INSTITUTIONAL = {
+  eyebrow: 'Powerlifting United',
+  title: 'Federation standard',
+  text:
+    'PLU Argentina runs memberships, competitions and results with the same criteria as Powerlifting United. Local operations: Maximal.',
+}
 
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'Valid ID',
-    text: 'National ID or passport to verify identity.',
+    title: 'Photo ID',
+    text: 'Valid national ID or passport.',
   },
   {
     id: 'age',
     title: 'Minimum age 14',
-    text: 'Under 18 requires legal guardian authorization.',
+    text: 'Under 18: guardian authorization required.',
   },
   {
     id: 'health',
     title: 'Medical clearance or affidavit',
-    text: 'Valid medical certificate or health affidavit.',
+    text: 'Current certificate or health affidavit.',
   },
   {
     id: 'photo',
     title: 'Credential photo',
-    text: 'Recent digital photo for the member card.',
+    text: 'Recent digital image.',
   },
 ]
 
@@ -205,37 +212,52 @@ export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
 
 export const MEMBERSHIP_ANNUAL_STEPS = [
   {
-    step: '01',
+    step: '1',
     title: 'Complete your details',
-    text: 'Simple form with personal and contact information.',
+    text: 'Profile, contact and competition data.',
   },
   {
-    step: '02',
-    title: 'Pay with Mercado Pago',
-    text: 'Secure checkout with instant confirmation or manual validation.',
+    step: '2',
+    title: 'Submit your request',
+    text: 'Confirm the order and payment method.',
   },
   {
-    step: '03',
-    title: 'Receive your code',
-    text: 'On-screen confirmation with your affiliate code.',
+    step: '3',
+    title: 'Team validation',
+    text: 'PLU ARG reviews your information and confirms payment.',
   },
   {
-    step: '04',
-    title: 'You are enabled',
-    text: 'You can now register for any official event of the year.',
+    step: '4',
+    title: 'You are active',
+    text: 'You can register for official calendar events.',
   },
 ]
 
 export const MEMBERSHIP_FAQ = [
   {
-    id: 'pitbull',
-    q: 'Does membership include Pitbull Classic registration?',
-    a: 'No. Annual membership enables you to compete; each meet registration is separate, except on the combo plan.',
+    id: 'duration',
+    q: 'How long does membership last?',
+    a: 'Annual membership runs from payment confirmation until December 31 of the same calendar year.',
   },
   {
-    id: 'vigencia',
-    q: 'When does membership validity start?',
-    a: 'From payment confirmation until December 31 of the same calendar year.',
+    id: 'required',
+    q: 'Do I need to be a member to compete?',
+    a: 'Yes. Valid membership is required to register for any official PLU Argentina event.',
+  },
+  {
+    id: 'data',
+    q: 'What information do I need to provide?',
+    a: 'Personal details, ID, contact, location, gym and competitive sex. Under 18 requires guardian authorization.',
+  },
+  {
+    id: 'status',
+    q: 'How is my status confirmed?',
+    a: 'You receive on-screen confirmation with a payment reference. Active status appears on your profile and digital credential.',
+  },
+  {
+    id: 'pitbull',
+    q: 'Does membership include Pitbull Classic registration?',
+    a: 'No. Membership enables you to compete; each meet is managed separately, except on the combo plan.',
   },
   {
     id: 'menores',
@@ -266,7 +288,7 @@ export const PLATFORM_SECTIONS = [
 export const PITBULL_CLASSIC = {
   title: 'Pitbull Classic',
   tagline:
-    'The first major official PLU ARG meet. Raw and equipped categories, certified referees and results recognized by PLU USA.',
+    'Pitbull Classic brings PLU Argentina athletes together in an official meet built to track registrations, categories, results and reports under Powerlifting United standards.',
   date: 'December 12–13, 2026',
   dateDay: '12–13',
   dateMonth: 'Dec',
@@ -287,16 +309,98 @@ export const PITBULL_VENUE = {
 }
 
 export const PITBULL_BENEFITS_ATHLETES = [
-  { id: 'standard', icon: 'Globe', title: 'PLU USA Results', desc: 'Internationally recognized.' },
-  { id: 'credential', icon: 'QrCode', title: 'Digital credential', desc: 'Card and entry QR on confirmation.' },
-  { id: 'judging', icon: 'ShieldCheck', title: 'Certified referees', desc: 'PLU USA panel across three platforms.' },
-  { id: 'ops', icon: 'ClipboardList', title: 'Paperless ops', desc: 'Weigh-in, draw and attempts in-app.' },
+  { id: 'standard', icon: 'Globe', title: 'PLU USA results', desc: 'Publishing and export aligned with the international ecosystem.' },
+  { id: 'credential', icon: 'QrCode', title: 'Digital credential', desc: 'Card and entry QR once registration is confirmed.' },
+  { id: 'judging', icon: 'ShieldCheck', title: 'Certified referees', desc: 'Technical panel under PLU USA standards.' },
+  { id: 'ops', icon: 'ClipboardList', title: 'Traceable operations', desc: 'Weigh-in, draw and attempts recorded on the platform.' },
 ]
 
 export const PITBULL_BENEFITS_SPECTATORS = [
-  { id: 'show', icon: 'Zap', title: 'Live show', desc: 'Two days, three platforms running.' },
-  { id: 'access', icon: 'Ticket', title: 'No membership', desc: 'ID only. Online cheaper than at the door.' },
-  { id: 'community', icon: 'Users', title: 'PLU community', desc: 'Athletes nationwide. Institutional atmosphere.' },
+  { id: 'show', icon: 'Ticket', title: 'General admission', desc: 'Two competition days at Maximal Strength Club.' },
+  { id: 'access', icon: 'Ticket', title: 'No membership', desc: 'ID only. Buy online or at the door on event day.' },
+  { id: 'community', icon: 'Users', title: 'PLU ARG calendar', desc: 'Official meet on the local competitive circuit.' },
+]
+
+export const PITBULL_ATHLETE_GROUPS = [
+  {
+    id: 'registration',
+    label: 'Registration',
+    items: [
+      {
+        id: 'membership',
+        title: 'Membership',
+        text: 'Active PLU ARG membership for the calendar year, or the membership plus registration combo when you sign up.',
+      },
+      {
+        id: 'category',
+        title: 'Category',
+        text: 'Equipment, age division and bodyweight per the PLU ARG rulebook.',
+      },
+      {
+        id: 'confirmation',
+        title: 'Validation',
+        text: 'The team confirms payment and registration before enabling your credential and slot.',
+      },
+    ],
+  },
+  {
+    id: 'meet',
+    label: 'Meet and results',
+    items: [
+      {
+        id: 'weighin',
+        title: 'Weigh-in',
+        text: 'Official window on your competition day. Schedule published by the organizing team.',
+      },
+      {
+        id: 'results',
+        title: 'Results',
+        text: 'Totals published on this platform after the meet, from the LiftingCast sheet.',
+      },
+    ],
+  },
+]
+
+/** @deprecated Use PITBULL_ATHLETE_GROUPS */
+export const PITBULL_ATHLETE_NOTES = PITBULL_ATHLETE_GROUPS.flatMap((group) => group.items)
+
+export const PITBULL_INSTITUTIONAL = {
+  eyebrow: 'Official calendar',
+  title: 'Official event within Powerlifting United',
+  text: 'Pitbull Classic is part of the PLU Argentina competitive calendar and supports registrations, categories, results and reporting under a consistent standard.',
+  points: [
+    'Registrations and memberships recorded on the PLU ARG platform',
+    'Results normalized from LiftingCast for PLU USA reporting',
+    'Operations aligned with PLU rulebook and competition standards',
+  ],
+}
+
+export const PITBULL_FAQ = [
+  {
+    id: 'affiliation',
+    q: 'Do I need to be a member to compete?',
+    a: 'Yes. To register for Pitbull Classic you need an active PLU ARG annual membership for the calendar year or the membership plus registration combo when you sign up.',
+  },
+  {
+    id: 'confirmation',
+    q: 'How do I confirm my registration?',
+    a: 'Complete your profile, verify active membership and pay the meet registration. The PLU ARG team validates payment and enables your credential with an entry QR.',
+  },
+  {
+    id: 'rulebook',
+    q: 'Where can I read the rulebook?',
+    a: 'The official PLU ARG rulebook is published in the Rulebook section of this site. Event categories follow that regulation.',
+  },
+  {
+    id: 'results',
+    q: 'When are results published?',
+    a: 'Results are published on the platform once the meet ends and the LiftingCast sheet is processed.',
+  },
+  {
+    id: 'contact',
+    q: 'Who do I contact if I have questions?',
+    a: 'You can reach the PLU ARG team from the Contact section. For event operations, mention Pitbull Classic in the subject line.',
+  },
 ]
 
 export const PITBULL_SCHEDULE = [
@@ -304,16 +408,16 @@ export const PITBULL_SCHEDULE = [
     day: 'Day 1',
     date: 'Dec 12',
     items: [
-      { time: 'AM', label: 'Weigh-in — Day 1 categories' },
+      { time: 'AM', label: 'Weigh-in: Day 1 categories' },
       { time: 'MID', label: 'Mandatory technical briefing' },
-      { time: 'PM', label: 'Competition — Day 1 categories' },
+      { time: 'PM', label: 'Competition: Day 1 categories' },
     ],
   },
   {
     day: 'Day 2',
     date: 'Dec 13',
     items: [
-      { time: 'AM', label: 'Weigh-in — Day 2 categories' },
+      { time: 'AM', label: 'Weigh-in: Day 2 categories' },
       { time: 'MID', label: 'Mandatory technical briefing' },
       { time: 'PM', label: 'Competition + Award ceremony' },
     ],
@@ -422,7 +526,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: 'Can PLU USA resolve my inquiry directly?',
-        a: 'No — PLU USA only audits reports and exports. Operational inquiries are handled by Maximal / PLU ARG.',
+        a: 'No. PLU USA only audits reports and exports. Operational inquiries are handled by Maximal or PLU ARG.',
       },
     ],
   },
@@ -435,7 +539,7 @@ export const COMMUNITY_HIGHLIGHTS = [
 ]
 
 export const COMMUNITY_QUOTE =
-  'We do not compete gym against gym. We compete under the same rules — so a record in Rosario counts the same as one in Buenos Aires.'
+  'We do not compete gym against gym. We compete under the same rules, so a record in Rosario counts the same as one in Buenos Aires.'
 
 export const COMMUNITY_GYM_PLACEHOLDERS = [
   { id: 'gym-ba', label: 'Buenos Aires', sub: 'Maximal Strength Club' },
@@ -463,9 +567,9 @@ export const COMMUNITY_RECENT_MEMBERS = [
 ]
 
 export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = [
-  { id: 'testimonio-1', role: 'Athlete · Open', text: 'Coming soon — voices of athletes competing under the PLU ARG standard.' },
-  { id: 'testimonio-2', role: 'Coach · Affiliate gym', text: 'Coming soon — stories from the affiliate gym network.' },
-  { id: 'testimonio-3', role: 'Certified referee', text: 'Coming soon — perspective from the national judging body.' },
+  { id: 'testimonio-1', role: 'Athlete · Open', text: 'Coming soon: voices of athletes competing under the PLU ARG standard.' },
+  { id: 'testimonio-2', role: 'Coach · Affiliate gym', text: 'Coming soon: stories from the affiliate gym network.' },
+  { id: 'testimonio-3', role: 'Certified referee', text: 'Coming soon: perspective from the national judging body.' },
 ]
 
 export const ADMIN_NAV_GROUPS = [
@@ -498,6 +602,12 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['users', 'admin.nav.users', 'Shield'],
       ['audit', 'admin.nav.audit', 'ScrollText'],
+    ],
+  },
+  {
+    labelKey: 'admin.nav.groups.pluUsa',
+    items: [
+      ['plu-usa', 'admin.nav.pluUsa', 'Eye'],
     ],
   },
 ]

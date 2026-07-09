@@ -16,7 +16,12 @@ PLU ARG debe sentirse como una **federación argentina de powerlifting premium**
 | **Privada (admin)** | Sobria, operativa | Velocidad, tablas, acciones |
 | **Portal atleta** | Personal, claro | Estado, pagos, perfil |
 
-**Referencias estructurales (no copiar):** Powerlifting United, Join It (patrones UX admin/CRM).
+**Referencias (jul. 2026 — actualizado):** Powerlifting United (`powerliftingunited.com`) es
+ahora la fuente de contenido — títulos, misión, nav y copy institucional se traducen/adaptan
+fielmente al ES/EN, ver `docs/PLU_BRAND_ALIGNMENT.md` §2. Excepción: datos de negocio propios de
+PLU ARG (precios ARS, fechas y cupos de Pitbull Classic, gimnasios afiliados) no se reemplazan
+por no tener equivalente real en el sitio de EE.UU. Join It sigue siendo solo referencia
+estructural de patrones UX admin/CRM, no de contenido.
 
 ---
 
@@ -28,12 +33,12 @@ PLU ARG debe sentirse como una **federación argentina de powerlifting premium**
 |-------|-------|--------------|------------|---------------|
 | — | Inicio | `home` | `HomePage` | ✅ Mejorado |
 | Competencia | Afiliación | `members` | `MembersPage` | ✅ v2 afiliación anual |
-| Competencia | Pitbull Classic | `pitbull` | `PitbullPage` | 🟡 Base |
+| Competencia | Pitbull Classic | `pitbull` | `PitbullPage` | ✅ Dossier editorial (`pitbull-dossier--minimal`) — doc estaba desactualizado, ver auditoría jul. 2026 |
 | Competencia | Eventos | `events` | `EventsPage` | ✅ Calendario + lista |
-| Competencia | Resultados | `results` | `ResultsPage` | 🟡 Base |
-| Institucional | Reglamento | `rulebook` | `RulebookPage` | 🟡 Base |
+| Competencia | Resultados | `results` | `ResultsPage` | ✅ Archivo + empty-state ya premium — doc estaba desactualizado |
+| Institucional | Reglamento | `rulebook` | `RulebookPage` | ✅ Tabs + contenido real ya premium — doc estaba desactualizado |
 | Institucional | Comunidad | `community` | `CommunityPage` | 🟡 Base |
-| Institucional | FAQ | `faq` | `FAQPage` | 🟡 Base |
+| Institucional | FAQ | `faq` | `FAQPage` | ✅ Ya en acordeón (`FAQAccordion`) agrupado por categoría — doc estaba desactualizado |
 | Institucional | Contacto | `contact` | `ContactPage` | 🟡 Base |
 | Acción | Login | `login` | `LoginPage` | ✅ |
 | Acción | Registro | `register` | `RegisterPage` | 🟡 Base |
@@ -53,10 +58,13 @@ PLU ARG debe sentirse como una **federación argentina de powerlifting premium**
 
 | Grupo | Módulo | Estado |
 |-------|--------|--------|
-| Gestión | Dashboard, Atletas, Afiliaciones | ✅ Funcional |
-| Eventos | Eventos, Inscripciones, Resultados | 🟡 Parcial |
-| Finanzas | Pagos, Exportaciones | 🔲 Placeholder |
-| Sistema | Usuarios, Auditoría | 🔲 Placeholder |
+| Gestión | Dashboard, Atletas, Afiliaciones | ✅ Funcional — shell/sidebar/topbar/KPI tiles/tablas auditados jul. 2026, ya cumplen la gramática visual |
+| Eventos | Eventos, Inscripciones | ✅ Funcional |
+| Eventos | Resultados (admin) | 🔲 Placeholder — `PlaceholderSection.jsx` |
+| Finanzas | Pagos | ✅ Funcional — `TicketOrdersSection` (dejó de ser placeholder) |
+| Finanzas | Exportaciones | 🔲 Placeholder |
+| Sistema | Usuarios | ✅ Funcional |
+| Sistema | Auditoría | 🔲 Placeholder |
 
 ---
 
@@ -71,8 +79,8 @@ Archivo fuente: `src/styles/variables.css`
 | `--color-brand-red` | CTA primario, urgencia |
 | `--color-brand-celeste` | Identidad AR, acentos |
 | `--color-brand-gold` | Premium, precios, records |
-| `--font-display` | Títulos (Barlow Condensed) |
-| `--font-family` | Cuerpo (Poppins) |
+| `--font-display` | Títulos — Poppins 700/800, tracking ajustado (no es una familia distinta) |
+| `--font-family` | Cuerpo e interfaz — Poppins 400/500/600 |
 
 **Regla:** identidad argentina sutil. No patriótica excesiva.
 
@@ -108,16 +116,15 @@ src/styles/layout/header.css   → Navbar
 
 ## 5. Página de afiliación anual (`MembersPage`)
 
-### Estructura visual
+### Estructura visual (actualizada jul. 2026 — refleja `MembersPage.jsx`)
 
-1. **PageHero** — “Afiliación anual 2026”
-2. **Stats** — 3 planes · desde $28.000 · vigencia 2026
-3. **Intro split** — copy + mock tarjeta digital PLU ARG
-4. **Beneficios** — 4 iconos (código, eventos, estándar, respaldo)
-5. **Pasos** — 4 pasos (`MEMBERSHIP_ANNUAL_STEPS`)
-6. **Planes** — `MembershipCard` × 3
-7. **Comparativa** — tabla Atleta / Juvenil / Combo
-8. **CTA final** — afiliación o eventos
+1. **DesignPageHero** compacto — “Afiliación anual 2026” + `MembersHeroRail` (métricas + CTA)
+2. **Intro** — copy + lista de beneficios numerada (`members-benefit-list`)
+3. **Requisitos** — lista editorial + panel de vigencia
+4. **Proceso** — 4 pasos (`MEMBERSHIP_ANNUAL_STEPS`)
+5. **Planes** — `MembershipCard` × 3 en grid (sin tabla comparativa aparte — la grilla de 3 planes ya
+   colapsa a 1 columna en mobile, ver `membership-grid--editorial`)
+6. **FAQ** — `FAQAccordion`
 
 ### Planes (`MEMBERSHIP_PLANS`)
 
@@ -129,9 +136,12 @@ src/styles/layout/header.css   → Navbar
 
 ### Criterios de calidad
 
-- [ ] Jerarquía clara: qué es afiliación anual vs inscripción a evento
-- [ ] Comparativa legible en mobile (scroll horizontal)
-- [ ] CTA visible en hero, intro y footer
+- [x] Comparativa legible en mobile — no aplica: se sacó la tabla comparativa, la grilla de planes ya es legible en 1 columna
+- [x] CTA visible en hero, intro y footer
+- [ ] Jerarquía clara: qué es afiliación anual vs inscripción a evento — la ambigüedad real está en
+      `RegisterPage.jsx` (flujo compartido membership/competition), no en esta landing. Pendiente para
+      cuando se toque el flujo de checkout (Fase 4): agregar un badge de flujo visible ("Afiliación" vs
+      "Inscripción a evento") al entrar a `RegisterPage`.
 - [ ] Tarjeta digital como promesa visual (futuro: QR real)
 
 ---
@@ -192,6 +202,7 @@ Antes de cerrar cualquier pantalla:
 
 | # | Pantalla | Prioridad |
 |---|----------|-----------|
+| 0 | Design system base (efectos, glassmorphism, font-display) | ✅ Hecho jul 2026 — ver `UX_UI_GUIDELINES.md` §Gramática visual |
 | 1 | Afiliación anual | ✅ Hecho v2 |
 | 2 | Home + PlatformMap | ✅ Hecho |
 | 3 | Eventos | ✅ Hecho |

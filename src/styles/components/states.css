@@ -42,8 +42,8 @@
     from 90deg,
     transparent 0deg,
     transparent 90deg,
-    rgba(225, 6, 0, 0.3) 180deg,
-    var(--color-brand-red) 360deg
+    var(--plu-celeste-alpha-35) 180deg,
+    var(--plu-celeste-600) 360deg
   );
   border-radius: 50%;
   height: 40px;
@@ -62,9 +62,9 @@
 }
 
 .state-card__spinner::after {
-  background: var(--color-brand-red);
+  background: var(--plu-celeste-600);
   border-radius: 50%;
-  box-shadow: 0 0 12px 2px rgba(225, 6, 0, 0.5);
+  box-shadow: 0 0 12px 2px var(--plu-celeste-alpha-35);
   content: '';
   height: 6px;
   left: 50%;
@@ -222,8 +222,6 @@
 }
 
 .locale-switch__track {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.018) 100%),
     var(--color-bg-elevated);
@@ -579,7 +577,7 @@
 }
 
 .audit-timeline__dot {
-  background: var(--color-brand-red);
+  background: var(--color-brand-celeste);
   border-radius: 50%;
   height: 12px;
   margin-top: 4px;
@@ -587,15 +585,8 @@
   position: relative;
 }
 
-.audit-timeline__item:first-child .audit-timeline__dot::before {
-  animation: pulse-ring 2.5s infinite;
-  background-color: var(--color-brand-red);
-  border-radius: 50%;
-  content: '';
-  display: block;
-  height: 100%;
-  width: 100%;
-  opacity: 0.6;
+.audit-timeline__item:first-child .audit-timeline__dot {
+  background: var(--color-brand-gold);
 }
 
 .audit-timeline__meta {

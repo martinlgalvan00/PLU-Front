@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { Medal } from 'lucide-react'
 
 /* ─── Configuración por posición ─────────────────────────── */
 const SLOT_CONFIG = {
   '1°': {
-    medal:       '🥇',
     rankLabel:   '1° Lugar',
     platformH:   '160px',
     cardClass:   'podium-slot--first',
@@ -11,7 +11,6 @@ const SLOT_CONFIG = {
     rankNum:     '1',
   },
   '2°': {
-    medal:       '🥈',
     rankLabel:   '2° Lugar',
     platformH:   '100px',
     cardClass:   'podium-slot--second',
@@ -19,7 +18,6 @@ const SLOT_CONFIG = {
     rankNum:     '2',
   },
   '3°': {
-    medal:       '🥉',
     rankLabel:   '3° Lugar',
     platformH:   '68px',
     cardClass:   'podium-slot--third',
@@ -79,9 +77,7 @@ export default function Podium({ results = [] }) {
             {/* Athlete card — floats */}
             <div className="podium-athlete">
               {/* Medal */}
-              <span className="podium-athlete__medal" aria-hidden>
-                {config.medal}
-              </span>
+              <Medal className="podium-athlete__medal" aria-hidden strokeWidth={1.6} />
 
               {/* Rank badge */}
               <span className="podium-athlete__rank-badge" aria-hidden>

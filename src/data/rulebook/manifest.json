@@ -1,7 +1,7 @@
 {
   "version": "26.1",
   "organization": "Powerlifting United",
-  "pageCount": 70,
+  "pageCount": 71,
   "publishedLabel": "2026",
   "documents": {
     "es": "/docs/reglamento-plu-v26.1-es.pdf",
@@ -9,11 +9,15 @@
   },
   "fallbackLocale": "es",
   "sourceSection": {
-    "framework": "1.1",
-    "weight": "1.4",
-    "age": "1.3",
-    "equipment": "1.1.2",
+    "framework": "1.1 – 1.8",
+    "equipmentSpecs": "2.1 – 2.8",
+    "athleteEquipment": "3.1 – 3.12",
+    "procedures": "4.1 – 4.4",
+    "weighins": "5.1",
     "lifts": "6.1 – 6.3",
-    "judging": "4.3 · 8.1"
+    "equipped": "7.1 – 7.3",
+    "referees": "8.1 – 8.2",
+    "adaptive": "9.1 – 9.6",
+    "policies": "Anti-discrimination · Background check · Banned substances · Appendix A/B"
   }
 }

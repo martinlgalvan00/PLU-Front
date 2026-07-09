@@ -20,7 +20,11 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
     "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",
-    "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1"
+    "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "design:import": "node scripts/import-claude-design.mjs",
+    "design:extract": "node scripts/extract-design-ref.mjs"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.20.0",
@@ -51,6 +55,17 @@
     "prettier": "^3.9.3",
     "prisma": "^6.16.2",
     "vite": "^8.1.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "storybook": "^10.4.6",
+    "@storybook/react-vite": "^10.4.6",
+    "@chromatic-com/storybook": "^5.2.1",
+    "@storybook/addon-vitest": "^10.4.6",
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-docs": "^10.4.6",
+    "@storybook/addon-mcp": "^0.6.0",
+    "prop-types": "^15.8.1",
+    "playwright": "^1.61.1",
+    "@vitest/browser": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
   }
 }

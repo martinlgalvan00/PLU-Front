@@ -2,12 +2,15 @@
  * PLU ARG — tokens de marca y rutas públicas.
  * Colores: usá var(--color-*) en CSS o PLU_CSS_VARS en estilos inline.
  */
+import pluOfficialLogo from '../assets/brand/plu-official-logo.png'
+import pluArgentinaEmblem from '../assets/brand/plu-argentina-emblem.png'
+
 export const BRAND = {
   /** Powerlifting United — letterhead horizontal (fondo negro) */
-  logoUrl: '/brand/plu-official-logo.png',
-  logoLetterheadUrl: '/brand/plu-official-logo.png',
+  logoUrl: pluOfficialLogo,
+  logoLetterheadUrl: pluOfficialLogo,
   /** Emblema circular PLU Argentina */
-  logoArgentinaUrl: '/brand/plu-argentina-emblem.png',
+  logoArgentinaUrl: pluArgentinaEmblem,
   logoAlt: 'PLU ARG — Powerlifting United',
   logoArgentinaAlt: 'PLU Argentina — emblema oficial',
   faviconUrl: '/brand/plu-favicon.svg',

@@ -212,6 +212,6 @@
 }
 
 [data-theme='light'] .membership-card--featured {
-  background: rgba(225, 6, 0, 0.04);
-  border-color: rgba(225, 6, 0, 0.16);
+  background: rgba(242, 183, 5, 0.06);
+  border-color: rgba(169, 121, 15, 0.24);
 }

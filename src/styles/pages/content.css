@@ -58,7 +58,7 @@
 }
 
 .event-row time {
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   font-size: 28px;
   font-weight: var(--font-weight-black);
 }
@@ -87,7 +87,7 @@
 }
 
 .contact-panel a {
-  color: var(--color-brand-red);
+  color: var(--color-brand-celeste);
   font-size: 22px;
   font-weight: 900;
 }

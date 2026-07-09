@@ -28,6 +28,39 @@ function buildEventLocation(event) {
   return [event.venue, event.location].filter(Boolean).join(', ')
 }
 
+/** Defaults de calendario para eventos mock sin Supabase. */
+const CALENDAR_DEFAULTS_BY_SLUG = {
+  'pitbull-classic-2026': {
+    startsAt: '2026-12-12T09:00:00-03:00',
+    endsAt: '2026-12-13T20:00:00-03:00',
+    description: 'Pitbull Classic · meet oficial PLU Argentina. Maximal Strength Club, Buenos Aires.',
+  },
+}
+
+/**
+ * Garantiza startsAt/endsAt para "Agregar a calendario" cuando el evento
+ * solo trae dateISO (mock) o aún no llegó el enrich de Supabase.
+ */
+export function ensureEventCalendarFields(event) {
+  if (!event) return event
+  if (event.startsAt && event.endsAt) return event
+
+  const defaults = CALENDAR_DEFAULTS_BY_SLUG[event.slug]
+  if (defaults) {
+    return { ...event, ...defaults }
+  }
+
+  if (event.dateISO) {
+    return {
+      ...event,
+      startsAt: `${event.dateISO}T09:00:00-03:00`,
+      endsAt: `${event.dateISO}T20:00:00-03:00`,
+    }
+  }
+
+  return event
+}
+
 export function buildGoogleCalendarUrl(event) {
   const params = new URLSearchParams({
     action: 'TEMPLATE',

@@ -8,6 +8,7 @@ export const VIEW_RANK = {
   events: 30,
   competition: 31,
   results: 40,
+  records: 45,
   rulebook: 50,
   community: 60,
   faq: 70,

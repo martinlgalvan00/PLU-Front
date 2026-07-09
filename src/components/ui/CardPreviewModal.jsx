@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Download, Share2, X } from 'lucide-react'
 import EventShareCard from './EventShareCard.jsx'
 import SegmentedSwitch from './SegmentedSwitch.jsx'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   buildCardFilename,
   downloadCard,
@@ -9,15 +10,11 @@ import {
   shareCard,
 } from '../../services/eventCardService.js'
 
-const FORMAT_OPTIONS = [
-  ['square', 'Cuadrada', 'Post'],
-  ['story', 'Historia', 'Story'],
-]
-
-function buildShareText(cardData) {
-  if (cardData.variant === 'membership') return '¡Ya soy socio de PLU ARG! 🏋️'
-  if (cardData.variant === 'ticket') return `¡Voy a ${cardData.eventTitle ?? 'PLU ARG'}! 🎟️`
-  return `¡Compito en ${cardData.eventTitle ?? 'PLU ARG'}! 🏋️`
+function buildShareText(cardData, t) {
+  const eventTitle = cardData.eventTitle ?? t('cardModal.defaultEventTitle')
+  if (cardData.variant === 'membership') return t('cardModal.shareTextMembership')
+  if (cardData.variant === 'ticket') return t('cardModal.shareTextTicket', { event: eventTitle })
+  return t('cardModal.shareTextDefault', { event: eventTitle })
 }
 
 /**
@@ -36,6 +33,11 @@ function buildShareText(cardData) {
  *   }
  */
 export default function CardPreviewModal({ open, onClose, cardData = {} }) {
+  const { t } = useI18n()
+  const formatOptions = [
+    ['square', t('cardModal.formatSquare'), t('cardModal.formatSquareShort')],
+    ['story', t('cardModal.formatStory'), t('cardModal.formatStoryShort')],
+  ]
   const captureRef = useRef(null)
   const [status, setStatus] = useState('idle') // 'idle' | 'generating' | 'done' | 'error'
   const [blob, setBlob] = useState(null)
@@ -93,7 +95,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
     try {
       const generated = blob ?? (await generateEventCard(captureRef.current))
       setBlob(generated)
-      await shareCard(generated, buildShareText(cardData), filename)
+      await shareCard(generated, buildShareText(cardData, t), filename)
       setStatus('done')
     } catch (err) {
       console.error('CardPreviewModal share:', err)
@@ -121,7 +123,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
         className="card-modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label="Card de inscripción"
+        aria-label={t('cardModal.modalAria')}
         onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       >
         <div className="card-modal">
@@ -129,13 +131,13 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
           {/* Header */}
           <div className="card-modal__header">
             <span className="card-modal__title">
-              🎉 Tu card PLU ARG
+              {t('cardModal.title')}
             </span>
             <button
               type="button"
               className="card-modal__close"
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t('cardModal.close')}
             >
               <X size={16} />
             </button>
@@ -145,9 +147,9 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
           <div className="card-modal__format-switch">
             <SegmentedSwitch
               active={format}
-              ariaLabel="Formato de la card"
+              ariaLabel={t('cardModal.formatSwitchAria')}
               onChange={setFormat}
-              options={FORMAT_OPTIONS}
+              options={formatOptions}
             />
           </div>
 
@@ -161,16 +163,14 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
           {/* Hint */}
           <div className="card-modal__hint">
             <span className="card-modal__hint-dot" aria-hidden />
-            {isStory
-              ? 'PNG 1080×1920 · Formato historia de Instagram'
-              : 'PNG 1080×1080 · Listo para Instagram y redes sociales'}
+            {isStory ? t('cardModal.hintStory') : t('cardModal.hintSquare')}
           </div>
 
           {/* Acciones */}
           {isGenerating ? (
             <div className="card-modal__generating">
               <div className="card-modal__spinner" aria-hidden />
-              Generando imagen…
+              {t('cardModal.generating')}
             </div>
           ) : (
             <div className="card-modal__actions">
@@ -181,7 +181,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
                 id="card-download-btn"
               >
                 <Download size={15} aria-hidden />
-                Descargar PNG
+                {t('cardModal.download')}
               </button>
 
               {canShare ? (
@@ -192,7 +192,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
                   id="card-share-btn"
                 >
                   <Share2 size={15} aria-hidden />
-                  Compartir
+                  {t('cardModal.share')}
                 </button>
               ) : (
                 <button
@@ -200,7 +200,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
                   className="btn btn--outline"
                   onClick={onClose}
                 >
-                  Cerrar
+                  {t('cardModal.close')}
                 </button>
               )}
             </div>
@@ -208,13 +208,13 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
 
           {status === 'error' && (
             <p style={{ color: '#ff3b36', fontSize: 13, textAlign: 'center', padding: '0 20px 16px', margin: 0 }}>
-              Ocurrió un error al generar la imagen. Intentá de nuevo.
+              {t('cardModal.errorMessage')}
             </p>
           )}
 
           {status === 'done' && !isGenerating && (
             <p style={{ color: '#8fd4a8', fontSize: 13, textAlign: 'center', padding: '0 20px 16px', margin: 0 }}>
-              ✓ ¡Imagen lista! Subila a tus redes como atleta PLU ARG 🇦🇷
+              {t('cardModal.doneMessage')}
             </p>
           )}
         </div>

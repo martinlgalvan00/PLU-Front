@@ -403,7 +403,7 @@ export default function AdminEventEditor({
           </div>
 
           <p className="admin-event-form__pricing-lead">
-            {t('admin.eventEditor.supabase.capacityTitle')} — {t('admin.eventEditor.supabase.capacityHint')}
+            {t('admin.eventEditor.supabase.capacityTitle')}. {t('admin.eventEditor.supabase.capacityHint')}
           </p>
           <div className="admin-event-form__grid admin-event-form__grid--pricing">
             <label className="admin-event-form__field">

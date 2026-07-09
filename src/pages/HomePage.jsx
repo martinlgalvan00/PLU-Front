@@ -9,6 +9,7 @@ import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
+import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 
 export default function HomePage({ onNavigate }) {
   const { HOME_FAQ, HOME_FAQ_ITEMS, MEMBERSHIP_PLANS } = useContent()
@@ -86,6 +87,8 @@ export default function HomePage({ onNavigate }) {
           </div>
         </div>
       </Reveal>
+
+      <StickyMobileCta onNavigate={onNavigate} />
     </main>
   )
 }

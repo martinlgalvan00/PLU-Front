@@ -62,6 +62,7 @@ export const ROLES = {
     canExportAdmin: false,
     canExportPluUsa: true,
     canCheckIn: false,
+    isPluUsaPartner: true,
   },
   seguridad_plu_arg: {
     label: 'Seguridad',
@@ -89,6 +90,7 @@ export const NAV_EVENTOS = [
   { key: 'pitbull', featured: true },
   { key: 'events' },
   { key: 'results' },
+  { key: 'records' },
 ]
 
 export const NAV_RECURSOS = [

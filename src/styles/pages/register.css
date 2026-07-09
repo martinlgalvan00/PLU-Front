@@ -14,7 +14,7 @@
 }
 
 .register-page--premium::before {
-  opacity: 0.55;
+  display: none;
 }
 
 .register-page--design::before {
@@ -538,7 +538,7 @@
 
 .register-intro__eyebrow-dot {
   animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-  background: var(--register-eyebrow-dot, var(--plu-red-500));
+  background: var(--register-eyebrow-dot, var(--plu-celeste-400));
   border-radius: 50%;
   display: block;
   flex: none;
@@ -692,7 +692,7 @@
 }
 
 .register-progress__bar span {
-  background: linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-red));
+  background: var(--gradient-brand);
   border-radius: inherit;
   display: block;
   height: 100%;
@@ -773,7 +773,7 @@
 .register-intro__meta {
   background: var(--register-perk-bg);
   border: 1px solid var(--register-perk-border);
-  border-left: 2px solid var(--color-brand-red);
+  border-left: 2px solid var(--color-brand-celeste);
   border-radius: 12px;
   display: grid;
   gap: 4px;
@@ -1022,11 +1022,11 @@
 
 .register-card__submit {
   align-items: center;
-  background: linear-gradient(135deg, var(--plu-red-500) 0%, #c40600 52%, #b80500 100%);
+  background: var(--color-brand-action);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--border-radius-pill);
   box-shadow:
-    0 8px 20px rgba(225, 6, 0, 0.24),
+    0 8px 20px rgba(31, 95, 158, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
   display: inline-flex;
   flex: none;
@@ -1052,30 +1052,30 @@
 }
 
 .register-card__submit:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f00800 0%, var(--plu-red-500) 52%, #c40600 100%);
+  background: var(--color-brand-action-hover);
   box-shadow:
-    0 14px 32px rgba(225, 6, 0, 0.38),
+    0 14px 32px rgba(31, 95, 158, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
   filter: brightness(1.03);
   transform: translateY(-2px);
 }
 
 .register-card__submit:active:not(:disabled) {
-  box-shadow: 0 6px 16px rgba(225, 6, 0, 0.28);
+  box-shadow: 0 6px 16px rgba(31, 95, 158, 0.28);
   transform: translateY(0);
 }
 
 .register-card__submit--ready {
   box-shadow:
-    0 12px 28px rgba(225, 6, 0, 0.34),
-    0 0 0 1px rgba(116, 172, 223, 0.18),
+    0 12px 28px rgba(31, 95, 158, 0.34),
+    0 0 0 1px rgba(242, 183, 5, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .register-card__submit--ready:hover:not(:disabled) {
   box-shadow:
-    0 16px 36px rgba(225, 6, 0, 0.42),
-    0 0 0 1px rgba(116, 172, 223, 0.24),
+    0 16px 36px rgba(31, 95, 158, 0.42),
+    0 0 0 1px rgba(242, 183, 5, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -1175,7 +1175,7 @@
 .athlete-overview { display: grid; gap: var(--space-lg); grid-template-columns: minmax(280px, .8fr) minmax(380px, 1.2fr); }
 .profile-summary { align-content: start; display: grid; gap: var(--space-lg); padding: var(--space-xl); }
 .profile-summary > svg,
-.portal-section header > svg { color: var(--color-brand-red); }
+.portal-section header > svg { color: var(--color-brand-celeste); }
 .profile-summary div,
 .membership-row div,
 .card-back div { display: grid; gap: 5px; }
@@ -1205,7 +1205,7 @@
 .portal-events { display: grid; }
 .portal-events article { align-items: center; border-bottom: 1px solid var(--color-border-subtle); display: grid; gap: var(--space-lg); grid-template-columns: 80px 1fr auto; padding: 20px var(--space-lg); }
 .portal-events article:last-child { border-bottom: 0; }
-.portal-events time { color: var(--color-brand-red); font-size: 20px; font-weight: 800; }
+.portal-events time { color: var(--color-brand-celeste); font-size: 20px; font-weight: 800; }
 .portal-events h3 { margin: 0 0 4px; }
 
 .register-progress--rail .register-progress__segments {
@@ -1347,6 +1347,787 @@
 
 [data-theme='light'] .register-card__submit {
   box-shadow:
-    0 10px 24px rgba(225, 6, 0, 0.22),
+    0 10px 24px rgba(31, 95, 158, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* =============================================
+   MEMBERSHIP CHECKOUT — premium institutional
+   ============================================= */
+
+.register-page--membership.register-page--premium .register-intro__eyebrow {
+  align-items: center;
+  background: rgba(116, 172, 223, 0.1);
+  border: 1px solid rgba(116, 172, 223, 0.22);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.register-page--membership .register-intro--membership {
+  gap: 10px;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
+}
+
+.register-page--membership .register-intro--membership::before {
+  background: var(--plu-gradient-brand-bar);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  opacity: 0.82;
+  position: absolute;
+  top: 4px;
+  width: 2px;
+}
+
+.register-page--membership .register-intro--membership .register-intro__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.034em;
+  line-height: 1.12;
+  max-width: 18ch;
+}
+
+.register-page--membership .register-intro--membership .register-intro__desc {
+  font-size: 13px;
+  line-height: 1.62;
+  max-width: 40ch;
+}
+
+.register-membership-aside {
+  display: grid;
+  gap: 14px;
+}
+
+.register-membership-summary {
+  background: var(--register-card-bg);
+  border: 1px solid var(--register-card-border);
+  border-radius: 16px;
+  box-shadow: var(--register-card-shadow);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px 18px 18px;
+  position: relative;
+}
+
+.register-membership-summary__stripe {
+  background: var(--plu-gradient-stripe);
+  display: block;
+  height: 2.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-membership-summary__head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr auto;
+  padding-top: 4px;
+}
+
+.register-membership-summary__emblem {
+  border-radius: 50%;
+  flex: none;
+  height: 32px;
+  object-fit: cover;
+  width: 32px;
+}
+
+.register-membership-summary__identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-membership-summary__org {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-membership-summary__plan {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-membership-summary__price {
+  align-items: baseline;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
+.register-membership-summary__price span {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.register-membership-summary__price small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.register-membership-summary__validity {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-membership-summary__benefits {
+  border-top: 1px solid var(--register-section-border);
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 12px 0 0;
+}
+
+.register-membership-summary__benefits li {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 11.5px;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.register-membership-summary__benefits li svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.register-membership-summary__athlete {
+  align-items: baseline;
+  border-top: 1px solid var(--register-section-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding-top: 12px;
+}
+
+.register-membership-summary__athlete span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.register-membership-summary__athlete strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.register-membership-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.register-membership-steps__label {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.register-membership-steps__list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-membership-steps__list li {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.register-membership-steps__num {
+  align-items: center;
+  background: rgba(116, 172, 223, 0.1);
+  border: 1px solid rgba(116, 172, 223, 0.22);
+  border-radius: 50%;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.register-membership-steps__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.register-membership-steps__copy strong {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.register-membership-steps__copy p {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.register-membership-checkout {
+  background: rgba(116, 172, 223, 0.06);
+  border: 1px solid rgba(116, 172, 223, 0.16);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding: 14px 16px;
+}
+
+.register-membership-checkout__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-checkout__row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-membership-checkout__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-membership-checkout__copy strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.register-membership-checkout__copy span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.register-membership-checkout__amount {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.register-membership-payment-hint {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--register-section-border);
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+}
+
+.register-page--membership .register-card__submit--membership {
+  background: linear-gradient(135deg, var(--plu-gold-500), var(--plu-gold-600));
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 10px 24px rgba(242, 183, 5, 0.22);
+  color: #14181f;
+}
+
+.register-page--membership .register-card__submit--membership:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-500));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 14px 30px rgba(242, 183, 5, 0.28);
+  color: #14181f;
+  filter: none;
+}
+
+.register-page--membership .register-card__total strong {
+  color: var(--plu-gold-400);
+}
+
+@media (max-width: 900px) {
+  .register-page--membership .register-membership-steps {
+    display: none;
+  }
+
+  .register-page--membership .register-intro--membership::before {
+    display: none;
+  }
+
+  .register-page--membership .register-intro--membership {
+    padding-left: 0;
+  }
+}
+
+[data-theme='light'] .register-membership-summary {
+  background: #fff;
+}
+
+[data-theme='light'] .register-membership-checkout {
+  background: rgba(31, 95, 158, 0.05);
+  border-color: rgba(31, 95, 158, 0.14);
+}
+
+[data-theme='light'] .register-page--membership .register-intro__eyebrow {
+  background: rgba(31, 95, 158, 0.08);
+  border-color: rgba(31, 95, 158, 0.18);
+  color: var(--plu-celeste-600);
+}
+
+[data-theme='light'] .register-page--membership .register-card__total strong {
+  color: var(--plu-gold-600);
+}
+
+/* ── Membership confirmation (post-order) ─── */
+
+.register-card--confirmation {
+  gap: 0;
+  padding: clamp(18px, 2.5vw, 24px);
+}
+
+.register-page--membership .register-intro--confirmed .register-intro__title {
+  max-width: 20ch;
+}
+
+.register-membership-confirmation {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+}
+
+.register-membership-confirmation__head {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr;
+}
+
+.register-membership-confirmation__head svg {
+  color: var(--color-brand-celeste);
+  margin-top: 2px;
+}
+
+.register-membership-confirmation__head-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.register-membership-confirmation__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.register-membership-confirmation__head-copy h2 {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.8vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.register-membership-confirmation__head-copy p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.62;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-membership-confirmation__credential {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--register-card-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  padding: 16px 18px 18px;
+  position: relative;
+}
+
+.register-membership-confirmation__stripe {
+  background: var(--plu-gradient-stripe);
+  display: block;
+  height: 2.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.register-membership-confirmation__credential-row {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr auto;
+  padding-top: 4px;
+}
+
+.register-membership-confirmation__emblem {
+  border-radius: 50%;
+  flex: none;
+  height: 40px;
+  object-fit: cover;
+  width: 40px;
+}
+
+.register-membership-confirmation__credential-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.register-membership-confirmation__credential-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-confirmation__credential-season {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.register-membership-confirmation__credential-code {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 28px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.register-membership-confirmation__credential-name {
+  color: var(--color-brand-celeste);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.register-membership-confirmation__credential-validity {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.register-membership-confirmation__ledger {
+  border-top: 1px solid var(--register-section-border);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 16px;
+}
+
+.register-membership-confirmation__ledger div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.register-membership-confirmation__ledger dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-membership-confirmation__ledger dd {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  min-width: 0;
+}
+
+.register-membership-confirmation__ledger code {
+  background: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  display: inline-block;
+  font-size: 11px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 6px 8px;
+}
+
+.register-membership-confirmation__next {
+  background: rgba(116, 172, 223, 0.06);
+  border: 1px solid rgba(116, 172, 223, 0.14);
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.register-membership-confirmation__next-label {
+  color: var(--color-brand-celeste);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-confirmation__next p {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.register-membership-confirmation__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.register-membership-confirmation__cta {
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  width: 100%;
+}
+
+.register-membership-confirmation__cta--primary {
+  background: linear-gradient(135deg, var(--plu-gold-500), var(--plu-gold-600));
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset;
+  color: #14181f;
+}
+
+.register-membership-confirmation__cta--primary:hover {
+  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-500));
+  transform: translateY(-1px);
+}
+
+.register-membership-confirmation__cta--outline {
+  width: 100%;
+}
+
+.register-membership-confirmation__cta--ghost {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 0;
+  padding: 6px 0;
+  width: auto;
+}
+
+.register-membership-confirmation__cta--ghost:hover {
+  color: var(--color-text-primary);
+}
+
+.register-membership-confirmation__manual {
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+@media (max-width: 720px) {
+  .register-membership-confirmation__ledger {
+    grid-template-columns: 1fr;
+  }
+
+  .register-membership-confirmation__credential-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .register-membership-confirmation__credential-row .status-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+[data-theme='light'] .register-membership-confirmation__credential {
+  background: #fff;
+}
+
+[data-theme='light'] .register-membership-confirmation__next {
+  background: rgba(31, 95, 158, 0.05);
+  border-color: rgba(31, 95, 158, 0.12);
+}
+
+/* ── Human / checkout sobrio ───────────────── */
+
+.register-membership-summary--human {
+  box-shadow: none;
+  padding: 16px 18px;
+}
+
+.register-membership-summary--human .register-membership-summary__head {
+  grid-template-columns: 1fr auto;
+  padding-top: 0;
+}
+
+.register-membership-summary--human .register-membership-summary__plan {
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.register-membership-summary--human .register-membership-summary__validity {
+  font-size: 12px;
+}
+
+.register-membership-summary--human .register-membership-summary__athlete {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 0;
+  padding-top: 12px;
+}
+
+.register-membership-confirmation__head h2 {
+  font-family: var(--font-family);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.register-membership-confirmation__head p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.register-membership-confirmation__next-inline {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.register-membership-confirmation__credential-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+
+.register-membership-confirmation__credential {
+  border-radius: 12px;
+  box-shadow: none;
+  padding: 14px 16px;
+}
+
+.register-membership-confirmation__credential-code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.register-membership-confirmation__credential-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.register-membership-confirmation__credential-name {
+  font-size: 13px;
+}
+
+.register-membership-confirmation__ledger {
+  border-top: 1px solid var(--color-border-subtle);
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.register-membership-confirmation__cta--primary {
+  background: var(--color-brand-celeste);
+  box-shadow: none;
+}
+
+.register-membership-confirmation__cta--primary:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.register-page--membership .register-intro--membership .register-intro__title {
+  font-family: var(--font-family);
+  font-size: clamp(22px, 3vw, 26px);
+  font-weight: 700;
+}
+
+.register-page--membership .register-intro--membership .register-intro__desc {
+  font-size: 14px;
 }

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, ImageDown } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
 import { Field, Select } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
+import { getStatusMeta } from '../lib/status.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -146,6 +148,30 @@ function RegisterProgress({ activeStepIndex = 0, form, flow, layout = 'stack', o
           )
         })}
       </ol>
+    </div>
+  )
+}
+
+function RegisterMembershipAside({ athlete, locale, t, total }) {
+  return (
+    <div className="register-membership-aside register-membership-aside--human">
+      <div className="register-membership-summary register-membership-summary--human">
+        <div className="register-membership-summary__head">
+          <div className="register-membership-summary__identity">
+            <strong className="register-membership-summary__plan">{t('pages.register.membershipPlanLabel')}</strong>
+            <p className="register-membership-summary__validity">{t('pages.register.membershipValidityNote')}</p>
+          </div>
+          <div className="register-membership-summary__price">
+            <span>{money(total, locale)}</span>
+            <small>/{t('pages.membershipCard.periodAnnual')}</small>
+          </div>
+        </div>
+        {athlete?.fullName && (
+          <p className="register-membership-summary__athlete">
+            {athlete.fullName}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -293,21 +319,53 @@ export default function RegisterPage({
     if (result?.error) setSubmitError(result.error)
   }
 
-  const registerIntro = (
-    <header className="register-intro">
-      <h1 className="register-intro__title">{content[0]}</h1>
-      <p className="register-intro__desc">{content[1]}</p>
+  const membershipOrderConfirmed = flow === 'membership' && visibleOrder
+  const membershipConfirmedActive =
+    membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
 
-      {flow !== 'profile' && (
-        <div className="register-intro__meta">
-          <strong>{flow === 'membership' ? money(total, locale) : event?.title}</strong>
-          <span>{athlete?.fullName}</span>
-        </div>
-      )}
-    </header>
-  )
+  const registerIntro =
+    membershipOrderConfirmed ? (
+      <header className="register-intro register-intro--membership register-intro--confirmed">
+        <h1 className="register-intro__title">
+          {membershipConfirmedActive
+            ? t('pages.register.membershipConfirmedActiveTitle')
+            : t('pages.register.membershipConfirmedPendingTitle')}
+        </h1>
+        <p className="register-intro__desc">
+          {membershipConfirmedActive
+            ? t('pages.register.membershipConfirmedActiveDesc')
+            : t('pages.register.membershipConfirmedPendingDesc')}
+        </p>
+      </header>
+    ) : flow === 'membership' ? (
+      <header className="register-intro register-intro--membership">
+        <h1 className="register-intro__title">{t('pages.register.membershipTitle')}</h1>
+        <p className="register-intro__desc">
+          {t('pages.register.membershipDesc', { name: athlete?.fullName ?? '' })}
+        </p>
+      </header>
+    ) : (
+      <header className="register-intro">
+        <h1 className="register-intro__title">{content[0]}</h1>
+        <p className="register-intro__desc">{content[1]}</p>
 
-  const registerStatus = (flow !== 'profile' || visibleOrder) && (
+        {flow !== 'profile' && (
+          <div className="register-intro__meta">
+            <strong>{event?.title}</strong>
+            <span>{athlete?.fullName}</span>
+          </div>
+        )}
+      </header>
+    )
+
+  const membershipPaymentHint =
+    flow === 'membership' && !visibleOrder
+      ? form.paymentMethod === 'manual_link'
+        ? t('pages.register.membershipPaymentHintManual')
+        : t('pages.register.membershipPaymentHintMp')
+      : ''
+
+  const registerStatus = (flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && (
     <div className="register-status">
       {visibleOrder ? (
         <div className="register-status__body register-status__body--success">
@@ -349,7 +407,7 @@ export default function RegisterPage({
                     onClick={() => setCardOpen(true)}
                     id="register-generate-card-btn"
                   >
-                    <span className="card-trigger-btn__emoji">🎉</span>
+                    <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
                     {t('pages.register.generateCard')}
                   </button>
                   <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
@@ -378,23 +436,36 @@ export default function RegisterPage({
     ) : null
 
   return (
-    <main className="page register-page register-page--design register-page--premium">
-      {flow === 'profile' && onNavigate && (
+    <main
+      className={`page register-page register-page--design register-page--premium${
+        flow === 'membership' ? ' register-page--membership' : ''
+      }`.trim()}
+    >
+      {(flow === 'profile' || flow === 'membership') && onNavigate && (
         <nav className="register-topbar" aria-label={t('pages.register.navAria')}>
-          <button type="button" className="register-topbar__back" onClick={() => onNavigate('members')}>
+          <button
+            type="button"
+            className="register-topbar__back"
+            onClick={() => onNavigate(flow === 'membership' ? 'members' : 'members')}
+          >
             <ArrowLeft size={15} aria-hidden />
-            {t('pages.register.backMembership')}
+            {flow === 'membership' ? t('pages.register.backToPlans') : t('pages.register.backMembership')}
           </button>
-          <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
-            {t('pages.register.haveAccount')}
-            <ChevronRight size={14} aria-hidden />
-          </button>
+          {flow === 'profile' && (
+            <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
+              {t('pages.register.haveAccount')}
+              <ChevronRight size={14} aria-hidden />
+            </button>
+          )}
         </nav>
       )}
 
       <div className="register-shell">
         <aside className="register-aside register-aside--desktop">
           {registerIntro}
+          {flow === 'membership' && !visibleOrder && (
+            <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
+          )}
           {registerProgress}
           {registerStatus}
         </aside>
@@ -402,6 +473,9 @@ export default function RegisterPage({
         <div className="register-main">
           <div className="register-mobile-context">
             {registerIntro}
+            {flow === 'membership' && !visibleOrder && (
+              <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
+            )}
             {flow === 'profile' && !visibleOrder && (
               <RegisterProgress
                 activeStepIndex={profileStepIndex}
@@ -413,9 +487,28 @@ export default function RegisterPage({
                 onStepSelect={selectProfileStep}
               />
             )}
-            {(flow !== 'profile' || visibleOrder) && registerStatus}
+            {(flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && registerStatus}
           </div>
 
+          {membershipOrderConfirmed ? (
+            <div className="register-card register-card--confirmation">
+              <RegisterMembershipConfirmation
+                memberCode={memberCode}
+                membershipExpiration={
+                  cardData?.membershipExpiration ??
+                  formatShortDate(activeMembership?.expirationDate, locale)
+                }
+                order={visibleOrder}
+                onApprovePayment={onApprovePayment}
+                onNavigate={onNavigate}
+                onOpenCard={() => setCardOpen(true)}
+                showCardAction={Boolean(cardData)}
+              />
+              {cardData && (
+                <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
+              )}
+            </div>
+          ) : (
           <form className="register-card athlete-form" onSubmit={submit} noValidate>
             {flow === 'profile' && (
               <div className="register-wizard" key={activeProfileStep.id}>
@@ -580,16 +673,19 @@ export default function RegisterPage({
                 title={t('pages.register.paymentTitle')}
                 description={t('pages.register.paymentDescLinked')}
               >
-                <div className="form-grid form-grid--compact">
-                  <Select
-                    label={t('pages.register.paymentMethod')}
-                    name="paymentMethod"
-                    value={form.paymentMethod}
-                    onChange={changeField}
-                    options={formOptions.paymentMethod}
-                  />
-                </div>
-              </FormSection>
+                  <div className="form-grid form-grid--compact">
+                    <Select
+                      label={t('pages.register.paymentMethod')}
+                      name="paymentMethod"
+                      value={form.paymentMethod}
+                      onChange={changeField}
+                      options={formOptions.paymentMethod}
+                    />
+                  </div>
+                  {membershipPaymentHint && (
+                    <p className="register-membership-payment-hint">{membershipPaymentHint}</p>
+                  )}
+                </FormSection>
             )}
 
             {submitError && (
@@ -627,7 +723,13 @@ export default function RegisterPage({
               ) : (
                 <button
                   type="submit"
-                  className={`btn register-card__submit${flow === 'profile' && profileProgress?.complete ? ' register-card__submit--ready' : ''}`.trim()}
+                  className={[
+                    'btn register-card__submit',
+                    flow === 'profile' && profileProgress?.complete ? 'register-card__submit--ready' : '',
+                    flow === 'membership' ? 'register-card__submit--membership' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   disabled={flow === 'profile' && Boolean(visibleOrder)}
                 >
                   {content[2]}
@@ -636,6 +738,7 @@ export default function RegisterPage({
               )}
             </div>
           </form>
+          )}
         </div>
       </div>
     </main>

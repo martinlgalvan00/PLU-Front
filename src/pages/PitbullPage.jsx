@@ -1,23 +1,21 @@
-import { useEffect, useRef, useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  ChevronDown,
-  CircleDollarSign,
-  ClipboardList,
+  Calendar,
+  CircleDot,
+  Clock,
   ExternalLink,
-  Globe,
+  Layers,
   MapPin,
-  QrCode,
-  Scale,
-  ShieldCheck,
-  Ticket,
+  MessageCircle,
   Users,
-  Zap,
 } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
-import EventShareCard from '../components/ui/EventShareCard.jsx'
+import FAQAccordion from '../components/ui/FAQAccordion.jsx'
+import PitbullHeroRail from '../components/ui/PitbullHeroRail.jsx'
+import PitbullHeroVisual from '../components/ui/PitbullHeroVisual.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import { useContent } from '../hooks/useContent.js'
@@ -27,20 +25,12 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
 
-const INSCRIPTION_ICONS = [ShieldCheck, Scale, CircleDollarSign]
-
-const PITBULL_BENEFIT_ICONS = {
-  Globe,
-  QrCode,
-  ShieldCheck,
-  ClipboardList,
-  Zap,
-  Ticket,
-  Users,
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function scrollToInscription() {
-  document.getElementById('inscripcion')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  scrollToSection('inscripcion')
 }
 
 function PitbullDossierSection({
@@ -51,77 +41,46 @@ function PitbullDossierSection({
   lead,
   titleId,
   className = '',
+  tone = 'default',
+  hideHeader = false,
   children,
 }) {
+  const isOps = tone === 'ops'
+
   return (
     <section
       id={id}
-      className={`pitbull-dossier__section ${className}`.trim()}
-      aria-labelledby={titleId}
+      className={`pitbull-dossier__section${isOps ? ' pitbull-dossier__section--ops' : ''} ${className}`.trim()}
+      aria-label={hideHeader ? title : undefined}
+      aria-labelledby={hideHeader ? undefined : titleId}
     >
-      <header className="pitbull-dossier__head">
-        <p className="pitbull-dossier__kicker">
-          <span className="pitbull-dossier__index" aria-hidden>
-            {index}
-          </span>
-          <span className="pitbull-dossier__eyebrow">{eyebrow}</span>
-        </p>
-        <h2 id={titleId} className="pitbull-dossier__title">
-          {title}
-        </h2>
-        {lead ? <p className="pitbull-dossier__lead">{lead}</p> : null}
-      </header>
+      {!hideHeader ? (
+        <header className={`pitbull-dossier__head${isOps ? ' pitbull-dossier__head--ops' : ''}`}>
+          {isOps ? null : (
+            <p className="pitbull-dossier__kicker">
+              <span className="pitbull-dossier__index" aria-hidden>
+                {index}
+              </span>
+              <span className="pitbull-dossier__eyebrow">{eyebrow}</span>
+            </p>
+          )}
+          <h2 id={titleId} className="pitbull-dossier__title">
+            {title}
+          </h2>
+          {lead && !isOps ? <p className="pitbull-dossier__lead">{lead}</p> : null}
+        </header>
+      ) : null}
 
       {children ? <div className="pitbull-dossier__body">{children}</div> : null}
     </section>
   )
 }
 
-function useCountUp(target, duration = 1400, enabled = true) {
-  const [value, setValue] = useState(0)
-  const frameRef = useRef(null)
-
-  useEffect(() => {
-    if (!enabled || target === 0) {
-      setValue(target)
-      return
-    }
-    const start = performance.now()
-    function tick(now) {
-      const elapsed = now - start
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setValue(Math.round(eased * target))
-      if (progress < 1) frameRef.current = requestAnimationFrame(tick)
-    }
-    frameRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frameRef.current)
-  }, [target, duration, enabled])
-
-  return value
-}
-
 function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone, t }) {
-  const sectionRef = useRef(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const el = sectionRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true) },
-      { threshold: 0.25 },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  const count = useCountUp(registered, 1200, visible)
   const pct = slots > 0 ? Math.round((registered / slots) * 100) : 0
 
   return (
     <div
-      ref={sectionRef}
       className="pitbull-inscription-counter"
       role="meter"
       aria-label={t('pages.pitbull.inscriptionCounterAria', { registered, slots })}
@@ -131,7 +90,7 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
     >
       <div className="pitbull-inscription-counter__row">
         <div className="pitbull-inscription-counter__stat">
-          <span className="pitbull-inscription-counter__value">{count}</span>
+          <span className="pitbull-inscription-counter__value">{registered}</span>
           <span className="pitbull-inscription-counter__of">/ {slots}</span>
           <span className="pitbull-inscription-counter__unit">cupos</span>
         </div>
@@ -150,79 +109,181 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
   )
 }
 
-function PitbullBenefitsSection({ benefitsAthletes, benefitsSpectators, t }) {
-  const renderBenefit = (benefit) => {
-    const Icon = PITBULL_BENEFIT_ICONS[benefit.icon] ?? ShieldCheck
+const QUICK_FACT_ICONS = {
+  date: Calendar,
+  venue: MapPin,
+  status: CircleDot,
+  slots: Users,
+  schedule: Clock,
+  modalities: Layers,
+  contact: MessageCircle,
+}
 
-    return (
-      <li key={benefit.id} className="pitbull-benefits-lane__item">
-        <span className="pitbull-benefits-lane__icon" aria-hidden>
-          <Icon size={14} strokeWidth={1.75} />
-        </span>
-        <div className="pitbull-benefits-lane__copy">
-          <strong className="pitbull-benefits-lane__title">{benefit.title}</strong>
-          <span className="pitbull-benefits-lane__desc">{benefit.desc}</span>
-        </div>
-      </li>
-    )
-  }
+function PitbullQuickFactsSection({ eventStatus, pitbullClassic, t }) {
+  const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
+
+  const facts = [
+    {
+      id: 'date',
+      term: t('pages.pitbull.quickFactsDate'),
+      detail: pitbullClassic.date,
+      layout: 'default',
+    },
+    {
+      id: 'venue',
+      term: t('pages.pitbull.quickFactsVenue'),
+      detail: `${pitbullClassic.venue}, ${pitbullClassic.location}`,
+      layout: 'wide',
+    },
+    {
+      id: 'status',
+      term: t('pages.pitbull.quickFactsRegistration'),
+      detail: statusLabel,
+      layout: 'default',
+      tone: statusTone,
+    },
+    {
+      id: 'slots',
+      term: t('pages.pitbull.quickFactsSlots'),
+      detail: `${pitbullClassic.registered} / ${pitbullClassic.slots}`,
+      layout: 'default',
+    },
+    {
+      id: 'modalities',
+      term: t('pages.pitbull.quickFactsModalities'),
+      detail: pitbullClassic.categories.join(' · '),
+      layout: 'wide',
+    },
+    {
+      id: 'schedule',
+      term: t('pages.pitbull.quickFactsSchedule'),
+      detail: t('pages.pitbull.quickFactsScheduleValue'),
+      layout: 'full',
+    },
+    {
+      id: 'contact',
+      term: t('pages.pitbull.quickFactsContact'),
+      detail: t('pages.pitbull.quickFactsContactValue'),
+      layout: 'full',
+    },
+  ]
 
   return (
-    <section
-      className="pitbull-dossier__section pitbull-dossier__section--benefits pitbull-benefits-panel"
-      aria-labelledby="pitbull-benefits-title"
-    >
-      <header className="pitbull-benefits-hero pitbull-dossier__head">
-        <p className="pitbull-dossier__kicker pitbull-benefits-hero__kicker-row">
-          <span className="pitbull-benefits-hero__stripe" aria-hidden />
-          <span className="pitbull-dossier__eyebrow">{t('pages.pitbull.benefitsKicker')}</span>
-        </p>
-        <div className="pitbull-benefits-hero__main">
-          <h2 id="pitbull-benefits-title" className="pitbull-benefits-hero__title">
-            {t('pages.pitbull.benefitsPanelTitle')}
-          </h2>
-          <p className="pitbull-benefits-hero__lead">{t('pages.pitbull.benefitsPanelLead')}</p>
-        </div>
-      </header>
+    <section className="pitbull-event-facts" aria-label={t('pages.pitbull.quickFactsAria')}>
+      <ul className="pitbull-fact-grid">
+        {facts.map(({ detail, id, layout, term, tone }) => {
+          const Icon = QUICK_FACT_ICONS[id] ?? CircleDot
 
-      <div className="pitbull-dossier__body pitbull-benefits-panel__body">
-        <div className="pitbull-benefits-shell" aria-label={t('pages.pitbull.benefitsSpecAria')}>
-        <div className="pitbull-benefits-shell__head" aria-hidden>
-          <span className="pitbull-benefits-shell__corner" />
-          <span className="pitbull-benefits-shell__col-head">
-            {t('pages.pitbull.benefitsAthleteEyebrow')}
-          </span>
-          <span className="pitbull-benefits-shell__col-head pitbull-benefits-shell__col-head--spectator">
-            {t('pages.pitbull.benefitsSpectatorEyebrow')}
-          </span>
-        </div>
-
-        <div className="pitbull-benefits-lanes">
-          <div className="pitbull-benefits-lane">
-            <h3 className="pitbull-benefits-lane__label">{t('pages.pitbull.benefitsAthleteEyebrow')}</h3>
-            <ul className="pitbull-benefits-lane__list" role="list">
-              {benefitsAthletes.map(renderBenefit)}
-            </ul>
-          </div>
-
-          <div className="pitbull-benefits-lane pitbull-benefits-lane--spectator">
-            <h3 className="pitbull-benefits-lane__label">{t('pages.pitbull.benefitsSpectatorEyebrow')}</h3>
-            <ul className="pitbull-benefits-lane__list" role="list">
-              {benefitsSpectators.map(renderBenefit)}
-            </ul>
-          </div>
-        </div>
-      </div>
-      </div>
+          return (
+            <li
+              key={id}
+              className={`pitbull-fact-grid__cell pitbull-fact-grid__cell--${id} pitbull-fact-grid__cell--${layout}`}
+            >
+              <article className="pitbull-fact-grid__card">
+                <p className="pitbull-fact-grid__term">
+                  <Icon size={13} strokeWidth={1.75} aria-hidden />
+                  <span>{term}</span>
+                </p>
+                {id === 'status' ? (
+                  <p className={`pitbull-fact-grid__badge pitbull-fact-grid__badge--${tone}`}>{detail}</p>
+                ) : (
+                  <p className="pitbull-fact-grid__detail">{detail}</p>
+                )}
+              </article>
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }
 
-function PitbullScheduleStrip({ schedule }) {
+function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
+  return (
+    <PitbullDossierSection
+      id="atletas"
+      className="pitbull-dossier__section--athletes"
+      eyebrow={t('pages.pitbull.athletesEyebrow')}
+      title={t('pages.pitbull.athletesTitle')}
+      titleId="pitbull-athletes-title"
+      tone="ops"
+    >
+      <div className="pitbull-athletes-sheet" aria-label={t('pages.pitbull.athletesAria')}>
+        {athleteGroups.map((group) => (
+          <section key={group.id} className="pitbull-athletes-sheet__block">
+            <h3 className="pitbull-athletes-sheet__head">{group.label}</h3>
+            <dl className="pitbull-athletes-sheet__rows">
+              {group.items.map((item) => (
+                <div key={item.id} className="pitbull-athletes-sheet__row">
+                  <dt className="pitbull-athletes-sheet__term">{item.title}</dt>
+                  <dd className="pitbull-athletes-sheet__detail">{item.text}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
+      </div>
+
+      <footer className="pitbull-athletes-sheet__foot">
+        <button type="button" className="pitbull-athletes-sheet__link" onClick={scrollToInscription}>
+          {t('pages.pitbull.athletesCta')}
+          <ArrowRight size={13} aria-hidden />
+        </button>
+        <span className="pitbull-athletes-sheet__sep" aria-hidden>
+          ·
+        </span>
+        <button type="button" className="pitbull-athletes-sheet__link" onClick={() => onNavigate('rulebook')}>
+          {t('pages.pitbull.athletesRulebook')}
+        </button>
+      </footer>
+    </PitbullDossierSection>
+  )
+}
+
+function PitbullInstitutionalSection({ institutional, t }) {
+  return (
+    <PitbullDossierSection
+      className="pitbull-dossier__section--institutional"
+      eyebrow={institutional.eyebrow}
+      index={t('pages.pitbull.institutionalIndex')}
+      lead={null}
+      title={institutional.title}
+      titleId="pitbull-institutional-title"
+    >
+      <div className="pitbull-institutional">
+        <p className="pitbull-institutional__text">{institutional.text}</p>
+        <ul className="pitbull-institutional__points">
+          {institutional.points.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
+      </div>
+    </PitbullDossierSection>
+  )
+}
+
+function PitbullFaqSection({ faqItems, t }) {
+  return (
+    <PitbullDossierSection
+      className="pitbull-dossier__section--faq"
+      eyebrow={t('pages.pitbull.faqEyebrow')}
+      index={t('pages.pitbull.faqIndex')}
+      lead={t('pages.pitbull.faqLead')}
+      title={t('pages.pitbull.faqTitle')}
+      titleId="pitbull-faq-title"
+    >
+      <div className="pitbull-faq" aria-label={t('pages.pitbull.faqAria')}>
+        <FAQAccordion items={faqItems} numbered variant="ref" />
+      </div>
+    </PitbullDossierSection>
+  )
+}
+
+function PitbullScheduleStrip({ schedule, t }) {
   if (!schedule?.length) return null
 
   return (
-    <div className="pitbull-program" aria-label="Programa del evento">
+    <div className="pitbull-program" aria-label={t('pages.pitbull.programAria')}>
       <div className="pitbull-program__head" aria-hidden>
         <span className="pitbull-program__corner" />
         {schedule.map((day) => (
@@ -265,7 +326,7 @@ function PitbullLocationSection({ venue, t }) {
           <iframe
             className="pitbull-location__map"
             src={venue.mapsEmbedUrl}
-            title={`${venue.name} en Google Maps`}
+            title={t('pages.pitbull.venueMapsTitle', { venue: venue.name })}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
@@ -340,7 +401,7 @@ function PitbullTicketPass({ locale, onOpen, pricing, t }) {
           <span className="pitbull-ticket-pass__channel-badge pitbull-ticket-pass__channel-badge--muted">
             {t('pages.pitbull.ticketPresencialLabel')}
           </span>
-          <dl className="pitbull-ticket-pass__pricing" aria-label={`${t('pages.pitbull.ticketPricingAria')} — ${t('pages.pitbull.ticketPresencialLabel')}`}>
+          <dl className="pitbull-ticket-pass__pricing" aria-label={`${t('pages.pitbull.ticketPricingAria')}: ${t('pages.pitbull.ticketPresencialLabel')}`}>
             <div className="pitbull-ticket-pass__price">
               <dt>{t('pages.pitbull.ticketDayLabel')}</dt>
               <dd>{money(pricing.dayPresencial, locale)}</dd>
@@ -361,9 +422,7 @@ function PitbullTicketPass({ locale, onOpen, pricing, t }) {
 
 function PitbullInscriptionSection({
   canRegister,
-  credentialSample,
   eventStatus,
-  inscriptionSteps,
   locale,
   onNavigate,
   pitbullClassic,
@@ -371,27 +430,15 @@ function PitbullInscriptionSection({
   t,
 }) {
   const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
-  const [credentialOpen, setCredentialOpen] = useState(false)
-
-  const timeline = useMemo(
-    () =>
-      inscriptionSteps.map((step, index) => ({
-        ...step,
-        step: String(index + 1).padStart(2, '0'),
-        icon: INSCRIPTION_ICONS[index] ?? ShieldCheck,
-      })),
-    [inscriptionSteps],
-  )
 
   return (
     <PitbullDossierSection
       id="inscripcion"
       className="pitbull-dossier__section--inscription pitbull-inscription"
       eyebrow={t('pages.pitbull.inscriptionEyebrow')}
-      index={t('pages.pitbull.inscriptionIndex')}
-      lead={canRegister ? t('pages.pitbull.inscriptionLeadOpen') : t('pages.pitbull.inscriptionLeadClosed')}
       title={t('pages.pitbull.inscriptionTitle')}
       titleId="pitbull-inscription-title"
+      tone="ops"
     >
       <div className="pitbull-inscription-shell">
         <div className="pitbull-inscription-shell__counter-col">
@@ -421,118 +468,43 @@ function PitbullInscriptionSection({
           </p>
 
           <div className="pitbull-inscription-shell__actions">
-            {canRegister ? (
-              <>
-                <button
-                  type="button"
-                  className="pitbull-inscription__cta pitbull-inscription__cta--primary"
-                  onClick={() => onNavigate('competition')}
-                >
-                  {t('pages.pitbull.register')}
-                  <ArrowRight size={14} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="pitbull-inscription__card-link"
-                  onClick={() => onNavigate('members')}
-                >
-                  {t('pages.pitbull.viewMembershipPlans')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="pitbull-inscription__cta pitbull-inscription__cta--primary"
-                  onClick={() => onNavigate('members')}
-                >
-                  {t('pages.pitbull.joinNow')}
-                  <ArrowRight size={14} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="pitbull-inscription__card-link"
-                  onClick={() => onNavigate('rulebook')}
-                >
-                  {t('pages.pitbull.viewRulebook')}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="pitbull-inscription-shell__extras">
-          <details className="pitbull-inscription__requirements pitbull-inscription__requirements--editorial">
-            <summary className="pitbull-inscription__req-summary">
-              <span className="pitbull-inscription__req-index" aria-hidden>
-                01–03
-              </span>
-              <span className="pitbull-inscription__req-summary-copy">
-                <span className="pitbull-inscription__req-eyebrow">{t('pages.pitbull.reqEyebrow')}</span>
-                <span className="pitbull-inscription__req-title">{t('pages.pitbull.reqTitle')}</span>
-              </span>
-              <ChevronDown size={18} className="pitbull-inscription__req-chevron" aria-hidden />
-            </summary>
-
-            <ol className="pitbull-inscription__timeline" aria-label={t('pages.pitbull.reqEyebrow')}>
-              {timeline.map(({ detail, icon: Icon, step, title }) => (
-                <li key={title} className="pitbull-inscription__timeline-item">
-                  <span className="pitbull-inscription__timeline-index" aria-hidden>
-                    {step}
-                  </span>
-                  <div className="pitbull-inscription__timeline-copy">
-                    <div className="pitbull-inscription__timeline-title-row">
-                      <span className="pitbull-inscription__timeline-icon" aria-hidden>
-                        <Icon size={14} strokeWidth={1.75} />
-                      </span>
-                      <strong>{title}</strong>
-                    </div>
-                    <p>{detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </details>
-
-          <div className="pitbull-inscription__credential pitbull-inscription__credential--compact">
-            <button
-              type="button"
-              className="pitbull-inscription__credential-toggle"
-              aria-expanded={credentialOpen}
-              onClick={() => setCredentialOpen((open) => !open)}
-            >
-              <QrCode size={15} aria-hidden />
-              <span>{credentialOpen ? t('pages.pitbull.credentialHide') : t('pages.pitbull.credentialToggle')}</span>
-              <ChevronDown size={16} aria-hidden className={credentialOpen ? 'is-open' : ''} />
-            </button>
-
-            {credentialOpen ? (
-              <div className="pitbull-inscription__credential-panel">
-                <p className="pitbull-inscription__credential-desc">{t('pages.pitbull.credentialDesc')}</p>
-                <div className="pitbull-credential-showcase pitbull-credential-showcase--solo">
-                  <div className="pitbull-credential-showcase__card">
-                    <div className="pitbull-credential__card">
-                      <EventShareCard
-                        preview
-                        athleteName={credentialSample.athlete}
-                        athleteCode={credentialSample.affiliateCode}
-                        eventTitle={pitbullClassic.title}
-                        eventDate={pitbullClassic.date}
-                        eventVenue={pitbullClassic.venue}
-                        eventLocation="Buenos Aires"
-                        category="Master"
-                        division="Raw"
-                        eventSlug="pitbull-classic-2026"
-                        variant="event"
-                      />
-                    </div>
-                    <p className="pitbull-credential__hint">
-                      {t('pages.pitbull.credentialCardHint', { name: credentialSample.athlete })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+              {canRegister ? (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    onClick={() => onNavigate('competition')}
+                  >
+                    {t('pages.pitbull.register')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate('members')}
+                  >
+                    {t('pages.pitbull.viewMembershipPlans')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    onClick={() => onNavigate('members')}
+                  >
+                    {t('pages.pitbull.joinNow')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate('rulebook')}
+                  >
+                    {t('pages.pitbull.viewRulebook')}
+                  </button>
+                </>
+              )}
           </div>
         </div>
       </div>
@@ -544,9 +516,7 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
   return (
     <PitbullDossierSection
       className="pitbull-dossier__section--feature"
-      eyebrow={t('pages.pitbull.featureEyebrow')}
-      index={t('pages.pitbull.featureIndex')}
-      lead={t('pages.pitbull.featureLead')}
+      hideHeader
       title={t('pages.pitbull.featureTitle')}
       titleId="pitbull-feature-title"
     >
@@ -560,7 +530,7 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
       </ul>
 
       {schedule?.length > 0 ? (
-        <PitbullScheduleStrip schedule={schedule} />
+        <PitbullScheduleStrip schedule={schedule} t={t} />
       ) : null}
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--feature">
@@ -581,6 +551,7 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
 
   return (
     <PitbullDossierSection
+      id="categorias"
       className="pitbull-dossier__section--categories"
       eyebrow={t('pages.pitbull.categoriesEyebrow')}
       index={t('pages.pitbull.categoriesIndex')}
@@ -667,16 +638,15 @@ export default function PitbullPage({
   onUploadPaymentProof,
 }) {
   const {
-    PITBULL_BENEFITS_ATHLETES,
-    PITBULL_BENEFITS_SPECTATORS,
+    PITBULL_ATHLETE_GROUPS,
     PITBULL_CATEGORY_CARDS,
     PITBULL_CLASSIC,
-    PITBULL_CREDENTIAL_SAMPLE,
+    PITBULL_FAQ,
+    PITBULL_INSTITUTIONAL,
     PITBULL_SCHEDULE,
     PITBULL_VENUE,
   } = useContent()
   const { locale, messages, t } = useI18n()
-  const inscriptionSteps = messages.pages.pitbull.inscriptionSteps ?? []
   const featureFacts = messages.pages.pitbull.featureFacts ?? []
 
   const pitbullEvent = events.find((event) => event.featured)
@@ -710,26 +680,63 @@ export default function PitbullPage({
     })
   }
 
+  function handleHeroRegister() {
+    if (canRegister) {
+      onNavigate('competition')
+      return
+    }
+    onNavigate('members')
+  }
+
+  function handleHeroSecondary() {
+    if (ticketsOpen) {
+      scrollToSection('entradas')
+      return
+    }
+    scrollToSection('categorias')
+  }
+
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
       <DesignPageHero
         className="pitbull-hero"
         compact
         breadcrumbLabel={t('pages.pitbull.heroBreadcrumb')}
-        eyebrow={t('pages.pitbull.heroEyebrow', {
-          date: `${PITBULL_CLASSIC.dateDay} ${PITBULL_CLASSIC.dateMonth} 2026`,
-          location: PITBULL_CLASSIC.location.split(',')[0],
-        })}
+        eyebrow={t('pages.pitbull.heroEyebrow')}
+        description={t('pages.pitbull.heroLead')}
         onHome={() => onNavigate('home')}
         title={PITBULL_CLASSIC.title}
-      />
+      >
+        <div className="pitbull-hero__aside">
+          <PitbullHeroRail
+            canRegister={canRegister}
+            eventStatus={eventStatus}
+            locale={locale}
+            onRegister={handleHeroRegister}
+            onSecondary={handleHeroSecondary}
+            pitbullClassic={PITBULL_CLASSIC}
+            pricing={eventPricing}
+            ticketsOpen={ticketsOpen}
+            t={t}
+          />
+          <PitbullHeroVisual t={t} />
+        </div>
+      </DesignPageHero>
 
       <div className="pitbull-page__body">
         <Reveal variant="up">
+          <PitbullQuickFactsSection
+            eventStatus={eventStatus}
+            pitbullClassic={PITBULL_CLASSIC}
+            t={t}
+          />
+        </Reveal>
+
+        <Reveal variant="up">
           <div className="pitbull-dossier pitbull-dossier--minimal">
-            <PitbullBenefitsSection
-              benefitsAthletes={PITBULL_BENEFITS_ATHLETES ?? []}
-              benefitsSpectators={PITBULL_BENEFITS_SPECTATORS ?? []}
+            <PitbullAthletesSection
+              athleteGroups={PITBULL_ATHLETE_GROUPS ?? []}
+              onNavigate={onNavigate}
               t={t}
             />
 
@@ -754,9 +761,7 @@ export default function PitbullPage({
 
             <PitbullInscriptionSection
               canRegister={canRegister}
-              credentialSample={PITBULL_CREDENTIAL_SAMPLE}
               eventStatus={eventStatus}
-              inscriptionSteps={inscriptionSteps}
               locale={locale}
               onNavigate={onNavigate}
               pitbullClassic={PITBULL_CLASSIC}
@@ -814,6 +819,10 @@ export default function PitbullPage({
                 <p className="pitbull-tickets__closed-note">{t('pages.pitbull.ticketsClosed')}</p>
               </section>
             )}
+
+            <PitbullInstitutionalSection institutional={PITBULL_INSTITUTIONAL} t={t} />
+
+            <PitbullFaqSection faqItems={PITBULL_FAQ ?? []} t={t} />
           </div>
         </Reveal>
       </div>

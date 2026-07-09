@@ -18,17 +18,6 @@
   to   { opacity: 1; }
 }
 
-@keyframes live-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.35;
-  }
-}
-
 @keyframes scale-in {
   from {
     opacity: 0;
@@ -107,18 +96,6 @@
 }
 
 /* =============================================
-   HERO ANIMATIONS
-   ============================================= */
-
-@keyframes noise-drift {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(-1%, 1%); }
-  50%  { transform: translate(1%, -1%); }
-  75%  { transform: translate(-0.5%, 0.5%); }
-  100% { transform: translate(0, 0); }
-}
-
-/* =============================================
    NAV ANIMATIONS
    ============================================= */
 
@@ -145,25 +122,15 @@
 }
 
 /* =============================================
-   SHIMMER / SHINE
+   SHIMMER TEXT — usado puntualmente en hover de valores numéricos
    ============================================= */
-
-@keyframes shimmer {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
-}
-
-@keyframes shine-sweep {
-  0%   { transform: translateX(-200%) skewX(-20deg); }
-  100% { transform: translateX(200%) skewX(-20deg); }
-}
 
 @keyframes shimmer-text {
   0%   { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
 
-/* Card shimmer — sweep diagonal de luz suave */
+/* Card shimmer — sweep diagonal de entrada, no infinito (ver admin.css) */
 @keyframes card-shimmer {
   0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
   15%  { opacity: 1; }
@@ -175,68 +142,17 @@
    GROW / DRAW
    ============================================= */
 
-@keyframes grow-line {
-  from { width: 0; opacity: 0; }
-  to   { width: 32px; opacity: 1; }
-}
-
 @keyframes grow-line-full {
   from { transform: scaleX(0); opacity: 0; }
   to   { transform: scaleX(1); opacity: 1; }
 }
 
-@keyframes border-draw {
-  0%   { clip-path: inset(0 100% 0 0); }
-  100% { clip-path: inset(0 0% 0 0); }
-}
-
-/* =============================================
-   FLOATING / PULSE
-   ============================================= */
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-8px); }
-}
-
-@keyframes home-ambient-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  50% {
-    transform: translate3d(2.5%, -2%, 0) scale(1.05);
-  }
-
-  100% {
-    transform: translate3d(-2%, 2.5%, 0) scale(0.97);
-  }
-}
-
-@keyframes float-sm {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-4px); }
-}
-
+/* Pulso puntual para indicadores de estado (pendiente/alerta en admin) —
+   no usar en elementos decorativos del sitio público. */
 @keyframes pulse-ring {
   0%   { transform: scale(1);   opacity: 0.7; }
   80%  { transform: scale(2.2); opacity: 0; }
   100% { transform: scale(2.2); opacity: 0; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: var(--glow-red-soft); }
-  50%       { box-shadow: var(--glow-red); }
-}
-
-@keyframes glow-pulse-gold {
-  0%, 100% { box-shadow: var(--glow-gold-soft); }
-  50%       { box-shadow: var(--glow-gold); }
-}
-
-@keyframes glow-pulse-celeste {
-  0%, 100% { box-shadow: var(--glow-celeste-soft); }
-  50%       { box-shadow: var(--glow-celeste); }
 }
 
 /* =============================================
@@ -248,22 +164,6 @@
   60%  { opacity: 1; transform: scale(1.06) translateY(-2px); }
   80%  { transform: scale(0.98); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* =============================================
-   GRADIENT ROTATE — borde con gradiente giratorio
-   ============================================= */
-
-@keyframes gradient-rotate {
-  0%   { --gradient-angle: 0deg; }
-  100% { --gradient-angle: 360deg; }
-}
-
-/* Glow sweep para metric cards */
-@keyframes metric-glow-sweep {
-  0%   { opacity: 0; transform: translateY(100%); }
-  40%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-100%); }
 }
 
 /* =============================================
@@ -282,22 +182,6 @@
   0%   { stroke-dashoffset: 187; }
   50%  { stroke-dashoffset: 46; }
   100% { stroke-dashoffset: 187; transform: rotate(360deg); }
-}
-
-/* =============================================
-   BOUNCE ENTRY
-   ============================================= */
-
-@keyframes bounce-in {
-  0%   { opacity: 0; transform: scale(0.6); }
-  60%  { opacity: 1; transform: scale(1.08); }
-  80%  { transform: scale(0.96); }
-  100% { transform: scale(1); }
-}
-
-@keyframes dot-bounce {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%       { transform: scale(1.5); opacity: 0.6; }
 }
 
 /* =============================================

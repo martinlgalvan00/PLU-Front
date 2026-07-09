@@ -2,6 +2,31 @@
 
 Archivo fuente: `PLU ARG - Sitio Publico (standalone).html` (export Claude Design).
 
+## Claude Design → código (workflow)
+
+Claude Design **no escribe en el repo solo**. El flujo correcto es:
+
+1. **Exportar** desde claude.ai/design (Share → copiar URL pública del HTML standalone).
+2. **Importar** al repo:
+   ```bash
+   npm run design:import -- "https://..."
+   ```
+   También acepta un archivo local: `npm run design:import -- ./mi-export.html`
+3. **Extraer** markup (si ya tenés el HTML en `design-reference/`):
+   ```bash
+   npm run design:extract
+   ```
+4. **Portar** sección por sección a:
+   - Componentes → `src/components/ui/` o `src/components/layout/`
+   - Estilos → `src/styles/` (tokens en `variables.css`, página en `pages/*.css`)
+   - Copy → `src/lib/content/es.js` + `en.js` + i18n si aplica
+   - Cableado → `src/pages/<Page>.jsx`
+5. **Validar**:
+   - `npm run storybook` → componente aislado
+   - `npm run dev` → página real en http://localhost:5173
+
+`/design-sync` va en la dirección opuesta (código → Claude Design). No reemplaza este paso.
+
 ## Extracción
 
 ```bash

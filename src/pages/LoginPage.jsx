@@ -111,7 +111,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                   name="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="demo, demo2 o tu email"
+                  placeholder={t('login.emailPlaceholder')}
                   autoComplete="username"
                   autoFocus
                   required
