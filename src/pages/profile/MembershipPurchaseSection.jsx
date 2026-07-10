@@ -73,12 +73,12 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
       <div className="account-section__heading">
         <div className="account-section__icon"><ShieldCheck size={21} /></div>
         <div><span>{t('account.membership.eyebrow')}</span><h2>{t('account.membership.title')}</h2></div>
-        <strong className="account-section__price">$38.000 <small>ARS</small></strong>
+        <span className="account-section__price">$38.000 <small>ARS</small></span>
       </div>
       <p className="account-section__lead">{t('account.membership.lead')}</p>
       <div className={`account-membership-status account-membership-status--${membershipActive ? 'active' : 'pending'}`}>
         <span>{membershipActive ? t('account.membership.statusActive') : t('account.membership.statusPending')}</span>
-        <strong>{membershipActive ? membership.memberCode : t('account.membership.statusNoPayment')}</strong>
+        <span className="account-membership-status__value">{membershipActive ? membership.memberCode : t('account.membership.statusNoPayment')}</span>
       </div>
       <aside className="account-combo-offer">
         <div className="account-combo-offer__icon" aria-hidden>
@@ -114,12 +114,12 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
         <label className={paymentMethod === 'mercado_pago' ? 'is-selected' : ''}>
           <input type="radio" name="membership-payment" value="mercado_pago" checked={paymentMethod === 'mercado_pago'} onChange={(event) => setPaymentMethod(event.target.value)} />
           <CreditCard size={21} />
-          <span><strong>Mercado Pago</strong><small>{t('account.membership.onlineCheckout')}</small></span>
+          <span><span className="account-payment-options__label">Mercado Pago</span><small>{t('account.membership.onlineCheckout')}</small></span>
         </label>
         <label className={paymentMethod === 'transferencia' ? 'is-selected' : ''}>
           <input type="radio" name="membership-payment" value="transferencia" checked={paymentMethod === 'transferencia'} onChange={(event) => setPaymentMethod(event.target.value)} />
           <Landmark size={21} />
-          <span><strong>{t('account.membership.transfer')}</strong><small>{t('account.membership.manualValidation')}</small></span>
+          <span><span className="account-payment-options__label">{t('account.membership.transfer')}</span><small>{t('account.membership.manualValidation')}</small></span>
         </label>
       </fieldset>
       <button type="button" className="account-primary-action" onClick={startMembershipPayment}>
