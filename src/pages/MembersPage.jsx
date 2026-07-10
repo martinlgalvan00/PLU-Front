@@ -8,7 +8,7 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 
 const PROCESS_STEP_ICONS = [ClipboardList, CreditCard, ShieldCheck, CalendarCheck]
 
-export default function MembersPage({ onNavigate, session }) {
+export default function MembersPage({ memberships = [], onNavigate, session }) {
   const {
     MEMBERSHIP_ANNUAL_STEPS,
     MEMBERSHIP_BENEFITS,
@@ -21,10 +21,18 @@ export default function MembersPage({ onNavigate, session }) {
   const validityNotes = messages.pages.members.validityNotes
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const hasActiveMembership = isLoggedInAthlete && memberships.some(
+    (membership) => membership.athleteId === session.athleteId && membership.status === 'activa',
+  )
   const affiliationCta = isLoggedInAthlete
-    ? t('pages.members.ctaAuthenticated')
+    ? hasActiveMembership
+      ? t('pages.members.ctaAlreadyAffiliated')
+      : t('pages.members.ctaAuthenticated')
     : t('pages.members.ctaGuest')
-  const goToAffiliation = () => onNavigate(isLoggedInAthlete ? 'membership' : 'register')
+  const goToAffiliation = () => {
+    if (hasActiveMembership) return
+    onNavigate(isLoggedInAthlete ? 'membership' : 'register')
+  }
 
   return (
     <main className="page page--design members-page members-page--plu-ref">
@@ -40,6 +48,7 @@ export default function MembersPage({ onNavigate, session }) {
                 key={plan.id}
                 {...plan}
                 ctaLabel={affiliationCta}
+                ctaDisabled={hasActiveMembership}
                 onSelect={goToAffiliation}
                 variant="plu"
               />

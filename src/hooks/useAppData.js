@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
@@ -60,8 +60,8 @@ export function useAppData() {
     () => getInitialState(storedData).registrations,
   )
   const [payments, setPayments] = useState(() => getInitialState(storedData).payments)
-  // Las entradas viven en Postgres, no en localStorage — este estado es
-  // solo un cache de lo último que se creó/consultó vía la API real.
+  // Las entradas viven en Postgres, no en localStorage â€” este estado es
+  // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
   const [tickets, setTickets] = useState([])
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
@@ -228,7 +228,7 @@ export function useAppData() {
     (event) => {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
-      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      if (!athlete) return { error: 'No se encontrÃ³ el perfil del atleta.' }
       const result = createMembershipOrder({ athlete, form, memberships, payments })
       setMemberships((current) => [
         result.membership,
@@ -246,14 +246,16 @@ export function useAppData() {
     (event, selectedEvent) => {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
-      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+      const activeMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
+      if (!athlete) return { error: 'No se encontrÃ³ el perfil del atleta.' }
+      if (!activeMembership) return { error: 'Necesitás tener la afiliación activa antes de inscribirte a una competencia.' }
       const duplicate = registrations.some(
         (item) =>
           item.athleteId === athlete.id &&
           item.event === selectedEvent.title &&
           item.status !== 'cancelada',
       )
-      if (duplicate) return { error: `Ya estás inscripto en ${selectedEvent.title}.` }
+      if (duplicate) return { error: `Ya estÃ¡s inscripto en ${selectedEvent.title}.` }
       const result = createCompetitionOrder({
         athlete,
         event: selectedEvent,
@@ -267,14 +269,14 @@ export function useAppData() {
       setAuditLogs((current) => [result.auditLog, ...current])
       return result
     },
-    [athletes, form, payments, registrations, session],
+    [athletes, form, memberships, payments, registrations, session],
   )
 
-  // Compra pública de entradas — no requiere cuenta ni sesión: cualquiera
+  // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera
   // puede comprar para un evento dando el DNI de cada asistente. A
   // diferencia del resto del dominio, esto habla con el backend real
-  // (Postgres): es la parte del sistema que necesita la garantía dura de
-  // "no se puede duplicar/reusar", y esa garantía no existe sin una base
+  // (Postgres): es la parte del sistema que necesita la garantÃ­a dura de
+  // "no se puede duplicar/reusar", y esa garantÃ­a no existe sin una base
   // de datos real arbitrando el check-in.
   const submitTicketPurchase = useCallback(
     async (event, purchaseEvent, attendees, paymentMethod) => {
@@ -316,7 +318,7 @@ export function useAppData() {
     [],
   )
 
-  // Equivalente al "Simular pago" de afiliación/inscripción, pero para una
+  // Equivalente al "Simular pago" de afiliaciÃ³n/inscripciÃ³n, pero para una
   // orden de entradas completa (puede cubrir varios tickets a la vez).
   const approveTicketPurchase = useCallback(async (orderId) => {
     try {
@@ -374,14 +376,14 @@ export function useAppData() {
       setPendingTicketOrders(orders)
     } catch (error) {
       console.error('refreshPendingTicketOrders:', error)
-      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las órdenes pendientes.')
+      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las Ã³rdenes pendientes.')
     } finally {
       setPendingTicketOrdersLoading(false)
     }
   }, [userCanEdit])
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
-  // usado de forma atómica — dos escaneos simultáneos del mismo QR no
+  // usado de forma atÃ³mica â€” dos escaneos simultÃ¡neos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
     if (!userCanEdit) return undefined
@@ -423,9 +425,9 @@ export function useAppData() {
     }
   }, [])
 
-  // Refresca la lista de entradas de un evento desde el backend real —
+  // Refresca la lista de entradas de un evento desde el backend real â€”
   // la usa el panel de Seguridad, que necesita ver compras hechas desde
-  // cualquier dispositivo, no solo las de esta pestaña.
+  // cualquier dispositivo, no solo las de esta pestaÃ±a.
   const refreshTickets = useCallback(async (eventSlug) => {
     try {
       const { tickets: apiTickets } = await listTicketsForEventRequest(eventSlug)
@@ -435,7 +437,7 @@ export function useAppData() {
     }
   }, [])
 
-  // Check-in en la puerta para un atleta inscripto (competidor) — separado
+  // Check-in en la puerta para un atleta inscripto (competidor) â€” separado
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
   const checkInRegistrationAction = useCallback(
@@ -451,8 +453,8 @@ export function useAppData() {
     [registrations],
   )
 
-  // Gestión de cuentas del panel: solo quien tiene canManageUsers puede
-  // cambiar roles o crear cuentas nuevas (se valida también en la UI).
+  // GestiÃ³n de cuentas del panel: solo quien tiene canManageUsers puede
+  // cambiar roles o crear cuentas nuevas (se valida tambiÃ©n en la UI).
   const updateUserRoleAction = useCallback((userId, nextRole) => {
     setUsers((current) => updateUserRole(current, userId, nextRole))
   }, [])
@@ -504,6 +506,16 @@ export function useAppData() {
       }
 
       if ((emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') && password === '123') {
+        setMemberships((current) =>
+          current.map((membership) =>
+            membership.athleteId === 'ath-001' && membership.year === '2026'
+              ? { ...membership, status: 'pendiente_pago', paymentStatus: 'pendiente_pago', mercadoPagoRef: '' }
+              : membership,
+          ),
+        )
+        setAthletes((current) =>
+          current.map((athlete) => (athlete.id === 'ath-001' ? { ...athlete, status: 'registrado' } : athlete)),
+        )
         const demoAthleteSession = {
           id: 'demo-athlete',
           role: 'athlete_plu',
@@ -527,8 +539,8 @@ export function useAppData() {
         return demoPluUsaSession
       }
 
-      // La cuenta de seguridad SÍ pasa por el backend real (más abajo, loginRequest):
-      // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
+      // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
+      // necesita una sesiÃ³n de verdad porque el check-in muta datos reales en Postgres,
       // a diferencia del resto de la demo que vive en localStorage.
     }
 
@@ -560,14 +572,14 @@ export function useAppData() {
   const handleApprovePayment = useCallback(
     async (paymentId) => {
       const payment = payments.find((item) => item.id === paymentId)
-      if (!payment || !userCanEdit) return
+      if (!payment) return
       const result = await approvePaymentAction(paymentId, payments)
       if (!result) return
 
       setPayments((c) => c.map((p) => (p.id === paymentId ? result.payment : p)))
       setMemberships((c) =>
         c.map((m) =>
-          result.payment.concept === 'Afiliación anual' && m.athleteId === result.athleteId
+          result.payment.concept === 'AfiliaciÃ³n anual' && m.athleteId === result.athleteId
             ? {
                 ...m,
                 status: 'activa',
@@ -579,14 +591,14 @@ export function useAppData() {
       )
       setRegistrations((c) =>
         c.map((r) =>
-          result.payment.concept === `Inscripción ${r.event}` && r.athleteId === result.athleteId
+          result.payment.concept === `InscripciÃ³n ${r.event}` && r.athleteId === result.athleteId
             ? { ...r, status: 'confirmada', paymentStatus: 'aprobado' }
             : r,
         ),
       )
       setAthletes((c) =>
         c.map((a) =>
-          a.id === result.athleteId && result.payment.concept === 'Afiliación anual'
+          a.id === result.athleteId && result.payment.concept === 'AfiliaciÃ³n anual'
             ? { ...a, status: 'afiliado_activo' }
             : a,
         ),
@@ -597,8 +609,60 @@ export function useAppData() {
       const athlete = athletes.find((a) => a.id === result.athleteId)
       if (athlete) await result.emails(athlete)
     },
-    [userCanEdit, payments, athletes],
+    [payments, athletes],
   )
+
+  const activateDemoMembership = useCallback((athleteId) => {
+    const athlete = athletes.find((item) => item.id === athleteId)
+    if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+
+    const memberCode = `PLU-ARG-2026-${athlete.id.replace('ath-', '')}`
+    const membershipPatch = {
+      athleteId,
+      year: '2026',
+      status: 'activa',
+      startDate: new Date().toISOString().slice(0, 10),
+      expirationDate: '2027-01-31',
+      memberCode,
+      paymentStatus: 'aprobado',
+      mercadoPagoRef: `DEMO-AFIL-${Date.now()}`,
+    }
+
+    setMemberships((current) => {
+      const existing = current.find((membership) => membership.athleteId === athleteId && membership.year === '2026')
+      if (existing) {
+        return current.map((membership) =>
+          membership.id === existing.id ? { ...membership, ...membershipPatch } : membership,
+        )
+      }
+
+      return [
+        {
+          id: `mem-demo-${athleteId}`,
+          ...membershipPatch,
+        },
+        ...current,
+      ]
+    })
+    setAthletes((current) =>
+      current.map((item) => (item.id === athleteId ? { ...item, status: 'afiliado_activo' } : item)),
+    )
+    return { success: true }
+  }, [athletes])
+
+  const cancelDemoMembership = useCallback((athleteId) => {
+    setMemberships((current) =>
+      current.map((membership) =>
+        membership.athleteId === athleteId && membership.year === '2026'
+          ? { ...membership, status: 'pendiente_pago', paymentStatus: 'pendiente_pago', mercadoPagoRef: '' }
+          : membership,
+      ),
+    )
+    setAthletes((current) =>
+      current.map((item) => (item.id === athleteId ? { ...item, status: 'registrado' } : item)),
+    )
+    return { success: true }
+  }, [])
 
   const updateAthleteProfileAction = useCallback(
     (athleteId, updates) => {
@@ -626,7 +690,7 @@ export function useAppData() {
 
       if (draft.id) {
         const result = updateAdminEvent(adminEvents, draft.id, draft)
-        if (!result.event) return { error: 'No se encontró el evento.' }
+        if (!result.event) return { error: 'No se encontrÃ³ el evento.' }
         setAdminEvents(result.events)
         if (result.auditLog) setAuditLogs((current) => [result.auditLog, ...current])
         return { event: result.event }
@@ -675,6 +739,8 @@ export function useAppData() {
     registerAthlete,
     submitMembership,
     submitCompetition,
+    activateDemoMembership,
+    cancelDemoMembership,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,

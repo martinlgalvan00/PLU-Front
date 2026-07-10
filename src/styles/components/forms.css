@@ -41,7 +41,8 @@
 }
 
 .field input::placeholder { color: var(--color-text-muted); }
-.field input[aria-invalid='true'] { border-color: var(--color-brand-red); }
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'] { border-color: var(--color-brand-red); }
 .field__error,
 .form-submit-error { color: var(--color-brand-red-hover); font-size: 12px; line-height: 1.4; }
 .form-submit-error { margin: 0; }

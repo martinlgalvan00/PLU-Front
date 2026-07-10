@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Check, CreditCard, Landmark, ShieldCheck, X } from 'lucide-react'
+import { Check, CreditCard, Landmark, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { PRICING } from '../../lib/constants.js'
+import { money } from '../../lib/format.js'
 
 function TransferModal({ athlete, onClose }) {
   const { t } = useI18n()
@@ -35,11 +37,13 @@ function TransferModal({ athlete, onClose }) {
   )
 }
 
-export default function MembershipPurchaseSection({ athlete }) {
-  const { t } = useI18n()
+export default function MembershipPurchaseSection({ athlete, membership, onActivateMembership, onCancelMembership }) {
+  const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [transferOpen, setTransferOpen] = useState(false)
   const [checkoutMessage, setCheckoutMessage] = useState('')
+  const membershipActive = membership?.status === 'activa'
+  const comboSavings = PRICING.membership + PRICING.event - PRICING.combo
 
   function startMembershipPayment() {
     setCheckoutMessage('')
@@ -50,6 +54,20 @@ export default function MembershipPurchaseSection({ athlete }) {
     setCheckoutMessage(t('account.membership.checkoutMessage'))
   }
 
+  function simulateMembershipPayment() {
+    const result = onActivateMembership?.(athlete.id)
+    if (result?.error) {
+      setCheckoutMessage(result.error)
+      return
+    }
+    setCheckoutMessage(t('account.membership.paymentSimulated'))
+  }
+
+  function cancelMembership() {
+    onCancelMembership?.(athlete.id)
+    setCheckoutMessage(t('account.membership.cancelledMessage'))
+  }
+
   return (
     <section id="account-membership" className="account-section account-section--red">
       <div className="account-section__heading">
@@ -58,6 +76,34 @@ export default function MembershipPurchaseSection({ athlete }) {
         <strong className="account-section__price">$38.000 <small>ARS</small></strong>
       </div>
       <p className="account-section__lead">{t('account.membership.lead')}</p>
+      <div className={`account-membership-status account-membership-status--${membershipActive ? 'active' : 'pending'}`}>
+        <span>{membershipActive ? t('account.membership.statusActive') : t('account.membership.statusPending')}</span>
+        <strong>{membershipActive ? membership.memberCode : t('account.membership.statusNoPayment')}</strong>
+      </div>
+      <aside className="account-combo-offer">
+        <div className="account-combo-offer__icon" aria-hidden>
+          <Sparkles size={20} />
+        </div>
+        <div className="account-combo-offer__copy">
+          <span>{t('account.membership.comboEyebrow')}</span>
+          <h3>{t('account.membership.comboTitle')}</h3>
+          <p>{t('account.membership.comboLead')}</p>
+        </div>
+        <dl className="account-combo-offer__prices">
+          <div>
+            <dt>{t('account.membership.comboSeparate')}</dt>
+            <dd>{money(PRICING.membership + PRICING.event, locale)}</dd>
+          </div>
+          <div>
+            <dt>{t('account.membership.comboOffer')}</dt>
+            <dd>{money(PRICING.combo, locale)}</dd>
+          </div>
+          <div>
+            <dt>{t('account.membership.comboSavings')}</dt>
+            <dd>{money(comboSavings, locale)}</dd>
+          </div>
+        </dl>
+      </aside>
       <div className="account-benefits">
         <span><Check size={15} /> {t('account.membership.benefitCredential')}</span>
         <span><Check size={15} /> {t('account.membership.benefitCode')}</span>
@@ -81,6 +127,14 @@ export default function MembershipPurchaseSection({ athlete }) {
           method: paymentMethod === 'mercado_pago' ? 'Mercado Pago' : t('account.membership.transfer'),
         })}
       </button>
+      <div className="account-demo-actions">
+        <button type="button" className="account-primary-action account-primary-action--success" onClick={simulateMembershipPayment}>
+          {t('account.membership.simulatePayment')}
+        </button>
+        <button type="button" className="account-primary-action account-primary-action--danger" onClick={cancelMembership}>
+          {t('account.membership.cancelMembership')}
+        </button>
+      </div>
       {checkoutMessage && <p className="account-checkout-message" role="status">{checkoutMessage}</p>}
 
       {transferOpen && <TransferModal athlete={athlete} onClose={() => setTransferOpen(false)} />}

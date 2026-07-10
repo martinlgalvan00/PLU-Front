@@ -8113,3 +8113,198 @@
   background: var(--color-brand-action-hover);
   color: var(--color-brand-action-text, #fff);
 }
+
+/* Hero cleanup: athlete registration and public tickets must read as separate, clear actions. */
+.pitbull-page--premium .pitbull-hero__aside {
+  gap: 14px;
+}
+
+.pitbull-page--premium .pitbull-hero-visual__frame {
+  border-radius: 18px;
+}
+
+.pitbull-page--premium .pitbull-hero-visual__media {
+  aspect-ratio: 16 / 5;
+  max-height: 198px;
+}
+
+.pitbull-page--premium .pitbull-hero-visual__img {
+  object-position: center 42%;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__rail {
+  align-items: stretch;
+  background:
+    linear-gradient(135deg, rgba(255, 21, 21, 0.07), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  display: grid;
+  gap: 14px;
+  overflow: visible;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.pitbull-page--premium .pitbull-hero-rail__status {
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__divider {
+  display: none;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pitbull-page--premium .pitbull-hero-rail__metric {
+  align-items: start;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 14px;
+  display: grid;
+  gap: 6px;
+  padding: 11px 12px;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__metric:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.pitbull-page--premium .pitbull-hero-rail__metric dt {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 10px;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__metric dd {
+  color: #fff;
+  font-size: 14px;
+  white-space: normal;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__cta {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 0 18px;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__cta--primary {
+  background: #ff1515;
+  color: var(--color-brand-action-text, #fff);
+}
+
+.pitbull-page--premium .pitbull-hero-rail__cta--primary:hover {
+  background: #d90f0f;
+  color: var(--color-brand-action-text, #fff);
+}
+
+.pitbull-page--premium .pitbull-hero-rail__cta--muted {
+  background: linear-gradient(135deg, #f4d35e, #c9a227);
+  border: 1px solid rgba(244, 211, 94, 0.58);
+  color: #16130a;
+}
+
+.pitbull-page--premium .pitbull-hero-rail__cta--muted:hover {
+  background: linear-gradient(135deg, #ffe07a, #d4ad32);
+  color: #100d06;
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero-rail__rail {
+  background:
+    linear-gradient(135deg, rgba(255, 21, 21, 0.06), transparent 42%),
+    #fff;
+  border-color: rgba(15, 17, 23, 0.1);
+  box-shadow: 0 18px 42px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero-rail__metric {
+  background: rgba(15, 17, 23, 0.025);
+  border-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero-rail__metric dt {
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero-rail__metric dd {
+  color: var(--plu-ink-900);
+}
+
+[data-theme='light'] .pitbull-page--premium .pitbull-hero-rail__cta--muted {
+  background: linear-gradient(135deg, #f4d35e, #c9a227);
+  border-color: rgba(151, 117, 18, 0.22);
+  color: #16130a;
+}
+
+@media (max-width: 1100px) {
+  .pitbull-page--premium .pitbull-hero-rail__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pitbull-page--premium .pitbull-hero-visual__media {
+    aspect-ratio: 16 / 8;
+    max-height: none;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__metrics,
+  .pitbull-page--premium .pitbull-hero-rail__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__actions {
+    display: grid;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__cta {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (min-width: 900px) {
+  .pitbull-page--premium .pitbull-hero__aside {
+    display: contents;
+  }
+
+  .pitbull-page--premium .pitbull-hero__aside .pitbull-hero-visual {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .pitbull-page--premium .pitbull-hero__aside .pitbull-hero-rail {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: clamp(14px, 2vw, 20px);
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__rail {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__status {
+    align-self: center;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__metrics {
+    align-self: stretch;
+  }
+
+  .pitbull-page--premium .pitbull-hero-rail__actions {
+    align-self: center;
+  }
+}

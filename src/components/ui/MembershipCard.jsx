@@ -11,6 +11,7 @@ export default function MembershipCard({
   compareWith = [],
   onSelect,
   ctaLabel,
+  ctaDisabled = false,
   variant = 'plu',
 }) {
   const { locale, t } = useI18n()
@@ -57,7 +58,7 @@ export default function MembershipCard({
           </ul>
 
           <footer className="membership-card__foot">
-            <button type="button" className="membership-card__cta" onClick={onSelect}>
+            <button type="button" className="membership-card__cta" disabled={ctaDisabled} onClick={onSelect}>
               {resolvedCtaLabel}
             </button>
           </footer>
@@ -112,7 +113,7 @@ export default function MembershipCard({
         </ul>
 
         <footer className="membership-card__foot">
-          <button type="button" className="membership-card__cta" onClick={onSelect}>
+          <button type="button" className="membership-card__cta" disabled={ctaDisabled} onClick={onSelect}>
             {resolvedCtaLabel}
           </button>
         </footer>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, MapPin } from 'lucide-react'
+import { ArrowRight, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
 import EventsPluHero from '../components/layout/EventsPluHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -14,6 +14,8 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
+import { resolveEventPricing } from '../lib/eventPricing.js'
+import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 
 function EventStatusBadge({ status, t }) {
@@ -21,7 +23,7 @@ function EventStatusBadge({ status, t }) {
   return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
 }
 
-function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
+function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t }) {
   if (!event) {
     return (
       <div className="events-detail events-detail--empty">
@@ -63,7 +65,7 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
       <div className="events-detail__actions">
         {canRegister && onRegister && (
           <Button className="btn--small" onClick={onRegister}>
-            {t('pages.events.register')}
+            {registerLabel}
             <ArrowRight size={14} aria-hidden />
           </Button>
         )}
@@ -85,7 +87,36 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, t }) {
   )
 }
 
-export default function EventsPage({ onNavigate, onSelectEvent, events: eventsProp = UPCOMING_EVENTS }) {
+function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
+  const pricing = resolveEventPricing(event)
+  const ticketPrice = pricing.ticketBothDays || pricing.ticketDay
+  const ticketsEnabled = pricing.ticketsEnabled !== false
+
+  return (
+    <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">
+      <div className="events-public-tickets__icon" aria-hidden>
+        <Ticket size={20} />
+      </div>
+      <div className="events-public-tickets__copy">
+        <span>{t('pages.events.publicTicketsEyebrow')}</span>
+        <h3 id="events-public-tickets-title">{t('pages.events.publicTicketsTitle')}</h3>
+        <p>{t('pages.events.publicTicketsLead')}</p>
+      </div>
+      <div className="events-public-tickets__aside">
+        <div className="events-public-tickets__price">
+          <Users size={15} aria-hidden />
+          <span>{ticketsEnabled ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) }) : t('pages.events.publicTicketsClosed')}</span>
+        </div>
+        <Button className="btn--small" onClick={onBuyTickets} disabled={!ticketsEnabled}>
+          {t('pages.events.publicTicketsCta')}
+          <ArrowRight size={14} aria-hidden />
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+export default function EventsPage({ onNavigate, onSelectEvent, events: eventsProp = UPCOMING_EVENTS, session }) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
   // (localStorage/mock); acá lo enriquecemos con lo que ya es real en
@@ -211,7 +242,14 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
     setCalendarFocus(event.dateISO)
   }
 
+  const isAthleteLoggedIn = session?.role === 'athlete_plu'
+  const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
+
   function handleRegister(event) {
+    if (!isAthleteLoggedIn) {
+      onNavigate('register')
+      return
+    }
     onSelectEvent?.(event)
   }
 
@@ -247,11 +285,14 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                   variant="events"
                   event={pitbull}
                   onDetail={() => onNavigate('pitbull')}
-                  onRegister={
-                    pitbull.status === 'inscripcion_abierta' || pitbull.status === 'cupos_limitados'
-                      ? () => handleRegister(pitbull)
-                      : undefined
-                  }
+                  onRegister={() => handleRegister(pitbull)}
+                  registerLabel={registerLabel}
+                />
+                <EventsAudienceTicketsPanel
+                  event={pitbull}
+                  locale={locale}
+                  onBuyTickets={() => onNavigate('pitbull')}
+                  t={t}
                 />
               </Reveal>
             )}
@@ -273,7 +314,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                         ? () => handleRegister(event)
                         : () => focusEvent(event)
                     }
-                    actionLabel={t('pages.events.register')}
+                    actionLabel={registerLabel}
                   />
                 ))}
               </StaggerReveal>
@@ -304,6 +345,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
               event={selected}
               onRegister={selected ? () => handleRegister(selected) : undefined}
               onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
+              registerLabel={registerLabel}
               t={t}
             />
           </Reveal>
