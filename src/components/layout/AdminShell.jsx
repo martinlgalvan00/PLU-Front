@@ -91,13 +91,10 @@ export default function AdminShell({
               <BrandLogo imgClassName="admin-shell__brand-logo" height={28} />
             </div>
             <div className="admin-shell__brand-copy">
-              <div className="admin-shell__brand-title">
-                <strong>{t('brand.name')}</strong>
-                <span className="admin-shell__brand-tag">
-                  {restrictedNav ? t('admin.shell.brandTagPartner') : t('admin.shell.brandTag')}
-                </span>
-              </div>
-              <span>{restrictedNav ? t('admin.shell.brandSubtitlePartner') : t('admin.shell.brandSubtitle')}</span>
+              <span className="admin-shell__brand-name">{t('brand.name')}</span>
+              <span className="admin-shell__brand-subtitle">
+                {restrictedNav ? t('admin.shell.brandSubtitlePartner') : t('admin.shell.brandSubtitle')}
+              </span>
             </div>
           </div>
           <button
@@ -148,21 +145,15 @@ export default function AdminShell({
         </div>
 
         <div className="admin-shell__footer">
-          <div className="admin-shell__account">
-            <div className="admin-shell__account-mark" aria-hidden>
-              <Shield size={16} strokeWidth={2.2} />
-            </div>
-            <div className="admin-shell__account-copy">
-              <strong>{roleLabel}</strong>
-              <span>{t('admin.shell.activeProfile')}</span>
-            </div>
+          <div className="admin-shell__session-bar">
+            <span className="admin-shell__session-role">{roleLabel}</span>
             <div className="admin-shell__prefs">
               <ThemeToggle compact />
               <LanguageToggle compact />
             </div>
           </div>
           <button type="button" className="admin-shell__exit" onClick={onExit}>
-            <ArrowLeft size={16} strokeWidth={2.2} aria-hidden />
+            <ArrowLeft size={14} strokeWidth={2} aria-hidden />
             {t('admin.shell.exit')}
           </button>
         </div>

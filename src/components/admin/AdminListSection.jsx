@@ -67,8 +67,8 @@ export default function AdminListSection({
           <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')}>
             {stats.map(({ label, tone = 'default', value }) => (
               <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>
-                <strong>{value}</strong>
-                <span>{label}</span>
+                <span className="admin-list-stat__value">{value}</span>
+                <span className="admin-list-stat__label">{label}</span>
               </article>
             ))}
             <div className="admin-list-shell__count-wrap">
