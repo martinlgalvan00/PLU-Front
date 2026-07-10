@@ -2,20 +2,13 @@ import { useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  Calendar,
-  CircleDot,
-  Clock,
   ExternalLink,
-  Layers,
   MapPin,
-  MessageCircle,
-  Users,
 } from 'lucide-react'
 import DesignPageHero from '../components/layout/DesignPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import PitbullHeroRail from '../components/ui/PitbullHeroRail.jsx'
-import PitbullHeroVisual from '../components/ui/PitbullHeroVisual.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import { useContent } from '../hooks/useContent.js'
@@ -109,15 +102,6 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
   )
 }
 
-const QUICK_FACT_ICONS = {
-  date: Calendar,
-  venue: MapPin,
-  status: CircleDot,
-  slots: Users,
-  schedule: Clock,
-  modalities: Layers,
-  contact: MessageCircle,
-}
 
 function PitbullQuickFactsSection({ eventStatus, pitbullClassic, t }) {
   const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
@@ -171,28 +155,21 @@ function PitbullQuickFactsSection({ eventStatus, pitbullClassic, t }) {
   return (
     <section className="pitbull-event-facts" aria-label={t('pages.pitbull.quickFactsAria')}>
       <ul className="pitbull-fact-grid">
-        {facts.map(({ detail, id, layout, term, tone }) => {
-          const Icon = QUICK_FACT_ICONS[id] ?? CircleDot
-
-          return (
-            <li
-              key={id}
-              className={`pitbull-fact-grid__cell pitbull-fact-grid__cell--${id} pitbull-fact-grid__cell--${layout}`}
-            >
-              <article className="pitbull-fact-grid__card">
-                <p className="pitbull-fact-grid__term">
-                  <Icon size={13} strokeWidth={1.75} aria-hidden />
-                  <span>{term}</span>
-                </p>
-                {id === 'status' ? (
-                  <p className={`pitbull-fact-grid__badge pitbull-fact-grid__badge--${tone}`}>{detail}</p>
-                ) : (
-                  <p className="pitbull-fact-grid__detail">{detail}</p>
-                )}
-              </article>
-            </li>
-          )
-        })}
+        {facts.map(({ detail, id, layout, term, tone }) => (
+          <li
+            key={id}
+            className={`pitbull-fact-grid__cell pitbull-fact-grid__cell--${id} pitbull-fact-grid__cell--${layout}`}
+          >
+            <article className="pitbull-fact-grid__card">
+              <p className="pitbull-fact-grid__term">{term}</p>
+              <p
+                className={`pitbull-fact-grid__detail${id === 'status' ? ` pitbull-fact-grid__detail--${tone}` : ''}`}
+              >
+                {detail}
+              </p>
+            </article>
+          </li>
+        ))}
       </ul>
     </section>
   )
@@ -719,7 +696,6 @@ export default function PitbullPage({
             ticketsOpen={ticketsOpen}
             t={t}
           />
-          <PitbullHeroVisual t={t} />
         </div>
       </DesignPageHero>
 

@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, MapPin, Ticket, Users } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
@@ -28,46 +28,30 @@ export default function PitbullHeroRail({
   return (
     <aside className="pitbull-hero-rail pitbull-hero-rail--luxury" aria-label={t('pages.pitbull.heroMetricsAria')}>
       <div className="pitbull-hero-rail__rail">
-        <div className="pitbull-hero-rail__status">
+        <div className="pitbull-hero-rail__head">
           <EventStatusBadge status={eventStatus} t={t} />
         </div>
 
-        <span className="pitbull-hero-rail__divider" aria-hidden />
-
         <dl className="pitbull-hero-rail__metrics">
           <div className="pitbull-hero-rail__metric">
-            <dt>
-              <Calendar size={11} aria-hidden />
-              {t('pages.pitbull.heroDate')}
-            </dt>
+            <dt>{t('pages.pitbull.heroDate')}</dt>
             <dd>{pitbullClassic.date}</dd>
           </div>
           <div className="pitbull-hero-rail__metric">
-            <dt>
-              <MapPin size={11} aria-hidden />
-              {t('pages.pitbull.heroVenue')}
-            </dt>
+            <dt>{t('pages.pitbull.heroVenue')}</dt>
             <dd>{pitbullClassic.venue}</dd>
           </div>
           <div className={`pitbull-hero-rail__metric${canRegister ? ' pitbull-hero-rail__metric--open' : ''}`}>
-            <dt>
-              <Users size={11} aria-hidden />
-              {t('pages.pitbull.heroSlots')}
-            </dt>
+            <dt>{t('pages.pitbull.heroSlots')}</dt>
             <dd>
               {pitbullClassic.registered}/{pitbullClassic.slots}
             </dd>
           </div>
           <div className="pitbull-hero-rail__metric">
-            <dt>
-              <Ticket size={11} aria-hidden />
-              {t('pages.pitbull.heroFee')}
-            </dt>
+            <dt>{t('pages.pitbull.heroFee')}</dt>
             <dd>{money(pricing.registration, resolvedLocale)}</dd>
           </div>
         </dl>
-
-        <span className="pitbull-hero-rail__divider pitbull-hero-rail__divider--actions" aria-hidden />
 
         <div className="pitbull-hero-rail__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
           <button
