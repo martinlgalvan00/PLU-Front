@@ -57,10 +57,10 @@ export const PLU_PALETTE = {
     oklch: 'oklch(78% 0.06 230)',
   },
   gold: {
-    500: '#c9b978',
-    400: '#ddc992',
-    600: '#9b8f59',
-    oklch: 'oklch(74% 0.11 85)',
+    500: '#f2b705',
+    400: '#ffd23f',
+    600: '#a9790f',
+    oklch: 'oklch(80% 0.16 85)',
   },
   neutral: {
     canvas: '#f7f6f3',

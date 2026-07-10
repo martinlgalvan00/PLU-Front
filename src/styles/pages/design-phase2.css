@@ -694,7 +694,7 @@
 .events-featured__visual::before {
   background:
     radial-gradient(circle at 15% 100%, rgba(31, 95, 158, 0.32), transparent 55%),
-    radial-gradient(circle at 90% 0%, rgba(201, 185, 120, 0.18), transparent 50%);
+    radial-gradient(circle at 90% 0%, rgba(242, 183, 5, 0.18), transparent 50%);
   content: '';
   inset: 0;
   position: absolute;
@@ -1017,7 +1017,7 @@
 }
 
 .events-status-badge--warning {
-  background: rgba(201, 185, 120, 0.12);
+  background: rgba(242, 183, 5, 0.12);
   color: var(--color-brand-gold);
 }
 

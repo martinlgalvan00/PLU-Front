@@ -17,12 +17,12 @@
 
 /* ── Text selection — gold tint ── */
 ::selection {
-  background: rgba(201, 185, 120, 0.28);
+  background: rgba(242, 183, 5, 0.28);
   color: #fff;
 }
 
 [data-theme='light'] ::selection {
-  background: rgba(155, 143, 89, 0.22);
+  background: rgba(169, 121, 15, 0.22);
   color: rgba(15, 17, 23, 0.96);
 }
 
@@ -49,7 +49,7 @@ html {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, rgba(201, 185, 120, 0.42));
+  background: var(--scrollbar-thumb-hover, rgba(242, 183, 5, 0.42));
 }
 
 ::-webkit-scrollbar-corner {

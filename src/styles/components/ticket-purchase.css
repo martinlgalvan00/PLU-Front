@@ -344,7 +344,7 @@
 }
 
 .ticket-purchase--editorial .ticket-purchase__attendee-index {
-  color: var(--color-brand-gold, rgba(201, 185, 120, 0.82));
+  color: var(--color-brand-gold, rgba(242, 183, 5, 0.82));
   flex: none;
   font-family: var(--font-display);
   font-size: 11px;
@@ -670,7 +670,7 @@
 }
 
 .ticket-purchase__attendees-batch-index {
-  color: var(--color-brand-gold, rgba(201, 185, 120, 0.82));
+  color: var(--color-brand-gold, rgba(242, 183, 5, 0.82));
   font-family: var(--font-display);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -1149,7 +1149,7 @@
 }
 
 .ticket-purchase__addon-redeem {
-  color: rgba(201, 185, 120, 0.92);
+  color: rgba(242, 183, 5, 0.92);
 }
 
 .ticket-purchase__addons-batch {
@@ -1165,7 +1165,7 @@
 }
 
 .ticket-purchase__ticket-benefits {
-  color: rgba(201, 185, 120, 0.92);
+  color: rgba(242, 183, 5, 0.92);
   display: block;
   font-size: 12px;
   margin-top: 4px;

@@ -24,7 +24,7 @@ export default {
     faq: 'FAQ',
     contact: 'Contact',
     contactHint: 'Institutional inquiries',
-    drawerTag: 'Powerlifting United · Argentina',
+    drawerTag: 'Argentina Chapter',
     more: 'More',
     register: 'Join now',
     affiliate: 'Join',
@@ -54,6 +54,7 @@ export default {
     titleLead: 'Powerlifting United',
     titleAccent: 'Argentina',
     headline: 'Official memberships and calendar',
+    headlineHighlight: 'Official',
     description: 'Meet registration, digital credentials and published results.',
     descriptionMeta: 'For athletes and organizers.',
     ctaAffiliate: 'Become a member',
@@ -815,7 +816,7 @@ export default {
     },
     team: {
       eyebrow: 'Join our team',
-      title: 'Build the federation from the inside',
+      title: 'Technical and organizing staff',
       description:
         'Powerlifting United Argentina grows with referees, meet directors and affiliate gyms across the country.',
       officialsTitle: 'Become a referee',

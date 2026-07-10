@@ -281,6 +281,12 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
             <span className="site-header__actions-sep" aria-hidden />
 
             <div className="site-header__actions-main">
+            <Button
+              className="site-header__cta site-header__cta--affiliate btn--small"
+              onClick={() => go('members')}
+            >
+              {t('hero.ctaAffiliate')}
+            </Button>
             {session ? (
               <>
                 <LoginButton
@@ -314,6 +320,14 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
           <div className="site-header__mobile-actions">
             <div className={`site-header__mobile-cluster${open ? ' is-menu-open' : ''}`}>
+              <button
+                type="button"
+                className="site-header__mobile-chip site-header__mobile-chip--affiliate"
+                onClick={() => go('members')}
+              >
+                <span className="site-header__mobile-chip-text">{t('hero.ctaAffiliate')}</span>
+              </button>
+
               {session ? (
                 <>
                   <button
@@ -482,11 +496,18 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 <button
                   type="button"
                   className="site-header__drawer-foot-btn site-header__drawer-foot-btn--primary"
+                  onClick={() => go('members')}
+                >
+                  {t('hero.ctaAffiliate')}
+                  <ArrowRight size={16} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--outline"
                   onClick={() => go('login')}
                 >
                   <User size={16} aria-hidden />
                   {t('nav.login')}
-                  <ArrowRight size={16} aria-hidden />
                 </button>
               </div>
             )}

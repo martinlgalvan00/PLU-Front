@@ -10,7 +10,7 @@
   --card-border: rgba(255, 255, 255, 0.08);
   --card-red: #1f5f9e;
   --card-celeste: #74acdf;
-  --card-gold: #c9b978;
+  --card-gold: #f2b705;
   --card-text: #ffffff;
   --card-muted: rgba(255, 255, 255, 0.55);
   --card-size: 1080px;
@@ -79,16 +79,16 @@
 
 .share-card--membership .share-card__bg {
   background:
-    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(201, 185, 120, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(242, 183, 5, 0.22) 0%, transparent 55%),
     radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.09) 0%, transparent 50%),
-    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(201, 185, 120, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(242, 183, 5, 0.04) 0%, transparent 60%),
     linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
 }
 
 .share-card--ticket .share-card__bg {
   background:
     radial-gradient(ellipse 70% 55% at 80% 8%, rgba(116, 172, 223, 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(201, 185, 120, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(242, 183, 5, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse 45% 40% at 50% 50%, rgba(116, 172, 223, 0.04) 0%, transparent 60%),
     linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
 }
@@ -120,8 +120,8 @@
 .share-card--membership .share-card__monogram {
   background: linear-gradient(
     140deg,
-    rgba(201, 185, 120, 0.14) 0%,
-    rgba(201, 185, 120, 0.04) 60%
+    rgba(242, 183, 5, 0.14) 0%,
+    rgba(242, 183, 5, 0.04) 60%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -392,7 +392,7 @@
 
 .share-card--membership .share-card__stub-dot {
   border-color: var(--card-gold);
-  box-shadow: 0 0 10px rgba(201, 185, 120, 0.5);
+  box-shadow: 0 0 10px rgba(242, 183, 5, 0.5);
 }
 
 .share-card--ticket .share-card__stub-dot {

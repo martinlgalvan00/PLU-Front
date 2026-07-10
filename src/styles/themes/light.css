@@ -2,7 +2,7 @@
   color-scheme: light;
 
   --scrollbar-thumb: rgba(15, 17, 23, 0.16);
-  --scrollbar-thumb-hover: rgba(155, 143, 89, 0.48);
+  --scrollbar-thumb-hover: rgba(169, 121, 15, 0.48);
   --scrollbar-track: transparent;
 
   --color-bg-primary: var(--plu-warm-50);
@@ -93,21 +93,12 @@
   background: rgba(15, 17, 23, 0.03);
 }
 
-[data-theme='light'] .admin-shell__footer {
-  background: transparent;
-}
-
-[data-theme='light'] .admin-shell__account {
-  background: #ffffff;
-}
-
-[data-theme='light'] .admin-shell__nav button:hover .admin-shell__nav-icon {
+[data-theme='light'] .admin-shell__nav button:hover {
   background: rgba(15, 17, 23, 0.04);
-  border-color: var(--color-border-subtle);
 }
 
-[data-theme='light'] .admin-shell__nav-icon {
-  background: rgba(15, 17, 23, 0.03);
+[data-theme='light'] .admin-shell__nav button.active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
 }
 
 [data-theme='light'] .admin-mobile-bar {

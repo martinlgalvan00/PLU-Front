@@ -419,7 +419,7 @@
 }
 
 .results-badge--pending {
-  background: rgba(201, 185, 120, 0.1);
+  background: rgba(242, 183, 5, 0.1);
   color: var(--color-brand-gold);
 }
 
@@ -744,7 +744,7 @@
 .podium-stage__ambient {
   background: radial-gradient(
     ellipse 80% 60% at 50% 50%,
-    rgba(201, 185, 120, 0.08) 0%,
+    rgba(242, 183, 5, 0.08) 0%,
     rgba(116, 172, 223, 0.05) 45%,
     transparent 70%
   );
@@ -830,7 +830,7 @@
 /* ── Static elevation per rank (calm, no pulsing) ───────────────── */
 
 .podium-slot--first .podium-athlete {
-  box-shadow: 0 8px 28px rgba(201, 185, 120, 0.14);
+  box-shadow: 0 8px 28px rgba(242, 183, 5, 0.14);
 }
 
 .podium-slot--second .podium-athlete {
@@ -848,7 +848,7 @@
 /* ── Card accent lines ──────────────────────── */
 
 .podium-slot--first .podium-athlete {
-  border-color: rgba(201, 185, 120, 0.35);
+  border-color: rgba(242, 183, 5, 0.35);
 }
 
 .podium-slot--first .podium-athlete::before {
@@ -923,7 +923,7 @@
 }
 
 .podium-slot--first .podium-athlete__rank-badge {
-  background: rgba(201, 185, 120, 0.18);
+  background: rgba(242, 183, 5, 0.18);
   color: var(--color-brand-gold);
 }
 
@@ -969,7 +969,7 @@
 /* ── Total ───────────────────────────────────── */
 
 .podium-athlete__total-wrap {
-  background: rgba(201, 185, 120, 0.08);
+  background: rgba(242, 183, 5, 0.08);
   border: 1px solid var(--color-accent-gold-border-subtle);
   border-radius: var(--border-radius-lg);
   margin-top: var(--space-sm);
@@ -1057,15 +1057,15 @@
 /* Platform colors per rank */
 .podium-slot--first .podium-platform {
   background: linear-gradient(180deg,
-    rgba(201, 185, 120, 0.28) 0%,
-    rgba(201, 185, 120, 0.14) 40%,
-    rgba(201, 185, 120, 0.08) 100%
+    rgba(242, 183, 5, 0.28) 0%,
+    rgba(242, 183, 5, 0.14) 40%,
+    rgba(242, 183, 5, 0.08) 100%
   );
-  border: 1px solid rgba(201, 185, 120, 0.3);
+  border: 1px solid rgba(242, 183, 5, 0.3);
   border-bottom: none;
 }
 
-.podium-slot--first .podium-platform__rank { color: rgba(201, 185, 120, 0.7); }
+.podium-slot--first .podium-platform__rank { color: rgba(242, 183, 5, 0.7); }
 
 .podium-slot--second .podium-platform {
   background: linear-gradient(180deg,
@@ -1094,7 +1094,7 @@
 .podium-stage__floor {
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(201, 185, 120, 0.25) 30%,
+    rgba(242, 183, 5, 0.25) 30%,
     rgba(116, 172, 223, 0.2) 60%,
     transparent 100%
   );
@@ -1238,7 +1238,7 @@
 
 .result-card--featured {
   border-top-color: var(--color-brand-gold);
-  box-shadow: 0 4px 20px rgba(201, 185, 120, 0.1);
+  box-shadow: 0 4px 20px rgba(242, 183, 5, 0.1);
 }
 
 .result-card__top {
@@ -1600,7 +1600,7 @@
 }
 
 [data-theme='light'] .podium-slot--first .podium-athlete {
-  border-color: rgba(201, 185, 120, 0.38);
+  border-color: rgba(242, 183, 5, 0.38);
 }
 
 [data-theme='light'] .podium-slot--second .podium-athlete {
@@ -1617,10 +1617,10 @@
 
 [data-theme='light'] .podium-slot--first .podium-platform {
   background: linear-gradient(180deg,
-    rgba(201, 185, 120, 0.18) 0%,
-    rgba(201, 185, 120, 0.08) 100%
+    rgba(242, 183, 5, 0.18) 0%,
+    rgba(242, 183, 5, 0.08) 100%
   );
-  border-color: rgba(201, 185, 120, 0.28);
+  border-color: rgba(242, 183, 5, 0.28);
 }
 
 [data-theme='light'] .podium-slot--second .podium-platform {
@@ -1644,13 +1644,13 @@
 }
 
 [data-theme='light'] .podium-slot--first .podium-athlete__rank-badge {
-  background: rgba(201, 185, 120, 0.16);
+  background: rgba(242, 183, 5, 0.16);
 }
 
 [data-theme='light'] .podium-stage__ambient {
   background: radial-gradient(
     ellipse 80% 60% at 50% 50%,
-    rgba(201, 185, 120, 0.06) 0%,
+    rgba(242, 183, 5, 0.06) 0%,
     rgba(116, 172, 223, 0.04) 45%,
     transparent 70%
   );
@@ -1659,7 +1659,7 @@
 [data-theme='light'] .podium-stage__floor {
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(201, 185, 120, 0.30) 30%,
+    rgba(242, 183, 5, 0.30) 30%,
     rgba(116, 172, 223, 0.22) 60%,
     transparent 100%
   );
@@ -1680,7 +1680,7 @@
 }
 
 [data-theme='light'] .result-card--featured {
-  box-shadow: 0 4px 20px rgba(201, 185, 120, 0.12);
+  box-shadow: 0 4px 20px rgba(242, 183, 5, 0.12);
 }
 
 [data-theme='light'] .result-card__rank-label {
@@ -1696,8 +1696,8 @@
 }
 
 [data-theme='light'] .podium-athlete__total-wrap {
-  background: rgba(201, 185, 120, 0.06);
-  border-color: rgba(201, 185, 120, 0.22);
+  background: rgba(242, 183, 5, 0.06);
+  border-color: rgba(242, 183, 5, 0.22);
 }
 
 [data-theme='light'] .podium-slot--second .podium-athlete__total-wrap {
@@ -2090,7 +2090,7 @@
 }
 
 .results-sort-menu__option.is-active {
-  background: rgba(201, 185, 120, 0.08);
+  background: rgba(242, 183, 5, 0.08);
   color: var(--plu-gold-400);
   font-weight: 600;
 }
@@ -2246,7 +2246,7 @@
 }
 
 .results-page--premium .design-hero--compact::before {
-  background: radial-gradient(ellipse 62% 80% at 6% 24%, rgba(201, 185, 120, 0.08) 0%, transparent 56%);
+  background: radial-gradient(ellipse 62% 80% at 6% 24%, rgba(242, 183, 5, 0.08) 0%, transparent 56%);
   opacity: 1;
 }
 
@@ -2649,8 +2649,8 @@
 }
 
 [data-theme='dark'] .results-page--premium .segmented-switch--luxury {
-  --switch-thumb-bg: rgba(201, 185, 120, 0.14);
-  --switch-thumb-border: rgba(201, 185, 120, 0.22);
+  --switch-thumb-bg: rgba(242, 183, 5, 0.14);
+  --switch-thumb-border: rgba(242, 183, 5, 0.22);
 }
 
 [data-theme='dark'] .results-page--premium .segmented-switch--luxury .segmented-switch__option.is-active {
