@@ -41,7 +41,7 @@ function DashboardKpiTile({ icon, label, value, tone, onClick, index }) {
         <Icon size={18} strokeWidth={1.75} />
       </span>
       <span className="admin-kpi-tile__body">
-        <strong className="admin-kpi-tile__value">{value}</strong>
+        <span className="admin-kpi-tile__value">{value}</span>
         <span className="admin-kpi-tile__label">{label}</span>
       </span>
     </button>
@@ -51,7 +51,7 @@ function DashboardKpiTile({ icon, label, value, tone, onClick, index }) {
 function DashboardKpiChip({ label, value, tone, onClick }) {
   return (
     <button type="button" className={`admin-kpi-chip admin-kpi-chip--${tone}`} onClick={onClick}>
-      <strong>{value}</strong>
+      <span className="admin-kpi-chip__value">{value}</span>
       <span>{label}</span>
     </button>
   )
@@ -112,10 +112,10 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
           <div className="admin-spotlight__capacity-bar">
             <span style={{ width: `${fillPercent}%` }} />
           </div>
-          <strong>
+          <span className="admin-spotlight__fill-count">
             {event.registered}/{event.slots}
-          </strong>
-          <em>{fillPercent}%</em>
+          </span>
+          <span className="admin-spotlight__fill-percent">{fillPercent}%</span>
         </div>
       </div>
       <button type="button" className="admin-spotlight__cta" onClick={() => onNavigate?.('events')}>

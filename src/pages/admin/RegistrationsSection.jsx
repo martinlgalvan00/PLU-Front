@@ -224,11 +224,9 @@ export default function RegistrationsSection({
 
       ]}
 
-      eyebrow={t('admin.sections.registrations.eyebrow')}
+      title={t('admin.sections.registrations.title')}
 
       subtitle={t('admin.sections.registrations.subtitle')}
-
-      title={t('admin.sections.registrations.title')}
 
       totalCount={registrationsCount ?? registrationRows.length}
 

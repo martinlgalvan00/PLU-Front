@@ -152,7 +152,7 @@ export default {
   registrations: {
     stats: {
       total: 'Total',
-      pending: 'Pend. de pago',
+      pending: 'Pendiente de pago',
       manual: 'Validación manual',
       confirmed: 'Confirmadas',
     },
