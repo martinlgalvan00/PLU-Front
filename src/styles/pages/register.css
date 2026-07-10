@@ -957,6 +957,15 @@
   box-shadow: 0 0 0 3px var(--register-field-focus-ring, rgba(116, 172, 223, 0.12));
 }
 
+.register-card .field select option {
+  background: #121419;
+  color: #f7f7f8;
+}
+
+.register-card .field select option:disabled {
+  color: rgba(247, 247, 248, 0.58);
+}
+
 .register-card__footer {
   align-items: center;
   background: transparent;
@@ -1096,6 +1105,120 @@
   filter: grayscale(0.15);
   opacity: 0.5;
   transform: none;
+}
+
+.register-eligibility-alert {
+  background: rgba(255, 21, 21, 0.08);
+  border: 1px solid rgba(255, 21, 21, 0.24);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.register-eligibility-alert strong {
+  color: #ff6b6b;
+  font-size: 14px;
+}
+
+.register-eligibility-alert p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.register-eligibility-alert .btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.register-payment-modal {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.68);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.register-payment-modal__card {
+  background:
+    radial-gradient(circle at top, rgba(55, 214, 122, 0.14), transparent 44%),
+    var(--color-bg-surface);
+  border: 1px solid rgba(55, 214, 122, 0.28);
+  border-radius: 22px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: 12px;
+  max-width: 430px;
+  padding: clamp(24px, 4vw, 34px);
+  text-align: center;
+  width: min(100%, 430px);
+}
+
+.register-payment-modal__card > svg {
+  color: #37d67a;
+  justify-self: center;
+}
+
+.register-payment-modal__card > span {
+  color: #37d67a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-payment-modal__card h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 5vw, 34px);
+  margin: 0;
+}
+
+.register-payment-modal__card p {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.register-payment-modal__card dl {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 14px;
+  text-align: left;
+}
+
+.register-payment-modal__card dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.register-payment-modal__card dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.register-payment-modal__card dd {
+  color: var(--color-text-primary);
+  font-weight: 800;
+  margin: 0;
+}
+
+[data-theme='light'] .register-payment-modal__card {
+  background:
+    radial-gradient(circle at top, rgba(55, 214, 122, 0.16), transparent 44%),
+    #fff;
 }
 
 /* Legacy layout */
@@ -1343,6 +1466,27 @@
 [data-theme='light'] .register-card .field input:focus,
 [data-theme='light'] .register-card .field select:focus {
   background: #fff;
+}
+
+[data-theme='light'] .register-card .field select option {
+  background: #fff;
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .register-card .field select option:disabled {
+  color: rgba(15, 17, 23, 0.46);
+}
+
+[data-theme='light'] .register-card__back.btn--outline {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(15, 17, 23, 0.2);
+  color: rgba(15, 17, 23, 0.9);
+}
+
+[data-theme='light'] .register-card__back.btn--outline:hover:not(:disabled) {
+  background: #fff;
+  border-color: rgba(26, 107, 176, 0.34);
+  color: #1a2230;
 }
 
 [data-theme='light'] .register-card__submit {

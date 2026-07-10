@@ -15,6 +15,8 @@ const DEFAULT_TAB = 'account-qr'
 export default function AthleteProfilePage({
   athlete,
   memberships,
+  onActivateMembership,
+  onCancelMembership,
   onNavigate,
   onUpdateProfile,
   registrations,
@@ -24,12 +26,8 @@ export default function AthleteProfilePage({
 
   if (!athlete) return null
 
-  // La cuenta demo de atleta siempre se muestra sin afiliación (aunque el
-  // seed tenga una membresía activa para ath-001) para que quien la pruebe
-  // vea el flujo completo de "comprar afiliación" — ver también useAppData.js login().
-  const isDemoUnAffiliated = session?.demoUnAffiliated || session?.email === 'martina.rivas@example.com'
   const storedMembership = memberships.find((item) => item.athleteId === athlete.id)
-  const membership = isDemoUnAffiliated ? undefined : storedMembership
+  const membership = storedMembership?.status === 'activa' ? storedMembership : undefined
   const athleteRegistrations = registrations.filter((item) => item.athleteId === athlete.id)
   const availableEvents = UPCOMING_EVENTS.filter((event) => event.status !== 'finalizado')
   const nextEvent = availableEvents[0]
@@ -45,11 +43,19 @@ export default function AthleteProfilePage({
       <UpcomingEventsSection
         availableEvents={availableEvents}
         athleteRegistrations={athleteRegistrations}
+        membership={membership}
         onNavigate={onNavigate}
       />
     ),
     'account-history': <HistorySection athleteRegistrations={athleteRegistrations} />,
-    'account-membership': <MembershipPurchaseSection athlete={athlete} />,
+    'account-membership': (
+      <MembershipPurchaseSection
+        athlete={athlete}
+        membership={storedMembership}
+        onActivateMembership={onActivateMembership}
+        onCancelMembership={onCancelMembership}
+      />
+    ),
     'account-personal-data': <PersonalDataSection athlete={athlete} onUpdateProfile={onUpdateProfile} />,
     'account-security': <SecuritySection session={session} />,
   }

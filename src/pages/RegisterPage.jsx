@@ -194,9 +194,12 @@ export default function RegisterPage({
   const profileSteps = useMemo(() => getProfileSteps(t), [t])
 
   const [errors, setErrors] = useState({})
+  const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
+  const [paymentApprovedModal, setPaymentApprovedModal] = useState(null)
   const [profileStepIndex, setProfileStepIndex] = useState(0)
+  const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -207,6 +210,8 @@ export default function RegisterPage({
   useEffect(() => {
     setProfileStepIndex(0)
     setErrors({})
+    setProfileErrorStepIndex(null)
+    setProfileSubmitAttempted(false)
     setSubmitError('')
   }, [flow])
 
@@ -224,9 +229,17 @@ export default function RegisterPage({
     ],
   }[flow]
 
-  const visibleOrder = createdOrder?.type === flow ? createdOrder : null
+  const visibleOrder = flow === 'profile' ? null : createdOrder?.type === flow ? createdOrder : null
   const activeMembership = memberships.find((item) => item.athleteId === visibleOrder?.athleteId)
   const memberCode = activeMembership?.memberCode
+  const hasActiveMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
+  const competitionBlocked = flow === 'competition' && !hasActiveMembership
+  const visibleErrors =
+    flow === 'profile'
+      ? profileErrorStepIndex === profileStepIndex && (profileStepIndex === 0 || profileSubmitAttempted)
+        ? errors
+        : {}
+      : errors
 
   const cardData =
     visibleOrder && flow === 'competition'
@@ -270,6 +283,8 @@ export default function RegisterPage({
     if (!canSelectProfileStep(index, profileStepIndex, profileProgress.steps)) return
     setProfileStepIndex(index)
     setErrors({})
+    setProfileErrorStepIndex(null)
+    setProfileSubmitAttempted(false)
     setSubmitError('')
   }
 
@@ -278,22 +293,35 @@ export default function RegisterPage({
     const validation = validateAthleteFields(form, step.fields, t)
     if (!validation.success) {
       setErrors(validation.errors)
+      setProfileErrorStepIndex(profileStepIndex)
       focusFirstError(validation.errors)
       return
     }
 
     setErrors({})
+    setProfileErrorStepIndex(null)
+    setProfileSubmitAttempted(false)
+    setSubmitError('')
     setProfileStepIndex((current) => Math.min(current + 1, profileSteps.length - 1))
   }
 
   function goBackProfileStep() {
     setProfileStepIndex((current) => Math.max(current - 1, 0))
     setErrors({})
+    setProfileErrorStepIndex(null)
+    setProfileSubmitAttempted(false)
     setSubmitError('')
   }
 
   function submit(eventObject) {
     eventObject.preventDefault()
+    if (flow === 'profile') setProfileSubmitAttempted(true)
+
+    if (competitionBlocked) {
+      setSubmitError(t('pages.register.membershipRequiredForCompetition'))
+      return
+    }
+
     const validation =
       flow === 'profile'
         ? validateAthleteForm(form, t)
@@ -310,6 +338,7 @@ export default function RegisterPage({
           step.fields.some((field) => validation.errors[field]),
         )
         if (errorStepIndex >= 0) setProfileStepIndex(errorStepIndex)
+        if (errorStepIndex >= 0) setProfileErrorStepIndex(errorStepIndex)
       }
 
       return
@@ -317,6 +346,17 @@ export default function RegisterPage({
 
     const result = onSubmit(eventObject, event)
     if (result?.error) setSubmitError(result.error)
+    else if (flow === 'profile') onNavigate?.('profile')
+  }
+
+  async function approveVisiblePayment() {
+    if (!visibleOrder?.paymentId) return
+    await onApprovePayment(visibleOrder.paymentId)
+    setPaymentApprovedModal({
+      concept: visibleOrder.concept,
+      amount: visibleOrder.amount,
+      method: visibleOrder.paymentMethod,
+    })
   }
 
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
@@ -365,54 +405,48 @@ export default function RegisterPage({
         : t('pages.register.membershipPaymentHintMp')
       : ''
 
-  const registerStatus = (flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && (
+  const registerStatus = flow !== 'profile' && !(flow === 'membership' && visibleOrder) && (
     <div className="register-status">
       {visibleOrder ? (
         <div className="register-status__body register-status__body--success">
           <span className="register-status__name">{visibleOrder.athleteName}</span>
 
-          {flow === 'profile' ? (
-            <>
-              <CheckCircle2 size={24} aria-hidden />
-              <strong>{t('pages.register.profileCreated')}</strong>
-              <p>{t('pages.register.profileCreatedDesc')}</p>
-              {onNavigate && (
-                <button type="button" className="btn btn--small" onClick={() => onNavigate('login')}>
-                  {t('pages.register.loginAccount')}
-                </button>
-              )}
-            </>
+          <strong>{money(visibleOrder.amount, locale)}</strong>
+          <p>{visibleOrder.concept}</p>
+          <StatusPill value={visibleOrder.status} />
+          <code>{visibleOrder.reference}</code>
+          {visibleOrder.paymentMethod === 'mercado_pago' ? (
+            <button
+              type="button"
+              className="btn btn--outline"
+              onClick={approveVisiblePayment}
+            >
+              {t('pages.register.simulatePayment')}
+            </button>
           ) : (
             <>
-              <strong>{money(visibleOrder.amount, locale)}</strong>
-              <p>{visibleOrder.concept}</p>
-              <StatusPill value={visibleOrder.status} />
-              <code>{visibleOrder.reference}</code>
-              {visibleOrder.paymentMethod === 'mercado_pago' ? (
-                <button
-                  type="button"
-                  className="btn btn--outline"
-                  onClick={() => onApprovePayment(visibleOrder.paymentId)}
-                >
-                  {t('pages.register.simulatePayment')}
-                </button>
-              ) : (
-                <p className="manual-note">{t('pages.register.manualNote')}</p>
-              )}
-              {cardData && (
-                <>
-                  <button
-                    type="button"
-                    className="card-trigger-btn"
-                    onClick={() => setCardOpen(true)}
-                    id="register-generate-card-btn"
-                  >
-                    <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
-                    {t('pages.register.generateCard')}
-                  </button>
-                  <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
-                </>
-              )}
+              <p className="manual-note">{t('pages.register.manualNote')}</p>
+              <button
+                type="button"
+                className="btn btn--outline"
+                onClick={approveVisiblePayment}
+              >
+                {t('pages.register.simulatePayment')}
+              </button>
+            </>
+          )}
+          {cardData && (
+            <>
+              <button
+                type="button"
+                className="card-trigger-btn"
+                onClick={() => setCardOpen(true)}
+                id="register-generate-card-btn"
+              >
+                <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
+                {t('pages.register.generateCard')}
+              </button>
+              <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
             </>
           )}
         </div>
@@ -499,7 +533,14 @@ export default function RegisterPage({
                   formatShortDate(activeMembership?.expirationDate, locale)
                 }
                 order={visibleOrder}
-                onApprovePayment={onApprovePayment}
+                onApprovePayment={async (paymentId) => {
+                  await onApprovePayment(paymentId)
+                  setPaymentApprovedModal({
+                    concept: visibleOrder.concept,
+                    amount: visibleOrder.amount,
+                    method: visibleOrder.paymentMethod,
+                  })
+                }}
                 onNavigate={onNavigate}
                 onOpenCard={() => setCardOpen(true)}
                 showCardAction={Boolean(cardData)}
@@ -521,7 +562,7 @@ export default function RegisterPage({
                     <div className="form-grid">
                       <Field
                         autoComplete="name"
-                        error={errors.fullName}
+                        error={visibleErrors.fullName}
                         label={t('pages.register.fullName')}
                         name="fullName"
                         placeholder={t('pages.register.fullNamePlaceholder')}
@@ -529,7 +570,7 @@ export default function RegisterPage({
                         onChange={changeField}
                       />
                       <Field
-                        error={errors.documentId}
+                        error={visibleErrors.documentId}
                         inputMode="numeric"
                         label={t('pages.register.documentIdLabel')}
                         name="documentId"
@@ -538,7 +579,7 @@ export default function RegisterPage({
                         onChange={changeField}
                       />
                       <Field
-                        error={errors.birthDate}
+                        error={visibleErrors.birthDate}
                         inputMode="numeric"
                         label={t('pages.register.birthDate')}
                         maxLength={10}
@@ -549,7 +590,7 @@ export default function RegisterPage({
                       />
                       <Field
                         autoComplete="email"
-                        error={errors.email}
+                        error={visibleErrors.email}
                         label={t('pages.register.email')}
                         name="email"
                         placeholder={t('pages.register.emailPlaceholder')}
@@ -559,7 +600,7 @@ export default function RegisterPage({
                       />
                       <Field
                         autoComplete="tel"
-                        error={errors.phone}
+                        error={visibleErrors.phone}
                         inputMode="tel"
                         label={t('pages.register.phone')}
                         name="phone"
@@ -578,15 +619,16 @@ export default function RegisterPage({
                     description={t('pages.register.locationDesc')}
                   >
                     <div className="form-grid">
-                      <Field
-                        error={errors.country}
+                      <Select
+                        error={visibleErrors.country}
                         label={t('pages.register.country')}
                         name="country"
                         value={form.country}
                         onChange={changeField}
+                        options={formOptions.country}
                       />
                       <Field
-                        error={errors.province}
+                        error={visibleErrors.province}
                         label={t('pages.register.province')}
                         name="province"
                         placeholder={t('pages.register.provincePlaceholder')}
@@ -594,7 +636,7 @@ export default function RegisterPage({
                         onChange={changeField}
                       />
                       <Field
-                        error={errors.city}
+                        error={visibleErrors.city}
                         label={t('pages.register.city')}
                         name="city"
                         placeholder={t('pages.register.cityPlaceholder')}
@@ -602,7 +644,7 @@ export default function RegisterPage({
                         onChange={changeField}
                       />
                       <Field
-                        error={errors.gym}
+                        error={visibleErrors.gym}
                         label={t('pages.register.gym')}
                         name="gym"
                         placeholder={t('pages.register.gymPlaceholder')}
@@ -610,6 +652,7 @@ export default function RegisterPage({
                         onChange={changeField}
                       />
                       <Select
+                        error={visibleErrors.sex}
                         label={t('pages.register.sexCompetitive')}
                         name="sex"
                         value={form.sex}
@@ -628,6 +671,17 @@ export default function RegisterPage({
                 title={event.title}
                 description={t('pages.register.competitionDataDesc')}
               >
+                {competitionBlocked && (
+                  <div className="register-eligibility-alert" role="alert">
+                    <strong>{t('pages.register.membershipRequiredTitle')}</strong>
+                    <p>{t('pages.register.membershipRequiredForCompetition')}</p>
+                    {onNavigate && (
+                      <button type="button" className="btn btn--small" onClick={() => onNavigate('membership')}>
+                        {t('pages.register.membershipRequiredAction')}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="form-grid">
                   <Select
                     label={t('pages.register.division')}
@@ -730,7 +784,7 @@ export default function RegisterPage({
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  disabled={flow === 'profile' && Boolean(visibleOrder)}
+                  disabled={(flow === 'profile' && Boolean(visibleOrder)) || competitionBlocked}
                 >
                   {content[2]}
                   <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
@@ -741,6 +795,29 @@ export default function RegisterPage({
           )}
         </div>
       </div>
+      {paymentApprovedModal && (
+        <div className="register-payment-modal" role="dialog" aria-modal="true" aria-labelledby="register-payment-modal-title">
+          <div className="register-payment-modal__card">
+            <CheckCircle2 size={38} aria-hidden />
+            <span>{t('pages.register.paymentApprovedEyebrow')}</span>
+            <h2 id="register-payment-modal-title">{t('pages.register.paymentApprovedTitle')}</h2>
+            <p>{t('pages.register.paymentApprovedDesc')}</p>
+            <dl>
+              <div>
+                <dt>{t('pages.register.paymentApprovedConcept')}</dt>
+                <dd>{paymentApprovedModal.concept}</dd>
+              </div>
+              <div>
+                <dt>{t('pages.register.paymentApprovedAmount')}</dt>
+                <dd>{money(paymentApprovedModal.amount, locale)}</dd>
+              </div>
+            </dl>
+            <button type="button" className="btn" onClick={() => setPaymentApprovedModal(null)}>
+              {t('pages.register.paymentApprovedClose')}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -20,7 +20,9 @@ function buildAthleteProfileSchema(t) {
     province: z.string().trim().min(2, msg('province') ?? 'Ingresá tu provincia.'),
     city: z.string().trim().min(2, msg('city') ?? 'Ingresá tu ciudad.'),
     gym: z.string().trim().min(2, msg('gym') ?? 'Ingresá tu gimnasio o equipo.'),
-    sex: z.enum(['Masculino', 'Femenino']),
+    sex: z
+      .string()
+      .refine((value) => ['Masculino', 'Femenino'].includes(value), msg('sex') ?? 'Seleccioná tu sexo competitivo.'),
   })
 }
 

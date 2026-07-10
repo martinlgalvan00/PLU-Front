@@ -905,6 +905,172 @@
   color: var(--color-brand-red-hover, var(--color-brand-red));
 }
 
+.account-membership-status {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-elevated) 86%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+}
+
+.account-membership-status span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.account-membership-status strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.account-membership-status--active {
+  border-color: color-mix(in srgb, #3d9a62 42%, transparent);
+}
+
+.account-membership-status--active strong {
+  color: #4fbe79;
+}
+
+.account-membership-status--pending {
+  border-color: color-mix(in srgb, var(--color-brand-red) 38%, transparent);
+}
+
+.account-membership-status--pending strong {
+  color: var(--color-brand-red);
+}
+
+.account-combo-offer {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(239, 28, 28, 0.12), transparent 44%),
+    color-mix(in srgb, var(--color-bg-elevated) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto 1fr auto;
+  margin: 0 0 24px;
+  padding: clamp(16px, 2.5vw, 22px);
+}
+
+.account-combo-offer__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+  border-radius: 10px;
+  color: var(--color-brand-gold);
+  display: flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.account-combo-offer__copy span {
+  color: var(--color-brand-red);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-combo-offer__copy h3 {
+  color: var(--color-text-primary);
+  font-size: clamp(18px, 2.4vw, 23px);
+  margin: 4px 0 6px;
+}
+
+.account-combo-offer__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.account-combo-offer__prices {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 190px;
+}
+
+.account-combo-offer__prices div {
+  align-items: baseline;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.account-combo-offer__prices dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.account-combo-offer__prices dd {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 850;
+  margin: 0;
+}
+
+.account-combo-offer__prices div:nth-child(2) dd {
+  color: var(--color-brand-gold);
+  font-size: 19px;
+}
+
+.account-demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.account-primary-action--success {
+  background: #248a52;
+  border-color: #248a52;
+}
+
+.account-primary-action--danger {
+  background: var(--color-brand-red);
+  border-color: var(--color-brand-red);
+}
+
+.account-membership-required {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--color-brand-red) 9%, var(--color-bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--color-brand-red) 30%, transparent);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 6px;
+  padding: 14px;
+}
+
+.account-membership-required svg {
+  color: var(--color-brand-red);
+  flex: none;
+  margin-top: 2px;
+}
+
+.account-membership-required strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.account-membership-required p {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
 .account-events-list,
 .account-history-list {
   display: grid;
@@ -1196,6 +1362,10 @@
   }
 
   .account-payment-options {
+    grid-template-columns: 1fr;
+  }
+
+  .account-combo-offer {
     grid-template-columns: 1fr;
   }
 

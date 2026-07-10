@@ -154,7 +154,7 @@ export default function App() {
       : view === 'login'
         ? { onNavigate: navigate, onLogin: app.login }
         : view === 'events'
-          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents }
+          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents, session: app.session }
         : view === 'home'
           ? { onNavigate: navigate, onSelectEvent: selectEvent }
         : view === 'pitbull'
@@ -170,7 +170,7 @@ export default function App() {
         : view === 'results'
           ? { onNavigate: navigate, events: app.adminEvents }
         : view === 'members'
-          ? { onNavigate: navigate, session: app.session }
+          ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
         : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
@@ -184,6 +184,8 @@ export default function App() {
         <AthleteProfilePage
           athlete={app.athletes.find((item) => item.id === app.session.athleteId)}
           memberships={app.memberships}
+          onActivateMembership={app.activateDemoMembership}
+          onCancelMembership={app.cancelDemoMembership}
           onNavigate={navigate}
           onUpdateProfile={app.updateAthleteProfileAction}
           registrations={app.registrations}

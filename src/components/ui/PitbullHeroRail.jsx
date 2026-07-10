@@ -22,7 +22,7 @@ export default function PitbullHeroRail({
   const { locale: i18nLocale } = useI18n()
   const resolvedLocale = locale ?? i18nLocale
 
-  const primaryLabel = canRegister ? t('pages.pitbull.register') : t('pages.pitbull.joinNow')
+  const primaryLabel = t('pages.pitbull.register')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
 
   return (
