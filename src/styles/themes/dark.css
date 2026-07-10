@@ -77,9 +77,9 @@
   --color-danger-bg: rgba(153, 27, 27, 0.2);
   --color-danger-text: #ff8b86;
 
-  --color-nav-bg: oklch(10% 0.006 260 / 0.94);
+  --color-nav-bg: rgb(9, 9, 11);
 
-  --color-nav-bg-scrolled: oklch(8% 0.006 260 / 0.98);
+  --color-nav-bg-scrolled: rgb(9, 9, 11);
 
   --color-nav-stripe: var(--plu-gradient-stripe);
 
@@ -105,7 +105,7 @@
   --filter-pill-active-text: #fff;
 
   --scrollbar-thumb: rgba(255, 255, 255, 0.14);
-  --scrollbar-thumb-hover: rgba(201, 185, 120, 0.42);
+  --scrollbar-thumb-hover: rgba(242, 183, 5, 0.42);
   --scrollbar-track: transparent;
 
 }

@@ -24,7 +24,7 @@ export default {
     faq: 'FAQ',
     contact: 'Contacto',
     contactHint: 'Consultas institucionales',
-    drawerTag: 'Powerlifting United · Argentina',
+    drawerTag: 'Capítulo Argentina',
     more: 'Más',
     register: 'Registrarme',
     affiliate: 'Afiliarme',
@@ -54,6 +54,7 @@ export default {
     titleLead: 'Powerlifting United',
     titleAccent: 'Argentina',
     headline: 'Afiliaciones y calendario oficial',
+    headlineHighlight: 'oficial',
     description: 'Inscripciones a meets, credenciales digitales y resultados publicados.',
     descriptionMeta: 'Para atletas y organizadores.',
     ctaAffiliate: 'Afiliarme',
@@ -812,7 +813,7 @@ export default {
     },
     team: {
       eyebrow: 'Sumate al equipo',
-      title: 'Construí la federación desde adentro',
+      title: 'Cuerpo técnico y organizador',
       description:
         'Powerlifting United Argentina crece con árbitros, directores de competencia y gimnasios aliados en todo el país.',
       officialsTitle: 'Convertite en árbitro',

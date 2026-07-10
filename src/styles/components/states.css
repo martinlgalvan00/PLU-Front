@@ -249,7 +249,7 @@
       90deg,
       rgba(116, 172, 223, 0.16) 0%,
       rgba(116, 172, 223, 0.06) 42%,
-      rgba(201, 185, 120, 0.02) 58%,
+      rgba(242, 183, 5, 0.02) 58%,
       rgba(255, 255, 255, 0.015) 100%
     ),
     var(--color-bg-elevated);
@@ -260,7 +260,7 @@
     linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.015) 0%,
-      rgba(201, 185, 120, 0.02) 42%,
+      rgba(242, 183, 5, 0.02) 42%,
       rgba(116, 172, 223, 0.06) 58%,
       rgba(116, 172, 223, 0.16) 100%
     ),
@@ -362,7 +362,7 @@
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.14) inset,
     0 6px 14px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(201, 185, 120, 0.06);
+    0 0 0 1px rgba(242, 183, 5, 0.06);
   display: inline-flex;
   height: calc(var(--locale-track-h) - (var(--locale-pad) * 2));
   justify-content: center;
@@ -430,7 +430,7 @@
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.16) inset,
     0 8px 18px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(201, 185, 120, 0.1);
+    0 0 0 1px rgba(242, 183, 5, 0.1);
 }
 
 .locale-switch:focus-visible .locale-switch__track {

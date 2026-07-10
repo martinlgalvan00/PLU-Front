@@ -47,7 +47,7 @@ export const HOME_COMMUNITY = {
   title: 'PLU gyms and athletes',
   description:
     'Browse affiliate venues and members competing on the official PLU Argentina calendar.',
-  cta: 'Explore community',
+  cta: 'View community',
   visualCaption: 'Community gallery · coming soon',
   stats: [],
 }

@@ -477,7 +477,7 @@
 }
 
 .rulebook-doc-shell::before {
-  background: var(--rulebook-accent-stripe, linear-gradient(90deg, rgba(201, 185, 120, 0.72), rgba(116, 172, 223, 0.55)));
+  background: var(--rulebook-accent-stripe, linear-gradient(90deg, rgba(242, 183, 5, 0.72), rgba(116, 172, 223, 0.55)));
   content: '';
   height: 1px;
   left: 0;
@@ -525,8 +525,8 @@
 }
 
 .rulebook-doc-panel__badge {
-  background: var(--rulebook-badge-bg, rgba(201, 185, 120, 0.12));
-  border: 1px solid var(--rulebook-badge-border, rgba(201, 185, 120, 0.22));
+  background: var(--rulebook-badge-bg, rgba(242, 183, 5, 0.12));
+  border: 1px solid var(--rulebook-badge-border, rgba(242, 183, 5, 0.22));
   border-radius: var(--border-radius-pill);
   color: var(--rulebook-badge-fg, var(--plu-gold-400));
   font-size: 9px;
@@ -972,7 +972,7 @@
 }
 
 .rulebook-download-strip::before {
-  background: var(--rulebook-accent-stripe, linear-gradient(90deg, rgba(201, 185, 120, 0.72), rgba(116, 172, 223, 0.55)));
+  background: var(--rulebook-accent-stripe, linear-gradient(90deg, rgba(242, 183, 5, 0.72), rgba(116, 172, 223, 0.55)));
   content: '';
   height: 1px;
   left: 0;
@@ -1010,8 +1010,8 @@
 }
 
 .rulebook-download-strip__badge {
-  background: var(--rulebook-badge-bg, rgba(201, 185, 120, 0.12));
-  border: 1px solid var(--rulebook-badge-border, rgba(201, 185, 120, 0.22));
+  background: var(--rulebook-badge-bg, rgba(242, 183, 5, 0.12));
+  border: 1px solid var(--rulebook-badge-border, rgba(242, 183, 5, 0.22));
   border-radius: var(--border-radius-pill);
   color: var(--rulebook-badge-fg, var(--plu-gold-400));
   font-size: 9px;
@@ -1110,7 +1110,7 @@
 }
 
 .rulebook-summary__eyebrow {
-  color: var(--rulebook-index-fg, rgba(201, 185, 120, 0.82));
+  color: var(--rulebook-index-fg, rgba(242, 183, 5, 0.82));
   display: block;
   font-size: 10px;
   font-weight: 700;
@@ -1165,7 +1165,7 @@
 }
 
 .rulebook-summary__index {
-  color: var(--rulebook-index-fg, rgba(201, 185, 120, 0.72));
+  color: var(--rulebook-index-fg, rgba(242, 183, 5, 0.72));
   font-family: var(--font-display);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -1393,7 +1393,7 @@
 }
 
 .rulebook-section__index {
-  color: var(--rulebook-index-fg, rgba(201, 185, 120, 0.82));
+  color: var(--rulebook-index-fg, rgba(242, 183, 5, 0.82));
   font-family: var(--font-display);
   font-size: clamp(20px, 2.8vw, 24px);
   font-variant-numeric: tabular-nums;
@@ -1667,15 +1667,15 @@
   --rulebook-nav-active-bg: rgba(255, 255, 255, 0.03);
   --rulebook-nav-active-fg: #fff;
   --rulebook-section-divider: rgba(255, 255, 255, 0.06);
-  --rulebook-index-fg: rgba(201, 185, 120, 0.88);
+  --rulebook-index-fg: rgba(242, 183, 5, 0.88);
   --rulebook-chip-bg: rgba(255, 255, 255, 0.03);
   --rulebook-chip-border: rgba(255, 255, 255, 0.07);
   --rulebook-modality-bg: rgba(255, 255, 255, 0.02);
   --rulebook-modality-border: rgba(255, 255, 255, 0.06);
   --rulebook-download-icon-bg: rgba(116, 172, 223, 0.08);
   --rulebook-download-icon-border: rgba(116, 172, 223, 0.16);
-  --rulebook-badge-bg: rgba(201, 185, 120, 0.1);
-  --rulebook-badge-border: rgba(201, 185, 120, 0.2);
+  --rulebook-badge-bg: rgba(242, 183, 5, 0.1);
+  --rulebook-badge-border: rgba(242, 183, 5, 0.2);
   --rulebook-icon-bg: rgba(255, 255, 255, 0.03);
   --rulebook-icon-border: rgba(255, 255, 255, 0.08);
   --rulebook-viewer-bg: rgba(8, 10, 14, 0.82);
@@ -1706,8 +1706,8 @@
   --rulebook-modality-border: rgba(15, 17, 23, 0.08);
   --rulebook-download-icon-bg: rgba(26, 107, 176, 0.08);
   --rulebook-download-icon-border: rgba(26, 107, 176, 0.14);
-  --rulebook-badge-bg: rgba(155, 143, 89, 0.1);
-  --rulebook-badge-border: rgba(155, 143, 89, 0.18);
+  --rulebook-badge-bg: rgba(169, 121, 15, 0.1);
+  --rulebook-badge-border: rgba(169, 121, 15, 0.18);
   --rulebook-badge-fg: #8a7340;
   --rulebook-modality-title: #8a7340;
   --rulebook-icon-bg: rgba(15, 17, 23, 0.03);

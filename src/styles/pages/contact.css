@@ -30,7 +30,7 @@
 }
 
 .contact-page--premium .contact-hero.design-hero--compact::after {
-  background: radial-gradient(ellipse 48% 62% at 94% 28%, rgba(201, 185, 120, 0.1) 0%, transparent 58%);
+  background: radial-gradient(ellipse 48% 62% at 94% 28%, rgba(242, 183, 5, 0.1) 0%, transparent 58%);
 }
 
 .contact-page--premium .contact-hero .design-hero__inner {
@@ -49,7 +49,7 @@
 }
 
 .contact-page--premium .contact-hero .design-hero__intro::before {
-  background: linear-gradient(180deg, rgba(116, 172, 223, 0.55) 0%, rgba(201, 185, 120, 0.35) 100%);
+  background: linear-gradient(180deg, rgba(116, 172, 223, 0.55) 0%, rgba(242, 183, 5, 0.35) 100%);
   border-radius: 99px;
   bottom: 2px;
   content: '';
@@ -152,7 +152,7 @@
 }
 
 .contact-form__index {
-  color: var(--contact-index-fg, rgba(201, 185, 120, 0.82));
+  color: var(--contact-index-fg, rgba(242, 183, 5, 0.82));
   font-family: var(--font-display);
   font-size: clamp(20px, 2.6vw, 26px);
   font-variant-numeric: tabular-nums;
@@ -415,7 +415,7 @@
 }
 
 .contact-sidebar__index {
-  color: var(--contact-index-fg, rgba(201, 185, 120, 0.82));
+  color: var(--contact-index-fg, rgba(242, 183, 5, 0.82));
   font-family: var(--font-display);
   font-size: clamp(20px, 2.6vw, 26px);
   font-variant-numeric: tabular-nums;
@@ -575,7 +575,7 @@
   --contact-divider: rgba(255, 255, 255, 0.06);
   --contact-field-border: rgba(255, 255, 255, 0.08);
   --contact-chip-border: rgba(255, 255, 255, 0.08);
-  --contact-index-fg: rgba(201, 185, 120, 0.82);
+  --contact-index-fg: rgba(242, 183, 5, 0.82);
   --contact-hero-divider: rgba(255, 255, 255, 0.06);
 }
 

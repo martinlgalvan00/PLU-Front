@@ -199,10 +199,10 @@
   --members-benefit-icon-border: rgba(116, 172, 223, 0.18);
   --members-req-bg: rgba(255, 255, 255, 0.03);
   --members-req-border: rgba(255, 255, 255, 0.08);
-  --members-req-border-hover: rgba(201, 185, 120, 0.24);
+  --members-req-border-hover: rgba(242, 183, 5, 0.24);
   --members-req-index-fg: var(--plu-gold-400);
-  --members-req-icon-bg: rgba(201, 185, 120, 0.1);
-  --members-req-icon-border: rgba(201, 185, 120, 0.2);
+  --members-req-icon-bg: rgba(242, 183, 5, 0.1);
+  --members-req-icon-border: rgba(242, 183, 5, 0.2);
   --members-req-icon-fg: var(--plu-gold-400);
   --members-cta-bg:
     linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
@@ -210,7 +210,7 @@
   --members-cta-border: rgba(255, 255, 255, 0.1);
   --members-cta-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
   --members-cta-divider: rgba(255, 255, 255, 0.1);
-  --members-cta-eyebrow: rgba(201, 185, 120, 0.72);
+  --members-cta-eyebrow: rgba(242, 183, 5, 0.72);
   --members-cta-price: #fff;
   --members-cta-price-meta: rgba(255, 255, 255, 0.52);
   --members-cta-hint: rgba(255, 255, 255, 0.38);
@@ -759,7 +759,7 @@
 }
 
 .members-hero-rail__credential-code {
-  color: var(--members-req-index-fg, rgba(201, 185, 120, 0.82));
+  color: var(--members-req-index-fg, rgba(242, 183, 5, 0.82));
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
@@ -1246,9 +1246,9 @@
 
 [data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--gold {
   background:
-    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(201, 185, 120, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(242, 183, 5, 0.08) 0%, transparent 60%),
     rgba(255, 255, 255, 0.92);
-  border-color: rgba(201, 185, 120, 0.2);
+  border-color: rgba(242, 183, 5, 0.2);
 }
 
 [data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--red {
@@ -1268,8 +1268,8 @@
 }
 
 [data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--gold:hover {
-  border-color: rgba(201, 185, 120, 0.38);
-  box-shadow: 0 10px 32px rgba(201, 185, 120, 0.12), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  border-color: rgba(242, 183, 5, 0.38);
+  box-shadow: 0 10px 32px rgba(242, 183, 5, 0.12), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
 [data-theme='light'] .members-page--premium .membership-grid--editorial .membership-card--red:hover {
@@ -1289,7 +1289,7 @@
 }
 
 [data-theme='light'] .members-page--premium .membership-card--gold .membership-card__feature::before {
-  background: rgba(155, 143, 89, 0.72);
+  background: rgba(169, 121, 15, 0.72);
   box-shadow: none;
 }
 
@@ -1374,7 +1374,7 @@
 }
 
 .members-intro__index {
-  color: var(--members-req-index-fg, rgba(201, 185, 120, 0.72));
+  color: var(--members-req-index-fg, rgba(242, 183, 5, 0.72));
   font-family: var(--font-display);
   font-size: clamp(11px, 1.4vw, 13px);
   font-variant-numeric: tabular-nums;
@@ -1567,7 +1567,7 @@
 
 .members-requirements__index {
   align-self: start;
-  color: var(--members-req-index-fg, rgba(201, 185, 120, 0.72));
+  color: var(--members-req-index-fg, rgba(242, 183, 5, 0.72));
   font-family: var(--font-display);
   font-size: clamp(18px, 2.4vw, 24px);
   font-variant-numeric: tabular-nums;
@@ -1878,7 +1878,7 @@
 .members-validity-card {
   align-content: start;
   background: transparent;
-  border-left: 2px solid rgba(201, 185, 120, 0.35);
+  border-left: 2px solid rgba(242, 183, 5, 0.35);
   display: grid;
   gap: 8px;
   padding: 4px 0 4px 22px;
@@ -1943,7 +1943,7 @@
 
 .members-institutional__index {
   align-self: start;
-  color: var(--members-req-index-fg, rgba(201, 185, 120, 0.72));
+  color: var(--members-req-index-fg, rgba(242, 183, 5, 0.72));
   font-family: var(--font-display);
   font-size: clamp(18px, 2.4vw, 24px);
   font-variant-numeric: tabular-nums;
@@ -2060,7 +2060,7 @@
   background: linear-gradient(
     90deg,
     rgba(116, 172, 223, 0.35),
-    rgba(201, 185, 120, 0.35)
+    rgba(242, 183, 5, 0.35)
   );
   content: '';
   height: 1px;
@@ -2392,10 +2392,10 @@
   --members-benefit-icon-border: rgba(116, 172, 223, 0.16);
   --members-req-bg: rgba(15, 17, 23, 0.02);
   --members-req-border: rgba(15, 17, 23, 0.08);
-  --members-req-border-hover: rgba(201, 185, 120, 0.35);
+  --members-req-border-hover: rgba(242, 183, 5, 0.35);
   --members-req-index-fg: var(--plu-gold-600);
-  --members-req-icon-bg: rgba(201, 185, 120, 0.1);
-  --members-req-icon-border: rgba(201, 185, 120, 0.22);
+  --members-req-icon-bg: rgba(242, 183, 5, 0.1);
+  --members-req-icon-border: rgba(242, 183, 5, 0.22);
   --members-req-icon-fg: var(--plu-gold-600);
   --members-cta-bg: linear-gradient(145deg, #fff 0%, #f6f5f2 100%);
   --members-cta-border: rgba(15, 17, 23, 0.08);
@@ -2965,16 +2965,16 @@
 /* Gold — plan Juvenil */
 .members-page--premium .membership-card--gold .membership-card__cta,
 .members-page--premium .membership-card--gold .membership-card__link {
-  background: rgba(201, 185, 120, 0.1);
-  border: 1px solid rgba(201, 185, 120, 0.28);
+  background: rgba(242, 183, 5, 0.1);
+  border: 1px solid rgba(242, 183, 5, 0.28);
   color: var(--color-brand-gold);
 }
 
 .members-page--premium .membership-card--gold .membership-card__cta:hover,
 .members-page--premium .membership-card--gold .membership-card__link:hover {
-  background: rgba(201, 185, 120, 0.16);
-  border-color: rgba(201, 185, 120, 0.42);
-  box-shadow: 0 8px 22px rgba(201, 185, 120, 0.14);
+  background: rgba(242, 183, 5, 0.16);
+  border-color: rgba(242, 183, 5, 0.42);
+  box-shadow: 0 8px 22px rgba(242, 183, 5, 0.14);
   color: var(--color-brand-gold);
   transform: translateY(-1px);
 }
@@ -3017,16 +3017,16 @@
 
 [data-theme='light'] .members-page--premium .membership-card--gold .membership-card__cta,
 [data-theme='light'] .members-page--premium .membership-card--gold .membership-card__link {
-  background: rgba(201, 185, 120, 0.1);
-  border-color: rgba(155, 143, 89, 0.32);
+  background: rgba(242, 183, 5, 0.1);
+  border-color: rgba(169, 121, 15, 0.32);
   color: var(--plu-gold-600, #8a7c45);
 }
 
 [data-theme='light'] .members-page--premium .membership-card--gold .membership-card__cta:hover,
 [data-theme='light'] .members-page--premium .membership-card--gold .membership-card__link:hover {
-  background: rgba(201, 185, 120, 0.16);
-  border-color: rgba(155, 143, 89, 0.48);
-  box-shadow: 0 6px 18px rgba(201, 185, 120, 0.15);
+  background: rgba(242, 183, 5, 0.16);
+  border-color: rgba(169, 121, 15, 0.48);
+  box-shadow: 0 6px 18px rgba(242, 183, 5, 0.15);
   color: var(--plu-gold-600, #8a7c45);
 }
 
@@ -3678,12 +3678,13 @@
 }
 
 .members-plu-tile {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: 6px;
   min-width: 0;
-  padding: clamp(14px, 2vw, 18px);
+  padding: clamp(14px, 2vw, 18px) clamp(4px, 1vw, 8px) 0 0;
 }
 
 .members-plu-tile__title {
@@ -3773,8 +3774,9 @@
 .members-plu-process__eyebrow {
   color: var(--color-brand-celeste);
   font-size: 10px;
+  font-style: italic;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -3808,10 +3810,10 @@
 
 .members-plu-process__num {
   align-items: center;
-  background: rgba(31, 95, 158, 0.14);
-  border: 1px solid rgba(116, 172, 223, 0.32);
+  background: #14181f;
+  border: 1px solid rgba(242, 183, 5, 0.3);
   border-radius: 50%;
-  color: var(--color-brand-celeste);
+  color: var(--plu-gold-400);
   display: inline-flex;
   font-family: var(--font-display);
   font-size: 12px;
@@ -3823,15 +3825,15 @@
 }
 
 .members-plu-process__rail {
-  background: linear-gradient(
-    180deg,
-    rgba(116, 172, 223, 0.45) 0%,
-    rgba(201, 185, 120, 0.35) 100%
-  );
+  background: var(--pitbull-section-divider, rgba(255, 255, 255, 0.14));
   flex: 1;
   margin-top: 6px;
   min-height: calc(100% - 6px);
   width: 2px;
+}
+
+[data-theme='light'] .members-plu-process__rail {
+  background: rgba(15, 17, 23, 0.14);
 }
 
 .members-plu-process__step:last-child .members-plu-process__track {
@@ -3944,7 +3946,7 @@
     background: linear-gradient(
       90deg,
       rgba(116, 172, 223, 0.5) 0%,
-      rgba(201, 185, 120, 0.4) 100%
+      rgba(242, 183, 5, 0.4) 100%
     );
     content: '';
     height: 2px;
@@ -3966,9 +3968,9 @@
 }
 
 [data-theme='light'] .members-plu-process__num {
-  background: rgba(26, 107, 176, 0.08);
-  border-color: rgba(26, 107, 176, 0.22);
-  color: #1a6bb0;
+  background: #14181f;
+  border-color: rgba(242, 183, 5, 0.35);
+  color: var(--plu-gold-400);
 }
 
 [data-theme='light'] .members-plu-process__icon {
@@ -4155,11 +4157,14 @@
   max-width: 62ch;
 }
 
-[data-theme='light'] .members-plu-tile,
 [data-theme='light'] .members-plu-step,
 [data-theme='light'] .members-plu-process__card {
   background: #fff;
   border-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .members-plu-tile {
+  border-top-color: rgba(15, 23, 42, 0.12);
 }
 
 @media (max-width: 559px) {
