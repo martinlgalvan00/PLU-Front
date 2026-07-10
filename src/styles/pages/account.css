@@ -34,7 +34,7 @@
 /* Glow sutil detrás de la credencial + franja tricolor arriba — hace eco
    del stripe de la credencial y evita que el hero se sienta un panel plano. */
 .account-hero::before {
-  background: radial-gradient(circle at 82% 15%, rgba(201, 185, 120, 0.16), transparent 45%),
+  background: radial-gradient(circle at 82% 15%, rgba(242, 183, 5, 0.16), transparent 45%),
     radial-gradient(circle at 96% 55%, rgba(116, 172, 223, 0.12), transparent 40%);
   content: '';
   inset: 0;
@@ -76,10 +76,10 @@
 
 .account-hero__avatar {
   align-items: center;
-  background: linear-gradient(155deg, #ddc992, #9b8f59);
-  border: 2px solid rgba(201, 185, 120, 0.5);
+  background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
+  border: 2px solid rgba(242, 183, 5, 0.5);
   border-radius: 50%;
-  box-shadow: var(--glow-gold-soft), 0 0 0 5px rgba(201, 185, 120, 0.08);
+  box-shadow: var(--glow-gold-soft), 0 0 0 5px rgba(242, 183, 5, 0.08);
   color: #141518;
   display: flex;
   flex: none;
@@ -247,8 +247,8 @@
 }
 
 .account-badge--pending {
-  background: rgba(201, 185, 120, 0.14);
-  border: 1px solid rgba(201, 185, 120, 0.28);
+  background: rgba(242, 183, 5, 0.14);
+  border: 1px solid rgba(242, 183, 5, 0.28);
   color: #d9c77f;
 }
 
@@ -267,7 +267,7 @@
 }
 
 .account-hero .account-credential__face {
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(203, 179, 91, 0.12);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(242, 183, 5, 0.12);
   padding: 25px;
 }
 
@@ -297,7 +297,7 @@
   background:
     radial-gradient(circle at 88% 12%, rgba(116, 172, 223, 0.2), transparent 28%),
     linear-gradient(145deg, #191b22 0%, #0d0e12 72%);
-  border: 1px solid rgba(203, 179, 91, 0.64);
+  border: 1px solid rgba(242, 183, 5, 0.64);
   border-radius: 8px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
   color: #f7f7f5;
@@ -359,7 +359,7 @@
 .account-credential__brand span,
 .account-credential__identity small,
 .account-credential__back small {
-  color: #cbb35b;
+  color: #f2b705;
   font-size: 10px;
   font-weight: 700;
 }
@@ -774,19 +774,22 @@
 .account-history-list span {
   color: var(--color-text-muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .account-section__heading h2 {
   color: var(--color-text-primary);
   font-size: clamp(20px, 3vw, 25px);
+  font-weight: 600;
   margin: 3px 0 0;
 }
 
 .account-section__price {
   color: var(--color-text-primary);
   font-size: 23px;
+  font-weight: 600;
 }
 
 .account-section__price small {
@@ -862,9 +865,11 @@
   gap: 3px;
 }
 
-.account-payment-options strong {
+.account-payment-options strong,
+.account-payment-options__label {
   color: var(--color-text-primary);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .account-payment-options small {
@@ -878,7 +883,7 @@
   border-radius: 8px;
   color: #fff;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
   min-height: 44px;
   padding: 0 20px;
 }
@@ -920,19 +925,23 @@
 .account-membership-status span {
   color: var(--color-text-muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.account-membership-status strong {
+.account-membership-status strong,
+.account-membership-status__value {
   color: var(--color-text-primary);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .account-membership-status--active {
   border-color: color-mix(in srgb, #3d9a62 42%, transparent);
 }
 
+.account-membership-status--active .account-membership-status__value,
 .account-membership-status--active strong {
   color: #4fbe79;
 }
@@ -941,6 +950,7 @@
   border-color: color-mix(in srgb, var(--color-brand-red) 38%, transparent);
 }
 
+.account-membership-status--pending .account-membership-status__value,
 .account-membership-status--pending strong {
   color: var(--color-brand-red);
 }
@@ -974,14 +984,15 @@
 .account-combo-offer__copy span {
   color: var(--color-brand-red);
   font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .account-combo-offer__copy h3 {
   color: var(--color-text-primary);
   font-size: clamp(18px, 2.4vw, 23px);
+  font-weight: 600;
   margin: 4px 0 6px;
 }
 
@@ -1008,20 +1019,22 @@
 .account-combo-offer__prices dt {
   color: var(--color-text-muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .account-combo-offer__prices dd {
   color: var(--color-text-primary);
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 600;
   margin: 0;
 }
 
 .account-combo-offer__prices div:nth-child(2) dd {
   color: var(--color-brand-gold);
   font-size: 19px;
+  font-weight: 600;
 }
 
 .account-demo-actions {
@@ -1205,8 +1218,8 @@
 }
 
 .account-payment-modal__notice {
-  background: color-mix(in srgb, #c9b978 12%, transparent);
-  border: 1px solid color-mix(in srgb, #c9b978 25%, transparent);
+  background: color-mix(in srgb, var(--plu-gold-500) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plu-gold-500) 25%, transparent);
   border-radius: 6px;
   color: var(--color-text-secondary);
   font-size: 11px;

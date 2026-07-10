@@ -1,9 +1,24 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
-import pluArgentinaPhoto from '../../assets/PLU Argentina.jpg'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+
+function renderHeadline(headline, highlight) {
+  if (!highlight) return headline
+  const idx = headline.toLowerCase().indexOf(highlight.toLowerCase())
+  if (idx === -1) return headline
+  const before = headline.slice(0, idx)
+  const match = headline.slice(idx, idx + highlight.length)
+  const after = headline.slice(idx + highlight.length)
+  return (
+    <>
+      {before}
+      <span className="hero__title-highlight">{match}</span>
+      {after}
+    </>
+  )
+}
 
 export default function HeroSection({ onNavigate }) {
   const { t } = useI18n()
@@ -23,7 +38,9 @@ export default function HeroSection({ onNavigate }) {
             <div className="hero__editorial">
               <p className="hero__kicker">{t('hero.kicker')}</p>
 
-              <h1 className="hero__title hero__title--design">{t('hero.headline')}</h1>
+              <h1 className="hero__title hero__title--design">
+                {renderHeadline(t('hero.headline'), t('hero.headlineHighlight'))}
+              </h1>
 
               <p className="hero__lead">
                 {t('hero.description')}
@@ -61,16 +78,6 @@ export default function HeroSection({ onNavigate }) {
               <HeroStatusCard />
             </div>
           </div>
-
-          <figure className="hero__visual" aria-hidden>
-            <img
-              src={pluArgentinaPhoto}
-              alt=""
-              className="hero__visual-img"
-              loading="eager"
-              decoding="async"
-            />
-          </figure>
         </div>
       </div>
 
