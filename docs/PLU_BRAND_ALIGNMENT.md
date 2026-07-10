@@ -43,9 +43,13 @@ Solo estructura, jerarquía y tono — nunca literal:
   en ARS, fechas/cupos de Pitbull Classic, red de gimnasios, códigos de afiliado) se mantienen
   intactos — no tienen equivalente real del lado de EE.UU.
 - **Imágenes** — cero assets de powerliftingunited.com en este repo.
-- **Colores exactos** — la paleta (`--plu-red`, `--plu-celeste`, `--plu-gold`) es propia de PLU ARG,
-  con la celeste como guiño sutil a la bandera argentina. No se tomó la paleta de PLU USA porque no
-  la conocemos con certeza — ver §5.
+- **Colores exactos** — **actualización jul. 2026 (auditoría anti-IA):** PLU USA confirmó que la
+  paleta institucional se toma del logo oficial — negro, azul (celeste), blanco y amarillo/dorado.
+  El rojo (`--plu-red-*`) queda reservado exclusivamente a estados de error/peligro reales (validación
+  de formularios, badges de alerta, check-in fallido), nunca como acento decorativo de marca. Los
+  tokens en `src/styles/tokens/palette.css` ya reflejan esto (`--color-brand-action` = celeste, no
+  rojo). Esta sección reemplaza la política anterior ("paleta propia de PLU ARG, no tomada de PLU
+  USA") — quedó obsoleta.
 - **Layout / componentes exactos** — ningún componente de este repo es una copia de un componente de
   powerliftingunited.com. Los parecidos (nav con dropdowns, hero con CTA, cards de planes) son
   convenciones genéricas del rubro federativo, no imitación directa.
@@ -93,8 +97,9 @@ No se resuelve en este repo hasta tener el material real:
   final).
 - Si el crédito a "Maximal" (operador/administrador de la plataforma) debe aparecer en el sitio
   público en absoluto, o solo en términos legales/facturación.
-- Paleta compartida: si PLU USA exige un rojo/azul "master brand" específico en vez de los tokens
-  actuales (`--plu-red-500: #e10600`, etc.).
+- Paleta compartida: resuelto en jul. 2026 — ver §2. Sigue abierto si PLU USA exige valores hex
+  "master brand" exactos en vez de las aproximaciones actuales del logo (`--plu-celeste-600: #1f5f9e`,
+  `--plu-gold-500: #f2b705`).
 - Tipografía: si Poppins es aceptable a nivel de marca madre para piezas con el logo de PLU USA, o
   si exigen una fuente propia para lockups oficiales.
 - Lockup de logo conjunto oficial (PLU USA × PLU ARG) y espacios de resguardo mínimos.
@@ -113,5 +118,24 @@ No se resuelve en este repo hasta tener el material real:
 | Vista PLU USA como portal separado, sin acciones de escritura | ✅ |
 | Records diferenciado de Resultados, con estado "Coming soon" | ✅ |
 | Slot de foto real en hero | 🔲 pendiente de asset — ver §4 |
-| Paleta/tipografía confirmada por PLU USA | 🔲 pendiente de guidelines |
+| Paleta confirmada por PLU USA (negro/azul/blanco/amarillo del logo, rojo solo error) | ✅ jul. 2026 |
+| Tipografía confirmada por PLU USA | 🔲 pendiente de guidelines |
 | SSL / legal del subdominio | 🔲 fuera del alcance de este repo (infraestructura) |
+
+## 7. Auditoría anti-IA (jul. 2026) — hallazgos y fixes
+
+PLU USA reportó que el sitio "se sentía como Claude AI". Auditoría de código completa (sin acceso a
+navegador en esa sesión) encontró que la mayor parte del trabajo de facelift previo (Fases 1-5.5,
+ver `DESIGN_FACELIFT_SPEC.md`) ya cumplía el pedido — paleta, CTA primario, copy del hero, ausencia
+de em dash y de frases de marketing genéricas. El hallazgo real y de mayor impacto fue un **drift de
+color no documentado**: la paleta primitiva (`palette.css`) ya se había actualizado al amarillo vívido
+del logo (`#f2b705`), pero **más de 250 declaraciones** en 22 hojas de estilo (`header.css`, `home.css`,
+`results.css`, `members.css`, temas, etc.) seguían usando el dorado apagado viejo
+(`rgba(201, 185, 120, ...)` / `#c9b978` y variantes) — visible en navbar, podio de resultados, cards
+de membresía, tickets, credencial de atleta, y más. Se corrigió con reemplazo sistemático a los
+valores vigentes de `palette.css`. También se sacaron 2 usos de glow rojo decorativo (Pitbull card y
+event card destacado en Home) que violaban la regla ya escrita en `palette.css` de "rojo solo error".
+Copy: 2 títulos de sección (`team.title` ES/EN) se suavizaron de tono aspiracional a factual; 1 CTA
+desalineado entre ES/EN se igualó. Sin em dash ni frases de la lista prohibida en ningún archivo de
+copy. Pendiente real: verificación visual en navegador (no disponible en la sesión que hizo esta
+auditoría) para confirmar composición/densidad de gradientes en Home, que el grep no puede juzgar.

@@ -247,12 +247,16 @@ checklist.
 - [x] `npm run build` limpio
 
 **Fase 3 — Admin dashboard + tablas + sidebar**
-- [ ] `AdminShell`/`admin-shell.css`: auditoría §6
-- [ ] `DataTable`, `StatusPill`, `EmptyState`, `LoadingState`, `ErrorState`: confirmar tokens
-- [ ] Sin cambios de permisos/roles/fetch
+- [x] `AdminShell`/`admin-shell.css`: auditado (jul. 2026) — sin gradientes decorativos, sidebar y
+      topbar ya usan tokens; único hallazgo fue el dorado apagado en `admin.css` (14 declaraciones),
+      corregido en la auditoría anti-IA — ver `PLU_BRAND_ALIGNMENT.md` §7
+- [x] `DataTable`, `StatusPill`, `EmptyState`, `LoadingState`, `ErrorState`: confirmado — sin colores
+      hardcodeados en JS, todo vía clases + tokens CSS
+- [x] Sin cambios de permisos/roles/fetch
 
 **Fase 4 — Vista PLU USA**
-- [ ] Mismas reglas que fase 3, scope `restrictedNav`
+- [x] Auditado (jul. 2026) — `PluUsaSection.jsx` ya usa tokens, sin acciones de escritura, tag
+      "read-only" visible, export CSV funcional. Sin hallazgos.
 
 **Restricciones activas en las 4 fases**: sin Mercado Pago, sin lógica de
 negocio nueva, sin componentes fantasma, sin dependencias nuevas, build
