@@ -32,7 +32,6 @@ export default function HeroSection({ onNavigate }) {
   return (
     <section className={`hero hero--design${animate ? ' is-animate' : ''}`}>
       <div className="hero__copy">
-        <div className="hero__copy-bg" aria-hidden />
         <div className="hero__shell">
           <div className="hero__copy-inner">
             <div className="hero__editorial">

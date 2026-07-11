@@ -3401,6 +3401,183 @@
   max-width: 42ch;
 }
 
+.members-plu-hero__grid {
+  display: grid;
+  gap: clamp(24px, 4vw, 40px);
+  grid-template-columns: 1fr;
+  margin-top: clamp(24px, 3.5vw, 32px);
+  text-align: center;
+}
+
+.members-plu-hero__main {
+  display: grid;
+  gap: 0;
+  justify-items: center;
+}
+
+.members-plu-hero__cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+@media (min-width: 860px) {
+  .members-plu-hero__grid {
+    align-items: start;
+    grid-template-columns: minmax(0, 1.3fr) minmax(240px, 300px);
+    text-align: left;
+  }
+
+  .members-plu-hero__main {
+    justify-items: start;
+  }
+
+  .members-plu-hero__desc {
+    margin: 14px 0 0;
+    max-width: 46ch;
+  }
+
+  .members-plu-hero__cta-row {
+    justify-content: flex-start;
+  }
+
+  .members-plu-hero__account {
+    justify-content: flex-start;
+  }
+}
+
+.members-plu-hero__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 16px;
+  padding: clamp(20px, 2.5vw, 26px);
+  text-align: left;
+  width: 100%;
+}
+
+.members-plu-hero__card-label {
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.members-plu-hero__card-rows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.members-plu-hero__card-row {
+  align-items: baseline;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.members-plu-hero__card-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.members-plu-hero__card-row dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.members-plu-hero__card-row dd {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+.members-plu-hero__card-code {
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.members-plu-hero__card-note {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+[data-theme='light'] .members-plu-hero__card {
+  background: #fff;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .members-plu-hero__card-row {
+  border-top-color: rgba(15, 23, 42, 0.08);
+}
+
+.members-plu-quicknav {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: center;
+  margin-top: clamp(28px, 4vw, 36px);
+  padding-top: 16px;
+}
+
+.members-plu-quicknav__item {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.members-plu-quicknav__sep {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.members-plu-quicknav__link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.members-plu-quicknav__link:hover {
+  color: var(--color-text);
+}
+
+.members-plu-plans__head {
+  margin: 0 auto clamp(20px, 3vw, 28px);
+  max-width: 56ch;
+  text-align: center;
+}
+
+.members-plu-note__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
 .members-plu-hero__account {
   align-items: center;
   display: flex;
@@ -3943,11 +4120,7 @@
   }
 
   .members-plu-process__step:not(:last-child) .members-plu-process__track::after {
-    background: linear-gradient(
-      90deg,
-      rgba(116, 172, 223, 0.5) 0%,
-      rgba(242, 183, 5, 0.4) 100%
-    );
+    background: var(--color-border-light);
     content: '';
     height: 2px;
     left: calc(50% + 18px);
@@ -3982,7 +4155,6 @@
 [data-theme='light'] .members-plu-process__card {
   background: #fff;
   border-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 8px 24px rgba(15, 17, 23, 0.04);
 }
 
 .members-plu-validity {
@@ -4172,11 +4344,25 @@
     padding-inline: 16px;
   }
 
-  .members-plu-block__head {
+  .members-plu-block__head,
+  .members-plu-plans__head {
     max-width: none;
   }
 
   .members-plu-block__title {
     font-size: clamp(18px, 5.5vw, 22px);
+  }
+
+  .members-plu-hero__cta-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .members-plu-hero__cta-row .btn {
+    width: 100%;
+  }
+
+  .members-plu-quicknav {
+    gap: 8px 10px;
   }
 }

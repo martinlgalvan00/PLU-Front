@@ -37,11 +37,23 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
   return (
     <main className="page page--design members-page members-page--plu-ref">
       <Reveal>
-        <MembersPluHero onHome={() => onNavigate('home')} onNavigate={onNavigate} session={session} />
+        <MembersPluHero
+          onHome={() => onNavigate('home')}
+          onNavigate={onNavigate}
+          session={session}
+          affiliationCta={affiliationCta}
+          ctaDisabled={hasActiveMembership}
+          onAffiliate={goToAffiliation}
+        />
       </Reveal>
 
       <div className="members-page__body">
         <section className="members-section members-section--plans members-plu-plans" id="planes">
+          <header className="members-plu-block__head members-plu-plans__head">
+            <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
+            <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
+            <p className="members-plu-block__lead">{t('pages.members.plansLead')}</p>
+          </header>
           <div className="membership-grid membership-grid--plu">
             {MEMBERSHIP_PLANS.map((plan) => (
               <MembershipCard
@@ -103,7 +115,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
           </ol>
         </Reveal>
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--requirements">
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--requirements" id="requisitos">
           <header className="members-plu-block__head">
             <h2 className="members-plu-block__title">{t('pages.members.requirementsTitle')}</h2>
             <p className="members-plu-block__lead">{t('pages.members.requirementsLead')}</p>
@@ -137,10 +149,11 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
         </Reveal>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--note">
+          <p className="members-plu-note__eyebrow">{MEMBERSHIP_INSTITUTIONAL.eyebrow}</p>
           <p className="members-plu-note">{MEMBERSHIP_INSTITUTIONAL.text}</p>
         </Reveal>
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--faq">
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--faq" id="members-faq">
           <header className="members-plu-block__head">
             <h2 className="members-plu-block__title">{t('pages.members.faqTitle')}</h2>
           </header>

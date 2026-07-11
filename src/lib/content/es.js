@@ -266,6 +266,11 @@ export const MEMBERSHIP_FAQ = [
     q: '¿Pueden afiliarse atletas menores?',
     a: 'Sí, desde los 14 años con autorización del tutor legal y categorías juveniles habilitadas.',
   },
+  {
+    id: 'rulebook',
+    q: '¿Dónde veo el reglamento?',
+    a: 'El reglamento oficial de PLU Argentina está publicado en la sección Reglamento del sitio, con categorías, divisiones y normas de competencia vigentes.',
+  },
 ]
 
 export const MEMBERSHIP_COMPARE_ROWS = [

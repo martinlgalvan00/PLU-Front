@@ -264,6 +264,11 @@ export const MEMBERSHIP_FAQ = [
     q: 'Can minors join?',
     a: 'Yes, from age 14 with guardian authorization and enabled junior categories.',
   },
+  {
+    id: 'rulebook',
+    q: 'Where can I find the rulebook?',
+    a: 'The official PLU Argentina rulebook is published in the Rulebook section of the site, with current categories, divisions and competition rules.',
+  },
 ]
 
 export const MEMBERSHIP_COMPARE_ROWS = [

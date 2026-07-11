@@ -56,19 +56,6 @@
   z-index: 1;
 }
 
-.pitbull-page--premium .pitbull-hero.design-hero--compact::before,
-.pitbull-page--premium .pitbull-hero.design-hero--compact::after {
-  opacity: 0;
-}
-
-.pitbull-page--premium .pitbull-hero.design-hero--compact::before {
-  background: radial-gradient(ellipse 62% 80% at 6% 24%, rgba(31, 95, 158, 0.1) 0%, transparent 56%);
-}
-
-.pitbull-page--premium .pitbull-hero.design-hero--compact::after {
-  background: radial-gradient(ellipse 48% 62% at 94% 28%, rgba(116, 172, 223, 0.1) 0%, transparent 58%);
-}
-
 .pitbull-page--premium .pitbull-hero .design-hero__inner {
   gap: clamp(14px, 2.2vw, 20px);
   margin-inline: 0;
@@ -104,17 +91,17 @@
 .pitbull-page--premium .pitbull-hero .design-hero__eyebrow {
   align-items: center;
   background: transparent;
-  border: none;
-  border-bottom: none;
-  color: var(--color-text-muted);
+  border: 1px solid var(--color-brand-gold);
+  border-bottom: 1px solid var(--color-brand-gold);
+  color: var(--color-brand-gold);
   display: inline-flex;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   gap: 8px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   margin: 0;
-  opacity: 0.88;
-  padding: 0;
+  opacity: 1;
+  padding: 6px 12px;
   text-transform: uppercase;
   width: fit-content;
 }
@@ -1864,7 +1851,6 @@
 }
 
 .pitbull-feature__badge {
-  backdrop-filter: blur(8px);
   background: rgba(31, 95, 158, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--border-radius-pill);
@@ -1903,7 +1889,6 @@
 }
 
 .pitbull-feature__category-tag {
-  backdrop-filter: blur(6px);
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--border-radius-pill);
@@ -1927,8 +1912,6 @@
 }
 
 .pitbull-feature__capacity {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   background: var(--pitbull-feature-capacity-bg);
   border: 1px solid var(--pitbull-feature-capacity-border);
   border-radius: 10px;
@@ -2106,7 +2089,6 @@
 }
 
 .pitbull-feature__tag {
-  backdrop-filter: blur(6px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--border-radius-pill);
@@ -5242,15 +5224,6 @@
   color: var(--color-text-primary);
 }
 
-[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact {
-  background: transparent;
-}
-
-[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact::before,
-[data-theme='dark'] .pitbull-page--premium .pitbull-hero.design-hero--compact::after {
-  opacity: 0.2;
-}
-
 [data-theme='dark'] .pitbull-page--premium .pitbull-hero-rail__rail {
   --pitbull-control-rail-bg: rgba(255, 255, 255, 0.02);
   --pitbull-control-rail-border: rgba(255, 255, 255, 0.05);
@@ -7613,7 +7586,6 @@
 }
 
 .pitbull-hero-visual__tags li {
-  backdrop-filter: blur(6px);
   background: rgba(31, 95, 158, 0.42);
   border: 1px solid rgba(116, 172, 223, 0.32);
   border-radius: var(--border-radius-pill);
