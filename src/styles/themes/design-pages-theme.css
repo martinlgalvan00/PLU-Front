@@ -77,11 +77,9 @@
     rgba(255, 255, 255, 0.6) 50%,
     var(--color-brand-celeste) 100%
   );
-  --home-quick-band-shell-bg: rgba(0, 0, 0, 0.42);
+  --home-quick-band-shell-bg: var(--plu-cool-900);
   --home-quick-band-shell-border: rgba(255, 255, 255, 0.09);
-  --home-quick-band-shell-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 12px 32px rgba(0, 0, 0, 0.45);
+  --home-quick-band-shell-shadow: none;
   --home-quick-band-shell-glow: none;
   --home-quick-band-link-active-bg: rgba(255, 255, 255, 0.1);
   --home-quick-band-chip-border: rgba(255, 255, 255, 0.1);
@@ -123,13 +121,8 @@
   --home-membership-check-bg: rgba(116, 172, 223, 0.12);
   --home-membership-check-border: rgba(116, 172, 223, 0.22);
   --home-membership-check-fg: var(--color-brand-celeste);
-  --home-hero-bg:
-    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(242, 183, 5, 0.18), transparent 60%),
-    radial-gradient(ellipse 800px 650px at 100% 20%, rgba(242, 183, 5, 0.09), transparent 55%),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 2px, transparent 2px, transparent 60px),
-    linear-gradient(180deg, #0a0b0d 0%, #101114 55%, #0a0b0d 100%);
-  /* Fondo editorial del hero — sin foto, solo gradientes de marca */
-  --home-hero-copy-bg: var(--home-hero-bg);
+  /* Fondo sólido institucional — sin radiales ni textura decorativa */
+  --home-hero-bg: var(--plu-cool-950);
   --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
   --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.58);
   --home-hero-eyebrow-stripe: linear-gradient(
@@ -543,14 +536,10 @@
     rgba(15, 17, 23, 0.2) 50%,
     var(--color-brand-celeste) 100%
   );
-  --home-quick-band-shell-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --home-quick-band-shell-bg: #fff;
   --home-quick-band-shell-border: rgba(242, 183, 5, 0.22);
-  --home-quick-band-shell-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.98) inset,
-    0 12px 32px rgba(15, 17, 23, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.75);
-  --home-quick-band-shell-glow: 0 0 40px rgba(242, 183, 5, 0.1);
+  --home-quick-band-shell-shadow: none;
+  --home-quick-band-shell-glow: none;
   --home-quick-band-link-active-bg: rgba(15, 17, 23, 0.05);
   --home-quick-band-accent-red-bg: rgba(242, 183, 5, 0.1);
   --home-quick-band-accent-red-fg: var(--plu-gold-300);
@@ -591,7 +580,6 @@
   --home-membership-check-border: rgba(116, 172, 223, 0.18);
   --home-membership-check-fg: oklch(52% 0.12 230);
   --home-hero-bg: var(--plu-warm-50);
-  --home-hero-copy-bg: linear-gradient(180deg, var(--plu-warm-50) 0%, var(--plu-warm-100) 100%);
   --home-hero-eyebrow-border: rgba(15, 17, 23, 0.1);
   --home-hero-eyebrow-fg: var(--plu-celeste-700);
   --home-hero-eyebrow-stripe: var(--plu-celeste-600);
