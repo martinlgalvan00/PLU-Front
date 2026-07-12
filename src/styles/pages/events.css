@@ -2379,78 +2379,6 @@
 
 /* ── PLU reference — events page ───────────────── */
 
-.events-page--plu-ref.page {
-  padding-top: 0;
-}
-
-.events-plu-hero {
-  margin-top: calc(-1 * var(--header-height));
-  padding:
-    calc(var(--header-height) + clamp(28px, 4vw, 40px))
-    clamp(20px, 5vw, 64px)
-    clamp(24px, 3.5vw, 32px);
-  text-align: center;
-}
-
-.events-plu-hero__breadcrumb {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  flex-wrap: wrap;
-  font-size: 11px;
-  gap: 8px;
-  justify-content: center;
-  letter-spacing: 0.08em;
-  margin: 0 0 18px;
-  text-transform: uppercase;
-}
-
-.events-plu-hero__breadcrumb button {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  letter-spacing: inherit;
-  padding: 0;
-  text-transform: inherit;
-}
-
-.events-plu-hero__breadcrumb button:hover {
-  color: var(--color-text);
-}
-
-.events-plu-hero__breadcrumb span:last-child {
-  color: var(--color-text);
-}
-
-.events-plu-hero__chapter {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  margin: 0 0 10px;
-  text-transform: uppercase;
-}
-
-.events-plu-hero__title {
-  font-family: var(--font-display);
-  font-size: clamp(34px, 6vw, 52px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.02;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.events-plu-hero__desc {
-  color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1.6;
-  margin: 14px auto 0;
-  max-width: 42ch;
-}
-
 .events-page--plu-ref .events-page__body {
   display: grid;
   gap: clamp(16px, 2.5vw, 24px);
@@ -2549,133 +2477,174 @@
   gap: 8px;
 }
 
-/* Pitbull spotlight — events (sobrio) */
-.pitbull-spotlight--events {
-  background: var(--color-bg-surface);
+/* Featured event card — compacto */
+.events-featured-stack {
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  display: block;
-  isolation: isolate;
-  overflow: hidden;
-  width: 100%;
-}
-
-.pitbull-spotlight__events-layout {
+  border-radius: calc(var(--border-radius-lg) + 2px);
   display: grid;
-  grid-template-columns: 1fr;
-  min-height: 0;
+  gap: 0;
+  overflow: hidden;
 }
 
-.pitbull-spotlight__events-media {
-  margin: 0;
-  min-height: 0;
-  min-width: 0;
+.events-featured-stack .events-spotlight-card {
+  border: none;
+  border-radius: 0;
+}
+
+.events-featured-stack .events-public-tickets {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 0;
+}
+
+.events-spotlight-card {
+  padding: clamp(16px, 2.4vw, 22px) clamp(18px, 2.8vw, 26px);
   position: relative;
 }
 
-.pitbull-spotlight__events-media-img {
-  aspect-ratio: 21 / 9;
-  display: block;
-  max-height: 280px;
-  min-height: clamp(160px, 36vw, 240px);
-  object-fit: cover;
-  object-position: center 24%;
-  width: 100%;
-}
-
-.pitbull-spotlight__events-date-badge {
-  background: rgba(8, 10, 16, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--border-radius-md);
-  bottom: 14px;
+.events-spotlight-card__layout {
   display: grid;
-  gap: 0;
-  left: 14px;
-  line-height: 1;
-  padding: 8px 10px;
-  position: absolute;
-  text-align: center;
+  gap: clamp(12px, 1.8vw, 14px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.pitbull-spotlight__events-date-day {
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.pitbull-spotlight__events-date-month {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  margin-top: 2px;
-  text-transform: uppercase;
-}
-
-.pitbull-spotlight__events-panel {
-  border-left: none;
-  border-top: 1px solid var(--color-border-subtle);
+.events-spotlight-card__main {
   display: grid;
-  gap: clamp(12px, 2vw, 16px);
+  gap: clamp(12px, 1.8vw, 14px);
   min-width: 0;
-  padding: clamp(18px, 2.6vw, 24px);
 }
 
-.pitbull-spotlight__events-head-row {
-  align-items: center;
+.events-spotlight-card__head {
+  align-items: start;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 10px 14px;
   justify-content: space-between;
 }
 
-.pitbull-spotlight__events-status-badge {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 4px 10px;
-  text-transform: uppercase;
-}
-
-.pitbull-spotlight__events-head {
+.events-spotlight-card__copy {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
 }
 
-.pitbull-spotlight__events-kicker {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.pitbull-spotlight__events-title {
+.events-spotlight-card__title {
   font-family: var(--font-display);
-  font-size: clamp(22px, 3vw, 28px);
+  font-size: clamp(20px, 2.8vw, 26px);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.12;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   margin: 0;
-  max-width: 18ch;
   text-wrap: balance;
 }
 
-.pitbull-spotlight__events-lead {
+.events-spotlight-card__meta {
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.45;
   margin: 0;
-  max-width: 38ch;
+  text-transform: uppercase;
 }
 
-.pitbull-spotlight__events-facts {
+.events-spotlight-card__status {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.events-spotlight-card__status--success {
+  border-color: rgba(31, 95, 158, 0.22);
+  color: var(--color-brand-celeste);
+}
+
+.events-spotlight-card__status--warning {
+  border-color: rgba(242, 183, 5, 0.22);
+  color: var(--color-brand-gold);
+}
+
+.events-spotlight-card__status--danger {
+  border-color: rgba(220, 80, 80, 0.22);
+  color: #e07070;
+}
+
+.events-spotlight-card__foot {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: space-between;
+  padding-top: clamp(12px, 1.8vw, 14px);
+}
+
+.events-spotlight-card__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.events-spotlight-card__calendar.event-calendar-actions {
+  background: transparent;
+  border: none;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.events-spotlight-card__calendar .event-calendar-actions__buttons {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.events-spotlight-card__calendar .btn--small {
+  font-size: 11px;
+  min-height: 32px;
+  padding-inline: 10px;
+}
+
+.events-spotlight-card__date-sr {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 640px) {
+  .events-spotlight-card__foot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .events-spotlight-card__calendar .event-calendar-actions__buttons {
+    width: 100%;
+  }
+
+  .events-spotlight-card__calendar .btn--small {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* Legacy pitbull spotlight — events */
+.pitbull-spotlight--events {
   border: 1px solid var(--color-border-subtle);
   border-radius: calc(var(--border-radius-lg) - 2px);
   display: grid;
@@ -2718,7 +2687,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: auto;
+  margin-top: 2px;
   padding-top: clamp(12px, 1.8vw, 16px);
 }
 
@@ -2734,29 +2703,11 @@
 }
 
 .events-public-tickets {
-  align-items: center;
-  background:
-    linear-gradient(135deg, rgba(33, 177, 255, 0.1), transparent 42%),
-    var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
+  align-items: end;
   display: grid;
-  gap: clamp(14px, 2vw, 20px);
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin-top: 12px;
-  padding: clamp(16px, 2.4vw, 22px);
-}
-
-.events-public-tickets__icon {
-  align-items: center;
-  background: rgba(33, 177, 255, 0.12);
-  border: 1px solid rgba(33, 177, 255, 0.24);
-  border-radius: var(--border-radius-lg);
-  color: var(--color-brand-celeste);
-  display: inline-flex;
-  height: 44px;
-  justify-content: center;
-  width: 44px;
+  gap: clamp(12px, 2vw, 16px) clamp(16px, 2.4vw, 24px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: clamp(14px, 2.2vw, 18px) clamp(18px, 2.8vw, 26px);
 }
 
 .events-public-tickets__copy {
@@ -2765,53 +2716,54 @@
   min-width: 0;
 }
 
+.events-public-tickets__eyebrow,
 .events-public-tickets__copy span {
   color: var(--color-brand-celeste);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .events-public-tickets__copy h3 {
   font-family: var(--font-display);
-  font-size: clamp(20px, 2.6vw, 26px);
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.25;
   margin: 0;
 }
 
 .events-public-tickets__copy p {
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  max-width: 58ch;
+  max-width: 48ch;
 }
 
 .events-public-tickets__aside {
   align-items: end;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   justify-items: end;
+  min-width: min(100%, 200px);
 }
 
 .events-public-tickets__price {
-  align-items: center;
-  color: var(--color-text-primary);
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 800;
-  gap: 7px;
-}
-
-.events-public-tickets__price svg {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* Event calendar actions (compartido) */
 .event-calendar-actions {
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
   border: 1px solid var(--color-border-subtle);
   border-radius: calc(var(--border-radius-lg) - 2px);
   display: grid;
@@ -2875,6 +2827,59 @@
   justify-content: space-between;
 }
 
+.events-page--plu-ref .events-sidebar-card .events-detail {
+  gap: 10px;
+  padding: clamp(16px, 2vw, 20px);
+}
+
+.events-page--plu-ref .events-detail__title {
+  font-size: clamp(15px, 1.8vw, 17px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.events-page--plu-ref .events-detail__meta-line {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.events-page--plu-ref .events-detail__meta-sep {
+  margin: 0 6px;
+  opacity: 0.45;
+}
+
+.events-page--plu-ref .events-detail__status-copy {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.events-page--plu-ref .events-detail__actions {
+  gap: 8px;
+}
+
+.events-page--plu-ref .events-detail__calendar.event-calendar-actions {
+  border: none;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 0;
+}
+
+.events-page--plu-ref .events-detail__calendar .event-calendar-actions__buttons {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.events-page--plu-ref .events-detail__calendar .event-calendar-actions__buttons .btn {
+  font-size: 12px;
+  min-height: 30px;
+  padding: 4px 10px;
+}
+
 @media (min-width: 641px) and (max-width: 1199px) {
   .events-page--plu-ref .events-layout-v2 {
     grid-template-columns: 1fr;
@@ -2895,16 +2900,16 @@
 }
 
 @media (min-width: 960px) {
-  .pitbull-spotlight__events-layout {
+  .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-layout {
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   }
 
-  .pitbull-spotlight__events-panel {
+  .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-panel {
     border-left: 1px solid var(--color-border-subtle);
     border-top: none;
   }
 
-  .pitbull-spotlight__events-media-img {
+  .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-media-img {
     aspect-ratio: auto;
     height: 100%;
     max-height: none;

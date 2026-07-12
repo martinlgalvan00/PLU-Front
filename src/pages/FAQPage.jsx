@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SubNav from '../components/ui/SubNav.jsx'
@@ -17,14 +17,13 @@ export default function FAQPage({ onNavigate }) {
   }))
 
   return (
-    <main className="page page--design faq-page faq-page--premium">
-      <DesignPageHero
-        className="faq-hero"
-        compact
+    <main className="page page--design page--plu-ref faq-page faq-page--premium">
+      <PluPageHero
         breadcrumbLabel={t('pages.faq.heroBreadcrumb')}
+        chapter={t('pages.faq.heroChapter')}
+        description={t('pages.faq.heroDesc')}
         onHome={() => onNavigate?.('home')}
         title={t('pages.faq.heroTitle')}
-        description={t('pages.faq.heroDesc')}
       />
 
       <SubNav

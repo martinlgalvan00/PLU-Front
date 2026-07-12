@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import RulebookDocShell from '../components/rulebook/RulebookDocShell.jsx'
 import RulebookSummary from '../components/rulebook/RulebookSummary.jsx'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import SubNav from '../components/ui/SubNav.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getRulebookContent } from '../services/rulebookContentService.js'
+import AnimatedSectionHeader from '../motion/AnimatedSectionHeader.tsx'
+import MotionTabPanel from '../motion/MotionTabPanel.tsx'
 
 function RulebookSection({ title, note, index, children }) {
   return (
@@ -133,17 +135,25 @@ export default function RulebookPage({ onNavigate }) {
   const activeChapter = rulebook.chapters.find((chapter) => `tab-${chapter.id}` === activeTab)
 
   return (
-    <main className="page page--design rulebook-page rulebook-page--premium">
-      <DesignPageHero
-        className="rulebook-hero"
-        compact
+    <main className="page page--design page--plu-ref rulebook-page rulebook-page--premium">
+      <PluPageHero
         breadcrumbLabel={t('pages.rulebook.heroBreadcrumb')}
+        chapter={t('pages.rulebook.heroChapter')}
+        description={t('pages.rulebook.heroDesc')}
         onHome={() => onNavigate?.('home')}
         title={t('pages.rulebook.heroTitle')}
-        description={t('pages.rulebook.heroDesc')}
       />
 
       <div className="rulebook-page__inner">
+        <AnimatedSectionHeader
+          align="left"
+          className="rulebook-doc-intro motion-section-header--rulebook"
+          description={t('pages.rulebook.docSectionLead')}
+          eyebrow={t('pages.rulebook.docSectionEyebrow')}
+          showRule={false}
+          title={t('pages.rulebook.docSectionTitle')}
+        />
+
         <RulebookDocShell
           documents={rulebook.documents}
           downloadMeta={downloadMeta}
@@ -163,24 +173,26 @@ export default function RulebookPage({ onNavigate }) {
         />
 
         <div className="rulebook-tab-panel">
-          {activeChapter && (
-            <RulebookSection
-              index={activeChapter.numeral || '·'}
-              note={t('pages.rulebook.sourceNote', { section: activeChapter.sourceLabel })}
-              title={activeChapter.title}
-            >
-              {activeChapter.cards && <ChapterCards cards={activeChapter.cards} />}
-              {activeChapter.lifts && <ChapterLifts lifts={activeChapter.lifts} />}
-              {activeChapter.canon && <ChapterCanon canon={activeChapter.canon} />}
-              {activeChapter.includeAgeWeight && (
-                <AgeWeightAppendix
-                  ageDivisions={rulebook.ageDivisions}
-                  weightClasses={rulebook.weightClasses}
-                  t={t}
-                />
-              )}
-            </RulebookSection>
-          )}
+          <MotionTabPanel panelKey={activeTab} className="rulebook-tab-panel__motion">
+            {activeChapter ? (
+              <RulebookSection
+                index={activeChapter.numeral || '·'}
+                note={t('pages.rulebook.sourceNote', { section: activeChapter.sourceLabel })}
+                title={activeChapter.title}
+              >
+                {activeChapter.cards && <ChapterCards cards={activeChapter.cards} />}
+                {activeChapter.lifts && <ChapterLifts lifts={activeChapter.lifts} />}
+                {activeChapter.canon && <ChapterCanon canon={activeChapter.canon} />}
+                {activeChapter.includeAgeWeight && (
+                  <AgeWeightAppendix
+                    ageDivisions={rulebook.ageDivisions}
+                    weightClasses={rulebook.weightClasses}
+                    t={t}
+                  />
+                )}
+              </RulebookSection>
+            ) : null}
+          </MotionTabPanel>
         </div>
 
         <div className="rulebook-page__action">

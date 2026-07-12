@@ -362,6 +362,10 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 </button>
               )}
 
+              <span className="site-header__mobile-pref">
+                <ThemeToggle compact />
+              </span>
+
               <span className="site-header__mobile-cluster-divider" aria-hidden />
 
               <button

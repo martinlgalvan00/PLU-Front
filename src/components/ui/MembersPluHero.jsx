@@ -1,6 +1,8 @@
+import { ArrowRight } from 'lucide-react'
 import Button from './Button.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import TiltCard from '../../motion/TiltCard.tsx'
 
 function scrollToId(id) {
   const target = document.getElementById(id)
@@ -9,7 +11,6 @@ function scrollToId(id) {
 }
 
 export default function MembersPluHero({
-  onHome,
   onNavigate,
   session,
   affiliationCta,
@@ -30,18 +31,18 @@ export default function MembersPluHero({
 
   return (
     <header className="members-plu-hero">
-      <nav className="members-plu-hero__breadcrumb" aria-label="Breadcrumb">
-        <button type="button" onClick={onHome}>
-          {t('design.home')}
-        </button>
-        <span aria-hidden>/</span>
-        <span>{t('pages.members.heroBreadcrumb')}</span>
-      </nav>
-
       <div className="members-plu-hero__grid">
         <div className="members-plu-hero__main">
-          <p className="members-plu-hero__chapter">{t('pages.members.heroChapter')}</p>
-          <h1 className="members-plu-hero__title">{t('pages.members.heroTitle')}</h1>
+          <p className="members-plu-hero__chapter">
+            <span className="members-plu-hero__chapter-dot" aria-hidden />
+            {t('pages.members.heroChapter')}
+          </p>
+          <h1 className="members-plu-hero__title">
+            <span className="members-plu-hero__title-line">{t('pages.members.heroTitleLead')}</span>
+            <span className="members-plu-hero__title-line members-plu-hero__title-line--accent">
+              {t('pages.members.heroTitleAccent')}
+            </span>
+          </h1>
           <p className="members-plu-hero__desc">{t('pages.members.heroDesc')}</p>
 
           <div className="members-plu-hero__cta-row">
@@ -75,28 +76,33 @@ export default function MembersPluHero({
           </div>
         </div>
 
-        <aside className="members-plu-hero__card" aria-label={t('pages.members.credentialPreviewLabel')}>
-          <p className="members-plu-hero__card-label">{t('pages.members.credentialPreviewLabel')}</p>
-          <dl className="members-plu-hero__card-rows">
-            <div className="members-plu-hero__card-row">
-              <dt>{t('pages.members.credentialAthleteLabel')}</dt>
-              <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</dd>
-            </div>
-            <div className="members-plu-hero__card-row">
-              <dt>{t('pages.members.credentialCodeLabel')}</dt>
-              <dd className="members-plu-hero__card-code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</dd>
-            </div>
-            <div className="members-plu-hero__card-row">
-              <dt>{t('pages.members.credentialSeasonLabel')}</dt>
-              <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</dd>
-            </div>
-            <div className="members-plu-hero__card-row">
-              <dt>{t('pages.members.credentialStatusLabel')}</dt>
-              <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.status}</dd>
-            </div>
-          </dl>
-          <p className="members-plu-hero__card-note">{t('pages.members.credentialPreviewNote')}</p>
-        </aside>
+        <TiltCard
+          className="members-plu-hero__card-tilt"
+          innerClassName="members-plu-hero__card members-plu-hero__card-inner"
+        >
+          <aside aria-label={t('pages.members.credentialPreviewLabel')}>
+            <p className="members-plu-hero__card-label">{t('pages.members.credentialPreviewLabel')}</p>
+            <dl className="members-plu-hero__card-rows">
+              <div className="members-plu-hero__card-row">
+                <dt>{t('pages.members.credentialAthleteLabel')}</dt>
+                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</dd>
+              </div>
+              <div className="members-plu-hero__card-row">
+                <dt>{t('pages.members.credentialCodeLabel')}</dt>
+                <dd className="members-plu-hero__card-code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</dd>
+              </div>
+              <div className="members-plu-hero__card-row">
+                <dt>{t('pages.members.credentialSeasonLabel')}</dt>
+                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</dd>
+              </div>
+              <div className="members-plu-hero__card-row">
+                <dt>{t('pages.members.credentialStatusLabel')}</dt>
+                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.status}</dd>
+              </div>
+            </dl>
+            <p className="members-plu-hero__card-note">{t('pages.members.credentialPreviewNote')}</p>
+          </aside>
+        </TiltCard>
       </div>
 
       <nav className="members-plu-quicknav" aria-label={t('pages.members.quickNavAria')}>

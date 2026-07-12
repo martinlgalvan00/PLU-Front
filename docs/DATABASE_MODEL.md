@@ -1,177 +1,123 @@
-# Modelo de datos - PLU ARG / Maximal
+# Modelo de datos - infraestructura v3
 
-Base principal: **PostgreSQL** con **Prisma ORM**. El schema canonico vive en
-[`prisma/schema.prisma`](../prisma/schema.prisma).
-
-## Objetivo
-
-Dejar una base normalizada, segura y consultable para crecer sin duplicar datos
-sensibles ni mezclar preferencias de usuario con el core transaccional.
+Base principal: **PostgreSQL/Supabase** con **Prisma** como contrato de schema.
+El archivo canonico es [`prisma/schema.prisma`](../prisma/schema.prisma).
 
 ## Principios
 
-- Tablas transaccionales normalizadas: usuarios, atletas, afiliaciones, eventos,
-  inscripciones, ordenes de pago, pagos, resultados, exports, emails y auditoria.
-- Identidad separada de perfil: `User`, `UserIdentity` y `UserProfile` permiten
-  auth local, Auth0 u otros proveedores sin duplicar usuarios.
-- Datos personales de atletas separados de documentos: `AthleteDocument` evita
-  acoplar DNI/pasaporte al registro principal y permite nuevos tipos.
-- Pagos modelados en dos etapas: `PaymentOrder` representa la intencion de cobro
-  y `Payment` la confirmacion del proveedor. `PaymentAllocation` permite asignar
-  un pago a afiliacion, inscripcion o ambos.
-- Preferencias de usuario aisladas: `UserPreference`, `UserSavedView`,
-  `UserTablePreference`, `UserNotificationPreference` y `UserRecentEntity` no
-  contaminan las tablas operativas.
-- Auditoria append-only en `AuditLog` para operaciones sensibles.
-- Nunca confirmar pagos desde frontend. La confirmacion debe entrar por backend,
-  webhook o proceso administrativo autorizado.
+- Multi-organizacion desde la base: toda entidad operativa importante tiene
+  `organizationId` para consultas, RLS y auditoria.
+- Escritura normalizada en 1FN, 2FN y 3FN: sin arrays en columnas consultables,
+  sin precios historicos duplicados y sin estados de afiliado dentro de la
+  persona global.
+- Lectura eficiente por vistas/RPCs: el frontend no deberia resolver joins
+  grandes para dashboards, calendario, finanzas o check-in.
+- JSON queda reservado para payloads externos, snapshots y metadata flexible,
+  no para campos que se filtran, agrupan o ordenan seguido.
+- Pagos server-side: Mercado Pago confirma por backend/webhook; el frontend no
+  acredita afiliaciones, tickets ni inscripciones.
 
-## Entidades principales
+## Raiz multi-organizacion
 
 | Modelo | Proposito |
 |--------|-----------|
-| `User` | Cuenta interna, RBAC y estado operativo. |
-| `UserIdentity` | Identidad externa/local por proveedor, por ejemplo Auth0. |
-| `UserProfile` | Datos editables del operador/admin. |
-| `Session` | Sesiones server-side con `tokenHash`, expiracion y revocacion. |
-| `Athlete` | Persona competidora o afiliada. |
-| `AthleteDocument` | Documento normalizado y unico por tipo/numero. |
-| `Membership` | Afiliacion anual por atleta. |
-| `Event` | Competencia, meet o actividad. |
-| `EventRegistration` | Inscripcion del atleta a un evento. |
-| `PaymentOrder` | Orden interna previa a Mercado Pago/manual/mock. |
-| `Payment` | Cobro confirmado o rechazado por proveedor. |
-| `PaymentAllocation` | Asignacion contable del pago a afiliacion/inscripcion. |
-| `LiftingResult` | Resultados importados desde LiftingCast u otra fuente. |
-| `IntegrationEvent` | Evento externo idempotente recibido o emitido. |
-| `IntegrationAttempt` | Intento de procesamiento/envio asociado a un evento externo. |
-| `ExportJob` | Jobs de exportacion CSV/XLSX. |
-| `EmailLog` | Trazabilidad de emails transaccionales. |
-| `AuditLog` | Cambios sensibles con actor y entidad afectada. |
+| `Organization` | Tenant operativo: PLU ARG, Maximal u organizaciones futuras. |
+| `OrganizationMember` | Usuario, rol y estado dentro de una organizacion. |
+| `User`, `Session`, `UserIdentity`, `UserProfile` | Identidad, sesion y perfil del operador. |
 
-## Personalizacion
+`organizationId` se replica en tablas operativas aunque pueda derivarse por join.
+Es una desnormalizacion controlada para que Supabase RLS y los indices compuestos
+sean simples y rapidos.
 
-La personalizacion queda por usuario y fuera del modelo transaccional:
+## Personas, atletas y afiliaciones
 
-| Modelo | Uso |
-|--------|-----|
-| `UserPreference` | Locale, timezone, tema, densidad y settings generales. |
-| `UserSavedView` | Filtros y ordenamientos guardados por scope. |
-| `UserTablePreference` | Columnas visibles, orden, paginacion y sort por tabla. |
-| `UserNotificationPreference` | Canales y topics habilitados/deshabilitados. |
-| `UserRecentEntity` | Entidades vistas recientemente para acceso rapido. |
+| Modelo | Proposito |
+|--------|-----------|
+| `Person` | Persona global reutilizable entre organizaciones. |
+| `PersonDocument` | Documento unico por tipo y numero. |
+| `OrganizationAthlete` | Estado deportivo de una persona dentro de una organizacion. |
+| `MembershipPlan` | Catalogo de planes de afiliacion. |
+| `MembershipPeriod` | Precio, moneda y vigencia de un plan para un periodo/anio. |
+| `Membership` | Afiliacion emitida para una persona y periodo concreto. |
 
-Esto permite una UI eficiente sin agregar columnas de preferencias en atletas,
-eventos, pagos o inscripciones.
+Esto evita duplicar atletas cuando compiten en mas de una organizacion, pero
+mantiene el estado de afiliacion aislado por organizacion.
 
-## Normalizacion clave
+## Eventos, inscripciones y resultados
 
-- `Athlete` no guarda documento principal como string plano; lo delega a
-  `AthleteDocument` con `@@unique([documentType, documentNumber])`.
-- `Membership` tiene `@@unique([athleteId, year])`, asi un atleta no puede tener
-  dos afiliaciones para el mismo anio.
-- `EventRegistration` tiene `@@unique([eventId, athleteId])`, asi no hay doble
-  inscripcion al mismo evento.
-- `PaymentOrder` y `Payment` se separan para no depender del estado externo del
-  proveedor al crear la operacion interna.
-- `PaymentAllocation` evita campos duplicados como `membershipPaidAmount` o
-  `registrationPaidAmount` dentro de multiples tablas.
-- `UserIdentity` permite varios proveedores por usuario sin duplicar cuentas.
-- `IntegrationEvent` centraliza webhooks, preferencias de pago, emails e imports
-  con `idempotencyKey`, `externalId`, payload crudo y resultado procesado.
+| Modelo | Proposito |
+|--------|-----------|
+| `Venue` | Sede normalizada reutilizable. |
+| `Event` | Evento operativo con fechas, visibilidad y ciclo de vida. |
+| `EventRegistrationWindow` | Ventanas de inscripcion con precio propio. |
+| `EventScheduleItem` | Cronograma: pesaje, competencia, premiacion, etc. |
+| `EventDivision`, `EventCategory` | Catalogos habilitados por evento. |
+| `EventCapacityRule` | Cupos por evento, dia, categoria, division o ticket. |
+| `EventRegistration` | Inscripcion deportiva de una persona a un evento. |
+| `LiftingResult` | Resultado importado y reconciliable con `Person`. |
 
-## Indices para consultas futuras
+## Tickets y check-in
 
-Indices relevantes definidos en Prisma:
+| Modelo | Proposito |
+|--------|-----------|
+| `TicketType` | Tipo estable: general, VIP, staff, ambos dias, etc. |
+| `TicketSaleWindow` | Precio/cupo/ventana de venta por tipo de ticket. |
+| `TicketOrder` | Compra de tickets asociada a una orden de pago. |
+| `Ticket` | Entrada individual con QR opaco. |
+| `TicketAddon`, `TicketAddonOption` | Beneficios comprables/canjeables. |
+| `TicketAddonSelection`, `TicketAddonRedemption` | Seleccion y canje trazable. |
+| `CheckIn` | Ingreso unico de ticket o inscripcion. |
 
-- `User`: `@@index([role, status])` para listados de operadores por permiso.
-- `Athlete`: `@@index([lastName, firstName])`, `@@index([email])`,
-  `@@index([status])`.
-- `Membership`: `@@index([athleteId, status])`, `@@unique([athleteId, year])`.
-- `Event`: `@@index([status, eventDate])`, `@@index([eventDate])`.
-- `EventRegistration`: `@@index([athleteId, status])`,
-  `@@index([eventId, status])`, `@@unique([eventId, athleteId])`.
-- `PaymentOrder`: `@@index([athleteId, status])`,
-  `@@index([provider, status])`, `@@index([providerPreferenceId])`.
-- `Payment`: `@@index([orderId])`, `@@index([athleteId, status])`,
-  `@@index([provider, status])`.
-- `IntegrationEvent`: `@@unique([provider, externalId])`,
-  `@@index([provider, type, status])`, `@@index([entityType, entityId])`.
-- `IntegrationAttempt`: `@@index([integrationEventId])`,
-  `@@index([status, createdAt])`.
-- `LiftingResult`: `@@index([eventId])`, `@@index([athleteId])`,
-  `@@index([eventId, division, category])`.
-- `AuditLog`: `@@index([actorId])`, `@@index([entityType, entityId])`,
-  `@@index([action])`.
-- `ExportJob`: `@@index([type, status])`.
+Los add-ons dejaron de vivir en JSON para poder consultar ventas y canjes por
+beneficio, evento y organizacion.
 
-## Consultas que el modelo optimiza
+## Pagos e integraciones
 
-- Perfil completo de atleta:
-  `Athlete -> AthleteDocument -> Membership -> EventRegistration -> Payment`.
-- Panel de evento:
-  `Event -> EventRegistration -> Athlete -> Membership`.
-- Estado de deuda/cobro:
-  `PaymentOrder -> Payment -> PaymentAllocation -> Membership/EventRegistration`.
-- Auditoria de entidad:
-  `AuditLog` por `entityType + entityId`.
-- Eventos externos de una entidad:
-  `IntegrationEvent` por `entityType + entityId`, proveedor, tipo y estado.
-- Dashboard administrativo:
-  `Membership` por estado, `Event` por fecha/estado, `PaymentOrder` por estado.
-- Experiencia personalizada:
-  preferencias y vistas guardadas por `userId` sin joins sobre tablas de negocio.
+| Modelo | Proposito |
+|--------|-----------|
+| `PaymentOrder` | Intencion de cobro unificada. |
+| `PaymentOrderItem` | Lineas de carrito: afiliacion, inscripcion, ticket, add-on. |
+| `Payment` | Confirmacion del proveedor. |
+| `PaymentAllocation` | Asignacion del pago a afiliacion, inscripcion o ticket order. |
+| `IntegrationEvent`, `IntegrationAttempt` | Entrada idempotente de proveedores. |
+| `OutboxEvent` | Efectos externos confiables: emails, webhooks, tareas. |
+| `AuditLog` | Auditoria transversal por organizacion, entidad y actor. |
 
-## Estados de negocio
+`PaymentOrderItem` modela el carrito real. `PaymentAllocation` conserva la
+trazabilidad contable y permite combos sin duplicar campos de pago en cada
+entidad de negocio.
 
-### Membership
+## Indices principales
 
-`pendiente_pago -> activa -> vencida | cancelada | reembolsada`
+- `Event`: `@@unique([organizationId, slug])`,
+  `@@index([organizationId, visibilityStatus, startsAt])`,
+  `@@index([organizationId, lifecycleStatus, startsAt])`.
+- `Membership`: `@@unique([organizationId, personId, membershipPeriodId])`,
+  `@@index([organizationId, status, expiresAt])`.
+- `EventRegistration`: `@@unique([eventId, personId])`,
+  `@@index([eventId, status])`, `@@index([personId, status])`.
+- `TicketType`: `@@unique([eventId, code])`.
+- `Ticket`: `@@unique([organizationId, ticketCode])`, `@@unique([qrToken])`,
+  `@@index([eventId, status])`, `@@index([ticketTypeId, status])`.
+- `TicketOrder`: `@@index([organizationId, status, createdAt])`.
+- `PaymentOrder`: `@@unique([idempotencyKey])`,
+  `@@index([organizationId, status, createdAt])`.
+- `Payment`: `@@unique([provider, externalPaymentId])`.
+- `AuditLog`: `@@index([organizationId, entityType, entityId])`.
 
-### EventRegistration
+## Read models recomendados para Supabase
 
-`borrador -> pendiente_pago -> pagada -> confirmada | observada | cancelada`
+La escritura queda normalizada. Para extraccion eficiente conviene exponer:
 
-### Payment / PaymentOrder
+- `public_events_view`: calendario publico por organizacion.
+- `admin_event_overview`: evento, inscriptos, tickets vendidos, pagos pendientes.
+- `membership_roster_view`: afiliados, vencimientos y ultimo estado de pago.
+- `ticket_sales_summary`: ventas por evento, tipo y ventana.
+- `payment_reconciliation_view`: ordenes, pagos, proveedor y asignaciones.
+- `checkin_activity_view`: actividad por evento, puerta y horario.
 
-`creado -> pendiente -> aprobado | rechazado | cancelado | reembolsado`
-
-### Event
-
-`draft -> published -> registration_open -> registration_closed -> finished | cancelled`
-
-## Metadata Json
-
-Usar `Json` solo para informacion flexible que no se consulte como columna
-principal:
-
-- `PaymentOrder.metadata`: idempotencia, contexto de checkout, concepto extendido.
-- `Payment.rawPayload`: payload crudo del proveedor.
-- `IntegrationEvent.payload`: webhook, request o fila importada original.
-- `IntegrationEvent.result`: respuesta normalizada procesada por el workflow.
-- `IntegrationAttempt.requestPayload/responsePayload`: request/response por retry.
-- `LiftingResult.rawPayload`: fila original importada.
-- `ExportJob.filters` y `ExportJob.metadata`: parametros del reporte.
-- `EmailLog.payload` y `EmailLog.providerResponse`: template y respuesta Brevo.
-- `AuditLog.before/after/metadata`: snapshot y contexto de cambio.
-
-Si un dato empieza a usarse para filtros frecuentes, debe convertirse en columna
-tipada e indexable.
-
-## Migraciones
-
-Todavia no se aplico ninguna migracion contra base de datos. Antes de ejecutar
-`prisma migrate dev` o una migracion productiva, revisar datos existentes y
-definir estrategia de backfill para:
-
-- Separar `firstName`/`lastName` si habia nombres completos.
-- Crear `AthleteDocument` desde documentos existentes.
-- Mapear roles viejos a `admin_maximal`, `admin_plu_arg`,
-  `operador_plu_arg` o `viewer_plu_usa`.
-- Reconciliar pagos existentes con `PaymentOrder`, `Payment` y
-  `PaymentAllocation`.
-- Persistir eventos en `IntegrationEvent` cuando se reemplace el store en memoria
-  por repositorios Prisma.
+Estas vistas deben construirse encima del modelo normalizado y, si el volumen lo
+requiere, evolucionar a materialized views refrescadas por jobs.
 
 ## Validacion
 
@@ -179,5 +125,5 @@ Comandos esperados:
 
 ```powershell
 npm.cmd test -- tests/prismaSchema.test.js
-$env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/plu_arg?schema=public'; npx.cmd prisma validate
+$env:DATABASE_URL='postgresql://plu:plu_dev@localhost:5432/plu_arg'; npx.cmd prisma validate
 ```

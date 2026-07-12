@@ -14,6 +14,7 @@ export default function ResultsArchiveToolbar({
   filterLabel,
   filters,
   hero = false,
+  layout = 'default',
   onFilterChange,
   onQueryChange,
   onSortChange,
@@ -68,6 +69,47 @@ export default function ResultsArchiveToolbar({
       />
     </div>
   )
+
+  if (layout === 'page') {
+    return (
+      <div className={`results-toolbar results-toolbar--page ${compact ? 'results-toolbar--compact' : ''}`.trim()}>
+        <div className="results-page__toolbar-row">
+          <FilterPills
+            active={filter}
+            ariaLabel={t('pages.results.filterArchiveAria')}
+            className="results-page__filters filter-pills--refined"
+            onChange={onFilterChange}
+            options={filters}
+          />
+          <div className="results-page__toolbar-meta">
+            <ResultsSortMenu
+              className="results-sort-menu--inline"
+              minimal
+              sort={sort}
+              options={sorts}
+              onSortChange={onSortChange}
+            />
+            {showCount ? (
+              <span className="results-page__count" aria-live="polite">
+                {countLabel}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <label className="results-page__search">
+          <Search size={15} aria-hidden />
+          <input
+            type="search"
+            value={query}
+            placeholder={t('pages.results.searchPlaceholder')}
+            aria-label={t('pages.results.searchAria')}
+            onChange={(event) => onQueryChange(event.target.value)}
+          />
+        </label>
+      </div>
+    )
+  }
 
   if (hero) {
     return (

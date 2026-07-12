@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
+import { MOTION_DURATION } from '../../motion/tokens.ts'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 function FaqRefIcon({ isOpen }) {
   return (
@@ -12,6 +15,7 @@ function FaqRefIcon({ isOpen }) {
 
 export default function FAQAccordion({ items, numbered = false, variant = 'default' }) {
   const [openIndex, setOpenIndex] = useState(-1)
+  const { reducedMotion } = useMotionConfig()
   const isRef = variant === 'ref'
   const rootClass = isRef ? 'faq-accordion faq-accordion--ref' : 'faq-accordion'
 
@@ -39,11 +43,22 @@ export default function FAQAccordion({ items, numbered = false, variant = 'defau
                 <ChevronDown size={18} className="faq-item__icon" />
               )}
             </button>
-            <div className="faq-item__panel-wrap" data-open={isOpen}>
-              <div className="faq-item__panel">
-                <p>{item.a}</p>
-              </div>
-            </div>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <m.div
+                  className="faq-item__panel-wrap"
+                  data-open={isOpen}
+                  initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: reducedMotion ? 0 : MOTION_DURATION.base, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="faq-item__panel">
+                    <p>{item.a}</p>
+                  </div>
+                </m.div>
+              )}
+            </AnimatePresence>
           </article>
         )
       })}

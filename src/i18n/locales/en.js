@@ -55,6 +55,9 @@ export default {
     titleAccent: 'Argentina',
     headline: 'Official memberships and calendar',
     headlineHighlight: 'Official',
+    headlineLead: 'Official',
+    headlineAccent: 'memberships and calendar',
+    headlineAccentOn: 'lead',
     description: 'Meet registration, digital credentials and published results.',
     descriptionMeta: 'For athletes and organizers.',
     ctaAffiliate: 'Become a member',
@@ -389,6 +392,8 @@ export default {
       heroBreadcrumb: 'Membership',
       heroChapter: 'PLU Argentina · 2026 Season',
       heroTitle: 'Official PLU Argentina membership',
+      heroTitleLead: 'Official',
+      heroTitleAccent: 'PLU Argentina membership',
       heroDesc:
         'Complete your annual membership to be registered as a PLU Argentina athlete and take part in official calendar competitions.',
       heroCtaSecondary: 'View requirements',
@@ -524,8 +529,10 @@ export default {
       },
     },
     results: {
-      heroBreadcrumb: 'Results · Official archive',
+      heroBreadcrumb: 'Results',
+      heroChapter: 'Official archive',
       heroTitle: 'Results',
+      heroDesc: 'Official archive by event',
       published: 'Published',
       pending: 'Pending',
       filters: {
@@ -606,6 +613,7 @@ export default {
     },
     faq: {
       heroBreadcrumb: 'FAQ · Help center',
+      heroChapter: 'Help center',
       heroTitle: 'Frequently asked questions',
       heroDesc: 'Clear answers about membership, registrations, payments and official competition.',
       categoriesAria: 'FAQ categories',
@@ -614,6 +622,7 @@ export default {
     },
     rulebook: {
       heroBreadcrumb: 'Rulebook · PLU ARG',
+      heroChapter: 'PLU standard',
       heroTitle: 'Official rulebook',
       heroDesc: 'PLU competition standards v26.1: the nine chapters of the official rulebook, plus policies and appendices.',
       weightTitle: 'Bodyweight categories',
@@ -668,6 +677,7 @@ export default {
       athletesIndex: '02',
       athletesEyebrow: 'Competitors',
       athletesTitle: 'Competitor guide',
+      athletesLead: 'Operational checklist in two stages: before the meet and on competition day.',
       athletesAria: 'Information for competitors',
       athletesCta: 'Go to registration',
       athletesRulebook: 'View categories',
@@ -677,6 +687,7 @@ export default {
       featureTitle: 'Meet schedule',
       featureLead: 'Two-day structure with weigh-in, briefing and competition under PLU USA standards.',
       featureFactsAria: 'Meet logistics detail',
+      featureFlipTap: 'Tap for details',
       programAria: 'Event schedule',
       venueMapsTitle: '{{venue}} on Google Maps',
       featureFacts: [

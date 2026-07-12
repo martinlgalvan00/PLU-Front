@@ -37,10 +37,22 @@ Los componentes solo renderizan y delegan eventos.
 
 | Capa | MVP actual | Target |
 |------|------------|--------|
-| Persistencia | localStorage | PostgreSQL vía API |
+| Persistencia | localStorage | PostgreSQL/Supabase normalizado vía API/RPC |
 | Auth | Selector de rol UI | Login + JWT/sesión |
 | Pagos | Mock + simulación | MP Checkout Pro + webhook |
 | Emails | Mock console | Brevo templates |
+
+## Infraestructura de datos v3
+
+El modelo objetivo es multi-organización. `Organization` es la raíz operativa y
+las entidades sensibles (`Event`, `Membership`, `TicketOrder`, `PaymentOrder`,
+`AuditLog`, integraciones, etc.) llevan `organizationId` para consultas rápidas,
+RLS y auditoría.
+
+La escritura queda normalizada en Prisma/PostgreSQL. Para extracción eficiente en
+Supabase, el frontend debe consumir vistas/RPCs de lectura como resumen de
+eventos, padrón de afiliados, ventas de tickets, conciliación de pagos y
+actividad de check-in.
 
 ## Integraciones
 

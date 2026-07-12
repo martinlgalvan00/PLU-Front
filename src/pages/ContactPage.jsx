@@ -1,5 +1,5 @@
 import { Clock, Mail, MapPin } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import ContactForm from '../components/ui/ContactForm.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -8,15 +8,13 @@ export default function ContactPage({ onNavigate }) {
   const { t } = useI18n()
 
   return (
-    <main className="page page--design contact-page contact-page--premium">
-      <DesignPageHero
-        className="contact-hero"
-        compact
+    <main className="page page--design page--plu-ref contact-page contact-page--premium">
+      <PluPageHero
         breadcrumbLabel={t('pages.contact.heroBreadcrumb')}
-        eyebrow={t('pages.contact.heroEyebrow')}
+        chapter={t('pages.contact.heroEyebrow')}
+        description={t('pages.contact.heroDesc')}
         onHome={() => onNavigate('home')}
         title={t('pages.contact.heroTitle')}
-        description={t('pages.contact.heroDesc')}
       />
 
       <div className="contact-page__inner">

@@ -1,16 +1,9 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
-import { getStatusMeta } from '../../lib/status.js'
-
-function EventStatusBadge({ status, t }) {
-  const { label, tone } = getStatusMeta(status, t)
-  return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
-}
 
 export default function PitbullHeroRail({
   canRegister,
-  eventStatus,
   locale,
   onRegister,
   onSecondary,
@@ -18,55 +11,65 @@ export default function PitbullHeroRail({
   pricing,
   ticketsOpen,
   t,
+  variant = 'card',
 }) {
   const { locale: i18nLocale } = useI18n()
   const resolvedLocale = locale ?? i18nLocale
+  const isOps = variant === 'ops'
 
   const primaryLabel = t('pages.pitbull.register')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
+  const rootClass = isOps
+    ? 'pitbull-hero-ops'
+    : 'pitbull-hero-rail pitbull-hero-rail--luxury'
 
   return (
-    <aside className="pitbull-hero-rail pitbull-hero-rail--luxury" aria-label={t('pages.pitbull.heroMetricsAria')}>
-      <div className="pitbull-hero-rail__rail">
-        <div className="pitbull-hero-rail__head">
-          <EventStatusBadge status={eventStatus} t={t} />
+    <div className={rootClass} role="group" aria-label={t('pages.pitbull.heroMetricsAria')}>
+      <dl className={isOps ? 'pitbull-hero-ops__facts' : 'pitbull-hero-rail__metrics'}>
+        {!isOps ? (
+          <>
+            <div className="pitbull-hero-rail__metric">
+              <dt>{t('pages.pitbull.heroDate')}</dt>
+              <dd>{pitbullClassic.date}</dd>
+            </div>
+            <div className="pitbull-hero-rail__metric">
+              <dt>{t('pages.pitbull.heroVenue')}</dt>
+              <dd>{pitbullClassic.venue}</dd>
+            </div>
+          </>
+        ) : null}
+        <div className={`${isOps ? 'pitbull-hero-ops__fact' : 'pitbull-hero-rail__metric'}${canRegister ? ' pitbull-hero-rail__metric--open' : ''}`}>
+          <dt>{t('pages.pitbull.heroSlots')}</dt>
+          <dd>
+            {pitbullClassic.registered}/{pitbullClassic.slots}
+          </dd>
         </div>
-
-        <dl className="pitbull-hero-rail__metrics">
-          <div className="pitbull-hero-rail__metric">
-            <dt>{t('pages.pitbull.heroDate')}</dt>
-            <dd>{pitbullClassic.date}</dd>
-          </div>
-          <div className="pitbull-hero-rail__metric">
-            <dt>{t('pages.pitbull.heroVenue')}</dt>
-            <dd>{pitbullClassic.venue}</dd>
-          </div>
-          <div className={`pitbull-hero-rail__metric${canRegister ? ' pitbull-hero-rail__metric--open' : ''}`}>
-            <dt>{t('pages.pitbull.heroSlots')}</dt>
-            <dd>
-              {pitbullClassic.registered}/{pitbullClassic.slots}
-            </dd>
-          </div>
-          <div className="pitbull-hero-rail__metric">
-            <dt>{t('pages.pitbull.heroFee')}</dt>
-            <dd>{money(pricing.registration, resolvedLocale)}</dd>
-          </div>
-        </dl>
-
-        <div className="pitbull-hero-rail__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
-          <button
-            type="button"
-            className="pitbull-hero-rail__cta pitbull-hero-rail__cta--primary"
-            onClick={onRegister}
-          >
-            {primaryLabel}
-            <ArrowRight size={14} aria-hidden />
-          </button>
-          <button type="button" className="pitbull-hero-rail__cta pitbull-hero-rail__cta--muted" onClick={onSecondary}>
-            {secondaryLabel}
-          </button>
+        <div className={isOps ? 'pitbull-hero-ops__fact' : 'pitbull-hero-rail__metric'}>
+          <dt>{t('pages.pitbull.heroFee')}</dt>
+          <dd>{money(pricing.registration, resolvedLocale)}</dd>
         </div>
+      </dl>
+
+      <div
+        className={isOps ? 'pitbull-hero-ops__actions' : 'pitbull-hero-rail__actions'}
+        aria-label={t('pages.pitbull.heroSecondaryAria')}
+      >
+        <button
+          type="button"
+          className={`${isOps ? 'pitbull-hero-ops__cta pitbull-hero-ops__cta--primary' : 'pitbull-hero-rail__cta pitbull-hero-rail__cta--primary'} motion-icon-shift`}
+          onClick={onRegister}
+        >
+          {primaryLabel}
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+        </button>
+        <button
+          type="button"
+          className={isOps ? 'pitbull-hero-ops__cta pitbull-hero-ops__cta--muted' : 'pitbull-hero-rail__cta pitbull-hero-rail__cta--muted'}
+          onClick={onSecondary}
+        >
+          {secondaryLabel}
+        </button>
       </div>
-    </aside>
+    </div>
   )
 }

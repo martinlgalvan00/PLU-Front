@@ -9,6 +9,20 @@ export default defineConfig({
       '@': path.resolve('./src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/motion')) {
+            return 'motion'
+          }
+          if (id.includes('node_modules/html2canvas')) {
+            return 'html2canvas'
+          }
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

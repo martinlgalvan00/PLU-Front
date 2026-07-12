@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
-import EventsPluHero from '../components/layout/EventsPluHero.jsx'
+import { ArrowRight, CalendarDays } from 'lucide-react'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
@@ -40,40 +41,36 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
   return (
     <div className="events-detail">
       <div className="events-detail__head">
-        <div className="events-detail__head-copy">
-          <span className="events-detail__eyebrow">{t('pages.events.selectedEvent')}</span>
-          <h3 className="events-detail__title">{event.title}</h3>
-        </div>
+        <h3 className="events-detail__title">{event.title}</h3>
         <EventStatusBadge status={event.status} t={t} />
       </div>
 
-      <ul className="events-detail__meta">
-        <li>
-          <CalendarDays size={13} aria-hidden />
-          {event.displayDate}
-        </li>
-        <li>
-          <MapPin size={13} aria-hidden />
+      <p className="events-detail__meta-line">
+        <span>{event.displayDate}</span>
+        <span className="events-detail__meta-sep" aria-hidden>
+          ·
+        </span>
+        <span>
           {event.venue}, {event.location}
-        </li>
-      </ul>
+        </span>
+      </p>
 
-      {statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}` && (
+      {statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}` ? (
         <p className="events-detail__status-copy">{statusCopy}</p>
-      )}
+      ) : null}
 
       <div className="events-detail__actions">
-        {canRegister && onRegister && (
+        {canRegister && onRegister ? (
           <Button className="btn--small" onClick={onRegister}>
             {registerLabel}
             <ArrowRight size={14} aria-hidden />
           </Button>
-        )}
-        {isPitbull && onViewPitbull && (
+        ) : null}
+        {isPitbull && onViewPitbull ? (
           <Button variant="outline" className="btn--small" onClick={onViewPitbull}>
             {t('pages.events.viewFull')}
           </Button>
-        )}
+        ) : null}
       </div>
 
       <EventLiveStream
@@ -82,7 +79,7 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
         liveStreamProvider={event.liveStreamProvider}
       />
 
-      <EventCalendarActions event={event} />
+      <EventCalendarActions event={event} className="events-detail__calendar" compact />
     </div>
   )
 }
@@ -94,19 +91,15 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
 
   return (
     <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">
-      <div className="events-public-tickets__icon" aria-hidden>
-        <Ticket size={20} />
-      </div>
       <div className="events-public-tickets__copy">
-        <span>{t('pages.events.publicTicketsEyebrow')}</span>
+        <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span>
         <h3 id="events-public-tickets-title">{t('pages.events.publicTicketsTitle')}</h3>
         <p>{t('pages.events.publicTicketsLead')}</p>
       </div>
       <div className="events-public-tickets__aside">
-        <div className="events-public-tickets__price">
-          <Users size={15} aria-hidden />
-          <span>{ticketsEnabled ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) }) : t('pages.events.publicTicketsClosed')}</span>
-        </div>
+        <p className="events-public-tickets__price">
+          {ticketsEnabled ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) }) : t('pages.events.publicTicketsClosed')}
+        </p>
         <Button className="btn--small" onClick={onBuyTickets} disabled={!ticketsEnabled}>
           {t('pages.events.publicTicketsCta')}
           <ArrowRight size={14} aria-hidden />
@@ -261,8 +254,14 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
       : t('pages.events.eventCount_other', { count: visibleEventCount })
 
   return (
-    <main className="page page--design events-page--design events-page--plu-ref">
-      <EventsPluHero onHome={() => onNavigate('home')} />
+    <main className="page page--design page--plu-ref events-page--design events-page--plu-ref">
+      <PluPageHero
+        breadcrumbLabel={t('pages.events.heroBreadcrumb')}
+        chapter={t('pages.events.heroChapter')}
+        description={t('pages.events.heroDesc')}
+        onHome={() => onNavigate('home')}
+        title={t('pages.events.heroTitle')}
+      />
 
       <div className="events-page__body">
         <div className="events-page__toolbar">
@@ -278,22 +277,24 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
           </span>
         </div>
         <div className="events-layout-v2">
-          <div className="events-main-column">
+          <MotionContentSwap swapKey={filter} className="events-main-column">
             {showPitbull && pitbull && (
               <Reveal variant="from-left">
-                <PitbullSpotlight
-                  variant="events"
-                  event={pitbull}
-                  onDetail={() => onNavigate('pitbull')}
-                  onRegister={() => handleRegister(pitbull)}
-                  registerLabel={registerLabel}
-                />
-                <EventsAudienceTicketsPanel
-                  event={pitbull}
-                  locale={locale}
-                  onBuyTickets={() => onNavigate('pitbull')}
-                  t={t}
-                />
+                <div className="events-featured-stack">
+                  <PitbullSpotlight
+                    variant="events"
+                    event={pitbull}
+                    onDetail={() => onNavigate('pitbull')}
+                    onRegister={() => handleRegister(pitbull)}
+                    registerLabel={registerLabel}
+                  />
+                  <EventsAudienceTicketsPanel
+                    event={pitbull}
+                    locale={locale}
+                    onBuyTickets={() => onNavigate('pitbull')}
+                    t={t}
+                  />
+                </div>
               </Reveal>
             )}
 
@@ -331,7 +332,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                 </Button>
               </div>
             )}
-          </div>
+          </MotionContentSwap>
 
           <Reveal variant="from-right" as="aside" className="events-sidebar-card">
             <EventCalendar

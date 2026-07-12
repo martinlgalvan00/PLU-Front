@@ -32,6 +32,22 @@
   margin: 0 auto;
 }
 
+.records-section-header.motion-section-header--records {
+  justify-items: center;
+  margin-bottom: clamp(18px, 2.5vw, 24px);
+  text-align: center;
+}
+
+.motion-section-header--records .motion-section-header__title {
+  font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+}
+
+.motion-section-header--records .motion-section-header__rule {
+  margin-inline: auto;
+  max-width: 96px;
+  transform-origin: center;
+}
+
 @media (max-width: 720px) {
   .records-distinction {
     grid-template-columns: 1fr;

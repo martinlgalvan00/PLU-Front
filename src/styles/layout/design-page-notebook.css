@@ -570,11 +570,11 @@
   }
 
   .community-section__head {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .community-section__link {
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: auto;
     justify-self: start;
     margin-top: 4px;
