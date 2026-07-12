@@ -14,11 +14,32 @@ describe('browser env', () => {
     expect(source).not.toContain('clientSecret')
   })
 
+  it('no permite credenciales admin de Supabase en el bundle del browser', () => {
+    const envSource = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
+    const clientSource = readFileSync(join(process.cwd(), 'src/lib/supabaseClient.js'), 'utf8')
+
+    expect(envSource).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
+    expect(envSource).not.toContain('SUPABASE_SECRET_KEY')
+    expect(clientSource).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
+    expect(clientSource).not.toContain('SUPABASE_SECRET_KEY')
+    expect(clientSource).toContain('assertBrowserSupabaseKeyIsPublic')
+  })
+
   it('expone solo configuracion publica de Auth0 para OAuth SPA', () => {
     const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
 
     expect(source).toContain('VITE_AUTH0_DOMAIN')
     expect(source).toContain('VITE_AUTH0_CLIENT_ID')
     expect(source).toContain('VITE_AUTH0_AUDIENCE')
+  })
+})
+
+describe('server Supabase admin env', () => {
+  it('no usa variables VITE como fallback para operaciones privilegiadas', () => {
+    const source = readFileSync(join(process.cwd(), 'server/lib/supabaseAdmin.js'), 'utf8')
+
+    expect(source).not.toContain('process.env.VITE_SUPABASE_URL')
+    expect(source).toContain('requireSupabaseAdminConfig')
+    expect(source).toContain('SUPABASE_SERVICE_ROLE_KEY')
   })
 })

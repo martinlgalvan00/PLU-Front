@@ -49,7 +49,7 @@
 .info-card:hover {
   border-color: rgba(255, 255, 255, 0.16);
   box-shadow: var(--elevation-md);
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
 .benefit-card svg {

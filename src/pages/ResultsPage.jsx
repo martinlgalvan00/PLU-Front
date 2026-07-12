@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Download, ShieldCheck, Trophy } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import ResultsArchiveList from '../components/ui/ResultsArchiveList.jsx'
 import ResultsArchiveToolbar from '../components/ui/ResultsArchiveToolbar.jsx'
@@ -9,7 +9,6 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import {
   filterResultsArchive,
   getResultsArchive,
-  getResultsFilterLabels,
   getResultsFilters,
   getResultsSorts,
   getResultsSummary,
@@ -29,7 +28,6 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
 
   const resultsFilters = useMemo(() => getResultsFilters(t), [t])
   const resultsSorts = useMemo(() => getResultsSorts(t), [t])
-  const resultsFilterLabels = useMemo(() => getResultsFilterLabels(t), [t])
   const resultsNotes = useMemo(
     () => [
       {
@@ -54,10 +52,6 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
   const nextEvent = useMemo(() => events.find((event) => event.featured) ?? events[0], [events])
   const archive = useMemo(() => getResultsArchive(events), [events])
   const summary = useMemo(() => getResultsSummary(archive), [archive])
-  const filterIndex = Math.max(
-    resultsFilters.findIndex(([key]) => key === filter),
-    0,
-  )
 
   const filteredEvents = useMemo(() => {
     const filtered = filterResultsArchive(archive, { query, filter })
@@ -72,38 +66,27 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
 
   const showPublishedEmpty = summary.published === 0 && (filter === 'all' || filter === 'published')
 
+  const listKey = `${filter}:${sort}:${query.trim().toLowerCase()}`
+
   return (
-    <main className="page page--design results-page--design results-page--premium">
-      <DesignPageHero
-        className="results-hero"
-        compact
+    <main className="page page--design page--plu-ref results-page--design results-page--premium">
+      <PluPageHero
         breadcrumbLabel={t('pages.results.heroBreadcrumb')}
+        chapter={t('pages.results.heroChapter')}
+        description={t('pages.results.heroDesc')}
         onHome={() => onNavigate?.('home')}
         title={t('pages.results.heroTitle')}
-      >
-        <dl className="results-hero__status" aria-label={t('pages.results.archiveAria')}>
-          <div className="results-hero__metric">
-            <dt>{t('pages.results.published')}</dt>
-            <dd>{summary.published}</dd>
-          </div>
-          <div className="results-hero__metric results-hero__metric--pending">
-            <dt>{t('pages.results.pending')}</dt>
-            <dd>{summary.pending}</dd>
-          </div>
-        </dl>
+      />
 
-        <div className="results-hero__bar">
+      <div className="results-page__inner">
+        <div className="results-page__toolbar">
           <ResultsArchiveToolbar
             compact
             count={filteredEvents.length}
             filter={filter}
-            filterCount={resultsFilters.length}
-            filterIndex={filterIndex}
-            filterLabel={resultsFilterLabels[filter]}
             filters={resultsFilters}
-            hero
+            layout="page"
             query={query}
-            segmented
             showCount
             sort={sort}
             sorts={resultsSorts}
@@ -112,13 +95,11 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
             onSortChange={setSort}
           />
         </div>
-      </DesignPageHero>
-
-      <div className="results-page__inner">
         <Reveal>
           <section className="results-shell results-shell--minimal" aria-label={t('pages.results.archiveAria')}>
             <ResultsArchiveList
               entries={filteredEvents}
+              listKey={listKey}
               onNavigate={onNavigate}
               onSelect={handleSelectSlug}
               selectedSlug={selectedSlug}

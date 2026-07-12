@@ -15,9 +15,11 @@ export const HOME_QUICK_LINKS = [
 
 export const ABOUT_INTRO = {
   eyebrow: 'About us',
-  title: 'Memberships, competitions and results under one standard.',
+  title: 'One standard to affiliate, compete and publish.',
+  titleLead: 'One standard to affiliate, compete',
+  titleAccent: 'and publish.',
   description:
-    'Powerlifting United Argentina connects athletes, gyms and referees with annual membership, an official calendar and results aligned with the PLU USA standard.',
+    'PLU Argentina connects athletes, gyms and referees with annual membership, an official calendar and PLU USA-aligned results.',
 }
 
 export const HOME_MEMBERSHIP = {

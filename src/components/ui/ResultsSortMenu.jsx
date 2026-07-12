@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 export default function ResultsSortMenu({
   className = '',
   luxury = false,
+  minimal = false,
   onSortChange,
   options,
   sort,
@@ -52,6 +53,7 @@ export default function ResultsSortMenu({
   const rootClass = [
     'results-sort-menu',
     luxury ? 'results-sort-menu--luxury' : '',
+    minimal ? 'results-sort-menu--minimal' : '',
     open ? 'is-open' : '',
     className,
   ]
@@ -69,15 +71,22 @@ export default function ResultsSortMenu({
         aria-label={t('pages.results.sortMenuCurrent', { sort: sortLabel })}
         onClick={() => setOpen((value) => !value)}
       >
-        <ArrowDownUp size={14} aria-hidden className="results-sort-menu__icon" />
+        {!minimal ? <ArrowDownUp size={14} aria-hidden className="results-sort-menu__icon" /> : null}
         <span className="results-sort-menu__face">
           {luxury && (
             <span className="results-sort-menu__prefix">{t('pages.results.sortLabel')}</span>
           )}
-          <span className="results-sort-menu__value">
-            <span className="results-sort-menu__label results-sort-menu__label--full">{sortLabel}</span>
-            <span className="results-sort-menu__label results-sort-menu__label--short">{sortShortLabel}</span>
-          </span>
+          {minimal ? (
+            <span className="results-sort-menu__minimal-copy">
+              <span className="results-sort-menu__minimal-label">{t('pages.results.sortLabel')}</span>
+              <span className="results-sort-menu__value">{sortLabel}</span>
+            </span>
+          ) : (
+            <span className="results-sort-menu__value">
+              <span className="results-sort-menu__label results-sort-menu__label--full">{sortLabel}</span>
+              <span className="results-sort-menu__label results-sort-menu__label--short">{sortShortLabel}</span>
+            </span>
+          )}
         </span>
         <ChevronDown size={13} aria-hidden className="results-sort-menu__chevron" />
       </button>

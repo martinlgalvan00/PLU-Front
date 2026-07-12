@@ -176,16 +176,16 @@
   margin: 0;
 }
 
-/* Stats dentro del hero (intro + métricas en 2 columnas desde tablet) */
+/* Stats dentro del hero PLU (centrado) */
 .community-stats-rail--hero {
-  align-self: end;
+  align-self: stretch;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  margin-top: 0;
   padding: 12px 14px;
-  padding-bottom: 12px;
+  width: 100%;
 }
 
 @media (min-width: 900px) {
@@ -313,11 +313,44 @@
   align-items: flex-start;
   display: grid;
   gap: 8px 12px;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .community-section__head--compact {
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.community-section__motion-header {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.motion-section-header--community {
+  gap: 4px;
+}
+
+.motion-section-header--community .motion-section-header__eyebrow {
+  color: var(--community-index-fg, rgba(242, 183, 5, 0.82));
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  padding-top: 2px;
+  text-transform: none;
+}
+
+.motion-section-header--community .motion-section-header__title {
+  font-size: clamp(16px, 2.2vw, 18px);
+  letter-spacing: -0.022em;
+  line-height: 1.2;
+}
+
+.motion-section-header--community .motion-section-header__lead {
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: none;
 }
 
 .community-section__copy {
@@ -365,8 +398,8 @@
   font-size: 12px;
   font-weight: 600;
   gap: 5px;
-  grid-column: 3;
-  grid-row: 1 / span 2;
+  grid-column: 2;
+  grid-row: 1;
   padding: 2px 0 0;
   transition: gap var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
@@ -709,11 +742,11 @@
 @media (max-width: 1199px) {
   .community-section__head {
     gap: 6px 10px;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .community-section__link {
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: auto;
     justify-self: flex-start;
     margin-top: 2px;

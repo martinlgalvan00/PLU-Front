@@ -1,0 +1,81 @@
+/* PLU page hero — patrón compartido (Eventos, Resultados, etc.) */
+
+.page--plu-ref.page {
+  padding-top: 0;
+}
+
+.plu-page-hero {
+  margin-top: calc(-1 * var(--header-height));
+  padding:
+    calc(var(--header-height) + clamp(28px, 4vw, 40px))
+    clamp(20px, 5vw, 64px)
+    clamp(24px, 3.5vw, 32px);
+  text-align: center;
+}
+
+.plu-page-hero__breadcrumb {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+
+.plu-page-hero__breadcrumb button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  text-transform: inherit;
+}
+
+.plu-page-hero__breadcrumb button:hover {
+  color: var(--color-text);
+}
+
+.plu-page-hero__breadcrumb span:last-child {
+  color: var(--color-text);
+}
+
+.plu-page-hero__chapter {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.plu-page-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(34px, 6vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.plu-page-hero__desc {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 14px auto 0;
+  max-width: 42ch;
+}
+
+.plu-page-hero__extra {
+  display: flex;
+  justify-content: center;
+  margin: clamp(18px, 3vw, 24px) auto 0;
+  max-width: min(100%, 720px);
+  width: 100%;
+}

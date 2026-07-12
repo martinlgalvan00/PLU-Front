@@ -1,29 +1,22 @@
+import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function HeroStatusCard() {
+  const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
 
-  const stats = [
-    { key: 'pluUsa', label: t('hero.statPluUsaLabel'), value: t('hero.statPluUsa') },
-    { key: 'season', label: t('hero.stat2026Label'), value: t('hero.stat2026') },
-    { key: 'digital', label: t('hero.statDigitalLabel'), value: t('hero.statDigital') },
-  ]
-
   return (
-    <div className="hero-meta">
-      <dl className="hero-meta__grid">
-        {stats.map((stat) => (
-          <div className="hero-meta__stat" key={stat.key}>
-            <dt className="hero-meta__label">{stat.label}</dt>
-            <dd className="hero-meta__value">{stat.value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="hero-meta__next">
-        <span className="hero-meta__next-value">{t('hero.statusNextMeetValue')}</span>
-        <span className="hero-meta__sep" aria-hidden>·</span>
-        <span className="hero-meta__next-note">{t('hero.statusLive')}</span>
+    <aside className="hero-meta hero-meta--note" aria-label={t('hero.statusNextMeet')}>
+      <p className="hero-meta__when">
+        <time dateTime="2026-12-12">{PITBULL_CLASSIC.date}</time>
       </p>
-    </div>
+      <p className="hero-meta__meet">{t('hero.statusNextMeetValue')}</p>
+      <p className="hero-meta__where">
+        {PITBULL_CLASSIC.venue}
+        <span aria-hidden> · </span>
+        {PITBULL_CLASSIC.location}
+      </p>
+      <p className="hero-meta__status">{t('pages.pitbull.spotlight.registrationSoon')}</p>
+    </aside>
   )
 }

@@ -1,12 +1,40 @@
-import { CalendarCheck, ClipboardList, CreditCard, ShieldCheck } from 'lucide-react'
+import {
+  CalendarCheck,
+  CalendarClock,
+  Camera,
+  ClipboardList,
+  CreditCard,
+  Globe,
+  HeartPulse,
+  IdCard,
+  QrCode,
+  ShieldCheck,
+  TrendingUp,
+  UserRound,
+} from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 const PROCESS_STEP_ICONS = [ClipboardList, CreditCard, ShieldCheck, CalendarCheck]
+
+const BENEFIT_ICONS = {
+  events: CalendarCheck,
+  registry: QrCode,
+  results: TrendingUp,
+  standard: Globe,
+}
+
+const REQUIREMENT_ICONS = {
+  id: IdCard,
+  age: UserRound,
+  health: HeartPulse,
+  photo: Camera,
+}
 
 export default function MembersPage({ memberships = [], onNavigate, session }) {
   const {
@@ -38,7 +66,6 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
     <main className="page page--design members-page members-page--plu-ref">
       <Reveal>
         <MembersPluHero
-          onHome={() => onNavigate('home')}
           onNavigate={onNavigate}
           session={session}
           affiliationCta={affiliationCta}
@@ -68,19 +95,42 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
           </div>
         </section>
 
-        <Reveal as="section" variant="up" className="members-plu-block">
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--benefits">
           <header className="members-plu-block__head">
             <h2 className="members-plu-block__title">{t('pages.members.introTitle')}</h2>
-            <p className="members-plu-block__lead">{t('pages.members.introText')}</p>
+            <p className="members-plu-block__lead members-plu-block__lead--benefits">{t('pages.members.introText')}</p>
           </header>
-          <ul className="members-plu-tiles" aria-label={t('pages.members.benefitsAria')}>
-            {MEMBERSHIP_BENEFITS.map((item) => (
-              <li key={item.id} className="members-plu-tile">
-                <strong className="members-plu-tile__title">{item.title}</strong>
-                <p className="members-plu-tile__text">{item.text}</p>
-              </li>
-            ))}
-          </ul>
+          <StaggerGroup
+            as="div"
+            className="members-plu-tiles members-plu-tiles--benefits"
+            role="list"
+            aria-label={t('pages.members.benefitsAria')}
+            stagger={70}
+            variant="up"
+          >
+            {MEMBERSHIP_BENEFITS.map((item, index) => {
+              const Icon = BENEFIT_ICONS[item.id] ?? ClipboardList
+
+              return (
+                <div
+                  key={item.id}
+                  role="listitem"
+                  className="members-plu-tile members-plu-tile--benefit"
+                  style={{ '--tile-index': index }}
+                >
+                  <div className="members-plu-tile__face">
+                    <span className="members-plu-tile__icon" aria-hidden>
+                      <Icon size={18} strokeWidth={1.65} />
+                    </span>
+                    <div className="members-plu-tile__body">
+                      <strong className="members-plu-tile__title">{item.title}</strong>
+                      <p className="members-plu-tile__text">{item.text}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </StaggerGroup>
         </Reveal>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--process">
@@ -122,19 +172,35 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
           </header>
 
           <div className="members-plu-requirements">
-            <ul className="members-plu-checklist" aria-label={t('pages.members.requirementsAria')}>
-              {MEMBERSHIP_REQUIREMENTS.map((item) => (
-                <li key={item.id} className="members-plu-checklist__item">
-                  <span className="members-plu-checklist__marker" aria-hidden />
-                  <div className="members-plu-checklist__copy">
-                    <strong>{item.title}</strong>
-                    <p>{item.text}</p>
+            <StaggerGroup
+              as="div"
+              className="members-plu-checklist"
+              role="list"
+              aria-label={t('pages.members.requirementsAria')}
+              stagger={60}
+              variant="up"
+            >
+              {MEMBERSHIP_REQUIREMENTS.map((item) => {
+                const Icon = REQUIREMENT_ICONS[item.id] ?? ShieldCheck
+
+                return (
+                  <div key={item.id} role="listitem" className="members-plu-checklist__item">
+                    <span className="members-plu-checklist__icon" aria-hidden>
+                      <Icon size={16} strokeWidth={1.65} />
+                    </span>
+                    <div className="members-plu-checklist__copy">
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                    </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                )
+              })}
+            </StaggerGroup>
 
             <aside className="members-plu-validity-card" aria-labelledby="members-validity-title">
+              <span className="members-plu-validity-card__icon" aria-hidden>
+                <CalendarClock size={18} strokeWidth={1.65} />
+              </span>
               <h3 id="members-validity-title" className="members-plu-validity-card__title">
                 {t('pages.members.validityTitle')}
               </h3>

@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import { CalendarDays, ChevronRight, MapPin } from 'lucide-react'
 import ResultsEventPanel from './ResultsEventPanel.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { hasEventResults } from '../../services/resultsService.js'
+import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
+import { MOTION_DURATION } from '../../motion/tokens.ts'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 function formatArchiveDate(dateISO, locale) {
   const date = new Date(`${dateISO}T12:00:00`)
@@ -24,6 +28,7 @@ function ResultsStatusBadge({ status, t }) {
 }
 
 function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale }) {
+  const { reducedMotion } = useMotionConfig()
   const isPublished = entry.resultsStatus === 'published'
   const canShowResults = isPublished && hasEventResults(entry.slug)
   const { day, month, year } = formatArchiveDate(entry.dateISO, locale)
@@ -83,19 +88,15 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
         }
         role={canShowResults ? 'button' : undefined}
         tabIndex={canShowResults ? 0 : undefined}
-        aria-expanded={canShowResults ? isExpanded : undefined}
       >
         <div className="results-archive-row__date" aria-hidden>
-          <span className="results-archive-row__day">{day}</span>
-          <span className="results-archive-row__month">{month}</span>
-          <span className="results-archive-row__year">{year}</span>
+          <span className="results-archive-row__date-day">{day}</span>
+          <span className="results-archive-row__date-month">{month}</span>
+          <span className="results-archive-row__date-year">{year}</span>
         </div>
 
-        <div className="results-archive-row__body">
-          <div className="results-archive-row__title-row">
-            <h3 className="results-archive-row__title">{entry.title}</h3>
-            {entry.featured && <span className="results-archive-row__tag">{t('pages.results.listNext')}</span>}
-          </div>
+        <div className="results-archive-row__main">
+          <h3 className="results-archive-row__title">{entry.title}</h3>
           <p className="results-archive-row__meta">
             <MapPin size={12} aria-hidden />
             {entry.venue} · {entry.location}
@@ -116,41 +117,56 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
         </div>
       </article>
 
-      {isExpanded && canShowResults && (
-        <div ref={panelRef}>
-          <ResultsEventPanel entry={entry} onClose={() => onSelect(entry.slug)} />
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {isExpanded && canShowResults ? (
+          <m.div
+            ref={panelRef}
+            className="results-archive-item__panel"
+            initial={reducedMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: reducedMotion ? 0 : MOTION_DURATION.base, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <ResultsEventPanel entry={entry} onClose={() => onSelect(entry.slug)} />
+          </m.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
 
-export default function ResultsArchiveList({ entries, onNavigate, selectedSlug, onSelect }) {
+export default function ResultsArchiveList({
+  entries,
+  listKey = 'default',
+  onNavigate,
+  selectedSlug,
+  onSelect,
+}) {
   const { locale, t } = useI18n()
 
-  if (!entries.length) {
-    return (
-      <div className="results-filter-empty">
-        <CalendarDays size={20} aria-hidden className="results-filter-empty__icon" />
-        <p className="results-filter-empty__title">{t('pages.results.emptyNoMatchesTitle')}</p>
-        <p className="results-filter-empty__desc">{t('pages.results.emptyNoMatchesDesc')}</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="results-archive-list">
-      {entries.map((entry) => (
-        <ResultsArchiveRow
-          key={entry.slug}
-          entry={entry}
-          isExpanded={selectedSlug === entry.slug}
-          locale={locale}
-          onNavigate={onNavigate}
-          onSelect={onSelect}
-          t={t}
-        />
-      ))}
-    </div>
+    <MotionContentSwap swapKey={listKey} className="results-archive-swap">
+      {!entries.length ? (
+        <div className="results-filter-empty">
+          <CalendarDays size={20} aria-hidden className="results-filter-empty__icon" />
+          <p className="results-filter-empty__title">{t('pages.results.emptyNoMatchesTitle')}</p>
+          <p className="results-filter-empty__desc">{t('pages.results.emptyNoMatchesDesc')}</p>
+        </div>
+      ) : (
+        <div className="results-archive-list">
+          {entries.map((entry) => (
+            <ResultsArchiveRow
+              key={entry.slug}
+              entry={entry}
+              isExpanded={selectedSlug === entry.slug}
+              locale={locale}
+              onNavigate={onNavigate}
+              onSelect={onSelect}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+    </MotionContentSwap>
   )
 }

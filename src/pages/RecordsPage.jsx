@@ -1,41 +1,57 @@
 import { Medal, Trophy } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import SectionHeading from '../components/ui/SectionHeading.jsx'
+import AnimatedSectionHeader from '../motion/AnimatedSectionHeader.tsx'
+import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+
+const DISTINCTION_CARDS = [
+  {
+    id: 'results',
+    icon: Trophy,
+    titleKey: 'pages.records.distinctionResultsTitle',
+    textKey: 'pages.records.distinctionResultsText',
+  },
+  {
+    id: 'records',
+    icon: Medal,
+    titleKey: 'pages.records.distinctionRecordsTitle',
+    textKey: 'pages.records.distinctionRecordsText',
+  },
+]
 
 export default function RecordsPage({ onNavigate }) {
   const { t } = useI18n()
 
   return (
-    <main className="page page--design records-page">
-      <DesignPageHero
-        className="records-hero"
-        compact
+    <main className="page page--design page--plu-ref records-page">
+      <PluPageHero
         breadcrumbLabel={t('pages.records.heroBreadcrumb')}
-        eyebrow={t('pages.records.heroEyebrow')}
+        chapter={t('pages.records.heroEyebrow')}
+        description={t('pages.records.heroDesc')}
         onHome={() => onNavigate('home')}
         title={t('pages.records.heroTitle')}
-        description={t('pages.records.heroDesc')}
       />
 
       <div className="design-section">
         <Reveal as="section" variant="up">
-          <SectionHeading title={t('pages.records.distinctionTitle')} />
-          <div className="content-grid records-distinction">
-            <article className="info-card">
-              <Trophy size={26} strokeWidth={1.6} aria-hidden />
-              <h3>{t('pages.records.distinctionResultsTitle')}</h3>
-              <p>{t('pages.records.distinctionResultsText')}</p>
-            </article>
-            <article className="info-card">
-              <Medal size={26} strokeWidth={1.6} aria-hidden />
-              <h3>{t('pages.records.distinctionRecordsTitle')}</h3>
-              <p>{t('pages.records.distinctionRecordsText')}</p>
-            </article>
-          </div>
+          <AnimatedSectionHeader
+            align="left"
+            className="records-section-header motion-section-header--records"
+            showRule
+            title={t('pages.records.distinctionTitle')}
+          />
+          <StaggerGroup as="div" className="content-grid records-distinction" stagger={70} variant="up">
+            {DISTINCTION_CARDS.map(({ icon: Icon, id, textKey, titleKey }) => (
+              <article key={id} className="info-card">
+                <Icon size={26} strokeWidth={1.6} aria-hidden />
+                <h3>{t(titleKey)}</h3>
+                <p>{t(textKey)}</p>
+              </article>
+            ))}
+          </StaggerGroup>
         </Reveal>
 
         <Reveal delay={60} className="records-comingsoon">

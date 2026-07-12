@@ -1,6 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from '../config/env.js'
 
+export function assertBrowserSupabaseKeyIsPublic(key) {
+  if (!key) return
+
+  if (key.startsWith('sb_secret_')) {
+    throw new Error('La clave privada de Supabase no puede usarse en el navegador.')
+  }
+
+  const [, payload] = key.split('.')
+  if (!payload) return
+
+  try {
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decodedPayload = JSON.parse(atob(normalizedPayload))
+    if (decodedPayload?.role === 'service_role') {
+      throw new Error('La clave service_role de Supabase no puede usarse en el navegador.')
+    }
+  } catch (error) {
+    if (error.message.includes('Supabase')) throw error
+  }
+}
+
+assertBrowserSupabaseKeyIsPublic(env.supabase.anonKey)
+
 export const isSupabaseConfigured = env.supabase.configured
 
 if (!isSupabaseConfigured && env.isDev) {
@@ -11,5 +34,11 @@ if (!isSupabaseConfigured && env.isDev) {
 }
 
 export const supabase = isSupabaseConfigured
-  ? createClient(env.supabase.url, env.supabase.anonKey)
+  ? createClient(env.supabase.url, env.supabase.anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   : null

@@ -190,10 +190,10 @@
 
 .reveal {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(var(--motion-enter-y, 12px));
   transition:
-    opacity var(--duration-reveal) var(--ease-out),
-    transform var(--duration-reveal) var(--ease-out);
+    opacity var(--duration-reveal) var(--ease-emphasized),
+    transform var(--duration-reveal) var(--ease-emphasized);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -260,11 +260,11 @@
 
 .stagger-reveal > * {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(var(--motion-enter-y, 12px));
   transition:
-    opacity var(--duration-reveal) var(--ease-out),
-    transform var(--duration-reveal) var(--ease-out);
-  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-step, 80ms));
+    opacity var(--duration-reveal) var(--ease-emphasized),
+    transform var(--duration-reveal) var(--ease-emphasized);
+  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-step, 60ms));
 }
 
 .stagger-reveal--scale > * {
@@ -370,6 +370,17 @@
   .hero--design .hero__proof,
   .hero-status-card,
   .hero-status-card__live-dot {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+    transition: none !important;
+  }
+
+  .hero--design.is-animate .hero-meta--note > *,
+  .site-header__drawer.is-open .site-header__drawer-foot,
+  .motion-surface,
+  .event-card,
+  .membership-card {
     animation: none !important;
     opacity: 1;
     transform: none;

@@ -1,28 +1,30 @@
-import { useState, useEffect, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
+import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
 import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isPluUsaPartner } from './lib/roles.js'
-import AdminPage from './pages/AdminPage.jsx'
-import AthleteProfilePage from './pages/AthleteProfilePage.jsx'
-import CommunityPage from './pages/CommunityPage.jsx'
-import CredentialPage from './pages/CredentialPage.jsx'
-import ContactPage from './pages/ContactPage.jsx'
-import EventsPage from './pages/EventsPage.jsx'
-import FAQPage from './pages/FAQPage.jsx'
 import HomePage from './pages/HomePage.jsx'
-import LoginPage from './pages/LoginPage.jsx'
-import MembersPage from './pages/MembersPage.jsx'
-import PitbullPage from './pages/PitbullPage.jsx'
-import RecordsPage from './pages/RecordsPage.jsx'
-import RegisterPage from './pages/RegisterPage.jsx'
-import ResultsPage from './pages/ResultsPage.jsx'
-import RulebookPage from './pages/RulebookPage.jsx'
+
+const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
+const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage.jsx'))
+const CommunityPage = lazy(() => import('./pages/CommunityPage.jsx'))
+const CredentialPage = lazy(() => import('./pages/CredentialPage.jsx'))
+const ContactPage = lazy(() => import('./pages/ContactPage.jsx'))
+const EventsPage = lazy(() => import('./pages/EventsPage.jsx'))
+const FAQPage = lazy(() => import('./pages/FAQPage.jsx'))
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const MembersPage = lazy(() => import('./pages/MembersPage.jsx'))
+const PitbullPage = lazy(() => import('./pages/PitbullPage.jsx'))
+const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
+const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
+const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 
 const PUBLIC_VIEWS = {
   home: HomePage,
@@ -55,9 +57,6 @@ export default function App() {
 
   const navigate = useCallback(
     (nextView) => {
-      // Lee la sesión vía ref (app.getSession()), no app.session: justo después de un
-      // login, setSession todavía no se aplicó al render en curso y app.session
-      // seguiría viendo el valor viejo dentro de este mismo handler síncrono.
       const currentRole = app.getSession()?.role
       const adminRequired = nextView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
@@ -77,63 +76,65 @@ export default function App() {
     navigate('competition')
   }
 
-  // El QR de la card de inscripción/afiliación apunta a la home con este query
-  // param — se resuelve antes que cualquier otra vista, sin necesitar login.
   const credential = readCredentialParams()
   if (credential) {
     return (
-      <CredentialPage
-        code={credential.code}
-        eventSlug={credential.eventSlug}
-        type={credential.type}
-        athletes={app.athletes}
-        memberships={app.memberships}
-        registrations={app.registrations}
-        onCheckIn={app.checkInTicketAction}
-      />
+      <Suspense fallback={<PageLoadFallback />}>
+        <CredentialPage
+          code={credential.code}
+          eventSlug={credential.eventSlug}
+          type={credential.type}
+          athletes={app.athletes}
+          memberships={app.memberships}
+          registrations={app.registrations}
+          onCheckIn={app.checkInTicketAction}
+        />
+      </Suspense>
     )
   }
 
   if (view === 'admin' && canViewAdmin(app.session?.role)) {
     return (
-      <AdminPage
-        canCheckIn={canCheckIn(app.session?.role)}
-        canEdit={app.userCanEdit}
-        canManageUsers={canManageUsers(app.session?.role)}
-        dashboardOverview={app.dashboardOverview}
-        adminEvents={app.adminEvents}
-        filters={app.filters}
-        filteredRegistrations={app.filteredRegistrations}
-        enrichedMemberships={app.enrichedMemberships}
-        pendingActions={app.pendingActions}
-        adminNavBadges={app.adminNavBadges}
-        recentActivity={app.recentActivity}
-        getAthleteDetail={app.getAthleteDetail}
-        onApprovePayment={app.handleApprovePayment}
-        onApproveTicketPurchase={app.approveTicketPurchase}
-        onCheckInRegistration={app.checkInRegistrationAction}
-        onCheckInTicket={app.checkInTicketAction}
-        onRedeemTicketAddon={app.redeemTicketAddonAction}
-        onRefreshTickets={app.refreshTickets}
-        onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
-        onCreateUser={app.createUserAction}
-        onExportAdmin={app.exportAdminCsv}
-        onExportPluUsa={app.exportPluUsaCsv}
-        onSaveEvent={app.saveAdminEvent}
-        onSetFilters={app.setFilters}
-        onUpdateUserRole={app.updateUserRoleAction}
-        payments={app.payments}
-        pendingTicketOrders={app.pendingTicketOrders}
-        pendingTicketOrdersLoading={app.pendingTicketOrdersLoading}
-        pendingTicketOrdersError={app.pendingTicketOrdersError}
-        athletes={app.athletes}
-        registrations={app.registrations}
-        tickets={app.tickets}
-        users={app.users}
-        roleLabel={getRoleLabel(app.session?.role)}
-        isPluUsaPartner={isPluUsaPartner(app.session?.role)}
-        onExit={() => navigate('home')}
-      />
+      <Suspense fallback={<PageLoadFallback />}>
+        <AdminPage
+          canCheckIn={canCheckIn(app.session?.role)}
+          canEdit={app.userCanEdit}
+          canManageUsers={canManageUsers(app.session?.role)}
+          dashboardOverview={app.dashboardOverview}
+          adminEvents={app.adminEvents}
+          filters={app.filters}
+          filteredRegistrations={app.filteredRegistrations}
+          enrichedMemberships={app.enrichedMemberships}
+          pendingActions={app.pendingActions}
+          adminNavBadges={app.adminNavBadges}
+          recentActivity={app.recentActivity}
+          getAthleteDetail={app.getAthleteDetail}
+          onApprovePayment={app.handleApprovePayment}
+          onApproveTicketPurchase={app.approveTicketPurchase}
+          onCheckInRegistration={app.checkInRegistrationAction}
+          onCheckInTicket={app.checkInTicketAction}
+          onRedeemTicketAddon={app.redeemTicketAddonAction}
+          onRefreshTickets={app.refreshTickets}
+          onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
+          onCreateUser={app.createUserAction}
+          onExportAdmin={app.exportAdminCsv}
+          onExportPluUsa={app.exportPluUsaCsv}
+          onSaveEvent={app.saveAdminEvent}
+          onSetFilters={app.setFilters}
+          onUpdateUserRole={app.updateUserRoleAction}
+          payments={app.payments}
+          pendingTicketOrders={app.pendingTicketOrders}
+          pendingTicketOrdersLoading={app.pendingTicketOrdersLoading}
+          pendingTicketOrdersError={app.pendingTicketOrdersError}
+          athletes={app.athletes}
+          registrations={app.registrations}
+          tickets={app.tickets}
+          users={app.users}
+          roleLabel={getRoleLabel(app.session?.role)}
+          isPluUsaPartner={isPluUsaPartner(app.session?.role)}
+          onExit={() => navigate('home')}
+        />
+      </Suspense>
     )
   }
 
@@ -155,23 +156,23 @@ export default function App() {
         ? { onNavigate: navigate, onLogin: app.login }
         : view === 'events'
           ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents, session: app.session }
-        : view === 'home'
-          ? { onNavigate: navigate, onSelectEvent: selectEvent }
-        : view === 'pitbull'
-          ? {
-              onNavigate: navigate,
-              events: app.adminEvents,
-              tickets: app.tickets,
-              createdOrder: app.createdOrder,
-              onSubmitTicketPurchase: app.submitTicketPurchase,
-              onApproveTicketPurchase: app.approveTicketPurchase,
-              onUploadPaymentProof: app.uploadTicketPaymentProofAction,
-            }
-        : view === 'results'
-          ? { onNavigate: navigate, events: app.adminEvents }
-        : view === 'members'
-          ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
-        : { onNavigate: navigate }
+          : view === 'home'
+            ? { onNavigate: navigate, onSelectEvent: selectEvent }
+            : view === 'pitbull'
+              ? {
+                  onNavigate: navigate,
+                  events: app.adminEvents,
+                  tickets: app.tickets,
+                  createdOrder: app.createdOrder,
+                  onSubmitTicketPurchase: app.submitTicketPurchase,
+                  onApproveTicketPurchase: app.approveTicketPurchase,
+                  onUploadPaymentProof: app.uploadTicketPaymentProofAction,
+                }
+              : view === 'results'
+                ? { onNavigate: navigate, events: app.adminEvents }
+                : view === 'members'
+                  ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
+                  : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
     return (
@@ -181,16 +182,18 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
       >
-        <AthleteProfilePage
-          athlete={app.athletes.find((item) => item.id === app.session.athleteId)}
-          memberships={app.memberships}
-          onActivateMembership={app.activateDemoMembership}
-          onCancelMembership={app.cancelDemoMembership}
-          onNavigate={navigate}
-          onUpdateProfile={app.updateAthleteProfileAction}
-          registrations={app.registrations}
-          session={app.session}
-        />
+        <Suspense fallback={<PageLoadFallback />}>
+          <AthleteProfilePage
+            athlete={app.athletes.find((item) => item.id === app.session.athleteId)}
+            memberships={app.memberships}
+            onActivateMembership={app.activateDemoMembership}
+            onCancelMembership={app.cancelDemoMembership}
+            onNavigate={navigate}
+            onUpdateProfile={app.updateAthleteProfileAction}
+            registrations={app.registrations}
+            session={app.session}
+          />
+        </Suspense>
       </PrivateLayout>
     )
   }
@@ -205,18 +208,20 @@ export default function App() {
         navigate={navigate}
         transitionDirection={transitionDirection}
       >
-        <RegisterPage
-          athlete={athlete}
-          createdOrder={app.createdOrder}
-          event={selectedEvent}
-          flow={flow}
-          form={app.form}
-          memberships={app.memberships}
-          onApprovePayment={app.handleApprovePayment}
-          onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
-          onUpdateForm={app.updateForm}
-          total={flow === 'membership' ? PRICING.membership : PRICING.event}
-        />
+        <Suspense fallback={<PageLoadFallback />}>
+          <RegisterPage
+            athlete={athlete}
+            createdOrder={app.createdOrder}
+            event={selectedEvent}
+            flow={flow}
+            form={app.form}
+            memberships={app.memberships}
+            onApprovePayment={app.handleApprovePayment}
+            onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
+            onUpdateForm={app.updateForm}
+            total={flow === 'membership' ? PRICING.membership : PRICING.event}
+          />
+        </Suspense>
       </PrivateLayout>
     )
   }
@@ -225,7 +230,9 @@ export default function App() {
     <div className="app-shell">
       <NavbarPublic activeView={view} onLogout={app.logout} onNavigate={navigate} session={app.session} />
       <PageTransition viewKey={view} direction={transitionDirection}>
-        <Page {...pageProps} />
+        <Suspense fallback={<PageLoadFallback />}>
+          <Page {...pageProps} />
+        </Suspense>
       </PageTransition>
       {view !== 'login' && <Footer onNavigate={navigate} />}
     </div>
@@ -245,7 +252,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         session={app.session}
       />
       <PageTransition viewKey={view} direction={transitionDirection}>
-        {children}
+        <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
       </PageTransition>
       <Footer onNavigate={navigate} />
     </div>

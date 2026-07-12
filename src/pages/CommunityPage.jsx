@@ -1,9 +1,11 @@
-import { ArrowRight } from 'lucide-react'
-import DesignPageHero from '../components/layout/DesignPageHero.jsx'
+import PluPageHero from '../components/layout/PluPageHero.jsx'
+import CommunitySectionHeader from '../components/community/CommunitySectionHeader.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import AnimatedNumber from '../motion/AnimatedNumber.tsx'
+import StaggerGroup from '../motion/StaggerGroup.tsx'
 import {
   formatMemberSince,
   getAffiliatedGyms,
@@ -18,15 +20,21 @@ function CommunityStatsRail({ className = '', stats, t }) {
     <dl className={`community-stats-rail ${className}`.trim()} aria-label={t('pages.community.statsAria')}>
       <div className="community-stats-rail__metric">
         <dt>{t('pages.community.statsActiveGyms')}</dt>
-        <dd>{stats.activeGymCount}</dd>
+        <dd>
+          <AnimatedNumber value={stats.activeGymCount} duration={0.48} />
+        </dd>
       </div>
       <div className="community-stats-rail__metric">
         <dt>{t('pages.community.statsRecentMembers')}</dt>
-        <dd>{stats.memberCount}</dd>
+        <dd>
+          <AnimatedNumber value={stats.memberCount} duration={0.48} />
+        </dd>
       </div>
       <div className="community-stats-rail__metric">
         <dt>{t('pages.community.statsProvinces')}</dt>
-        <dd>{stats.provinceCount}</dd>
+        <dd>
+          <AnimatedNumber value={stats.provinceCount} duration={0.48} />
+        </dd>
       </div>
     </dl>
   )
@@ -35,23 +43,16 @@ function CommunityStatsRail({ className = '', stats, t }) {
 function CommunityGymsSection({ gyms, onNavigate, t }) {
   return (
     <section className="community-section" aria-labelledby="community-gyms-title">
-      <header className="community-section__head">
-        <span className="community-section__index" aria-hidden>
-          {t('pages.community.gymsEyebrow')}
-        </span>
-        <div className="community-section__copy">
-          <h2 className="community-section__title" id="community-gyms-title">
-            {t('pages.community.gymsTitle')}
-          </h2>
-          <p className="community-section__lead">{t('pages.community.gymsLead')}</p>
-        </div>
-        <button type="button" className="community-section__link" onClick={() => onNavigate?.('contact')}>
-          {t('pages.community.gymsCta')}
-          <ArrowRight size={14} aria-hidden />
-        </button>
-      </header>
+      <CommunitySectionHeader
+        ctaLabel={t('pages.community.gymsCta')}
+        description={t('pages.community.gymsLead')}
+        eyebrow={t('pages.community.gymsEyebrow')}
+        onCta={() => onNavigate?.('contact')}
+        title={t('pages.community.gymsTitle')}
+        titleId="community-gyms-title"
+      />
 
-      <ul className="community-gym-list">
+      <StaggerGroup as="ul" className="community-gym-list" stagger={55} variant="up">
         {gyms.map((gym) => (
           <li key={gym.id} className={`community-gym-card community-gym-card--${gym.status}`}>
             <span className="community-gym-card__monogram" aria-hidden>
@@ -69,7 +70,7 @@ function CommunityGymsSection({ gyms, onNavigate, t }) {
             </span>
           </li>
         ))}
-      </ul>
+      </StaggerGroup>
     </section>
   )
 }
@@ -77,21 +78,14 @@ function CommunityGymsSection({ gyms, onNavigate, t }) {
 function CommunityMembersFeed({ members, onNavigate, locale, t }) {
   return (
     <section className="community-section" aria-labelledby="community-members-title">
-      <header className="community-section__head">
-        <span className="community-section__index" aria-hidden>
-          {t('pages.community.membersEyebrow')}
-        </span>
-        <div className="community-section__copy">
-          <h2 className="community-section__title" id="community-members-title">
-            {t('pages.community.membersTitle')}
-          </h2>
-          <p className="community-section__lead">{t('pages.community.membersLead')}</p>
-        </div>
-        <button type="button" className="community-section__link" onClick={() => onNavigate?.('members')}>
-          {t('pages.community.membersCta')}
-          <ArrowRight size={14} aria-hidden />
-        </button>
-      </header>
+      <CommunitySectionHeader
+        ctaLabel={t('pages.community.membersCta')}
+        description={t('pages.community.membersLead')}
+        eyebrow={t('pages.community.membersEyebrow')}
+        onCta={() => onNavigate?.('members')}
+        title={t('pages.community.membersTitle')}
+        titleId="community-members-title"
+      />
 
       <div className="community-member-table">
         <table className="community-member-table__grid">
@@ -157,19 +151,15 @@ function CommunityMembersFeed({ members, onNavigate, locale, t }) {
 function CommunityStoriesSection({ testimonials, t }) {
   return (
     <section className="community-section community-section--stories" aria-labelledby="community-stories-title">
-      <header className="community-section__head community-section__head--compact">
-        <span className="community-section__index" aria-hidden>
-          {t('pages.community.storiesEyebrow')}
-        </span>
-        <div className="community-section__copy">
-          <h2 className="community-section__title" id="community-stories-title">
-            {t('pages.community.storiesTitle')}
-          </h2>
-          <p className="community-section__lead">{t('pages.community.storiesLead')}</p>
-        </div>
-      </header>
+      <CommunitySectionHeader
+        compact
+        description={t('pages.community.storiesLead')}
+        eyebrow={t('pages.community.storiesEyebrow')}
+        title={t('pages.community.storiesTitle')}
+        titleId="community-stories-title"
+      />
 
-      <div className="community-stories-grid">
+      <StaggerGroup as="div" className="community-stories-grid" stagger={60} variant="up">
         {testimonials.map((item, index) => (
           <article key={item.id} className="community-story-card">
             <header className="community-story-card__head">
@@ -184,7 +174,7 @@ function CommunityStoriesSection({ testimonials, t }) {
             </footer>
           </article>
         ))}
-      </div>
+      </StaggerGroup>
     </section>
   )
 }
@@ -197,18 +187,16 @@ export default function CommunityPage({ onNavigate }) {
   const recentMembers = getRecentMembers(undefined, locale)
 
   return (
-    <main className="page page--design community-page--design community-page--premium">
-      <DesignPageHero
-        className="community-hero"
-        compact
+    <main className="page page--design page--plu-ref community-page--design community-page--premium">
+      <PluPageHero
         breadcrumbLabel={t('pages.community.heroBreadcrumb')}
-        eyebrow={t('pages.community.heroEyebrow')}
+        chapter={t('pages.community.heroEyebrow')}
+        description={t('pages.community.heroDesc')}
         onHome={() => onNavigate?.('home')}
         title={t('pages.community.heroTitle')}
-        description={t('pages.community.heroDesc')}
       >
         <CommunityStatsRail stats={stats} t={t} className="community-stats-rail--hero" />
-      </DesignPageHero>
+      </PluPageHero>
 
       <div className="community-page__inner">
         <Reveal variant="fade">

@@ -1,0 +1,497 @@
+/* =============================================
+   PLU MOTION — microinteracciones compartidas
+   Solo transform + opacity. Ver animations.css
+   para page transitions y reduced-motion.
+   ============================================= */
+
+/* ── Tilt card (credencial / placas premium) ── */
+
+.tilt-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --tilt-shift-x: 0px;
+  --tilt-shift-y: 0px;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.tilt-card__inner,
+.tilt-card .members-plu-hero__card-inner {
+  backface-visibility: hidden;
+  transform:
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translateZ(0);
+  transition: transform var(--motion-base) var(--ease-out);
+  transform-style: preserve-3d;
+}
+
+.tilt-card--interactive .tilt-card__inner,
+.tilt-card--interactive .members-plu-hero__card-inner {
+  transition-duration: var(--motion-fast);
+}
+
+.tilt-card--interactive::after {
+  background: linear-gradient(
+    118deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.08) 48%,
+    transparent 58%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(var(--tilt-shift-x), var(--tilt-shift-y));
+  transition: transform var(--motion-fast) var(--ease-out);
+  z-index: 2;
+}
+
+.tilt-card {
+  position: relative;
+}
+
+/* ── Section header motion ──────────────────── */
+
+.motion-section-header {
+  display: grid;
+  gap: 10px;
+}
+
+.motion-section-header--center {
+  justify-items: center;
+  text-align: center;
+}
+
+.motion-section-header__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.motion-section-header__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.motion-section-header__rule {
+  background: linear-gradient(90deg, var(--color-brand-celeste), transparent);
+  display: block;
+  height: 1px;
+  max-width: 120px;
+  origin: left;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.motion-section-header--center .motion-section-header__rule {
+  transform-origin: center;
+}
+
+.motion-section-header__lead {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 48ch;
+}
+
+/* ── Route transition (Motion) ─────────────── */
+
+.page-transition--motion {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.page-load-fallback {
+  flex: 1;
+  min-height: 40vh;
+  width: 100%;
+}
+
+/* ── Hero sequence (Motion) ─────────────────── */
+
+.hero-sequence {
+  display: contents;
+}
+
+.hero-sequence__item {
+  will-change: transform, opacity;
+}
+
+/* ── Mask reveal ────────────────────────────── */
+
+.mask-reveal {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  will-change: clip-path, opacity;
+}
+
+/* ── Event date plate (TiltCard) ─────────────── */
+
+.event-date-plate {
+  position: absolute;
+  z-index: 2;
+}
+
+.event-date-plate__face {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.event-date-plate__content {
+  display: grid;
+  gap: 0;
+  line-height: 1;
+  margin: 0;
+  text-align: center;
+}
+
+.event-date-plate__day,
+.event-date-plate__month {
+  display: block;
+}
+
+/* Pitbull spotlight — events */
+.pitbull-spotlight__events-media-shell,
+.pitbull-spotlight__home-media-shell {
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.pitbull-spotlight__events-date-badge.event-date-plate {
+  bottom: 14px;
+  left: 14px;
+}
+
+.pitbull-spotlight__events-date-badge .event-date-plate__face {
+  background: rgba(8, 10, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--border-radius-md);
+  padding: 8px 10px;
+}
+
+.pitbull-spotlight__events-date-badge .event-date-plate__day {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-spotlight__events-date-badge .event-date-plate__month {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* Pitbull spotlight — home */
+.pitbull-spotlight__home-date.event-date-plate {
+  bottom: 10px;
+  left: 10px;
+  position: absolute;
+  z-index: 2;
+}
+
+.pitbull-spotlight__home-date.event-date-plate:not(.event-date-plate--static) {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.pitbull-spotlight__home-date.event-date-plate--static,
+.pitbull-spotlight__home-date .event-date-plate__face {
+  background: rgba(8, 10, 16, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: calc(var(--border-radius-md) - 2px);
+  line-height: 1;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.pitbull-spotlight__home-date.event-date-plate--static .event-date-plate__content {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.pitbull-spotlight__home-date .event-date-plate__day {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-spotlight__home-date .event-date-plate__month {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* Pitbull spotlight — design card */
+.pitbull-spotlight__visual-date.event-date-plate {
+  bottom: 16px;
+  right: 18px;
+  text-align: right;
+}
+
+.pitbull-spotlight__visual-date .event-date-plate__content {
+  text-align: right;
+}
+
+.pitbull-spotlight__visual-date .event-date-plate__face {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.pitbull-spotlight__visual-date .event-date-plate__day {
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.pitbull-spotlight__visual-date .event-date-plate__month {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.pitbull-spotlight--design .pitbull-spotlight__visual {
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme='light'] .pitbull-spotlight__events-date-badge .event-date-plate__face {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-spotlight__events-date-badge .event-date-plate__day {
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .pitbull-spotlight__home-date.event-date-plate--static,
+[data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__face {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__day {
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__month {
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask-reveal {
+    clip-path: none !important;
+    opacity: 1 !important;
+    will-change: auto;
+  }
+}
+@keyframes motion-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes motion-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── CTA / icon drift ─────────────────────────── */
+
+.btn:hover:not(:disabled) svg:last-child:not(:only-child),
+.site-header__cta:hover svg:last-child,
+.site-header__drawer-foot-btn:hover svg:last-child,
+.hero__cta--primary:hover .hero__cta-icon,
+.motion-icon-shift:hover svg,
+.motion-icon-shift:hover .motion-icon-shift__target {
+  transform: translateX(2px);
+}
+
+.btn svg:last-child,
+.site-header__cta svg,
+.site-header__drawer-foot-btn svg,
+.hero__cta-icon,
+.hero__secondary-link-icon,
+.motion-icon-shift svg,
+.motion-icon-shift__target {
+  transition: transform var(--motion-fast) var(--ease-emphasized);
+}
+
+/* ── Surfaces interactivas ──────────────────── */
+
+.motion-surface {
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-emphasized),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+
+.motion-surface:hover {
+  transform: translateY(-2px);
+}
+
+.motion-surface:active {
+  transform: translateY(0);
+}
+
+/* ── Header polish ──────────────────────────── */
+
+.site-header__backdrop {
+  transition:
+    opacity var(--motion-base) var(--ease-out),
+    visibility var(--motion-base) var(--ease-out);
+}
+
+.site-header__nav-indicator {
+  transition:
+    left var(--motion-base) var(--ease-emphasized),
+    width var(--motion-base) var(--ease-emphasized),
+    opacity var(--motion-fast) var(--ease-out);
+}
+
+.site-header__drawer {
+  transition: transform var(--motion-slow) var(--ease-emphasized);
+}
+
+.site-header__drawer.is-open .site-header__drawer-foot {
+  animation: motion-fade-up 0.34s var(--ease-emphasized) 0.1s both;
+}
+
+.site-header__drawer-item {
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.site-header__drawer-item-chevron {
+  transition: transform var(--motion-fast) var(--ease-emphasized), opacity var(--motion-fast);
+}
+
+.site-header__drawer-item:hover .site-header__drawer-item-chevron {
+  transform: translateX(2px);
+}
+
+/* ── Hero proof strip ───────────────────────── */
+
+.hero--design.is-animate .hero-meta--note > * {
+  animation: motion-fade-up 0.34s var(--ease-emphasized) both;
+}
+
+.hero--design.is-animate .hero-meta__when {
+  animation-delay: 0.38s;
+}
+
+.hero--design.is-animate .hero-meta__meet {
+  animation-delay: 0.44s;
+}
+
+.hero--design.is-animate .hero-meta__where {
+  animation-delay: 0.5s;
+}
+
+.hero--design.is-animate .hero-meta__status {
+  animation-delay: 0.56s;
+}
+
+/* ── Event / membership cards ───────────────── */
+
+.event-card,
+.membership-card {
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-emphasized),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+
+.event-card:active,
+.membership-card:active {
+  transform: translateY(0);
+}
+
+/* ── Admin rows (mínimo) ────────────────────── */
+
+.action-queue__item {
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero--design.is-animate .hero-meta--note > *,
+  .site-header__drawer.is-open .site-header__drawer-foot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .motion-surface:hover,
+  .event-card:hover,
+  .membership-card:hover {
+    transform: none;
+  }
+
+  .btn:hover:not(:disabled) svg:last-child,
+  .site-header__drawer-item:hover .site-header__drawer-item-chevron,
+  .hero__cta--primary:hover .hero__cta-icon {
+    transform: none;
+  }
+
+  .tilt-card__inner,
+  .tilt-card .members-plu-hero__card-inner,
+  .event-date-plate__face,
+  .pitbull-hero-rail__rail {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .tilt-card--interactive::after {
+    display: none;
+  }
+}

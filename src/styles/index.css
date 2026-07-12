@@ -7,6 +7,7 @@
 @import './base.css';
 @import './layout/responsive.css';
 @import './animations.css';
+@import './motion.css';
 @import './effects.css';
 @import './layout/header.css';
 @import './performance.css';
@@ -17,6 +18,7 @@
 @import './components/forms.css';
 @import './components/status.css';
 @import './components/plu-ui.css';
+@import './components/plu-page-hero.css';
 @import './components/brand-logo.css';
 @import './components/states.css';
 @import './components/segmented-switch.css';

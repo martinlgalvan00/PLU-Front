@@ -34,3 +34,44 @@ export function requireRole(allowedRoles, deps) {
     },
   ]
 }
+
+export function requireOrganizationRole(allowedRoles, deps, options = {}) {
+  const auth = requireAuth(deps)
+  const organizationIdParam = options.organizationIdParam ?? 'organizationId'
+
+  return [
+    auth,
+    async (req, _res, next) => {
+      try {
+        const organizationId = req.params?.[organizationIdParam]
+        if (!organizationId) {
+          next(new HttpError(400, 'Falta organizationId.'))
+          return
+        }
+
+        const membership = await deps.prisma.organizationMember.findFirst({
+          where: {
+            organizationId,
+            userId: req.auth.user.id,
+            status: 'active',
+            role: { in: allowedRoles },
+          },
+          select: { role: true },
+        })
+
+        if (!membership) {
+          next(new HttpError(403, 'No tenes permisos para esta organizacion.'))
+          return
+        }
+
+        req.organizationRole = {
+          organizationId,
+          role: membership.role,
+        }
+        next()
+      } catch (error) {
+        next(error)
+      }
+    },
+  ]
+}

@@ -55,6 +55,9 @@ export default {
     titleAccent: 'Argentina',
     headline: 'Afiliaciones y calendario oficial',
     headlineHighlight: 'oficial',
+    headlineLead: 'Afiliaciones y',
+    headlineAccent: 'calendario oficial',
+    headlineAccentOn: 'accent',
     description: 'Inscripciones a meets, credenciales digitales y resultados publicados.',
     descriptionMeta: 'Para atletas y organizadores.',
     ctaAffiliate: 'Afiliarme',
@@ -69,6 +72,7 @@ export default {
     ctaAccount: 'Acceder a mi cuenta',
     ctaEvents: 'Ver eventos',
     ctaResults: 'Ver resultados',
+    statusNextMeet: 'Próximo meet',
     statusNextMeetValue: 'Pitbull Classic',
     statusLive: 'Inscripciones a Pitbull Classic próximamente',
     stat2026: '2026',
@@ -384,6 +388,8 @@ export default {
       heroBreadcrumb: 'Afiliación',
       heroChapter: 'PLU Argentina · Temporada 2026',
       heroTitle: 'Afiliación oficial PLU Argentina',
+      heroTitleLead: 'Afiliación oficial',
+      heroTitleAccent: 'PLU Argentina',
       heroDesc:
         'Completá tu afiliación anual para quedar registrado como atleta PLU Argentina y participar en las competencias oficiales del calendario.',
       heroCtaSecondary: 'Ver requisitos',
@@ -520,8 +526,10 @@ export default {
       },
     },
     results: {
-      heroBreadcrumb: 'Resultados · Archivo oficial',
+      heroBreadcrumb: 'Resultados',
+      heroChapter: 'Archivo oficial',
       heroTitle: 'Resultados',
+      heroDesc: 'Archivo oficial por evento',
       published: 'Publicados',
       pending: 'En espera',
       filters: {
@@ -602,6 +610,7 @@ export default {
     },
     faq: {
       heroBreadcrumb: 'FAQ · Centro de ayuda',
+      heroChapter: 'Centro de ayuda',
       heroTitle: 'Preguntas frecuentes',
       heroDesc: 'Respuestas claras sobre afiliación, inscripciones, pagos y competencia oficial.',
       categoriesAria: 'Categorías de preguntas frecuentes',
@@ -610,6 +619,7 @@ export default {
     },
     rulebook: {
       heroBreadcrumb: 'Reglamento · PLU ARG',
+      heroChapter: 'Estándar PLU',
       heroTitle: 'Reglamento oficial',
       heroDesc: 'Estándares de competición PLU v26.1: los nueve capítulos del reglamento oficial, más políticas y anexos.',
       weightTitle: 'Categorías de peso corporal',
@@ -664,6 +674,7 @@ export default {
       athletesIndex: '02',
       athletesEyebrow: 'Competidores',
       athletesTitle: 'Guía para competidores',
+      athletesLead: 'Checklist operativa en dos etapas: antes del meet y el día de competencia.',
       athletesAria: 'Información para competidores',
       athletesCta: 'Ir a inscripción',
       athletesRulebook: 'Consultar categorías',
@@ -673,6 +684,7 @@ export default {
       featureTitle: 'Calendario del meet',
       featureLead: 'Estructura de dos jornadas con pesaje, briefing y competencia bajo estándar PLU USA.',
       featureFactsAria: 'Detalle logístico del meet',
+      featureFlipTap: 'Tocá para ver detalle',
       programAria: 'Programa del evento',
       venueMapsTitle: '{{venue}} en Google Maps',
       featureFacts: [
