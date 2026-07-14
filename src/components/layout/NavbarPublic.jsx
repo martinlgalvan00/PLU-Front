@@ -306,12 +306,10 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
               </>
             ) : (
               <Button
-                className="site-header__cta site-header__cta--lux site-header__cta--pill btn--small"
+                className="site-header__cta site-header__cta--lux site-header__cta--ghost btn--small"
                 onClick={() => go('login')}
               >
-                <User size={15} aria-hidden />
                 {t('nav.login')}
-                <ArrowRight size={15} aria-hidden />
               </Button>
             )}
             </div>

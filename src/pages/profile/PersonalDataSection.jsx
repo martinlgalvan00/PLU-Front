@@ -51,15 +51,15 @@ export default function PersonalDataSection({ athlete, onUpdateProfile }) {
       <div className="form-grid">
         <div className="field field--readonly">
           <span>{t('account.personalData.fullName')}</span>
-          <strong>{athlete.fullName}</strong>
+          <span className="field__value">{athlete.fullName}</span>
         </div>
         <div className="field field--readonly">
           <span>{t('account.personalData.documentId')}</span>
-          <strong>{athlete.documentId}</strong>
+          <span className="field__value">{athlete.documentId}</span>
         </div>
         <div className="field field--readonly">
           <span>{t('account.personalData.birthDate')}</span>
-          <strong>{formatShortDate(athlete.birthDate)}</strong>
+          <span className="field__value">{formatShortDate(athlete.birthDate)}</span>
         </div>
       </div>
       <p className="account-security-note">{t('account.personalData.readonlyNote')}</p>

@@ -1,11 +1,10 @@
-import { ArrowRight, Calendar, MapPin } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import pitbullVisual from '../../assets/powerlifting-hero.png'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
-import StaggerGroup from '../../motion/StaggerGroup.tsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
@@ -79,25 +78,8 @@ export default function PitbullSpotlight({
   }
 
   if (isHome) {
-    const highlights = [
-      {
-        id: 'date',
-        icon: Calendar,
-        label: t('pages.pitbull.quickFactsDate'),
-        value: <time dateTime="2026-12-12">{PITBULL_CLASSIC.date}</time>,
-      },
-      {
-        id: 'venue',
-        icon: MapPin,
-        label: t('pages.pitbull.quickFactsVenue'),
-        value: PITBULL_CLASSIC.venue,
-      },
-    ]
-
     return (
       <article className="pitbull-spotlight pitbull-spotlight--home">
-        <div className="pitbull-spotlight__home-stripe" aria-hidden />
-
         <div className="pitbull-spotlight__home-layout">
           <figure className="pitbull-spotlight__home-media-shell">
             <MaskReveal className="pitbull-spotlight__home-media" direction="left">
@@ -109,59 +91,48 @@ export default function PitbullSpotlight({
                 decoding="async"
               />
             </MaskReveal>
-            <EventDatePlate
-              day={PITBULL_CLASSIC.dateDay}
-              month={dateMonthLabel}
-              className="pitbull-spotlight__home-date"
-              tilt={false}
-            />
           </figure>
 
           <div className="pitbull-spotlight__home-panel">
             <header className="pitbull-spotlight__home-head">
-              <div className="pitbull-spotlight__home-head-top">
-                <span className="pitbull-spotlight__home-chapter">{t('pages.pitbull.heroEyebrow')}</span>
-                <span className="pitbull-spotlight__home-status-pill">
-                  {t('pages.pitbull.spotlight.registrationSoon')}
+              <p className="pitbull-spotlight__home-kicker">
+                <span>{t('pages.pitbull.heroEyebrow')}</span>
+                <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
+                  ·
                 </span>
-              </div>
+                <span>{t('pages.pitbull.spotlight.registrationSoon')}</span>
+              </p>
               <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
               <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
-              <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
-                {PITBULL_CLASSIC.categories.map((category) => (
-                  <li key={category}>{category}</li>
-                ))}
-              </ul>
             </header>
 
-            <StaggerGroup
-              as="ul"
-              className="pitbull-spotlight__home-highlights"
-              stagger={55}
-              delayChildren={120}
-              variant="up"
-            >
-              {highlights.map(({ icon: Icon, id, label, value }) => (
-                <li key={id} className={`pitbull-spotlight__home-highlight pitbull-spotlight__home-highlight--${id}`}>
-                  <span className="pitbull-spotlight__home-highlight-icon" aria-hidden>
-                    <Icon size={15} strokeWidth={1.7} />
-                  </span>
-                  <div className="pitbull-spotlight__home-highlight-copy">
-                    <span className="pitbull-spotlight__home-highlight-label">{label}</span>
-                    <span className="pitbull-spotlight__home-highlight-value">{value}</span>
-                  </div>
-                </li>
-              ))}
-            </StaggerGroup>
+            <dl className="pitbull-spotlight__home-facts">
+              <div className="pitbull-spotlight__home-fact">
+                <dt>{t('pages.pitbull.quickFactsDate')}</dt>
+                <dd>
+                  <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
+                </dd>
+              </div>
+              <div className="pitbull-spotlight__home-fact">
+                <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
+                <dd>
+                  {PITBULL_CLASSIC.venue}
+                  <span aria-hidden> · </span>
+                  {PITBULL_CLASSIC.location}
+                </dd>
+              </div>
+            </dl>
+
+            <p className="pitbull-spotlight__home-modalities">{PITBULL_CLASSIC.categories.join(' · ')}</p>
 
             <footer className="pitbull-spotlight__home-actions">
               <button
                 type="button"
-                className="pitbull-spotlight__home-cta pitbull-spotlight__home-cta--primary motion-icon-shift"
+                className="pitbull-spotlight__home-cta motion-icon-shift"
                 onClick={onDetail}
               >
                 {t('pages.pitbull.spotlight.viewDetail')}
-                <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
               </button>
             </footer>
           </div>

@@ -13,10 +13,32 @@
 
 .community-page__inner {
   display: grid;
-  gap: clamp(14px, 2.2vw, 20px);
+  gap: clamp(36px, 5vw, 64px);
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: clamp(8px, 1.4vw, 16px) clamp(16px, 4vw, 64px) clamp(28px, 4vw, 52px);
+  padding: clamp(20px, 3vw, 36px) clamp(16px, 4vw, 64px) clamp(36px, 5vw, 64px);
+}
+
+/* Hero community — stats hairline, sin card glass */
+.community-page__hero.plu-page-hero {
+  padding-bottom: clamp(18px, 2.8vw, 26px);
+}
+
+.community-stats-rail--hero {
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  box-shadow: none;
+  margin-top: 0;
+  padding: 14px 0 0;
+  width: 100%;
+}
+
+[data-theme='light'] .community-stats-rail--hero {
+  background: transparent;
+  border-color: rgba(15, 17, 23, 0.1);
 }
 
 /* ── Hero ────────────────────────────────────── */
@@ -176,16 +198,15 @@
   margin: 0;
 }
 
-/* Stats dentro del hero PLU (centrado) */
-.community-stats-rail--hero {
-  align-self: stretch;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
-  margin-top: 0;
-  padding: 12px 14px;
-  width: 100%;
+/* Stats dentro del hero PLU */
+.community-page--premium .community-stats-rail--hero .community-stats-rail__metric dt {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.community-page--premium .community-stats-rail--hero .community-stats-rail__metric dd {
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
 }
 
 @media (min-width: 900px) {
@@ -225,8 +246,8 @@
 }
 
 [data-theme='light'] .community-stats-rail--hero {
-  background: rgba(15, 17, 23, 0.02);
-  border-color: rgba(15, 17, 23, 0.08);
+  background: transparent;
+  border-color: rgba(15, 17, 23, 0.1);
 }
 
 /* ── Manifesto ───────────────────────────────── */
@@ -268,41 +289,37 @@
   border-left-color: var(--color-brand-gold);
 }
 
-/* ── Grid principal ──────────────────────────── */
+/* ── Grid principal (legacy; page ahora apila secciones) ── */
 
 .community-page__grid {
   display: grid;
-  gap: clamp(16px, 2.6vw, 24px);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: 1fr;
 }
 
 /* ── Secciones editoriales ───────────────────── */
 
 .community-section {
   display: grid;
-  gap: clamp(10px, 1.6vw, 14px);
+  gap: clamp(14px, 2vw, 20px);
   min-width: 0;
-  padding-top: clamp(16px, 2.2vw, 22px);
+  padding-top: clamp(8px, 1.2vw, 12px);
   position: relative;
 }
 
-/* Regla superior tricolor editorial — reemplaza el border-top plano */
+/* Hairline superior — menos ruido que tricolor */
 .community-section::before {
-  background: linear-gradient(
-    90deg,
-    var(--color-brand-celeste) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    var(--color-brand-gold) 100%
-  );
+  background: color-mix(in srgb, var(--color-brand-gold) 65%, transparent);
   border-radius: 99px;
   content: '';
-  height: 1.5px;
+  height: 1px;
   left: 0;
-  opacity: 0.55;
+  opacity: 0.7;
   pointer-events: none;
   position: absolute;
   right: 0;
   top: 0;
+  width: min(4.5rem, 30%);
 }
 
 .community-section--stories {

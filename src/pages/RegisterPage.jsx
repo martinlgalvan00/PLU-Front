@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, ImageDown } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
-import { Field, Select } from '../components/ui/FormFields.jsx'
+import { DateField, Field, Select } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
@@ -47,7 +48,7 @@ function isFieldFilled(form, field) {
     case 'documentId':
       return str.length >= 6
     case 'birthDate':
-      return str.length >= 8
+      return /^\d{4}-\d{2}-\d{2}$/.test(str)
     default:
       return str.length > 0
   }
@@ -199,6 +200,7 @@ export default function RegisterPage({
   const [cardOpen, setCardOpen] = useState(false)
   const [paymentApprovedModal, setPaymentApprovedModal] = useState(null)
   const [profileStepIndex, setProfileStepIndex] = useState(0)
+  const [wizardDirection, setWizardDirection] = useState(1)
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
@@ -281,6 +283,7 @@ export default function RegisterPage({
   function selectProfileStep(index) {
     if (!profileProgress) return
     if (!canSelectProfileStep(index, profileStepIndex, profileProgress.steps)) return
+    setWizardDirection(index >= profileStepIndex ? 1 : -1)
     setProfileStepIndex(index)
     setErrors({})
     setProfileErrorStepIndex(null)
@@ -302,10 +305,12 @@ export default function RegisterPage({
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setSubmitError('')
+    setWizardDirection(1)
     setProfileStepIndex((current) => Math.min(current + 1, profileSteps.length - 1))
   }
 
   function goBackProfileStep() {
+    setWizardDirection(-1)
     setProfileStepIndex((current) => Math.max(current - 1, 0))
     setErrors({})
     setProfileErrorStepIndex(null)
@@ -386,6 +391,9 @@ export default function RegisterPage({
       </header>
     ) : (
       <header className="register-intro">
+        {flow === 'profile' && (
+          <span className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</span>
+        )}
         <h1 className="register-intro__title">{content[0]}</h1>
         <p className="register-intro__desc">{content[1]}</p>
 
@@ -472,8 +480,8 @@ export default function RegisterPage({
   return (
     <main
       className={`page register-page register-page--design register-page--premium${
-        flow === 'membership' ? ' register-page--membership' : ''
-      }`.trim()}
+        flow === 'profile' ? ' register-page--profile' : ''
+      }${flow === 'membership' ? ' register-page--membership' : ''}`.trim()}
     >
       {(flow === 'profile' || flow === 'membership') && onNavigate && (
         <nav className="register-topbar" aria-label={t('pages.register.navAria')}>
@@ -552,7 +560,11 @@ export default function RegisterPage({
           ) : (
           <form className="register-card athlete-form" onSubmit={submit} noValidate>
             {flow === 'profile' && (
-              <div className="register-wizard" key={activeProfileStep.id}>
+              <MotionContentSwap
+                className="register-wizard"
+                direction={wizardDirection}
+                swapKey={activeProfileStep.id}
+              >
                 {profileStepIndex === 0 && (
                   <FormSection
                     step="01"
@@ -578,13 +590,10 @@ export default function RegisterPage({
                         value={form.documentId}
                         onChange={changeField}
                       />
-                      <Field
+                      <DateField
                         error={visibleErrors.birthDate}
-                        inputMode="numeric"
                         label={t('pages.register.birthDate')}
-                        maxLength={10}
                         name="birthDate"
-                        placeholder={t('pages.register.birthDatePlaceholder')}
                         value={form.birthDate}
                         onChange={changeField}
                       />
@@ -662,7 +671,7 @@ export default function RegisterPage({
                     </div>
                   </FormSection>
                 )}
-              </div>
+              </MotionContentSwap>
             )}
 
             {flow === 'competition' && (

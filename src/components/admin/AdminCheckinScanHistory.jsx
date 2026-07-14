@@ -1,10 +1,19 @@
-import { Clock3, Trash2 } from 'lucide-react'
+import { Clock3, History, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function AdminCheckinScanHistory({ items = [], onClear, onSelect }) {
   const { t } = useI18n()
 
-  if (!items.length) return null
+  if (!items.length) {
+    return (
+      <section className="admin-checkin-history admin-checkin-history--empty" aria-label={t('admin.checkin.history.title')}>
+        <span className="admin-checkin-history__empty-icon" aria-hidden>
+          <History size={18} strokeWidth={1.5} />
+        </span>
+        <p className="admin-checkin-history__empty">{t('admin.checkin.history.empty')}</p>
+      </section>
+    )
+  }
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',

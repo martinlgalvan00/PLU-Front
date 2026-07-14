@@ -231,10 +231,10 @@
   --events-filter-shell-border: rgba(255, 255, 255, 0.06);
   --events-filter-hover-bg: rgba(255, 255, 255, 0.06);
   --events-filter-hover-fg: rgba(255, 255, 255, 0.88);
-  --events-filter-active-bg: rgba(116, 172, 223, 0.18);
+  --events-filter-active-bg: rgba(255, 255, 255, 0.1);
   --events-filter-active-fg: #fff;
-  --events-filter-segment-border: rgba(116, 172, 223, 0.24);
-  --events-filter-segment-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  --events-filter-segment-border: rgba(255, 255, 255, 0.14);
+  --events-filter-segment-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
   --events-spotlight-bg: rgba(255, 255, 255, 0.018);
   --events-spotlight-border: rgba(255, 255, 255, 0.06);
   --events-spotlight-shadow: none;
@@ -285,13 +285,13 @@
   --results-date-bg: rgba(255, 255, 255, 0.04);
   --results-date-border: rgba(255, 255, 255, 0.08);
   --results-filter-border: rgba(255, 255, 255, 0.1);
-  --results-filter-active-bg: rgba(116, 172, 223, 0.12);
-  --results-filter-active-border: rgba(116, 172, 223, 0.32);
-  --results-filter-hover-bg: rgba(255, 255, 255, 0.04);
+  --results-filter-active-bg: rgba(255, 255, 255, 0.1);
+  --results-filter-active-border: rgba(255, 255, 255, 0.14);
+  --results-filter-hover-bg: rgba(255, 255, 255, 0.06);
   --results-filter-active-fg: #fff;
   --results-filter-hover-fg: rgba(255, 255, 255, 0.88);
-  --results-filter-shell-bg: rgba(0, 0, 0, 0.22);
-  --results-filter-shell-border: rgba(255, 255, 255, 0.08);
+  --results-filter-shell-bg: rgba(255, 255, 255, 0.03);
+  --results-filter-shell-border: rgba(255, 255, 255, 0.06);
   --results-toolbar-count-bg: rgba(255, 255, 255, 0.04);
   --results-toolbar-count-border: rgba(255, 255, 255, 0.08);
   --results-toolbar-count-fg: rgba(255, 255, 255, 0.72);
@@ -586,7 +586,7 @@
   --home-hero-editorial-rule: var(--plu-celeste-600);
   --home-hero-editorial-rule-accent: var(--plu-celeste-600);
   --home-hero-title: var(--plu-ink-900);
-  --home-hero-title-accent-fg: var(--plu-celeste-700);
+  --home-hero-title-accent-fg: var(--plu-gold-600);
   --home-hero-lead: rgba(15, 17, 23, 0.66);
   --home-hero-lead-meta: rgba(15, 17, 23, 0.42);
   --home-hero-metrics-border: rgba(15, 17, 23, 0.1);
@@ -669,14 +669,14 @@
   );
   --events-hero-eyebrow-bg: rgba(255, 255, 255, 0.82);
   --events-hero-eyebrow-border: rgba(15, 17, 23, 0.08);
-  --events-filter-shell-bg: rgba(15, 17, 23, 0.02);
-  --events-filter-shell-border: rgba(15, 17, 23, 0.06);
+  --events-filter-shell-bg: rgba(15, 17, 23, 0.03);
+  --events-filter-shell-border: rgba(15, 17, 23, 0.08);
   --events-filter-hover-bg: rgba(15, 17, 23, 0.05);
   --events-filter-hover-fg: rgba(15, 17, 23, 0.88);
-  --events-filter-active-bg: rgba(116, 172, 223, 0.14);
-  --events-filter-active-fg: #0f4a7a;
-  --events-filter-segment-border: rgba(26, 107, 176, 0.22);
-  --events-filter-segment-shadow: 0 2px 8px rgba(26, 107, 176, 0.1);
+  --events-filter-active-bg: #fff;
+  --events-filter-active-fg: var(--plu-ink-900);
+  --events-filter-segment-border: rgba(15, 17, 23, 0.12);
+  --events-filter-segment-shadow: 0 1px 2px rgba(15, 17, 23, 0.06);
   --events-spotlight-bg: #fff;
   --events-spotlight-border: rgba(15, 17, 23, 0.08);
   --events-spotlight-shadow: 0 10px 28px rgba(15, 17, 23, 0.06);
@@ -727,12 +727,12 @@
   --results-date-bg: var(--plu-warm-100);
   --results-date-border: rgba(15, 17, 23, 0.08);
   --results-filter-border: rgba(15, 17, 23, 0.1);
-  --results-filter-active-bg: rgba(26, 107, 176, 0.08);
-  --results-filter-active-border: rgba(26, 107, 176, 0.24);
-  --results-filter-hover-bg: rgba(15, 17, 23, 0.03);
-  --results-filter-active-fg: #0f4a7a;
+  --results-filter-active-bg: #fff;
+  --results-filter-active-border: rgba(15, 17, 23, 0.12);
+  --results-filter-hover-bg: rgba(15, 17, 23, 0.05);
+  --results-filter-active-fg: var(--plu-ink-900);
   --results-filter-hover-fg: rgba(15, 17, 23, 0.88);
-  --results-filter-shell-bg: rgba(15, 17, 23, 0.04);
+  --results-filter-shell-bg: rgba(15, 17, 23, 0.03);
   --results-filter-shell-border: rgba(15, 17, 23, 0.08);
   --results-toolbar-count-bg: rgba(15, 17, 23, 0.04);
   --results-toolbar-count-border: rgba(15, 17, 23, 0.08);
@@ -995,64 +995,16 @@
   background: var(--color-page-canvas);
 }
 
-[data-theme='light'] .login-brand h1,
-[data-theme='light'] .login-brand__title,
-[data-theme='light'] .login-brand__desc,
-[data-theme='light'] .login-brand__feature-text {
-  color: var(--color-text-on-light);
+[data-theme='light'] .login-brand__intro::before {
+  background: linear-gradient(
+    180deg,
+    rgba(160, 128, 48, 0.9) 0%,
+    rgba(15, 17, 23, 0.35) 100%
+  );
 }
 
-[data-theme='light'] .login-brand__desc {
-  opacity: 0.85;
-}
-
-[data-theme='light'] .login-brand__feature {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .login-brand__feature:hover {
-  background: rgba(15, 17, 23, 0.045);
-  border-color: rgba(15, 17, 23, 0.12);
-}
-
-[data-theme='light'] .login-brand__feature-icon {
-  background: rgba(116, 172, 223, 0.1);
-  border-color: rgba(116, 172, 223, 0.22);
-}
-
-[data-theme='light'] .login-brand__secure {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.1);
-  color: rgba(15, 17, 23, 0.52);
-}
-
-[data-theme='light'] .login-card__header h1,
-[data-theme='light'] .login-card__lead {
-  color: var(--color-text-on-light);
-}
-
-[data-theme='light'] .login-card__lead {
-  opacity: 0.85;
-}
-
-[data-theme='light'] .login-card__header::after {
-  background: rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .login-brand__desc,
-[data-theme='light'] .login-brand__feature-text {
-  opacity: 0.85;
-}
-
-[data-theme='light'] .login-page--design {
-  --login-brand-divider: rgba(15, 17, 23, 0.1);
-}
-
-/* El panel izquierdo (login-brand) solo tenía estilos para dark — en light
-   quedaba texto blanco sobre fondo claro, casi invisible. */
 [data-theme='light'] .login-brand__eyebrow {
-  color: #1a6bb0;
+  color: rgba(15, 17, 23, 0.55);
 }
 
 [data-theme='light'] .login-brand h1,
@@ -1064,35 +1016,42 @@
   color: rgba(15, 17, 23, 0.62);
 }
 
+[data-theme='light'] .login-brand__features {
+  border-top-color: rgba(15, 17, 23, 0.1);
+}
+
 [data-theme='light'] .login-brand__feature {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.08);
+  border-bottom-color: rgba(15, 17, 23, 0.08);
 }
 
-[data-theme='light'] .login-brand__feature:hover {
-  background: rgba(15, 17, 23, 0.05);
-  border-color: rgba(15, 17, 23, 0.12);
-}
-
-[data-theme='light'] .login-brand__feature-icon {
-  background: rgba(31, 95, 158, 0.08);
-  border-color: rgba(31, 95, 158, 0.22);
+[data-theme='light'] .login-brand__feature-index {
+  color: rgba(160, 128, 48, 0.95);
 }
 
 [data-theme='light'] .login-brand__feature-text {
-  color: rgba(15, 17, 23, 0.78);
+  color: rgba(15, 17, 23, 0.82);
 }
 
 [data-theme='light'] .login-brand__secure {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.08);
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .login-card__header h1,
+[data-theme='light'] .login-card__lead,
+[data-theme='light'] .login-card__eyebrow {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .login-card__eyebrow {
   color: rgba(15, 17, 23, 0.55);
 }
 
-[data-theme='light'] .login-brand__emblem {
-  box-shadow:
-    0 0 0 1px rgba(15, 17, 23, 0.1),
-    0 8px 22px rgba(15, 17, 23, 0.12);
+[data-theme='light'] .login-card__lead {
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .login-card__header::after {
+  background: rgba(15, 17, 23, 0.08);
 }
 
 /* El PNG del wordmark es texto blanco sobre fondo transparente — el
@@ -1101,45 +1060,67 @@
    (texto blanco) dentro de una placa oscura, en vez de invertirlo.
    Selector reforzado con .brand-logo-letterhead para ganarle en
    especificidad a la regla genérica (brand-logo.css se importa después). */
+[data-theme='light'] .login-brand__logos-rule {
+  background: rgba(15, 17, 23, 0.14);
+}
+
+[data-theme='light'] .login-brand__lockup {
+  color: rgba(15, 17, 23, 0.5);
+}
+
 [data-theme='light'] .brand-logo-letterhead.login-brand__logo {
   filter: none;
   background: #14181f;
-  border-radius: 6px;
-  padding: 5px 8px;
+  border-radius: 4px;
+  padding: 6px 10px;
 }
 
 [data-theme='light'] .brand-logo-letterhead.login-card__logo {
   filter: none;
   background: #14181f;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 4px 7px;
 }
 
 [data-theme='light'] .login-card {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 24px 48px rgba(15, 17, 23, 0.1);
+  box-shadow: 0 18px 40px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .login-card::before {
+  background: linear-gradient(
+    90deg,
+    rgba(160, 128, 48, 0.95) 0%,
+    rgba(160, 128, 48, 0.35) 55%,
+    transparent 100%
+  );
 }
 
 [data-theme='light'] .login-field__label,
 [data-theme='light'] .login-separator span,
-[data-theme='light'] .login-join-btn,
 [data-theme='light'] .login-join {
-  color: rgba(15, 17, 23, 0.62);
+  color: rgba(15, 17, 23, 0.58);
+}
+
+[data-theme='light'] .login-field__forgot {
+  color: rgba(15, 17, 23, 0.48);
+  text-decoration-color: rgba(15, 17, 23, 0.2);
+}
+
+[data-theme='light'] .login-field__forgot:hover {
+  color: rgba(15, 17, 23, 0.85);
 }
 
 [data-theme='light'] .login-field__control {
-  background: rgba(15, 17, 23, 0.04);
-  border-color: rgba(15, 17, 23, 0.1);
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.18);
 }
 
-/* autoFocus deja el email enfocado al cargar la página: sin este override,
-   .login-field__control:focus-within (design-phase2.css) pinta un fondo oscuro
-   fijo que gana por orden de cascada y queda oscuro-sobre-oscuro con el texto claro. */
 [data-theme='light'] .login-field__control:focus-within {
-  background: rgba(15, 17, 23, 0.06);
-  border-color: rgba(116, 172, 223, 0.45);
-  box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.14);
+  background: transparent;
+  border-color: rgba(160, 128, 48, 0.7);
+  box-shadow: 0 1px 0 0 rgba(160, 128, 48, 0.4);
 }
 
 [data-theme='light'] .login-field__control input {
@@ -1148,7 +1129,40 @@
 
 [data-theme='light'] .login-field__icon,
 [data-theme='light'] .login-field__control input::placeholder {
-  color: rgba(15, 17, 23, 0.50);
+  color: rgba(15, 17, 23, 0.4);
+}
+
+[data-theme='light'] .login-field__toggle {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .login-field__toggle:hover {
+  color: rgba(15, 17, 23, 0.8);
+}
+
+[data-theme='light'] .login-separator::before,
+[data-theme='light'] .login-separator::after {
+  background: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .login-submit--oauth {
+  border-color: rgba(15, 17, 23, 0.16);
+  color: rgba(15, 17, 23, 0.88);
+}
+
+[data-theme='light'] .login-submit--oauth:hover:not(:disabled) {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.28);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .login-join__link {
+  color: #8a6d28;
+  text-decoration-color: rgba(138, 109, 40, 0.35);
+}
+
+[data-theme='light'] .login-join__link:hover {
+  color: #6f561c;
 }
 
 [data-theme='light'] .login-page__footer {

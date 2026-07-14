@@ -2,7 +2,6 @@ import PluPageHero from '../components/layout/PluPageHero.jsx'
 import CommunitySectionHeader from '../components/community/CommunitySectionHeader.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
@@ -14,6 +13,8 @@ import {
   getMemberInitials,
   getRecentMembers,
 } from '../services/communityService.js'
+
+const MEMBERS_PREVIEW = 5
 
 function CommunityStatsRail({ className = '', stats, t }) {
   return (
@@ -46,7 +47,6 @@ function CommunityGymsSection({ gyms, onNavigate, t }) {
       <CommunitySectionHeader
         ctaLabel={t('pages.community.gymsCta')}
         description={t('pages.community.gymsLead')}
-        eyebrow={t('pages.community.gymsEyebrow')}
         onCta={() => onNavigate?.('contact')}
         title={t('pages.community.gymsTitle')}
         titleId="community-gyms-title"
@@ -81,7 +81,6 @@ function CommunityMembersFeed({ members, onNavigate, locale, t }) {
       <CommunitySectionHeader
         ctaLabel={t('pages.community.membersCta')}
         description={t('pages.community.membersLead')}
-        eyebrow={t('pages.community.membersEyebrow')}
         onCta={() => onNavigate?.('members')}
         title={t('pages.community.membersTitle')}
         titleId="community-members-title"
@@ -148,49 +147,17 @@ function CommunityMembersFeed({ members, onNavigate, locale, t }) {
   )
 }
 
-function CommunityStoriesSection({ testimonials, t }) {
-  return (
-    <section className="community-section community-section--stories" aria-labelledby="community-stories-title">
-      <CommunitySectionHeader
-        compact
-        description={t('pages.community.storiesLead')}
-        eyebrow={t('pages.community.storiesEyebrow')}
-        title={t('pages.community.storiesTitle')}
-        titleId="community-stories-title"
-      />
-
-      <StaggerGroup as="div" className="community-stories-grid" stagger={60} variant="up">
-        {testimonials.map((item, index) => (
-          <article key={item.id} className="community-story-card">
-            <header className="community-story-card__head">
-              <span className="community-story-card__index" aria-hidden>
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <span className="community-story-card__badge">{t('pages.community.storySoon')}</span>
-            </header>
-            <p className="community-story-card__text">{item.text}</p>
-            <footer className="community-story-card__foot">
-              <span className="community-story-card__role">{item.role}</span>
-            </footer>
-          </article>
-        ))}
-      </StaggerGroup>
-    </section>
-  )
-}
-
 export default function CommunityPage({ onNavigate }) {
-  const { COMMUNITY_QUOTE, COMMUNITY_TESTIMONIAL_PLACEHOLDERS } = useContent()
   const { locale, t } = useI18n()
   const stats = getCommunityStats(locale)
   const gyms = getAffiliatedGyms(locale)
-  const recentMembers = getRecentMembers(undefined, locale)
+  const recentMembers = getRecentMembers(MEMBERS_PREVIEW, locale)
 
   return (
     <main className="page page--design page--plu-ref community-page--design community-page--premium">
       <PluPageHero
         breadcrumbLabel={t('pages.community.heroBreadcrumb')}
-        chapter={t('pages.community.heroEyebrow')}
+        className="community-page__hero"
         description={t('pages.community.heroDesc')}
         onHome={() => onNavigate?.('home')}
         title={t('pages.community.heroTitle')}
@@ -200,23 +167,11 @@ export default function CommunityPage({ onNavigate }) {
 
       <div className="community-page__inner">
         <Reveal variant="fade">
-          <figure className="community-manifesto community-manifesto--panel">
-            <blockquote>{COMMUNITY_QUOTE}</blockquote>
-          </figure>
+          <CommunityGymsSection gyms={gyms} onNavigate={onNavigate} t={t} />
         </Reveal>
 
-        <div className="community-page__grid">
-          <Reveal variant="fade">
-            <CommunityGymsSection gyms={gyms} onNavigate={onNavigate} t={t} />
-          </Reveal>
-
-          <Reveal delay={40} variant="fade">
-            <CommunityMembersFeed members={recentMembers} onNavigate={onNavigate} locale={locale} t={t} />
-          </Reveal>
-        </div>
-
-        <Reveal delay={60} variant="fade">
-          <CommunityStoriesSection testimonials={COMMUNITY_TESTIMONIAL_PLACEHOLDERS} t={t} />
+        <Reveal delay={40} variant="fade">
+          <CommunityMembersFeed members={recentMembers} onNavigate={onNavigate} locale={locale} t={t} />
         </Reveal>
       </div>
 

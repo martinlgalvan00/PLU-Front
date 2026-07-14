@@ -71,7 +71,7 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
             <SegmentedSwitch
               active={pdfLocale}
               ariaLabel={t('pages.rulebook.pdfLanguageSwitchAria')}
-              className="segmented-switch--rulebook"
+              className="segmented-switch--rulebook segmented-switch--luxury"
               onChange={setPdfLocale}
               options={pdfOptions}
             />
@@ -138,7 +138,7 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
                 <SegmentedSwitch
                   active={pdfLocale}
                   ariaLabel={t('pages.rulebook.pdfLanguageSwitchAria')}
-                  className="segmented-switch--rulebook segmented-switch--rulebook-modal"
+                  className="segmented-switch--rulebook segmented-switch--rulebook-modal segmented-switch--luxury"
                   onChange={setPdfLocale}
                   options={pdfOptions}
                 />

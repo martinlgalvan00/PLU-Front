@@ -108,3 +108,85 @@ export function sortResultsArchive(entries, sort = 'recent', locale = 'es') {
 
   return list.sort((a, b) => b.dateISO.localeCompare(a.dateISO))
 }
+
+/** Sex inferred from division label: 'men' | 'women' | null */
+export function inferDivisionSex(name = '') {
+  const normalized = String(name).toLowerCase()
+  if (normalized.includes('mujeres') || normalized.includes('women') || normalized.includes(' female')) {
+    return 'women'
+  }
+  if (normalized.includes('hombres') || normalized.includes(' men') || normalized.endsWith(' men') || /\bmen\b/.test(normalized)) {
+    return 'men'
+  }
+  return null
+}
+
+/** Age/equipment class group from division label. */
+export function inferDivisionGroup(name = '') {
+  const normalized = String(name).toLowerCase()
+  if (normalized.includes('sub-junior') || normalized.includes('sub junior') || normalized.includes('subjunior')) {
+    return 'sub-junior'
+  }
+  if (normalized.includes('junior')) return 'junior'
+  if (normalized.includes('master')) return 'master'
+  if (normalized.includes('open')) return 'open'
+  return 'other'
+}
+
+export function shortenDivisionLabel(name = '') {
+  return name
+    .replace(/\s*·\s*/g, ' ')
+    .replace(/\bHombres\b/gi, 'M')
+    .replace(/\bMujeres\b/gi, 'F')
+    .replace(/\bMen\b/gi, 'M')
+    .replace(/\bWomen\b/gi, 'F')
+    .replace(/\bRaw\b/gi, 'Raw')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function buildDivisionNav(divisions = []) {
+  return divisions.map((division, index) => ({
+    id: `div-${index}`,
+    name: division.name,
+    shortLabel: shortenDivisionLabel(division.name),
+    sex: inferDivisionSex(division.name),
+    group: inferDivisionGroup(division.name),
+    lifterCount: division.lifters?.length ?? 0,
+    division,
+  }))
+}
+
+export function getDivisionSexOptions(navItems, t) {
+  const hasMen = navItems.some((item) => item.sex === 'men')
+  const hasWomen = navItems.some((item) => item.sex === 'women')
+  if (!hasMen || !hasWomen) return null
+
+  return [
+    ['all', t('pages.results.divisionSexAll')],
+    ['men', t('pages.results.divisionSexMen')],
+    ['women', t('pages.results.divisionSexWomen')],
+  ]
+}
+
+const DIVISION_GROUP_ORDER = ['open', 'junior', 'sub-junior', 'master', 'other']
+
+export function getDivisionGroupOptions(navItems, t) {
+  const present = new Set(navItems.map((item) => item.group).filter(Boolean))
+  const groups = DIVISION_GROUP_ORDER.filter((group) => present.has(group))
+  if (groups.length < 2) return null
+
+  return [
+    ['all', t('pages.results.divisionGroupAll')],
+    ...groups.map((group) => [group, t(`pages.results.divisionGroups.${group}`)]),
+  ]
+}
+
+export function filterDivisionNav(navItems, { sex = 'all', group = 'all', divisionId = 'all' } = {}) {
+  return navItems.filter((item) => {
+    if (sex !== 'all' && item.sex && item.sex !== sex) return false
+    if (group !== 'all' && item.group !== group) return false
+    if (divisionId !== 'all' && item.id !== divisionId) return false
+    return true
+  })
+}

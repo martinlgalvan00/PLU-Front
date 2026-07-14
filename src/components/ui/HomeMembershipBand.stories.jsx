@@ -5,7 +5,6 @@ export default {
   component: HomeMembershipBand,
   tags: ['autodocs'],
   args: {
-    plan: { price: 25000 },
     onNavigate: () => {},
   },
 }

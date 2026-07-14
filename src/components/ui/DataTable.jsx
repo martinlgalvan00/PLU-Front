@@ -1,8 +1,10 @@
+import { Inbox } from 'lucide-react'
 import StatusBadge from './StatusBadge.jsx'
 
 export default function DataTable({
   columns,
   rows,
+  emptyIcon: EmptyIcon = Inbox,
   emptyMessage = 'Sin registros',
   getRowClassName,
   onRowClick,
@@ -14,9 +16,14 @@ export default function DataTable({
 
   if (!rows.length) {
     return (
-      <p className={`data-table__empty ${variant === 'admin' ? 'data-table__empty--admin' : ''}`.trim()}>
-        {emptyMessage}
-      </p>
+      <div className={`data-table__empty-wrap ${variant === 'admin' ? 'data-table__empty-wrap--admin' : ''}`.trim()}>
+        <span className="data-table__empty-icon" aria-hidden>
+          <EmptyIcon size={20} strokeWidth={1.5} />
+        </span>
+        <p className={`data-table__empty ${variant === 'admin' ? 'data-table__empty--admin' : ''}`.trim()}>
+          {emptyMessage}
+        </p>
+      </div>
     )
   }
 

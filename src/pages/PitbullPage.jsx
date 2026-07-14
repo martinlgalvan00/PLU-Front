@@ -9,17 +9,24 @@ import {
   Megaphone,
   Scale,
 } from 'lucide-react'
+import { m } from 'motion/react'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import PitbullFeatureFlipCard from '../components/ui/PitbullFeatureFlipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
+import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
+import AnimatedNumber from '../motion/AnimatedNumber.tsx'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
+import StaggerGroup from '../motion/StaggerGroup.tsx'
+import { MOTION_DURATION, MOTION_EASE, MOTION_VIEWPORT } from '../motion/tokens.ts'
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -44,7 +51,9 @@ function PitbullDossierSection({
   const isOps = tone === 'ops'
 
   return (
-    <section
+    <Reveal
+      as="section"
+      direction="up"
       id={id}
       className={`pitbull-dossier__section${isOps ? ' pitbull-dossier__section--ops' : ''} ${className}`.trim()}
       aria-label={hideHeader ? title : undefined}
@@ -68,7 +77,7 @@ function PitbullDossierSection({
       ) : null}
 
       {children ? <div className="pitbull-dossier__body">{children}</div> : null}
-    </section>
+    </Reveal>
   )
 }
 
@@ -87,7 +96,7 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
     >
       <div className="pitbull-inscription-counter__row">
         <div className="pitbull-inscription-counter__stat">
-          <span className="pitbull-inscription-counter__value">{registered}</span>
+          <AnimatedNumber className="pitbull-inscription-counter__value" value={registered} />
           <span className="pitbull-inscription-counter__of">/ {slots}</span>
           <span className="pitbull-inscription-counter__unit">cupos</span>
         </div>
@@ -107,7 +116,20 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
 }
 
 
+function flattenAthleteSteps(athleteGroups) {
+  return athleteGroups.flatMap((group) =>
+    group.items.map((item) => ({
+      ...item,
+      phaseId: group.id,
+      phaseLabel: group.label,
+    })),
+  )
+}
+
 function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
+  const { reducedMotion } = useMotionConfig()
+  const steps = flattenAthleteSteps(athleteGroups)
+
   return (
     <PitbullDossierSection
       id="atletas"
@@ -118,32 +140,64 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
       title={t('pages.pitbull.athletesTitle')}
       titleId="pitbull-athletes-title"
     >
-      <div className="pitbull-athletes-brief" aria-label={t('pages.pitbull.athletesAria')}>
-        <div className="pitbull-athletes-brief__lanes">
-          {athleteGroups.map((group) => (
-            <section
-              key={group.id}
-              className={`pitbull-athletes-brief__lane pitbull-athletes-brief__lane--${group.id}`}
-              aria-labelledby={`pitbull-athletes-lane-${group.id}`}
+      <ol className="pitbull-athletes-journey" aria-label={t('pages.pitbull.athletesAria')}>
+        {steps.map((step, index) => {
+          const num = String(index + 1).padStart(2, '0')
+          const showPhase =
+            index === 0 || steps[index - 1]?.phaseId !== step.phaseId
+          const content = (
+            <>
+              <p
+                className={`pitbull-athletes-journey__phase pitbull-athletes-journey__phase--${step.phaseId}${showPhase ? '' : ' pitbull-athletes-journey__phase--spacer'}`}
+                aria-hidden={!showPhase}
+              >
+                {showPhase ? step.phaseLabel : '\u00A0'}
+              </p>
+              <div className="pitbull-athletes-journey__row">
+                <span className="pitbull-athletes-journey__index" aria-hidden>
+                  {num}
+                </span>
+                <div className="pitbull-athletes-journey__copy">
+                  <strong className="pitbull-athletes-journey__title">{step.title}</strong>
+                  <p className="pitbull-athletes-journey__text">{step.text}</p>
+                </div>
+              </div>
+            </>
+          )
+
+          if (reducedMotion) {
+            return (
+              <li key={step.id} className="pitbull-athletes-journey__item">
+                {content}
+              </li>
+            )
+          }
+
+          return (
+            <m.li
+              key={step.id}
+              className="pitbull-athletes-journey__item"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: MOTION_VIEWPORT.once, amount: 0.35 }}
+              transition={{
+                duration: MOTION_DURATION.slow,
+                ease: MOTION_EASE.out,
+                delay: index * 0.07,
+              }}
             >
-              <h3 id={`pitbull-athletes-lane-${group.id}`} className="pitbull-athletes-brief__lane-label">
-                {group.label}
-              </h3>
-              <ul className="pitbull-athletes-brief__entries">
-                {group.items.map((item) => (
-                  <li key={item.id} className="pitbull-athletes-brief__entry">
-                    <span className="pitbull-athletes-brief__entry-title">{item.title}</span>
-                    <p className="pitbull-athletes-brief__entry-text">{item.text}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      </div>
+              {content}
+            </m.li>
+          )
+        })}
+      </ol>
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
-        <button type="button" className="pitbull-dossier__cta" onClick={scrollToInscription}>
+        <button
+          type="button"
+          className="pitbull-dossier__cta pitbull-dossier__cta--primary"
+          onClick={scrollToInscription}
+        >
           {t('pages.pitbull.athletesCta')}
           <ArrowRight size={14} aria-hidden />
         </button>
@@ -163,7 +217,7 @@ function PitbullScheduleStrip({ schedule, t }) {
   if (!schedule?.length) return null
 
   return (
-    <div className="pitbull-program" aria-label={t('pages.pitbull.programAria')}>
+    <Reveal as="div" direction="up" delay={80} className="pitbull-program" aria-label={t('pages.pitbull.programAria')}>
       <div className="pitbull-program__head" aria-hidden>
         <span className="pitbull-program__corner" />
         {schedule.map((day) => (
@@ -174,7 +228,7 @@ function PitbullScheduleStrip({ schedule, t }) {
         ))}
       </div>
 
-      <div className="pitbull-program__rows">
+      <StaggerGroup as="div" className="pitbull-program__rows" stagger={55} direction="up">
         {schedule[0].items.map((slot, rowIndex) => (
           <div key={slot.time} className="pitbull-program__row">
             <span className="pitbull-program__time">{slot.time}</span>
@@ -185,8 +239,8 @@ function PitbullScheduleStrip({ schedule, t }) {
             ))}
           </div>
         ))}
-      </div>
-    </div>
+      </StaggerGroup>
+    </Reveal>
   )
 }
 
@@ -201,8 +255,8 @@ function PitbullLocationSection({ venue, t }) {
       title={t('pages.pitbull.locationTitle')}
       titleId="pitbull-location-title"
     >
-      <div className="pitbull-location">
-        <div className="pitbull-location__map-shell">
+      <div className="pitbull-location pitbull-location--editorial">
+        <Reveal as="div" direction="scale" className="pitbull-location__map-shell">
           <iframe
             className="pitbull-location__map"
             src={venue.mapsEmbedUrl}
@@ -212,22 +266,13 @@ function PitbullLocationSection({ venue, t }) {
             allowFullScreen
           />
           <div className="pitbull-location__map-overlay" aria-hidden />
-        </div>
+        </Reveal>
 
-        <div className="pitbull-location__details">
-          <dl className="pitbull-location__dl">
-            <div className="pitbull-location__row">
-              <dt>
-                <MapPin size={12} aria-hidden />
-                {t('pages.pitbull.locationVenueLabel')}
-              </dt>
-              <dd>{venue.name}</dd>
-            </div>
-            <div className="pitbull-location__row">
-              <dt>{t('pages.pitbull.locationAddressLabel')}</dt>
-              <dd>{venue.address}</dd>
-            </div>
-          </dl>
+        <Reveal as="div" direction="up" delay={100} className="pitbull-location__details">
+          <p className="pitbull-location__kicker">
+            <MapPin size={13} aria-hidden />
+            {venue.address}
+          </p>
 
           <p className="pitbull-location__note">
             {t('pages.pitbull.locationDirectionsNote')}
@@ -237,12 +282,12 @@ function PitbullLocationSection({ venue, t }) {
             href={venue.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="pitbull-location__maps-link"
+            className="pitbull-location__maps-link pitbull-location__maps-link--primary motion-icon-shift"
           >
             {t('pages.pitbull.locationMapsLink')}
-            <ExternalLink size={13} aria-hidden />
+            <ExternalLink size={14} aria-hidden className="motion-icon-shift__target" />
           </a>
-        </div>
+        </Reveal>
       </div>
     </PitbullDossierSection>
   )
@@ -411,7 +456,12 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
       title={t('pages.pitbull.featureTitle')}
       titleId="pitbull-feature-title"
     >
-      <ul className="pitbull-feature-flow" aria-label={t('pages.pitbull.featureFactsAria')}>
+      <StaggerGroup
+        as="ul"
+        className="pitbull-feature-flow"
+        stagger={70}
+        aria-label={t('pages.pitbull.featureFactsAria')}
+      >
         {featureFacts.map((fact) => {
           const Icon = FEATURE_FACT_ICONS[fact.label] ?? Clock3
           return (
@@ -425,7 +475,7 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
             />
           )
         })}
-      </ul>
+      </StaggerGroup>
 
       {schedule?.length > 0 ? (
         <PitbullScheduleStrip schedule={schedule} t={t} />
@@ -445,7 +495,18 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
 }
 
 function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t }) {
+  const [tab, setTab] = useState('modalities')
   const detailCards = categoryCards.filter((card) => card.id === 'weight' || card.id === 'gender')
+  const detail =
+    tab === 'modalities'
+      ? detailCards.find((card) => card.id === 'weight')
+      : detailCards.find((card) => card.id === 'gender')
+  const chips = tab === 'modalities' ? pitbullClassic.categories : pitbullClassic.divisions
+  const chipModifier = tab === 'modalities' ? 'modality' : 'division'
+  const tabOptions = [
+    ['modalities', t('pages.pitbull.categoriesModalities')],
+    ['divisions', t('pages.pitbull.categoriesDivisions')],
+  ]
 
   return (
     <PitbullDossierSection
@@ -457,51 +518,49 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
       title={t('pages.pitbull.categoriesTitle')}
       titleId="pitbull-categories-title"
     >
-      <div className="pitbull-categories-panel" aria-label={t('pages.pitbull.categoriesListAria')}>
-        <div className="pitbull-categories-panel__grid">
-          <div className="pitbull-categories-panel__col">
-            <h3 className="pitbull-categories-panel__label">{t('pages.pitbull.categoriesModalities')}</h3>
-            <ul className="pitbull-categories-chips" role="list">
-              {pitbullClassic.categories.map((category) => (
-                <li
-                  key={category}
-                  className="pitbull-categories-chips__item pitbull-categories-chips__item--modality"
-                >
-                  {category}
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div className="pitbull-categories-explorer" aria-label={t('pages.pitbull.categoriesListAria')}>
+        <SegmentedSwitch
+          active={tab}
+          ariaLabel={t('pages.pitbull.categoriesTabsAria')}
+          className="pitbull-categories-explorer__switch"
+          onChange={setTab}
+          options={tabOptions}
+        />
 
-          <div className="pitbull-categories-panel__col pitbull-categories-panel__col--division">
-            <h3 className="pitbull-categories-panel__label">{t('pages.pitbull.categoriesDivisions')}</h3>
-            <ul className="pitbull-categories-chips" role="list">
-              {pitbullClassic.divisions.map((division) => (
-                <li
-                  key={division}
-                  className="pitbull-categories-chips__item pitbull-categories-chips__item--division"
-                >
-                  {division}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {detailCards.length > 0 ? (
-          <div className="pitbull-categories-panel__details">
-            {detailCards.map((card) => (
-              <div key={card.id} className="pitbull-categories-detail">
-                <span className="pitbull-categories-detail__label">{card.title}</span>
-                <p className="pitbull-categories-detail__text">{card.text}</p>
-              </div>
+        <MotionContentSwap swapKey={tab} className="pitbull-categories-explorer__pane">
+          <StaggerGroup
+            as="ul"
+            className="pitbull-categories-chips"
+            stagger={40}
+            role="list"
+          >
+            {chips.map((chip) => (
+              <li
+                key={chip}
+                className={`pitbull-categories-chips__item pitbull-categories-chips__item--${chipModifier}`}
+              >
+                {chip}
+              </li>
             ))}
-          </div>
+          </StaggerGroup>
+        </MotionContentSwap>
+
+        {detail ? (
+          <MotionContentSwap swapKey={`detail-${tab}`} className="pitbull-categories-explorer__detail">
+            <div className="pitbull-categories-detail pitbull-categories-detail--solo">
+              <span className="pitbull-categories-detail__label">{detail.title}</span>
+              <p className="pitbull-categories-detail__text">{detail.text}</p>
+            </div>
+          </MotionContentSwap>
         ) : null}
       </div>
 
       <footer className="pitbull-categories-foot">
-        <button type="button" className="pitbull-dossier__text-link pitbull-dossier__text-link--rulebook" onClick={() => onNavigate('rulebook')}>
+        <button
+          type="button"
+          className="pitbull-dossier__text-link pitbull-dossier__text-link--rulebook"
+          onClick={() => onNavigate('rulebook')}
+        >
           {t('pages.pitbull.viewFullRulebook')}
           <ArrowRight size={14} aria-hidden />
         </button>
@@ -579,70 +638,67 @@ export default function PitbullPage({
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
       <PitbullHero
-        canRegister={canRegister}
         eventStatus={eventStatus}
-        locale={locale}
         onHome={() => onNavigate('home')}
         onRegister={handleHeroRegister}
         onSecondary={handleHeroSecondary}
         pitbullClassic={PITBULL_CLASSIC}
-        pricing={eventPricing}
         ticketsOpen={ticketsOpen}
         title={PITBULL_CLASSIC.title}
       />
 
       <div className="pitbull-page__body">
-        <Reveal variant="up">
-          <div className="pitbull-dossier pitbull-dossier--minimal">
-            <PitbullAthletesSection
-              athleteGroups={PITBULL_ATHLETE_GROUPS ?? []}
-              onNavigate={onNavigate}
-              t={t}
-            />
+        <div className="pitbull-dossier pitbull-dossier--minimal">
+          <PitbullAthletesSection
+            athleteGroups={PITBULL_ATHLETE_GROUPS ?? []}
+            onNavigate={onNavigate}
+            t={t}
+          />
 
-            <PitbullFeatureSection
-              featureFacts={featureFacts}
-              schedule={PITBULL_SCHEDULE ?? []}
-              onNavigate={onNavigate}
-              t={t}
-            />
+          <PitbullFeatureSection
+            featureFacts={featureFacts}
+            schedule={PITBULL_SCHEDULE ?? []}
+            onNavigate={onNavigate}
+            t={t}
+          />
 
-            <PitbullCategoriesSection
-              categoryCards={PITBULL_CATEGORY_CARDS}
-              pitbullClassic={PITBULL_CLASSIC}
-              onNavigate={onNavigate}
-              t={t}
-            />
+          <PitbullCategoriesSection
+            categoryCards={PITBULL_CATEGORY_CARDS}
+            pitbullClassic={PITBULL_CLASSIC}
+            onNavigate={onNavigate}
+            t={t}
+          />
 
-            <PitbullLocationSection
-              venue={PITBULL_VENUE}
-              t={t}
-            />
+          <PitbullLocationSection
+            venue={PITBULL_VENUE}
+            t={t}
+          />
 
-            <PitbullInscriptionSection
-              canRegister={canRegister}
-              eventStatus={eventStatus}
-              locale={locale}
-              onNavigate={onNavigate}
-              pitbullClassic={PITBULL_CLASSIC}
-              pricing={eventPricing}
-              t={t}
-            />
+          <PitbullInscriptionSection
+            canRegister={canRegister}
+            eventStatus={eventStatus}
+            locale={locale}
+            onNavigate={onNavigate}
+            pitbullClassic={PITBULL_CLASSIC}
+            pricing={eventPricing}
+            t={t}
+          />
 
-            {ticketsOpen ? (
-              <PitbullDossierSection
-                id="entradas"
-                className={`pitbull-dossier__section--tickets pitbull-tickets${ticketFormOpen || hasTicketOrder ? ' pitbull-tickets--checkout' : ''}`}
-                eyebrow={t('pages.pitbull.ticketsEyebrow')}
-                index={t('pages.pitbull.ticketsIndex')}
-                lead={t('pages.pitbull.ticketsLead')}
-                title={
-                  ticketFormOpen || hasTicketOrder
-                    ? t('pages.pitbull.ticketsFormTitle')
-                    : t('pages.pitbull.ticketsTitle')
-                }
-                titleId="pitbull-tickets-title"
-              >
+          {ticketsOpen ? (
+            <PitbullDossierSection
+              id="entradas"
+              className={`pitbull-dossier__section--tickets pitbull-tickets${ticketFormOpen || hasTicketOrder ? ' pitbull-tickets--checkout' : ''}`}
+              eyebrow={t('pages.pitbull.ticketsEyebrow')}
+              index={t('pages.pitbull.ticketsIndex')}
+              lead={t('pages.pitbull.ticketsLead')}
+              title={
+                ticketFormOpen || hasTicketOrder
+                  ? t('pages.pitbull.ticketsFormTitle')
+                  : t('pages.pitbull.ticketsTitle')
+              }
+              titleId="pitbull-tickets-title"
+            >
+              <MotionContentSwap swapKey={!ticketFormOpen && !hasTicketOrder ? 'pass' : 'form'}>
                 {!ticketFormOpen && !hasTicketOrder ? (
                   <PitbullTicketPass locale={locale} onOpen={openTicketForm} pricing={ticketPricing} t={t} />
                 ) : (
@@ -673,14 +729,20 @@ export default function PitbullPage({
                     />
                   </div>
                 )}
-              </PitbullDossierSection>
-            ) : (
-              <section id="entradas" className="pitbull-dossier__section pitbull-tickets pitbull-tickets--closed" aria-live="polite">
-                <p className="pitbull-tickets__closed-note">{t('pages.pitbull.ticketsClosed')}</p>
-              </section>
-            )}
-          </div>
-        </Reveal>
+              </MotionContentSwap>
+            </PitbullDossierSection>
+          ) : (
+            <Reveal
+              as="section"
+              direction="up"
+              id="entradas"
+              className="pitbull-dossier__section pitbull-tickets pitbull-tickets--closed"
+              aria-live="polite"
+            >
+              <p className="pitbull-tickets__closed-note">{t('pages.pitbull.ticketsClosed')}</p>
+            </Reveal>
+          )}
+        </div>
       </div>
 
       <CTASection

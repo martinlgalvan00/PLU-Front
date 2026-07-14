@@ -5,15 +5,19 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
 
 export default function PluPageHero({
+  align = 'center',
   breadcrumbLabel,
   chapter,
   children,
+  className = '',
   description,
   onHome,
   title,
 }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const alignClass = align === 'start' ? ' plu-page-hero--start' : ''
+  const rootClass = `plu-page-hero plu-page-hero--motion${alignClass} ${className}`.trim()
 
   const breadcrumb = (
     <nav className="plu-page-hero__breadcrumb" aria-label="Breadcrumb">
@@ -36,12 +40,12 @@ export default function PluPageHero({
   )
 
   if (reducedMotion) {
-    return <header className="plu-page-hero plu-page-hero--motion">{body}</header>
+    return <header className={rootClass}>{body}</header>
   }
 
   return (
     <m.header
-      className="plu-page-hero plu-page-hero--motion"
+      className={rootClass}
       initial="hidden"
       animate="visible"
       variants={heroStaggerContainer}

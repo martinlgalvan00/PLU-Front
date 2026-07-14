@@ -145,11 +145,20 @@ export const sectionHeaderRule: Variants = {
 }
 
 export const heroSequenceItem: Variants = {
-  hidden: { opacity: 0, y: MOTION_DISTANCE.md },
+  hidden: { opacity: 0, y: MOTION_DISTANCE.lg },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.emphasized },
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
+  },
+}
+
+export const heroTitleLine: Variants = {
+  hidden: { opacity: 0, y: MOTION_DISTANCE.hero },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
   },
 }
 
@@ -157,8 +166,35 @@ export const heroStaggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.04,
+      staggerChildren: MOTION_STAGGER.step,
+      delayChildren: MOTION_STAGGER.delayChildren,
+    },
+  },
+}
+
+export const heroActionsItem: Variants = {
+  hidden: { opacity: 0, y: MOTION_DISTANCE.md },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: MOTION_DURATION.slow,
+      ease: MOTION_EASE.out,
+      delay: 0.28,
+    },
+  },
+}
+
+export const heroProofItem: Variants = {
+  hidden: { opacity: 0, y: MOTION_DISTANCE.md, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: MOTION_DURATION.cinematic,
+      ease: MOTION_EASE.out,
+      delay: 0.36,
     },
   },
 }

@@ -13,13 +13,33 @@ describe('validation', () => {
       ...DEFAULT_FORM,
       fullName: 'Juan Pérez',
       documentId: '40111222',
-      birthDate: '01/01/1990',
+      birthDate: '1990-01-01',
       email: 'juan@example.com',
       phone: '+54 11 1234-5678',
+      country: 'Argentina',
       province: 'Buenos Aires',
       city: 'CABA',
       gym: 'Maximal',
+      sex: 'Masculino',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('rechaza fecha inválida', () => {
+    const result = validateAthleteForm({
+      ...DEFAULT_FORM,
+      fullName: 'Juan Pérez',
+      documentId: '40111222',
+      birthDate: '1990-13-40',
+      email: 'juan@example.com',
+      phone: '+54 11 1234-5678',
+      country: 'Argentina',
+      province: 'Buenos Aires',
+      city: 'CABA',
+      gym: 'Maximal',
+      sex: 'Masculino',
+    })
+    expect(result.success).toBe(false)
+    expect(result.errors.birthDate).toBeTruthy()
   })
 })

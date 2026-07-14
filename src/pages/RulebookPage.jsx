@@ -121,7 +121,7 @@ export default function RulebookPage({ onNavigate }) {
 
   const tabItems = rulebook.chapters.map((chapter) => ({
     href: `#tab-${chapter.id}`,
-    label: chapter.numeral ? `${chapter.numeral}. ${chapter.title}` : chapter.title,
+    label: chapter.numeral ? `${chapter.numeral} · ${chapter.title}` : chapter.title,
     shortLabel: chapter.numeral || chapter.title,
   }))
 

@@ -12,8 +12,7 @@ import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 
 export default function HomePage({ onNavigate }) {
-  const { HOME_FAQ, HOME_FAQ_ITEMS, MEMBERSHIP_PLANS } = useContent()
-  const athletePlan = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete') ?? MEMBERSHIP_PLANS[0]
+  const { HOME_FAQ, HOME_FAQ_ITEMS } = useContent()
 
   return (
     <main className="home-page">
@@ -33,7 +32,7 @@ export default function HomePage({ onNavigate }) {
 
       <Reveal as="section" className="home-section home-section--canvas-light home-section--mid-stack" variant="fade">
         <div className="home-section__inner home-mid-stack">
-          <HomeMembershipBand plan={athletePlan} onNavigate={onNavigate} />
+          <HomeMembershipBand onNavigate={onNavigate} />
 
           <div className="home-mid-stack__divider" aria-hidden />
 

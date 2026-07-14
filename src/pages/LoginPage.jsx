@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { usePluOAuth } from '../providers/oauthContext.js'
 
-const FEATURE_KEYS = ['login.featureProfile', 'login.featureMembership', 'login.featureEvents']
+const FEATURES = [
+  { key: 'login.featureProfile', index: '01' },
+  { key: 'login.featureMembership', index: '02' },
+  { key: 'login.featureEvents', index: '03' },
+]
 
 export default function LoginPage({ onLogin, onNavigate }) {
   const { t } = useI18n()
@@ -48,8 +52,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
       <div className="login-shell">
         <aside className="login-brand" aria-label={t('login.brandAria')}>
           <div className="login-brand__logos">
-            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={44} />
-            <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={34} />
+            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={64} />
+            <span className="login-brand__logos-rule" aria-hidden />
+            <div className="login-brand__wordmark">
+              <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={42} />
+              <span className="login-brand__lockup">{t('brand.federationLine')}</span>
+            </div>
           </div>
 
           <div className="login-brand__intro">
@@ -59,20 +67,17 @@ export default function LoginPage({ onLogin, onNavigate }) {
           </div>
 
           <ul className="login-brand__features" role="list">
-            {FEATURE_KEYS.map((key) => (
+            {FEATURES.map(({ key, index }) => (
               <li key={key} className="login-brand__feature">
-                <span className="login-brand__feature-icon" aria-hidden>
-                  <Check size={13} strokeWidth={2.5} />
+                <span className="login-brand__feature-index" aria-hidden>
+                  {index}
                 </span>
                 <span className="login-brand__feature-text">{t(key)}</span>
               </li>
             ))}
           </ul>
 
-          <div className="login-brand__secure">
-            <span className="login-secure-note__dot" aria-hidden />
-            <span className="login-brand__secure-text">{t('login.secureNote')}</span>
-          </div>
+          <p className="login-brand__secure">{t('login.secureNote')}</p>
         </aside>
 
         <section className="login-card" aria-labelledby="login-heading">
@@ -81,31 +86,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />
               <BrandLogo variant="letterhead" imgClassName="login-card__logo" height={28} />
             </div>
-            <span className="login-card__eyebrow">
-              <span className="login-card__eyebrow-dot" aria-hidden />
-              {t('login.eyebrow')}
-            </span>
+            <span className="login-card__eyebrow">{t('login.eyebrow')}</span>
             <h1 id="login-heading">{t('login.title')}</h1>
             <p className="login-card__lead">{t('login.subtitle')}</p>
           </header>
-
-          {oauth.configured && (
-            <button
-              type="button"
-              className="login-submit login-submit--oauth"
-              onClick={handleOAuthLogin}
-              disabled={oauth.isLoading}
-            >
-              {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
-              {!oauth.isLoading && <ArrowRight size={16} aria-hidden />}
-            </button>
-          )}
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
             <label className="login-field">
               <span className="login-field__label">{t('login.email')}</span>
               <span className="login-field__control">
-                <Mail size={16} aria-hidden className="login-field__icon" />
                 <input
                   type="text"
                   name="email"
@@ -127,7 +116,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </button>
               </span>
               <span className="login-field__control">
-                <LockKeyhole size={16} aria-hidden className="login-field__icon" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
@@ -159,9 +147,21 @@ export default function LoginPage({ onLogin, onNavigate }) {
             )}
           </form>
 
-          <div className="login-separator" role="separator">
-            <span>{t('login.separator')}</span>
-          </div>
+          {oauth.configured && (
+            <>
+              <div className="login-separator" role="separator">
+                <span>{t('login.separator')}</span>
+              </div>
+              <button
+                type="button"
+                className="login-submit login-submit--oauth"
+                onClick={handleOAuthLogin}
+                disabled={oauth.isLoading}
+              >
+                {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
+              </button>
+            </>
+          )}
 
           <p className="login-join">
             {t('login.joinPrompt')}{' '}
