@@ -15,7 +15,7 @@ export default function ProfileHero({ athlete, membership, athleteRegistrations,
             <div className="account-hero__avatar" aria-hidden>{initials(athlete.fullName)}</div>
             <div className="account-hero__copy">
               <span className="account-hero__eyebrow">{t('account.eyebrow')}</span>
-              <h1>{athlete.fullName}</h1>
+              <h1 className="account-hero__name">{athlete.fullName}</h1>
               <div className="account-hero__badges">
                 <span className={`account-badge ${membershipActive ? 'account-badge--active' : 'account-badge--pending'}`}>
                   {membershipActive ? t('account.membershipActive') : t('account.membershipInactive')}
@@ -29,17 +29,17 @@ export default function ProfileHero({ athlete, membership, athleteRegistrations,
             {membership?.startDate && (
               <div className="account-hero__stat" role="listitem">
                 <span>{t('account.hero.memberSince')}</span>
-                <strong>{formatShortDate(membership.startDate)}</strong>
+                <span className="account-hero__stat-value">{formatShortDate(membership.startDate)}</span>
               </div>
             )}
             <div className="account-hero__stat account-hero__stat--count" role="listitem">
               <span>{t('account.hero.activeRegistrations')}</span>
-              <strong>{activeRegistrations.length}</strong>
+              <span className="account-hero__stat-value">{activeRegistrations.length}</span>
             </div>
             {nextEvent && (
               <div className="account-hero__stat account-hero__stat--event" role="listitem">
                 <span>{t('account.hero.nextEvent')}</span>
-                <strong>{nextEvent.title}</strong>
+                <span className="account-hero__stat-value">{nextEvent.title}</span>
               </div>
             )}
           </div>

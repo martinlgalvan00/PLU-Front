@@ -74,13 +74,15 @@ export default function ResultsArchiveToolbar({
     return (
       <div className={`results-toolbar results-toolbar--page ${compact ? 'results-toolbar--compact' : ''}`.trim()}>
         <div className="results-page__toolbar-row">
-          <FilterPills
-            active={filter}
-            ariaLabel={t('pages.results.filterArchiveAria')}
-            className="results-page__filters filter-pills--refined"
-            onChange={onFilterChange}
-            options={filters}
-          />
+          <div className="results-page__filters-shell">
+            <FilterPills
+              active={filter}
+              ariaLabel={t('pages.results.filterArchiveAria')}
+              className="results-page__filters filter-pills--refined"
+              onChange={onFilterChange}
+              options={filters}
+            />
+          </div>
           <div className="results-page__toolbar-meta">
             <ResultsSortMenu
               className="results-sort-menu--inline"

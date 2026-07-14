@@ -30,8 +30,9 @@ export default function TicketOrdersSection({
   const [openingProofId, setOpeningProofId] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [query, setQuery] = useState('')
 
-  const rows = useMemo(
+  const allRows = useMemo(
     () =>
       pendingTicketOrders.map((order) => ({
         id: order.orderId,
@@ -51,6 +52,15 @@ export default function TicketOrdersSection({
       })),
     [locale, pendingTicketOrders, t],
   )
+
+  const rows = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return allRows
+
+    return allRows.filter((row) =>
+      [row.reference, row.event, row.attendees].some((field) => field?.toLowerCase().includes(normalized)),
+    )
+  }, [allRows, query])
 
   const handleOpenProof = useCallback(async (row) => {
     if (!row.paymentProofPath) return
@@ -86,11 +96,11 @@ export default function TicketOrdersSection({
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.ticketOrders.search')}
-      query=""
+      query={query}
       showHeader
       showStats={false}
-      totalCount={rows.length}
-      onQueryChange={() => {}}
+      totalCount={allRows.length}
+      onQueryChange={setQuery}
       filters={[]}
       title={t('admin.ticketOrders.title')}
       subtitle={t('admin.ticketOrders.subtitle')}
@@ -153,6 +163,7 @@ export default function TicketOrdersSection({
         ]}
         rows={rows}
         emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
+        variant="admin"
       />
       )}
     </AdminListSection>

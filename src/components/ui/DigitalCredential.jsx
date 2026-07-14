@@ -6,6 +6,22 @@ export default function DigitalCredential({ athlete, membership }) {
   const { t } = useI18n()
   const [flipped, setFlipped] = useState(false)
   const membershipActive = membership?.status === 'activa'
+  const location = [athlete.city, athlete.province].filter(Boolean).join(', ')
+
+  const backFields = [
+    { key: 'document', label: t('account.credential.document'), value: athlete.documentId },
+    { key: 'birthDate', label: t('account.credential.birthDate'), value: formatShortDate(athlete.birthDate) },
+    { key: 'gym', label: t('account.credential.gym'), value: athlete.gym || t('account.credential.noData') },
+    { key: 'location', label: t('account.credential.location'), value: location || t('account.credential.noData') },
+    { key: 'sex', label: t('account.credential.sex'), value: athlete.sex },
+    {
+      key: 'expiration',
+      label: t('account.credential.expiration'),
+      value: membership?.expirationDate
+        ? formatShortDate(membership.expirationDate)
+        : t('account.credential.pending'),
+    },
+  ]
 
   return (
     <article className="account-credential">
@@ -33,13 +49,15 @@ export default function DigitalCredential({ athlete, membership }) {
         </div>
 
         <div className="account-credential__face account-credential__back">
-          <div><small>{t('account.credential.document')}</small><strong>{athlete.documentId}</strong></div>
-          <div><small>{t('account.credential.birthDate')}</small><strong>{formatShortDate(athlete.birthDate)}</strong></div>
-          <div><small>{t('account.credential.gym')}</small><strong>{athlete.gym || t('account.credential.noData')}</strong></div>
-          <div><small>{t('account.credential.location')}</small><strong>{[athlete.city, athlete.province].filter(Boolean).join(', ')}</strong></div>
-          <div><small>{t('account.credential.sex')}</small><strong>{athlete.sex}</strong></div>
-          <div><small>{t('account.credential.expiration')}</small><strong>{membership?.expirationDate ? formatShortDate(membership.expirationDate) : t('account.credential.pending')}</strong></div>
-          <p>{t('account.credential.footer')}</p>
+          <dl className="account-credential__fields">
+            {backFields.map(({ key, label, value }) => (
+              <div key={key} className="account-credential__row">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="account-credential__footer">{t('account.credential.footer')}</p>
         </div>
       </div>
       <button type="button" className="account-credential__flip" onClick={() => setFlipped((value) => !value)}>

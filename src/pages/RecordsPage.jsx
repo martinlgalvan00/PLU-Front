@@ -1,32 +1,15 @@
-import { Medal, Trophy } from 'lucide-react'
+import Button from '../components/ui/Button.jsx'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
-import CTASection from '../components/ui/CTASection.jsx'
-import EmptyState from '../components/ui/EmptyState.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import AnimatedSectionHeader from '../motion/AnimatedSectionHeader.tsx'
-import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
-const DISTINCTION_CARDS = [
-  {
-    id: 'results',
-    icon: Trophy,
-    titleKey: 'pages.records.distinctionResultsTitle',
-    textKey: 'pages.records.distinctionResultsText',
-  },
-  {
-    id: 'records',
-    icon: Medal,
-    titleKey: 'pages.records.distinctionRecordsTitle',
-    textKey: 'pages.records.distinctionRecordsText',
-  },
-]
+const EMPTY_COLUMNS = ['category', 'division', 'lift', 'mark', 'athlete', 'meet']
 
 export default function RecordsPage({ onNavigate }) {
   const { t } = useI18n()
 
   return (
-    <main className="page page--design page--plu-ref records-page">
+    <main className="page page--design page--plu-ref records-page records-page--plu-ref">
       <PluPageHero
         breadcrumbLabel={t('pages.records.heroBreadcrumb')}
         chapter={t('pages.records.heroEyebrow')}
@@ -35,42 +18,53 @@ export default function RecordsPage({ onNavigate }) {
         title={t('pages.records.heroTitle')}
       />
 
-      <div className="design-section">
-        <Reveal as="section" variant="up">
-          <AnimatedSectionHeader
-            align="left"
-            className="records-section-header motion-section-header--records"
-            showRule
-            title={t('pages.records.distinctionTitle')}
-          />
-          <StaggerGroup as="div" className="content-grid records-distinction" stagger={70} variant="up">
-            {DISTINCTION_CARDS.map(({ icon: Icon, id, textKey, titleKey }) => (
-              <article key={id} className="info-card">
-                <Icon size={26} strokeWidth={1.6} aria-hidden />
-                <h3>{t(titleKey)}</h3>
-                <p>{t(textKey)}</p>
-              </article>
-            ))}
-          </StaggerGroup>
-        </Reveal>
+      <div className="records-page__body">
+        <Reveal as="section" className="records-sheet" aria-labelledby="records-sheet-title">
+          <header className="records-sheet__head">
+            <div className="records-sheet__titles">
+              <h2 id="records-sheet-title" className="records-sheet__title">
+                {t('pages.records.sheetTitle')}
+              </h2>
+              <p className="records-sheet__subtitle">{t('pages.records.sheetSubtitle')}</p>
+            </div>
+            <p className="records-sheet__stamp">{t('pages.records.sheetStamp')}</p>
+          </header>
 
-        <Reveal delay={60} className="records-comingsoon">
-          <EmptyState
-            icon={Medal}
-            title={t('pages.records.comingSoonTitle')}
-            description={t('pages.records.comingSoonDesc')}
-          />
+          <div className="records-sheet__table-wrap" role="presentation">
+            <table className="records-sheet__table">
+              <thead>
+                <tr>
+                  {EMPTY_COLUMNS.map((column) => (
+                    <th key={column} scope="col">
+                      {t(`pages.records.sheetColumns.${column}`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 4 }, (_, row) => (
+                  <tr key={row}>
+                    {EMPTY_COLUMNS.map((column) => (
+                      <td key={`${row}-${column}`}>—</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="records-sheet__foot">
+            <p className="records-sheet__empty">{t('pages.records.sheetEmpty')}</p>
+            <p className="records-sheet__hint">{t('pages.records.sheetHint')}</p>
+            <div className="records-sheet__actions">
+              <Button onClick={() => onNavigate('results')}>{t('pages.records.ctaResults')}</Button>
+              <button type="button" className="records-sheet__link" onClick={() => onNavigate('contact')}>
+                {t('pages.records.ctaContact')}
+              </button>
+            </div>
+          </div>
         </Reveal>
       </div>
-
-      <CTASection
-        title={t('pages.records.ctaTitle')}
-        description={t('pages.records.ctaDesc')}
-        primaryLabel={t('pages.records.ctaResults')}
-        onPrimary={() => onNavigate('results')}
-        secondaryLabel={t('pages.records.ctaContact')}
-        onSecondary={() => onNavigate('contact')}
-      />
     </main>
   )
 }

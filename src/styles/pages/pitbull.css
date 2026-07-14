@@ -24,10 +24,11 @@
 }
 
 .pitbull-page--premium .pitbull-page__body {
-  gap: clamp(20px, 3vw, 32px);
+  gap: clamp(8px, 1.5vw, 16px);
   margin-inline: 0;
   max-width: none;
   padding-inline: var(--layout-gutter-lg);
+  padding-top: clamp(8px, 1.5vw, 16px);
   width: 100%;
 }
 
@@ -346,8 +347,8 @@
   border-top: 1px solid var(--pitbull-section-divider);
   display: flex;
   flex-direction: column;
-  gap: clamp(36px, 5.5vw, 52px);
-  padding-top: clamp(24px, 3.5vw, 32px);
+  gap: clamp(44px, 6.5vw, 72px);
+  padding-top: clamp(28px, 4vw, 40px);
   width: 100%;
 }
 
@@ -419,10 +420,24 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__head {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   max-width: none;
+  padding-left: clamp(14px, 2vw, 20px);
+  position: relative;
   width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__head::before {
+  background: var(--pitbull-editorial-rule, var(--home-hero-editorial-rule, var(--color-brand-celeste)));
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  left: 0;
+  opacity: 0.85;
+  position: absolute;
+  top: 4px;
+  width: 2px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__kicker {
@@ -434,47 +449,47 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__index {
-  color: var(--pitbull-feature-index-fg, rgba(242, 183, 5, 0.62));
-  font-family: var(--font-display);
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   line-height: 1;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__eyebrow {
-  color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-style: italic;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__title {
   font-family: var(--font-display);
-  font-size: clamp(20px, 3vw, 28px);
+  font-size: clamp(1.45rem, 2.8vw, 1.85rem);
   font-weight: 700;
-  letter-spacing: -0.034em;
-  line-height: 1.1;
+  letter-spacing: -0.032em;
+  line-height: 1.12;
   margin: 0;
-  max-width: 22ch;
+  max-width: 28ch;
   text-wrap: balance;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__lead {
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.55;
   margin: 0;
-  max-width: 48ch;
+  max-width: 46ch;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__body {
   display: grid;
-  gap: clamp(14px, 2vw, 18px);
-  margin-top: clamp(14px, 2.2vw, 18px);
+  gap: clamp(16px, 2.4vw, 22px);
+  margin-top: clamp(16px, 2.6vw, 22px);
   max-width: none;
   width: 100%;
 }
@@ -795,6 +810,11 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__section--stack .pitbull-dossier__head--ops {
   margin-bottom: 0;
+  padding-left: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--stack .pitbull-dossier__head--ops::before {
+  display: none;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__status {
@@ -5918,6 +5938,7 @@
   grid-template-columns: 52px repeat(2, minmax(0, 1fr));
 }
 
+.pitbull-program__rows > *:first-child .pitbull-program__row,
 .pitbull-program__row:first-child {
   border-top: none;
 }
@@ -6009,6 +6030,60 @@
   display: grid;
   gap: 0;
   width: 100%;
+}
+
+/* Explorer: tabs + swap animado de chips/detalle */
+.pitbull-categories-explorer {
+  display: grid;
+  gap: clamp(16px, 2.2vw, 22px);
+  width: 100%;
+}
+
+.pitbull-categories-explorer__switch {
+  justify-self: start;
+  max-width: 22rem;
+  width: min(100%, 22rem);
+}
+
+.pitbull-categories-explorer__pane {
+  background: var(--pitbull-benefits-shell-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  min-height: 4.5rem;
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-categories-explorer__detail {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  padding-top: clamp(12px, 1.8vw, 16px);
+}
+
+.pitbull-categories-detail--solo {
+  border-top: none;
+  padding: 0;
+}
+
+[data-theme='light'] .pitbull-categories-explorer__pane {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-categories-explorer__detail {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-location__maps-link--primary {
+  background: var(--plu-gold-500, var(--color-brand-gold));
+  color: #14181f;
+}
+
+[data-theme='light'] .pitbull-location__maps-link--primary:hover {
+  background: var(--plu-gold-400);
+  color: #14181f;
+}
+
+[data-theme='light'] .pitbull-location--editorial .pitbull-location__map-shell {
+  box-shadow: 0 14px 32px rgba(15, 17, 23, 0.1);
 }
 
 .pitbull-categories-panel__grid {
@@ -7074,11 +7149,19 @@
   gap: clamp(14px, 2vw, 18px);
 }
 
+.pitbull-location--editorial {
+  gap: clamp(18px, 2.6vw, 24px);
+}
+
 .pitbull-location__map-shell {
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   position: relative;
   width: 100%;
+}
+
+.pitbull-location--editorial .pitbull-location__map-shell {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
 }
 
 .pitbull-location__map {
@@ -7103,6 +7186,29 @@
 .pitbull-location__details {
   display: grid;
   gap: 12px;
+}
+
+.pitbull-location--editorial .pitbull-location__details {
+  align-content: start;
+  gap: 14px;
+}
+
+.pitbull-location__kicker {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.pitbull-location__kicker svg {
+  color: var(--color-brand-celeste);
+  flex-shrink: 0;
 }
 
 .pitbull-location__dl {
@@ -7147,9 +7253,10 @@
 
 .pitbull-location__note {
   color: var(--color-text-muted);
-  font-size: 11.5px;
-  line-height: 1.58;
+  font-size: 13px;
+  line-height: 1.55;
   margin: 0;
+  max-width: 42ch;
 }
 
 .pitbull-location__maps-link {
@@ -7177,6 +7284,22 @@
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.16);
   color: #fff;
+}
+
+.pitbull-location__maps-link--primary {
+  background: var(--plu-gold-500, var(--color-brand-gold));
+  border-color: transparent;
+  border-radius: 6px;
+  color: #14181f;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px 18px;
+}
+
+.pitbull-location__maps-link--primary:hover {
+  background: var(--plu-gold-400);
+  border-color: transparent;
+  color: #14181f;
 }
 
 .pitbull-location__maps-link:focus-visible {
@@ -7661,38 +7784,81 @@
 }
 
 /* =============================================
-   PITBULL — HERO MASTHEAD (poster unificado)
+   PITBULL — HERO MASTHEAD (editorial seamless)
    ============================================= */
 
 .pitbull-hero-masthead {
   margin-top: calc(-1 * var(--header-height));
   padding:
-    calc(var(--header-height) + clamp(18px, 2.8vw, 28px))
+    calc(var(--header-height) + clamp(20px, 3vw, 36px))
     var(--layout-gutter-lg)
-    clamp(22px, 3.2vw, 34px);
+    clamp(28px, 4vw, 48px);
   position: relative;
   z-index: 1;
 }
 
+.pitbull-hero-masthead::before {
+  background:
+    linear-gradient(180deg, transparent 72%, var(--color-page-canvas) 100%),
+    radial-gradient(ellipse 70% 55% at 88% 18%, rgba(242, 183, 5, 0.08), transparent 62%),
+    radial-gradient(ellipse 55% 48% at 8% 72%, rgba(116, 172, 223, 0.07), transparent 58%),
+    var(--design-hero-surface, var(--design-hero-bg, #181a1f));
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
 .pitbull-hero-masthead__shell {
-  background: var(--design-hero-surface, var(--design-hero-bg, #181a1f));
-  border: 1px solid var(--pitbull-control-rail-border, rgba(255, 255, 255, 0.08));
-  border-radius: calc(var(--border-radius-lg) + 2px);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   margin-inline: auto;
   max-width: none;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
   width: 100%;
 }
 
+.pitbull-hero-masthead__mark {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 18vw, 11rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.82;
+  margin: 0;
+  opacity: 0.045;
+  pointer-events: none;
+  position: absolute;
+  right: clamp(-12px, -1vw, 0);
+  top: clamp(-4px, -0.5vw, 8px);
+  user-select: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+[data-theme='light'] .pitbull-hero-masthead__mark {
+  opacity: 0.035;
+}
+
+.pitbull-hero-masthead--text .pitbull-hero-masthead__shell {
+  z-index: 1;
+}
+
 .pitbull-hero-masthead__stripe {
-  background: linear-gradient(
+  background: var(--plu-gradient-stripe, linear-gradient(
     90deg,
     #1f5f9e 0%,
     #1f5f9e 42%,
     rgba(201, 185, 120, 0.55) 58%,
     #f2b705 100%
-  );
-  height: 2px;
+  ));
+  height: 1px;
+  margin-bottom: clamp(18px, 2.6vw, 26px);
+  max-width: min(12rem, 40%);
+  opacity: 0.85;
   width: 100%;
 }
 
@@ -7708,18 +7874,74 @@
 
 .pitbull-hero-masthead--text .pitbull-hero-masthead__panel {
   border-left: none;
-  max-width: min(72rem, 100%);
-  padding: clamp(18px, 2.8vw, 28px) clamp(18px, 3vw, 32px);
+  gap: clamp(18px, 2.4vw, 26px);
+  max-width: min(42rem, 100%);
+  padding: 0;
+  padding-left: clamp(16px, 2.2vw, 24px);
+  position: relative;
+  z-index: 1;
 }
 
 .pitbull-hero-masthead--text .pitbull-hero-masthead__panel::before {
-  bottom: clamp(18px, 2.4vw, 24px);
-  top: clamp(18px, 2.4vw, 24px);
+  bottom: 4px;
+  top: 4px;
+}
+
+.pitbull-hero-masthead--text .pitbull-hero-masthead__head {
+  gap: clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-hero-masthead--text .pitbull-hero-masthead__status {
+  margin: 0;
+}
+
+.pitbull-hero-masthead--text .pitbull-hero-masthead__title {
+  font-size: clamp(2.6rem, 6.5vw, 4.25rem);
+  max-width: 12ch;
+}
+
+.pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 2px;
+  padding-top: clamp(16px, 2vw, 20px);
+}
+
+.pitbull-hero-masthead__text-link {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.pitbull-hero-masthead__text-link:hover {
+  color: var(--color-text-primary);
 }
 
 .pitbull-hero-masthead__dateline {
-  border-bottom: 1px solid var(--pitbull-control-rail-border, rgba(255, 255, 255, 0.08));
-  padding-bottom: clamp(10px, 1.6vw, 14px);
+  border-bottom: none;
+  display: grid;
+  gap: 4px;
+  padding-bottom: 0;
+}
+
+.pitbull-hero-masthead__date {
+  color: var(--color-text-primary);
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .pitbull-hero-masthead__date-sr {
@@ -7735,13 +7957,13 @@
 }
 
 .pitbull-hero-masthead__venue-text {
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: 0;
   line-height: 1.45;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .pitbull-hero-masthead__visual {
@@ -7833,6 +8055,14 @@
   max-width: 28ch;
 }
 
+/* En mobile la foto es angosta — el caption largo choca con el badge de
+   fecha (bottom-right). El venue ya identifica la sede, se oculta el resto. */
+@media (max-width: 520px) {
+  .pitbull-hero-masthead__visual-caption {
+    display: none;
+  }
+}
+
 .pitbull-hero-masthead__date {
   bottom: 12px;
   left: 12px;
@@ -7840,26 +8070,54 @@
   z-index: 4;
 }
 
+/* La fecha dentro del dateline del panel va en flujo normal, no flotando
+   sobre las acciones — la regla de arriba es para un uso como overlay
+   (foto), no para el panel de texto. */
+.pitbull-hero-masthead__panel .pitbull-hero-masthead__date {
+  bottom: auto;
+  left: auto;
+  position: static;
+  z-index: auto;
+}
+
+/* Badge de fecha sobre la foto del hero split (visual + panel).
+   Va en la esquina inferior derecha — el bottom-left ya lo ocupa
+   `__visual-meta` (venue + caption), como en `pitbull-spotlight__visual-date`. */
+.pitbull-hero-masthead__date-badge {
+  background: rgba(8, 10, 14, 0.55);
+  border-radius: 999px;
+  bottom: 14px;
+  color: rgba(255, 255, 255, 0.94);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 6px 12px;
+  position: absolute;
+  right: 14px;
+  z-index: 4;
+}
+
 .pitbull-hero-masthead__panel {
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 1.8vw, 16px);
+  gap: clamp(16px, 2.2vw, 22px);
   min-height: 100%;
   min-width: 0;
-  padding: clamp(16px, 2.4vw, 24px);
-  padding-left: clamp(18px, 2.6vw, 26px);
+  padding: 0;
+  padding-left: clamp(16px, 2.2vw, 24px);
   position: relative;
 }
 
 .pitbull-hero-masthead__panel::before {
-  background: var(--plu-gradient-brand-bar, var(--color-brand-celeste));
+  background: var(--home-hero-editorial-rule, var(--plu-gradient-brand-bar, var(--color-brand-celeste)));
   border-radius: 99px;
-  bottom: clamp(14px, 2vw, 18px);
+  bottom: 2px;
   content: '';
   left: 0;
   opacity: 0.88;
   position: absolute;
-  top: clamp(14px, 2vw, 18px);
+  top: 2px;
   width: 2px;
 }
 
@@ -7868,11 +8126,20 @@
   color: var(--color-text-muted);
   display: inline-flex;
   flex-wrap: wrap;
-  font-size: 10px;
-  gap: 7px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  gap: 8px;
+  letter-spacing: 0;
   margin: 0;
-  text-transform: uppercase;
+  opacity: 0.72;
+  text-transform: none;
+}
+
+/* Layout split (visual + panel): estos elementos siempre van sin margin
+   de navegador — el ritmo vertical lo da el `gap` del grid `__head`. */
+.pitbull-hero-masthead__status,
+.pitbull-hero-masthead__title,
+.pitbull-hero-masthead__lead {
+  margin: 0;
 }
 
 .pitbull-hero-masthead__breadcrumb button {
@@ -7889,6 +8156,7 @@
 
 .pitbull-hero-masthead__breadcrumb button:hover {
   color: var(--color-text-primary);
+  opacity: 1;
 }
 
 .pitbull-hero-masthead__breadcrumb span:last-child {
@@ -7897,39 +8165,39 @@
 
 .pitbull-hero-masthead__head {
   display: grid;
-  gap: clamp(6px, 1vw, 8px);
+  gap: clamp(10px, 1.4vw, 14px);
 }
 
 .pitbull-hero-masthead__head-top {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 10px;
-  justify-content: space-between;
+  gap: 10px 14px;
+  justify-content: flex-start;
 }
 
 .pitbull-hero-masthead__chapter {
-  color: var(--color-brand-gold);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .pitbull-hero-masthead__status {
   align-items: center;
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
-  border-radius: var(--border-radius-pill);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--color-brand-celeste);
   display: inline-flex;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   gap: 6px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   line-height: 1;
-  padding: 5px 9px;
-  text-transform: uppercase;
+  padding: 0;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -7938,50 +8206,57 @@
   border-radius: 50%;
   content: '';
   flex: none;
-  height: 5px;
-  opacity: 0.75;
-  width: 5px;
+  height: 6px;
+  opacity: 0.85;
+  width: 6px;
 }
 
 .pitbull-hero-masthead__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(28px, 4.8vw, 48px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.042em;
   line-height: 0.96;
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .pitbull-hero-masthead__lead {
   color: var(--color-text-muted);
-  font-size: clamp(14px, 1.8vw, 16px);
+  font-size: clamp(15px, 1.3vw, 17px);
   line-height: 1.5;
   margin: 0;
-  max-width: 46ch;
+  max-width: 38ch;
 }
 
 .pitbull-hero-masthead__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
   list-style: none;
   margin: 2px 0 0;
   padding: 0;
 }
 
 .pitbull-hero-masthead__tags li {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 18%, transparent);
-  border-radius: var(--border-radius-pill);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--color-text-secondary);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  padding: 5px 10px;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.3;
+  padding: 0;
+  text-transform: none;
+}
+
+.pitbull-hero-masthead__tags li:not(:last-child)::after {
+  color: var(--color-text-muted);
+  content: '·';
+  margin-inline: 8px;
+  opacity: 0.55;
 }
 
 .pitbull-hero-masthead__highlights {
@@ -8036,19 +8311,21 @@
 .pitbull-hero-masthead__metrics {
   border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
   display: grid;
-  gap: 12px 20px;
+  gap: 14px 28px;
   grid-template-columns: 1fr;
-  margin-top: 2px;
-  padding-top: 14px;
+  margin-top: 4px;
+  max-width: 28rem;
+  padding-top: 16px;
 }
 
 @media (min-width: 520px) {
   .pitbull-hero-masthead__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr);
   }
 
   .pitbull-hero-masthead__metric--capacity {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 }
 
@@ -8112,16 +8389,16 @@
 
 .pitbull-hero-masthead__metric-label {
   color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .pitbull-hero-masthead__metric-value {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(17px, 2.2vw, 22px);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -8133,33 +8410,33 @@
 }
 
 .pitbull-hero-masthead__actions {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .pitbull-hero-masthead__cta {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: var(--border-radius-md);
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
-  min-height: 44px;
-  padding: 10px 16px;
+  min-height: 48px;
+  padding: 0 18px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast);
-  width: 100%;
+  width: auto;
 }
 
 .pitbull-hero-masthead__cta--primary {
-  background: var(--color-brand-gold, #f2b705);
+  background: var(--plu-gold-500, var(--color-brand-gold, #f2b705));
   border-color: transparent;
   color: #14181f;
 }
@@ -8172,12 +8449,13 @@
 .pitbull-hero-masthead__cta--secondary {
   background: transparent;
   border-color: var(--color-border-subtle);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .pitbull-hero-masthead__cta--secondary:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
   color: var(--color-text-primary);
 }
 
@@ -8198,17 +8476,29 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
+[data-theme='light'] .pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
+  border-top-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-hero-masthead__text-link {
+  color: var(--color-text-secondary);
+}
+
+[data-theme='light'] .pitbull-hero-masthead__text-link:hover {
+  color: var(--color-text-primary);
+}
+
 [data-theme='light'] .pitbull-hero-masthead--text .pitbull-hero-masthead__dateline {
-  border-bottom-color: rgba(15, 23, 42, 0.08);
+  border-bottom: none;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__shell {
-  background: #fff;
-  border-color: rgba(15, 23, 42, 0.09);
+  background: transparent;
+  border: none;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__panel {
-  border-left-color: rgba(15, 23, 42, 0.07);
+  border-left-color: transparent;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__highlight {
@@ -8217,24 +8507,26 @@
 }
 
 [data-theme='light'] .pitbull-hero-masthead__tags li {
-  background: rgba(31, 95, 158, 0.06);
-  border-color: rgba(31, 95, 158, 0.14);
+  background: transparent;
+  border: none;
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .pitbull-hero-masthead__status {
-  background: rgba(26, 107, 176, 0.06);
-  border-color: rgba(26, 107, 176, 0.16);
+  background: transparent;
+  border: none;
   color: #1a6bb0;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__cta--secondary:hover {
-  background: rgba(15, 17, 23, 0.04);
+  background: transparent;
+  border-color: rgba(15, 17, 23, 0.28);
   color: var(--color-text-primary);
 }
 
 @media (min-width: 640px) {
   .pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
   }
 
   .pitbull-hero-masthead__highlights {
@@ -8242,7 +8534,23 @@
   }
 
   .pitbull-hero-masthead__actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+  }
+}
+
+@media (max-width: 520px) {
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__cta {
+    width: 100%;
+  }
+
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -8505,77 +8813,37 @@
   }
 }
 
-/* ── Athletes brief (editorial, dos carriles) ─ */
+/* ── Athletes guide (dos fases, sin numeración doble) ─ */
 
-.pitbull-athletes-brief {
+.pitbull-athletes-guide {
+  display: grid;
+  gap: clamp(28px, 4vw, 40px);
+  grid-template-columns: 1fr;
   width: 100%;
 }
 
-.pitbull-athletes-brief__lanes {
-  display: grid;
-  gap: 0;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) {
-  .pitbull-athletes-brief__lanes {
-    gap: clamp(20px, 3vw, 32px);
+@media (min-width: 860px) {
+  .pitbull-athletes-guide {
+    column-gap: clamp(40px, 6vw, 64px);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.pitbull-athletes-brief__lane {
+.pitbull-athletes-guide__phase {
   min-width: 0;
-  padding-left: clamp(12px, 1.8vw, 16px);
-  position: relative;
 }
 
-.pitbull-athletes-brief__lane::before {
-  background: var(--pitbull-editorial-rule, var(--color-brand-celeste));
-  border-radius: 99px;
-  bottom: 0;
-  content: '';
-  left: 0;
-  opacity: 0.82;
-  position: absolute;
-  top: 0;
-  width: 2px;
-}
-
-.pitbull-athletes-brief__lane--meet::before {
-  background: var(--color-brand-gold);
-  opacity: 0.72;
-}
-
-.pitbull-athletes-brief__lane + .pitbull-athletes-brief__lane {
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
-  margin-top: clamp(16px, 2.4vw, 20px);
-  padding-top: clamp(16px, 2.4vw, 20px);
-}
-
-@media (min-width: 768px) {
-  .pitbull-athletes-brief__lane + .pitbull-athletes-brief__lane {
-    border-top: none;
-    margin-top: 0;
-    padding-top: 0;
-  }
-}
-
-.pitbull-athletes-brief__lane-label {
-  color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-style: italic;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 clamp(10px, 1.6vw, 14px);
+.pitbull-athletes-guide__label {
+  color: var(--color-brand-gold);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0 0 14px;
   text-transform: uppercase;
 }
 
-.pitbull-athletes-brief__lane--meet .pitbull-athletes-brief__lane-label {
-  color: var(--color-brand-gold);
-}
-
-.pitbull-athletes-brief__entries {
+.pitbull-athletes-guide__list {
   display: grid;
   gap: 0;
   list-style: none;
@@ -8583,55 +8851,218 @@
   padding: 0;
 }
 
-.pitbull-athletes-brief__entry {
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+.pitbull-athletes-guide__item {
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
   display: grid;
-  gap: 4px 16px;
-  grid-template-columns: minmax(88px, 0.34fr) minmax(0, 1fr);
-  padding: clamp(10px, 1.5vw, 12px) 0;
+  gap: 4px;
+  padding: 14px 0;
 }
 
-.pitbull-athletes-brief__entry:first-child {
+.pitbull-athletes-guide__item:first-child {
   border-top: none;
   padding-top: 0;
 }
 
-.pitbull-athletes-brief__entry-title {
+.pitbull-athletes-guide__item:last-child {
+  padding-bottom: 0;
+}
+
+.pitbull-athletes-guide__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.35;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
 }
 
-.pitbull-athletes-brief__entry-text {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
+.pitbull-athletes-guide__text {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.5;
   margin: 0;
+  max-width: 36ch;
 }
 
-.pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
-  border-top: none;
-  gap: 10px 16px;
-  margin-top: clamp(14px, 2vw, 18px);
-  padding-top: 0;
+/* Camino del competidor — timeline editorial con motion */
+.pitbull-athletes-journey {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  width: 100%;
 }
 
-@media (max-width: 640px) {
-  .pitbull-athletes-brief__entry {
-    grid-template-columns: 1fr;
-    gap: 3px;
+@media (min-width: 900px) {
+  .pitbull-athletes-journey {
+    column-gap: clamp(18px, 2.4vw, 28px);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .pitbull-athletes-journey::before {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-brand-celeste) 55%, transparent),
+      color-mix(in srgb, var(--color-brand-gold) 55%, transparent)
+    );
+    content: '';
+    height: 1px;
+    left: 0;
+    opacity: 0.55;
+    position: absolute;
+    right: 0;
+    top: 1.55rem;
+    z-index: 0;
   }
 }
 
-[data-theme='light'] .pitbull-athletes-brief__entry {
-  border-top-color: rgba(15, 17, 23, 0.07);
+.pitbull-athletes-journey__item {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 0;
+  position: relative;
+  z-index: 1;
 }
 
-[data-theme='light'] .pitbull-athletes-brief__lane + .pitbull-athletes-brief__lane {
-  border-top-color: rgba(15, 17, 23, 0.07);
+.pitbull-athletes-journey__item:not(:last-child) {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+}
+
+@media (min-width: 900px) {
+  .pitbull-athletes-journey__item {
+    padding: 0;
+  }
+
+  .pitbull-athletes-journey__item:not(:last-child) {
+    border-bottom: none;
+  }
+}
+
+.pitbull-athletes-journey__phase {
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-athletes-journey__phase--meet {
+  color: var(--color-brand-gold);
+}
+
+.pitbull-athletes-journey__phase--spacer {
+  visibility: hidden;
+}
+
+@media (max-width: 899px) {
+  .pitbull-athletes-journey__phase--spacer {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .pitbull-athletes-journey__phase {
+    margin-bottom: 4px;
+    min-height: 1.15rem;
+  }
+}
+
+.pitbull-athletes-journey__row {
+  align-items: start;
+  display: grid;
+  gap: 10px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .pitbull-athletes-journey__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pitbull-athletes-journey__index {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.pitbull-athletes-journey__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-athletes-journey__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(0.98rem, 1.5vw, 1.12rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.pitbull-athletes-journey__text {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 28ch;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
+  max-width: 42ch;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  gap: 12px 18px;
+  margin-top: clamp(20px, 3vw, 28px);
+  padding-top: clamp(16px, 2.2vw, 20px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta--primary {
+  background: var(--plu-gold-500, var(--color-brand-gold));
+  border-color: transparent;
+  border-radius: 6px;
+  color: #14181f;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__cta--primary:hover {
+  background: var(--plu-gold-400);
+  border-color: transparent;
+  color: #14181f;
+}
+
+[data-theme='light'] .pitbull-athletes-guide__item {
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-athletes-journey__item:not(:last-child) {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-athletes-journey::before {
+  opacity: 0.4;
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__cta--primary {
+  background: var(--plu-gold-500, var(--color-brand-gold));
+  color: #14181f;
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__cta--primary:hover {
+  background: var(--plu-gold-400);
+  color: #14181f;
 }
 
 /* Legacy athletes path */
@@ -8735,12 +9166,6 @@
   line-height: 1.55;
   margin: 0;
   max-width: 62ch;
-}
-
-.pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
-  margin-top: clamp(16px, 2.4vw, 22px);
-  padding-top: clamp(14px, 2vw, 18px);
 }
 
 @media (min-width: 768px) {
@@ -8898,107 +9323,6 @@
 
 [data-theme='light'] .pitbull-athletes-panel__col--meet {
   border-left-color: rgba(15, 17, 23, 0.07);
-  border-top-color: rgba(15, 17, 23, 0.07);
-}
-
-/* Legacy athletes guide */
-.pitbull-athletes-guide {
-  display: grid;
-  gap: 0;
-  width: 100%;
-}
-
-.pitbull-athletes-guide__group + .pitbull-athletes-guide__group {
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  margin-top: clamp(12px, 1.8vw, 16px);
-  padding-top: clamp(12px, 1.8vw, 16px);
-}
-
-.pitbull-athletes-guide__head {
-  color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-.pitbull-athletes-guide__rows {
-  display: grid;
-  gap: 0;
-  margin: 0;
-}
-
-.pitbull-athletes-guide__row {
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
-  display: grid;
-  gap: 4px 16px;
-  grid-template-columns: minmax(110px, 0.34fr) minmax(0, 1fr);
-  padding: 10px 0;
-}
-
-.pitbull-athletes-guide__row:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-
-.pitbull-athletes-guide__term {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.pitbull-athletes-guide__detail {
-  color: var(--color-text-primary);
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.pitbull-athletes-guide__foot {
-  align-items: center;
-  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  margin-top: clamp(14px, 2vw, 18px);
-  padding-top: 12px;
-}
-
-.pitbull-athletes-guide__link {
-  align-items: center;
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 600;
-  gap: 5px;
-  padding: 0;
-  transition: color var(--transition-fast);
-}
-
-.pitbull-athletes-guide__link:hover {
-  color: var(--color-brand-celeste);
-}
-
-.pitbull-athletes-guide__sep {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-}
-
-@media (max-width: 640px) {
-  .pitbull-athletes-guide__row {
-    grid-template-columns: 1fr;
-  }
-}
-
-[data-theme='light'] .pitbull-athletes-guide__row {
   border-top-color: rgba(15, 17, 23, 0.07);
 }
 

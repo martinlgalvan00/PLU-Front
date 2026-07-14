@@ -34,11 +34,32 @@
       ]
     },
     {
+      "name": "Open Raw · Hombres -93 kg",
+      "lifters": [
+        { "place": 1, "name": "Martín Escobar", "bodyweight": 92.4, "squat": 225, "bench": 145, "deadlift": 245, "total": 615, "dots": 428.1 },
+        { "place": 2, "name": "Julián Cruz", "bodyweight": 91.1, "squat": 215, "bench": 140, "deadlift": 235, "total": 590, "dots": 414.6 }
+      ]
+    },
+    {
+      "name": "Open Raw · Hombres -105 kg",
+      "lifters": [
+        { "place": 1, "name": "Hernán Duarte", "bodyweight": 103.2, "squat": 240, "bench": 155, "deadlift": 260, "total": 655, "dots": 421.3 },
+        { "place": 2, "name": "Sebastián Ríos", "bodyweight": 104.5, "squat": 230, "bench": 150, "deadlift": 250, "total": 630, "dots": 402.8 }
+      ]
+    },
+    {
       "name": "Open Raw · Mujeres -63 kg",
       "lifters": [
         { "place": 1, "name": "Martina Rivas", "bodyweight": 62.1, "squat": 145, "bench": 82.5, "deadlift": 185, "total": 412.5, "dots": 398.4 },
         { "place": 2, "name": "Lucía Fernández", "bodyweight": 62.8, "squat": 140, "bench": 77.5, "deadlift": 175, "total": 392.5, "dots": 374.1 },
         { "place": 3, "name": "Camila Soto", "bodyweight": 61.5, "squat": 132.5, "bench": 72.5, "deadlift": 170, "total": 375, "dots": 366.2 }
+      ]
+    },
+    {
+      "name": "Open Raw · Mujeres -72 kg",
+      "lifters": [
+        { "place": 1, "name": "Valentina Ortiz", "bodyweight": 71.2, "squat": 155, "bench": 90, "deadlift": 190, "total": 435, "dots": 372.5 },
+        { "place": 2, "name": "Agustina Méndez", "bodyweight": 70.4, "squat": 147.5, "bench": 85, "deadlift": 182.5, "total": 415, "dots": 359.1 }
       ]
     },
     {
@@ -49,10 +70,38 @@
       ]
     },
     {
+      "name": "Junior Raw · Hombres -83 kg",
+      "lifters": [
+        { "place": 1, "name": "Bruno Salinas", "bodyweight": 82.1, "squat": 175, "bench": 115, "deadlift": 195, "total": 485, "dots": 377.4 },
+        { "place": 2, "name": "Mateo Álvarez", "bodyweight": 81.6, "squat": 165, "bench": 110, "deadlift": 185, "total": 460, "dots": 359.8 }
+      ]
+    },
+    {
+      "name": "Junior Raw · Mujeres -57 kg",
+      "lifters": [
+        { "place": 1, "name": "Florencia Díaz", "bodyweight": 56.4, "squat": 120, "bench": 65, "deadlift": 145, "total": 330, "dots": 348.2 },
+        { "place": 2, "name": "Sofía Navarro", "bodyweight": 56.9, "squat": 112.5, "bench": 62.5, "deadlift": 140, "total": 315, "dots": 329.6 }
+      ]
+    },
+    {
       "name": "Master I Raw · Hombres -93 kg",
       "lifters": [
         { "place": 1, "name": "Gustavo Rinaldi", "bodyweight": 91.5, "squat": 180, "bench": 120, "deadlift": 210, "total": 510, "dots": 368.9 },
         { "place": 2, "name": "Pablo Herrera", "bodyweight": 92.1, "squat": 175, "bench": 115, "deadlift": 200, "total": 490, "dots": 352.4 }
+      ]
+    },
+    {
+      "name": "Master I Raw · Mujeres -84 kg",
+      "lifters": [
+        { "place": 1, "name": "Carolina Vega", "bodyweight": 82.8, "squat": 135, "bench": 75, "deadlift": 165, "total": 375, "dots": 301.4 },
+        { "place": 2, "name": "Patricia Gómez", "bodyweight": 83.5, "squat": 130, "bench": 70, "deadlift": 160, "total": 360, "dots": 287.9 }
+      ]
+    },
+    {
+      "name": "Sub-Junior Raw · Hombres -66 kg",
+      "lifters": [
+        { "place": 1, "name": "Ian Molina", "bodyweight": 65.2, "squat": 130, "bench": 85, "deadlift": 155, "total": 370, "dots": 336.7 },
+        { "place": 2, "name": "Franco Ibáñez", "bodyweight": 65.8, "squat": 125, "bench": 80, "deadlift": 147.5, "total": 352.5, "dots": 318.2 }
       ]
     }
   ]

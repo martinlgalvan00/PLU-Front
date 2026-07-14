@@ -4,42 +4,67 @@ import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
+import {
+  heroActionsItem,
+  heroProofItem,
+  heroSequenceItem,
+  heroStaggerContainer,
+  heroTitleLine,
+} from '../../motion/variants.ts'
 
 export default function HeroSection({ onNavigate }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const accentOnLead = t('hero.headlineAccentOn') === 'lead'
 
-  const editorial = (
-    <div className="hero__editorial">
-      <p className="hero__kicker">
-        <span className="hero__kicker-dot" aria-hidden />
-        {t('hero.kicker')}
-      </p>
+  const kicker = (
+    <>
+      <span className="hero__kicker-dot" aria-hidden />
+      {t('hero.kicker')}
+    </>
+  )
 
-      <h1 className="hero__title hero__title--design">
-        <span className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}>
-          {t('hero.headlineLead')}
-        </span>
-        <span className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}>
-          {t('hero.headlineAccent')}
-        </span>
-      </h1>
+  const titleLines = (
+    <>
+      <span className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}>
+        {t('hero.headlineLead')}
+      </span>
+      <span className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}>
+        {t('hero.headlineAccent')}
+      </span>
+    </>
+  )
 
-      <p className="hero__lead">
-        <span className="hero__lead-text">{t('hero.description')}</span>
-        <span className="hero__lead-meta">{t('hero.descriptionMeta')}</span>
-      </p>
-    </div>
+  const animatedTitle = (
+    <>
+      <m.span
+        className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}
+        variants={heroTitleLine}
+      >
+        {t('hero.headlineLead')}
+      </m.span>
+      <m.span
+        className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}
+        variants={heroTitleLine}
+      >
+        {t('hero.headlineAccent')}
+      </m.span>
+    </>
+  )
+
+  const lead = (
+    <>
+      <span className="hero__lead-text">{t('hero.description')}</span>
+      <span className="hero__lead-meta">{t('hero.descriptionMeta')}</span>
+    </>
   )
 
   const actions = (
-    <div className="hero__actions">
+    <>
       <div className="hero__cta-row">
         <button type="button" className="hero__cta hero__cta--primary" onClick={() => onNavigate('members')}>
           {t('hero.ctaAffiliate')}
-          <ArrowRight size={15} aria-hidden className="hero__cta-icon" />
+          <ArrowRight size={16} aria-hidden className="hero__cta-icon" />
         </button>
         <button type="button" className="hero__cta hero__cta--outline" onClick={() => onNavigate('pitbull')}>
           <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaPitbull')}</span>
@@ -54,12 +79,9 @@ export default function HeroSection({ onNavigate }) {
         </button>
         <button type="button" className="hero__account-pill" onClick={() => onNavigate('login')}>
           {t('hero.ctaAccount')}
-          <span className="hero__account-pill-icon" aria-hidden>
-            <ArrowRight size={11} strokeWidth={2.5} />
-          </span>
         </button>
       </div>
-    </div>
+    </>
   )
 
   return (
@@ -69,47 +91,54 @@ export default function HeroSection({ onNavigate }) {
           {reducedMotion ? (
             <div className="hero__copy-inner">
               <div className="hero__main">
-                {editorial}
-                {actions}
+                <div className="hero__editorial">
+                  <p className="hero__kicker">{kicker}</p>
+                  <h1 className="hero__title hero__title--design">{titleLines}</h1>
+                  <p className="hero__lead">{lead}</p>
+                </div>
+                <div className="hero__actions">{actions}</div>
               </div>
               <div className="hero__proof">
                 <HeroStatusCard />
               </div>
             </div>
           ) : (
-            <m.div
-              className="hero__copy-inner"
-              initial="hidden"
-              animate="visible"
-              variants={heroStaggerContainer}
-            >
-              <m.div className="hero__main hero-sequence__item" variants={heroSequenceItem}>
-                <m.div className="hero__editorial" variants={heroStaggerContainer}>
+            <div className="hero__copy-inner">
+              <div className="hero__main">
+                <m.div
+                  className="hero__editorial"
+                  initial="hidden"
+                  animate="visible"
+                  variants={heroStaggerContainer}
+                >
                   <m.p className="hero__kicker" variants={heroSequenceItem}>
-                    <span className="hero__kicker-dot" aria-hidden />
-                    {t('hero.kicker')}
+                    {kicker}
                   </m.p>
-                  <m.h1 className="hero__title hero__title--design" variants={heroSequenceItem}>
-                    <span className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}>
-                      {t('hero.headlineLead')}
-                    </span>
-                    <span className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}>
-                      {t('hero.headlineAccent')}
-                    </span>
+                  <m.h1 className="hero__title hero__title--design" variants={heroStaggerContainer}>
+                    {animatedTitle}
                   </m.h1>
                   <m.p className="hero__lead" variants={heroSequenceItem}>
-                    <span className="hero__lead-text">{t('hero.description')}</span>
-                    <span className="hero__lead-meta">{t('hero.descriptionMeta')}</span>
+                    {lead}
                   </m.p>
                 </m.div>
-                <m.div className="hero__actions hero-sequence__item" variants={heroSequenceItem}>
+                <m.div
+                  className="hero__actions"
+                  initial="hidden"
+                  animate="visible"
+                  variants={heroActionsItem}
+                >
                   {actions}
                 </m.div>
-              </m.div>
-              <m.div className="hero__proof hero-sequence__item" variants={heroSequenceItem}>
+              </div>
+              <m.div
+                className="hero__proof"
+                initial="hidden"
+                animate="visible"
+                variants={heroProofItem}
+              >
                 <HeroStatusCard />
               </m.div>
-            </m.div>
+            </div>
           )}
         </div>
       </div>

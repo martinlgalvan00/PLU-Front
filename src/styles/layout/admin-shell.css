@@ -20,8 +20,50 @@
   overflow: hidden;
   position: sticky;
   top: 0;
+  transition: width var(--transition-base);
   width: var(--admin-sidebar-width);
   z-index: 200;
+}
+
+.admin-shell__collapse-toggle {
+  align-items: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 50%;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  left: calc(var(--admin-sidebar-width) - 12px);
+  position: fixed;
+  top: 61px;
+  transition:
+    left var(--transition-base),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  width: 24px;
+  z-index: 210;
+}
+
+.admin-shell--collapsed .admin-shell__collapse-toggle {
+  left: calc(var(--admin-sidebar-rail-width) - 12px);
+}
+
+.admin-shell__collapse-toggle:hover {
+  background: var(--color-bg-surface);
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.admin-shell__collapse-toggle:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.45);
+  outline-offset: 2px;
+}
+
+.admin-shell--collapsed .admin-shell__sidebar {
+  width: var(--admin-sidebar-rail-width);
 }
 
 /* ---- Brand ---- */
@@ -92,6 +134,15 @@
   display: none;
 }
 
+.admin-shell--collapsed .admin-shell__brand-inner {
+  justify-content: center;
+  padding-right: 0;
+}
+
+.admin-shell--collapsed .admin-shell__brand-copy {
+  display: none;
+}
+
 /* ---- Nav scroll region ---- */
 
 .admin-shell__nav-scroll {
@@ -104,12 +155,12 @@
 .admin-shell__nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 4px;
   height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-sm) var(--space-md) var(--space-md);
+  padding: 6px var(--space-md) var(--space-sm);
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   scrollbar-width: thin;
 }
@@ -134,8 +185,8 @@
 
 .admin-shell__group + .admin-shell__group {
   border-top: 1px solid var(--color-border-subtle);
-  margin-top: 6px;
-  padding-top: 10px;
+  margin-top: 4px;
+  padding-top: 6px;
 }
 
 .admin-shell__group-label {
@@ -144,8 +195,16 @@
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  margin: 0 0 6px 12px;
+  margin: 0 0 4px 12px;
   text-transform: none;
+}
+
+.admin-shell--collapsed .admin-shell__group-label {
+  display: none;
+}
+
+.admin-shell--collapsed .admin-shell__nav {
+  padding-inline: 10px;
 }
 
 .admin-shell__nav button {
@@ -157,7 +216,7 @@
   font-size: 13px;
   font-weight: 500;
   gap: 10px;
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 12px;
   position: relative;
   text-align: left;
@@ -182,6 +241,16 @@
 .admin-shell__nav-label {
   flex: 1;
   min-width: 0;
+}
+
+.admin-shell--collapsed .admin-shell__nav button {
+  gap: 0;
+  justify-content: center;
+  padding: 0;
+}
+
+.admin-shell--collapsed .admin-shell__nav-label {
+  display: none;
 }
 
 .admin-shell__nav button:hover {
@@ -234,6 +303,19 @@
   color: var(--color-brand-red);
 }
 
+.admin-shell--collapsed .admin-shell__badge {
+  border-radius: 50%;
+  font-size: 0;
+  height: 8px;
+  line-height: 0;
+  min-width: 0;
+  padding: 0;
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  width: 8px;
+}
+
 /* ---- Footer ---- */
 
 .admin-shell__footer {
@@ -245,6 +327,10 @@
     var(--space-md)
     var(--space-md)
     max(var(--space-md), env(safe-area-inset-bottom, 0px));
+}
+
+.admin-shell--collapsed .admin-shell__footer {
+  padding-inline: 8px;
 }
 
 .admin-shell__session-bar {
@@ -265,11 +351,31 @@
   white-space: nowrap;
 }
 
+.admin-shell--collapsed .admin-shell__session-bar {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-shell--collapsed .admin-shell__session-role {
+  display: none;
+}
+
 .admin-shell__prefs {
   align-items: center;
   display: flex;
   flex-shrink: 0;
   gap: 6px;
+}
+
+.admin-shell--collapsed .admin-shell__prefs {
+  flex-direction: column;
+  width: 100%;
+}
+
+.admin-shell--collapsed .admin-shell__prefs .locale-switch--compact {
+  --locale-track-w: 52px;
+  --locale-track-h: 28px;
+  --locale-thumb-w: 22px;
 }
 
 .admin-shell__prefs .pref-toggle--compact {
@@ -298,6 +404,14 @@
 
 .admin-shell__exit:hover {
   color: var(--color-text-primary);
+}
+
+.admin-shell--collapsed .admin-shell__exit {
+  justify-content: center;
+}
+
+.admin-shell--collapsed .admin-shell__exit-label {
+  display: none;
 }
 
 .admin-shell__main {
@@ -476,16 +590,81 @@
 }
 
 @media (max-width: 1024px) {
-  .admin-shell__sidebar {
+  .admin-shell__sidebar,
+  .admin-shell--collapsed .admin-shell__sidebar {
     left: 0;
     position: fixed;
     top: 0;
     transform: translateX(-100%);
     transition: transform var(--duration-base) var(--ease-out);
+    width: var(--admin-sidebar-width);
   }
 
   .admin-shell__sidebar.is-open {
     transform: translateX(0);
+  }
+
+  /* El colapso a rail es un comportamiento de escritorio; en mobile el drawer siempre va completo. */
+  .admin-shell__collapse-toggle {
+    display: none;
+  }
+
+  .admin-shell--collapsed .admin-shell__brand-inner {
+    justify-content: flex-start;
+    padding-right: 36px;
+  }
+
+  .admin-shell--collapsed .admin-shell__brand-copy,
+  .admin-shell--collapsed .admin-shell__group-label,
+  .admin-shell--collapsed .admin-shell__nav-label,
+  .admin-shell--collapsed .admin-shell__session-role,
+  .admin-shell--collapsed .admin-shell__exit-label {
+    display: block;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav {
+    padding-inline: var(--space-md);
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button {
+    gap: 10px;
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .admin-shell--collapsed .admin-shell__badge {
+    border-radius: var(--border-radius-pill);
+    font-size: 10px;
+    height: auto;
+    line-height: 1;
+    min-width: 18px;
+    padding: 2px 6px;
+    position: static;
+    width: auto;
+  }
+
+  .admin-shell--collapsed .admin-shell__footer {
+    padding-inline: var(--space-md);
+  }
+
+  .admin-shell--collapsed .admin-shell__session-bar {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--compact {
+    --locale-track-w: 56px;
+    --locale-track-h: 34px;
+    --locale-thumb-w: 24px;
+  }
+
+  .admin-shell--collapsed .admin-shell__exit {
+    justify-content: flex-start;
   }
 
   .admin-shell__close {

@@ -115,7 +115,14 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
             {rows.length === 0 ? (
-              <p className="admin-event-list__empty">{t('admin.sections.events.empty')}</p>
+              <div className="data-table__empty-wrap data-table__empty-wrap--admin">
+                <span className="data-table__empty-icon" aria-hidden>
+                  <CalendarDays size={20} strokeWidth={1.5} />
+                </span>
+                <p className="data-table__empty data-table__empty--admin admin-event-list__empty">
+                  {t('admin.sections.events.empty')}
+                </p>
+              </div>
             ) : (
               <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
                 {rows.map((row) => {

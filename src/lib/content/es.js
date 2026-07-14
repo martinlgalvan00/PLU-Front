@@ -26,9 +26,13 @@ export const ABOUT_INTRO = {
 export const HOME_MEMBERSHIP = {
   eyebrow: 'Afiliación anual',
   title: 'Habilitación para competir',
-  description: 'La afiliación anual te da acceso al calendario oficial de PLU Argentina.',
+  titleLead: 'Habilitación',
+  titleAccent: 'para competir',
+  description:
+    'Accedé al calendario oficial, credencial digital y resultados bajo el estándar PLU USA.',
   cta: 'Ver planes',
   planLabel: 'Atleta adulto',
+  seasonNote: 'Temporada 2026',
   cardCta: 'Afiliarme',
 }
 
@@ -47,10 +51,12 @@ export const HOME_RULEBOOK = {
 
 export const HOME_COMMUNITY = {
   eyebrow: 'Comunidad',
-  title: 'Gimnasios y atletas PLU',
+  title: 'Gimnasios y atletas bajo el mismo estándar.',
   description:
-    'Consultá la red de sedes adheridas y atletas afiliados que compiten bajo el calendario oficial de PLU Argentina.',
+    'Sedes adheridas y afiliados que compiten en el calendario oficial de PLU Argentina.',
   cta: 'Ver comunidad',
+  recentLabel: 'Afiliados recientes',
+  liveLabel: 'En vivo',
   visualCaption: 'Galería de la comunidad · próximamente',
   stats: [],
 }
@@ -88,6 +94,39 @@ export const HOME_MEMBERSHIP_FEATURES = [
   'Eventos del calendario PLU ARG',
   'Credencial digital de miembro',
   'Resultados bajo estándar PLU USA',
+]
+
+export const HOME_MEMBERSHIP_BENEFITS = [
+  {
+    id: 'events',
+    title: 'Ingreso a meets oficiales',
+    text: 'Quedás habilitado para inscribirte a cualquier evento del calendario PLU Argentina.',
+  },
+  {
+    id: 'credential',
+    title: 'Credencial digital con QR',
+    text: 'Tu membresía viaja en el teléfono: acceso rápido a check-in y validación en sede.',
+  },
+  {
+    id: 'discounts',
+    title: 'Descuentos de afiliado',
+    text: 'Tarifas preferenciales en inscripciones y beneficios con gimnasios de la red PLU.',
+  },
+  {
+    id: 'results',
+    title: 'Resultados con estándar PLU',
+    text: 'Tus marcas quedan publicadas bajo el mismo criterio que usa el circuito internacional.',
+  },
+  {
+    id: 'access',
+    title: 'Acceso al panel del atleta',
+    text: 'Seguís afiliación, eventos e historia competitiva desde tu cuenta.',
+  },
+  {
+    id: 'network',
+    title: 'Red de gimnasios y atletas',
+    text: 'Formás parte de la comunidad oficial: sedes adheridas y calendario compartido.',
+  },
 ]
 
 export const ABOUT_PILLARS = [
@@ -333,38 +372,38 @@ export const PITBULL_BENEFITS_SPECTATORS = [
 export const PITBULL_ATHLETE_GROUPS = [
   {
     id: 'registration',
-    label: 'Inscripción',
+    label: 'Antes del meet',
     items: [
       {
         id: 'membership',
         title: 'Afiliación',
-        text: 'PLU ARG activa del año calendario, o combo afiliación más inscripción al registrarte.',
+        text: 'Activa en el año calendario, o combo afiliación + inscripción al registrarte.',
       },
       {
         id: 'category',
         title: 'Categoría',
-        text: 'Modalidad, división de edad y peso corporal según reglamento PLU ARG.',
+        text: 'Modalidad, edad y peso según reglamento PLU ARG.',
       },
       {
         id: 'confirmation',
         title: 'Validación',
-        text: 'El equipo confirma pago e inscripción antes de habilitar credencial y cupo.',
+        text: 'Confirmamos pago e inscripción antes de habilitar la credencial.',
       },
     ],
   },
   {
     id: 'meet',
-    label: 'Meet y resultados',
+    label: 'Día de competencia',
     items: [
       {
         id: 'weighin',
         title: 'Pesaje',
-        text: 'Ventana oficial el día de tu jornada. Horario publicado por organización.',
+        text: 'Ventana oficial el día de tu jornada.',
       },
       {
         id: 'results',
         title: 'Resultados',
-        text: 'Totales publicados en esta plataforma luego del meet, desde planilla LiftingCast.',
+        text: 'Se publican acá después del meet, desde LiftingCast.',
       },
     ],
   },

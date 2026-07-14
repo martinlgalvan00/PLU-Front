@@ -8,6 +8,8 @@ export default {
     exit: 'Volver al sitio',
     closeMenu: 'Cerrar menú',
     openMenu: 'Abrir menú',
+    collapseSidebar: 'Contraer panel lateral',
+    expandSidebar: 'Expandir panel lateral',
     defaultSection: 'Panel',
     navAria: 'Panel administrativo',
   },
@@ -212,6 +214,7 @@ export default {
     history: {
       title: 'Últimos escaneos',
       hint: 'Tocá un registro para volver a ver el resultado.',
+      empty: 'Todavía no escaneaste ninguna credencial.',
       clear: 'Limpiar',
       checkedIn: 'Ingreso confirmado',
       unknown: 'Sin identificar',

@@ -8,6 +8,8 @@ export default {
     exit: 'Back to site',
     closeMenu: 'Close menu',
     openMenu: 'Open menu',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
     defaultSection: 'Panel',
     navAria: 'Admin panel',
   },
@@ -212,6 +214,7 @@ export default {
     history: {
       title: 'Recent scans',
       hint: 'Tap an entry to view that result again.',
+      empty: "You haven't scanned any credential yet.",
       clear: 'Clear',
       checkedIn: 'Entry confirmed',
       unknown: 'Unidentified',

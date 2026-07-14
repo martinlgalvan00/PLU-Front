@@ -23,6 +23,77 @@
   width: 100%;
 }
 
+.field__select {
+  display: grid;
+  position: relative;
+}
+
+.field__select select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2.25rem;
+}
+
+.field__select.is-empty select {
+  color: var(--color-text-muted);
+}
+
+.field__select-chevron {
+  border-color: currentColor transparent transparent;
+  border-style: solid;
+  border-width: 5px 4px 0;
+  color: var(--color-text-muted);
+  height: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-25%);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  width: 0;
+}
+
+.field__select:focus-within .field__select-chevron {
+  color: var(--color-text-primary);
+  transform: translateY(-25%) rotate(180deg);
+}
+
+.field__date {
+  display: grid;
+  position: relative;
+}
+
+.field__date input[type='date'] {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.field__date.is-empty input[type='date'] {
+  color: var(--color-text-muted);
+}
+
+.field__date input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.75);
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.field__date input[type='date']:hover::-webkit-calendar-picker-indicator,
+.field__date input[type='date']:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+[data-theme='light'] .field__date input[type='date'] {
+  color-scheme: light;
+}
+
+[data-theme='light'] .field__date input[type='date']::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.55;
+}
+
 .field input:hover:not(:focus),
 .field select:hover:not(:focus),
 .filters input:hover:not(:focus),
@@ -47,7 +118,18 @@
 .form-submit-error { color: var(--color-brand-red-hover); font-size: 12px; line-height: 1.4; }
 .form-submit-error { margin: 0; }
 .field--readonly { align-content: start; }
-.field--readonly strong { align-items: center; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); display: flex; min-height: 44px; padding: 9px 11px; }
+.field--readonly .field__value,
+.field--readonly strong {
+  align-items: center;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: flex;
+  font-weight: 400;
+  min-height: 44px;
+  padding: 9px 11px;
+}
 .form-grid--compact { grid-template-columns: minmax(260px, 420px); }
 
 .form-grid {

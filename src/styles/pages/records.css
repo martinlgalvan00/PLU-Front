@@ -1,0 +1,161 @@
+/* ── Records page — archivo vacío / planilla ─── */
+
+.records-page--plu-ref .records-page__body {
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  padding: 0 clamp(20px, 5vw, 64px) clamp(48px, 6vw, 72px);
+}
+
+.records-sheet {
+  display: grid;
+  gap: clamp(18px, 2.8vw, 24px);
+}
+
+.records-sheet__head {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+}
+
+.records-sheet__titles {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.records-sheet__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.records-sheet__subtitle {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.records-sheet__stamp {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.records-sheet__table-wrap {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  overflow-x: auto;
+}
+
+.records-sheet__table {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+
+.records-sheet__table th,
+.records-sheet__table td {
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 12.5px;
+  padding: 11px 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.records-sheet__table th {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.records-sheet__table td {
+  color: color-mix(in srgb, var(--color-text-muted) 72%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.records-sheet__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.records-sheet__foot {
+  display: grid;
+  gap: 14px;
+  max-width: 40rem;
+}
+
+.records-sheet__empty {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.records-sheet__hint {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.records-sheet__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 2px;
+}
+
+.records-sheet__link {
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  text-underline-offset: 3px;
+}
+
+.records-sheet__link:hover {
+  text-decoration-color: var(--color-brand-red);
+}
+
+@media (max-width: 640px) {
+  .records-sheet__head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .records-sheet__actions {
+    width: 100%;
+  }
+
+  .records-sheet__actions .btn {
+    width: 100%;
+  }
+}
+
+[data-theme='light'] .records-sheet__table th {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+[data-theme='light'] .records-sheet__table-wrap {
+  background: #fff;
+}

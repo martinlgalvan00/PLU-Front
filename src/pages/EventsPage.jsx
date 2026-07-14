@@ -265,13 +265,16 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
 
       <div className="events-page__body">
         <div className="events-page__toolbar">
-          <FilterPills
-            active={filter}
-            ariaLabel={t('pages.events.filterAria')}
-            className="events-page__filters filter-pills--refined"
-            onChange={setFilter}
-            options={filters}
-          />
+          <div className="events-page__filters-shell">
+            <span className="events-page__filters-label">{t('pages.events.filterLabel')}</span>
+            <FilterPills
+              active={filter}
+              ariaLabel={t('pages.events.filterAria')}
+              className="events-page__filters filter-pills--editorial"
+              onChange={setFilter}
+              options={filters}
+            />
+          </div>
           <span className="events-page__count" aria-live="polite">
             {eventCountLabel}
           </span>

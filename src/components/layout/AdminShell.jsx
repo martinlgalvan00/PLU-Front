@@ -3,6 +3,8 @@ import {
   ArrowLeft,
   BadgeCheck,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   CreditCard,
   Download,
@@ -38,6 +40,16 @@ const ICONS = {
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
+
+function readStoredCollapsed() {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 export default function AdminShell({
   activeSection,
@@ -49,6 +61,7 @@ export default function AdminShell({
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(readStoredCollapsed)
   const { t } = useI18n()
 
   const navGroups = useMemo(
@@ -71,19 +84,41 @@ export default function AdminShell({
     }
   }, [sidebarOpen])
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0')
+    } catch {
+      // localStorage puede no estar disponible (modo privado); no bloquea la UI.
+    }
+  }, [collapsed])
+
   function handleSectionChange(key) {
     onSectionChange(key)
     setSidebarOpen(false)
   }
 
   return (
-    <div className={`admin-shell${sidebarOpen ? ' admin-shell--nav-open' : ''}`}>
+    <div
+      className={`admin-shell${sidebarOpen ? ' admin-shell--nav-open' : ''}${
+        collapsed ? ' admin-shell--collapsed' : ''
+      }`}
+    >
       <button
         type="button"
         className="admin-shell__backdrop"
         aria-label={t('admin.shell.closeMenu')}
         onClick={() => setSidebarOpen(false)}
       />
+      <button
+        type="button"
+        className="admin-shell__collapse-toggle"
+        aria-label={collapsed ? t('admin.shell.expandSidebar') : t('admin.shell.collapseSidebar')}
+        title={collapsed ? t('admin.shell.expandSidebar') : t('admin.shell.collapseSidebar')}
+        aria-pressed={collapsed}
+        onClick={() => setCollapsed((value) => !value)}
+      >
+        {collapsed ? <ChevronRight size={14} strokeWidth={2.2} /> : <ChevronLeft size={14} strokeWidth={2.2} />}
+      </button>
       <aside className={`admin-shell__sidebar${sidebarOpen ? ' is-open' : ''}`}>
         <div className="admin-shell__brand">
           <div className="admin-shell__brand-inner">
@@ -115,6 +150,7 @@ export default function AdminShell({
                 {group.items.map(([key, labelKey, iconName]) => {
                   const Icon = ICONS[iconName]
                   const badge = navBadges[key]
+                  const label = t(labelKey)
 
                   return (
                     <button
@@ -122,11 +158,12 @@ export default function AdminShell({
                       type="button"
                       className={activeSection === key ? 'active' : ''}
                       onClick={() => handleSectionChange(key)}
+                      title={collapsed ? label : undefined}
                     >
                       <span className="admin-shell__nav-icon" aria-hidden>
                         <Icon size={16} strokeWidth={2.1} />
                       </span>
-                      <span className="admin-shell__nav-label">{t(labelKey)}</span>
+                      <span className="admin-shell__nav-label">{label}</span>
                       {badge > 0 && (
                         <em
                           className={`admin-shell__badge${
@@ -152,9 +189,9 @@ export default function AdminShell({
               <LanguageToggle compact />
             </div>
           </div>
-          <button type="button" className="admin-shell__exit" onClick={onExit}>
+          <button type="button" className="admin-shell__exit" onClick={onExit} title={collapsed ? t('admin.shell.exit') : undefined}>
             <ArrowLeft size={14} strokeWidth={2} aria-hidden />
-            {t('admin.shell.exit')}
+            <span className="admin-shell__exit-label">{t('admin.shell.exit')}</span>
           </button>
         </div>
       </aside>

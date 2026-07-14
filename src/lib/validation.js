@@ -3,12 +3,24 @@ import { TICKET_DAY_PASSES } from './constants.js'
 
 function buildAthleteProfileSchema(t) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
-  const spanishDate = z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, msg('dateFormat') ?? 'Usá el formato DD/MM/AAAA.')
+  const isoDate = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, msg('dateFormat') ?? 'Seleccioná una fecha válida.')
+    .refine((value) => {
+      const date = new Date(`${value}T12:00:00`)
+      if (Number.isNaN(date.getTime())) return false
+      const [year, month, day] = value.split('-').map(Number)
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() + 1 === month &&
+        date.getDate() === day
+      )
+    }, msg('dateFormat') ?? 'Seleccioná una fecha válida.')
 
   return z.object({
     fullName: z.string().trim().min(3, msg('fullName') ?? 'Ingresá tu nombre y apellido.'),
     documentId: z.string().trim().min(6, msg('documentId') ?? 'Ingresá un documento válido.'),
-    birthDate: spanishDate,
+    birthDate: isoDate,
     email: z.string().trim().email(msg('email') ?? 'Ingresá un correo electrónico válido.'),
     phone: z
       .string()
