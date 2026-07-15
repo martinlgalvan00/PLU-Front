@@ -88,18 +88,27 @@ describe('api security baseline', () => {
     await target.close()
   })
 
-  it('permite webhooks server-to-server sin header browser', async () => {
-    const target = listen(createApp())
+  it('permite el canal server-to-server pero rechaza webhooks sin firma', async () => {
+    const target = listen(createApp({
+      paymentRepository: {},
+      mercadoPago: {},
+      env: { MERCADO_PAGO_WEBHOOK_SECRET: 'test-secret' },
+    }))
 
-    const response = await fetch(`${target.url}/api/payments/webhook`, {
+    const response = await fetch(`${target.url}/api/payments/webhook?data.id=mp-pay-001&type=payment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ id: 'mp-pay-001', type: 'payment', status: 'approved' }),
+      body: JSON.stringify({
+        id: 'notification-1',
+        type: 'payment',
+        action: 'payment.updated',
+        data: { id: 'mp-pay-001' },
+      }),
     })
 
-    expect(response.status).toBe(202)
+    expect(response.status).toBe(401)
 
     await target.close()
   })

@@ -1,9 +1,15 @@
 .field {
+  align-content: start;
   color: var(--color-text-primary);
   display: grid;
   font-size: 13px;
   font-weight: 850;
   gap: 7px;
+  position: relative;
+}
+
+.field__label {
+  display: block;
 }
 
 .field input,
@@ -32,7 +38,7 @@
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
-  padding-right: 2.25rem;
+  padding-right: 2.4rem;
 }
 
 .field__select.is-empty select {
@@ -40,23 +46,22 @@
 }
 
 .field__select-chevron {
-  border-color: currentColor transparent transparent;
-  border-style: solid;
-  border-width: 5px 4px 0;
   color: var(--color-text-muted);
-  height: 0;
+  height: 16px;
   pointer-events: none;
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
-  transform: translateY(-25%);
-  transition: color var(--transition-fast), transform var(--transition-fast);
-  width: 0;
+  transform: translateY(-50%);
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  width: 16px;
 }
 
 .field__select:focus-within .field__select-chevron {
   color: var(--color-text-primary);
-  transform: translateY(-25%) rotate(180deg);
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .field__date {
@@ -94,6 +99,91 @@
   opacity: 0.55;
 }
 
+.field--choice {
+  border: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.field--choice .field__label,
+.field--choice legend.field__label {
+  float: left;
+  font-size: inherit;
+  font-weight: inherit;
+  padding: 0;
+  width: 100%;
+}
+
+.field__choices {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+.field__choice {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  font-weight: 500;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  position: relative;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.field__choice input {
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.field__choice-text {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-align: center;
+  transition: color var(--transition-fast);
+}
+
+.field__choice:hover {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+}
+
+.field__choice:hover .field__choice-text {
+  color: var(--color-text-primary);
+}
+
+.field__choice.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.field__choice.is-active .field__choice-text {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.field__choice:focus-within {
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-celeste) 18%, transparent);
+}
+
+.field.is-invalid .field__choice {
+  border-color: color-mix(in srgb, var(--color-brand-red) 55%, transparent);
+}
+
 .field input:hover:not(:focus),
 .field select:hover:not(:focus),
 .filters input:hover:not(:focus),
@@ -114,9 +204,34 @@
 .field input::placeholder { color: var(--color-text-muted); }
 .field input[aria-invalid='true'],
 .field select[aria-invalid='true'] { border-color: var(--color-brand-red); }
+
+/* Error absoluto: no empuja la grilla ni desalinea inputs vecinos */
 .field__error,
-.form-submit-error { color: var(--color-brand-red-hover); font-size: 12px; line-height: 1.4; }
-.form-submit-error { margin: 0; }
+.form-submit-error {
+  color: var(--color-brand-red-hover);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.form-submit-error {
+  margin: 0;
+}
+
+.field__error {
+  left: 0;
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding-top: 4px;
+  position: absolute;
+  right: 0;
+  text-overflow: ellipsis;
+  top: 100%;
+  white-space: nowrap;
+  z-index: 1;
+}
+
 .field--readonly { align-content: start; }
 .field--readonly .field__value,
 .field--readonly strong {
@@ -134,8 +249,9 @@
 
 .form-grid {
   display: grid;
-  gap: var(--space-md);
+  column-gap: var(--space-md);
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: calc(var(--space-md) + 18px);
 }
 
 .form-actions {
@@ -172,4 +288,76 @@
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+[data-theme='light'] .field__choice {
+  background: rgba(15, 17, 23, 0.02);
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .field__choice.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, #fff);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 48%, transparent);
+}
+.mp-embedded-checkout {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid color-mix(in srgb, var(--color-border, #d8d8d8) 82%, transparent);
+  border-radius: 1rem;
+  background: var(--color-surface, #fff);
+}
+
+.mp-embedded-checkout__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.mp-embedded-checkout__header h3,
+.mp-embedded-checkout__header p,
+.mp-embedded-checkout__result p {
+  margin: 0;
+}
+
+.mp-embedded-checkout__header p,
+.mp-embedded-checkout__security,
+.mp-embedded-checkout__loading {
+  color: var(--color-text-muted, #666);
+}
+
+.mp-embedded-checkout__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: #087bc1;
+  background: #e6f4ff;
+}
+
+.mp-embedded-checkout__brick:not(.is-ready) {
+  min-height: 8rem;
+  opacity: 0;
+}
+
+.mp-embedded-checkout__result {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-warning, #a66b00) 12%, transparent);
+}
+
+.mp-embedded-checkout__result--approved {
+  color: var(--color-success, #177245);
+  background: color-mix(in srgb, var(--color-success, #177245) 12%, transparent);
+}
+
+.mp-embedded-checkout__result--rejected,
+.mp-embedded-checkout__error {
+  color: var(--color-danger, #b42318);
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays } from 'lucide-react'
+import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
@@ -61,13 +61,13 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
 
       <div className="events-detail__actions">
         {canRegister && onRegister ? (
-          <Button className="btn--small" onClick={onRegister}>
+          <Button className="events-detail__cta events-detail__cta--primary motion-icon-shift" onClick={onRegister}>
             {registerLabel}
-            <ArrowRight size={14} aria-hidden />
+            <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
           </Button>
         ) : null}
         {isPitbull && onViewPitbull ? (
-          <Button variant="outline" className="btn--small" onClick={onViewPitbull}>
+          <Button variant="outline" className="events-detail__cta events-detail__cta--secondary" onClick={onViewPitbull}>
             {t('pages.events.viewFull')}
           </Button>
         ) : null}
@@ -98,11 +98,19 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
       </div>
       <div className="events-public-tickets__aside">
         <p className="events-public-tickets__price">
-          {ticketsEnabled ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) }) : t('pages.events.publicTicketsClosed')}
+          {ticketsEnabled
+            ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
+            : t('pages.events.publicTicketsClosed')}
         </p>
-        <Button className="btn--small" onClick={onBuyTickets} disabled={!ticketsEnabled}>
+        <Button
+          variant="outline"
+          className="events-public-tickets__cta motion-icon-shift"
+          onClick={onBuyTickets}
+          disabled={!ticketsEnabled}
+        >
+          <Ticket size={14} aria-hidden />
           {t('pages.events.publicTicketsCta')}
-          <ArrowRight size={14} aria-hidden />
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
         </Button>
       </div>
     </section>

@@ -96,10 +96,25 @@ export default function PitbullHero({
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
 
-  const mark = (
+  const mark = reducedMotion ? (
     <p className="pitbull-hero-masthead__mark" aria-hidden>
       PITBULL
     </p>
+  ) : (
+    <m.p
+      className="pitbull-hero-masthead__mark"
+      aria-hidden
+      variants={{
+        hidden: { y: 28, scale: 0.97 },
+        visible: {
+          y: 0,
+          scale: 1,
+          transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] },
+        },
+      }}
+    >
+      PITBULL
+    </m.p>
   )
 
   const panel = (

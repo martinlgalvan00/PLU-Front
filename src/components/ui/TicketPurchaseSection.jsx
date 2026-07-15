@@ -5,13 +5,15 @@ import CardPreviewModal from './CardPreviewModal.jsx'
 import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
+import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { env } from '../../config/env.js'
 import { PRICING } from '../../lib/constants.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
 import { validateTicketAttendees } from '../../lib/validation.js'
-import { priceForAttendee, priceForDayPass as resolveDayPassPrice, priceForOrder } from '../../services/ticketService.js'
+import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
 
 const MAX_TICKETS = 8
 
@@ -349,7 +351,6 @@ export default function TicketPurchaseSection({
   tickets,
   createdOrder,
   onSubmit,
-  onApprovePayment,
   onUploadPaymentProof,
 }) {
   const { locale, t } = useI18n()
@@ -488,9 +489,7 @@ export default function TicketPurchaseSection({
             <p className="ticket-purchase__payment-note ticket-purchase__payment-note--auto">
               {t('pages.tickets.paymentMpPending')}
             </p>
-            <Button className="btn--small" onClick={() => onApprovePayment(visibleOrder.orderId)}>
-              {t('pages.tickets.simulatePayment')}
-            </Button>
+            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
           </>
         ) : isManualTicketPayment(visibleOrder.paymentMethod) && visibleOrder.status !== 'aprobado' ? (
           <div className="ticket-purchase__transfer-panel">
@@ -499,11 +498,11 @@ export default function TicketPurchaseSection({
             <dl className="ticket-purchase__transfer-data">
               <div>
                 <dt>{t('account.membership.transferAlias')}</dt>
-                <dd>PLUARG.MAXIMAL</dd>
+                <dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd>
               </div>
               <div>
                 <dt>{t('account.membership.transferCbu')}</dt>
-                <dd>0000003100000000000001</dd>
+                <dd>{env.payments.transferCbu || t('account.membership.transferAskAdmin')}</dd>
               </div>
               <div>
                 <dt>{t('account.membership.transferReference')}</dt>

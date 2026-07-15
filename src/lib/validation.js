@@ -19,7 +19,15 @@ function buildAthleteProfileSchema(t) {
 
   return z.object({
     fullName: z.string().trim().min(3, msg('fullName') ?? 'Ingresá tu nombre y apellido.'),
-    documentId: z.string().trim().min(6, msg('documentId') ?? 'Ingresá un documento válido.'),
+    documentId: z
+      .string()
+      .trim()
+      .min(6, msg('documentId') ?? 'Ingresá un documento válido.')
+      .refine((value) => {
+        const compact = value.replace(/[.\-\s]/g, '')
+        if (/^\d+$/.test(compact)) return compact.length >= 7 && compact.length <= 8
+        return compact.length >= 6 && compact.length <= 20
+      }, msg('documentIdFormat') ?? 'Documento inválido. DNI: 7 u 8 dígitos.'),
     birthDate: isoDate,
     email: z.string().trim().email(msg('email') ?? 'Ingresá un correo electrónico válido.'),
     phone: z
@@ -82,6 +90,14 @@ export function validateAthleteForm(form, t) {
 
 export function validateAthleteFields(form, fields, t) {
   const schema = buildAthleteProfileSchema(t)
+  const shape = Object.fromEntries(
+    fields.filter((field) => schema.shape[field]).map((field) => [field, schema.shape[field]]),
+  )
+  return formatResult(z.object(shape).safeParse(form), t)
+}
+
+export function validateCompetitionFields(form, fields, t) {
+  const schema = buildCompetitionSchema(t)
   const shape = Object.fromEntries(
     fields.filter((field) => schema.shape[field]).map((field) => [field, schema.shape[field]]),
   )

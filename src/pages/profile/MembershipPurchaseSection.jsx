@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, CreditCard, Landmark, ShieldCheck, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PRICING } from '../../lib/constants.js'
 import { formatShortDate, money } from '../../lib/format.js'
+import { env } from '../../config/env.js'
+import { listMembershipPlans } from '../../services/paymentService.js'
+import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 
-function TransferModal({ athlete, onClose }) {
+function TransferModal({ athlete, amount, onClose }) {
   const { t, locale } = useI18n()
   return (
     <div className="account-payment-modal__overlay" role="presentation" onMouseDown={onClose}>
@@ -24,10 +27,10 @@ function TransferModal({ athlete, onClose }) {
         </header>
         <div className="account-payment-modal__notice">{t('account.membership.transferNotice')}</div>
         <dl className="account-transfer-data">
-          <div><dt>{t('account.membership.transferAlias')}</dt><dd>PLUARG.MAXIMAL</dd></div>
-          <div><dt>{t('account.membership.transferCbu')}</dt><dd>0000003100000000000001</dd></div>
-          <div><dt>{t('account.membership.transferHolder')}</dt><dd>Maximal · PLU Argentina</dd></div>
-          <div><dt>{t('account.membership.transferAmount')}</dt><dd>{money(PRICING.membership, locale)}</dd></div>
+          <div><dt>{t('account.membership.transferAlias')}</dt><dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd></div>
+          <div><dt>{t('account.membership.transferCbu')}</dt><dd>{env.payments.transferCbu || t('account.membership.transferAskAdmin')}</dd></div>
+          <div><dt>{t('account.membership.transferHolder')}</dt><dd>{env.payments.transferHolder || t('account.membership.transferAskAdmin')}</dd></div>
+          <div><dt>{t('account.membership.transferAmount')}</dt><dd>{money(amount, locale)}</dd></div>
           <div><dt>{t('account.membership.transferReference')}</dt><dd>{athlete.documentId} · {athlete.fullName}</dd></div>
         </dl>
         <p>{t('account.membership.transferHint')}</p>
@@ -37,24 +40,72 @@ function TransferModal({ athlete, onClose }) {
   )
 }
 
-export default function MembershipPurchaseSection({ athlete, membership, onActivateMembership, onCancelMembership }) {
+export default function MembershipPurchaseSection({
+  athlete,
+  membership,
+  onActivateMembership,
+  onCancelMembership,
+  onStartMembershipPayment,
+  demoMode = false,
+}) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [transferOpen, setTransferOpen] = useState(false)
   const [checkoutMessage, setCheckoutMessage] = useState('')
+  const [embeddedOrder, setEmbeddedOrder] = useState(null)
+  const [plans, setPlans] = useState([])
+  const [planCode, setPlanCode] = useState('plu-annual')
   const membershipActive = membership?.status === 'activa'
   const comboSavings = PRICING.membership + PRICING.event - PRICING.combo
   const methodLabel = paymentMethod === 'mercado_pago'
     ? 'Mercado Pago'
     : t('account.membership.transfer')
+  const fallbackPlan = useMemo(() => ({
+    code: 'plu-annual',
+    name: t('account.membership.membershipPlanLabel'),
+    price: PRICING.membership,
+    currency: 'ARS',
+    billingFrequency: 'annual',
+    collectionMode: 'one_time',
+  }), [t])
+  const availablePlans = plans.length ? plans : [fallbackPlan]
+  const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
 
-  function startMembershipPayment() {
+  useEffect(() => {
+    let active = true
+    listMembershipPlans()
+      .then(({ plans: nextPlans }) => {
+        if (!active || !nextPlans?.length) return
+        setPlans(nextPlans)
+        setPlanCode((current) => nextPlans.some((plan) => plan.code === current) ? current : nextPlans[0].code)
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (selectedPlan?.collectionMode === 'recurring' && paymentMethod !== 'mercado_pago') {
+      setPaymentMethod('mercado_pago')
+    }
+  }, [paymentMethod, selectedPlan?.collectionMode])
+
+  async function startMembershipPayment() {
     setCheckoutMessage('')
+    setEmbeddedOrder(null)
+    const result = await onStartMembershipPayment?.(paymentMethod, selectedPlan.code)
+    if (result?.error) {
+      setCheckoutMessage(result.error)
+      return
+    }
     if (paymentMethod === 'transferencia') {
       setTransferOpen(true)
       return
     }
-    setCheckoutMessage(t('account.membership.checkoutMessage'))
+    if (result?.createdOrder) {
+      setEmbeddedOrder(result.createdOrder)
+      return
+    }
+    setCheckoutMessage(t('account.membership.checkoutUnavailable'))
   }
 
   function simulateMembershipPayment() {
@@ -91,7 +142,7 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
           <div className="account-membership__price">
             <span className="account-membership__price-label">{t('account.membership.priceLabel')}</span>
             <p className="account-membership__price-value">
-              {money(PRICING.membership, locale)}
+              {money(selectedPlan.price, locale)}
             </p>
           </div>
         )}
@@ -149,6 +200,18 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
           </div>
 
           <div className="account-membership__checkout">
+            {availablePlans.length > 1 && (
+              <label className="field">
+                <span>{t('account.membership.planSelector')}</span>
+                <select value={selectedPlan.code} onChange={(event) => setPlanCode(event.target.value)}>
+                  {availablePlans.map((plan) => (
+                    <option key={plan.code} value={plan.code}>
+                      {plan.name} · {money(plan.price, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <fieldset className="account-payment-options">
               <legend>{t('account.membership.paymentLegend')}</legend>
               <label className={paymentMethod === 'mercado_pago' ? 'is-selected' : ''}>
@@ -171,6 +234,7 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
                   name="membership-payment"
                   value="transferencia"
                   checked={paymentMethod === 'transferencia'}
+                  disabled={selectedPlan.collectionMode === 'recurring'}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 />
                 <Landmark size={20} aria-hidden />
@@ -186,11 +250,12 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
                 {t('account.membership.continueWith', { method: methodLabel })}
               </button>
             </div>
+            {embeddedOrder && <MercadoPagoEmbeddedCheckout order={embeddedOrder} />}
           </div>
         </div>
       )}
 
-      <div className="account-membership__demo">
+      {demoMode && <div className="account-membership__demo">
         <p className="account-membership__demo-label">{t('account.membership.demoLabel')}</p>
         <div className="account-demo-actions">
           {!membershipActive && (
@@ -212,11 +277,13 @@ export default function MembershipPurchaseSection({ athlete, membership, onActiv
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
       {checkoutMessage && <p className="account-checkout-message" role="status">{checkoutMessage}</p>}
 
-      {transferOpen && <TransferModal athlete={athlete} onClose={() => setTransferOpen(false)} />}
+      {transferOpen && (
+        <TransferModal athlete={athlete} amount={selectedPlan.price} onClose={() => setTransferOpen(false)} />
+      )}
     </section>
   )
 }

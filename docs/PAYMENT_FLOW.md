@@ -2,26 +2,30 @@
 
 ## Principio
 
-**Nunca confirmar pagos desde el frontend.** El frontend solo crea la orden y redirige. La confirmación ocurre en backend vía webhook o consulta API.
+**Nunca confirmar pagos desde el frontend.** El frontend crea la orden y
+MercadoPago.js tokeniza el medio de pago. La acreditación ocurre en backend con
+la respuesta canónica del proveedor y queda respaldada por el webhook firmado.
 
 ## Flujo
 
 ```
 1. Atleta completa formulario
 2. Sistema crea PaymentOrder (estado: creado)
-3. Backend crea preferencia MP → devuelve init_point
-4. Atleta paga en Mercado Pago
-5. MP envía webhook POST /api/payments/webhook
-6. Backend valida x-signature
-7. Backend consulta GET /v1/payments/{id}
-8. Si aprobado → actualiza orden, afiliación/inscripción, audit log, email
+3. Backend crea una preferencia cuando el medio la requiere
+4. Payment Brick o Card Payment Brick se renderiza dentro del sitio
+5. Backend relee la orden y procesa el token con una idempotency key persistida
+6. MP envía webhook POST /api/payments/webhook
+7. Backend valida x-signature
+8. Backend consulta el recurso canónico en Mercado Pago
+9. Si aprobado → actualiza orden, afiliación/inscripción, audit log, email
 ```
 
-## MVP actual
+## Implementación actual
 
-- `src/services/paymentService.js` — adaptador mock
-- Simulación manual desde RegisterPage y AdminPage
-- Fallback: link MP + validación manual por operador
+- `MercadoPagoEmbeddedCheckout.jsx` — Payment Brick y Card Payment Brick
+- `embeddedPaymentWorkflow.js` — monto server-side e intentos idempotentes
+- `subscriptionWorkflow.js` — planes y abonos recurrentes
+- Transferencia manual como canal separado con aprobación operativa
 
 ## Estados internos
 
@@ -33,5 +37,5 @@ Cada webhook debe usar `idempotencyKey` para evitar doble procesamiento.
 
 ## Referencias
 
-- [Checkout Pro AR](https://www.mercadopago.com.ar/developers/en/docs/checkout-pro/overview)
+- [Checkout Bricks](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/overview)
 - [Webhooks](https://www.mercadopago.com.ar/developers/en/docs/your-integrations/notifications/webhooks)

@@ -513,9 +513,10 @@
   gap: clamp(24px, 3vw, 32px);
 }
 
-.register-page--profile .register-intro {
+.register-page--profile .register-intro,
+.register-page--profile .register-intro--profile {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   padding-left: clamp(14px, 2vw, 18px);
   position: relative;
 }
@@ -523,38 +524,48 @@
 .register-page--profile .register-intro::before {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-brand-gold) 85%, transparent) 0%,
-    rgba(255, 255, 255, 0.45) 100%
+    color-mix(in oklab, var(--plu-gold-500) 80%, transparent) 0%,
+    transparent 88%
   );
-  bottom: 4px;
+  bottom: 8%;
   content: '';
   left: 0;
   position: absolute;
-  top: 4px;
-  width: 2px;
+  top: 8%;
+  width: 1px;
 }
 
 .register-page--profile .register-intro__eyebrow {
-  color: rgba(255, 255, 255, 0.55);
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-transform: none;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .register-page--profile .register-intro__title {
-  font-size: clamp(28px, 4vw, 40px);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 3.6vw, 2.55rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  max-width: 10ch;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 0;
+  max-width: 12ch;
+  text-wrap: balance;
 }
 
 .register-page--profile .register-intro__desc {
-  font-size: 14.5px;
-  line-height: 1.55;
-  max-width: 32ch;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 34ch;
 }
 
 .register-page--profile .register-progress--compact {
@@ -706,8 +717,9 @@
 }
 
 .register-page--profile .register-card .form-grid {
-  gap: 18px 28px;
+  column-gap: 28px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: 32px;
 }
 
 .register-page--profile .register-card .form-section-block__step {
@@ -792,11 +804,43 @@
 
 .register-page--profile .register-card .field--select .field__select-chevron {
   color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
-  right: 2px;
+  right: 0;
 }
 
 .register-page--profile .register-card .field--select .field__select:focus-within .field__select-chevron {
   color: var(--color-brand-gold);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.register-page--profile .register-card .field--choice .field__choice {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+  min-height: 48px;
+  padding: 10px 0;
+}
+
+.register-page--profile .register-card .field--choice .field__choice:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+
+.register-page--profile .register-card .field--choice .field__choice.is-active {
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 75%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.register-page--profile .register-card .field--choice .field__choice.is-active .field__choice-text {
+  color: var(--color-text-primary);
+}
+
+.register-page--profile .register-card .field--choice .field__choice:focus-within {
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.register-page--profile .register-card .field--choice.is-invalid .field__choice {
+  border-bottom-color: var(--color-brand-red);
 }
 
 .register-page--profile .register-card .field--date .field__date input[type='date'] {
@@ -934,13 +978,13 @@
 [data-theme='light'] .register-page--profile .register-intro::before {
   background: linear-gradient(
     180deg,
-    rgba(160, 128, 48, 0.9) 0%,
-    rgba(15, 17, 23, 0.35) 100%
+    color-mix(in oklab, var(--plu-gold-600) 75%, transparent) 0%,
+    transparent 88%
   );
 }
 
 [data-theme='light'] .register-page--profile .register-intro__eyebrow {
-  color: rgba(15, 17, 23, 0.55);
+  color: color-mix(in oklab, var(--plu-gold-600) 72%, #4a5568);
 }
 
 [data-theme='light'] .register-page--profile .register-intro__title {
@@ -948,7 +992,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-intro__desc {
-  color: rgba(15, 17, 23, 0.62);
+  color: rgba(15, 17, 23, 0.58);
 }
 
 [data-theme='light'] .register-page--profile .register-progress__segments {
@@ -994,6 +1038,27 @@
 
 [data-theme='light'] .register-page--profile .register-card .field--select .field__select.is-empty select {
   color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice {
+  border-bottom-color: rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice:hover {
+  border-bottom-color: rgba(15, 17, 23, 0.28);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice.is-active {
+  border-bottom-color: rgba(160, 128, 48, 0.75);
+  box-shadow: 0 1px 0 0 rgba(160, 128, 48, 0.4);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice-text {
+  color: rgba(15, 17, 23, 0.55);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field--choice .field__choice.is-active .field__choice-text {
+  color: var(--color-text-on-light);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field--date .field__date input[type='date'] {
@@ -1048,11 +1113,27 @@
 @media (max-width: 1100px) {
   .register-page--profile .register-shell {
     gap: clamp(22px, 3vw, 32px);
-    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
   }
 
   .register-page--profile .register-intro__title {
-    font-size: clamp(24px, 3.2vw, 32px);
+    font-size: clamp(1.65rem, 3.2vw, 2.15rem);
+  }
+
+  .register-page--profile .register-card .form-grid {
+    column-gap: 20px;
+    row-gap: 26px;
+  }
+}
+
+@media (max-width: 960px) {
+  .register-page--profile .register-shell {
+    gap: clamp(18px, 3vw, 28px);
+    grid-template-columns: 1fr;
+  }
+
+  .register-page--profile .register-aside--desktop {
+    display: none;
   }
 }
 
@@ -1063,32 +1144,84 @@
     background: var(--color-page-canvas);
     border-bottom-color: rgba(255, 255, 255, 0.08);
     gap: 14px;
-    padding-block: 12px 14px;
+    margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+    padding: 12px clamp(20px, 5vw, 64px) 16px;
   }
 
   .register-page--profile .register-mobile-context .register-intro {
+    gap: 8px;
     padding-left: 14px;
   }
 
+  .register-page--profile .register-mobile-context .register-intro__eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
   .register-page--profile .register-mobile-context .register-intro__title {
-    font-size: clamp(22px, 6vw, 28px);
+    font-size: clamp(1.55rem, 5.8vw, 2rem);
     max-width: none;
   }
 
   .register-page--profile .register-mobile-context .register-intro__desc {
-    max-width: 48ch;
+    font-size: 13.5px;
+    max-width: 42ch;
+  }
+
+  .register-page--profile .register-progress--rail {
+    gap: 12px;
   }
 
   .register-page--profile .register-progress--rail .register-progress__track {
     display: grid;
   }
 
+  .register-page--profile .register-progress--rail .register-progress__segments {
+    display: grid;
+    gap: 0 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segments > li {
+    min-width: 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment {
+    min-height: 0;
+    padding: 10px 0 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-label {
+    font-size: 13px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
   .register-page--profile .register-card {
-    padding: clamp(22px, 4vw, 32px);
+    padding: clamp(20px, 4vw, 28px);
+    width: 100%;
   }
 
   .register-page--profile .register-card .form-grid {
-    gap: 16px 20px;
+    column-gap: 18px;
+    gap: 18px 18px;
+    row-gap: 22px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    margin-bottom: 18px;
+  }
+
+  .register-page--profile .register-card__footer--wizard,
+  .register-page--profile .register-card__footer--wizard-back {
+    gap: 12px;
   }
 }
 
@@ -1097,9 +1230,22 @@
     padding-inline: var(--layout-gutter, var(--space-md));
   }
 
+  .register-page--profile .register-mobile-context {
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    padding-inline: var(--layout-gutter, var(--space-md));
+  }
+
   .register-page--profile .register-card .form-grid {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segments {
+    gap: 0 12px;
+  }
+
+  .register-page--profile .register-progress--rail .register-progress__segment-meta {
+    font-size: 11px;
   }
 
   .register-page--profile .register-card__footer--wizard-back {
@@ -1679,11 +1825,12 @@
 .register-card__submit {
   align-items: center;
   background: var(--color-brand-action);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--border-radius-pill);
+  border: 1px solid transparent;
+  border-radius: 2px;
   box-shadow:
-    0 8px 20px rgba(31, 95, 158, 0.24),
+    0 8px 20px var(--plu-gold-alpha-22),
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: var(--color-brand-action-text);
   display: inline-flex;
   flex: none;
   font-size: 14px;
@@ -1710,27 +1857,27 @@
 .register-card__submit:hover:not(:disabled) {
   background: var(--color-brand-action-hover);
   box-shadow:
-    0 14px 32px rgba(31, 95, 158, 0.38),
+    0 14px 32px var(--plu-gold-alpha-35),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
   filter: brightness(1.03);
   transform: translateY(-2px);
 }
 
 .register-card__submit:active:not(:disabled) {
-  box-shadow: 0 6px 16px rgba(31, 95, 158, 0.28);
+  box-shadow: 0 6px 16px var(--plu-gold-alpha-22);
   transform: translateY(0);
 }
 
 .register-card__submit--ready {
   box-shadow:
-    0 12px 28px rgba(31, 95, 158, 0.34),
+    0 12px 28px var(--plu-gold-alpha-35),
     0 0 0 1px rgba(242, 183, 5, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .register-card__submit--ready:hover:not(:disabled) {
   box-shadow:
-    0 16px 36px rgba(31, 95, 158, 0.42),
+    0 16px 36px var(--plu-gold-alpha-35),
     0 0 0 1px rgba(242, 183, 5, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -2132,13 +2279,13 @@
 
 [data-theme='light'] .register-card__back.btn--outline:hover:not(:disabled) {
   background: #fff;
-  border-color: rgba(26, 107, 176, 0.34);
+  border-color: color-mix(in oklab, var(--color-brand-action) 34%, var(--color-border));
   color: #1a2230;
 }
 
 [data-theme='light'] .register-card__submit {
   box-shadow:
-    0 10px 24px rgba(31, 95, 158, 0.22),
+    0 10px 24px var(--plu-gold-alpha-22),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 

@@ -1,9 +1,11 @@
+import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 
 export default function MembershipCard({
   id = 'athlete',
   title,
+  kicker,
   price,
   period,
   features = [],
@@ -24,6 +26,9 @@ export default function MembershipCard({
     resolvedPeriod === t('pages.membershipCard.periodAnnual')
       ? t('pages.membershipCard.perYear')
       : resolvedPeriod
+  const resolvedKicker = highlighted
+    ? (kicker ?? t('pages.membershipCard.featured'))
+    : (kicker ?? t('pages.membershipCard.periodAnnual'))
 
   if (variant === 'plu') {
     return (
@@ -37,29 +42,39 @@ export default function MembershipCard({
           .join(' ')}
       >
         <div className="membership-card__body">
-          <h3 className="membership-card__title">{title}</h3>
+          <header className="membership-card__identity">
+            <p className="membership-card__kicker">{resolvedKicker}</p>
+            <h3 className="membership-card__title">{title}</h3>
+          </header>
 
           <div className="membership-card__price-stack">
             <span className="membership-card__amount">{money(price, locale)}</span>
             <span className="membership-card__period">{periodLabel}</span>
-            {hasCompare && (
+            {hasCompare ? (
               <span className="membership-card__save-note">
                 {t('pages.membershipCard.save', { amount: money(savings, locale) })}
               </span>
-            )}
+            ) : null}
           </div>
 
           <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
             {features.map((feature, i) => (
-              <li key={i} className="membership-card__feature">
-                {feature}
+              <li key={`${id}-${i}`} className="membership-card__feature">
+                <span className="membership-card__feature-mark" aria-hidden />
+                <span className="membership-card__feature-text">{feature}</span>
               </li>
             ))}
           </ul>
 
           <footer className="membership-card__foot">
-            <button type="button" className="membership-card__cta" disabled={ctaDisabled} onClick={onSelect}>
+            <button
+              type="button"
+              className="membership-card__cta motion-icon-shift"
+              disabled={ctaDisabled}
+              onClick={onSelect}
+            >
               {resolvedCtaLabel}
+              <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
             </button>
           </footer>
         </div>
@@ -80,9 +95,9 @@ export default function MembershipCard({
       <div className="membership-card__body">
         <header className="membership-card__top">
           <div className="membership-card__identity">
-            {highlighted && (
+            {highlighted ? (
               <span className="membership-card__badge">{t('pages.membershipCard.featured')}</span>
-            )}
+            ) : null}
             <h3 className="membership-card__title">{title}</h3>
           </div>
           <div className="membership-card__price-block">
@@ -97,16 +112,16 @@ export default function MembershipCard({
           </div>
         </header>
 
-        {hasCompare && (
+        {hasCompare ? (
           <p className="membership-card__compare-inline">
             <span className="membership-card__compare-strike">{money(compareTotal, locale)}</span>
             <span>{t('pages.membershipCard.separate')}</span>
           </p>
-        )}
+        ) : null}
 
         <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
           {features.map((feature, i) => (
-            <li key={i} className="membership-card__feature">
+            <li key={`${id}-${i}`} className="membership-card__feature">
               {feature}
             </li>
           ))}

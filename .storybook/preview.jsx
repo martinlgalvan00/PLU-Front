@@ -1,8 +1,13 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { ThemeProvider, useTheme } from '../src/providers/ThemeProvider.jsx'
 import { I18nProvider, useI18n } from '../src/i18n/I18nProvider.jsx'
 import { OAuthProvider } from '../src/providers/OAuthProvider.jsx'
 import '../src/styles/index.css'
+
+// El runner browser de Storybook/Vitest no aplica siempre el runtime JSX
+// automatico de Vite a los componentes importados. Exponer React mantiene
+// el preview alineado con el build productivo sin tocar cada componente.
+globalThis.React = React
 
 // Goes through the real setTheme() API (not a direct DOM attribute write) so
 // the DOM and ThemeProvider's own React context state never disagree —

@@ -109,10 +109,10 @@
   --color-brand-celeste-dim: var(--plu-celeste-alpha-18);
   --color-brand-celeste-glow: var(--plu-celeste-alpha-35);
 
-  /* ── CTA primario: azul institucional (reemplaza al rojo) ── */
-  --color-brand-action: var(--plu-celeste-600);
-  --color-brand-action-hover: #2a72b6;
-  --color-brand-action-text: #ffffff;
+  /* ── CTA primario: oro PLU (sin azul institucional) ── */
+  --color-brand-action: var(--plu-gold-500);
+  --color-brand-action-hover: var(--plu-gold-400);
+  --color-brand-action-text: #14181f;
 
   --gradient-brand: var(--plu-gradient-brand-horizontal);
   --gradient-brand-diag: var(--plu-gradient-brand-diagonal);

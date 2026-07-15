@@ -377,13 +377,13 @@
 }
 
 .contact-form__submit:hover {
-  background: #c80500;
-  box-shadow: 0 8px 20px rgba(31, 95, 158, 0.28);
+  background: var(--color-brand-action-hover);
+  box-shadow: 0 8px 20px var(--plu-gold-alpha-35);
   gap: 10px;
 }
 
 .contact-form__submit:focus-visible {
-  outline: 2px solid rgba(116, 172, 223, 0.42);
+  outline: 2px solid var(--color-brand-gold);
   outline-offset: 3px;
 }
 

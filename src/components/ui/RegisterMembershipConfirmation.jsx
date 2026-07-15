@@ -3,12 +3,12 @@ import StatusPill from './StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
+import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 
 export default function RegisterMembershipConfirmation({
   order,
   memberCode,
   membershipExpiration,
-  onApprovePayment,
   onNavigate,
   onOpenCard,
   showCardAction = false,
@@ -69,6 +69,10 @@ export default function RegisterMembershipConfirmation({
         </div>
       </dl>
 
+      {order.paymentMethod === 'mercado_pago' && !isActive && (
+        <MercadoPagoEmbeddedCheckout order={order} />
+      )}
+
       <div className="register-membership-confirmation__actions">
         {showCardAction && (
           <button
@@ -78,16 +82,6 @@ export default function RegisterMembershipConfirmation({
           >
             <ImageDown size={16} aria-hidden />
             {t('pages.register.membershipViewCredential')}
-          </button>
-        )}
-
-        {order.paymentMethod === 'mercado_pago' && !isActive && (
-          <button
-            type="button"
-            className="register-membership-confirmation__cta register-membership-confirmation__cta--outline btn btn--outline"
-            onClick={() => onApprovePayment(order.paymentId)}
-          >
-            {t('pages.register.simulatePayment')}
           </button>
         )}
 

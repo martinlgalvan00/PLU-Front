@@ -5,7 +5,7 @@
 - **Frontend:** Vite 8 + React 19 + CSS modular
 - **API:** Express 5 (scaffold en `server/`)
 - **DB:** PostgreSQL 16 + Prisma
-- **Pagos:** Mercado Pago Checkout Pro (adaptador en `src/services/paymentService.js`)
+- **Pagos:** Mercado Pago Checkout Bricks (`Payment Brick` y `Card Payment Brick`) + Suscripciones
 - **Emails:** Brevo API (adaptador en `src/services/emailService.js`)
 - **Tests:** Vitest
 
@@ -39,7 +39,7 @@ Los componentes solo renderizan y delegan eventos.
 |------|------------|--------|
 | Persistencia | localStorage | PostgreSQL/Supabase normalizado vía API/RPC |
 | Auth | Selector de rol UI | Login + JWT/sesión |
-| Pagos | Mock + simulación | MP Checkout Pro + webhook |
+| Pagos | Bricks embebido + persistencia Supabase | Validación sandbox y operación productiva |
 | Emails | Mock console | Brevo templates |
 
 ## Infraestructura de datos v3
@@ -56,7 +56,8 @@ actividad de check-in.
 
 ## Integraciones
 
-Todas las integraciones externas usan adaptadores con fallback mock si faltan credenciales.
+Todas las integraciones externas usan adaptadores inyectables. En producción, si faltan
+credenciales la API falla de forma explícita; los mocks se reservan para tests y demo aislada.
 
 ## Flujo server-side de integraciones
 
@@ -67,7 +68,7 @@ las registra como eventos idempotentes y las conecta con entidades del dominio:
 UI / proveedor externo
   -> API route
   -> workflow de aplicacion
-  -> IntegrationEvent
+  -> intento/evento idempotente persistido
   -> entidad de negocio
   -> adapter externo
 ```
@@ -76,12 +77,18 @@ Componentes actuales:
 
 | Capa | Archivos |
 |------|----------|
-| Store de eventos | `server/modules/integrations/integrationEventStore.js` |
-| Pagos | `server/modules/payments/paymentWorkflow.js` |
+| Store de eventos | `payment_integration_events`, `embedded_payment_attempts` (Supabase) |
+| Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
+| Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
 | Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` (`IntegrationEvent`, `IntegrationAttempt`) |
+| Contrato de DB | `prisma/schema.prisma` + `supabase/migrations/20260715000200_*` a `20260715000400_*` |
 
-El store actual es en memoria para el MVP y tests. El contrato de entidades ya
-esta modelado en Prisma para migrarlo a persistencia real sin cambiar la forma
-en que los controllers llaman a los workflows.
+El checkout crea la orden primero. El navegador tokeniza el medio de pago con
+MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia
+desde la orden. El resultado inmediato se aplica de forma idempotente y el webhook
+firmado actúa como confirmación canónica y mecanismo de recuperación.
+
+Para cobros únicos se usa `Payment Brick`. Para planes mensuales o anuales
+recurrentes se usa `Card Payment Brick`, que entrega el token efímero requerido
+para autorizar una suscripción. PLU no almacena números de tarjeta ni tokens.

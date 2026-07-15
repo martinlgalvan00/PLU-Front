@@ -63,7 +63,13 @@
       "Bash(node crop2.js)",
       "Bash(awk 'NR<=100 && /\\\\{/{last=NR\": \"$0} END{}' src/styles/themes/design-pages-theme.css)",
       "Bash(node inspect5.js)",
-      "Bash(curl -sf http://localhost:5174)"
+      "Bash(curl -sf http://localhost:5174)",
+      "Bash(node --check src/i18n/locales/admin.en.js)",
+      "Bash(node -e \"import\\('./src/i18n/locales/admin.en.js'\\).then\\(\\(\\)=>console.log\\('en OK'\\)\\).catch\\(e=>console.error\\('en FAIL', e.message\\)\\)\")",
+      "Bash(node -e \"import\\('./src/i18n/locales/admin.es.js'\\).then\\(\\(\\)=>console.log\\('es OK'\\)\\).catch\\(e=>console.error\\('es FAIL', e.message\\)\\)\")",
+      "Bash(node --check server/routes/auth.js)",
+      "Bash(node --check server/services/supabaseAuthBridge.js)",
+      "Bash(npx supabase *)"
     ]
   }
 }

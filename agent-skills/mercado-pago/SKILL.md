@@ -1,183 +1,107 @@
-# Mercado Pago — Checkout Pro
+# Mercado Pago — Checkout Bricks embebido
 
 ## Objetivo
 
-Integrar **Mercado Pago Checkout Pro** para cobrar afiliaciones e inscripciones en ARS, con confirmación de pago **exclusivamente en backend** vía webhooks y validación de firma `x-signature`. El frontend solo inicia el checkout; nunca decide si un pago fue aprobado.
+Integrar Mercado Pago dentro del sitio con `Payment Brick` para cobros únicos y
+`Card Payment Brick` para suscripciones mensuales o anuales. La UI tokeniza; el
+backend define el monto, crea el pago o suscripción y aplica el resultado. El
+webhook firmado es la confirmación canónica y el mecanismo de recuperación.
 
 ## Cuándo usarla
 
-- Implementar creación de preferencias de pago.
-- Configurar webhook de notificaciones IPN.
-- Modificar `paymentService.js` o endpoints en `server/`.
-- Depurar estados de pago desincronizados.
-- Reemplazar el mock/simulación del MVP.
+- Modificar pagos de afiliaciones, inscripciones o entradas.
+- Crear o renovar planes recurrentes.
+- Cambiar `paymentService.js`, `server/routes/payments.js` o sus workflows.
+- Depurar pagos duplicados, pendientes o webhooks desincronizados.
 
-## Entradas requeridas
+## Configuración requerida
 
-| Variable / dato | Ubicación |
-|-----------------|-----------|
-| `MERCADO_PAGO_ACCESS_TOKEN` | `.env` (solo server) |
-| `VITE_MERCADO_PAGO_PUBLIC_KEY` | `.env` (frontend, init checkout) |
-| `MERCADO_PAGO_WEBHOOK_SECRET` | `.env` (validar x-signature) |
-| `MERCADO_PAGO_ENV` | `sandbox` \| `production` |
-| Monto, concepto, athleteId | Desde registro / orden |
+| Variable | Alcance |
+|----------|---------|
+| `VITE_MERCADO_PAGO_PUBLIC_KEY` | Frontend; inicializa MercadoPago.js |
+| `MERCADO_PAGO_ACCESS_TOKEN` | Sólo backend |
+| `MERCADO_PAGO_WEBHOOK_SECRET` | Sólo backend; valida `x-signature` |
+| `MERCADO_PAGO_ENV` | `sandbox` o `production` |
+| `APP_URL`, `API_URL` | Retornos y `notification_url` HTTPS |
 
-## Salidas esperadas
+## Reglas no negociables
 
-- `PaymentOrder` en DB con `preferenceId`, `status: pendiente`.
-- URL `init_point` para redirigir al checkout MP.
-- Webhook procesado idempotentemente → `Payment.status: aprobado`.
-- Side effects: activar membership, confirmar registration, enviar emails.
-- Frontend muestra estado pendiente hasta confirmación server.
-
-## Procedimiento paso a paso
-
-### 1. Principio de seguridad (NO NEGOCIABLE)
-
-```
-❌ Frontend llama GET /v1/payments/{id} y marca aprobado
-❌ Botón "Simular pago aprobado" en producción
-✅ Backend crea preferencia con ACCESS_TOKEN
-✅ Backend recibe webhook → valida firma → consulta MP → actualiza DB
-✅ Frontend poll o SSE /api/payments/status/{orderId} (opcional)
+```text
+❌ Confiar en monto, moneda, plan, estado o referencia enviados por el browser
+❌ Guardar token efímero o datos de tarjeta
+❌ Marcar aprobado desde React
+❌ Procesar webhooks sin validar x-signature y consultar el recurso en MP
+✅ Crear primero una orden server-side
+✅ Usar idempotency key persistente por intento
+✅ Aplicar pago, afiliación, inscripción o ticket en una transacción/RPC
+✅ Mantener el webhook como respaldo aunque exista respuesta inmediata
 ```
 
-Comentario en código (`paymentService.js` línea 49-51):
+## Flujo de cobro único
 
-> Regla: solo el backend debe llamar GET /v1/payments/{id}
-
-### 2. Flujo end-to-end
-
-```
-Atleta submit form
-    → athleteService crea PaymentOrder (pendiente)
-    → POST /api/payments/preferences { amount, concept, athleteId, idempotencyKey }
-    → MP API crea preferencia
-    → Response { preferenceId, initPoint }
-    → Redirect atleta a initPoint (Checkout Pro)
-    → Atleta paga en MP
-    → MP POST /api/payments/webhook (notification)
-    → Backend valida x-signature
-    → Backend GET payment from MP API
-    → Si approved: actualizar PaymentOrder, Payment, Membership, Registration
-    → Disparar emails Brevo
+```text
+UI crea orden pendiente
+  → backend crea preferencia (sólo para medios que la requieren)
+  → Payment Brick tokeniza/selecciona el medio dentro del sitio
+  → POST /api/payments/embedded/process { paymentOrderId, formData }
+  → backend descarta transaction_amount del browser y relee la orden
+  → claim_embedded_payment_attempt bloquea duplicados
+  → Payment.create con X-Idempotency-Key
+  → apply_mercado_pago_payment / apply_ticket_mercado_pago_payment
+  → webhook firmado vuelve a consultar GET /v1/payments/{id}
 ```
 
-### 3. Crear preferencia (backend)
+## Flujo recurrente
 
-Endpoint scaffold (implementar en `server/index.js`):
-
-```javascript
-// POST /api/payments/preferences
-// Body: { amount, concept, athleteId, idempotencyKey }
-// Headers: Authorization Bearer MERCADO_PAGO_ACCESS_TOKEN
-
-const preference = {
-  items: [{ title: concept, quantity: 1, unit_price: amount, currency_id: 'ARS' }],
-  external_reference: orderId,
-  notification_url: `${API_URL}/api/payments/webhook`,
-  back_urls: {
-    success: `${VITE_APP_URL}/register?status=success`,
-    failure: `${VITE_APP_URL}/register?status=failure`,
-    pending: `${VITE_APP_URL}/register?status=pending`,
-  },
-  auto_return: 'approved',
-}
+```text
+UI crea orden ligada al plan recurrente
+  → Card Payment Brick genera card token efímero
+  → POST /api/payments/subscriptions/process
+  → backend valida que orden, afiliación, plan, monto y moneda coincidan
+  → crea/reutiliza preapproval plan
+  → crea preapproval con card_token_id y status authorized
+  → webhook subscription_preapproval sincroniza estado
+  → webhook subscription_authorized_payment acredita cada ciclo
 ```
 
-Persistir `preferenceId` en `PaymentOrder`.
+## Mapeo de estados
 
-### 4. Webhook e idempotencia
+| Mercado Pago | Dominio |
+|--------------|---------|
+| `pending`, `in_process` | `pendiente` |
+| `approved` | `aprobado` |
+| `rejected` | `rechazado` |
+| `cancelled` | `cancelado` |
+| `refunded`, `charged_back` | `reembolsado` |
 
-```javascript
-// POST /api/payments/webhook
-// 1. Leer headers x-signature, x-request-id
-// 2. Validar firma con MERCADO_PAGO_WEBHOOK_SECRET
-// 3. Extraer payment id del body (topic payment)
-// 4. Si idempotencyKey ya procesada → 200 OK sin re-procesar
-// 5. GET https://api.mercadadopago.com/v1/payments/{id}
-// 6. Mapear status MP → PaymentStatus enum
-// 7. Transacción Prisma: order + payment + membership + registration
-```
+## Checklist
 
-### 5. Adaptador frontend (`src/services/paymentService.js`)
-
-Estado actual: **mock** si no hay token.
-
-| Función | Responsabilidad |
-|---------|-----------------|
-| `isMercadoPagoConfigured()` | Detecta config |
-| `createPreference()` | Delega a POST `/api/payments/preferences` |
-| `createPaymentReference()` | Referencia legible (solo display) |
-| `getPaymentStatusForMethod()` | Estado inicial según método |
-| `validatePayment()` | **Solo mock** — producción vía webhook |
-
-Migración: quitar `VITE_MERCADO_PAGO_ACCESS_TOKEN` del frontend; token solo en server.
-
-### 6. Método manual (`manual_link`)
-
-- Atleta paga por link compartido fuera del flujo automático.
-- Estado inicial: `manual_pending` / `pendiente`.
-- Operador con `canApprovePayments` aprueba desde Admin.
-- `approvePayment()` en `athleteService.js` — hoy simula aprobación admin.
-
-### 7. Mapeo estados MP → Prisma
-
-| MP status | PaymentStatus |
-|-----------|---------------|
-| pending | pendiente |
-| approved | aprobado |
-| rejected | rechazado |
-| cancelled | cancelado |
-| refunded | reembolsado |
-
-## Validaciones
-
-- `MERCADO_PAGO_ACCESS_TOKEN` nunca en bundle frontend.
-- Webhook rechaza requests sin firma válida (`401`).
-- Mismo `idempotencyKey` no duplica cobros ni side effects.
-- Monto en preferencia = monto en `PaymentOrder`.
-- Tests de integración en sandbox MP antes de producción.
-- Logs sin exponer tokens ni datos de tarjeta.
-
-## Errores comunes
-
-| Error | Impacto | Fix |
-|-------|---------|-----|
-| Confirmar desde RegisterPage | Fraude / estados falsos | Solo webhook + admin manual |
-| Token en `VITE_*` | Filtración | Mover a server env |
-| No validar x-signature | Webhook spoofing | Implementar HMAC MP |
-| Re-procesar webhook | Doble afiliación | Idempotency key + unique constraint |
-| back_urls HTTP en prod | Redirect roto | HTTPS obligatorio |
-| Olvidar notification_url | Pagos huérfanos | Configurar en preferencia |
-
-## Checklist de aceptación
-
-- [ ] Preferencia creada solo desde `server/`
-- [ ] Webhook con validación `x-signature`
-- [ ] GET payment a MP solo en backend
-- [ ] `PaymentOrder.idempotencyKey` implementado
-- [ ] Side effects atómicos (transacción DB)
-- [ ] Mock deshabilitado cuando hay credenciales reales
-- [ ] `.env.example` documenta variables MP
-- [ ] Botón simular pago oculto en producción
+- [ ] Public key solamente en frontend; access token solamente en backend.
+- [ ] Monto, moneda, referencia y plan salen de la orden persistida.
+- [ ] Token de tarjeta no aparece en DB, logs ni respuestas propias.
+- [ ] `X-Idempotency-Key` y constraint de intento único activos.
+- [ ] Webhook valida firma, timestamp y `data.id`.
+- [ ] Backend consulta el recurso a Mercado Pago antes de acreditar.
+- [ ] RPC aplica side effects en forma atómica e idempotente.
+- [ ] Pruebas con usuarios y tarjetas sandbox antes de producción.
+- [ ] HTTPS y webhook público configurados en producción.
 
 ## Referencias oficiales
 
-- [Mercado Pago — Checkout Pro](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/landing)
-- [Crear preferencia](https://www.mercadopago.com.ar/developers/es/reference/preferences/_checkout_preferences/post)
+- [Checkout Bricks](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/overview)
+- [Payment Brick](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/payment-brick/introduction)
+- [Card Payment Brick](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/card-payment-brick/introduction)
+- [Crear suscripción asociada a un plan](https://www.mercadopago.com.ar/developers/es/docs/subscriptions/integration-configuration/subscription-associated-plan)
 - [Webhooks](https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks)
-- [Validar firma x-signature](https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks#validate-signature)
 
-## Archivos del proyecto relacionados
+## Archivos relacionados
 
 | Archivo | Rol |
 |---------|-----|
-| `src/services/paymentService.js` | Adaptador frontend |
-| `src/services/athleteService.js` | Crea payment en registro |
-| `server/index.js` | Endpoints preferences + webhook |
-| `prisma/schema.prisma` | `PaymentOrder`, `Payment`, enums |
-| `.env.example` | Variables MP |
-| `src/pages/RegisterPage.jsx` | UI checkout (sin confirmar) |
-| `src/pages/AdminPage.jsx` | Aprobación manual |
-| `src/lib/constants.js` | `PAYMENT_METHODS`, `PRICING` |
+| `src/components/ui/MercadoPagoEmbeddedCheckout.jsx` | Renderiza los Bricks |
+| `src/services/paymentService.js` | Cliente de la API propia |
+| `server/routes/payments.js` | Endpoints y validación Zod |
+| `server/modules/payments/embeddedPaymentWorkflow.js` | Cobro único seguro |
+| `server/modules/subscriptions/subscriptionWorkflow.js` | Suscripciones |
+| `server/modules/payments/mercadoPagoAdapter.js` | SDK oficial server-side |
+| `supabase/migrations/20260715000400_phase5_embedded_checkout.sql` | Intentos idempotentes |

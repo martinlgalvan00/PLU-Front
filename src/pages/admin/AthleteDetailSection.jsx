@@ -12,12 +12,13 @@ import { money } from '../../lib/format.js'
 export default function AthleteDetailSection({ detail, onBack, canEdit, onApprovePayment }) {
   const { t } = useI18n()
   const [activeTab, setActiveTab] = useState('profile')
-
-  if (!detail) {
-    return null
-  }
-
-  const { athlete, memberships, registrations, payments, auditLogs } = detail
+  const {
+    athlete,
+    memberships = [],
+    registrations = [],
+    payments = [],
+    auditLogs = [],
+  } = detail ?? {}
   const activeMembership = memberships.find((item) => item.status === 'activa')
 
   const tabs = useMemo(
@@ -30,6 +31,10 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
     ],
     [auditLogs.length, memberships.length, payments.length, registrations.length, t],
   )
+
+  if (!detail) {
+    return null
+  }
 
   return (
     <div className="athlete-detail">

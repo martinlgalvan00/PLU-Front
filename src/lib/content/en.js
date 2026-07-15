@@ -97,33 +97,33 @@ export const HOME_MEMBERSHIP_FEATURES = [
 export const HOME_MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Entry to official meets',
-    text: 'You are cleared to register for any event on the PLU Argentina calendar.',
+    title: 'Official meets',
+    text: 'Cleared to register for the PLU Argentina calendar.',
   },
   {
     id: 'credential',
-    title: 'Digital credential with QR',
-    text: 'Your membership lives on your phone: fast check-in and venue validation.',
+    title: 'Digital credential',
+    text: 'Membership QR for check-in and venue validation.',
   },
   {
     id: 'discounts',
-    title: 'Member discounts',
-    text: 'Preferential registration rates and perks with gyms in the PLU network.',
+    title: 'Member rates',
+    text: 'Preferential registration fees and PLU gym network.',
   },
   {
     id: 'results',
-    title: 'Results under PLU standard',
-    text: 'Your marks are published with the same criteria used on the international circuit.',
+    title: 'PLU results',
+    text: 'Marks published under international criteria.',
   },
   {
     id: 'access',
-    title: 'Athlete panel access',
-    text: 'Track membership, events and competitive history from your account.',
+    title: 'Athlete panel',
+    text: 'Membership, events and history in your account.',
   },
   {
     id: 'network',
-    title: 'Gym and athlete network',
-    text: 'You join the official community: affiliated venues and a shared calendar.',
+    title: 'Official network',
+    text: 'Community, affiliated venues and shared calendar.',
   },
 ]
 
@@ -160,7 +160,8 @@ export const MEMBERSHIP_CTA = {
 export const MEMBERSHIP_PLANS = [
   {
     id: 'athlete',
-    title: 'Athlete',
+    title: 'Adult athlete',
+    kicker: 'Annual plan',
     price: PRICING.membership,
     period: 'annual',
     features: ['Ages 18+', 'Digital credential', 'PLU ARG calendar events'],
@@ -169,7 +170,8 @@ export const MEMBERSHIP_PLANS = [
   },
   {
     id: 'junior',
-    title: 'Junior',
+    title: 'Junior athlete',
+    kicker: 'Annual plan',
     price: PRICING.membershipJunior,
     period: 'annual',
     features: ['Ages 10–17', 'Digital credential', 'PLU ARG junior events'],
@@ -178,7 +180,8 @@ export const MEMBERSHIP_PLANS = [
   },
   {
     id: 'combo',
-    title: 'Pitbull combo',
+    title: 'Pitbull Classic',
+    kicker: 'Season combo',
     price: PRICING.combo,
     period: '2026 season',
     features: ['Annual membership', 'Pitbull Classic registration', 'Single checkout'],
@@ -224,23 +227,23 @@ export const MEMBERSHIP_INSTITUTIONAL = {
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'Photo ID',
-    text: 'Valid national ID or passport.',
+    title: 'ID',
+    text: 'Valid national ID or passport. Required to validate the request.',
   },
   {
     id: 'age',
-    title: 'Minimum age 14',
-    text: 'Under 18: guardian authorization required.',
+    title: 'Age',
+    text: 'From 14 years old. Under 18: guardian authorization required.',
   },
   {
     id: 'health',
-    title: 'Medical clearance or affidavit',
-    text: 'Current certificate or health affidavit.',
+    title: 'Fitness',
+    text: 'Medical certificate or current health affidavit.',
   },
   {
     id: 'photo',
-    title: 'Credential photo',
-    text: 'Recent digital image.',
+    title: 'Photo',
+    text: 'Recent digital portrait, front-facing and well lit.',
   },
 ]
 
@@ -336,6 +339,7 @@ export const PITBULL_CLASSIC = {
   tagline:
     'Pitbull Classic brings PLU Argentina athletes together in an official meet built to track registrations, categories, results and reports under Powerlifting United standards.',
   date: 'December 12–13, 2026',
+  dateShort: 'Dec 12–13, 2026',
   dateDay: '12–13',
   dateMonth: 'Dec',
   venue: 'Maximal Strength Club',
@@ -375,17 +379,17 @@ export const PITBULL_ATHLETE_GROUPS = [
       {
         id: 'membership',
         title: 'Membership',
-        text: 'Active for the calendar year, or membership + registration combo at signup.',
+        text: 'Calendar year or combo at signup.',
       },
       {
         id: 'category',
         title: 'Category',
-        text: 'Equipment, age and bodyweight per the PLU ARG rulebook.',
+        text: 'Equipment, age and bodyweight.',
       },
       {
         id: 'confirmation',
         title: 'Validation',
-        text: 'We confirm payment and registration before enabling your credential.',
+        text: 'Payment and entry confirmed.',
       },
     ],
   },
@@ -396,12 +400,12 @@ export const PITBULL_ATHLETE_GROUPS = [
       {
         id: 'weighin',
         title: 'Weigh-in',
-        text: 'Official window on your competition day.',
+        text: 'Official window on your day.',
       },
       {
         id: 'results',
         title: 'Results',
-        text: 'Published here after the meet from LiftingCast.',
+        text: 'Published here from LiftingCast.',
       },
     ],
   },

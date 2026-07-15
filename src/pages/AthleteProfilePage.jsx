@@ -17,6 +17,8 @@ export default function AthleteProfilePage({
   memberships,
   onActivateMembership,
   onCancelMembership,
+  onStartMembershipPayment,
+  demoMode = false,
   onNavigate,
   onUpdateProfile,
   registrations,
@@ -54,6 +56,8 @@ export default function AthleteProfilePage({
         membership={storedMembership}
         onActivateMembership={onActivateMembership}
         onCancelMembership={onCancelMembership}
+        onStartMembershipPayment={onStartMembershipPayment}
+        demoMode={demoMode}
       />
     ),
     'account-personal-data': <PersonalDataSection athlete={athlete} onUpdateProfile={onUpdateProfile} />,

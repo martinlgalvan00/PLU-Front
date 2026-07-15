@@ -2,6 +2,41 @@ import { randomUUID } from 'node:crypto'
 import { integrationEventStore as defaultEventStore } from '../integrations/integrationEventStore.js'
 
 export async function queueTransactionalEmail(type, input, options = {}) {
+  if (options.repository) {
+    const idempotencyKey =
+      input.idempotencyKey ?? `email:${type}:${input.entityType ?? 'none'}:${input.entityId ?? input.to}`
+    const started = await options.repository.beginEmail({
+      ...input,
+      type,
+      idempotencyKey,
+    })
+    if (!started.created) return { emailLog: started.emailLog, created: false }
+
+    if (!options.brevo?.configured || !input.templateId) {
+      const emailLog = await options.repository.completeEmail(started.emailLog.id, { status: 'skipped' })
+      return { emailLog, created: true }
+    }
+
+    try {
+      const response = await options.brevo.sendTemplate({
+        to: input.to,
+        templateId: input.templateId,
+        params: input.params,
+      })
+      const emailLog = await options.repository.completeEmail(started.emailLog.id, {
+        status: 'sent',
+        response,
+      })
+      return { emailLog, created: true }
+    } catch (error) {
+      await options.repository.completeEmail(started.emailLog.id, {
+        status: 'failed',
+        error: error?.message ?? String(error),
+      })
+      throw error
+    }
+  }
+
   const eventStore = options.eventStore ?? defaultEventStore
   const idempotencyKey =
     input.idempotencyKey ?? `email:${type}:${input.entityType ?? 'none'}:${input.entityId ?? input.to}`

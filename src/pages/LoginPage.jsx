@@ -31,8 +31,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
     try {
       await enter({ email, password })
-    } catch {
-      setSubmitError(t('login.errorInvalid'))
+    } catch (error) {
+      setSubmitError(error?.status === 0 ? error.message : t('login.errorInvalid'))
     } finally {
       setIsSubmitting(false)
     }

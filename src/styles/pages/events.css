@@ -186,8 +186,8 @@
 
 .filter-pills__item.is-active {
   background: var(--color-brand-action);
-  box-shadow: 0 4px 14px rgba(31, 95, 158, 0.28), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
-  color: var(--filter-pill-active-text, #fff);
+  box-shadow: 0 4px 14px var(--plu-gold-alpha-22), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  color: var(--filter-pill-active-text, var(--color-brand-action-text));
 }
 
 /* ── Main layout ────────────────────────────── */
@@ -297,7 +297,7 @@
 }
 
 .events-list--design .event-card:hover {
-  border-color: rgba(31, 95, 158, 0.22);
+  border-color: color-mix(in oklab, var(--color-brand-action) 28%, var(--color-border-subtle));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
   transform: translateY(-1px);
 }
@@ -307,8 +307,10 @@
 }
 
 .events-list--design .event-card--selected {
-  border-color: rgba(116, 172, 223, 0.42);
-  box-shadow: 0 0 0 1px rgba(116, 172, 223, 0.18), 0 8px 24px rgba(0, 0, 0, 0.14);
+  border-color: color-mix(in oklab, var(--color-brand-action) 42%, var(--color-border-subtle));
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-brand-action) 18%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
 .events-list--design .event-card--selected::before {
@@ -740,6 +742,25 @@
   margin-top: 4px;
 }
 
+.events-detail__cta {
+  align-items: center;
+  border-radius: 2px;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding-inline: 16px;
+}
+
+.events-detail__cta--primary {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.events-detail__cta--secondary {
+  font-weight: 500;
+}
+
 .events-detail__calendar-actions {
   display: flex;
   flex-wrap: wrap;
@@ -753,7 +774,7 @@
 
 .event-live-stream__badge {
   align-items: center;
-  background: var(--color-brand-action);
+  background: var(--color-brand-red);
   border-radius: 999px;
   color: #fff;
   display: inline-flex;
@@ -1774,14 +1795,14 @@
 .events-page--premium .event-calendar--premium .event-calendar__cell--event:not(:disabled) {
   background: var(--color-brand-action);
   border-color: transparent;
-  box-shadow: 0 6px 14px rgba(31, 95, 158, 0.32);
-  color: #fff;
+  box-shadow: 0 6px 14px var(--plu-gold-alpha-22);
+  color: var(--color-brand-action-text);
   font-weight: 700;
 }
 
 .events-page--premium .event-calendar--premium .event-calendar__cell--event:not(:disabled):hover {
-  background: #c80500;
-  box-shadow: 0 8px 18px rgba(31, 95, 158, 0.4);
+  background: var(--color-brand-action-hover);
+  box-shadow: 0 8px 18px var(--plu-gold-alpha-35);
   transform: translateY(-1px);
 }
 
@@ -2635,16 +2656,35 @@
   border-top: 1px solid var(--color-border-subtle);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 12px 16px;
   justify-content: space-between;
-  padding-top: clamp(12px, 1.8vw, 14px);
+  padding-top: clamp(14px, 2vw, 18px);
 }
 
 .events-spotlight-card__actions {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 10px;
+  gap: 10px;
+}
+
+.events-spotlight-card__cta {
+  align-items: center;
+  border-radius: 2px;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding-inline: 16px;
+}
+
+.events-spotlight-card__cta--primary {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.events-spotlight-card__cta--secondary {
+  font-weight: 500;
 }
 
 .events-spotlight-card__calendar.event-calendar-actions {
@@ -2663,6 +2703,7 @@
 .events-spotlight-card__calendar .btn--small {
   font-size: 11px;
   min-height: 32px;
+  opacity: 0.88;
   padding-inline: 10px;
 }
 
@@ -2682,6 +2723,16 @@
   .events-spotlight-card__foot {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .events-spotlight-card__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .events-spotlight-card__cta {
+    width: 100%;
   }
 
   .events-spotlight-card__calendar .event-calendar-actions__buttons {
@@ -2770,11 +2821,11 @@
 .events-public-tickets__eyebrow,
 .events-public-tickets__copy span {
   color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-style: italic;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
 }
 
 .events-public-tickets__copy h3 {
@@ -2797,9 +2848,9 @@
 .events-public-tickets__aside {
   align-items: end;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   justify-items: end;
-  min-width: min(100%, 200px);
+  min-width: min(100%, 220px);
 }
 
 .events-public-tickets__price {
@@ -2810,6 +2861,17 @@
   margin: 0;
   text-align: right;
   white-space: nowrap;
+}
+
+.events-public-tickets__cta {
+  align-items: center;
+  border-radius: 2px;
+  display: inline-flex;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding-inline: 16px;
 }
 
 /* Event calendar actions (compartido) */
@@ -3158,7 +3220,11 @@
     justify-items: stretch;
   }
 
-  .events-public-tickets__aside .btn {
+  .events-public-tickets__price {
+    text-align: left;
+  }
+
+  .events-public-tickets__cta {
     justify-content: center;
     width: 100%;
   }
