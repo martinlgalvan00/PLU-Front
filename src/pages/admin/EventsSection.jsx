@@ -47,6 +47,7 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
     if (!event) return
     setSelectedId(event.id)
     setDraft({
+      ...ADMIN_EVENT_FORM_DEFAULT,
       id: event.id,
       title: event.title,
       dateISO: event.dateISO,
@@ -56,6 +57,19 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
       featured: event.featured,
       slots: event.slots,
       pricing: event.pricing,
+      startsAt: event.startsAt ?? '',
+      endsAt: event.endsAt ?? '',
+      registrationOpensAt: event.registrationOpensAt ?? '',
+      registrationClosesAt: event.registrationClosesAt ?? '',
+      ticketSalesOpensAt: event.ticketSalesOpensAt ?? '',
+      ticketSalesClosesAt: event.ticketSalesClosesAt ?? '',
+      capacityDay1: event.capacityDay1 ?? '',
+      capacityDay2: event.capacityDay2 ?? '',
+      capacityBoth: event.capacityBoth ?? '',
+      liveStreamUrl: event.liveStreamUrl ?? '',
+      liveStreamProvider: event.liveStreamProvider ?? 'youtube',
+      liveStatus: event.liveStatus ?? 'offline',
+      published: event.published !== false,
     })
     setFormOpen(true)
   }
