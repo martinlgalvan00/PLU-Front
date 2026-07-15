@@ -87,7 +87,14 @@
   height: 72px;
   justify-content: center;
   letter-spacing: 0.04em;
+  overflow: hidden;
   width: 72px;
+}
+
+.account-hero__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .account-hero__copy {
@@ -1110,6 +1117,65 @@
 
 .account-checkout-message--error {
   color: var(--color-brand-red-hover, var(--color-brand-red));
+}
+
+.account-photo {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.account-photo__avatar {
+  align-items: center;
+  background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
+  border: 1px solid rgba(242, 183, 5, 0.35);
+  border-radius: 50%;
+  color: #141518;
+  display: flex;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  height: 88px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  width: 88px;
+}
+
+.account-photo__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.account-photo__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-photo__hint {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-photo__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.account-photo__input {
+  display: none;
+}
+
+.account-photo__error {
+  color: var(--color-brand-red-hover, var(--color-brand-red));
+  font-size: 12.5px;
+  margin: 0;
 }
 
 .account-membership-status {

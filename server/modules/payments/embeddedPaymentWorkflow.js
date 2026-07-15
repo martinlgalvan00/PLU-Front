@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
-import { applyCanonicalPayment } from './paymentWorkflow.js'
+import { applyCanonicalPayment, mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function fingerprint(formData) {
   const sensitiveSource = formData.token || [
@@ -50,6 +50,10 @@ export async function processEmbeddedPayment(input, options = {}) {
       repository,
       notifyPaymentApplied,
     })
+    await repository.completeEmbeddedReconciliation?.(attempt.id, {
+      succeeded: true,
+      terminal: mapMercadoPagoStatus(existingPayment.status) !== 'pendiente',
+    })
     return { payment: safePayment(existingPayment), order: applied.result.order, duplicate: true }
   }
   if (!claimed.created) throw new HttpError(409, 'El pago ya se está procesando.')
@@ -68,6 +72,10 @@ export async function processEmbeddedPayment(input, options = {}) {
     const applied = await applyCanonicalPayment(payment, order, {
       repository,
       notifyPaymentApplied,
+    })
+    await repository.completeEmbeddedReconciliation?.(attempt.id, {
+      succeeded: true,
+      terminal: mapMercadoPagoStatus(payment.status) !== 'pendiente',
     })
     return { payment: safePayment(payment), order: applied.result.order, duplicate: false }
   } catch (error) {

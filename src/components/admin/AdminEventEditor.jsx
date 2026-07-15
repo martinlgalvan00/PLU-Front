@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Eye, Link2, MapPin, Radio, Save, Star, Ticket, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import Button from '../ui/Button.jsx'
@@ -111,6 +112,9 @@ export default function AdminEventEditor({
   const { t } = useI18n()
   const [syncError, setSyncError] = useState(null)
   const [syncing, setSyncing] = useState(false)
+  const dialogTitle = draft.id ? t('admin.eventEditor.editTitle') : t('admin.eventEditor.createTitle')
+  const onCancelRef = useRef(onCancel)
+  onCancelRef.current = onCancel
 
   const statusOptions = useMemo(
     () =>
@@ -120,6 +124,21 @@ export default function AdminEventEditor({
       ),
     [t],
   )
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onCancelRef.current?.()
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   // Calendario/directo/cupos viven en Supabase (ver eventAdminService.js);
   // el resto del draft sigue guardándose en localStorage vía `onSubmit`,
@@ -141,23 +160,36 @@ export default function AdminEventEditor({
     onSubmit(event)
   }
 
-  return (
-    <div className="admin-event-editor">
-      <form className="admin-event-form admin-event-form--editor" onSubmit={handleFormSubmit} noValidate>
-        <div className="admin-event-form__head">
-          <div>
-            <h3>{draft.id ? t('admin.eventEditor.editTitle') : t('admin.eventEditor.createTitle')}</h3>
-            <p className="admin-event-form__lead">{t('admin.eventEditor.lead')}</p>
-          </div>
-          <button
-            type="button"
-            className="admin-event-form__close"
-            onClick={onCancel}
-            aria-label={t('admin.eventEditor.close')}
-          >
-            <X size={16} />
-          </button>
-        </div>
+  return createPortal(
+    <div className="admin-event-editor-modal">
+      <button
+        type="button"
+        className="admin-event-editor-modal__backdrop"
+        aria-label={t('admin.eventEditor.close')}
+        onClick={onCancel}
+      />
+      <div
+        className="admin-event-editor-modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={dialogTitle}
+      >
+        <div className="admin-event-editor">
+          <form className="admin-event-form admin-event-form--editor" onSubmit={handleFormSubmit} noValidate>
+            <div className="admin-event-form__head">
+              <div>
+                <h3>{dialogTitle}</h3>
+                <p className="admin-event-form__lead">{t('admin.eventEditor.lead')}</p>
+              </div>
+              <button
+                type="button"
+                className="admin-event-form__close"
+                onClick={onCancel}
+                aria-label={t('admin.eventEditor.close')}
+              >
+                <X size={16} />
+              </button>
+            </div>
 
         <div className="admin-event-form__grid">
           <label className="admin-event-form__field admin-event-form__field--wide">
@@ -514,8 +546,11 @@ export default function AdminEventEditor({
         </div>
       </form>
 
-      <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />
-    </div>
+          <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 

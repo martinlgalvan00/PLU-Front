@@ -80,9 +80,10 @@ Componentes actuales:
 | Store de eventos | `payment_integration_events`, `embedded_payment_attempts` (Supabase) |
 | Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
 | Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
+| Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
 | Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` + `supabase/migrations/20260715000200_*` a `20260715000400_*` |
+| Contrato de DB | `prisma/schema.prisma` + `supabase/migrations/20260715000200_*` a `20260715000500_*` |
 
 El checkout crea la orden primero. El navegador tokeniza el medio de pago con
 MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia
@@ -92,3 +93,25 @@ firmado actúa como confirmación canónica y mecanismo de recuperación.
 Para cobros únicos se usa `Payment Brick`. Para planes mensuales o anuales
 recurrentes se usa `Card Payment Brick`, que entrega el token efímero requerido
 para autorizar una suscripción. PLU no almacena números de tarjeta ni tokens.
+
+## Recuperación y operación de pagos
+
+El webhook se guarda primero como inbox durable y después se reclama con lock.
+Si Mercado Pago, Supabase o la API fallan, el evento pasa a `failed` con backoff
+exponencial. `paymentRecoveryJob` recupera eventos vencidos y reconcilia contra
+el recurso canónico de Mercado Pago. `FOR UPDATE SKIP LOCKED` permite ejecutar
+varias instancias sin procesar dos veces el mismo trabajo.
+
+Los intentos del Brick distinguen pagos de suscripciones. Sólo los pagos se
+reconcilian con `/v1/payments/{id}`; las suscripciones se recuperan mediante sus
+eventos `subscription_preapproval` y `subscription_authorized_payment`.
+
+El panel Finanzas consume endpoints protegidos por rol para mostrar fallas,
+reintentos, conciliaciones pendientes y suscripciones en mora. Un operador
+autorizado puede ejecutar una recuperación general o reintentar un evento
+puntual sin modificar directamente estados de negocio.
+
+El estado de una orden se deriva del ledger completo de intentos y no del orden
+de llegada de los webhooks. Las RPC de aplicación bloquean la orden, validan
+monto, moneda y referencia, rechazan la reutilización cross-order del payment ID
+y aplican en la misma transacción el pago y el derecho asociado.

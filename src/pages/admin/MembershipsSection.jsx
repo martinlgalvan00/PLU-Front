@@ -86,17 +86,19 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
           {
             key: 'athlete',
             label: t('admin.columns.athlete'),
+            mobile: 'primary',
             render: (row) => <MembershipIdentity document={row.document} name={row.athlete} />,
           },
-          { key: 'memberCode', label: t('admin.columns.code') },
-          { key: 'year', label: t('admin.columns.year') },
+          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default' },
+          { key: 'year', label: t('admin.columns.year'), mobile: 'default' },
           {
             key: 'status',
             label: t('admin.columns.status'),
+            mobile: 'badge',
             render: (row) => <StatusBadge value={row.status} />,
           },
-          { key: 'startDate', label: t('admin.columns.start') },
-          { key: 'expirationDate', label: t('admin.columns.expiration') },
+          { key: 'startDate', label: t('admin.columns.start'), mobile: 'default' },
+          { key: 'expirationDate', label: t('admin.columns.expiration'), mobile: 'default' },
         ]}
         rows={rows}
         emptyMessage={t('admin.sections.memberships.empty')}

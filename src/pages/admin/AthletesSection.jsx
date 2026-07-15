@@ -72,14 +72,16 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
           {
             key: 'fullName',
             label: t('admin.columns.athlete'),
+            mobile: 'primary',
             render: (row) => <AthleteIdentity email={row.email} name={row.fullName} />,
           },
-          { key: 'documentId', label: t('admin.columns.document') },
-          { key: 'gym', label: t('admin.columns.gym') },
-          { key: 'division', label: t('admin.columns.division') },
+          { key: 'documentId', label: t('admin.columns.document'), mobile: 'default' },
+          { key: 'gym', label: t('admin.columns.gym'), mobile: 'default' },
+          { key: 'division', label: t('admin.columns.division'), mobile: 'default' },
           {
             key: 'status',
             label: t('admin.columns.status'),
+            mobile: 'badge',
             render: (row) => <StatusBadge value={row.status} />,
           },
         ]}

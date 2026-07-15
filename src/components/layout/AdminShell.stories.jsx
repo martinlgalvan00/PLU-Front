@@ -22,5 +22,9 @@ export default {
 export const Default = {}
 
 export const RestrictedPartner = {
-  args: { restrictedNav: true, roleLabel: 'Partner PLU USA' },
+  args: { restrictedNav: 'pluUsa', roleLabel: 'Partner PLU USA' },
+}
+
+export const RestrictedSecurity = {
+  args: { restrictedNav: 'checkin', roleLabel: 'Seguridad', activeSection: 'checkin' },
 }

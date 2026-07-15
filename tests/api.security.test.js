@@ -112,4 +112,16 @@ describe('api security baseline', () => {
 
     await target.close()
   })
+
+  it('protege la consola operativa de Mercado Pago con sesion y rol', async () => {
+    const target = listen(createApp({ paymentRepository: {} }))
+
+    const response = await fetch(`${target.url}/api/payments/operations`)
+    const body = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(body).toEqual({ error: 'No autenticado.' })
+
+    await target.close()
+  })
 })

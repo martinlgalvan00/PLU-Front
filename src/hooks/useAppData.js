@@ -12,8 +12,10 @@ import {
   fetchAdminAthleteData,
   fetchAthleteSnapshot,
   registerAthlete as registerAthleteRequest,
+  registerAthletePhoto as registerAthletePhotoRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
 } from '../services/athleteApi.js'
+import { uploadAthletePhoto } from '../services/athletePhotoService.js'
 import {
   demoAthletes,
   demoMemberships,
@@ -148,6 +150,12 @@ export function useAppData() {
 
   useEffect(() => {
     refreshAthleteData()
+  }, [refreshAthleteData])
+
+  useEffect(() => {
+    const refreshAfterPayment = () => { void refreshAthleteData() }
+    window.addEventListener('plu:payment-updated', refreshAfterPayment)
+    return () => window.removeEventListener('plu:payment-updated', refreshAfterPayment)
   }, [refreshAthleteData])
 
   useEffect(() => {
@@ -834,6 +842,29 @@ export function useAppData() {
     }
   }, [])
 
+  const updateAthletePhotoAction = useCallback(async (athleteId, file) => {
+    try {
+      const { storagePath } = await uploadAthletePhoto(athleteId, file)
+      const { athlete } = await registerAthletePhotoRequest(athleteId, storagePath)
+      setAthletes((current) => current.map((item) => (item.id === athleteId ? athlete : item)))
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      throw error
+    }
+  }, [])
+
+  const removeAthletePhotoAction = useCallback(async (athleteId) => {
+    try {
+      const { athlete } = await registerAthletePhotoRequest(athleteId, null)
+      setAthletes((current) => current.map((item) => (item.id === athleteId ? athlete : item)))
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      throw error
+    }
+  }, [])
+
   const exportAdminCsv = useCallback(() => {
     const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
     createCsv('plu-arg-admin-export.csv', rows)
@@ -896,6 +927,8 @@ export function useAppData() {
     getAthleteDetail,
     updateForm,
     updateAthleteProfileAction,
+    updateAthletePhotoAction,
+    removeAthletePhotoAction,
     registerAthlete,
     submitMembership,
     startMembershipPayment,

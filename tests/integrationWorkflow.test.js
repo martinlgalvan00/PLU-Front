@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { createHmac } from 'node:crypto'
+import { describe, expect, it, vi } from 'vitest'
 import { createMemoryIntegrationEventStore } from '../server/modules/integrations/integrationEventStore.js'
-import { createPaymentPreference, mapMercadoPagoStatus } from '../server/modules/payments/paymentWorkflow.js'
+import {
+  createPaymentPreference,
+  mapMercadoPagoStatus,
+  processPaymentWebhook,
+} from '../server/modules/payments/paymentWorkflow.js'
 import { queueTransactionalEmail } from '../server/modules/notifications/notificationWorkflow.js'
 
 describe('integration workflows', () => {
@@ -41,8 +46,52 @@ describe('integration workflows', () => {
   it('mapea estados externos sin permitir aprobaciones ambiguas', () => {
     expect(mapMercadoPagoStatus('approved')).toBe('aprobado')
     expect(mapMercadoPagoStatus('rejected')).toBe('rechazado')
+    expect(mapMercadoPagoStatus('cancelled')).toBe('cancelado')
+    expect(mapMercadoPagoStatus('refunded')).toBe('reembolsado')
     expect(mapMercadoPagoStatus('charged_back')).toBe('reembolsado')
     expect(mapMercadoPagoStatus('in_process')).toBe('pendiente')
+    expect(mapMercadoPagoStatus('pending')).toBe('pendiente')
+    expect(mapMercadoPagoStatus('unknown_provider_status')).toBe('pendiente')
+  })
+
+  it('confirma el webhook apenas queda en la bandeja durable cuando el worker esta activo', async () => {
+    const secret = 'webhook-secret-for-tests'
+    const requestId = 'request-deferred-1'
+    const dataId = 'payment-deferred-1'
+    const ts = Date.now()
+    const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`
+    const hash = createHmac('sha256', secret).update(manifest).digest('hex')
+    const event = { id: 'event-1', status: 'received' }
+    const repository = {
+      recordWebhook: vi.fn(async () => ({ event, created: true })),
+      claimWebhookEvent: vi.fn(),
+    }
+    const mercadoPago = { getPayment: vi.fn() }
+
+    const result = await processPaymentWebhook({
+      body: {
+        id: 'notification-1',
+        type: 'payment',
+        action: 'payment.updated',
+        date_created: '2026-07-15T12:00:00Z',
+        data: { id: dataId },
+      },
+      query: { type: 'payment', 'data.id': dataId },
+      headers: {
+        'x-request-id': requestId,
+        'x-signature': `ts=${ts},v1=${hash}`,
+      },
+    }, {
+      repository,
+      mercadoPago,
+      webhookSecret: secret,
+      deferProcessing: true,
+    })
+
+    expect(result).toMatchObject({ accepted: true, deferred: true, duplicate: false })
+    expect(repository.recordWebhook).toHaveBeenCalledOnce()
+    expect(repository.claimWebhookEvent).not.toHaveBeenCalled()
+    expect(mercadoPago.getPayment).not.toHaveBeenCalled()
   })
 
   it('encola emails transaccionales sin duplicarlos ante retries', async () => {

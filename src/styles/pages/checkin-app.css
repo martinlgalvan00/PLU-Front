@@ -1,0 +1,208 @@
+/* =============================================
+   CHECK-IN APP — rol seguridad (full-screen)
+   ============================================= */
+
+.checkin-app {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.checkin-app__top {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+}
+
+.checkin-app__brand {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.checkin-app__brand-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.checkin-app__brand-copy strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.checkin-app__brand-copy span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkin-app__top-actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.checkin-app__exit {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.checkin-app__exit:hover {
+  color: var(--color-text-primary);
+}
+
+.checkin-app__tabs {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  padding: 10px 12px 0;
+}
+
+.checkin-app__tab {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.checkin-app__tab.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 35%, transparent);
+  color: var(--color-text-primary);
+}
+
+.checkin-app__tab-count {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius-pill);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 7px;
+}
+
+.checkin-app__main {
+  display: grid;
+  flex: 1;
+  gap: 12px;
+  padding: 12px;
+}
+
+.checkin-app__scan,
+.checkin-app__list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.checkin-app__scan .admin-checkin-scanner {
+  margin: 0;
+}
+
+.checkin-app__collapse {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.checkin-app__collapse > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  padding: 12px 14px;
+}
+
+.checkin-app__collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+.checkin-app__list-stats {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 8px 14px;
+}
+
+.checkin-app__search input {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 42px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.checkin-app__list .data-table {
+  display: none;
+}
+
+.checkin-app__list .data-table-cards--admin {
+  padding: 0;
+}
+
+@media (max-width: 480px) {
+  .checkin-app__exit span {
+    display: none;
+  }
+
+  .checkin-app__brand-copy span {
+    max-width: 140px;
+  }
+}
+
+@media (min-width: 900px) {
+  .checkin-app__main {
+    margin: 0 auto;
+    max-width: 720px;
+    padding: 16px 20px 28px;
+    width: 100%;
+  }
+
+  .checkin-app__top {
+    padding: 12px 20px;
+  }
+}
+
+[data-theme='light'] .checkin-app__exit,
+[data-theme='light'] .checkin-app__tab {
+  background: rgba(15, 17, 23, 0.03);
+}

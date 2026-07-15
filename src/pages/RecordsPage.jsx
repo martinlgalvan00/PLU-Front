@@ -5,6 +5,7 @@ import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 const EMPTY_COLUMNS = ['category', 'division', 'lift', 'mark', 'athlete', 'meet']
+const LIFT_KEYS = ['squat', 'bench', 'deadlift', 'total']
 
 export default function RecordsPage({ onNavigate }) {
   const { t } = useI18n()
@@ -31,6 +32,14 @@ export default function RecordsPage({ onNavigate }) {
             <p className="records-sheet__stamp">{t('pages.records.sheetStamp')}</p>
           </header>
 
+          <ul className="records-sheet__lifts" aria-label={t('pages.records.liftsAria')}>
+            {LIFT_KEYS.map((lift) => (
+              <li key={lift} className="records-sheet__lift">
+                {t(`pages.records.lifts.${lift}`)}
+              </li>
+            ))}
+          </ul>
+
           <div className="records-sheet__table-wrap" role="presentation">
             <table className="records-sheet__table">
               <thead>
@@ -53,6 +62,26 @@ export default function RecordsPage({ onNavigate }) {
               </tbody>
             </table>
           </div>
+
+          <ul className="records-sheet__cards" aria-label={t('pages.records.cardsAria')}>
+            {LIFT_KEYS.map((lift) => (
+              <li key={lift} className="records-sheet__card">
+                <div className="records-sheet__card-top">
+                  <span className="records-sheet__card-lift">{t(`pages.records.lifts.${lift}`)}</span>
+                  <span className="records-sheet__card-mark" aria-hidden>
+                    —
+                  </span>
+                </div>
+                <div className="records-sheet__card-meta">
+                  <span>{t('pages.records.sheetColumns.category')}</span>
+                  <span aria-hidden>·</span>
+                  <span>{t('pages.records.sheetColumns.division')}</span>
+                  <span aria-hidden>·</span>
+                  <span>{t('pages.records.sheetColumns.athlete')}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
 
           <div className="records-sheet__foot">
             <div className="records-sheet__copy">

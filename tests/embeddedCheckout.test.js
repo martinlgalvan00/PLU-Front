@@ -132,6 +132,9 @@ describe('Mercado Pago Checkout Bricks', () => {
     expect(result.subscription.status).toBe('authorized')
     expect(providerInput.cardToken).toBe('temporary-card-token')
     expect(providerInput.idempotencyKey).toBe('subscription-server-key')
+    expect(repository.claimEmbeddedAttempt).toHaveBeenCalledWith(expect.objectContaining({
+      operationKind: 'subscription',
+    }))
     expect(repository.completeEmbeddedAttempt).toHaveBeenCalledWith('attempt-2', expect.objectContaining({
       externalPaymentId: 'preapproval-1',
       status: 'submitted',

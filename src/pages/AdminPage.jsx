@@ -9,7 +9,7 @@ import MembershipsSection from './admin/MembershipsSection.jsx'
 import PlaceholderSection from './admin/PlaceholderSection.jsx'
 import PluUsaSection from './admin/PluUsaSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
-import TicketOrdersSection from './admin/TicketOrdersSection.jsx'
+import PaymentsOperationsSection from './admin/PaymentsOperationsSection.jsx'
 import UsersSection from './admin/UsersSection.jsx'
 
 export default function AdminPage({
@@ -48,9 +48,10 @@ export default function AdminPage({
   users,
   roleLabel,
   isPluUsaPartner = false,
+  isCheckinOnly = false,
   onExit,
 }) {
-  const [section, setSection] = useState(isPluUsaPartner ? 'plu-usa' : 'dashboard')
+  const [section, setSection] = useState(isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard')
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
 
@@ -161,7 +162,7 @@ export default function AdminPage({
 
     if (section === 'payments') {
       return (
-        <TicketOrdersSection
+        <PaymentsOperationsSection
           canEdit={canEdit}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={pendingTicketOrdersLoading}
@@ -197,7 +198,7 @@ export default function AdminPage({
       onExit={onExit}
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
-      restrictedNav={isPluUsaPartner}
+      restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
     >
       <div className="admin-page admin-section-enter" key={`${section}-${selectedAthleteId ?? 'list'}`}>
         {renderSection()}

@@ -51,6 +51,36 @@
   text-transform: uppercase;
 }
 
+.records-sheet__lifts {
+  display: none;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 0 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-sheet__lifts::-webkit-scrollbar {
+  display: none;
+}
+
+.records-sheet__lift {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
 .records-sheet__table-wrap {
   border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
@@ -88,6 +118,57 @@
 
 .records-sheet__table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.records-sheet__cards {
+  display: none;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.records-sheet__card {
+  background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.records-sheet__card-top {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.records-sheet__card-lift {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.records-sheet__card-mark {
+  color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.records-sheet__card-meta {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .records-sheet__foot {
@@ -151,10 +232,59 @@
   flex: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 719px) {
+  .records-page--plu-ref .records-page__body {
+    padding: 0 16px clamp(36px, 8vw, 56px);
+  }
+
+  .records-sheet {
+    gap: 14px;
+  }
+
   .records-sheet__head {
     align-items: start;
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .records-sheet__title {
+    font-size: 20px;
+  }
+
+  .records-sheet__subtitle {
+    font-size: 12.5px;
+  }
+
+  .records-sheet__stamp {
+    align-self: flex-start;
+    background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+    border-radius: 999px;
+    color: var(--color-brand-gold);
+    letter-spacing: 0.08em;
+    padding: 5px 10px;
+  }
+
+  .records-sheet__lifts {
+    display: flex;
+  }
+
+  .records-sheet__table-wrap {
+    display: none;
+  }
+
+  .records-sheet__cards {
+    display: grid;
+  }
+
+  .records-sheet__foot {
+    gap: 16px;
+    max-width: none;
+    padding-top: 16px;
+  }
+
+  .records-sheet__hint {
+    font-size: 13px;
   }
 
   .records-sheet__actions {
@@ -178,4 +308,13 @@
 
 [data-theme='light'] .records-sheet__foot {
   border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .records-sheet__lift,
+[data-theme='light'] .records-sheet__card {
+  background: rgba(15, 17, 23, 0.025);
+}
+
+[data-theme='light'] .records-sheet__stamp {
+  background: rgba(242, 183, 5, 0.1);
 }

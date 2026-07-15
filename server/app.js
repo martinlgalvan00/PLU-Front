@@ -35,6 +35,10 @@ export function createApp(deps = {}) {
       supabaseAdmin: deps.supabaseAdmin,
       repository: deps.paymentRepository,
       mercadoPago: deps.mercadoPago,
+      notificationRepository: deps.notificationRepository,
+      brevo: deps.brevo,
+      notifyPaymentApplied: deps.notifyPaymentApplied,
+      getPrisma: () => deps.prisma ?? getPrisma(),
       env: deps.env,
     }),
   )

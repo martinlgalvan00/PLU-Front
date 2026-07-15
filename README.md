@@ -9,7 +9,7 @@ Plataforma web de gestión para **Powerlifting United Argentina**, integrada con
 | Frontend | Vite 8 + React 19 + CSS modular con design tokens |
 | API | Express 5 (`server/`) |
 | Base de datos | PostgreSQL 16 + Prisma |
-| Pagos | Mercado Pago Checkout Bricks + Suscripciones |
+| Pagos | Mercado Pago Checkout Bricks + Suscripciones + conciliación automática |
 | Emails | Brevo API |
 | Auth | Sesiones HTTP-only + Auth0 OAuth (opcional) |
 | Tests | Vitest (16 suites) |

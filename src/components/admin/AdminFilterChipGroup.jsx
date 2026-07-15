@@ -1,3 +1,9 @@
+import { useCallback, useRef } from 'react'
+
+/**
+ * Fila de chips con scroll horizontal arrastrable (touch + mouse).
+ * Evita convertir filtros a <select> en mobile.
+ */
 export default function AdminFilterChipGroup({
   id,
   label,
@@ -9,6 +15,67 @@ export default function AdminFilterChipGroup({
   disabled = false,
 }) {
   const labelId = label ? `${id}-label` : undefined
+  const chipsRef = useRef(null)
+  const dragRef = useRef({
+    active: false,
+    moved: false,
+    startX: 0,
+    scrollLeft: 0,
+    pointerId: null,
+  })
+
+  const endDrag = useCallback((event) => {
+    const state = dragRef.current
+    const el = chipsRef.current
+    if (!state.active || !el) return
+
+    state.active = false
+    el.classList.remove('is-dragging')
+
+    if (state.pointerId != null && el.hasPointerCapture?.(state.pointerId)) {
+      el.releasePointerCapture(state.pointerId)
+    }
+
+    // Si hubo arrastre real, bloqueá el click del chip una sola vez.
+    if (state.moved) {
+      const blockClick = (clickEvent) => {
+        clickEvent.preventDefault()
+        clickEvent.stopPropagation()
+        el.removeEventListener('click', blockClick, true)
+      }
+      el.addEventListener('click', blockClick, true)
+    }
+
+    state.moved = false
+    state.pointerId = null
+    void event
+  }, [])
+
+  function handlePointerDown(event) {
+    if (event.button !== 0 && event.pointerType === 'mouse') return
+    const el = chipsRef.current
+    if (!el || el.scrollWidth <= el.clientWidth + 1) return
+
+    dragRef.current = {
+      active: true,
+      moved: false,
+      startX: event.clientX,
+      scrollLeft: el.scrollLeft,
+      pointerId: event.pointerId,
+    }
+    el.setPointerCapture?.(event.pointerId)
+    el.classList.add('is-dragging')
+  }
+
+  function handlePointerMove(event) {
+    const state = dragRef.current
+    const el = chipsRef.current
+    if (!state.active || !el) return
+
+    const delta = event.clientX - state.startX
+    if (Math.abs(delta) > 4) state.moved = true
+    el.scrollLeft = state.scrollLeft - delta
+  }
 
   return (
     <div
@@ -27,7 +94,14 @@ export default function AdminFilterChipGroup({
           {label}
         </span>
       )}
-      <div className="admin-filter-chips">
+      <div
+        ref={chipsRef}
+        className="admin-filter-chips"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
         {options.map((option) => {
           const [optionValue, optionLabel, optionCount] = option
           const active = value === optionValue

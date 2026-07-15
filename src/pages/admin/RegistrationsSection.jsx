@@ -281,67 +281,40 @@ export default function RegistrationsSection({
         columns={[
 
           {
-
             key: 'athlete',
-
             label: t('admin.columns.athlete'),
-
+            mobile: 'primary',
             render: (row) => <AdminIdentityCell name={row.athlete} sub={row.document} />,
-
           },
-
-          { key: 'event', label: t('admin.columns.event') },
-
-          { key: 'category', label: t('admin.columns.category') },
-
+          { key: 'event', label: t('admin.columns.event'), mobile: 'default', render: (row) => [row.event, row.category].filter(Boolean).join(' · ') },
+          { key: 'category', label: t('admin.columns.category'), mobile: 'hidden' },
           {
-
             key: 'status',
-
             label: t('admin.columns.status'),
-
+            mobile: 'badge',
             render: (row) => <StatusBadge value={row.status} />,
-
           },
-
           {
-
             key: 'payment',
-
             label: t('admin.columns.payment'),
-
+            mobile: 'badge',
             render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
-
           },
-
           {
-
             key: 'action',
-
             label: t('admin.columns.action'),
-
+            mobile: 'action',
             render: (row) => (
-
               <AdminTableActions>
-
                 <AdminIconButton
-
                   disabled={!canEdit || row.paymentStatus === 'aprobado'}
-
                   icon={BadgeCheck}
-
                   label={t('admin.actions.validate')}
-
                   onClick={() => onApprovePayment(row.paymentId)}
-
                   variant="celeste"
-
                 />
-
               </AdminTableActions>
-
             ),
-
           },
 
         ]}

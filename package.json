@@ -19,6 +19,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
+    "db:verify:payments": "node scripts/verify-payment-database.mjs",
     "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",
     "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1",
     "storybook": "storybook dev -p 6006",

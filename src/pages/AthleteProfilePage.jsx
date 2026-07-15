@@ -21,6 +21,8 @@ export default function AthleteProfilePage({
   demoMode = false,
   onNavigate,
   onUpdateProfile,
+  onUpdatePhoto,
+  onRemovePhoto,
   registrations,
   session,
 }) {
@@ -60,7 +62,14 @@ export default function AthleteProfilePage({
         demoMode={demoMode}
       />
     ),
-    'account-personal-data': <PersonalDataSection athlete={athlete} onUpdateProfile={onUpdateProfile} />,
+    'account-personal-data': (
+      <PersonalDataSection
+        athlete={athlete}
+        onUpdateProfile={onUpdateProfile}
+        onUpdatePhoto={onUpdatePhoto}
+        onRemovePhoto={onRemovePhoto}
+      />
+    ),
     'account-security': <SecuritySection session={session} />,
   }
 

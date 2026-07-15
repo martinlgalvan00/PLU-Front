@@ -73,6 +73,7 @@ export const ROLES = {
     canExportAdmin: false,
     canExportPluUsa: false,
     canCheckIn: true,
+    checkinOnly: true,
   },
 }
 

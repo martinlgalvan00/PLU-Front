@@ -51,3 +51,10 @@ export function canApprovePayments(role) {
 export function canCheckIn(role) {
   return permission(role, 'canCheckIn')
 }
+
+// Rol de solo escaneo (ej. seguridad en la puerta): entra al panel admin
+// pero no tiene ninguna otra tarea -- el nav completo (Atletas, Pagos,
+// Usuarios...) le queda al pedo y encima expone datos que no necesita ver.
+export function isCheckinOnly(role) {
+  return permission(role, 'checkinOnly')
+}

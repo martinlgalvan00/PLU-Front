@@ -36,6 +36,23 @@ export async function processEmbeddedSubscription({ paymentOrderId, planCode, ca
   return apiPost('/api/payments/subscriptions/process', { paymentOrderId, planCode, cardToken })
 }
 
+export async function getPaymentOperations(status) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  return apiGet(`/api/payments/operations${query}`)
+}
+
+export async function recoverPaymentOperations() {
+  return apiPost('/api/payments/operations/recover', {})
+}
+
+export async function retryPaymentEvent(eventId) {
+  return apiPost(`/api/payments/operations/events/${encodeURIComponent(eventId)}/retry`, {})
+}
+
+export async function retryPaymentReconciliation(attemptId) {
+  return apiPost(`/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`, {})
+}
+
 export async function validatePayment(paymentOrderId) {
   const result = await getPaymentOrderStatus(paymentOrderId)
   return result.order
