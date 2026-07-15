@@ -103,7 +103,7 @@ function DrawerItem({ active, children, className = '', featured = false, hint, 
   )
 }
 
-export default function NavbarPublic({ activeView, onLogout, onNavigate, session }) {
+export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session }) {
   const [open, setOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
   const eventosRef = useRef(null)
@@ -121,6 +121,9 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
   const eventosActive = NAV_EVENTOS_VIEWS.includes(activeView)
   const recursosActive = NAV_RECURSOS_VIEWS.includes(activeView)
+  const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
+  const latestEventView = latestEvent?.featured || latestEvent?.slug === 'pitbull-classic-2026' ? 'pitbull' : 'events'
+  const latestEventActive = activeView === latestEventView
 
   function go(view) {
     onNavigate(view)
@@ -184,7 +187,7 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
 
   const navHint = (key) => t(`nav.${key}Hint`)
 
-  const heroBlendViews = ['home', 'events', 'results', 'rulebook', 'pitbull', 'community', 'members']
+  const heroBlendViews = ['home', 'events', 'results', 'rulebook', 'pitbull', 'community', 'members', 'tickets']
   const isOverHero = heroBlendViews.includes(activeView) && !open
 
   return (
@@ -260,6 +263,14 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                 />
               ))}
             </NavDropdown>
+
+            <NavLink active={latestEventActive} className="site-header__link--event" onClick={() => go(latestEventView)}>
+              {latestEventTitle}
+            </NavLink>
+
+            <NavLink active={activeView === 'tickets'} className="site-header__link--tickets" onClick={() => go('tickets')}>
+              {t('nav.buyTickets')}
+            </NavLink>
 
             <span
               className={`site-header__nav-indicator ${indicator.visible ? 'is-visible' : ''}`}
@@ -449,6 +460,24 @@ export default function NavbarPublic({ activeView, onLogout, onNavigate, session
                   {t('nav.viewAllEvents')}
                   <ArrowRight size={14} aria-hidden />
                 </button>
+              </DrawerSection>
+
+              <DrawerSection accent="gold" label={t('nav.highlightedEvent')}>
+                <DrawerItem
+                  active={latestEventActive}
+                  featured
+                  hint={latestEvent?.date ? `${latestEvent.date} · ${latestEvent.venue}` : navHint('pitbull')}
+                  onClick={() => go(latestEventView)}
+                >
+                  {latestEventTitle}
+                </DrawerItem>
+                <DrawerItem
+                  active={activeView === 'tickets'}
+                  hint={t('nav.buyTicketsHint')}
+                  onClick={() => go('tickets')}
+                >
+                  {t('nav.buyTickets')}
+                </DrawerItem>
               </DrawerSection>
 
               <DrawerSection accent="celeste" label={t('nav.groupRecursos')}>

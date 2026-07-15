@@ -45,17 +45,26 @@ export function getInitialAdminEvents(storedEvents) {
   const seed = UPCOMING_EVENTS.map((event, index) => ({
     id: `evt-${index + 1}`,
     ...event,
+    createdAt: event.createdAt ?? `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+    createdOrder: index + 1,
     slots: event.featured ? 120 : DEFAULT_SLOTS,
     registered: event.featured ? 48 : Math.floor(DEFAULT_SLOTS * 0.35),
     pricing: { ...DEFAULT_EVENT_PRICING },
+    published: event.published ?? true,
   }))
 
   if (!storedEvents?.length) return seed
 
   const seedBySlug = Object.fromEntries(seed.map((event) => [event.slug, event]))
   const merged = storedEvents
-    .filter((event) => seedBySlug[event.slug])
-    .map((event) => ({ ...seedBySlug[event.slug], ...event }))
+    .map((event, index) => ({
+      ...(seedBySlug[event.slug] ?? {}),
+      ...event,
+      createdAt: event.createdAt ?? seedBySlug[event.slug]?.createdAt ?? `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+      createdOrder: event.createdOrder ?? seedBySlug[event.slug]?.createdOrder ?? Date.now() + index,
+      published: event.published ?? seedBySlug[event.slug]?.published ?? true,
+      pricing: normalizeEventPricingInput(event.pricing ?? seedBySlug[event.slug]?.pricing),
+    }))
 
   for (const event of seed) {
     if (!merged.some((item) => item.slug === event.slug)) {
@@ -96,6 +105,7 @@ export function buildEventAdminStats(events, registrations = []) {
 export function createAdminEvent(events, payload) {
   const dateISO = payload.dateISO
   const date = formatEventDate(dateISO)
+  const createdAt = new Date().toISOString()
   const event = {
     id: `evt-${Date.now()}`,
     title: payload.title.trim(),
@@ -106,9 +116,24 @@ export function createAdminEvent(events, payload) {
     slug: slugify(payload.title, dateISO),
     status: payload.status ?? 'proximamente',
     featured: Boolean(payload.featured),
+    createdAt,
+    createdOrder: Date.now(),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
     registered: 0,
     pricing: normalizeEventPricingInput(payload.pricing),
+    startsAt: payload.startsAt ?? '',
+    endsAt: payload.endsAt ?? '',
+    registrationOpensAt: payload.registrationOpensAt ?? '',
+    registrationClosesAt: payload.registrationClosesAt ?? '',
+    ticketSalesOpensAt: payload.ticketSalesOpensAt ?? '',
+    ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
+    capacityDay1: payload.capacityDay1 ?? '',
+    capacityDay2: payload.capacityDay2 ?? '',
+    capacityBoth: payload.capacityBoth ?? '',
+    liveStreamUrl: payload.liveStreamUrl ?? '',
+    liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
+    liveStatus: payload.liveStatus ?? 'offline',
+    published: Boolean(payload.published),
   }
 
   return {
@@ -144,6 +169,19 @@ export function updateAdminEvent(events, eventId, payload) {
       slots: Number(payload.slots) || event.slots,
       slug: slugify(payload.title ?? event.title, dateISO),
       pricing: normalizeEventPricingInput(payload.pricing ?? event.pricing),
+      startsAt: payload.startsAt ?? event.startsAt ?? '',
+      endsAt: payload.endsAt ?? event.endsAt ?? '',
+      registrationOpensAt: payload.registrationOpensAt ?? event.registrationOpensAt ?? '',
+      registrationClosesAt: payload.registrationClosesAt ?? event.registrationClosesAt ?? '',
+      ticketSalesOpensAt: payload.ticketSalesOpensAt ?? event.ticketSalesOpensAt ?? '',
+      ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
+      capacityDay1: payload.capacityDay1 ?? event.capacityDay1 ?? '',
+      capacityDay2: payload.capacityDay2 ?? event.capacityDay2 ?? '',
+      capacityBoth: payload.capacityBoth ?? event.capacityBoth ?? '',
+      liveStreamUrl: payload.liveStreamUrl ?? event.liveStreamUrl ?? '',
+      liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
+      liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
+      published: Boolean(payload.published),
     }
     return updated
   })

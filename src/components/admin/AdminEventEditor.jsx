@@ -174,10 +174,13 @@ export default function AdminEventEditor({
         aria-modal="true"
         aria-label={dialogTitle}
       >
-        <div className="admin-event-editor">
+        <div className={`admin-event-editor${draft.id ? ' admin-event-editor--editing' : ' admin-event-editor--creating'}`}>
           <form className="admin-event-form admin-event-form--editor" onSubmit={handleFormSubmit} noValidate>
             <div className="admin-event-form__head">
               <div>
+                <span className="admin-event-form__mode">
+                  {draft.id ? t('admin.eventEditor.editMode') : t('admin.eventEditor.createMode')}
+                </span>
                 <h3>{dialogTitle}</h3>
                 <p className="admin-event-form__lead">{t('admin.eventEditor.lead')}</p>
               </div>
@@ -523,7 +526,9 @@ export default function AdminEventEditor({
           <span className="admin-event-form__toggle-copy">
             <strong>
               <Eye size={13} aria-hidden />
-              {t('admin.eventEditor.supabase.publishedTitle')}
+              {draft.published
+                ? t('admin.eventEditor.supabase.publishedTitle')
+                : t('admin.eventEditor.supabase.unpublishedTitle')}
             </strong>
             <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
           </span>
@@ -538,7 +543,7 @@ export default function AdminEventEditor({
         <div className="admin-event-form__actions">
           <Button type="submit" disabled={!canEdit || syncing}>
             <Save size={15} aria-hidden />
-            {draft.id ? t('admin.eventEditor.saveChanges') : t('admin.eventEditor.publish')}
+            {draft.id ? t('admin.eventEditor.saveChanges') : t('admin.eventEditor.createEvent')}
           </Button>
           <Button type="button" variant="outline" onClick={onCancel}>
             {t('common.cancel')}
