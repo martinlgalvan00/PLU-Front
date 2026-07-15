@@ -5,6 +5,7 @@ import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
 import { verifyPassword } from '../services/passwordService.js'
+import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
 import {
   createSession,
   getClearSessionCookieOptions,
@@ -53,9 +54,12 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
         data: { lastLoginAt: new Date() },
       })
 
+      const serialized = serializeUser(user)
+      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
-        .json({ user: serializeUser(user) })
+        .json({ user: serialized, supabaseAuth })
     } catch (error) {
       next(error)
     }
@@ -87,9 +91,12 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
         data: { lastLoginAt: new Date() },
       })
 
+      const serialized = serializeOAuthUser(user)
+      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
-        .json({ user: serializeOAuthUser(user) })
+        .json({ user: serialized, supabaseAuth })
     } catch (error) {
       next(error)
     }

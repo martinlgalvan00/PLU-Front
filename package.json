@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.20.0",
+    "@mercadopago/sdk-react": "^1.0.7",
     "@supabase/supabase-js": "^2.45.4",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -37,7 +38,9 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
     "html2canvas": "^1.4.1",
+    "idb-keyval": "^6.3.0",
     "lucide-react": "^1.22.0",
+    "mercadopago": "^3.2.0",
     "motion": "^12.42.2",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",

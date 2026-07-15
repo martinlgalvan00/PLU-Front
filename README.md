@@ -9,8 +9,8 @@ Plataforma web de gestión para **Powerlifting United Argentina**, integrada con
 | Frontend | Vite 8 + React 19 + CSS modular con design tokens |
 | API | Express 5 (`server/`) |
 | Base de datos | PostgreSQL 16 + Prisma |
-| Pagos | Mercado Pago Checkout Pro (adaptador + mock) |
-| Emails | Brevo API (adaptador + mock) |
+| Pagos | Mercado Pago Checkout Bricks + Suscripciones |
+| Emails | Brevo API |
 | Auth | Sesiones HTTP-only + Auth0 OAuth (opcional) |
 | Tests | Vitest (16 suites) |
 | Catálogo UI | Storybook 10 (68 stories) |
@@ -41,7 +41,7 @@ El proyecto está en **MVP avanzado**: la UI y la lógica de negocio están desa
 | Atletas, afiliaciones, inscripciones | `localStorage` + servicios frontend | PostgreSQL vía API |
 | Entradas (Pitbull) | API real + Postgres | Producción con MP webhook |
 | Auth atletas/admins | API con sesión + demo local | Solo API/OAuth |
-| Pagos afiliación/inscripción | Mock + aprobación manual UI | MP Checkout Pro + webhook |
+| Pagos afiliación/inscripción | Checkout Bricks embebido + webhook idempotente | Pruebas sandbox y credenciales productivas |
 | Resultados | Archivo mock + filtros UI | Import LiftingCast |
 | Records | Página placeholder | Tabla de récords oficiales |
 | Admin: resultados/exports/audit | Placeholder | Secciones completas |

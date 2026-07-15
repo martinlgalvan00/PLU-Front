@@ -1,49 +1,23 @@
 import { ApiError, apiGet, apiPost } from '../lib/api.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { callRpc } from '../lib/rpcErrors.js'
 
 /**
  * ticketApi.js — PLU ARG
  *
- * A diferencia del resto del dominio (atletas/membresías/inscripciones,
- * que siguen viviendo en localStorage), las entradas generales hablan con
- * Supabase — es la parte del sistema que necesita la garantía dura de "no
- * se puede duplicar/reusar", y esa garantía viene de las funciones RPC
- * `SECURITY DEFINER` en supabase/migrations/20260706030200_phase1_rpc_functions.sql
- * (mismo mecanismo que antes vivía en server/modules/ticketing/*Workflow.js).
+ * Las entradas generales hablan con Supabase — es la parte del sistema que
+ * necesita la garantía dura de "no se puede duplicar/reusar", y esa
+ * garantía viene de las funciones RPC `SECURITY DEFINER` en
+ * supabase/migrations/20260706030200_phase1_rpc_functions.sql (mismo
+ * mecanismo que antes vivía en server/modules/ticketing/*Workflow.js).
  *
  * Supabase devuelve columnas snake_case; esta capa las normaliza a las
  * mismas claves camelCase que ya devolvía la API de Express/Prisma, para
  * no tocar los callers (mapApiTicket, useAppData.js, CredentialPage.jsx).
- * Los códigos de error personalizados (PLU01..PLU06) se mapean acá al
- * mismo `ApiError` que usaba esa API vieja, por la misma razón.
+ * Los códigos de error personalizados se mapean en lib/rpcErrors.js
+ * (compartido con athleteApi.js) al mismo `ApiError` que usaba esa API
+ * vieja, por la misma razón.
  */
-
-const ERROR_STATUS_BY_CODE = {
-  PLU02: 404, // no encontrado (evento/orden/entrada/inscripción)
-  PLU06: 409, // ya usado (check-in duplicado)
-  PLU05: 409, // no pagada / cancelada
-}
-
-function throwAsApiError(error) {
-  const status = ERROR_STATUS_BY_CODE[error.code] ?? 400
-  throw new ApiError(error.message, {
-    status,
-    body: { alreadyUsed: error.code === 'PLU06', detail: error.details ?? undefined },
-  })
-}
-
-async function callRpc(fn, args) {
-  if (!isSupabaseConfigured || !supabase) {
-    throw new ApiError(
-      'Supabase no está configurado. Agregá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu .env.',
-      { status: 503 },
-    )
-  }
-
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throwAsApiError(error)
-  return data
-}
 
 function toCamelEvent(row) {
   if (!row) return row
@@ -109,19 +83,6 @@ function toCamelOrder(row) {
     paymentProofPath: row.payment_proof_path,
     paymentProofUploadedAt: row.payment_proof_uploaded_at,
     createdAt: row.created_at,
-  }
-}
-
-function toCamelRegistration(row) {
-  if (!row) return row
-  return {
-    id: row.id,
-    athleteId: row.athlete_id,
-    eventId: row.event_id,
-    division: row.division,
-    category: row.category,
-    bodyweightKg: row.bodyweight_kg,
-    status: row.status,
   }
 }
 
@@ -275,17 +236,6 @@ export async function redeemTicketAddon(qrToken, addonId) {
       }
     }
     throw error
-  }
-}
-
-export async function checkInRegistration(registrationId, gate) {
-  const result = await callRpc('check_in_registration', {
-    p_registration_id: registrationId,
-    p_gate: gate,
-  })
-  return {
-    registration: toCamelRegistration(result.registration),
-    checkIn: toCamelCheckIn(result.checkIn),
   }
 }
 

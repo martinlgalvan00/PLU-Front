@@ -10,6 +10,7 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
   const [modalOpen, setModalOpen] = useState(false)
   const [qrSrc, setQrSrc] = useState(null)
   const memberCode = membership?.memberCode
+  const qrToken = membership?.qrToken
   const hasActiveCredential = membership?.status === 'activa' && Boolean(memberCode)
   const validUntil = membership?.expirationDate
     ? formatShortDate(membership.expirationDate, locale)
@@ -21,16 +22,17 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
       return undefined
     }
     let cancelled = false
-    generateCredentialQr(buildCredentialUrl({ code: memberCode }))
+    generateCredentialQr(buildCredentialUrl({ code: qrToken ?? memberCode }))
       .then((dataUrl) => { if (!cancelled) setQrSrc(dataUrl) })
       .catch(() => { if (!cancelled) setQrSrc(null) })
     return () => { cancelled = true }
-  }, [hasActiveCredential, memberCode])
+  }, [hasActiveCredential, memberCode, qrToken])
 
   const cardData = hasActiveCredential
     ? {
         athleteName: athlete.fullName,
         athleteCode: memberCode,
+        qrCode: qrToken,
         membershipExpiration: validUntil,
         variant: 'membership',
         eventSlug: 'afiliacion',

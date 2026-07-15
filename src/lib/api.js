@@ -27,15 +27,27 @@ export async function apiRequest(path, options = {}) {
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...mutationHeaders,
-      ...(headers ?? {}),
-    },
-    ...requestOptions,
-  })
+
+  let response
+  try {
+    response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...mutationHeaders,
+        ...(headers ?? {}),
+      },
+      ...requestOptions,
+    })
+  } catch (error) {
+    throw new ApiError(
+      `No se pudo conectar con la API (${env.apiUrl}). Corré "npm run dev:api" o "npm run dev:all".`,
+      {
+        status: 0,
+        body: { cause: error instanceof Error ? error.message : String(error) },
+      },
+    )
+  }
 
   const body = await parseResponse(response)
 

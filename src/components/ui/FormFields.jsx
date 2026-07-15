@@ -1,9 +1,13 @@
+import { ChevronDown } from 'lucide-react'
+
 export function Field({ className = '', error, hideLabel = false, label, ...props }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', className, hideLabel ? 'field--headless' : ''].filter(Boolean).join(' ')
+  const fieldClass = ['field', className, hideLabel ? 'field--headless' : '', error ? 'is-invalid' : '']
+    .filter(Boolean)
+    .join(' ')
   return (
     <label className={fieldClass}>
-      {!hideLabel ? label : null}
+      {!hideLabel ? <span className="field__label">{label}</span> : null}
       <input
         {...props}
         aria-label={hideLabel ? label : undefined}
@@ -11,7 +15,7 @@ export function Field({ className = '', error, hideLabel = false, label, ...prop
         aria-invalid={Boolean(error)}
       />
       {error ? (
-        <span className="field__error" id={errorId} title={error}>
+        <span className="field__error" id={errorId} role="alert" title={error}>
           {error}
         </span>
       ) : null}
@@ -33,7 +37,13 @@ export function DateField({
   ...props
 }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', 'field--date', className, hideLabel ? 'field--headless' : '']
+  const fieldClass = [
+    'field',
+    'field--date',
+    className,
+    hideLabel ? 'field--headless' : '',
+    error ? 'is-invalid' : '',
+  ]
     .filter(Boolean)
     .join(' ')
   const resolvedMax = max ?? new Date().toISOString().slice(0, 10)
@@ -41,7 +51,7 @@ export function DateField({
 
   return (
     <label className={fieldClass}>
-      {!hideLabel ? label : null}
+      {!hideLabel ? <span className="field__label">{label}</span> : null}
       <span className={`field__date${empty ? ' is-empty' : ''}`.trim()}>
         <input
           {...props}
@@ -54,7 +64,7 @@ export function DateField({
         />
       </span>
       {error ? (
-        <span className="field__error" id={errorId} title={error}>
+        <span className="field__error" id={errorId} role="alert" title={error}>
           {error}
         </span>
       ) : null}
@@ -64,12 +74,14 @@ export function DateField({
 
 export function Select({ className = '', error, label, options, ...props }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', 'field--select', className].filter(Boolean).join(' ')
+  const fieldClass = ['field', 'field--select', className, error ? 'is-invalid' : '']
+    .filter(Boolean)
+    .join(' ')
   const emptySelected = props.value === '' || props.value == null
 
   return (
     <label className={fieldClass}>
-      {label}
+      <span className="field__label">{label}</span>
       <span className={`field__select${emptySelected ? ' is-empty' : ''}`.trim()}>
         <select
           {...props}
@@ -86,13 +98,63 @@ export function Select({ className = '', error, label, options, ...props }) {
             )
           })}
         </select>
-        <span className="field__select-chevron" aria-hidden />
+        <ChevronDown className="field__select-chevron" size={16} strokeWidth={1.75} aria-hidden />
       </span>
       {error ? (
-        <span className="field__error" id={errorId} title={error}>
+        <span className="field__error" id={errorId} role="alert" title={error}>
           {error}
         </span>
       ) : null}
     </label>
+  )
+}
+
+/** Opciones binarias / pocas (radios) — p. ej. sexo competitivo. */
+export function ChoiceField({
+  className = '',
+  error,
+  label,
+  name,
+  onBlur,
+  onChange,
+  options = [],
+  value,
+}) {
+  const errorId = `${name}-error`
+  const fieldClass = ['field', 'field--choice', className, error ? 'is-invalid' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <fieldset className={fieldClass} aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)}>
+      <legend className="field__label">{label}</legend>
+      <div className="field__choices" role="radiogroup" aria-label={label}>
+        {options.map((option) => {
+          const optionValue = Array.isArray(option) ? option[0] : option
+          const text = Array.isArray(option) ? option[1] : option
+          if (optionValue === '') return null
+          const active = value === optionValue
+
+          return (
+            <label key={optionValue} className={`field__choice${active ? ' is-active' : ''}`.trim()}>
+              <input
+                checked={active}
+                name={name}
+                type="radio"
+                value={optionValue}
+                onBlur={onBlur}
+                onChange={onChange}
+              />
+              <span className="field__choice-text">{text}</span>
+            </label>
+          )
+        })}
+      </div>
+      {error ? (
+        <span className="field__error" id={errorId} role="alert" title={error}>
+          {error}
+        </span>
+      ) : null}
+    </fieldset>
   )
 }

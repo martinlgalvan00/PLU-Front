@@ -1,13 +1,13 @@
 /* =============================================
-   BUTTON BASE
+   BUTTON BASE — primario oro PLU + outline neutro
    ============================================= */
 
 .btn {
   align-items: center;
   background: var(--color-brand-action);
+  border: 1px solid transparent;
+  border-radius: 2px;
   color: var(--color-brand-action-text);
-  border: none;
-  border-radius: var(--border-radius-md);
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
@@ -15,7 +15,7 @@
   font-weight: 600;
   gap: var(--space-sm);
   justify-content: center;
-  letter-spacing: normal;
+  letter-spacing: -0.01em;
   min-height: 44px;
   overflow: hidden;
   padding: 0 20px;
@@ -23,7 +23,9 @@
   text-transform: none;
   transition:
     background var(--transition-fast),
+    border-color var(--transition-fast),
     box-shadow var(--transition-fast),
+    color var(--transition-fast),
     transform var(--transition-fast),
     opacity var(--transition-fast);
 }
@@ -45,6 +47,7 @@
 
 .btn--secondary {
   background: var(--color-bg-muted);
+  color: var(--color-text-primary);
 }
 
 .btn--secondary:hover:not(:disabled) {
@@ -52,6 +55,7 @@
   box-shadow: var(--elevation-sm);
 }
 
+/* Celeste solo para usos explícitos (admin); no es el primario */
 .btn--celeste {
   background: var(--color-brand-celeste);
   color: #0a1628;
@@ -70,12 +74,13 @@
 
 .btn--outline:hover:not(:disabled) {
   background: var(--color-bg-muted);
-  border-color: var(--color-brand-action);
-  box-shadow: var(--elevation-sm);
+  border-color: color-mix(in oklab, var(--color-brand-action) 55%, var(--color-border-light));
+  box-shadow: none;
 }
 
 .btn--ghost {
   background: transparent;
+  border-color: transparent;
   box-shadow: none;
   color: var(--color-text-secondary);
 }
@@ -86,14 +91,15 @@
   color: var(--color-text-primary);
 }
 
-/* Gold — con brillo dorado en hover */
+/* Gold = alias del primario (compat) */
 .btn--gold {
-  background: var(--color-brand-gold);
-  color: #1a1408;
+  background: var(--color-brand-action);
+  border-color: transparent;
+  color: var(--color-brand-action-text);
 }
 
 .btn--gold:hover:not(:disabled) {
-  background: var(--color-brand-gold-light);
+  background: var(--color-brand-action-hover);
   box-shadow: var(--elevation-sm);
 }
 
@@ -116,7 +122,7 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
+  border-radius: 2px;
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -147,7 +153,7 @@
   align-items: center;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
+  border-radius: 2px;
   color: var(--color-text-primary);
   display: inline-flex;
   font-size: 13px;
@@ -169,13 +175,13 @@
 }
 
 .export-btn--gold {
-  background: var(--color-brand-gold);
+  background: var(--color-brand-action);
   border-color: transparent;
-  color: #1a1408;
+  color: var(--color-brand-action-text);
 }
 
 .export-btn--gold:hover:not(:disabled) {
-  background: var(--color-brand-gold-light);
+  background: var(--color-brand-action-hover);
   box-shadow: var(--glow-gold-soft);
 }
 
@@ -193,9 +199,9 @@
 .btn:focus-visible,
 .login-btn:focus-visible,
 .export-btn:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-gold);
   outline-offset: 3px;
-  box-shadow: 0 0 0 4px rgba(116, 172, 223, 0.2);
+  box-shadow: 0 0 0 4px var(--plu-gold-alpha-22);
 }
 
 /* =============================================

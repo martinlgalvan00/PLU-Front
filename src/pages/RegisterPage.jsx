@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, ImageDown } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronRight, ImageDown } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
-import { DateField, Field, Select } from '../components/ui/FormFields.jsx'
+import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
+import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
@@ -13,6 +14,7 @@ import { getStatusMeta } from '../lib/status.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
+  validateCompetitionFields,
   validateCompetitionForm,
   validateMembershipForm,
 } from '../lib/validation.js'
@@ -184,7 +186,6 @@ export default function RegisterPage({
   flow,
   form,
   memberships = [],
-  onApprovePayment,
   onNavigate,
   onSubmit,
   onUpdateForm,
@@ -195,10 +196,10 @@ export default function RegisterPage({
   const profileSteps = useMemo(() => getProfileSteps(t), [t])
 
   const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
-  const [paymentApprovedModal, setPaymentApprovedModal] = useState(null)
   const [profileStepIndex, setProfileStepIndex] = useState(0)
   const [wizardDirection, setWizardDirection] = useState(1)
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
@@ -212,6 +213,7 @@ export default function RegisterPage({
   useEffect(() => {
     setProfileStepIndex(0)
     setErrors({})
+    setTouched({})
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setSubmitError('')
@@ -236,18 +238,24 @@ export default function RegisterPage({
   const memberCode = activeMembership?.memberCode
   const hasActiveMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
   const competitionBlocked = flow === 'competition' && !hasActiveMembership
-  const visibleErrors =
-    flow === 'profile'
-      ? profileErrorStepIndex === profileStepIndex && (profileStepIndex === 0 || profileSubmitAttempted)
-        ? errors
-        : {}
-      : errors
+  const stepErrorsVisible =
+    flow === 'profile' &&
+    profileErrorStepIndex === profileStepIndex &&
+    (profileStepIndex === 0 || profileSubmitAttempted)
+
+  const visibleErrors = useMemo(() => {
+    if (flow !== 'profile') return errors
+    return Object.fromEntries(
+      Object.entries(errors).filter(([field, message]) => Boolean(message) && (touched[field] || stepErrorsVisible)),
+    )
+  }, [errors, flow, stepErrorsVisible, touched])
 
   const cardData =
     visibleOrder && flow === 'competition'
       ? {
           athleteName: visibleOrder.athleteName,
           athleteCode: memberCode,
+          qrCode: activeMembership?.qrToken,
           eventTitle: event?.title,
           eventDate: event?.date,
           eventVenue: event?.venue,
@@ -261,6 +269,7 @@ export default function RegisterPage({
         ? {
             athleteName: visibleOrder.athleteName,
             athleteCode: memberCode,
+            qrCode: activeMembership?.qrToken,
             membershipExpiration: formatShortDate(activeMembership?.expirationDate, locale),
             variant: 'membership',
             eventSlug: 'afiliacion',
@@ -272,6 +281,37 @@ export default function RegisterPage({
     onUpdateForm(event)
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
+  }
+
+  function blurField(event) {
+    const field = event.target.name
+    if (!field) return
+
+    // Radios: el value del option enfocado no implica selección; usamos el estado del form.
+    const rawValue = event.target.type === 'radio' ? (form[field] ?? '') : event.target.value
+    const value = String(rawValue ?? '').trim()
+    setTouched((current) => ({ ...current, [field]: true }))
+
+    // Vacío: no avisar formato hasta Continuar/enviar; limpia error previo.
+    if (!value) {
+      setErrors((current) => (current[field] ? { ...current, [field]: '' } : current))
+      return
+    }
+
+    const snapshot = { ...form, [field]: rawValue }
+    const validation =
+      flow === 'competition'
+        ? validateCompetitionFields(snapshot, [field], t)
+        : flow === 'profile'
+          ? validateAthleteFields(snapshot, [field], t)
+          : null
+
+    if (!validation) return
+
+    setErrors((current) => ({
+      ...current,
+      [field]: validation.errors[field] ?? '',
+    }))
   }
 
   function focusFirstError(stepErrors) {
@@ -286,6 +326,7 @@ export default function RegisterPage({
     setWizardDirection(index >= profileStepIndex ? 1 : -1)
     setProfileStepIndex(index)
     setErrors({})
+    setTouched({})
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setSubmitError('')
@@ -296,12 +337,17 @@ export default function RegisterPage({
     const validation = validateAthleteFields(form, step.fields, t)
     if (!validation.success) {
       setErrors(validation.errors)
+      setTouched((current) => ({
+        ...current,
+        ...Object.fromEntries(step.fields.map((field) => [field, true])),
+      }))
       setProfileErrorStepIndex(profileStepIndex)
       focusFirstError(validation.errors)
       return
     }
 
     setErrors({})
+    setTouched({})
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setSubmitError('')
@@ -313,12 +359,13 @@ export default function RegisterPage({
     setWizardDirection(-1)
     setProfileStepIndex((current) => Math.max(current - 1, 0))
     setErrors({})
+    setTouched({})
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setSubmitError('')
   }
 
-  function submit(eventObject) {
+  async function submit(eventObject) {
     eventObject.preventDefault()
     if (flow === 'profile') setProfileSubmitAttempted(true)
 
@@ -342,26 +389,29 @@ export default function RegisterPage({
         const errorStepIndex = profileSteps.findIndex((step) =>
           step.fields.some((field) => validation.errors[field]),
         )
-        if (errorStepIndex >= 0) setProfileStepIndex(errorStepIndex)
-        if (errorStepIndex >= 0) setProfileErrorStepIndex(errorStepIndex)
+        if (errorStepIndex >= 0) {
+          setProfileStepIndex(errorStepIndex)
+          setProfileErrorStepIndex(errorStepIndex)
+          setTouched((current) => ({
+            ...current,
+            ...Object.fromEntries(
+              profileSteps[errorStepIndex].fields.map((field) => [field, true]),
+            ),
+          }))
+        }
+      } else {
+        setTouched((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(validation.errors).map((field) => [field, true])),
+        }))
       }
 
       return
     }
 
-    const result = onSubmit(eventObject, event)
+    const result = await onSubmit(eventObject, event)
     if (result?.error) setSubmitError(result.error)
     else if (flow === 'profile') onNavigate?.('profile')
-  }
-
-  async function approveVisiblePayment() {
-    if (!visibleOrder?.paymentId) return
-    await onApprovePayment(visibleOrder.paymentId)
-    setPaymentApprovedModal({
-      concept: visibleOrder.concept,
-      amount: visibleOrder.amount,
-      method: visibleOrder.paymentMethod,
-    })
   }
 
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
@@ -390,19 +440,19 @@ export default function RegisterPage({
         </p>
       </header>
     ) : (
-      <header className="register-intro">
-        {flow === 'profile' && (
-          <span className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</span>
-        )}
+      <header className={`register-intro${flow === 'profile' ? ' register-intro--profile' : ''}`.trim()}>
+        {flow === 'profile' ? (
+          <p className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</p>
+        ) : null}
         <h1 className="register-intro__title">{content[0]}</h1>
         <p className="register-intro__desc">{content[1]}</p>
 
-        {flow !== 'profile' && (
+        {flow !== 'profile' ? (
           <div className="register-intro__meta">
             <strong>{event?.title}</strong>
             <span>{athlete?.fullName}</span>
           </div>
-        )}
+        ) : null}
       </header>
     )
 
@@ -424,23 +474,10 @@ export default function RegisterPage({
           <StatusPill value={visibleOrder.status} />
           <code>{visibleOrder.reference}</code>
           {visibleOrder.paymentMethod === 'mercado_pago' ? (
-            <button
-              type="button"
-              className="btn btn--outline"
-              onClick={approveVisiblePayment}
-            >
-              {t('pages.register.simulatePayment')}
-            </button>
+            <p>{t('payments.embeddedLead')}</p>
           ) : (
             <>
               <p className="manual-note">{t('pages.register.manualNote')}</p>
-              <button
-                type="button"
-                className="btn btn--outline"
-                onClick={approveVisiblePayment}
-              >
-                {t('pages.register.simulatePayment')}
-              </button>
             </>
           )}
           {cardData && (
@@ -532,6 +569,10 @@ export default function RegisterPage({
             {(flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && registerStatus}
           </div>
 
+          {flow === 'competition' && visibleOrder?.paymentMethod === 'mercado_pago' && (
+            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
+          )}
+
           {membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
@@ -541,14 +582,6 @@ export default function RegisterPage({
                   formatShortDate(activeMembership?.expirationDate, locale)
                 }
                 order={visibleOrder}
-                onApprovePayment={async (paymentId) => {
-                  await onApprovePayment(paymentId)
-                  setPaymentApprovedModal({
-                    concept: visibleOrder.concept,
-                    amount: visibleOrder.amount,
-                    method: visibleOrder.paymentMethod,
-                  })
-                }}
                 onNavigate={onNavigate}
                 onOpenCard={() => setCardOpen(true)}
                 showCardAction={Boolean(cardData)}
@@ -579,6 +612,7 @@ export default function RegisterPage({
                         name="fullName"
                         placeholder={t('pages.register.fullNamePlaceholder')}
                         value={form.fullName}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <Field
@@ -588,6 +622,7 @@ export default function RegisterPage({
                         name="documentId"
                         placeholder={t('pages.register.documentPlaceholder')}
                         value={form.documentId}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <DateField
@@ -595,6 +630,7 @@ export default function RegisterPage({
                         label={t('pages.register.birthDate')}
                         name="birthDate"
                         value={form.birthDate}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <Field
@@ -605,6 +641,7 @@ export default function RegisterPage({
                         placeholder={t('pages.register.emailPlaceholder')}
                         type="email"
                         value={form.email}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <Field
@@ -615,6 +652,7 @@ export default function RegisterPage({
                         name="phone"
                         placeholder={t('pages.register.phonePlaceholder')}
                         value={form.phone}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                     </div>
@@ -633,6 +671,7 @@ export default function RegisterPage({
                         label={t('pages.register.country')}
                         name="country"
                         value={form.country}
+                        onBlur={blurField}
                         onChange={changeField}
                         options={formOptions.country}
                       />
@@ -642,6 +681,7 @@ export default function RegisterPage({
                         name="province"
                         placeholder={t('pages.register.provincePlaceholder')}
                         value={form.province}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <Field
@@ -650,6 +690,7 @@ export default function RegisterPage({
                         name="city"
                         placeholder={t('pages.register.cityPlaceholder')}
                         value={form.city}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
                       <Field
@@ -658,13 +699,15 @@ export default function RegisterPage({
                         name="gym"
                         placeholder={t('pages.register.gymPlaceholder')}
                         value={form.gym}
+                        onBlur={blurField}
                         onChange={changeField}
                       />
-                      <Select
+                      <ChoiceField
                         error={visibleErrors.sex}
                         label={t('pages.register.sexCompetitive')}
                         name="sex"
                         value={form.sex}
+                        onBlur={blurField}
                         onChange={changeField}
                         options={formOptions.sex}
                       />
@@ -693,16 +736,20 @@ export default function RegisterPage({
                 )}
                 <div className="form-grid">
                   <Select
+                    error={errors.division}
                     label={t('pages.register.division')}
                     name="division"
                     value={form.division}
+                    onBlur={blurField}
                     onChange={changeField}
                     options={formOptions.division}
                   />
                   <Select
+                    error={errors.category}
                     label={t('pages.register.category')}
                     name="category"
                     value={form.category}
+                    onBlur={blurField}
                     onChange={changeField}
                     options={formOptions.category}
                   />
@@ -713,6 +760,7 @@ export default function RegisterPage({
                     name="estimatedWeight"
                     placeholder={t('pages.register.bodyWeightPlaceholder')}
                     value={form.estimatedWeight}
+                    onBlur={blurField}
                     onChange={changeField}
                   />
                   <div className="field field--readonly">
@@ -720,9 +768,11 @@ export default function RegisterPage({
                     <strong>{t('pages.register.procedureRegistration', { event: event.title })}</strong>
                   </div>
                   <Select
+                    error={errors.paymentMethod}
                     label={t('pages.register.paymentMethod')}
                     name="paymentMethod"
                     value={form.paymentMethod}
+                    onBlur={blurField}
                     onChange={changeField}
                     options={formOptions.paymentMethod}
                   />
@@ -804,29 +854,6 @@ export default function RegisterPage({
           )}
         </div>
       </div>
-      {paymentApprovedModal && (
-        <div className="register-payment-modal" role="dialog" aria-modal="true" aria-labelledby="register-payment-modal-title">
-          <div className="register-payment-modal__card">
-            <CheckCircle2 size={38} aria-hidden />
-            <span>{t('pages.register.paymentApprovedEyebrow')}</span>
-            <h2 id="register-payment-modal-title">{t('pages.register.paymentApprovedTitle')}</h2>
-            <p>{t('pages.register.paymentApprovedDesc')}</p>
-            <dl>
-              <div>
-                <dt>{t('pages.register.paymentApprovedConcept')}</dt>
-                <dd>{paymentApprovedModal.concept}</dd>
-              </div>
-              <div>
-                <dt>{t('pages.register.paymentApprovedAmount')}</dt>
-                <dd>{money(paymentApprovedModal.amount, locale)}</dd>
-              </div>
-            </dl>
-            <button type="button" className="btn" onClick={() => setPaymentApprovedModal(null)}>
-              {t('pages.register.paymentApprovedClose')}
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

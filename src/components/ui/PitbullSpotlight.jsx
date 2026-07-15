@@ -55,16 +55,27 @@ export default function PitbullSpotlight({
             </div>
 
             <div className="events-spotlight-card__foot">
-              <div className="events-spotlight-card__actions">
-                <Button variant="outline" className="btn--small motion-icon-shift" onClick={onDetail}>
-                  {t('pages.pitbull.spotlight.viewDetail')}
-                  <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-                </Button>
+              <div
+                className="events-spotlight-card__actions"
+                role="group"
+                aria-label={t('pages.events.spotlightActionsAria')}
+              >
                 {onRegister ? (
-                  <Button className="btn--small" onClick={onRegister}>
+                  <Button
+                    className="events-spotlight-card__cta events-spotlight-card__cta--primary motion-icon-shift"
+                    onClick={onRegister}
+                  >
                     {resolvedRegisterLabel}
+                    <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
                   </Button>
                 ) : null}
+                <Button
+                  variant="outline"
+                  className="events-spotlight-card__cta events-spotlight-card__cta--secondary"
+                  onClick={onDetail}
+                >
+                  {t('pages.pitbull.spotlight.viewDetail')}
+                </Button>
               </div>
               <EventCalendarActions event={calendarEvent} className="events-spotlight-card__calendar" compact />
             </div>

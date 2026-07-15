@@ -13,7 +13,7 @@ Skills internas reutilizables para agentes de código que trabajan en este proye
 | 3c | [design-ux-ui](./design-ux-ui/SKILL.md) | Refinar secciones con UX + CSS moderno (dock, editorial, glass) |
 | 4 | [auth-rbac](./auth-rbac/SKILL.md) | Roles, permisos, guards |
 | 5 | [database-modeling](./database-modeling/SKILL.md) | Prisma, migraciones, seeds |
-| 6 | [mercado-pago](./mercado-pago/SKILL.md) | Checkout Pro, webhooks, pagos |
+| 6 | [mercado-pago](./mercado-pago/SKILL.md) | Checkout Bricks, suscripciones, webhooks |
 | 7 | [brevo-emails](./brevo-emails/SKILL.md) | Emails transaccionales |
 | 8 | [forms-validation](./forms-validation/SKILL.md) | Formularios y Zod |
 | 9 | [events-registrations](./events-registrations/SKILL.md) | Eventos e inscripciones |

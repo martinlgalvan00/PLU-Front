@@ -2,17 +2,12 @@ import { useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  Clock3,
   ExternalLink,
-  Layers,
   MapPin,
-  Megaphone,
-  Scale,
 } from 'lucide-react'
 import { m } from 'motion/react'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
-import PitbullFeatureFlipCard from '../components/ui/PitbullFeatureFlipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
@@ -26,7 +21,7 @@ import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
-import { MOTION_DURATION, MOTION_EASE, MOTION_VIEWPORT } from '../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -116,19 +111,38 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
 }
 
 
-function flattenAthleteSteps(athleteGroups) {
-  return athleteGroups.flatMap((group) =>
-    group.items.map((item) => ({
-      ...item,
-      phaseId: group.id,
-      phaseLabel: group.label,
-    })),
-  )
-}
-
 function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
-  const steps = flattenAthleteSteps(athleteGroups)
+  const numberedGroups = (() => {
+    let cursor = 0
+    return athleteGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        const index = cursor
+        cursor += 1
+        return { ...item, index }
+      }),
+    }))
+  })()
+
+  const phaseMotion = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: MOTION_STAGGER.step,
+        delayChildren: MOTION_STAGGER.delayChildren,
+      },
+    },
+  }
+
+  const stepMotion = {
+    hidden: { opacity: 0, y: 16 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+    },
+  }
 
   return (
     <PitbullDossierSection
@@ -140,66 +154,71 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
       title={t('pages.pitbull.athletesTitle')}
       titleId="pitbull-athletes-title"
     >
-      <ol className="pitbull-athletes-journey" aria-label={t('pages.pitbull.athletesAria')}>
-        {steps.map((step, index) => {
-          const num = String(index + 1).padStart(2, '0')
-          const showPhase =
-            index === 0 || steps[index - 1]?.phaseId !== step.phaseId
-          const content = (
-            <>
-              <p
-                className={`pitbull-athletes-journey__phase pitbull-athletes-journey__phase--${step.phaseId}${showPhase ? '' : ' pitbull-athletes-journey__phase--spacer'}`}
-                aria-hidden={!showPhase}
-              >
-                {showPhase ? step.phaseLabel : '\u00A0'}
-              </p>
-              <div className="pitbull-athletes-journey__row">
-                <span className="pitbull-athletes-journey__index" aria-hidden>
-                  {num}
-                </span>
-                <div className="pitbull-athletes-journey__copy">
-                  <strong className="pitbull-athletes-journey__title">{step.title}</strong>
-                  <p className="pitbull-athletes-journey__text">{step.text}</p>
-                </div>
-              </div>
-            </>
-          )
+      <m.div
+        className="pitbull-athletes-journey"
+        aria-label={t('pages.pitbull.athletesAria')}
+        variants={reducedMotion ? undefined : phaseMotion}
+        initial={reducedMotion ? undefined : 'hidden'}
+        whileInView={reducedMotion ? undefined : 'show'}
+        viewport={MOTION_VIEWPORT}
+      >
+        {numberedGroups.map((group) => (
+          <section
+            key={group.id}
+            className={`pitbull-athletes-journey__phase pitbull-athletes-journey__phase--${group.id}`}
+          >
+            <h3 className="pitbull-athletes-journey__phase-label">
+              <span className="pitbull-athletes-journey__phase-dot" aria-hidden />
+              {group.label}
+            </h3>
+            <ol className="pitbull-athletes-journey__steps">
+              {group.items.map((item) => {
+                const num = String(item.index + 1).padStart(2, '0')
+                const body = (
+                  <>
+                    <span className="pitbull-athletes-journey__index" aria-hidden>
+                      {num}
+                    </span>
+                    <div className="pitbull-athletes-journey__copy">
+                      <span className="pitbull-athletes-journey__title">{item.title}</span>
+                      <p className="pitbull-athletes-journey__text">{item.text}</p>
+                    </div>
+                  </>
+                )
 
-          if (reducedMotion) {
-            return (
-              <li key={step.id} className="pitbull-athletes-journey__item">
-                {content}
-              </li>
-            )
-          }
+                if (reducedMotion) {
+                  return (
+                    <li key={item.id} className="pitbull-athletes-journey__step">
+                      {body}
+                    </li>
+                  )
+                }
 
-          return (
-            <m.li
-              key={step.id}
-              className="pitbull-athletes-journey__item"
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: MOTION_VIEWPORT.once, amount: 0.35 }}
-              transition={{
-                duration: MOTION_DURATION.slow,
-                ease: MOTION_EASE.out,
-                delay: index * 0.07,
-              }}
-            >
-              {content}
-            </m.li>
-          )
-        })}
-      </ol>
+                return (
+                  <m.li
+                    key={item.id}
+                    className="pitbull-athletes-journey__step"
+                    variants={stepMotion}
+                    whileHover={{ x: 4 }}
+                    transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+                  >
+                    {body}
+                  </m.li>
+                )
+              })}
+            </ol>
+          </section>
+        ))}
+      </m.div>
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
         <button
           type="button"
-          className="pitbull-dossier__cta pitbull-dossier__cta--primary"
+          className="pitbull-dossier__cta pitbull-dossier__cta--primary motion-icon-shift"
           onClick={scrollToInscription}
         >
           {t('pages.pitbull.athletesCta')}
-          <ArrowRight size={14} aria-hidden />
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
         </button>
         <button
           type="button"
@@ -360,9 +379,8 @@ function PitbullInscriptionSection({
     <PitbullDossierSection
       id="inscripcion"
       className="pitbull-dossier__section--inscription pitbull-dossier__section--stack pitbull-inscription"
-      eyebrow={t('pages.pitbull.inscriptionEyebrow')}
+      hideHeader
       title={t('pages.pitbull.inscriptionTitle')}
-      titleId="pitbull-inscription-title"
       tone="ops"
     >
       <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
@@ -438,14 +456,6 @@ function PitbullInscriptionSection({
   )
 }
 
-const FEATURE_FACT_ICONS = {
-  Pesaje: Scale,
-  Briefing: Megaphone,
-  Plataforma: Layers,
-  Weigh: Scale,
-  'Weigh-in': Scale,
-}
-
 function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
   return (
     <PitbullDossierSection
@@ -457,24 +467,22 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
       titleId="pitbull-feature-title"
     >
       <StaggerGroup
-        as="ul"
+        as="ol"
         className="pitbull-feature-flow"
         stagger={70}
         aria-label={t('pages.pitbull.featureFactsAria')}
       >
-        {featureFacts.map((fact) => {
-          const Icon = FEATURE_FACT_ICONS[fact.label] ?? Clock3
-          return (
-            <PitbullFeatureFlipCard
-              key={fact.label}
-              flipBackLabel={t('pages.pitbull.flipBack')}
-              flipHintLabel={t('pages.pitbull.featureFlipTap')}
-              icon={Icon}
-              label={fact.label}
-              value={fact.value}
-            />
-          )
-        })}
+        {featureFacts.map((fact, index) => (
+          <li key={fact.label} className="pitbull-feature-flow__step">
+            <span className="pitbull-feature-flow__index" aria-hidden>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <div className="pitbull-feature-flow__copy">
+              <span className="pitbull-feature-flow__label">{fact.label}</span>
+              <p className="pitbull-feature-flow__detail">{fact.value}</p>
+            </div>
+          </li>
+        ))}
       </StaggerGroup>
 
       {schedule?.length > 0 ? (

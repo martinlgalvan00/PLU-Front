@@ -6,6 +6,10 @@ const FEEDBACK_BY_OUTCOME = {
   not_found: 'error',
   invalid: 'error',
   checkin_ok: 'checkin_ok',
+  // Validado contra la lista descargada, sin conexión -- distinto de
+  // checkin_ok (confirmado por el servidor) para que el operador note
+  // auditivamente que todavía falta sincronizar este ingreso.
+  queued_offline: 'offline',
 }
 
 const VIBRATION_PATTERNS = {
@@ -13,6 +17,7 @@ const VIBRATION_PATTERNS = {
   checkin_ok: [70, 35, 70, 35, 100],
   warning: [90],
   error: [180, 80, 180],
+  offline: [40, 60, 40],
 }
 
 const SOUND_SEQUENCES = {
@@ -29,6 +34,10 @@ const SOUND_SEQUENCES = {
   error: [
     { frequency: 220, duration: 140, type: 'sawtooth', volume: 0.08 },
     { frequency: 196, duration: 180, type: 'sawtooth', volume: 0.08, delay: 150 },
+  ],
+  offline: [
+    { frequency: 523, duration: 70, type: 'triangle', volume: 0.1 },
+    { frequency: 392, duration: 90, type: 'triangle', volume: 0.09, delay: 80 },
   ],
 }
 

@@ -3,15 +3,28 @@ import { ApiError, loginRequest, logoutRequest, meRequest, oauthSessionRequest }
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 import {
-  approvePayment as approvePaymentAction,
-  checkInRegistration,
-  createAthleteProfile,
-  createCompetitionOrder,
-  createMembershipOrder,
-  getInitialState,
-  updateAthleteProfile,
-} from '../services/athleteService.js'
+  approveAthletePaymentOrder as approveAthletePaymentOrderRequest,
+  checkInRegistration as checkInRegistrationRequest,
+  createCompetitionRegistration as createCompetitionRegistrationRequest,
+  createMembershipOrder as createMembershipOrderRequest,
+  fetchAdminAthleteData,
+  fetchAthleteSnapshot,
+  registerAthlete as registerAthleteRequest,
+  updateAthleteProfile as updateAthleteProfileRequest,
+} from '../services/athleteApi.js'
+import {
+  demoAthletes,
+  demoMemberships,
+  demoPayments,
+  demoRegistrations,
+  isDemoSession,
+} from '../services/demoAthleteSeed.js'
+import { notifyAffiliationStarted, notifyPaymentApproved, notifyRegistrationConfirmed } from '../services/emailService.js'
+import {
+  createPreference as createPreferenceRequest,
+} from '../services/paymentService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
   approveTicketOrder as approveTicketOrderRequest,
@@ -44,6 +57,30 @@ import {
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
 
+// El login de esta app corre sobre Prisma/Auth0, nunca sobre supabase.auth
+// -- sin esto, auth.uid() es siempre null en el navegador y ninguna RPC
+// protegida por is_admin()/can_check_in() puede autorizar a nadie, ni
+// siquiera a un admin real logueado (ver server/services/supabaseAuthBridge.js).
+// El backend genera un magic-link de un solo uso al loguear staff; acá lo
+// canjeamos para tener una sesión real de Supabase Auth en el cliente.
+async function establishSupabaseSession(supabaseAuth) {
+  if (!supabaseAuth || !isSupabaseConfigured || !supabase) return
+
+  try {
+    await supabase.auth.verifyOtp({
+      email: supabaseAuth.email,
+      token: supabaseAuth.tokenHash,
+      type: 'magiclink',
+    })
+  } catch (error) {
+    console.warn('No se pudo establecer la sesión de Supabase.', error)
+  }
+}
+
+function buildAuditLog(action, entityType, entityId, actor, metadata) {
+  return { id: `audit-${Date.now()}`, action, entityType, entityId, actor, createdAt: new Date().toISOString(), metadata }
+}
+
 export function useAppData() {
   const oauth = usePluOAuth()
   const storedData = useMemo(() => readStorage(), [])
@@ -54,20 +91,24 @@ export function useAppData() {
     setSessionState(next)
   }, [])
   const getSession = useCallback(() => sessionRef.current, [])
-  const [athletes, setAthletes] = useState(() => getInitialState(storedData).athletes)
-  const [memberships, setMemberships] = useState(() => getInitialState(storedData).memberships)
-  const [registrations, setRegistrations] = useState(
-    () => getInitialState(storedData).registrations,
-  )
-  const [payments, setPayments] = useState(() => getInitialState(storedData).payments)
+  // Atletas/membresías/inscripciones/pagos viven en Supabase (ver
+  // athleteApi.js) -- estos arrays son un cache de lo último fetcheado.
+  // Arrancan con el seed de demo porque las 4 cuentas de acceso rápido de
+  // la pantalla de login nunca pasan por el backend real (ver
+  // demoAthleteSeed.js); una sesión real los reemplaza por datos remotos
+  // en el efecto de refreshAthleteData de más abajo.
+  const [athletes, setAthletes] = useState(demoAthletes)
+  const [memberships, setMemberships] = useState(demoMemberships)
+  const [registrations, setRegistrations] = useState(demoRegistrations)
+  const [payments, setPayments] = useState(demoPayments)
   // Las entradas viven en Postgres, no en localStorage â€” este estado es
   // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
   const [tickets, setTickets] = useState([])
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
-  const [createdOrder, setCreatedOrder] = useState(() => getInitialState(storedData).createdOrder)
-  const [auditLogs, setAuditLogs] = useState(() => getInitialState(storedData).auditLogs)
+  const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
+  const [auditLogs, setAuditLogs] = useState(() => storedData?.auditLogs ?? [])
   const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [form, setForm] = useState(DEFAULT_FORM)
@@ -76,18 +117,38 @@ export function useAppData() {
   const role = session?.role || null
   const userCanEdit = canEdit(role)
 
+  // athletes/memberships/registrations/payments ya no se persisten acá --
+  // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
+  // siendo locales) tampoco necesitan persistirse entre recargas.
   useEffect(() => {
-    writeStorage({
-      athletes,
-      memberships,
-      registrations,
-      payments,
-      createdOrder,
-      auditLogs,
-      adminEvents,
-      users,
-    })
-  }, [athletes, memberships, registrations, payments, createdOrder, auditLogs, adminEvents, users])
+    writeStorage({ createdOrder, auditLogs, adminEvents, users })
+  }, [createdOrder, auditLogs, adminEvents, users])
+
+  const refreshAthleteData = useCallback(async () => {
+    if (!session || isDemoSession(session)) return
+
+    try {
+      if (session.role === 'athlete_plu') {
+        const snapshot = await fetchAthleteSnapshot(session.athleteId)
+        setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
+        setMemberships(snapshot.memberships)
+        setRegistrations(snapshot.registrations)
+        setPayments(snapshot.payments)
+      } else {
+        const data = await fetchAdminAthleteData()
+        setAthletes(data.athletes)
+        setMemberships(data.memberships)
+        setRegistrations(data.registrations)
+        setPayments(data.payments)
+      }
+    } catch (error) {
+      console.error('refreshAthleteData:', error)
+    }
+  }, [session])
+
+  useEffect(() => {
+    refreshAthleteData()
+  }, [refreshAthleteData])
 
   useEffect(() => {
     let active = true
@@ -98,6 +159,14 @@ export function useAppData() {
       })
       .catch(async (error) => {
         if (!active) return
+
+        // API caída o sin red: seguimos sin sesión (demo login sigue andando).
+        if (!error?.status || error.status === 0) {
+          if (import.meta.env.DEV) {
+            console.info('Sesión no restaurada: API no disponible en', error?.message ?? error)
+          }
+          return
+        }
 
         if (error.status !== 401) {
           console.warn('No se pudo restaurar la sesion.', error)
@@ -110,8 +179,9 @@ export function useAppData() {
           const accessToken = await oauth.getAccessToken()
           if (!active || !accessToken) return
 
-          const { user } = await oauthSessionRequest(accessToken)
+          const { user, supabaseAuth } = await oauthSessionRequest(accessToken)
           if (active) setSession(user)
+          await establishSupabaseSession(supabaseAuth)
         } catch (oauthError) {
           console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
         }
@@ -205,71 +275,150 @@ export function useAppData() {
   }, [])
 
   const registerAthlete = useCallback(
-    (event) => {
+    async (event) => {
       event.preventDefault()
-      const result = createAthleteProfile(form, athletes)
-      if (result.error) return result
-      setAthletes((c) => [result.athlete, ...c])
-      setCreatedOrder(result.confirmation)
-      setAuditLogs((c) => [result.auditLog, ...c])
-      setForm(result.resetForm)
-      setSession({
-        role: 'athlete_plu',
-        athleteId: result.athlete.id,
-        name: result.athlete.fullName,
-        email: result.athlete.email,
-      })
-      return result
+      try {
+        const { athlete } = await registerAthleteRequest(form)
+        setAthletes([athlete])
+        setMemberships([])
+        setRegistrations([])
+        setPayments([])
+        const confirmation = { type: 'profile', athleteName: athlete.fullName, status: 'registrado' }
+        setCreatedOrder(confirmation)
+        setAuditLogs((c) => [buildAuditLog('athlete.registered', 'athlete', athlete.id, 'public'), ...c])
+        setForm({ ...DEFAULT_FORM })
+        setSession({
+          role: 'athlete_plu',
+          athleteId: athlete.id,
+          name: athlete.fullName,
+          email: athlete.email,
+        })
+        return { athlete, confirmation }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        throw error
+      }
     },
-    [form, athletes],
+    [form],
+  )
+
+  const startMembershipPayment = useCallback(
+    async (paymentMethod = form.paymentMethod, planCode = 'plu-annual') => {
+      const athlete = athletes.find((item) => item.id === session?.athleteId)
+      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+
+      try {
+        const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
+        const { order, membership, plan } = await createMembershipOrderRequest(
+          athlete.id,
+          normalizedMethod,
+          planCode,
+        )
+        const checkout = order.method === 'mercado_pago' && plan?.collectionMode !== 'recurring'
+          ? await createPreferenceRequest({ paymentId: order.id })
+          : null
+        setMemberships((current) => [
+          membership,
+          ...current.filter((item) => item.athleteId !== athlete.id || item.year !== membership.year),
+        ])
+        const payment = {
+          id: order.id,
+          athleteId: athlete.id,
+          concept: plan?.name ?? 'Afiliación PLU',
+          amount: order.amount,
+          method: order.method,
+          status: order.status,
+          reference: order.reference,
+          createdAt: order.createdAt,
+        }
+        setPayments((current) => [payment, ...current])
+        const createdOrder = {
+          type: 'membership',
+          athleteName: athlete.fullName,
+          athleteDocument: athlete.documentId,
+          athleteId: athlete.id,
+          paymentId: order.id,
+          paymentMethod: order.method,
+          checkoutUrl: checkout?.preference?.initPoint ?? checkout?.initPoint ?? null,
+          preferenceId: checkout?.preference?.id ?? null,
+          paymentMode: plan?.collectionMode === 'recurring' ? 'subscription' : 'payment',
+          plan,
+          ...payment,
+        }
+        setCreatedOrder(createdOrder)
+        setAuditLogs((current) => [buildAuditLog('membership.created', 'membership', membership.id, athlete.id), ...current])
+        return { membership, payment, plan, createdOrder }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        throw error
+      }
+    },
+    [athletes, form, session],
   )
 
   const submitMembership = useCallback(
-    (event) => {
+    async (event) => {
       event.preventDefault()
-      const athlete = athletes.find((item) => item.id === session?.athleteId)
-      if (!athlete) return { error: 'No se encontrÃ³ el perfil del atleta.' }
-      const result = createMembershipOrder({ athlete, form, memberships, payments })
-      setMemberships((current) => [
-        result.membership,
-        ...current.filter((item) => item.athleteId !== athlete.id || item.year !== '2026'),
-      ])
-      setPayments((current) => [result.payment, ...current])
-      setCreatedOrder(result.createdOrder)
-      setAuditLogs((current) => [result.auditLog, ...current])
-      return result
+      return startMembershipPayment(form.paymentMethod)
     },
-    [athletes, form, memberships, payments, session],
+    [form.paymentMethod, startMembershipPayment],
   )
 
   const submitCompetition = useCallback(
-    (event, selectedEvent) => {
+    async (event, selectedEvent) => {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
-      const activeMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
-      if (!athlete) return { error: 'No se encontrÃ³ el perfil del atleta.' }
-      if (!activeMembership) return { error: 'Necesitás tener la afiliación activa antes de inscribirte a una competencia.' }
-      const duplicate = registrations.some(
-        (item) =>
-          item.athleteId === athlete.id &&
-          item.event === selectedEvent.title &&
-          item.status !== 'cancelada',
-      )
-      if (duplicate) return { error: `Ya estÃ¡s inscripto en ${selectedEvent.title}.` }
-      const result = createCompetitionOrder({
-        athlete,
-        event: selectedEvent,
-        form,
-        registrations,
-        payments,
-      })
-      setRegistrations((current) => [result.registration, ...current])
-      setPayments((current) => [result.payment, ...current])
-      setCreatedOrder(result.createdOrder)
-      setAuditLogs((current) => [result.auditLog, ...current])
-      return result
+      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+
+      try {
+        const { order, registration } = await createCompetitionRegistrationRequest({
+          athleteId: athlete.id,
+          eventSlug: selectedEvent.slug,
+          division: form.division,
+          category: form.category,
+          bodyweightKg: form.estimatedWeight ? Number(String(form.estimatedWeight).replace(',', '.')) : null,
+          paymentMethod: form.paymentMethod,
+        })
+        const checkout = order.method === 'mercado_pago'
+          ? await createPreferenceRequest({ paymentId: order.id })
+          : null
+        const enrichedRegistration = { ...registration, event: selectedEvent.title, eventSlug: selectedEvent.slug }
+        setRegistrations((current) => [enrichedRegistration, ...current])
+        const payment = {
+          id: order.id,
+          athleteId: athlete.id,
+          concept: `Inscripción ${selectedEvent.title}`,
+          amount: order.amount,
+          method: order.method,
+          status: order.status,
+          reference: order.reference,
+          createdAt: order.createdAt,
+        }
+        setPayments((current) => [payment, ...current])
+        const createdOrder = {
+          type: 'competition',
+          athleteName: athlete.fullName,
+          athleteDocument: athlete.documentId,
+          athleteId: athlete.id,
+          paymentId: order.id,
+          paymentMethod: order.method,
+          checkoutUrl: checkout?.preference?.initPoint ?? null,
+          preferenceId: checkout?.preference?.id ?? null,
+          paymentMode: 'payment',
+          ...payment,
+        }
+        setCreatedOrder(createdOrder)
+        setAuditLogs((current) => [buildAuditLog('registration.created', 'registration', registration.id, athlete.id), ...current])
+        return { registration: enrichedRegistration, payment, createdOrder }
+      } catch (error) {
+        // El servidor es la autoridad para el gate de membresía activa
+        // (PLU05) y de inscripción duplicada (PLU08) -- antes esos dos
+        // checks vivían solo del lado del cliente.
+        if (error instanceof ApiError) return { error: error.message }
+        throw error
+      }
     },
-    [athletes, form, memberships, payments, registrations, session],
+    [athletes, form, session],
   )
 
   // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera
@@ -294,6 +443,10 @@ export function useAppData() {
           })),
           provider,
         })
+        const checkout =
+          provider === 'mercado_pago'
+            ? await createPreferenceRequest({ paymentId: order.id })
+            : null
         const mappedTickets = createdTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
         setTickets((current) => [...mappedTickets, ...current])
         const nextOrder = {
@@ -307,6 +460,9 @@ export function useAppData() {
           status: order.status,
           paymentProofPath: order.paymentProofPath,
           paymentProofUploadedAt: order.paymentProofUploadedAt,
+          checkoutUrl: checkout?.preference?.initPoint ?? null,
+          preferenceId: checkout?.preference?.id ?? null,
+          paymentMode: 'payment',
           createdAt: order.createdAt,
         }
         setCreatedOrder(nextOrder)
@@ -318,8 +474,8 @@ export function useAppData() {
     [],
   )
 
-  // Equivalente al "Simular pago" de afiliaciÃ³n/inscripciÃ³n, pero para una
-  // orden de entradas completa (puede cubrir varios tickets a la vez).
+  // Aprobación operativa reservada a transferencias manuales. Las órdenes
+  // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(async (orderId) => {
     try {
       const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
@@ -440,18 +596,23 @@ export function useAppData() {
   // Check-in en la puerta para un atleta inscripto (competidor) â€” separado
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
-  const checkInRegistrationAction = useCallback(
-    (registrationId) => {
-      const result = checkInRegistration(registrationId, registrations)
-      if (result.outcome === 'ok') {
-        setRegistrations((current) =>
-          current.map((item) => (item.id === result.registration.id ? result.registration : item)),
-        )
+  const checkInRegistrationAction = useCallback(async (registrationId, gate) => {
+    try {
+      const { registration } = await checkInRegistrationRequest(registrationId, gate)
+      setRegistrations((current) =>
+        current.map((item) => (item.id === registration.id ? { ...item, checkedInAt: registration.checkedInAt } : item)),
+      )
+      return { outcome: 'ok', registration }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
       }
-      return result
-    },
-    [registrations],
-  )
+      if (error instanceof ApiError && error.status === 404) {
+        return { outcome: 'not_found' }
+      }
+      throw error
+    }
+  }, [])
 
   // GestiÃ³n de cuentas del panel: solo quien tiene canManageUsers puede
   // cambiar roles o crear cuentas nuevas (se valida tambiÃ©n en la UI).
@@ -544,9 +705,10 @@ export function useAppData() {
       // a diferencia del resto de la demo que vive en localStorage.
     }
 
-    const { user } = await loginRequest(credentialsOrAccountType)
+    const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
     const nextSession = user
     setSession(nextSession)
+    await establishSupabaseSession(supabaseAuth)
     return nextSession
   }, [])
 
@@ -555,6 +717,10 @@ export function useAppData() {
     setSession(null)
 
     if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut().catch(() => {})
+      }
+
       try {
         await logoutRequest()
       } catch (error) {
@@ -571,45 +737,33 @@ export function useAppData() {
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
-      const payment = payments.find((item) => item.id === paymentId)
-      if (!payment) return
-      const result = await approvePaymentAction(paymentId, payments)
-      if (!result) return
+      try {
+        const { order, membership, registration } = await approveAthletePaymentOrderRequest(paymentId)
+        setPayments((c) => c.map((p) => (p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p)))
 
-      setPayments((c) => c.map((p) => (p.id === paymentId ? result.payment : p)))
-      setMemberships((c) =>
-        c.map((m) =>
-          result.payment.concept === 'AfiliaciÃ³n anual' && m.athleteId === result.athleteId
-            ? {
-                ...m,
-                status: 'activa',
-                paymentStatus: 'aprobado',
-                mercadoPagoRef: result.payment.reference,
-              }
-            : m,
-        ),
-      )
-      setRegistrations((c) =>
-        c.map((r) =>
-          result.payment.concept === `InscripciÃ³n ${r.event}` && r.athleteId === result.athleteId
-            ? { ...r, status: 'confirmada', paymentStatus: 'aprobado' }
-            : r,
-        ),
-      )
-      setAthletes((c) =>
-        c.map((a) =>
-          a.id === result.athleteId && result.payment.concept === 'AfiliaciÃ³n anual'
-            ? { ...a, status: 'afiliado_activo' }
-            : a,
-        ),
-      )
-      setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: 'aprobado' } : c))
-      setAuditLogs((c) => [result.auditLog, ...c])
+        const athlete = athletes.find((a) => a.id === order.athleteId)
 
-      const athlete = athletes.find((a) => a.id === result.athleteId)
-      if (athlete) await result.emails(athlete)
+        if (membership) {
+          setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
+          setAthletes((c) => c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)))
+          if (athlete) await notifyPaymentApproved(athlete, { amount: order.amount, concept: 'Afiliación anual' })
+          if (athlete) await notifyAffiliationStarted({ ...athlete, memberCode: membership.memberCode })
+        }
+
+        if (registration) {
+          const eventTitle = registrations.find((r) => r.id === registration.id)?.event
+          setRegistrations((c) => c.map((r) => (r.id === registration.id ? { ...r, status: registration.status, paymentStatus: order.status } : r)))
+          if (athlete) await notifyPaymentApproved(athlete, { amount: order.amount, concept: `Inscripción ${eventTitle}` })
+          if (athlete) await notifyRegistrationConfirmed(athlete, eventTitle)
+        }
+
+        setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        setAuditLogs((c) => [buildAuditLog('payment.approved', 'payment', paymentId, 'admin'), ...c])
+      } catch (error) {
+        console.error('handleApprovePayment:', error)
+      }
     },
-    [payments, athletes],
+    [athletes, registrations],
   )
 
   const activateDemoMembership = useCallback((athleteId) => {
@@ -664,15 +818,21 @@ export function useAppData() {
     return { success: true }
   }, [])
 
-  const updateAthleteProfileAction = useCallback(
-    (athleteId, updates) => {
-      const result = updateAthleteProfile(athleteId, updates, athletes)
-      if (result.error) return result
-      setAthletes(result.athletes)
-      return result
-    },
-    [athletes],
-  )
+  const updateAthleteProfileAction = useCallback(async (athleteId, updates) => {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailPattern.test(updates.email ?? '')) {
+      return { error: 'Email inválido.' }
+    }
+
+    try {
+      const { athlete } = await updateAthleteProfileRequest(athleteId, updates)
+      setAthletes((current) => current.map((item) => (item.id === athleteId ? athlete : item)))
+      return { athlete }
+    } catch (error) {
+      if (error instanceof ApiError) return { error: error.message }
+      throw error
+    }
+  }, [])
 
   const exportAdminCsv = useCallback(() => {
     const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
@@ -738,6 +898,7 @@ export function useAppData() {
     updateAthleteProfileAction,
     registerAthlete,
     submitMembership,
+    startMembershipPayment,
     submitCompetition,
     activateDemoMembership,
     cancelDemoMembership,
@@ -755,5 +916,6 @@ export function useAppData() {
     handleApprovePayment,
     exportAdminCsv,
     exportPluUsaCsv,
+    demoMode: isDemoSession(session),
   }
 }

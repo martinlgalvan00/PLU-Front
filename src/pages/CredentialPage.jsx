@@ -4,6 +4,7 @@ import { BRAND } from '../lib/brand.js'
 import { formatShortDate } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
+import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 
 const DAY_PASS_LABELS = {
   day1: 'Día 1',
@@ -26,115 +27,188 @@ const VERDICT_META = {
  * inscripción/afiliación/entrada. Pensada para que el personal de un evento o
  * establecimiento la abra escaneando con la cámara del celular, sin apps ni
  * login, y vea de un vistazo si la credencial es válida — y, en el caso de
- * entradas, para marcar el ingreso ahí mismo y agilizar la fila en la puerta.
+ * entradas o inscripciones, para marcar el ingreso ahí mismo y agilizar la
+ * fila en la puerta.
  *
- * Nota de arquitectura: atletas/membresías/inscripciones todavía viven en
- * localStorage del navegador (por eso esa rama solo encuentra la credencial
- * en el mismo dispositivo donde se generó) — pero las ENTRADAS (tickets) ya
- * hablan con el backend real (Postgres), así que cualquier dispositivo que
- * escanee el QR ve el estado verdadero, y el check-in queda protegido por
- * una restricción única en la base de datos (ver server/modules/ticketing).
+ * Tanto las entradas (tickets) como las credenciales de socio/inscripción
+ * hablan con el backend real (Supabase, ver athleteApi.js/ticketApi.js), así
+ * que cualquier dispositivo que escanee el QR ve el estado verdadero. El
+ * check-in en sí (marcar ingreso desde este botón) requiere que el
+ * navegador que escanea tenga una sesión de staff activa — si quien escanea
+ * no está logueado, esta página igual muestra el estado, solo que sin el
+ * botón de acción (ver server/services/supabaseAuthBridge.js).
  *
  * Props:
- *   code          string  — código leído del QR (memberCode o qrToken)
- *   eventSlug     string? — slug del evento, si el QR era de una inscripción
- *   type          string? — 'ticket' para entradas generales; si no, se busca
- *                            entre atletas/membresías (comportamiento previo)
- *   athletes      Athlete[]
- *   memberships   Membership[]
- *   registrations Registration[]
- *   onCheckIn     (qrToken: string) => Promise<{outcome, ticket?}> — marca una entrada como usada
+ *   code                  string  — código leído del QR (memberCode/qrToken)
+ *   eventSlug             string? — slug del evento, si el QR era de una inscripción
+ *   type                  string? — 'ticket' para entradas generales; si no, se busca
+ *                                   entre membresías/inscripciones
+ *   onCheckIn             (qrToken: string) => Promise<{outcome, ticket?}> — entradas
+ *   onCheckInRegistration (registrationId: string) => Promise<{outcome, registration?}>
  */
-export default function CredentialPage({
-  code,
-  eventSlug,
-  type,
-  athletes = [],
-  memberships = [],
-  registrations = [],
-  onCheckIn,
-}) {
+export default function CredentialPage({ code, eventSlug, type, onCheckIn, onCheckInRegistration }) {
   if (type === 'ticket') {
     return <TicketCredential code={code} onCheckIn={onCheckIn} />
   }
 
-  const membership = memberships.find(
-    (item) => (item.memberCode ?? '').toLowerCase() === (code ?? '').toLowerCase(),
-  )
-  const athlete = membership ? athletes.find((item) => item.id === membership.athleteId) : null
+  return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+}
 
-  const registration = athlete && eventSlug
-    ? registrations.find(
-        (item) => item.athleteId === athlete.id && item.eventSlug === eventSlug && item.status !== 'cancelada',
-      )
-    : null
+function MembershipCredential({ code, eventSlug, onCheckIn }) {
+  const [status, setStatus] = useState('loading') // 'loading' | 'found' | 'not_found'
+  const [data, setData] = useState(null)
+  const [checkingIn, setCheckingIn] = useState(false)
 
-  const notFound = !membership || !athlete
+  useEffect(() => {
+    let cancelled = false
+    setStatus('loading')
 
-  const membershipMeta = membership ? getStatusMeta(membership.status) : null
-  const registrationMeta = registration ? getStatusMeta(registration.status) : null
+    getMembershipByCodeOrToken(code, eventSlug)
+      .then((result) => {
+        if (cancelled) return
+        setData(result)
+        setStatus('found')
+      })
+      .catch(() => {
+        if (!cancelled) setStatus('not_found')
+      })
 
-  // Veredicto general que se muestra arriba de todo, grande, para un vistazo rápido.
-  // Para inscripciones a eventos, una membresía vencida baja el veredicto a
-  // "revisar" aunque la inscripción puntual figure confirmada.
-  let verdict = 'unknown'
-  if (!notFound) {
-    if (eventSlug) {
-      const registrationOk = registration && registrationMeta.tone === 'success'
-      verdict = registrationOk && membershipMeta.tone !== 'danger' ? 'valid' : registration ? 'warning' : 'unknown'
-    } else {
-      verdict = membershipMeta.tone === 'success' ? 'valid' : 'warning'
+    return () => {
+      cancelled = true
     }
+  }, [code, eventSlug])
+
+  if (status === 'loading') {
+    return (
+      <CredentialShell
+        verdictIcon={HelpCircle}
+        verdictLabel="Verificando…"
+        verdictClass="credential-page__verdict--warning"
+      >
+        <div className="credential-page__body" />
+      </CredentialShell>
+    )
   }
 
-  const { Icon, label: verdictLabel, className: verdictClass } = VERDICT_META[notFound ? 'invalid' : verdict]
+  if (status === 'not_found' || !data?.athlete || !data?.membership) {
+    const { Icon, label, className } = VERDICT_META.invalid
+    return (
+      <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
+        <NotFoundBody code={code} />
+      </CredentialShell>
+    )
+  }
+
+  const { athlete, membership, registration } = data
+  const membershipMeta = getStatusMeta(membership.status)
+  const registrationMeta = registration ? getStatusMeta(registration.status) : null
+
+  // Veredicto general que se muestra arriba de todo, grande, para un
+  // vistazo rápido. Para inscripciones a eventos, una membresía vencida
+  // baja el veredicto a "revisar" aunque la inscripción puntual figure
+  // confirmada.
+  let verdict = 'unknown'
+  if (eventSlug) {
+    const registrationOk = registration && registrationMeta.tone === 'success'
+    verdict = registrationOk && membershipMeta.tone !== 'danger' ? 'valid' : registration ? 'warning' : 'unknown'
+  } else {
+    verdict = membershipMeta.tone === 'success' ? 'valid' : 'warning'
+  }
+
+  const { Icon, label: verdictLabel, className: verdictClass } = VERDICT_META[verdict]
+
+  const canCheckIn =
+    Boolean(onCheckIn) &&
+    Boolean(registration) &&
+    !registration.checkedInAt &&
+    ['pagada', 'confirmada'].includes(registration.status)
+
+  async function handleCheckIn() {
+    setCheckingIn(true)
+    const result = await onCheckIn(registration.id)
+    setCheckingIn(false)
+
+    if (result?.outcome === 'ok') {
+      setData((current) => ({
+        ...current,
+        registration: { ...current.registration, checkedInAt: result.registration.checkedInAt },
+      }))
+      return
+    }
+
+    // El backend es la autoridad -- si otro dispositivo lo escaneó primero
+    // (o cualquier otro desacuerdo), volvemos a pedir el estado real en vez
+    // de asumir nada del lado del cliente.
+    getMembershipByCodeOrToken(code, eventSlug).then((fresh) => setData(fresh))
+  }
 
   return (
     <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
-      {notFound ? (
-        <NotFoundBody code={code} />
-      ) : (
-        <div className="credential-page__body">
-          <p className="credential-page__athlete-name">{athlete.fullName}</p>
-          <p className="credential-page__athlete-code">{membership.memberCode}</p>
+      <div className="credential-page__body">
+        <p className="credential-page__athlete-name">{athlete.fullName}</p>
+        <p className="credential-page__athlete-code">{membership.memberCode}</p>
 
-          <dl className="credential-page__rows">
+        <dl className="credential-page__rows">
+          <div className="credential-page__row">
+            <dt>Afiliación PLU ARG</dt>
+            <dd>
+              <span className={`status-pill status-pill--${membershipMeta.tone}`}>{membershipMeta.label}</span>
+              {membership.expirationDate && (
+                <span className="credential-page__row-meta">
+                  Vigente hasta {formatShortDate(membership.expirationDate)}
+                </span>
+              )}
+            </dd>
+          </div>
+
+          {eventSlug && (
             <div className="credential-page__row">
-              <dt>Afiliación PLU ARG</dt>
+              <dt>Inscripción al evento</dt>
               <dd>
-                <span className={`status-pill status-pill--${membershipMeta.tone}`}>{membershipMeta.label}</span>
-                {membership.expirationDate && (
-                  <span className="credential-page__row-meta">
-                    Vigente hasta {formatShortDate(membership.expirationDate)}
-                  </span>
+                {registration ? (
+                  <>
+                    <span className={`status-pill status-pill--${registrationMeta.tone}`}>
+                      {registrationMeta.label}
+                    </span>
+                    <span className="credential-page__row-meta">
+                      {registration.event}
+                      {(registration.category || registration.division) &&
+                        ` · ${[registration.category, registration.division].filter(Boolean).join(' · ')}`}
+                    </span>
+                  </>
+                ) : (
+                  <span className="credential-page__row-meta">Sin inscripción registrada a este evento.</span>
                 )}
               </dd>
             </div>
+          )}
 
-            {eventSlug && (
-              <div className="credential-page__row">
-                <dt>Inscripción al evento</dt>
-                <dd>
-                  {registration ? (
-                    <>
-                      <span className={`status-pill status-pill--${registrationMeta.tone}`}>
-                        {registrationMeta.label}
-                      </span>
-                      <span className="credential-page__row-meta">
-                        {registration.event}
-                        {(registration.category || registration.division) &&
-                          ` · ${[registration.category, registration.division].filter(Boolean).join(' · ')}`}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="credential-page__row-meta">Sin inscripción registrada a este evento.</span>
+          {registration?.checkedInAt && (
+            <div className="credential-page__row">
+              <dt>Ingreso registrado</dt>
+              <dd>
+                <span className="credential-page__row-meta">
+                  {new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(
+                    new Date(registration.checkedInAt),
                   )}
-                </dd>
-              </div>
-            )}
-          </dl>
-        </div>
-      )}
+                </span>
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {canCheckIn && (
+          <button
+            type="button"
+            className="credential-page__checkin-btn"
+            onClick={handleCheckIn}
+            disabled={checkingIn}
+          >
+            <CheckCircle2 size={16} aria-hidden />
+            {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
+          </button>
+        )}
+      </div>
     </CredentialShell>
   )
 }
@@ -269,11 +343,10 @@ function TicketCredential({ code, onCheckIn }) {
 function NotFoundBody({ code }) {
   return (
     <div className="credential-page__body">
-      <p className="credential-page__empty-title">Credencial no encontrada en este dispositivo</p>
+      <p className="credential-page__empty-title">Credencial no encontrada</p>
       <p className="credential-page__empty-text">
-        El código <strong>{code}</strong> no está registrado en este navegador. Puede tratarse de una
-        credencial generada en otro dispositivo — pedile a la persona que muestre la card completa o
-        confirmá el dato contra la planilla del evento.
+        El código <strong>{code}</strong> no está registrado, o la credencial fue dada de baja. Confirmá
+        el dato contra la planilla del evento.
       </p>
     </div>
   )

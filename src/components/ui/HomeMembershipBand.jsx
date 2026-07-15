@@ -11,7 +11,7 @@ const REEL_INTERVAL_MS = 4200
 const slideVariants = {
   enter: (direction) => ({
     opacity: 0,
-    y: direction > 0 ? 24 : -24,
+    y: direction > 0 ? 14 : -14,
   }),
   center: {
     opacity: 1,
@@ -19,7 +19,7 @@ const slideVariants = {
   },
   exit: (direction) => ({
     opacity: 0,
-    y: direction > 0 ? -18 : 18,
+    y: direction > 0 ? -10 : 10,
   }),
 }
 

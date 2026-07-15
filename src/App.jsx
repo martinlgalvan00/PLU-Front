@@ -84,10 +84,8 @@ export default function App() {
           code={credential.code}
           eventSlug={credential.eventSlug}
           type={credential.type}
-          athletes={app.athletes}
-          memberships={app.memberships}
-          registrations={app.registrations}
           onCheckIn={app.checkInTicketAction}
+          onCheckInRegistration={app.checkInRegistrationAction}
         />
       </Suspense>
     )
@@ -188,6 +186,8 @@ export default function App() {
             memberships={app.memberships}
             onActivateMembership={app.activateDemoMembership}
             onCancelMembership={app.cancelDemoMembership}
+            onStartMembershipPayment={app.startMembershipPayment}
+            demoMode={app.demoMode}
             onNavigate={navigate}
             onUpdateProfile={app.updateAthleteProfileAction}
             registrations={app.registrations}

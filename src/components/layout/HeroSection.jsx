@@ -15,7 +15,6 @@ import {
 export default function HeroSection({ onNavigate }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const accentOnLead = t('hero.headlineAccentOn') === 'lead'
 
   const kicker = (
     <>
@@ -26,28 +25,18 @@ export default function HeroSection({ onNavigate }) {
 
   const titleLines = (
     <>
-      <span className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}>
-        {t('hero.headlineLead')}
-      </span>
-      <span className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}>
-        {t('hero.headlineAccent')}
-      </span>
+      <span className="hero__title-line">{t('hero.titleLead')}</span>
+      <span className="hero__title-line hero__title-line--accent">{t('hero.titleAccent')}</span>
     </>
   )
 
   const animatedTitle = (
     <>
-      <m.span
-        className={`hero__title-line${accentOnLead ? ' hero__title-line--accent' : ''}`}
-        variants={heroTitleLine}
-      >
-        {t('hero.headlineLead')}
+      <m.span className="hero__title-line" variants={heroTitleLine}>
+        {t('hero.titleLead')}
       </m.span>
-      <m.span
-        className={`hero__title-line${accentOnLead ? '' : ' hero__title-line--accent'}`}
-        variants={heroTitleLine}
-      >
-        {t('hero.headlineAccent')}
+      <m.span className="hero__title-line hero__title-line--accent" variants={heroTitleLine}>
+        {t('hero.titleAccent')}
       </m.span>
     </>
   )
@@ -62,11 +51,19 @@ export default function HeroSection({ onNavigate }) {
   const actions = (
     <>
       <div className="hero__cta-row">
-        <button type="button" className="hero__cta hero__cta--primary" onClick={() => onNavigate('members')}>
+        <button
+          type="button"
+          className="hero__cta hero__cta--primary motion-icon-shift"
+          onClick={() => onNavigate('members')}
+        >
           {t('hero.ctaAffiliate')}
-          <ArrowRight size={16} aria-hidden className="hero__cta-icon" />
+          <ArrowRight size={16} aria-hidden className="hero__cta-icon motion-icon-shift__target" />
         </button>
-        <button type="button" className="hero__cta hero__cta--outline" onClick={() => onNavigate('pitbull')}>
+        <button
+          type="button"
+          className="hero__cta hero__cta--outline"
+          onClick={() => onNavigate('pitbull')}
+        >
           <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaPitbull')}</span>
           <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaPitbullShort')}</span>
         </button>

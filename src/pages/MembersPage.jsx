@@ -96,13 +96,21 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
             />
 
             <aside className="members-req-validity" aria-labelledby="members-validity-title">
-              <p className="members-req-validity__eyebrow" id="members-validity-title">
-                {t('pages.members.validityTitle')}
-              </p>
+              <header className="members-req-validity__head">
+                <span className="members-req-validity__index" aria-hidden>
+                  01
+                </span>
+                <p className="members-req-validity__eyebrow" id="members-validity-title">
+                  {t('pages.members.validityTitle')}
+                </p>
+              </header>
               <p className="members-req-validity__text">{t('pages.members.validityText')}</p>
               <ul className="members-req-validity__notes">
                 {validityNotes.map((note) => (
-                  <li key={note}>{note}</li>
+                  <li key={note}>
+                    <span className="members-req-validity__note-mark" aria-hidden />
+                    <span>{note}</span>
+                  </li>
                 ))}
               </ul>
             </aside>

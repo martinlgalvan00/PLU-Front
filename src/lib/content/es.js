@@ -99,33 +99,33 @@ export const HOME_MEMBERSHIP_FEATURES = [
 export const HOME_MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Ingreso a meets oficiales',
-    text: 'Quedás habilitado para inscribirte a cualquier evento del calendario PLU Argentina.',
+    title: 'Meets oficiales',
+    text: 'Habilitado para inscribirte al calendario PLU Argentina.',
   },
   {
     id: 'credential',
-    title: 'Credencial digital con QR',
-    text: 'Tu membresía viaja en el teléfono: acceso rápido a check-in y validación en sede.',
+    title: 'Credencial digital',
+    text: 'Membresía con QR para check-in y validación en sede.',
   },
   {
     id: 'discounts',
-    title: 'Descuentos de afiliado',
-    text: 'Tarifas preferenciales en inscripciones y beneficios con gimnasios de la red PLU.',
+    title: 'Tarifa de afiliado',
+    text: 'Preferenciales en inscripciones y red de gimnasios PLU.',
   },
   {
     id: 'results',
-    title: 'Resultados con estándar PLU',
-    text: 'Tus marcas quedan publicadas bajo el mismo criterio que usa el circuito internacional.',
+    title: 'Resultados PLU',
+    text: 'Marcas publicadas con el mismo criterio internacional.',
   },
   {
     id: 'access',
-    title: 'Acceso al panel del atleta',
-    text: 'Seguís afiliación, eventos e historia competitiva desde tu cuenta.',
+    title: 'Panel del atleta',
+    text: 'Afiliación, eventos e historial desde tu cuenta.',
   },
   {
     id: 'network',
-    title: 'Red de gimnasios y atletas',
-    text: 'Formás parte de la comunidad oficial: sedes adheridas y calendario compartido.',
+    title: 'Red oficial',
+    text: 'Comunidad, sedes adheridas y calendario compartido.',
   },
 ]
 
@@ -162,7 +162,8 @@ export const MEMBERSHIP_CTA = {
 export const MEMBERSHIP_PLANS = [
   {
     id: 'athlete',
-    title: 'Atleta',
+    title: 'Atleta adulto',
+    kicker: 'Plan anual',
     price: PRICING.membership,
     period: 'anual',
     features: ['Mayores de 18 años', 'Credencial digital', 'Eventos del calendario PLU ARG'],
@@ -171,7 +172,8 @@ export const MEMBERSHIP_PLANS = [
   },
   {
     id: 'junior',
-    title: 'Juvenil',
+    title: 'Atleta juvenil',
+    kicker: 'Plan anual',
     price: PRICING.membershipJunior,
     period: 'anual',
     features: ['10 a 17 años', 'Credencial digital', 'Eventos juveniles PLU ARG'],
@@ -180,7 +182,8 @@ export const MEMBERSHIP_PLANS = [
   },
   {
     id: 'combo',
-    title: 'Combo Pitbull',
+    title: 'Pitbull Classic',
+    kicker: 'Combo temporada',
     price: PRICING.combo,
     period: 'temporada 2026',
     features: ['Afiliación anual', 'Inscripción Pitbull Classic', 'Un solo trámite'],
@@ -226,23 +229,23 @@ export const MEMBERSHIP_INSTITUTIONAL = {
 export const MEMBERSHIP_REQUIREMENTS = [
   {
     id: 'id',
-    title: 'Documento de identidad',
-    text: 'DNI o pasaporte vigente.',
+    title: 'Documento',
+    text: 'DNI o pasaporte vigente. Sin eso no se valida la solicitud.',
   },
   {
     id: 'age',
-    title: 'Edad mínima 14 años',
-    text: 'Menores de 18: autorización del tutor.',
+    title: 'Edad',
+    text: 'Desde 14 años. Menores de 18: autorización del tutor.',
   },
   {
     id: 'health',
-    title: 'Apto médico o declaración jurada',
-    text: 'Certificado o DJ de salud al día.',
+    title: 'Aptitud',
+    text: 'Certificado médico o declaración jurada de salud al día.',
   },
   {
     id: 'photo',
-    title: 'Foto para credencial',
-    text: 'Imagen digital reciente.',
+    title: 'Foto',
+    text: 'Retrato digital reciente, de frente y con buena luz.',
   },
 ]
 
@@ -338,6 +341,7 @@ export const PITBULL_CLASSIC = {
   tagline:
     'Pitbull Classic reúne atletas de PLU Argentina en una competencia oficial preparada para registrar inscripciones, categorías, resultados y reportes bajo el estándar de Powerlifting United.',
   date: '12 y 13 de diciembre de 2026',
+  dateShort: '12–13 dic 2026',
   dateDay: '12–13',
   dateMonth: 'Dic',
   venue: 'Maximal Strength Club',
@@ -377,17 +381,17 @@ export const PITBULL_ATHLETE_GROUPS = [
       {
         id: 'membership',
         title: 'Afiliación',
-        text: 'Activa en el año calendario, o combo afiliación + inscripción al registrarte.',
+        text: 'Año calendario o combo al inscribirte.',
       },
       {
         id: 'category',
         title: 'Categoría',
-        text: 'Modalidad, edad y peso según reglamento PLU ARG.',
+        text: 'Modalidad, edad y peso (reglamento).',
       },
       {
         id: 'confirmation',
         title: 'Validación',
-        text: 'Confirmamos pago e inscripción antes de habilitar la credencial.',
+        text: 'Pago e inscripción confirmados.',
       },
     ],
   },
@@ -398,12 +402,12 @@ export const PITBULL_ATHLETE_GROUPS = [
       {
         id: 'weighin',
         title: 'Pesaje',
-        text: 'Ventana oficial el día de tu jornada.',
+        text: 'Ventana oficial de tu jornada.',
       },
       {
         id: 'results',
         title: 'Resultados',
-        text: 'Se publican acá después del meet, desde LiftingCast.',
+        text: 'Publicados acá desde LiftingCast.',
       },
     ],
   },

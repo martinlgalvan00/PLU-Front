@@ -35,7 +35,7 @@ const createOrderSchema = z.object({
       phone: z.string().trim().optional(),
     })
     .optional(),
-  provider: z.enum(['mercado_pago', 'manual', 'mock']).optional(),
+  provider: z.enum(['mercado_pago', 'manual']).optional(),
 })
 
 export function createTicketRoutes({ getPrisma }) {
@@ -43,7 +43,6 @@ export function createTicketRoutes({ getPrisma }) {
   const prisma = getPrisma()
   const guard = requireRole(CHECKIN_ROLES, { prisma })
   const financeGuard = requireRole(FINANCE_ROLES, { prisma })
-  const [financeAuth, financeRole] = financeGuard
 
   async function approveOrderHandler(req, res, next) {
     try {
@@ -64,22 +63,15 @@ export function createTicketRoutes({ getPrisma }) {
     }
   })
 
-  // "Simular pago": stand-in del webhook de Mercado Pago. Órdenes manuales
-  // requieren rol operativo (validación de transferencias).
-  router.post('/orders/:orderId/approve', async (req, res, next) => {
+  // Aprobación exclusivamente manual y protegida. Mercado Pago confirma
+  // por el webhook firmado de /api/payments/webhook.
+  router.post('/orders/:orderId/approve', ...financeGuard, async (req, res, next) => {
     try {
       const order = await prisma.ticketOrder.findUnique({ where: { id: req.params.orderId } })
       if (!order) throw new HttpError(404, 'Orden no encontrada.')
-      if (order.provider === 'manual') {
-        return financeAuth(req, res, (authError) => {
-          if (authError) return next(authError)
-          return financeRole(req, res, (roleError) => {
-            if (roleError) return next(roleError)
-            return approveOrderHandler(req, res, next)
-          })
-        })
+      if (order.provider !== 'manual') {
+        throw new HttpError(400, 'Los pagos de Mercado Pago solo se aprueban por webhook.')
       }
-
       return approveOrderHandler(req, res, next)
     } catch (error) {
       next(error)

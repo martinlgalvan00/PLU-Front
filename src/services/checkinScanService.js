@@ -1,4 +1,5 @@
 import { ApiError } from '../lib/api.js'
+import { getMembershipByCodeOrToken } from './athleteApi.js'
 import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
 
 /** Estado sintético unificado para atletas (pagos) y tickets (ciclo de entrada). */
@@ -44,38 +45,37 @@ function checkinOutcomeFromStatus(status) {
   return 'not_ready'
 }
 
-export function resolveRegistrationScan({ code, eventSlug }, ctx) {
-  const { athletes, memberships, registrations, defaultEventSlug } = ctx
+export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
+  const { defaultEventSlug } = ctx
   const slug = eventSlug || defaultEventSlug
 
-  const membership = memberships.find(
-    (item) => (item.memberCode ?? '').toLowerCase() === (code ?? '').toLowerCase(),
-  )
-  if (!membership) return { kind: 'registration', outcome: 'not_found' }
+  try {
+    const { athlete, membership, registration } = await getMembershipByCodeOrToken(code, slug)
+    if (!membership || !athlete) return { kind: 'registration', outcome: 'not_found' }
 
-  const athlete = athletes.find((item) => item.id === membership.athleteId)
-  if (!athlete) return { kind: 'registration', outcome: 'not_found' }
+    if (!registration) {
+      return { kind: 'registration', outcome: 'no_registration', athlete, membership }
+    }
 
-  const registration = registrations.find(
-    (item) => item.athleteId === athlete.id && item.eventSlug === slug && item.status !== 'cancelada',
-  )
-  if (!registration) {
-    return { kind: 'registration', outcome: 'no_registration', athlete, membership }
-  }
+    const status = registrationCheckinStatus(registration)
+    const outcome = checkinOutcomeFromStatus(status)
 
-  const status = registrationCheckinStatus(registration)
-  const outcome = checkinOutcomeFromStatus(status)
-
-  return {
-    kind: 'registration',
-    outcome,
-    canCheckIn: outcome === 'ready',
-    athlete,
-    membership,
-    registration,
-    registrationId: registration.id,
-    status,
-    row: buildAthleteRow(registration, athlete),
+    return {
+      kind: 'registration',
+      outcome,
+      canCheckIn: outcome === 'ready',
+      athlete,
+      membership,
+      registration,
+      registrationId: registration.id,
+      status,
+      row: buildAthleteRow(registration, athlete),
+    }
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return { kind: 'registration', outcome: 'not_found' }
+    }
+    throw error
   }
 }
 
@@ -114,7 +114,7 @@ export async function resolveCredentialScan(parsed, ctx) {
     return resolveTicketScan(parsed.code)
   }
 
-  const registrationResult = resolveRegistrationScan(parsed, ctx)
+  const registrationResult = await resolveRegistrationScan(parsed, ctx)
   if (registrationResult.outcome !== 'not_found') {
     return registrationResult
   }

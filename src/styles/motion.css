@@ -422,20 +422,20 @@
   animation: motion-fade-up 0.34s var(--ease-emphasized) both;
 }
 
-.hero--design.is-animate .hero-meta__when {
-  animation-delay: 0.38s;
+.hero--design.is-animate .hero-meta__label {
+  animation-delay: 0.36s;
 }
 
 .hero--design.is-animate .hero-meta__meet {
-  animation-delay: 0.44s;
+  animation-delay: 0.42s;
 }
 
-.hero--design.is-animate .hero-meta__where {
-  animation-delay: 0.5s;
+.hero--design.is-animate .hero-meta__body {
+  animation-delay: 0.48s;
 }
 
 .hero--design.is-animate .hero-meta__status {
-  animation-delay: 0.56s;
+  animation-delay: 0.54s;
 }
 
 /* ── Event / membership cards ───────────────── */

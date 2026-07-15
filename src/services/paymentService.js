@@ -1,5 +1,5 @@
 import { env } from '../config/env.js'
-import { apiPost } from '../lib/api.js'
+import { apiGet, apiPost } from '../lib/api.js'
 
 export function isMercadoPagoConfigured() {
   return env.mercadoPago.configured
@@ -16,38 +16,27 @@ export function getPaymentStatusForMethod(method) {
   return method === 'mercado_pago' ? 'pendiente' : 'validacion_manual'
 }
 
-export async function createPreference({ paymentId, amount, concept, athleteId }) {
-  const reference = createPaymentReference('mercado_pago')
-
-  if (!env.mercadoPago.configured) {
-    return { preferenceId: `local-${paymentId}`, initPoint: null, reference }
-  }
-
-  try {
-    return await apiPost('/api/payments/preferences', {
-      paymentId,
-      amount,
-      concept,
-      athleteId,
-      reference,
-    })
-  } catch {
-    return {
-      preferenceId: `local-${paymentId}`,
-      initPoint: `${env.appUrl}/pagos/${paymentId}`,
-      reference,
-    }
-  }
+export async function createPreference({ paymentId }) {
+  return apiPost('/api/payments/preferences', { paymentOrderId: paymentId })
 }
 
-export async function validatePayment(reference) {
-  if (!env.mercadoPago.configured) {
-    return { status: 'aprobado', reference }
-  }
+export async function processEmbeddedPayment({ paymentOrderId, formData }) {
+  return apiPost('/api/payments/embedded/process', { paymentOrderId, formData })
+}
 
-  try {
-    return await apiPost('/api/payments/validate', { reference })
-  } catch {
-    return { status: 'pendiente', reference }
-  }
+export async function getPaymentOrderStatus(paymentOrderId) {
+  return apiGet(`/api/payments/orders/${encodeURIComponent(paymentOrderId)}/status`)
+}
+
+export async function listMembershipPlans() {
+  return apiGet('/api/payments/plans')
+}
+
+export async function processEmbeddedSubscription({ paymentOrderId, planCode, cardToken }) {
+  return apiPost('/api/payments/subscriptions/process', { paymentOrderId, planCode, cardToken })
+}
+
+export async function validatePayment(paymentOrderId) {
+  const result = await getPaymentOrderStatus(paymentOrderId)
+  return result.order
 }

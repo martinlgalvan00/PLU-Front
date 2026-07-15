@@ -1,3 +1,4 @@
+import { ArrowRight, Mail } from 'lucide-react'
 import Button from '../components/ui/Button.jsx'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -54,13 +55,31 @@ export default function RecordsPage({ onNavigate }) {
           </div>
 
           <div className="records-sheet__foot">
-            <p className="records-sheet__empty">{t('pages.records.sheetEmpty')}</p>
-            <p className="records-sheet__hint">{t('pages.records.sheetHint')}</p>
-            <div className="records-sheet__actions">
-              <Button onClick={() => onNavigate('results')}>{t('pages.records.ctaResults')}</Button>
-              <button type="button" className="records-sheet__link" onClick={() => onNavigate('contact')}>
+            <div className="records-sheet__copy">
+              <p className="records-sheet__empty">{t('pages.records.sheetEmpty')}</p>
+              <p className="records-sheet__hint">{t('pages.records.sheetHint')}</p>
+            </div>
+
+            <div
+              className="records-sheet__actions"
+              role="group"
+              aria-label={t('pages.records.actionsAria')}
+            >
+              <Button
+                className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
+                onClick={() => onNavigate('results')}
+              >
+                {t('pages.records.ctaResults')}
+                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+              </Button>
+              <Button
+                variant="outline"
+                className="records-sheet__cta records-sheet__cta--outline"
+                onClick={() => onNavigate('contact')}
+              >
+                <Mail size={14} aria-hidden />
                 {t('pages.records.ctaContact')}
-              </button>
+              </Button>
             </div>
           </div>
         </Reveal>

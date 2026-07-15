@@ -27,6 +27,11 @@ export const env = {
     publicKey: import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY ?? '',
     configured: Boolean(import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY),
   },
+  payments: {
+    transferAlias: import.meta.env.VITE_PAYMENT_TRANSFER_ALIAS ?? '',
+    transferCbu: import.meta.env.VITE_PAYMENT_TRANSFER_CBU ?? '',
+    transferHolder: import.meta.env.VITE_PAYMENT_TRANSFER_HOLDER ?? '',
+  },
   auth0: {
     domain: auth0Domain,
     clientId: auth0ClientId,

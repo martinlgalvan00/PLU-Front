@@ -154,6 +154,33 @@ enum PaymentProvider {
   mock
 }
 
+enum BillingFrequency {
+  monthly
+  annual
+}
+
+enum BillingCollectionMode {
+  one_time
+  recurring
+}
+
+enum BillingSubscriptionStatus {
+  pending
+  authorized
+  paused
+  past_due
+  cancelled
+  ended
+}
+
+enum MembershipCycleStatus {
+  pending
+  active
+  expired
+  cancelled
+  refunded
+}
+
 enum TicketStatus {
   pendiente_pago
   pagada
@@ -267,33 +294,35 @@ model Organization {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
-  members                 OrganizationMember[]
-  venues                  Venue[]
-  people                  OrganizationAthlete[]
-  membershipPlans         MembershipPlan[]
-  membershipPeriods       MembershipPeriod[]
-  memberships             Membership[]
-  events                  Event[]
-  eventDivisions          EventDivision[]
-  eventCategories         EventCategory[]
-  eventRegistrations      EventRegistration[]
-  ticketTypes             TicketType[]
-  ticketSaleWindows       TicketSaleWindow[]
-  ticketOrders            TicketOrder[]
-  tickets                 Ticket[]
-  ticketAddons            TicketAddon[]
-  ticketAddonOptions      TicketAddonOption[]
-  ticketAddonSelections   TicketAddonSelection[]
-  ticketAddonRedemptions  TicketAddonRedemption[]
-  checkIns                CheckIn[]
-  paymentOrders           PaymentOrder[]
-  paymentOrderItems       PaymentOrderItem[]
-  payments                Payment[]
-  paymentAllocations      PaymentAllocation[]
-  integrationEvents       IntegrationEvent[]
-  outboxEvents            OutboxEvent[]
-  exportJobs              ExportJob[]
-  auditLogs               AuditLog[]
+  members                OrganizationMember[]
+  venues                 Venue[]
+  people                 OrganizationAthlete[]
+  membershipPlans        MembershipPlan[]
+  membershipPeriods      MembershipPeriod[]
+  memberships            Membership[]
+  membershipCycles       MembershipCycle[]
+  billingSubscriptions   BillingSubscription[]
+  events                 Event[]
+  eventDivisions         EventDivision[]
+  eventCategories        EventCategory[]
+  eventRegistrations     EventRegistration[]
+  ticketTypes            TicketType[]
+  ticketSaleWindows      TicketSaleWindow[]
+  ticketOrders           TicketOrder[]
+  tickets                Ticket[]
+  ticketAddons           TicketAddon[]
+  ticketAddonOptions     TicketAddonOption[]
+  ticketAddonSelections  TicketAddonSelection[]
+  ticketAddonRedemptions TicketAddonRedemption[]
+  checkIns               CheckIn[]
+  paymentOrders          PaymentOrder[]
+  paymentOrderItems      PaymentOrderItem[]
+  payments               Payment[]
+  paymentAllocations     PaymentAllocation[]
+  integrationEvents      IntegrationEvent[]
+  outboxEvents           OutboxEvent[]
+  exportJobs             ExportJob[]
+  auditLogs              AuditLog[]
 
   @@index([status])
 }
@@ -326,6 +355,7 @@ model User {
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  personId     String?    @unique
 
   profile                 UserProfile?
   identities              UserIdentity[]
@@ -340,6 +370,7 @@ model User {
   auditLogs               AuditLog[]
   checkIns                CheckIn[]
   outboxEvents            OutboxEvent[]
+  person                  Person?                      @relation(fields: [personId], references: [id], onDelete: SetNull)
 
   @@index([role, status])
 }
@@ -466,29 +497,31 @@ model UserRecentEntity {
 }
 
 model Person {
-  id                    String         @id @default(cuid())
+  id                    String          @id @default(cuid())
   firstName             String
   lastName              String
   birthDate             DateTime?
   email                 String?
   phone                 String?
-  country               String         @default("Argentina")
+  country               String          @default("Argentina")
   province              String?
   city                  String?
   competitiveSex        CompetitiveSex?
-  estimatedBodyweightKg Decimal?       @db.Decimal(6, 2)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  estimatedBodyweightKg Decimal?        @db.Decimal(6, 2)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  documents             PersonDocument[]
-  organizationAthletes  OrganizationAthlete[]
-  memberships           Membership[]
-  registrations         EventRegistration[]
-  ticketOrders          TicketOrder[]       @relation("TicketOrderBuyer")
-  tickets               Ticket[]            @relation("TicketAttendee")
-  paymentOrders         PaymentOrder[]
-  payments              Payment[]
-  results               LiftingResult[]
+  documents            PersonDocument[]
+  organizationAthletes OrganizationAthlete[]
+  memberships          Membership[]
+  registrations        EventRegistration[]
+  ticketOrders         TicketOrder[]         @relation("TicketOrderBuyer")
+  tickets              Ticket[]              @relation("TicketAttendee")
+  paymentOrders        PaymentOrder[]
+  payments             Payment[]
+  results              LiftingResult[]
+  user                 User?
+  billingSubscriptions BillingSubscription[]
 
   @@index([lastName, firstName])
   @@index([email])
@@ -533,41 +566,52 @@ model OrganizationAthlete {
 }
 
 model MembershipPlan {
-  id             String        @id @default(cuid())
-  organizationId String
-  code           String
-  name           String
-  description    String?
-  status         CatalogStatus @default(active)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id               String                @id @default(cuid())
+  organizationId   String
+  code             String
+  name             String
+  description      String?
+  status           CatalogStatus         @default(active)
+  billingFrequency BillingFrequency      @default(annual)
+  collectionMode   BillingCollectionMode @default(one_time)
+  intervalCount    Int                   @default(1)
+  graceDays        Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  periods      MembershipPeriod[]
+  organization  Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  periods       MembershipPeriod[]
+  subscriptions BillingSubscription[]
 
   @@unique([organizationId, code])
   @@index([organizationId, status])
 }
 
 model MembershipPeriod {
-  id               String        @id @default(cuid())
+  id               String                @id @default(cuid())
   organizationId   String
   membershipPlanId String
   year             Int
   startsAt         DateTime
   endsAt           DateTime
   price            Int
-  currency         String        @default("ARS")
-  status           CatalogStatus @default(active)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  currency         String                @default("ARS")
+  billingFrequency BillingFrequency      @default(annual)
+  collectionMode   BillingCollectionMode @default(one_time)
+  intervalCount    Int                   @default(1)
+  providerPlanId   String?
+  status           CatalogStatus         @default(active)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  membershipPlan MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Restrict)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membershipPlan MembershipPlan        @relation(fields: [membershipPlanId], references: [id], onDelete: Restrict)
   memberships    Membership[]
+  subscriptions  BillingSubscription[]
 
   @@unique([organizationId, membershipPlanId, year])
   @@index([organizationId, status, startsAt])
+  @@index([providerPlanId])
 }
 
 model Membership {
@@ -585,13 +629,15 @@ model Membership {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
-  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  person           Person           @relation(fields: [personId], references: [id], onDelete: Restrict)
-  membershipPeriod MembershipPeriod @relation(fields: [membershipPeriodId], references: [id], onDelete: Restrict)
-  paymentOrder     PaymentOrder?    @relation("MembershipPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
-  payment          Payment?         @relation("MembershipPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  person           Person                @relation(fields: [personId], references: [id], onDelete: Restrict)
+  membershipPeriod MembershipPeriod      @relation(fields: [membershipPeriodId], references: [id], onDelete: Restrict)
+  paymentOrder     PaymentOrder?         @relation("MembershipPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  payment          Payment?              @relation("MembershipPayment", fields: [paymentId], references: [id], onDelete: SetNull)
   registrations    EventRegistration[]
   allocations      PaymentAllocation[]
+  cycles           MembershipCycle[]
+  subscriptions    BillingSubscription[]
 
   @@unique([organizationId, memberCode])
   @@unique([organizationId, personId, membershipPeriodId])
@@ -599,6 +645,63 @@ model Membership {
   @@index([personId, status])
   @@index([paymentOrderId])
   @@index([paymentId])
+}
+
+model MembershipCycle {
+  id             String                @id @default(cuid())
+  organizationId String
+  membershipId   String
+  paymentOrderId String?
+  paymentId      String?
+  startsAt       DateTime
+  endsAt         DateTime
+  status         MembershipCycleStatus @default(pending)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  membership   Membership          @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  paymentOrder PaymentOrder?       @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  payment      Payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  allocations  PaymentAllocation[]
+
+  @@unique([membershipId, paymentOrderId])
+  @@index([organizationId, status, endsAt])
+  @@index([membershipId, startsAt, endsAt])
+  @@index([paymentId])
+}
+
+model BillingSubscription {
+  id                     String                    @id @default(cuid())
+  organizationId         String
+  personId               String
+  membershipId           String
+  membershipPlanId       String
+  membershipPeriodId     String
+  provider               PaymentProvider           @default(mercado_pago)
+  providerSubscriptionId String?
+  providerPlanId         String?
+  externalRef            String                    @unique
+  status                 BillingSubscriptionStatus @default(pending)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  nextBillingAt          DateTime?
+  cancelAtPeriodEnd      Boolean                   @default(false)
+  cancelledAt            DateTime?
+  rawPayload             Json?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  person           Person           @relation(fields: [personId], references: [id], onDelete: Restrict)
+  membership       Membership       @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  membershipPlan   MembershipPlan   @relation(fields: [membershipPlanId], references: [id], onDelete: Restrict)
+  membershipPeriod MembershipPeriod @relation(fields: [membershipPeriodId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerSubscriptionId])
+  @@index([organizationId, status, nextBillingAt])
+  @@index([personId, status])
+  @@index([membershipId, status])
 }
 
 model Venue {
@@ -623,22 +726,22 @@ model Venue {
 }
 
 model Event {
-  id                   String                @id @default(cuid())
-  organizationId       String
-  venueId              String?
-  slug                 String
-  title                String
-  description          String?
-  startsAt             DateTime
-  endsAt               DateTime
-  publishedAt          DateTime?
-  cancelledAt          DateTime?
-  archivedAt           DateTime?
-  visibilityStatus     EventVisibilityStatus @default(draft)
-  lifecycleStatus      EventLifecycleStatus  @default(upcoming)
-  requiresMembership   Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                 String                @id @default(cuid())
+  organizationId     String
+  venueId            String?
+  slug               String
+  title              String
+  description        String?
+  startsAt           DateTime
+  endsAt             DateTime
+  publishedAt        DateTime?
+  cancelledAt        DateTime?
+  archivedAt         DateTime?
+  visibilityStatus   EventVisibilityStatus @default(draft)
+  lifecycleStatus    EventLifecycleStatus  @default(upcoming)
+  requiresMembership Boolean               @default(true)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   organization        Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   venue               Venue?                    @relation(fields: [venueId], references: [id], onDelete: SetNull)
@@ -707,10 +810,10 @@ model EventDivision {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  event            Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  athletesDefault  OrganizationAthlete[]
-  registrations    EventRegistration[]
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event           Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  athletesDefault OrganizationAthlete[]
+  registrations   EventRegistration[]
 
   @@unique([eventId, code])
   @@index([organizationId, status])
@@ -727,10 +830,10 @@ model EventCategory {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  event            Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  athletesDefault  OrganizationAthlete[]
-  registrations    EventRegistration[]
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event           Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  athletesDefault OrganizationAthlete[]
+  registrations   EventRegistration[]
 
   @@unique([eventId, code])
   @@index([organizationId, status])
@@ -768,14 +871,14 @@ model EventRegistration {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  person       Person         @relation(fields: [personId], references: [id], onDelete: Restrict)
-  event        Event          @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  membership   Membership?    @relation(fields: [membershipId], references: [id], onDelete: SetNull)
-  division     EventDivision  @relation(fields: [divisionId], references: [id], onDelete: Restrict)
-  category     EventCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  paymentOrder PaymentOrder?  @relation("RegistrationPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
-  payment      Payment?       @relation("RegistrationPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  person       Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  membership   Membership?         @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  division     EventDivision       @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  category     EventCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  paymentOrder PaymentOrder?       @relation("RegistrationPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  payment      Payment?            @relation("RegistrationPayment", fields: [paymentId], references: [id], onDelete: SetNull)
   allocations  PaymentAllocation[]
   checkIn      CheckIn?
 
@@ -836,28 +939,28 @@ model TicketSaleWindow {
 }
 
 model TicketOrder {
-  id                   String            @id @default(cuid())
-  organizationId       String
-  eventId              String
-  paymentOrderId       String?
-  buyerPersonId        String?
-  buyerName            String?
-  buyerEmail           String?
-  buyerPhone           String?
-  totalAmount          Int
-  currency             String            @default("ARS")
-  provider             PaymentProvider   @default(mercado_pago)
-  status               TicketOrderStatus @default(creado)
-  reference            String?           @unique
-  paymentProofPath     String?
+  id                     String            @id @default(cuid())
+  organizationId         String
+  eventId                String
+  paymentOrderId         String?
+  buyerPersonId          String?
+  buyerName              String?
+  buyerEmail             String?
+  buyerPhone             String?
+  totalAmount            Int
+  currency               String            @default("ARS")
+  provider               PaymentProvider   @default(mercado_pago)
+  status                 TicketOrderStatus @default(creado)
+  reference              String?           @unique
+  paymentProofPath       String?
   paymentProofUploadedAt DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  event        Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  paymentOrder PaymentOrder? @relation("TicketOrderPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
-  buyerPerson  Person?       @relation("TicketOrderBuyer", fields: [buyerPersonId], references: [id], onDelete: SetNull)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  paymentOrder PaymentOrder?       @relation("TicketOrderPaymentOrder", fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  buyerPerson  Person?             @relation("TicketOrderBuyer", fields: [buyerPersonId], references: [id], onDelete: SetNull)
   tickets      Ticket[]
   allocations  PaymentAllocation[]
 
@@ -867,29 +970,29 @@ model TicketOrder {
 }
 
 model Ticket {
-  id                 String       @id @default(cuid())
-  organizationId     String
-  eventId            String
-  ticketTypeId       String
-  saleWindowId       String
-  ticketOrderId      String
-  attendeePersonId   String?
-  attendeeName       String
-  attendeeDocument   String
-  ticketCode         String
-  qrToken            String       @unique @default(cuid())
-  status             TicketStatus @default(pendiente_pago)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  organizationId   String
+  eventId          String
+  ticketTypeId     String
+  saleWindowId     String
+  ticketOrderId    String
+  attendeePersonId String?
+  attendeeName     String
+  attendeeDocument String
+  ticketCode       String
+  qrToken          String       @unique @default(cuid())
+  status           TicketStatus @default(pendiente_pago)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  event          Event            @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  ticketType     TicketType       @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
-  saleWindow     TicketSaleWindow @relation(fields: [saleWindowId], references: [id], onDelete: Restrict)
-  ticketOrder    TicketOrder      @relation(fields: [ticketOrderId], references: [id], onDelete: Restrict)
-  attendeePerson Person?          @relation("TicketAttendee", fields: [attendeePersonId], references: [id], onDelete: SetNull)
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event           Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  ticketType      TicketType             @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  saleWindow      TicketSaleWindow       @relation(fields: [saleWindowId], references: [id], onDelete: Restrict)
+  ticketOrder     TicketOrder            @relation(fields: [ticketOrderId], references: [id], onDelete: Restrict)
+  attendeePerson  Person?                @relation("TicketAttendee", fields: [attendeePersonId], references: [id], onDelete: SetNull)
   addonSelections TicketAddonSelection[]
-  checkIn        CheckIn?
+  checkIn         CheckIn?
 
   @@unique([organizationId, ticketCode])
   @@index([eventId, status])
@@ -927,8 +1030,8 @@ model TicketAddonOption {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  addon        TicketAddon              @relation(fields: [addonId], references: [id], onDelete: Cascade)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  addon        TicketAddon            @relation(fields: [addonId], references: [id], onDelete: Cascade)
   selections   TicketAddonSelection[]
 
   @@unique([addonId, code])
@@ -944,9 +1047,9 @@ model TicketAddonSelection {
   currency       String   @default("ARS")
   createdAt      DateTime @default(now())
 
-  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  ticket       Ticket                    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  option       TicketAddonOption         @relation(fields: [optionId], references: [id], onDelete: Restrict)
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticket       Ticket                  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  option       TicketAddonOption       @relation(fields: [optionId], references: [id], onDelete: Restrict)
   redemptions  TicketAddonRedemption[]
 
   @@unique([ticketId, optionId])
@@ -961,7 +1064,7 @@ model TicketAddonRedemption {
   gate           String?
   redeemedAt     DateTime @default(now())
 
-  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   selection    TicketAddonSelection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, redeemedAt])
@@ -1007,14 +1110,15 @@ model PaymentOrder {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
-  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  payerPerson   Person?             @relation(fields: [payerPersonId], references: [id], onDelete: SetNull)
-  items         PaymentOrderItem[]
-  payments      Payment[]
-  memberships   Membership[]        @relation("MembershipPaymentOrder")
-  registrations EventRegistration[] @relation("RegistrationPaymentOrder")
-  ticketOrders  TicketOrder[]       @relation("TicketOrderPaymentOrder")
-  allocations   PaymentAllocation[]
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payerPerson      Person?             @relation(fields: [payerPersonId], references: [id], onDelete: SetNull)
+  items            PaymentOrderItem[]
+  payments         Payment[]
+  memberships      Membership[]        @relation("MembershipPaymentOrder")
+  registrations    EventRegistration[] @relation("RegistrationPaymentOrder")
+  ticketOrders     TicketOrder[]       @relation("TicketOrderPaymentOrder")
+  allocations      PaymentAllocation[]
+  membershipCycles MembershipCycle[]
 
   @@index([organizationId, status, createdAt])
   @@index([payerPersonId, status])
@@ -1059,12 +1163,13 @@ model Payment {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  paymentOrder  PaymentOrder        @relation(fields: [paymentOrderId], references: [id], onDelete: Restrict)
-  payerPerson   Person?             @relation(fields: [payerPersonId], references: [id], onDelete: SetNull)
-  memberships   Membership[]        @relation("MembershipPayment")
-  registrations EventRegistration[] @relation("RegistrationPayment")
-  allocations   PaymentAllocation[]
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  paymentOrder     PaymentOrder        @relation(fields: [paymentOrderId], references: [id], onDelete: Restrict)
+  payerPerson      Person?             @relation(fields: [payerPersonId], references: [id], onDelete: SetNull)
+  memberships      Membership[]        @relation("MembershipPayment")
+  registrations    EventRegistration[] @relation("RegistrationPayment")
+  allocations      PaymentAllocation[]
+  membershipCycles MembershipCycle[]
 
   @@unique([provider, externalPaymentId])
   @@index([organizationId, status, createdAt])
@@ -1080,6 +1185,7 @@ model PaymentAllocation {
   paymentOrderItemId  String?
   paymentId           String?
   membershipId        String?
+  membershipCycleId   String?
   eventRegistrationId String?
   ticketOrderId       String?
   amount              Int
@@ -1090,6 +1196,7 @@ model PaymentAllocation {
   paymentOrderItem  PaymentOrderItem?  @relation(fields: [paymentOrderItemId], references: [id], onDelete: SetNull)
   payment           Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   membership        Membership?        @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  membershipCycle   MembershipCycle?   @relation(fields: [membershipCycleId], references: [id], onDelete: SetNull)
   eventRegistration EventRegistration? @relation(fields: [eventRegistrationId], references: [id], onDelete: SetNull)
   ticketOrder       TicketOrder?       @relation(fields: [ticketOrderId], references: [id], onDelete: SetNull)
 
@@ -1098,6 +1205,7 @@ model PaymentAllocation {
   @@index([paymentOrderItemId])
   @@index([paymentId])
   @@index([membershipId])
+  @@index([membershipCycleId])
   @@index([eventRegistrationId])
   @@index([ticketOrderId])
 }
@@ -1148,30 +1256,37 @@ model LiftingResult {
 }
 
 model IntegrationEvent {
-  id             String                 @id @default(cuid())
-  organizationId String
-  provider       IntegrationProvider
-  type           String
-  status         IntegrationEventStatus @default(received)
-  externalId     String?
-  idempotencyKey String?                @unique
-  entityType     String?
-  entityId       String?
-  payload        Json?
-  result         Json?
-  error          String?
-  attemptsCount  Int                    @default(0)
-  receivedAt     DateTime               @default(now())
-  processedAt    DateTime?
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  id                     String                 @id @default(cuid())
+  organizationId         String
+  provider               IntegrationProvider
+  type                   String
+  status                 IntegrationEventStatus @default(received)
+  externalId             String?
+  providerNotificationId String?
+  providerResourceId     String?
+  action                 String?
+  requestId              String?
+  signatureValid         Boolean?
+  idempotencyKey         String?                @unique
+  entityType             String?
+  entityId               String?
+  payload                Json?
+  result                 Json?
+  error                  String?
+  attemptsCount          Int                    @default(0)
+  receivedAt             DateTime               @default(now())
+  processedAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   attempts     IntegrationAttempt[]
 
-  @@unique([provider, externalId])
+  @@unique([provider, providerNotificationId])
   @@index([organizationId, provider, status])
   @@index([provider, type, status])
+  @@index([provider, providerResourceId])
+  @@index([provider, externalId])
   @@index([entityType, entityId])
   @@index([receivedAt])
 }
