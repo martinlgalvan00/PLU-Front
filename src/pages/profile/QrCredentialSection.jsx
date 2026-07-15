@@ -32,6 +32,7 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
     ? {
         athleteName: athlete.fullName,
         athleteCode: memberCode,
+        athletePhotoUrl: athlete.photoUrl,
         qrCode: qrToken,
         membershipExpiration: validUntil,
         variant: 'membership',

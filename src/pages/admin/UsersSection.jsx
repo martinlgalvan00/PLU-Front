@@ -45,6 +45,7 @@ export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRol
 
   return (
     <AdminListSection
+      variant="users"
       filteredCount={rows.length}
       placeholder={t('admin.search.users')}
       query={query}
@@ -92,19 +93,31 @@ export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRol
           {
             key: 'name',
             label: t('admin.columns.user'),
+            mobile: 'primary',
             render: (row) => <AdminIdentityCell name={row.name} sub={row.email} />,
           },
           {
             key: 'role',
             label: t('admin.columns.role'),
+            mobile: 'badge',
             render: (row) =>
               canManageUsers ? (
-                <Select
-                  name={`role-${row.id}`}
-                  value={row.role}
-                  onChange={(e) => onUpdateRole(row.id, e.target.value)}
-                  options={ROLE_OPTIONS}
-                />
+                <label className="admin-users__role-select">
+                  <span className="admin-users__role-select-label">{t('admin.columns.role')}</span>
+                  <select
+                    name={`role-${row.id}`}
+                    value={row.role}
+                    aria-label={`${t('admin.columns.role')}: ${row.name}`}
+                    onChange={(e) => onUpdateRole(row.id, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {ROLE_OPTIONS.map(([optionValue, optionLabel]) => (
+                      <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : (
                 <span className="status-pill status-pill--neutral">{getRoleLabel(row.role)}</span>
               ),

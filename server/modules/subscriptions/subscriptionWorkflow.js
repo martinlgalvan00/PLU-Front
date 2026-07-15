@@ -66,6 +66,7 @@ export async function createEmbeddedRecurringSubscription(input, { repository, m
     order: prepared.order,
     tokenFingerprint,
     idempotencyKey: key('embedded-subscription', `${prepared.order.id}:${tokenFingerprint}`),
+    operationKind: 'subscription',
   })
   const attempt = claimed.attempt
 

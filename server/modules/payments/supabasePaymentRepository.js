@@ -1,4 +1,5 @@
 import { HttpError } from '../../lib/errors.js'
+import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function assertResult(result, fallbackMessage) {
   if (result.error) {
@@ -77,14 +78,17 @@ export function createSupabasePaymentRepository(client) {
   return {
     getOrder,
 
-    async claimEmbeddedAttempt({ order, tokenFingerprint, idempotencyKey }) {
+    async claimEmbeddedAttempt({ order, tokenFingerprint, idempotencyKey, operationKind = 'payment' }) {
       return assertResult(
-        await client.rpc('claim_embedded_payment_attempt', {
+        await client.rpc(
+          operationKind === 'subscription'
+            ? 'claim_embedded_subscription_attempt'
+            : 'claim_embedded_payment_attempt', {
           p_order_kind: order.kind,
           p_order_id: order.id,
           p_token_fingerprint: tokenFingerprint,
           p_idempotency_key: idempotencyKey,
-        }),
+          }),
         'No se pudo iniciar el pago embebido.',
       )
     },
@@ -144,8 +148,9 @@ export function createSupabasePaymentRepository(client) {
             action,
             request_id: requestId,
             signature_valid: true,
-            status: 'processing',
-            attempts_count: 1,
+            status: 'received',
+            attempts_count: 0,
+            next_retry_at: new Date().toISOString(),
             payload,
           })
           .select()
@@ -155,32 +160,115 @@ export function createSupabasePaymentRepository(client) {
       return { event, created: true }
     },
 
+    async claimWebhookEvent(eventId, { force = false } = {}) {
+      return assertResult(
+        await client.rpc('claim_payment_integration_event', {
+          p_event_id: eventId,
+          p_force: force,
+        }),
+        'No se pudo reclamar el evento de pago.',
+      )
+    },
+
+    async claimDueWebhookEvents(limit = 20) {
+      return assertResult(
+        await client.rpc('claim_due_payment_integration_events', { p_limit: limit }),
+        'No se pudieron recuperar eventos de pago.',
+      ) ?? []
+    },
+
     async markWebhookProcessed(eventId, result) {
       return assertResult(
-        await client
-          .from('payment_integration_events')
-          .update({
-            status: 'processed',
-            result,
-            processed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', eventId)
-          .select()
-          .single(),
+        await client.rpc('complete_payment_integration_event', {
+          p_event_id: eventId,
+          p_succeeded: true,
+          p_result: result,
+          p_error: null,
+        }),
         'No se pudo finalizar el webhook.',
       )
     },
 
     async markWebhookFailed(eventId, error) {
-      await client
+      return assertResult(
+        await client.rpc('complete_payment_integration_event', {
+          p_event_id: eventId,
+          p_succeeded: false,
+          p_result: null,
+          p_error: error?.message ?? String(error),
+        }),
+        'No se pudo registrar la falla del webhook.',
+      )
+    },
+
+    async claimEmbeddedReconciliations(limit = 20) {
+      return assertResult(
+        await client.rpc('claim_embedded_payment_reconciliations', { p_limit: limit }),
+        'No se pudieron reclamar conciliaciones de pago.',
+      ) ?? []
+    },
+
+    async claimEmbeddedReconciliation(attemptId, { force = false } = {}) {
+      return assertResult(
+        await client.rpc('claim_embedded_payment_reconciliation', {
+          p_attempt_id: attemptId,
+          p_force: force,
+        }),
+        'No se pudo reclamar la conciliacion.',
+      )
+    },
+
+    async completeEmbeddedReconciliation(attemptId, { succeeded, terminal = false, error }) {
+      return assertResult(
+        await client.rpc('complete_embedded_payment_reconciliation', {
+          p_attempt_id: attemptId,
+          p_succeeded: succeeded,
+          p_terminal: terminal,
+          p_error: error ?? null,
+        }),
+        'No se pudo finalizar la conciliacion.',
+      )
+    },
+
+    async getOperationsSummary() {
+      const [summaryResult, healthResult] = await Promise.all([
+        client.rpc('get_payment_operations_summary'),
+        client.rpc('get_payment_system_health'),
+      ])
+      const summary = assertResult(
+        summaryResult,
+        'No se pudo obtener el estado de Mercado Pago.',
+      )
+      const health = assertResult(
+        healthResult,
+        'No se pudo verificar la integridad de Mercado Pago.',
+      )
+      return { ...summary, health }
+    },
+
+    async listIntegrationEvents({ status, limit = 50 } = {}) {
+      let query = client
         .from('payment_integration_events')
-        .update({
-          status: 'failed',
-          error: error?.message ?? String(error),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', eventId)
+        .select('id, notification_id, resource_id, event_type, action, status, attempts_count, max_attempts, error, received_at, last_attempt_at, processed_at, next_retry_at')
+        .eq('provider', 'mercado_pago')
+        .order('updated_at', { ascending: false })
+        .limit(Math.max(1, Math.min(limit, 100)))
+      if (status) query = query.eq('status', status)
+      return assertResult(await query, 'No se pudieron listar los eventos de pago.') ?? []
+    },
+
+    async listReconciliationAttempts({ limit = 50 } = {}) {
+      return assertResult(
+        await client
+          .from('embedded_payment_attempts')
+          .select('id, order_kind, order_id, external_payment_id, status, reconciliation_status, reconciliation_attempts, next_reconcile_at, reconciled_at, error, created_at, updated_at')
+          .eq('operation_kind', 'payment')
+          .not('external_payment_id', 'is', null)
+          .neq('reconciliation_status', 'reconciled')
+          .order('updated_at', { ascending: false })
+          .limit(Math.max(1, Math.min(limit, 100))),
+        'No se pudieron listar las conciliaciones.',
+      ) ?? []
     },
 
     async applyPayment(payment) {
@@ -297,17 +385,15 @@ export function createSupabasePaymentRepository(client) {
         pending: 'pending',
       }
       const status = statusMap[providerSubscription.status] ?? 'pending'
-      const query = client.from('billing_subscriptions').update({
-        provider_subscription_id: providerSubscription.id,
-        status,
-        cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
-        raw_payload: providerSubscription,
-        updated_at: new Date().toISOString(),
-      })
-      const result = providerSubscription.external_reference
-        ? await query.eq('external_reference', providerSubscription.external_reference).select().single()
-        : await query.eq('provider_subscription_id', providerSubscription.id).select().single()
-      return assertResult(result, 'No se pudo actualizar la suscripcion.')
+      return assertResult(
+        await client.rpc('apply_mercado_pago_subscription', {
+          p_provider_subscription_id: String(providerSubscription.id),
+          p_external_reference: providerSubscription.external_reference ?? null,
+          p_status: status,
+          p_payload: providerSubscription,
+        }),
+        'No se pudo actualizar la suscripcion.',
+      )
     },
 
     async applyAuthorizedSubscriptionPayment(authorizedPayment) {
@@ -320,7 +406,7 @@ export function createSupabasePaymentRepository(client) {
         await client.rpc('apply_subscription_payment', {
           p_provider_subscription_id: String(providerSubscriptionId),
           p_external_payment_id: String(externalPaymentId),
-          p_status: authorizedPayment.status === 'approved' ? 'aprobado' : authorizedPayment.status === 'rejected' ? 'rechazado' : 'pendiente',
+          p_status: mapMercadoPagoStatus(authorizedPayment.status),
           p_amount: Number(authorizedPayment.transaction_amount),
           p_currency: authorizedPayment.currency_id ?? 'ARS',
           p_payer_email: authorizedPayment.payer_email ?? null,

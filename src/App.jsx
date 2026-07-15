@@ -8,10 +8,11 @@ import { readCredentialParams } from './lib/credentialQr.js'
 import { PRICING } from './lib/constants.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
-import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isPluUsaPartner } from './lib/roles.js'
+import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isCheckinOnly, isPluUsaPartner } from './lib/roles.js'
 import HomePage from './pages/HomePage.jsx'
 
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
+const CheckInAppPage = lazy(() => import('./pages/CheckInAppPage.jsx'))
 const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage.jsx'))
 const CommunityPage = lazy(() => import('./pages/CommunityPage.jsx'))
 const CredentialPage = lazy(() => import('./pages/CredentialPage.jsx'))
@@ -92,6 +93,25 @@ export default function App() {
   }
 
   if (view === 'admin' && canViewAdmin(app.session?.role)) {
+    if (isCheckinOnly(app.session?.role)) {
+      return (
+        <Suspense fallback={<PageLoadFallback />}>
+          <CheckInAppPage
+            athletes={app.athletes}
+            canCheckIn={canCheckIn(app.session?.role)}
+            onCheckInRegistration={app.checkInRegistrationAction}
+            onCheckInTicket={app.checkInTicketAction}
+            onExit={() => navigate('home')}
+            onRedeemTicketAddon={app.redeemTicketAddonAction}
+            onRefreshTickets={app.refreshTickets}
+            registrations={app.registrations}
+            roleLabel={getRoleLabel(app.session?.role)}
+            tickets={app.tickets}
+          />
+        </Suspense>
+      )
+    }
+
     return (
       <Suspense fallback={<PageLoadFallback />}>
         <AdminPage
@@ -130,6 +150,7 @@ export default function App() {
           users={app.users}
           roleLabel={getRoleLabel(app.session?.role)}
           isPluUsaPartner={isPluUsaPartner(app.session?.role)}
+          isCheckinOnly={false}
           onExit={() => navigate('home')}
         />
       </Suspense>
@@ -190,6 +211,8 @@ export default function App() {
             demoMode={app.demoMode}
             onNavigate={navigate}
             onUpdateProfile={app.updateAthleteProfileAction}
+            onUpdatePhoto={app.updateAthletePhotoAction}
+            onRemovePhoto={app.removeAthletePhotoAction}
             registrations={app.registrations}
             session={app.session}
           />

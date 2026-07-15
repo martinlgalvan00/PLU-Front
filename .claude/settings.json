@@ -69,7 +69,17 @@
       "Bash(node -e \"import\\('./src/i18n/locales/admin.es.js'\\).then\\(\\(\\)=>console.log\\('es OK'\\)\\).catch\\(e=>console.error\\('es FAIL', e.message\\)\\)\")",
       "Bash(node --check server/routes/auth.js)",
       "Bash(node --check server/services/supabaseAuthBridge.js)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(node \"C:\\\\Users\\\\agusd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-agusd-OneDrive-Escritorio-Hobbie-PLU-Front\\\\759d0867-f616-438f-9461-a2231396d600\\\\scratchpad\\\\verify-card.mjs\")",
+      "Bash(cp \"C:\\\\Users\\\\agusd\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-agusd-OneDrive-Escritorio-Hobbie-PLU-Front\\\\759d0867-f616-438f-9461-a2231396d600\\\\scratchpad\\\\verify-card.mjs\" \"c:\\\\Users\\\\agusd\\\\OneDrive\\\\Escritorio\\\\Hobbie\\\\PLU-Front\\\\verify-card.tmp.mjs\")",
+      "Bash(node verify-card.tmp.mjs)",
+      "Bash(node verify-card-crop.tmp.mjs)",
+      "Bash(rm -f verify-card.tmp.mjs verify-card-crop.tmp.mjs)",
+      "Bash(pkill -f \"storybook dev\")",
+      "Bash(pkill -f \"storybook\")",
+      "Bash(node verify-photo.tmp.mjs)",
+      "Bash(rm -f verify-photo.tmp.mjs)",
+      "Bash(pkill -f storybook)"
     ]
   }
 }

@@ -238,7 +238,7 @@ export default function DashboardSection({
 
       <section className="admin-dashboard-snapshot admin-dashboard__block" aria-label={t('admin.dashboard.metricsAria')}>
         <div className="admin-kpi-board">
-          <div className="admin-kpi-strip" role="list">
+          <div className="admin-kpi-strip" role="list" aria-label={t('admin.dashboard.swipeHint')}>
             {primaryMetrics.map((item, index) => (
               <DashboardKpiTile
                 key={item.labelKey}
@@ -253,17 +253,23 @@ export default function DashboardSection({
           </div>
 
           {secondaryMetrics.length > 0 && (
-            <div className="admin-kpi-sub" role="list">
-              {secondaryMetrics.map((item) => (
-                <DashboardKpiChip
-                  key={item.labelKey}
-                  label={item.label}
-                  tone={item.tone}
-                  value={item.value}
-                  onClick={() => onNavigate?.(item.section)}
-                />
-              ))}
-            </div>
+            <details className="admin-kpi-more">
+              <summary className="admin-kpi-more__summary">
+                <span>{t('admin.dashboard.moreMetrics')}</span>
+                <span className="admin-kpi-more__count">{secondaryMetrics.length}</span>
+              </summary>
+              <div className="admin-kpi-sub" role="list">
+                {secondaryMetrics.map((item) => (
+                  <DashboardKpiChip
+                    key={item.labelKey}
+                    label={item.label}
+                    tone={item.tone}
+                    value={item.value}
+                    onClick={() => onNavigate?.(item.section)}
+                  />
+                ))}
+              </div>
+            </details>
           )}
         </div>
       </section>

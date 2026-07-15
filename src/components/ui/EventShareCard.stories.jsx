@@ -39,3 +39,12 @@ export const Ticket = {
 export const Story = {
   args: { format: 'story' },
 }
+
+export const MembershipWithPhoto = {
+  args: {
+    variant: 'membership',
+    membershipSeason: '2026',
+    membershipExpiration: '31 dic 2026',
+    athletePhotoUrl: 'https://picsum.photos/seed/plu-arg/400/400',
+  },
+}

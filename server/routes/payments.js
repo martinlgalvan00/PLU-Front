@@ -2,11 +2,20 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { getPrisma } from '../lib/prisma.js'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js'
 import { validateBody } from '../lib/validate.js'
 import { createMercadoPagoAdapter } from '../modules/payments/mercadoPagoAdapter.js'
-import { createPaymentPreference, processPaymentWebhook } from '../modules/payments/paymentWorkflow.js'
+import {
+  createPaymentPreference,
+  processClaimedPaymentEvent,
+  processPaymentWebhook,
+} from '../modules/payments/paymentWorkflow.js'
 import { processEmbeddedPayment } from '../modules/payments/embeddedPaymentWorkflow.js'
+import {
+  reconcileClaimedPaymentAttempt,
+  recoverPaymentOperations,
+} from '../modules/payments/paymentRecoveryWorkflow.js'
 import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
 import {
   createEmbeddedRecurringSubscription,
@@ -15,6 +24,9 @@ import {
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import { requireRole } from '../middleware/auth.js'
+
+const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const preferenceSchema = z.object({
   paymentOrderId: z.string().uuid(),
@@ -66,9 +78,22 @@ const checkoutLimiter = rateLimit({
   message: { error: 'Demasiados intentos de checkout. Probá nuevamente en unos minutos.' },
 })
 
+const operationsQuerySchema = z.object({
+  status: z.enum(['received', 'processing', 'processed', 'failed', 'skipped']).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+})
+
+function parseInput(schema, value) {
+  const result = schema.safeParse(value)
+  if (!result.success) throw new HttpError(400, 'Parametros invalidos.')
+  return result.data
+}
+
 export function createPaymentRoutes(deps = {}) {
   const router = Router()
   const env = deps.env ?? process.env
+  const prisma = deps.getPrisma?.() ?? getPrisma()
+  const financeGuard = requireRole(FINANCE_ROLES, { prisma })
 
   function repository() {
     const client = deps.supabaseAdmin ?? getSupabaseAdmin()
@@ -121,7 +146,8 @@ export function createPaymentRoutes(deps = {}) {
 
   router.get('/orders/:orderId/status', async (req, res, next) => {
     try {
-      const order = await repository().getOrder(req.params.orderId)
+      const orderId = parseInput(z.string().uuid(), req.params.orderId)
+      const order = await repository().getOrder(orderId)
       res.json({
         order: {
           id: order.id,
@@ -140,6 +166,68 @@ export function createPaymentRoutes(deps = {}) {
     try {
       const plans = await repository().listPlans()
       res.json({ plans: plans.map(serializePlan) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/operations', ...financeGuard, async (req, res, next) => {
+    try {
+      const query = parseInput(operationsQuerySchema, req.query)
+      const paymentRepository = repository()
+      const [summary, events, reconciliations] = await Promise.all([
+        paymentRepository.getOperationsSummary(),
+        paymentRepository.listIntegrationEvents(query),
+        paymentRepository.listReconciliationAttempts(query),
+      ])
+      res.json({
+        summary,
+        events,
+        reconciliations,
+        configuration: {
+          recoveryEnabled: env.PAYMENT_RECOVERY_JOB_ENABLED === 'true',
+          recoveryIntervalMs: Number(env.PAYMENT_RECOVERY_JOB_INTERVAL_MS) || 60_000,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/operations/recover', ...financeGuard, async (_req, res, next) => {
+    try {
+      const result = await recoverPaymentOperations({
+        ...services({ notifications: true }),
+        eventLimit: 50,
+        reconciliationLimit: 50,
+      })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/operations/events/:eventId/retry', ...financeGuard, async (req, res, next) => {
+    try {
+      const eventId = parseInput(z.string().uuid(), req.params.eventId)
+      const paymentServices = services({ notifications: true })
+      const event = await paymentServices.repository.claimWebhookEvent(eventId, { force: true })
+      if (!event) throw new HttpError(409, 'El evento ya fue procesado o esta en ejecucion.')
+      const result = await processClaimedPaymentEvent(event, paymentServices)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/operations/reconciliations/:attemptId/retry', ...financeGuard, async (req, res, next) => {
+    try {
+      const attemptId = parseInput(z.string().uuid(), req.params.attemptId)
+      const paymentServices = services({ notifications: true })
+      const attempt = await paymentServices.repository.claimEmbeddedReconciliation(attemptId, { force: true })
+      if (!attempt) throw new HttpError(409, 'La conciliacion ya finalizo o esta en ejecucion.')
+      const result = await reconcileClaimedPaymentAttempt(attempt, paymentServices)
+      res.json({ result })
     } catch (error) {
       next(error)
     }
@@ -165,6 +253,7 @@ export function createPaymentRoutes(deps = {}) {
           ...services({ notifications: true }),
           webhookSecret: env.MERCADO_PAGO_WEBHOOK_SECRET,
           toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
+          deferProcessing: env.PAYMENT_RECOVERY_JOB_ENABLED === 'true',
         },
       )
       res.status(200).json({ received: true, duplicate: result.duplicate })

@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { UserRound } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Trash2, UserRound } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { Field } from '../../components/ui/FormFields.jsx'
-import { formatShortDate } from '../../lib/format.js'
+import { formatShortDate, initials } from '../../lib/format.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export default function PersonalDataSection({ athlete, onUpdateProfile }) {
+export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdatePhoto, onRemovePhoto }) {
   const { t } = useI18n()
   const [form, setForm] = useState({
     email: athlete.email ?? '',
@@ -17,6 +17,38 @@ export default function PersonalDataSection({ athlete, onUpdateProfile }) {
   })
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
+  const [photoStatus, setPhotoStatus] = useState('idle') // 'idle' | 'uploading' | 'error'
+  const [photoError, setPhotoError] = useState('')
+  const fileInputRef = useRef(null)
+
+  async function handlePhotoChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !onUpdatePhoto) return
+
+    setPhotoStatus('uploading')
+    setPhotoError('')
+    const result = await onUpdatePhoto(athlete.id, file)
+    if (result?.error) {
+      setPhotoStatus('error')
+      setPhotoError(result.error)
+      return
+    }
+    setPhotoStatus('idle')
+  }
+
+  async function handlePhotoRemove() {
+    if (!onRemovePhoto) return
+    setPhotoStatus('uploading')
+    setPhotoError('')
+    const result = await onRemovePhoto(athlete.id)
+    if (result?.error) {
+      setPhotoStatus('error')
+      setPhotoError(result.error)
+      return
+    }
+    setPhotoStatus('idle')
+  }
 
   function changeField(event) {
     const { name, value } = event.target
@@ -47,6 +79,48 @@ export default function PersonalDataSection({ athlete, onUpdateProfile }) {
         <div><span>{t('account.personalData.eyebrow')}</span><h2>{t('account.personalData.title')}</h2></div>
       </div>
       <p className="account-section__lead">{t('account.personalData.lead')}</p>
+
+      <div className="account-photo">
+        <div className="account-photo__avatar">
+          {athlete.photoUrl ? (
+            <img src={athlete.photoUrl} alt="" />
+          ) : (
+            <span aria-hidden>{initials(athlete.fullName)}</span>
+          )}
+        </div>
+        <div className="account-photo__actions">
+          <p className="account-photo__hint">{t('account.personalData.photoHint')}</p>
+          <div className="account-photo__buttons">
+            <button
+              type="button"
+              className="account-secondary-action"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={photoStatus === 'uploading'}
+            >
+              {photoStatus === 'uploading' ? t('account.personalData.photoUploading') : t('account.personalData.photoUpload')}
+            </button>
+            {athlete.photoUrl && (
+              <button
+                type="button"
+                className="account-secondary-action account-secondary-action--danger"
+                onClick={handlePhotoRemove}
+                disabled={photoStatus === 'uploading'}
+              >
+                <Trash2 size={14} aria-hidden />
+                {t('account.personalData.photoRemove')}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="account-photo__input"
+            onChange={handlePhotoChange}
+          />
+          {photoStatus === 'error' && <p className="account-photo__error" role="alert">{photoError}</p>}
+        </div>
+      </div>
 
       <div className="form-grid">
         <div className="field field--readonly">

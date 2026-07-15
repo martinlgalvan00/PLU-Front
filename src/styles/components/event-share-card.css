@@ -28,6 +28,10 @@
   display: flex;
   flex-direction: column;
   border-radius: 0;
+  /* Marco interior fino — refuerza el aire "credencial impresa" en vez de
+     plantilla plana. Un solo box-shadow inset, sin variantes: barato de
+     mantener y html2canvas lo rasteriza sin sorpresas. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* Modo captura: en flujo normal — el contenedor padre (CardPreviewModal) es
@@ -95,7 +99,13 @@
 
 /* ─── Monograma personalizado ───────────────────────────────────────
    Iniciales del atleta como marca de agua — reemplaza el texto
-   genérico de marca por un elemento único para cada card. */
+   genérico de marca por un elemento único para cada card.
+   Nada de background-clip:text: html2canvas (la captura real que se
+   descarga) no lo soporta -- el texto "transparente" + fondo sin
+   recortar queda como un rectángulo gris opaco en el PNG final, aunque
+   en el preview del modal (DOM real, no captura) se vea bien. Color
+   plano con opacidad baja da un resultado visual casi idéntico y es
+   100% confiable en la captura. */
 .share-card__monogram {
   position: absolute;
   right: -36px;
@@ -104,43 +114,52 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: transparent;
-  background: linear-gradient(
-    140deg,
-    rgba(255, 255, 255, 0.075) 0%,
-    rgba(255, 255, 255, 0.03) 60%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: rgba(255, 255, 255, 0.05);
   pointer-events: none;
   user-select: none;
   z-index: 1;
 }
 
 .share-card--membership .share-card__monogram {
-  background: linear-gradient(
-    140deg,
-    rgba(242, 183, 5, 0.14) 0%,
-    rgba(242, 183, 5, 0.04) 60%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: rgba(242, 183, 5, 0.1);
 }
 
 .share-card--ticket .share-card__monogram {
-  background: linear-gradient(
-    140deg,
-    rgba(116, 172, 223, 0.14) 0%,
-    rgba(116, 172, 223, 0.04) 60%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: rgba(116, 172, 223, 0.1);
 }
 
 .share-card--story .share-card__monogram {
   right: -50px;
   bottom: -120px;
   font-size: 660px;
+}
+
+/* ─── Textura "foil" ─────────────────────────────────────────────
+   Sheen diagonal (como luz rebotando en una superficie metalizada) +
+   líneas finas repetidas. Deliberadamente solo gradientes CSS estándar
+   -- nada de filtros SVG ni mix-blend-mode, que html2canvas rasteriza de
+   forma inconsistente entre navegadores. */
+.share-card__texture {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 42%,
+      rgba(255, 255, 255, 0.045) 49%,
+      rgba(255, 255, 255, 0.075) 50%,
+      rgba(255, 255, 255, 0.045) 51%,
+      transparent 58%
+    ),
+    repeating-linear-gradient(
+      115deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(255, 255, 255, 0.012) 3px,
+      rgba(255, 255, 255, 0.012) 4px
+    );
 }
 
 /* ─── Franja de acento superior ─────────────────────────────────── */
@@ -263,6 +282,57 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Con foto de perfil: avatar circular a la izquierda, texto al lado --
+   estilo credencial oficial en vez de ficha de texto suelta. */
+.share-card__athlete-section--with-avatar {
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
+}
+
+.share-card__athlete-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.share-card__avatar {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--card-surface);
+  box-shadow:
+    0 0 0 3px rgba(31, 95, 158, 0.45),
+    0 14px 32px rgba(0, 0, 0, 0.5);
+}
+
+.share-card--membership .share-card__avatar {
+  box-shadow:
+    0 0 0 3px rgba(242, 183, 5, 0.5),
+    0 14px 32px rgba(0, 0, 0, 0.5);
+}
+
+.share-card--ticket .share-card__avatar {
+  box-shadow:
+    0 0 0 3px rgba(116, 172, 223, 0.5),
+    0 14px 32px rgba(0, 0, 0, 0.5);
+}
+
+.share-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.share-card--story .share-card__avatar {
+  width: 196px;
+  height: 196px;
 }
 
 .share-card__eyebrow {
@@ -461,6 +531,21 @@
   background: #ffffff;
   border-radius: 18px;
   box-shadow:
+    0 0 0 2px rgba(31, 95, 158, 0.35),
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+.share-card--membership .share-card__qr-chip {
+  box-shadow:
+    0 0 0 2px rgba(242, 183, 5, 0.4),
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+.share-card--ticket .share-card__qr-chip {
+  box-shadow:
+    0 0 0 2px rgba(116, 172, 223, 0.4),
     0 12px 36px rgba(0, 0, 0, 0.45),
     0 2px 0 rgba(255, 255, 255, 0.1) inset;
 }

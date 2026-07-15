@@ -1,0 +1,50 @@
+import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
+import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
+import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import { createMercadoPagoAdapter } from '../modules/payments/mercadoPagoAdapter.js'
+import { recoverPaymentOperations } from '../modules/payments/paymentRecoveryWorkflow.js'
+import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
+
+const DEFAULT_INTERVAL_MS = 60_000
+
+export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
+  if (env.PAYMENT_RECOVERY_JOB_ENABLED !== 'true' || !client) return null
+
+  const repository = createSupabasePaymentRepository(client)
+  const mercadoPago = createMercadoPagoAdapter({ env })
+  const notifyPaymentApplied = createPaymentNotificationService({
+    repository: createSupabaseNotificationRepository(client),
+    brevo: createBrevoAdapter({ env }),
+    env,
+  })
+  let running = false
+  const run = async () => {
+    if (running) return
+    running = true
+    try {
+      const result = await recoverPaymentOperations({
+        repository,
+        mercadoPago,
+        notifyPaymentApplied,
+        eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+        reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+      })
+      if (result.claimErrors.length) {
+        console.error('payment-recovery-job claims:', result.claimErrors)
+      }
+      if (result.events.claimed || result.reconciliations.claimed) {
+        console.info('payment-recovery-job:', result)
+      }
+    } catch (error) {
+      console.error('payment-recovery-job:', error)
+    } finally {
+      running = false
+    }
+  }
+
+  void run()
+  const intervalMs = Number(env.PAYMENT_RECOVERY_JOB_INTERVAL_MS) || DEFAULT_INTERVAL_MS
+  const timer = setInterval(run, Math.max(30_000, intervalMs))
+  timer.unref()
+  return timer
+}

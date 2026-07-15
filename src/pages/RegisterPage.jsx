@@ -255,6 +255,7 @@ export default function RegisterPage({
       ? {
           athleteName: visibleOrder.athleteName,
           athleteCode: memberCode,
+          athletePhotoUrl: athlete?.photoUrl,
           qrCode: activeMembership?.qrToken,
           eventTitle: event?.title,
           eventDate: event?.date,
@@ -269,6 +270,7 @@ export default function RegisterPage({
         ? {
             athleteName: visibleOrder.athleteName,
             athleteCode: memberCode,
+            athletePhotoUrl: athlete?.photoUrl,
             qrCode: activeMembership?.qrToken,
             membershipExpiration: formatShortDate(activeMembership?.expirationDate, locale),
             variant: 'membership',

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CreditCard, Landmark, ShieldCheck, X } from 'lucide-react'
+import { Check, CreditCard, ImageDown, Landmark, ShieldCheck, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PRICING } from '../../lib/constants.js'
 import { formatShortDate, money } from '../../lib/format.js'
 import { env } from '../../config/env.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
+import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 
 function TransferModal({ athlete, amount, onClose }) {
   const { t, locale } = useI18n()
@@ -55,7 +56,21 @@ export default function MembershipPurchaseSection({
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [plans, setPlans] = useState([])
   const [planCode, setPlanCode] = useState('plu-annual')
+  const [cardOpen, setCardOpen] = useState(false)
   const membershipActive = membership?.status === 'activa'
+  const cardData = membershipActive
+    ? {
+        athleteName: athlete.fullName,
+        athleteCode: membership.memberCode,
+        athletePhotoUrl: athlete.photoUrl,
+        qrCode: membership.qrToken,
+        membershipExpiration: membership.expirationDate
+          ? formatShortDate(membership.expirationDate, locale)
+          : undefined,
+        variant: 'membership',
+        eventSlug: 'afiliacion',
+      }
+    : null
   const comboSavings = PRICING.membership + PRICING.event - PRICING.combo
   const methodLabel = paymentMethod === 'mercado_pago'
     ? 'Mercado Pago'
@@ -165,6 +180,19 @@ export default function MembershipPurchaseSection({
           </span>
         )}
       </div>
+
+      {membershipActive && (
+        <div className="account-card-share">
+          <span className="account-card-share__label">{t('account.membership.cardEyebrow')}</span>
+          <h2>{t('account.membership.cardTitle')}</h2>
+          <p>{t('account.membership.cardLead')}</p>
+          <button type="button" className="card-trigger-btn" onClick={() => setCardOpen(true)}>
+            <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
+            {t('account.membership.cardAction')}
+          </button>
+          <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
+        </div>
+      )}
 
       {!membershipActive && (
         <div className="account-membership__grid">

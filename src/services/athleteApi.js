@@ -1,4 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
+import { getAthletePhotoPublicUrl } from './athletePhotoService.js'
 
 /**
  * athleteApi.js — PLU ARG
@@ -32,6 +33,8 @@ function toCamelAthlete(row) {
     category: row.category,
     estimatedWeight: row.estimated_weight,
     status: row.status,
+    photoPath: row.photo_path,
+    photoUrl: getAthletePhotoPublicUrl(row.photo_path),
   }
 }
 
@@ -259,6 +262,14 @@ export async function getMembershipByCodeOrToken(code, eventSlug) {
     membership: toCamelMembership(result.membership),
     registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration, event: { slug: eventSlug } }) : null,
   }
+}
+
+export async function registerAthletePhoto(athleteId, photoPath) {
+  const row = await callRpc('register_athlete_photo', {
+    p_athlete_id: athleteId,
+    p_photo_path: photoPath,
+  })
+  return { athlete: toCamelAthlete(row) }
 }
 
 export async function checkInRegistration(registrationId, gate) {

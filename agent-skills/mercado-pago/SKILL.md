@@ -49,6 +49,7 @@ UI crea orden pendiente
   → Payment.create con X-Idempotency-Key
   → apply_mercado_pago_payment / apply_ticket_mercado_pago_payment
   → webhook firmado vuelve a consultar GET /v1/payments/{id}
+  → recovery job reconcilia si el webhook o la instancia fallan
 ```
 
 ## Flujo recurrente
@@ -85,6 +86,10 @@ UI crea orden ligada al plan recurrente
 - [ ] RPC aplica side effects en forma atómica e idempotente.
 - [ ] Pruebas con usuarios y tarjetas sandbox antes de producción.
 - [ ] HTTPS y webhook público configurados en producción.
+- [ ] `PAYMENT_RECOVERY_JOB_ENABLED=true` en una instancia de worker.
+- [ ] Panel Finanzas sin eventos agotados ni conciliaciones estancadas.
+- [ ] `get_payment_system_health()` sin drift ni locks vencidos.
+- [ ] `npm run db:verify:payments` aprobado contra la base migrada.
 
 ## Referencias oficiales
 
@@ -105,3 +110,6 @@ UI crea orden ligada al plan recurrente
 | `server/modules/subscriptions/subscriptionWorkflow.js` | Suscripciones |
 | `server/modules/payments/mercadoPagoAdapter.js` | SDK oficial server-side |
 | `supabase/migrations/20260715000400_phase5_embedded_checkout.sql` | Intentos idempotentes |
+| `server/modules/payments/paymentRecoveryWorkflow.js` | Reintentos y conciliación |
+| `server/jobs/paymentRecoveryJob.js` | Worker periódico |
+| `supabase/migrations/20260715000500_phase6_payment_recovery_operations.sql` | Locks, backoff y métricas |

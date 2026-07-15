@@ -64,10 +64,17 @@ export default function AdminShell({
   const [collapsed, setCollapsed] = useState(readStoredCollapsed)
   const { t } = useI18n()
 
-  const navGroups = useMemo(
-    () => (restrictedNav ? ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa') : ADMIN_NAV_GROUPS),
-    [restrictedNav],
-  )
+  const navGroups = useMemo(() => {
+    if (restrictedNav === 'pluUsa') {
+      return ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa')
+    }
+    if (restrictedNav === 'checkin') {
+      return ADMIN_NAV_GROUPS
+        .map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'checkin') }))
+        .filter((group) => group.items.length > 0)
+    }
+    return ADMIN_NAV_GROUPS
+  }, [restrictedNav])
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
@@ -128,7 +135,11 @@ export default function AdminShell({
             <div className="admin-shell__brand-copy">
               <span className="admin-shell__brand-name">{t('brand.name')}</span>
               <span className="admin-shell__brand-subtitle">
-                {restrictedNav ? t('admin.shell.brandSubtitlePartner') : t('admin.shell.brandSubtitle')}
+                {restrictedNav === 'pluUsa'
+                  ? t('admin.shell.brandTagPartner')
+                  : restrictedNav === 'checkin'
+                    ? t('admin.shell.brandSubtitleSecurity')
+                    : t('admin.shell.brandTag')}
               </span>
             </div>
           </div>
@@ -161,7 +172,7 @@ export default function AdminShell({
                       title={collapsed ? label : undefined}
                     >
                       <span className="admin-shell__nav-icon" aria-hidden>
-                        <Icon size={16} strokeWidth={2.1} />
+                        <Icon size={15} strokeWidth={1.75} />
                       </span>
                       <span className="admin-shell__nav-label">{label}</span>
                       {badge > 0 && (

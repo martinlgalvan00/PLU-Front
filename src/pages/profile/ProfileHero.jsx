@@ -12,7 +12,9 @@ export default function ProfileHero({ athlete, membership, athleteRegistrations,
       <div className="account-hero__inner">
         <div className="account-hero__identity-col">
           <div className="account-hero__identity">
-            <div className="account-hero__avatar" aria-hidden>{initials(athlete.fullName)}</div>
+            <div className="account-hero__avatar" aria-hidden>
+              {athlete.photoUrl ? <img src={athlete.photoUrl} alt="" /> : initials(athlete.fullName)}
+            </div>
             <div className="account-hero__copy">
               <span className="account-hero__eyebrow">{t('account.eyebrow')}</span>
               <h1 className="account-hero__name">{athlete.fullName}</h1>

@@ -65,19 +65,21 @@ export function downloadCard(blob, filename = 'plu-arg-card.png') {
  * Comparte el Blob via Web Share API (mobile).
  * Si el browser no soporta la API, cae en descarga directa.
  * @param {Blob} blob
- * @param {string} [title]
+ * @param {string} [text] — mensaje del share (ya trae el @pluarg armado por
+ *   buildShareText en CardPreviewModal); es lo que Instagram/WhatsApp
+ *   efectivamente muestran, no el `title` (la mayoría de las apps lo ignoran).
  * @param {string} [filename]
  * @returns {Promise<boolean>} — true si se usó la Share API
  */
-export async function shareCard(blob, title = 'Mi inscripción PLU ARG', filename = 'plu-arg-card.png') {
+export async function shareCard(blob, text = 'Mi inscripción PLU ARG @pluarg', filename = 'plu-arg-card.png') {
   const file = new File([blob], filename, { type: 'image/png' })
   const canShare =
     typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
 
   if (canShare) {
     await navigator.share({
-      title,
-      text: '¡Me inscribí en un evento de Powerlifting United Argentina! 🇦🇷',
+      title: 'PLU ARG',
+      text,
       files: [file],
     })
     return true

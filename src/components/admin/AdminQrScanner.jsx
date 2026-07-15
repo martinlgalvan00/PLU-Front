@@ -175,13 +175,15 @@ export default function AdminQrScanner({
         </div>
 
         <div className="admin-checkin-scanner__toolbar">
-          <SegmentedSwitch
-            active={mode}
-            ariaLabel={t('admin.checkin.scanner.modeLabel')}
-            className="admin-checkin-scanner__mode-switch segmented-switch--checkin"
-            onChange={setMode}
-            options={modeOptions}
-          />
+          <div className="admin-checkin-scanner__mode-switch">
+            <SegmentedSwitch
+              active={mode}
+              ariaLabel={t('admin.checkin.scanner.modeLabel')}
+              className="segmented-switch--checkin"
+              onChange={setMode}
+              options={modeOptions}
+            />
+          </div>
 
           <div className="admin-checkin-scanner__feedback" aria-label={t('admin.checkin.scanner.feedbackLabel')}>
             <button

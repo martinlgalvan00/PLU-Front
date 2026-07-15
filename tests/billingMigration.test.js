@@ -14,6 +14,10 @@ const phase5 = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260715000400_phase5_embedded_checkout.sql'),
   'utf8',
 )
+const phase6 = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260715000500_phase6_payment_recovery_operations.sql'),
+  'utf8',
+)
 
 describe('billing migrations security contract', () => {
   it('reserva las acreditaciones automáticas al service role', () => {
@@ -39,5 +43,29 @@ describe('billing migrations security contract', () => {
     expect(phase5).toContain('to service_role;')
     expect(phase5).toContain('token_fingerprint text not null')
     expect(phase5).not.toContain('card_token text')
+  })
+
+  it('recupera y concilia pagos con locks, backoff y acceso service role', () => {
+    expect(phase6).toContain('begin;')
+    expect(phase6).toContain('to_regclass(v_relation)')
+    expect(phase6).toContain('for update skip locked')
+    expect(phase6).toContain('claim_due_payment_integration_events')
+    expect(phase6).toContain('claim_embedded_payment_reconciliations')
+    expect(phase6).toContain('claim_embedded_subscription_attempt')
+    expect(phase6).toContain("operation_kind = 'payment'")
+    expect(phase6).toContain('power(2, greatest(attempts_count - 1, 0))')
+    expect(phase6).toContain('get_payment_operations_summary')
+    expect(phase6).toContain('to service_role;')
+  })
+
+  it('instala una maquina de estados que tolera eventos fuera de orden', () => {
+    expect(phase6).toContain('El pago externo ya pertenece a otra orden.')
+    expect(phase6).toContain('apply_mercado_pago_subscription')
+    expect(phase6).toContain("v_subscription.status = 'past_due'")
+    expect(phase6).toContain("when bool_or(status = 'aprobado') then 'aprobado'")
+    expect(phase6).toContain("when bool_or(status = 'pendiente') then 'pendiente'")
+    expect(phase6).toContain("'reembolsada'")
+    expect(phase6).toContain('get_payment_system_health')
+    expect(phase6.trimEnd()).toMatch(/commit;$/)
   })
 })

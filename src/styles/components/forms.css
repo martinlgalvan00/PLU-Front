@@ -361,3 +361,12 @@
 .mp-embedded-checkout__error {
   color: var(--color-danger, #b42318);
 }
+
+.mp-embedded-checkout__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mp-embedded-checkout__retry {
+  justify-self: start;
+}

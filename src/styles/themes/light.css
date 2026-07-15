@@ -89,16 +89,12 @@
   border-right-color: var(--color-border-subtle);
 }
 
-[data-theme='light'] .admin-shell__brand-mark {
-  background: rgba(15, 17, 23, 0.03);
-}
-
 [data-theme='light'] .admin-shell__nav button:hover {
-  background: rgba(15, 17, 23, 0.04);
+  background: rgba(15, 17, 23, 0.035);
 }
 
 [data-theme='light'] .admin-shell__nav button.active {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  background: rgba(15, 17, 23, 0.055);
 }
 
 [data-theme='light'] .admin-mobile-bar {

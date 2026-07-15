@@ -14,6 +14,8 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  *   athleteName      string  — nombre completo
  *   athleteCode      string? — código de atleta (ej. "PLU-AR-0042"). También se
  *                              usa como identificador para el QR de verificación.
+ *   athletePhotoUrl  string? — foto de perfil opcional; sin ella, la card sigue
+ *                              usando el monograma de iniciales de fondo.
  *   eventTitle       string  — nombre del evento
  *   eventDate        string  — ej. "12-13 Dic 2026"
  *   eventVenue       string  — ej. "Maximal Strength Club"
@@ -40,6 +42,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 export default function EventShareCard({
   athleteName,
   athleteCode,
+  athletePhotoUrl,
   eventTitle,
   eventDate,
   eventVenue,
@@ -67,10 +70,14 @@ export default function EventShareCard({
 
   // Nombres largos bajan de tamaño en vez de arriesgar un wrap de 2 líneas feo.
   // La historia tiene más alto disponible, así que el nombre puede ser más grande.
+  // Con foto de perfil el nombre tiene menos ancho disponible (el avatar se
+  // lleva una franja fija a la izquierda), así que baja un escalón más.
   const nameLength = resolvedAthleteName.trim().length
-  const nameSize = isStory
-    ? (nameLength > 22 ? 92 : nameLength > 16 ? 116 : 132)
-    : (nameLength > 22 ? 72 : nameLength > 16 ? 92 : 108)
+  const avatarSizeAdjust = athletePhotoUrl ? (isStory ? 16 : 12) : 0
+  const nameSize =
+    (isStory
+      ? (nameLength > 22 ? 92 : nameLength > 16 ? 116 : 132)
+      : (nameLength > 22 ? 72 : nameLength > 16 ? 92 : 108)) - avatarSizeAdjust
 
   // Iniciales del atleta para el monograma de fondo — el toque personalizado
   // que reemplaza la marca de agua genérica de texto.
@@ -150,6 +157,9 @@ export default function EventShareCard({
         {initials}
       </div>
 
+      {/* ── Textura sutil: sheen diagonal + líneas finas, look "foil" ── */}
+      <div className="share-card__texture" aria-hidden />
+
       {/* ── Header: marca + estado ── */}
       <header className="share-card__header">
         <div className="share-card__brand">
@@ -173,20 +183,27 @@ export default function EventShareCard({
 
       {/* ── Cuerpo: nombre + datos ── */}
       <main className="share-card__body">
-        <div className="share-card__athlete-section">
-          <span className="share-card__eyebrow">
-            {isMembership
-              ? t('shareCard.eyebrowMembership')
-              : isTicket
-                ? t('shareCard.eyebrowTicket')
-                : t('shareCard.eyebrowEvent')}
-          </span>
-          <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>{resolvedAthleteName}</h2>
-          {(athleteCode || attendeeDocument) && (
-            <span className="share-card__athlete-code">
-              {[athleteCode, attendeeDocument ? `DNI ${attendeeDocument}` : null].filter(Boolean).join(' · ')}
-            </span>
+        <div className={`share-card__athlete-section${athletePhotoUrl ? ' share-card__athlete-section--with-avatar' : ''}`}>
+          {athletePhotoUrl && (
+            <div className="share-card__avatar">
+              <img src={athletePhotoUrl} alt="" className="share-card__avatar-img" crossOrigin="anonymous" />
+            </div>
           )}
+          <div className="share-card__athlete-text">
+            <span className="share-card__eyebrow">
+              {isMembership
+                ? t('shareCard.eyebrowMembership')
+                : isTicket
+                  ? t('shareCard.eyebrowTicket')
+                  : t('shareCard.eyebrowEvent')}
+            </span>
+            <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>{resolvedAthleteName}</h2>
+            {(athleteCode || attendeeDocument) && (
+              <span className="share-card__athlete-code">
+                {[athleteCode, attendeeDocument ? `DNI ${attendeeDocument}` : null].filter(Boolean).join(' · ')}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="share-card__divider" aria-hidden />

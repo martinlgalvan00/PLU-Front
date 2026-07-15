@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { CardPayment, Payment, initMercadoPago } from '@mercadopago/sdk-react'
-import { CheckCircle2, Clock3, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   processEmbeddedPayment,
   processEmbeddedSubscription,
+  getPaymentOrderStatus,
 } from '../../services/paymentService.js'
 
 let initializedPublicKey = null
@@ -35,11 +36,19 @@ function normalizePaymentStatus(status) {
   return 'pending'
 }
 
+function announcePaymentUpdate(orderId, status) {
+  window.dispatchEvent(new CustomEvent('plu:payment-updated', {
+    detail: { orderId, status },
+  }))
+}
+
 export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [brickVersion, setBrickVersion] = useState(0)
+  const [checking, setChecking] = useState(false)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
@@ -61,6 +70,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       })
       const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
       setResult({ status, data: response })
+      announcePaymentUpdate(orderId, status)
       onResult?.(response)
     } catch (submitError) {
       setError(submitError?.message ?? t('payments.embeddedError'))
@@ -78,6 +88,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       })
       const status = normalizePaymentStatus(response.subscription?.status)
       setResult({ status, data: response })
+      announcePaymentUpdate(orderId, status)
       onResult?.(response)
     } catch (submitError) {
       setError(submitError?.message ?? t('payments.embeddedError'))
@@ -87,6 +98,43 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
 
   const handleReady = useCallback(() => setReady(true), [])
   const handleRenderError = useCallback(() => setError(t('payments.embeddedRenderError')), [t])
+  const refreshStatus = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setChecking(true)
+    try {
+      const response = await getPaymentOrderStatus(orderId)
+      const status = normalizePaymentStatus(response.order?.status)
+      setResult((current) => ({ status, data: current?.data ?? response }))
+      if (status !== 'pending') {
+        announcePaymentUpdate(orderId, status)
+        onResult?.(response)
+      }
+      return status
+    } catch (statusError) {
+      if (!quiet) setError(statusError?.message ?? t('payments.statusError'))
+      return 'pending'
+    } finally {
+      if (!quiet) setChecking(false)
+    }
+  }, [onResult, orderId, t])
+
+  useEffect(() => {
+    if (result?.status !== 'pending' || isSubscription) return undefined
+    let checks = 0
+    const timer = setInterval(() => {
+      checks += 1
+      void refreshStatus({ quiet: true }).then((status) => {
+        if (status !== 'pending' || checks >= 20) clearInterval(timer)
+      })
+    }, 3_000)
+    return () => clearInterval(timer)
+  }, [isSubscription, refreshStatus, result?.status])
+
+  function resetCheckout() {
+    setResult(null)
+    setError('')
+    setReady(false)
+    setBrickVersion((current) => current + 1)
+  }
 
   if (!orderId || !order?.amount) return null
   if (!env.mercadoPago.configured) {
@@ -117,7 +165,8 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
         <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
           {isSubscription ? (
             <CardPayment
-              id={`card-payment-brick-${reactId}`}
+              key={brickVersion}
+              id={`card-payment-brick-${reactId}-${brickVersion}`}
               initialization={initialization}
               customization={SUBSCRIPTION_CUSTOMIZATION}
               locale={localeCode}
@@ -127,7 +176,8 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
             />
           ) : (
             <Payment
-              id={`payment-brick-${reactId}`}
+              key={brickVersion}
+              id={`payment-brick-${reactId}-${brickVersion}`}
               initialization={initialization}
               customization={PAYMENT_CUSTOMIZATION}
               locale={localeCode}
@@ -145,7 +195,26 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
           <p>{resultMessage}</p>
         </div>
       )}
+      {result?.status === 'pending' && !isSubscription && (
+        <div className="mp-embedded-checkout__actions">
+          <button type="button" className="btn btn--small btn--outline" onClick={() => refreshStatus()} disabled={checking}>
+            <RefreshCw size={14} aria-hidden /> {t('payments.checkStatus')}
+          </button>
+        </div>
+      )}
+      {result?.status === 'rejected' && (
+        <div className="mp-embedded-checkout__actions">
+          <button type="button" className="btn btn--small" onClick={resetCheckout}>
+            <RotateCcw size={14} aria-hidden /> {t('payments.tryAgain')}
+          </button>
+        </div>
+      )}
       {error && <p className="mp-embedded-checkout__error" role="alert">{error}</p>}
+      {error && !result && (
+        <button type="button" className="mp-embedded-checkout__retry btn btn--small btn--outline" onClick={resetCheckout}>
+          {t('payments.reloadCheckout')}
+        </button>
+      )}
       <small className="mp-embedded-checkout__security">{t('payments.embeddedSecurity')}</small>
     </section>
   )

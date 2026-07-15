@@ -1,6 +1,28 @@
+import { useEffect, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import AdminFilterBar from './AdminFilterBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
+
+const MOBILE_STATS_MQ = '(max-width: 720px)'
+
+function useIsNarrow(query = MOBILE_STATS_MQ) {
+  const [isNarrow, setIsNarrow] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    function sync(event) {
+      setIsNarrow(event.matches)
+    }
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [query])
+
+  return isNarrow
+}
 
 export default function AdminListSection({
   actions,
@@ -20,10 +42,13 @@ export default function AdminListSection({
   totalCount,
   variant,
   eyebrow,
+  collapseStatsOnMobile = true,
 }) {
   const { t } = useI18n()
   const resultLabel = formatRecordCount(t, filteredCount, totalCount)
   const searchPlaceholder = placeholder ?? t('admin.search.default')
+  const isNarrow = useIsNarrow()
+  const [statsOpen, setStatsOpen] = useState(false)
   const shellClass = [
     'admin-list-shell surface-card surface-card--flat',
     variant ? `admin-list-shell--${variant}` : '',
@@ -32,6 +57,8 @@ export default function AdminListSection({
     .join(' ')
 
   const showStatsStrip = showStats && (stats.length > 0 || totalCount != null)
+  const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
+  const statsExpanded = !useCollapsibleStats || statsOpen
 
   return (
     <div className={`admin-list-section${variant ? ` admin-list-section--${variant}` : ''}`}>
@@ -64,18 +91,43 @@ export default function AdminListSection({
         )}
 
         {showStatsStrip && (
-          <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')}>
-            {stats.map(({ label, tone = 'default', value }) => (
-              <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>
-                <span className="admin-list-stat__value">{value}</span>
-                <span className="admin-list-stat__label">{label}</span>
-              </article>
-            ))}
-            <div className="admin-list-shell__count-wrap">
-              <span className="admin-list-shell__count" aria-live="polite">
-                {resultLabel}
-              </span>
-            </div>
+          <div
+            className={`admin-list-shell__stats-panel${statsExpanded ? ' is-expanded' : ' is-collapsed'}`}
+          >
+            {useCollapsibleStats && (
+              <div className="admin-list-shell__stats-toggle-bar">
+                <span className="admin-list-shell__count" aria-live="polite">
+                  {resultLabel}
+                </span>
+                <button
+                  type="button"
+                  className="admin-list-shell__stats-toggle"
+                  aria-expanded={statsExpanded}
+                  onClick={() => setStatsOpen((current) => !current)}
+                >
+                  {t('admin.summary.toggle')}
+                  <ChevronDown size={14} aria-hidden className="admin-list-shell__stats-toggle-icon" />
+                </button>
+              </div>
+            )}
+
+            {statsExpanded && (
+              <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')}>
+                {stats.map(({ label, tone = 'default', value }) => (
+                  <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>
+                    <span className="admin-list-stat__value">{value}</span>
+                    <span className="admin-list-stat__label">{label}</span>
+                  </article>
+                ))}
+                {!useCollapsibleStats && (
+                  <div className="admin-list-shell__count-wrap">
+                    <span className="admin-list-shell__count" aria-live="polite">
+                      {resultLabel}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
