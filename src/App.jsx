@@ -6,6 +6,7 @@ import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import { PRICING } from './lib/constants.js'
+import { getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
 import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isPluUsaPartner } from './lib/roles.js'
@@ -25,6 +26,7 @@ const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
+const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
 const PUBLIC_VIEWS = {
   home: HomePage,
@@ -37,6 +39,7 @@ const PUBLIC_VIEWS = {
   community: CommunityPage,
   faq: FAQPage,
   contact: ContactPage,
+  tickets: TicketsPage,
   register: RegisterPage,
   login: LoginPage,
 }
@@ -46,6 +49,8 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const app = useAppData()
+  const publicEvents = app.adminEvents.filter((event) => event.published !== false)
+  const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -153,13 +158,13 @@ export default function App() {
       : view === 'login'
         ? { onNavigate: navigate, onLogin: app.login }
         : view === 'events'
-          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: app.adminEvents, session: app.session }
+          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: publicEvents, session: app.session }
           : view === 'home'
             ? { onNavigate: navigate, onSelectEvent: selectEvent }
             : view === 'pitbull'
               ? {
                   onNavigate: navigate,
-                  events: app.adminEvents,
+                  events: publicEvents,
                   tickets: app.tickets,
                   createdOrder: app.createdOrder,
                   onSubmitTicketPurchase: app.submitTicketPurchase,
@@ -167,9 +172,19 @@ export default function App() {
                   onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                 }
               : view === 'results'
-                ? { onNavigate: navigate, events: app.adminEvents }
-                : view === 'members'
-                  ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
+                ? { onNavigate: navigate, events: publicEvents }
+              : view === 'members'
+                ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
+                : view === 'tickets'
+                  ? {
+                      event: nextEvent,
+                      events: publicEvents,
+                      tickets: app.tickets,
+                      createdOrder: app.createdOrder,
+                      onNavigate: navigate,
+                      onSubmitTicketPurchase: app.submitTicketPurchase,
+                      onUploadPaymentProof: app.uploadTicketPaymentProofAction,
+                    }
                   : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
@@ -228,7 +243,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <NavbarPublic activeView={view} onLogout={app.logout} onNavigate={navigate} session={app.session} />
+      <NavbarPublic activeView={view} latestEvent={nextEvent} onLogout={app.logout} onNavigate={navigate} session={app.session} />
       <PageTransition viewKey={view} direction={transitionDirection}>
         <Suspense fallback={<PageLoadFallback />}>
           <Page {...pageProps} />
@@ -244,6 +259,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
     <div className="app-shell">
       <NavbarPublic
         activeView={view}
+        latestEvent={getNextUpcomingEvent(app.adminEvents.filter((event) => event.published !== false)) ?? UPCOMING_EVENTS[0]}
         onLogout={() => {
           app.logout()
           navigate('home')
