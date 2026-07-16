@@ -100,7 +100,13 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   }
 
   const { athlete, membership, registration } = data
-  const membershipMeta = getStatusMeta(membership.status)
+  // El status de la membresía en la base puede estar desactualizado si el
+  // cron que la pasa a "vencida" no corrió (ver expire_memberships()) --
+  // no confiamos solo en el campo cacheado, comparamos la fecha en vivo
+  // contra "ahora" para que el veredicto en la puerta sea siempre correcto.
+  const membershipExpiredLive =
+    Boolean(membership.expirationDate) && new Date(membership.expirationDate) < new Date()
+  const membershipMeta = getStatusMeta(membershipExpiredLive ? 'vencida' : membership.status)
   const registrationMeta = registration ? getStatusMeta(registration.status) : null
 
   // Veredicto general que se muestra arriba de todo, grande, para un

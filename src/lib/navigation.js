@@ -5,6 +5,7 @@ export const VIEW_RANK = {
   membership: 11,
   register: 12,
   pitbull: 20,
+  tickets: 21,
   events: 30,
   competition: 31,
   results: 40,

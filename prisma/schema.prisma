@@ -356,6 +356,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   personId     String?    @unique
+  eventId      String?
 
   profile                 UserProfile?
   identities              UserIdentity[]
@@ -371,8 +372,10 @@ model User {
   checkIns                CheckIn[]
   outboxEvents            OutboxEvent[]
   person                  Person?                      @relation(fields: [personId], references: [id], onDelete: SetNull)
+  event                   Event?                       @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([role, status])
+  @@index([eventId])
 }
 
 model UserIdentity {
@@ -757,6 +760,7 @@ model Event {
   ticketOrders        TicketOrder[]
   tickets             Ticket[]
   checkIns            CheckIn[]
+  securityUsers       User[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, visibilityStatus, startsAt])

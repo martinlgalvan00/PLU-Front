@@ -32,6 +32,7 @@ export default function AdminPage({
   onRedeemTicketAddon,
   onRefreshTickets,
   onRefreshPendingTicketOrders,
+  onCreateSecurityUser,
   onCreateUser,
   onExportAdmin,
   onExportPluUsa,
@@ -152,7 +153,9 @@ export default function AdminPage({
     if (section === 'users') {
       return (
         <UsersSection
+          adminEvents={adminEvents}
           canManageUsers={canManageUsers}
+          onCreateSecurityUser={onCreateSecurityUser}
           onCreateUser={onCreateUser}
           onUpdateRole={onUpdateUserRole}
           users={users}

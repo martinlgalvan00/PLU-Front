@@ -1,5 +1,5 @@
 import { env } from '../config/env.js'
-import { apiGet, apiPost } from '../lib/api.js'
+import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 
 export function isMercadoPagoConfigured() {
   return env.mercadoPago.configured
@@ -16,24 +16,26 @@ export function getPaymentStatusForMethod(method) {
   return method === 'mercado_pago' ? 'pendiente' : 'validacion_manual'
 }
 
-export async function createPreference({ paymentId }) {
-  return apiPost('/api/payments/preferences', { paymentOrderId: paymentId })
+export async function createPreference({ paymentId, orderAccessToken }) {
+  return apiPost('/api/payments/preferences', { paymentOrderId: paymentId, orderAccessToken })
 }
 
-export async function processEmbeddedPayment({ paymentOrderId, formData }) {
-  return apiPost('/api/payments/embedded/process', { paymentOrderId, formData })
+export async function processEmbeddedPayment({ paymentOrderId, orderAccessToken, formData }) {
+  return apiPost('/api/payments/embedded/process', { paymentOrderId, orderAccessToken, formData })
 }
 
-export async function getPaymentOrderStatus(paymentOrderId) {
-  return apiGet(`/api/payments/orders/${encodeURIComponent(paymentOrderId)}/status`)
+export async function getPaymentOrderStatus(paymentOrderId, orderAccessToken) {
+  return apiRequest(`/api/payments/orders/${encodeURIComponent(paymentOrderId)}/status`, {
+    headers: orderAccessToken ? { 'X-Order-Access-Token': orderAccessToken } : {},
+  })
 }
 
 export async function listMembershipPlans() {
   return apiGet('/api/payments/plans')
 }
 
-export async function processEmbeddedSubscription({ paymentOrderId, planCode, cardToken }) {
-  return apiPost('/api/payments/subscriptions/process', { paymentOrderId, planCode, cardToken })
+export async function processEmbeddedSubscription({ paymentOrderId, orderAccessToken, planCode, cardToken }) {
+  return apiPost('/api/payments/subscriptions/process', { paymentOrderId, orderAccessToken, planCode, cardToken })
 }
 
 export async function getPaymentOperations(status) {

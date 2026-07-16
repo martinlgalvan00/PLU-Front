@@ -140,11 +140,8 @@ export default function AdminEventEditor({
     }
   }, [])
 
-  // Calendario/directo/cupos viven en Supabase (ver eventAdminService.js);
-  // el resto del draft sigue guardándose en localStorage vía `onSubmit`,
-  // que no tocamos. Si la sincronización falla (ej. todavía no hay sesión
-  // de Supabase Auth para el panel), igual dejamos completar el guardado
-  // local — no bloqueamos el flujo existente por un problema de otra fase.
+  // Supabase es la fuente de verdad. El cache local se actualiza solamente
+  // después de que el upsert atómico del backend fue confirmado.
   async function handleFormSubmit(event) {
     event.preventDefault()
     setSyncError(null)
@@ -154,6 +151,8 @@ export default function AdminEventEditor({
       await upsertEventCalendarLiveFields({ ...draft, slug: preview.slug })
     } catch (error) {
       setSyncError(error.message)
+      setSyncing(false)
+      return
     } finally {
       setSyncing(false)
     }

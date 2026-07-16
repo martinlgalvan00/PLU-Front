@@ -5,6 +5,8 @@ import PageTransition from './components/layout/PageTransition.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
+import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import { clearTicketsRoute, matchTicketsRoute, pushTicketsRoute } from './lib/ticketsRoute.js'
 import { PRICING } from './lib/constants.js'
 import { getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
@@ -14,6 +16,7 @@ import HomePage from './pages/HomePage.jsx'
 
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
 const CheckInAppPage = lazy(() => import('./pages/CheckInAppPage.jsx'))
+const SecurityGatePage = lazy(() => import('./pages/SecurityGatePage.jsx'))
 const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage.jsx'))
 const CommunityPage = lazy(() => import('./pages/CommunityPage.jsx'))
 const CredentialPage = lazy(() => import('./pages/CredentialPage.jsx'))
@@ -46,7 +49,7 @@ const PUBLIC_VIEWS = {
 }
 
 export default function App() {
-  const [view, setView] = useState('home')
+  const [view, setView] = useState(() => (matchTicketsRoute() ? 'tickets' : 'home'))
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const app = useAppData()
@@ -61,8 +64,20 @@ export default function App() {
     if (import.meta.env.DEV) window.__pluNav = setView
   }, [])
 
+  useEffect(() => {
+    function onPopState() {
+      if (matchTicketsRoute()) {
+        setView('tickets')
+        return
+      }
+      setView((current) => (current === 'tickets' ? 'pitbull' : current))
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
   const navigate = useCallback(
-    (nextView) => {
+    (nextView, options = {}) => {
       const currentRole = app.getSession()?.role
       const adminRequired = nextView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
@@ -70,6 +85,20 @@ export default function App() {
         (adminRequired && !canViewAdmin(currentRole)) ||
         (athleteRequired && currentRole !== 'athlete_plu')
       const resolvedView = blocked ? 'login' : nextView
+
+      if (resolvedView === 'tickets') {
+        pushTicketsRoute()
+      } else if (view === 'tickets') {
+        clearTicketsRoute()
+      }
+
+      // openTickets en pitbull: ir a la página completa de entradas
+      if (resolvedView === 'pitbull' && options.openTickets) {
+        pushTicketsRoute()
+        setTransitionDirection(getTransitionDirection(view, 'tickets'))
+        setView('tickets')
+        return
+      }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
@@ -80,6 +109,28 @@ export default function App() {
   function selectEvent(event) {
     setSelectedEvent(event)
     navigate('competition')
+  }
+
+  const securityRoute = matchSecurityGateRoute()
+  if (securityRoute) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <SecurityGatePage
+          adminEvents={app.adminEvents}
+          athletes={app.athletes}
+          eventSlug={securityRoute.eventSlug}
+          onCheckInRegistration={app.checkInRegistrationAction}
+          onCheckInTicket={app.checkInTicketAction}
+          onLogin={app.login}
+          onLogout={app.logout}
+          onRedeemTicketAddon={app.redeemTicketAddonAction}
+          onRefreshTickets={app.refreshTickets}
+          registrations={app.registrations}
+          session={app.session}
+          tickets={app.tickets}
+        />
+      </Suspense>
+    )
   }
 
   const credential = readCredentialParams()
@@ -139,6 +190,7 @@ export default function App() {
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
+          onCreateSecurityUser={app.createSecurityUserAction}
           onCreateUser={app.createUserAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
@@ -186,27 +238,22 @@ export default function App() {
               ? {
                   onNavigate: navigate,
                   events: publicEvents,
-                  tickets: app.tickets,
-                  createdOrder: app.createdOrder,
-                  onSubmitTicketPurchase: app.submitTicketPurchase,
-                  onApproveTicketPurchase: app.approveTicketPurchase,
-                  onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                 }
+              : view === 'tickets'
+                ? {
+                    onNavigate: navigate,
+                    event: nextEvent,
+                    events: publicEvents,
+                    tickets: app.tickets,
+                    createdOrder: app.createdOrder,
+                    onSubmitTicketPurchase: app.submitTicketPurchase,
+                    onUploadPaymentProof: app.uploadTicketPaymentProofAction,
+                  }
               : view === 'results'
                 ? { onNavigate: navigate, events: publicEvents }
               : view === 'members'
                 ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
-                : view === 'tickets'
-                  ? {
-                      event: nextEvent,
-                      events: publicEvents,
-                      tickets: app.tickets,
-                      createdOrder: app.createdOrder,
-                      onNavigate: navigate,
-                      onSubmitTicketPurchase: app.submitTicketPurchase,
-                      onUploadPaymentProof: app.uploadTicketPaymentProofAction,
-                    }
-                  : { onNavigate: navigate }
+                : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
     return (

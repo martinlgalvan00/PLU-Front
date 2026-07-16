@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
+import { ApiError, createSecurityUserRequest, loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
@@ -10,7 +10,10 @@ import {
   createCompetitionRegistration as createCompetitionRegistrationRequest,
   createMembershipOrder as createMembershipOrderRequest,
   fetchAdminAthleteData,
+  fetchAthleteSession,
   fetchAthleteSnapshot,
+  logoutAthleteSession,
+  loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
@@ -54,6 +57,8 @@ import {
 } from '../services/adminService.js'
 import {
   createAdminEvent,
+  fetchAdminEvents,
+  fetchPublishedEvents,
   getInitialAdminEvents,
   updateAdminEvent,
 } from '../services/eventAdminService.js'
@@ -115,6 +120,9 @@ export function useAppData() {
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
+  const membershipAttemptRef = useRef(null)
+  const registrationAttemptRef = useRef(null)
+  const ticketAttemptRef = useRef(null)
 
   const role = session?.role || null
   const userCanEdit = canEdit(role)
@@ -125,6 +133,20 @@ export function useAppData() {
   useEffect(() => {
     writeStorage({ createdOrder, auditLogs, adminEvents, users })
   }, [createdOrder, auditLogs, adminEvents, users])
+
+  useEffect(() => {
+    let active = true
+    fetchPublishedEvents()
+      .then((remoteEvents) => {
+        if (!active || remoteEvents.length === 0) return
+        setAdminEvents((current) => remoteEvents.map((event) => ({
+          ...current.find((item) => item.slug === event.slug),
+          ...event,
+        })))
+      })
+      .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
+    return () => { active = false }
+  }, [])
 
   const refreshAthleteData = useCallback(async () => {
     if (!session || isDemoSession(session)) return
@@ -137,11 +159,12 @@ export function useAppData() {
         setRegistrations(snapshot.registrations)
         setPayments(snapshot.payments)
       } else {
-        const data = await fetchAdminAthleteData()
+        const [data, remoteEvents] = await Promise.all([fetchAdminAthleteData(), fetchAdminEvents()])
         setAthletes(data.athletes)
         setMemberships(data.memberships)
         setRegistrations(data.registrations)
         setPayments(data.payments)
+        setAdminEvents(remoteEvents)
       }
     } catch (error) {
       console.error('refreshAthleteData:', error)
@@ -181,6 +204,19 @@ export function useAppData() {
           return
         }
 
+        try {
+          const athleteSession = await fetchAthleteSession()
+          if (!active) return
+          setSession(athleteSession.user)
+          setAthletes(athleteSession.athlete ? [athleteSession.athlete] : [])
+          setMemberships(athleteSession.memberships)
+          setRegistrations(athleteSession.registrations)
+          setPayments(athleteSession.payments)
+          return
+        } catch (athleteError) {
+          if (athleteError?.status !== 401) console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
+        }
+
         if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
 
         try {
@@ -198,7 +234,7 @@ export function useAppData() {
     return () => {
       active = false
     }
-  }, [oauth])
+  }, [oauth, setSession])
 
   const dashboardOverview = useMemo(
     () =>
@@ -307,7 +343,7 @@ export function useAppData() {
         throw error
       }
     },
-    [form],
+    [form, setSession],
   )
 
   const startMembershipPayment = useCallback(
@@ -317,10 +353,15 @@ export function useAppData() {
 
       try {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
+        const attemptFingerprint = `${athlete.id}:${planCode}:${normalizedMethod}`
+        if (membershipAttemptRef.current?.fingerprint !== attemptFingerprint) {
+          membershipAttemptRef.current = { fingerprint: attemptFingerprint, idempotencyKey: crypto.randomUUID() }
+        }
         const { order, membership, plan } = await createMembershipOrderRequest(
           athlete.id,
           normalizedMethod,
           planCode,
+          membershipAttemptRef.current.idempotencyKey,
         )
         const checkout = order.method === 'mercado_pago' && plan?.collectionMode !== 'recurring'
           ? await createPreferenceRequest({ paymentId: order.id })
@@ -379,6 +420,12 @@ export function useAppData() {
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
 
       try {
+        const attemptFingerprint = JSON.stringify([
+          athlete.id, selectedEvent.slug, form.division, form.category, form.estimatedWeight, form.paymentMethod,
+        ])
+        if (registrationAttemptRef.current?.fingerprint !== attemptFingerprint) {
+          registrationAttemptRef.current = { fingerprint: attemptFingerprint, idempotencyKey: crypto.randomUUID() }
+        }
         const { order, registration } = await createCompetitionRegistrationRequest({
           athleteId: athlete.id,
           eventSlug: selectedEvent.slug,
@@ -386,6 +433,7 @@ export function useAppData() {
           category: form.category,
           bodyweightKg: form.estimatedWeight ? Number(String(form.estimatedWeight).replace(',', '.')) : null,
           paymentMethod: form.paymentMethod,
+          idempotencyKey: registrationAttemptRef.current.idempotencyKey,
         })
         const checkout = order.method === 'mercado_pago'
           ? await createPreferenceRequest({ paymentId: order.id })
@@ -441,7 +489,15 @@ export function useAppData() {
       const provider =
         paymentMethod === 'transferencia' || paymentMethod === 'manual_link' ? 'manual' : paymentMethod
       try {
-        const { order, tickets: createdTickets } = await createTicketOrderRequest({
+        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider])
+        if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
+          ticketAttemptRef.current = {
+            fingerprint: attemptFingerprint,
+            idempotencyKey: crypto.randomUUID(),
+            accessToken: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+          }
+        }
+        const { order, tickets: createdTickets, orderAccessToken } = await createTicketOrderRequest({
           eventSlug: purchaseEvent.slug,
           attendees: attendees.map((attendee) => ({
             fullName: attendee.fullName,
@@ -450,16 +506,19 @@ export function useAppData() {
             addonIds: attendee.addonIds ?? [],
           })),
           provider,
+          idempotencyKey: ticketAttemptRef.current.idempotencyKey,
+          accessToken: ticketAttemptRef.current.accessToken,
         })
         const checkout =
           provider === 'mercado_pago'
-            ? await createPreferenceRequest({ paymentId: order.id })
+            ? await createPreferenceRequest({ paymentId: order.id, orderAccessToken })
             : null
         const mappedTickets = createdTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
         setTickets((current) => [...mappedTickets, ...current])
         const nextOrder = {
           type: 'tickets',
           orderId: order.id,
+          orderAccessToken,
           eventTitle: purchaseEvent.title,
           quantity: createdTickets.length,
           amount: order.amount,
@@ -501,8 +560,9 @@ export function useAppData() {
 
   const uploadTicketPaymentProofAction = useCallback(async (orderId, file) => {
     try {
-      const { storagePath } = await uploadTicketPaymentProof(orderId, file)
-      const { order } = await registerTicketPaymentProofRequest(orderId, storagePath)
+      const accessToken = createdOrder?.orderId === orderId ? createdOrder.orderAccessToken : null
+      const { storagePath } = await uploadTicketPaymentProof(orderId, accessToken, file)
+      const { order } = await registerTicketPaymentProofRequest(orderId, accessToken, storagePath)
       setCreatedOrder((current) =>
         current?.orderId === orderId
           ? {
@@ -529,7 +589,7 @@ export function useAppData() {
     } catch (error) {
       return { error: error.message ?? 'No se pudo enviar el comprobante.' }
     }
-  }, [])
+  }, [createdOrder])
 
   const refreshPendingTicketOrders = useCallback(async () => {
     if (!userCanEdit) return
@@ -635,6 +695,12 @@ export function useAppData() {
     [],
   )
 
+  const createSecurityUserAction = useCallback(async (draft) => {
+    const { user, tempPassword } = await createSecurityUserRequest(draft)
+    setUsers((current) => [{ id: user.id, name: user.name, email: user.email, role: user.role }, ...current])
+    return { user, tempPassword }
+  }, [])
+
   const login = useCallback(async (credentialsOrAccountType) => {
     if (credentialsOrAccountType === 'athlete') {
       const demoAthleteSession = {
@@ -713,18 +779,28 @@ export function useAppData() {
       // a diferencia del resto de la demo que vive en localStorage.
     }
 
-    const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
-    const nextSession = user
-    setSession(nextSession)
-    await establishSupabaseSession(supabaseAuth)
-    return nextSession
-  }, [])
+    try {
+      const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
+      setSession(user)
+      await establishSupabaseSession(supabaseAuth)
+      return user
+    } catch (error) {
+      if (error?.status !== 401) throw error
+      const { user } = await loginAthleteSession(credentialsOrAccountType)
+      setSession(user)
+      return user
+    }
+  }, [setSession])
 
   const logout = useCallback(async () => {
     const currentSession = session
     setSession(null)
 
-    if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
+    if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
+      await logoutAthleteSession().catch((error) => {
+        if (error.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
+      })
+    } else if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
       if (isSupabaseConfigured && supabase) {
         await supabase.auth.signOut().catch(() => {})
       }
@@ -741,7 +817,7 @@ export function useAppData() {
         await oauth.logout()
       }
     }
-  }, [oauth, session])
+  }, [oauth, session, setSession])
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
@@ -946,6 +1022,7 @@ export function useAppData() {
     users,
     updateUserRoleAction,
     createUserAction,
+    createSecurityUserAction,
     handleApprovePayment,
     exportAdminCsv,
     exportPluUsaCsv,

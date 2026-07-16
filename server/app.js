@@ -2,15 +2,18 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
-import healthRoutes from './routes/health.js'
+import { createHealthRoutes } from './routes/health.js'
 import { createPaymentRoutes } from './routes/payments.js'
 import { createEmailRoutes } from './routes/emails.js'
 import { createAuthRoutes } from './routes/auth.js'
 import { createTicketRoutes } from './routes/tickets.js'
+import { createAthleteRoutes } from './routes/athletes.js'
+import { createEventRoutes } from './routes/events.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
 import { corsOrigin, requireTrustedMutation } from './lib/security.js'
 import { createOptionalAuth0JwtCheck } from './modules/auth/auth0.js'
+import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 
 export function createApp(deps = {}) {
   const app = express()
@@ -21,7 +24,10 @@ export function createApp(deps = {}) {
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.use(requireTrustedMutation)
-  app.use(healthRoutes)
+  app.use(createHealthRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+  }))
   app.use(
     '/api/auth',
     createAuthRoutes({
@@ -52,7 +58,24 @@ export function createApp(deps = {}) {
       env: deps.env,
     }),
   )
-  app.use('/api/tickets', createTicketRoutes({ getPrisma: () => deps.prisma ?? getPrisma() }))
+  app.use(
+    '/api/athletes',
+    createAthleteRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      repository: deps.athleteRepository,
+      env: deps.env,
+    }),
+  )
+  app.use('/api/tickets', createTicketRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    repository: deps.ticketRepository,
+  }))
+  app.use('/api/events', createEventRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+  }))
   app.use(notFoundHandler)
   app.use(errorHandler)
 

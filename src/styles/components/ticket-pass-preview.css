@@ -1,0 +1,495 @@
+/* =============================================
+   TicketPassPreview — entrada digital 3D (luxury)
+   ============================================= */
+
+.ticket-pass-preview {
+  --ticket-pass-ink: #12151b;
+  --ticket-pass-paper: color-mix(in oklab, var(--color-bg-surface) 88%, #fff 12%);
+  --ticket-pass-qr-ink: #0c0e12;
+  --ticket-rx: 7deg;
+  --ticket-ry: -11deg;
+  --ticket-mx: 58%;
+  --ticket-my: 28%;
+  isolation: isolate;
+  width: 100%;
+}
+
+.ticket-pass-preview__stage {
+  cursor: grab;
+  perspective: 1600px;
+  perspective-origin: 50% 42%;
+  touch-action: pan-y;
+}
+
+.ticket-pass-preview__stage:active {
+  cursor: grabbing;
+}
+
+.ticket-pass-preview__card {
+  background:
+    linear-gradient(155deg, color-mix(in oklab, #fff 10%, transparent) 0%, transparent 46%),
+    linear-gradient(180deg, color-mix(in oklab, var(--plu-gold-500) 7%, transparent), transparent 36%),
+    var(--ticket-pass-paper);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 30%, var(--color-text-primary) 10%);
+  border-radius: 22px;
+  box-shadow:
+    0 40px 70px -32px rgba(0, 0, 0, 0.68),
+    0 18px 32px -18px color-mix(in oklab, var(--plu-gold-500) 30%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 16%, transparent);
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) 14px minmax(148px, 0.72fr);
+  min-height: 280px;
+  overflow: hidden;
+  position: relative;
+  transform:
+    rotateX(var(--ticket-rx))
+    rotateY(var(--ticket-ry))
+    translateZ(0);
+  transform-style: preserve-3d;
+  transition:
+    transform 180ms ease-out,
+    box-shadow 320ms ease;
+  will-change: transform;
+}
+
+.ticket-pass-preview--interactive .ticket-pass-preview__card {
+  transition:
+    transform 90ms linear,
+    box-shadow 280ms ease;
+}
+
+.ticket-pass-preview--interactive:hover .ticket-pass-preview__card,
+.ticket-pass-preview--live .ticket-pass-preview__card {
+  box-shadow:
+    0 48px 78px -30px rgba(0, 0, 0, 0.7),
+    0 20px 36px -16px color-mix(in oklab, var(--plu-celeste-500) 26%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 18%, transparent);
+}
+
+.ticket-pass-preview__shine {
+  background:
+    radial-gradient(
+      circle at var(--ticket-mx) var(--ticket-my),
+      color-mix(in oklab, #fff 36%, transparent) 0%,
+      transparent 44%
+    );
+  inset: 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.72;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.ticket-pass-preview__card::before {
+  background: linear-gradient(
+    90deg,
+    var(--plu-celeste-500) 0%,
+    color-mix(in oklab, #fff 62%, transparent) 48%,
+    var(--plu-gold-500) 100%
+  );
+  content: '';
+  height: 3px;
+  inset-inline: 0;
+  position: absolute;
+  top: 0;
+  z-index: 4;
+}
+
+/* ── Stub (datos) ────────────────────────────── */
+
+.ticket-pass-preview__stub {
+  align-content: space-between;
+  display: grid;
+  gap: clamp(12px, 1.8vw, 16px);
+  grid-template-rows: auto auto auto;
+  min-width: 0;
+  padding: clamp(22px, 3vw, 30px) clamp(18px, 2.4vw, 26px) clamp(18px, 2.4vw, 24px)
+    clamp(22px, 3vw, 30px);
+  position: relative;
+  z-index: 1;
+}
+
+.ticket-pass-preview__stub::after {
+  background:
+    radial-gradient(
+      circle at 0 50%,
+      transparent 8px,
+      color-mix(in oklab, var(--color-page-canvas, var(--color-bg-primary)) 92%, transparent) 9px
+    )
+    0 0 / 100% 20px repeat-y;
+  content: '';
+  inset: 0 auto 0 -1px;
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
+  width: 12px;
+}
+
+.ticket-pass-preview__stub-head {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ticket-pass-preview__brand {
+  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ticket-pass-preview__event {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3.4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.ticket-pass-preview__meta {
+  align-content: start;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 10px 18px;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, max-content));
+  margin: 0;
+  padding: 12px 0 0;
+}
+
+.ticket-pass-preview__meta div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ticket-pass-preview__meta dt {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ticket-pass-preview__meta dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(13px, 1.5vw, 15px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.ticket-pass-preview__stub-foot {
+  align-items: end;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 0;
+  padding-top: 12px;
+}
+
+.ticket-pass-preview__guest-block {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ticket-pass-preview__guest-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ticket-pass-preview__guest {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.8vw, 18px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-pass-preview__qty {
+  color: var(--plu-celeste-500);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ticket-pass-preview__code {
+  color: color-mix(in oklab, var(--color-text-muted) 90%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding-bottom: 2px;
+}
+
+/* ── Perforation ─────────────────────────────── */
+
+.ticket-pass-preview__perforation {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0 7px,
+      color-mix(in oklab, var(--color-text-primary) 20%, transparent) 7px 8px,
+      transparent 8px
+    )
+    center / 2px 16px repeat-y;
+  position: relative;
+  z-index: 1;
+}
+
+.ticket-pass-preview__perforation::before,
+.ticket-pass-preview__perforation::after {
+  background: var(--color-page-canvas, var(--color-bg-primary));
+  border-radius: 50%;
+  content: '';
+  height: 20px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 20px;
+}
+
+.ticket-pass-preview__perforation::before {
+  top: -11px;
+}
+
+.ticket-pass-preview__perforation::after {
+  bottom: -11px;
+}
+
+/* ── QR pane ─────────────────────────────────── */
+
+.ticket-pass-preview__qr-pane {
+  align-content: center;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--plu-gold-500) 14%, transparent), transparent 40%),
+    linear-gradient(165deg, #1c222c 0%, #0a0c10 100%);
+  color: #f4f1ea;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: clamp(18px, 2.4vw, 26px) clamp(14px, 2vw, 20px);
+  position: relative;
+  text-align: center;
+  z-index: 1;
+}
+
+.ticket-pass-preview__qr-pane::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #fff 8%, transparent),
+    transparent 40%
+  );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ticket-pass-preview__qr-label {
+  color: color-mix(in oklab, var(--plu-gold-400, var(--plu-gold-500)) 82%, #fff);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  position: relative;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.ticket-pass-preview__qr {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #fff;
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 40%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 14px 28px -14px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 4px #fff;
+  display: grid;
+  justify-items: center;
+  overflow: hidden;
+  padding: 8px;
+  position: relative;
+  width: min(100%, 132px);
+  z-index: 1;
+}
+
+.ticket-pass-preview__qr-img {
+  display: block;
+  height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+  width: 100%;
+}
+
+.ticket-pass-preview__qr-fallback {
+  align-items: center;
+  color: var(--ticket-pass-qr-ink);
+  display: inline-flex;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.ticket-pass-preview__qr-hint {
+  color: color-mix(in oklab, #fff 72%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  max-width: 14ch;
+  position: relative;
+  z-index: 1;
+}
+
+.ticket-pass-preview__hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin: 12px 0 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ── Light ───────────────────────────────────── */
+
+[data-theme='light'] .ticket-pass-preview {
+  --ticket-pass-paper: #fffefb;
+}
+
+[data-theme='light'] .ticket-pass-preview__card {
+  border-color: color-mix(in oklab, var(--plu-gold-600) 28%, rgba(15, 17, 23, 0.1));
+  box-shadow:
+    0 32px 56px -28px rgba(15, 17, 23, 0.26),
+    0 14px 28px -16px color-mix(in oklab, var(--plu-gold-500) 22%, transparent);
+}
+
+[data-theme='light'] .ticket-pass-preview__stub::after {
+  background:
+    radial-gradient(circle at 0 50%, transparent 8px, var(--plu-warm-50, #f6f5f2) 9px) 0 0 / 100% 20px
+    repeat-y;
+}
+
+[data-theme='light'] .ticket-pass-preview__perforation::before,
+[data-theme='light'] .ticket-pass-preview__perforation::after {
+  background: var(--plu-warm-50, #f6f5f2);
+}
+
+[data-theme='light'] .ticket-pass-preview__qr-pane {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--plu-gold-500) 12%, transparent), transparent 42%),
+    linear-gradient(165deg, #1a2029 0%, #10141a 100%);
+}
+
+/* ── Reduced motion ──────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-pass-preview__card {
+    transform: none;
+    transition: none;
+  }
+
+  .ticket-pass-preview__stage {
+    cursor: default;
+  }
+
+  .ticket-pass-preview__hint {
+    display: none;
+  }
+}
+
+/* ── Mobile stack ────────────────────────────── */
+
+@media (max-width: 560px) {
+  .ticket-pass-preview__card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 14px auto;
+    min-height: 0;
+  }
+
+  .ticket-pass-preview__stub {
+    gap: 14px;
+    padding: 22px 18px 16px;
+  }
+
+  .ticket-pass-preview__event {
+    max-width: none;
+  }
+
+  .ticket-pass-preview__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ticket-pass-preview__stub-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-pass-preview__perforation {
+    background:
+      linear-gradient(
+        90deg,
+        transparent 0 7px,
+        color-mix(in oklab, var(--color-text-primary) 20%, transparent) 7px 8px,
+        transparent 8px
+      )
+      center / 16px 2px repeat-x;
+  }
+
+  .ticket-pass-preview__perforation::before,
+  .ticket-pass-preview__perforation::after {
+    left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .ticket-pass-preview__perforation::before {
+    left: -11px;
+    top: 50%;
+  }
+
+  .ticket-pass-preview__perforation::after {
+    bottom: auto;
+    right: -11px;
+    top: 50%;
+  }
+
+  .ticket-pass-preview__qr-pane {
+    gap: 10px 16px;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    justify-items: start;
+    padding: 18px 20px;
+    text-align: left;
+  }
+
+  .ticket-pass-preview__qr-label {
+    grid-column: 2;
+  }
+
+  .ticket-pass-preview__qr {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 108px;
+  }
+
+  .ticket-pass-preview__qr-hint {
+    grid-column: 2;
+    max-width: none;
+  }
+}

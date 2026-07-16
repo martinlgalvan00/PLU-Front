@@ -27,7 +27,10 @@ export default function HeroStatusCard() {
           <span className="hero-meta__city">{PITBULL_CLASSIC.location}</span>
         </p>
       </div>
-      <p className="hero-meta__status">{t('pages.pitbull.spotlight.registrationSoon')}</p>
+      <p className="hero-meta__status">
+        <span className="hero-meta__status-dot" aria-hidden />
+        {t('pages.pitbull.spotlight.registrationSoon')}
+      </p>
     </aside>
   )
 }

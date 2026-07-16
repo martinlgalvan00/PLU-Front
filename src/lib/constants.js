@@ -148,6 +148,7 @@ export const DEFAULT_FORM = {
   division: 'Open',
   category: 'Raw',
   estimatedWeight: '',
+  password: '',
   paymentMethod: 'mercado_pago',
 }
 

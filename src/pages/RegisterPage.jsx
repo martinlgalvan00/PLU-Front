@@ -25,7 +25,7 @@ function getProfileSteps(t) {
       id: 'personal',
       step: '01',
       label: t('pages.register.stepPersonal'),
-      fields: ['fullName', 'documentId', 'birthDate', 'email', 'phone'],
+      fields: ['fullName', 'documentId', 'birthDate', 'email', 'phone', 'password'],
     },
     {
       id: 'location',
@@ -51,6 +51,8 @@ function isFieldFilled(form, field) {
       return str.length >= 6
     case 'birthDate':
       return /^\d{4}-\d{2}-\d{2}$/.test(str)
+    case 'password':
+      return str.length >= 12
     default:
       return str.length > 0
   }
@@ -654,6 +656,16 @@ export default function RegisterPage({
                         name="phone"
                         placeholder={t('pages.register.phonePlaceholder')}
                         value={form.phone}
+                        onBlur={blurField}
+                        onChange={changeField}
+                      />
+                      <Field
+                        autoComplete="new-password"
+                        error={visibleErrors.password}
+                        label={t('login.password')}
+                        name="password"
+                        type="password"
+                        value={form.password}
                         onBlur={blurField}
                         onChange={changeField}
                       />

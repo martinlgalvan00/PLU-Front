@@ -1,10 +1,12 @@
+import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
-import rateLimit from 'express-rate-limit'
-import { loginSchema } from '../../src/lib/schemas/auth.js'
+import { createSecurityUserSchema, loginSchema } from '../../src/lib/schemas/auth.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
+import { requireRole } from '../middleware/auth.js'
+import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
-import { verifyPassword } from '../services/passwordService.js'
+import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
 import {
   createSession,
@@ -16,26 +18,30 @@ import {
   SESSION_COOKIE_NAME,
 } from '../services/sessionService.js'
 
+const MANAGE_USERS_ROLES = ['admin_maximal', 'admin_plu_arg']
+
 const invalidCredentials = () => new HttpError(401, 'Credenciales invalidas.')
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Proba de nuevo en unos minutos.' },
-})
+function generateTempPassword() {
+  return randomBytes(9).toString('base64url')
+}
+
+function splitName(name) {
+  const [firstName, ...rest] = name.trim().split(/\s+/)
+  return { firstName, lastName: rest.join(' ') || firstName }
+}
 
 export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
   const router = Router()
+  const manageUsersGuard = requireRole(MANAGE_USERS_ROLES, { prisma: getPrisma() })
 
-  router.post('/login', loginLimiter, validateBody(loginSchema), async (req, res, next) => {
+  router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
     try {
       const prisma = getPrisma()
-      const { email, password } = req.validatedBody
+      const { email, password, eventSlug } = req.validatedBody
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { profile: true },
+        include: { profile: true, event: true },
       })
 
       if (
@@ -43,6 +49,15 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
         user.status !== 'active' ||
         !(await verifyPassword(password, user.passwordHash))
       ) {
+        next(invalidCredentials())
+        return
+      }
+
+      // Solo las cuentas seguridad_plu_arg atadas a un evento (User.eventId,
+      // creadas via POST /security-users) exigen eventSlug matching -- las
+      // cuentas de seguridad sin evento asignado siguen entrando por el login
+      // general, igual que antes de este scoping.
+      if (user.role === 'seguridad_plu_arg' && user.eventId && user.event?.slug !== eventSlug) {
         next(invalidCredentials())
         return
       }
@@ -80,7 +95,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
     }
   })
 
-  router.post('/oauth/session', auth0JwtCheck, async (req, res, next) => {
+  router.post('/oauth/session', authLimiter, auth0JwtCheck, async (req, res, next) => {
     try {
       const prisma = getPrisma()
       const user = await resolveOAuthUser({ prisma, payload: req.auth?.payload })
@@ -112,6 +127,45 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
       next(error)
     }
   })
+
+  router.post(
+    '/security-users',
+    ...manageUsersGuard,
+    staffLimiter,
+    validateBody(createSecurityUserSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { name, email, eventId } = req.validatedBody
+
+        const event = await prisma.event.findUnique({ where: { id: eventId } })
+        if (!event) throw new HttpError(400, 'El evento no existe.')
+
+        const existing = await prisma.user.findUnique({ where: { email } })
+        if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
+
+        const tempPassword = generateTempPassword()
+        const passwordHash = await hashPassword(tempPassword)
+        const { firstName, lastName } = splitName(name)
+
+        const created = await prisma.user.create({
+          data: {
+            email,
+            passwordHash,
+            role: 'seguridad_plu_arg',
+            status: 'active',
+            eventId,
+            profile: { create: { firstName, lastName } },
+          },
+          include: { profile: true, event: true },
+        })
+
+        res.status(201).json({ user: serializeUser(created), tempPassword })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   return router
 }

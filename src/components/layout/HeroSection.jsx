@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
+import heroPhoto from '../../assets/powerlifting-hero.png'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -83,6 +84,17 @@ export default function HeroSection({ onNavigate }) {
 
   return (
     <section className="hero hero--design hero--motion">
+      <div className="hero__backdrop" aria-hidden>
+        <img
+          className="hero__backdrop-img"
+          src={heroPhoto}
+          alt=""
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+      </div>
+
       <div className="hero__copy">
         <div className="hero__shell">
           {reducedMotion ? (

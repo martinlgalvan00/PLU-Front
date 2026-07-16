@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js'
 import { validateBody } from '../lib/validate.js'
 import { requireAuth } from '../middleware/auth.js'
+import { staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { queueTransactionalEmail } from '../modules/notifications/notificationWorkflow.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
@@ -35,7 +36,7 @@ export function createEmailRoutes(deps = {}) {
   const env = deps.env ?? process.env
   const guard = requireAuth({ prisma: deps.getPrisma() })
 
-  router.post('/send', guard, validateBody(emailSchema), async (req, res, next) => {
+  router.post('/send', guard, staffLimiter, validateBody(emailSchema), async (req, res, next) => {
     try {
       const { type, ...input } = req.validatedBody
       const client = deps.supabaseAdmin ?? getSupabaseAdmin()

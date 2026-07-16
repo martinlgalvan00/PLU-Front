@@ -67,8 +67,13 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
           </Button>
         ) : null}
         {isPitbull && onViewPitbull ? (
-          <Button variant="outline" className="events-detail__cta events-detail__cta--secondary" onClick={onViewPitbull}>
+          <Button
+            variant="outline"
+            className="events-detail__cta events-detail__cta--secondary motion-icon-shift"
+            onClick={onViewPitbull}
+          >
             {t('pages.events.viewFull')}
+            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
           </Button>
         ) : null}
       </div>
@@ -302,7 +307,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                   <EventsAudienceTicketsPanel
                     event={pitbull}
                     locale={locale}
-                    onBuyTickets={() => onNavigate('pitbull')}
+                    onBuyTickets={() => onNavigate('tickets')}
                     t={t}
                   />
                 </div>

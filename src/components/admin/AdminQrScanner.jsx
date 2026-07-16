@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import jsQR from 'jsqr'
 import { CameraOff, Loader2, Smartphone, Volume2, VolumeX } from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+
+// Frame de trabajo para el decoder de respaldo (jsQR) -- más chico que la
+// resolución real de la cámara para no cargar la CPU en celulares de gama
+// media, suficiente para leer un QR a distancia de escaneo normal.
+const FALLBACK_SCAN_WIDTH = 480
 
 const SCAN_COOLDOWN_MS = 2200
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
@@ -96,6 +102,19 @@ export default function AdminQrScanner({
     let raf
     let detector
     let cancelled = false
+    // Canvas fuera de pantalla para el decoder de respaldo (jsQR) -- no
+    // necesita estar en el DOM, solo sirve para extraer ImageData del frame.
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+
+    function scanFrameWithFallback(video) {
+      const scale = FALLBACK_SCAN_WIDTH / video.videoWidth
+      canvas.width = FALLBACK_SCAN_WIDTH
+      canvas.height = Math.round(video.videoHeight * scale)
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      return jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' })
+    }
 
     async function scanLoop() {
       if (cancelled || !videoRef.current || videoRef.current.readyState < 2) {
@@ -104,9 +123,12 @@ export default function AdminQrScanner({
       }
 
       try {
-        const codes = await detector.detect(videoRef.current)
-        if (codes.length > 0) {
-          emitScan(codes[0].rawValue)
+        if (detector) {
+          const codes = await detector.detect(videoRef.current)
+          if (codes.length > 0) emitScan(codes[0].rawValue)
+        } else {
+          const result = scanFrameWithFallback(videoRef.current)
+          if (result?.data) emitScan(result.data)
         }
       } catch {
         // Frame inválido — seguimos en el próximo tick.
@@ -119,12 +141,17 @@ export default function AdminQrScanner({
       setCameraError(null)
       setCameraReady(false)
 
-      if (typeof window === 'undefined' || !('BarcodeDetector' in window)) {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
         setCameraError('unsupported')
         return
       }
 
-      detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+      // BarcodeDetector nativo cuando está disponible (más liviano, usa
+      // aceleración del navegador); si no (ej. Safari/iOS), jsQR en JS puro
+      // cubre el resto de los navegadores en vez de forzar el modo manual.
+      if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+        detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+      }
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({

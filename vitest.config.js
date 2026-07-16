@@ -12,8 +12,18 @@ export default defineConfig({
     projects: [{
       extends: true,
       test: {
+        name: 'default',
         environment: 'jsdom',
-        include: ['tests/**/*.test.js', 'src/**/*.test.js']
+        include: ['tests/**/*.test.js', 'src/**/*.test.js'],
+        exclude: ['tests/integration/**']
+      }
+    }, {
+      extends: true,
+      test: {
+        name: 'integration',
+        environment: 'node',
+        include: ['tests/integration/**/*.test.js'],
+        setupFiles: ['tests/integration/setup.js']
       }
     }, {
       extends: true,

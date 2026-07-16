@@ -21,6 +21,7 @@ describe('validation', () => {
       city: 'CABA',
       gym: 'Maximal',
       sex: 'Masculino',
+      password: 'clave-muy-segura-2026',
     })
     expect(result.success).toBe(true)
   })

@@ -121,10 +121,13 @@
   --home-membership-check-bg: rgba(116, 172, 223, 0.12);
   --home-membership-check-border: rgba(116, 172, 223, 0.22);
   --home-membership-check-fg: var(--color-brand-celeste);
-  /* Fondo sólido institucional — sin radiales ni textura decorativa */
+  /* Fondo institucional + atmósfera suave (marca, sin textura) */
   --home-hero-bg: var(--plu-cool-950);
+  --home-hero-atmosphere:
+    radial-gradient(ellipse 72% 58% at 12% 38%, color-mix(in oklab, var(--plu-celeste-500) 16%, transparent), transparent 68%),
+    radial-gradient(ellipse 48% 42% at 88% 22%, color-mix(in oklab, var(--plu-gold-500) 11%, transparent), transparent 70%);
   --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
-  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.58);
+  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.68);
   --home-hero-eyebrow-stripe: linear-gradient(
     90deg,
     #5ba3d9 0%,
@@ -143,6 +146,12 @@
   --home-hero-editorial-rule-accent: rgba(91, 163, 217, 0.55);
   --home-hero-title: #fff;
   --home-hero-title-accent-fg: var(--plu-gold-400);
+  --home-hero-title-accent: linear-gradient(
+    108deg,
+    var(--plu-gold-300) 0%,
+    var(--plu-gold-400) 48%,
+    var(--plu-gold-500) 100%
+  );
   --home-hero-lead: rgba(255, 255, 255, 0.58);
   --home-hero-lead-meta: rgba(255, 255, 255, 0.36);
   --home-hero-metrics-border: rgba(255, 255, 255, 0.08);
@@ -156,11 +165,11 @@
   --home-hero-outline-hover-border: rgba(255, 255, 255, 0.28);
   --home-hero-account-border: rgba(255, 255, 255, 0.08);
   --home-hero-account-icon-bg: rgba(255, 255, 255, 0.06);
-  --home-hero-status-panel-bg: oklch(13% 0.006 260 / 0.78);
+  --home-hero-status-panel-bg: color-mix(in oklab, var(--plu-cool-900) 72%, transparent);
   --home-hero-status-panel-border: rgba(255, 255, 255, 0.1);
   --home-hero-status-panel-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 20px 48px rgba(0, 0, 0, 0.32);
+    0 18px 40px rgba(0, 0, 0, 0.28);
   --home-hero-status-eyebrow: rgba(255, 255, 255, 0.52);
   --home-hero-status-year: #fff;
   --home-hero-status-label: rgba(255, 255, 255, 0.42);
@@ -580,13 +589,27 @@
   --home-membership-check-border: rgba(116, 172, 223, 0.18);
   --home-membership-check-fg: oklch(52% 0.12 230);
   --home-hero-bg: var(--plu-warm-50);
+  --home-hero-atmosphere:
+    radial-gradient(ellipse 70% 55% at 10% 36%, color-mix(in oklab, var(--plu-celeste-500) 10%, transparent), transparent 70%),
+    radial-gradient(ellipse 46% 40% at 92% 18%, color-mix(in oklab, var(--plu-gold-500) 8%, transparent), transparent 72%);
   --home-hero-eyebrow-border: rgba(15, 17, 23, 0.1);
   --home-hero-eyebrow-fg: var(--plu-celeste-700);
   --home-hero-eyebrow-stripe: var(--plu-celeste-600);
-  --home-hero-editorial-rule: var(--plu-celeste-600);
+  --home-hero-editorial-rule: linear-gradient(
+    180deg,
+    var(--plu-celeste-600) 0%,
+    rgba(15, 17, 23, 0.28) 48%,
+    var(--plu-gold-600) 100%
+  );
   --home-hero-editorial-rule-accent: var(--plu-celeste-600);
   --home-hero-title: var(--plu-ink-900);
   --home-hero-title-accent-fg: var(--plu-gold-600);
+  --home-hero-title-accent: linear-gradient(
+    108deg,
+    var(--plu-gold-500) 0%,
+    var(--plu-gold-600) 52%,
+    var(--plu-gold-600) 100%
+  );
   --home-hero-lead: rgba(15, 17, 23, 0.66);
   --home-hero-lead-meta: rgba(15, 17, 23, 0.42);
   --home-hero-metrics-border: rgba(15, 17, 23, 0.1);
@@ -600,9 +623,11 @@
   --home-hero-outline-hover-border: rgba(15, 17, 23, 0.28);
   --home-hero-account-border: rgba(15, 17, 23, 0.1);
   --home-hero-account-icon-bg: rgba(15, 17, 23, 0.05);
-  --home-hero-status-panel-bg: transparent;
-  --home-hero-status-panel-border: transparent;
-  --home-hero-status-panel-shadow: none;
+  --home-hero-status-panel-bg: rgba(255, 255, 255, 0.72);
+  --home-hero-status-panel-border: rgba(15, 17, 23, 0.08);
+  --home-hero-status-panel-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 14px 32px rgba(15, 17, 23, 0.06);
   --home-hero-status-eyebrow: rgba(15, 17, 23, 0.48);
   --home-hero-status-year: var(--plu-ink-900);
   --home-hero-status-label: rgba(15, 17, 23, 0.48);

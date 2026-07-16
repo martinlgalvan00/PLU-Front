@@ -2,7 +2,8 @@
 
 ## Fuente de verdad
 
-- **Atletas, afiliaciones e inscripciones:** base propia (hoy localStorage, target PostgreSQL).
+- **Eventos, atletas, afiliaciones, inscripciones y entradas:** Supabase detrás de la API Express.
+- **Usuarios y roles del staff:** Prisma; atletas usan una sesión opaca HTTP-only independiente.
 - **Pagos:** Mercado Pago confirma el evento; el sistema decide qué activar.
 - **Resultados:** LiftingCast durante el evento; el sistema normaliza y exporta.
 
@@ -20,14 +21,11 @@
 ### Pago
 `creado` → `pendiente` → `aprobado` | `rechazado` | `cancelado` | `reembolsado`
 
-## Precios MVP (ARS)
+## Precios
 
-| Concepto | Monto |
-|----------|-------|
-| Afiliación atleta | $38.000 |
-| Afiliación juvenil | $28.000 |
-| Inscripción evento | $45.000 |
-| Combo afiliación + Pitbull Classic | $78.000 |
+Los planes de afiliación se leen de `membership_plans`. La inscripción y las
+entradas se cotizan desde el evento y su `rules.ticketPricing`; el frontend no
+puede enviar el monto autoritativo.
 
 ## Roles
 
@@ -45,3 +43,12 @@ Todo cambio sensible debe generar `audit_log` con: acción, entidad, actor, time
 ## Duplicados
 
 No permitir registro con mismo email o documento que atleta existente.
+
+Toda creación de orden requiere idempotency key. El evento se bloquea al tomar
+cupos, los códigos se generan por secuencia y las reservas impagas vencen para
+liberar capacidad. Una renovación crea un ciclo nuevo y nunca acorta ni
+sobrescribe el derecho vigente. Una inscripción requiere evento publicado,
+ventana abierta, cupo disponible y afiliación activa durante la fecha válida.
+
+Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
+conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
