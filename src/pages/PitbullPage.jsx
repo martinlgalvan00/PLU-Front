@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import {
   ArrowRight,
+  CheckCircle2,
+  Dumbbell,
   ExternalLink,
+  IdCard,
   MapPin,
   MapPinned,
+  Megaphone,
+  Scale,
+  Tags,
+  Trophy,
 } from 'lucide-react'
 import { m } from 'motion/react'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
@@ -21,6 +28,20 @@ import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
+
+const ATHLETE_STEP_ICONS = {
+  membership: IdCard,
+  category: Tags,
+  confirmation: CheckCircle2,
+  weighin: Scale,
+  results: Trophy,
+}
+
+const FEATURE_FACT_ICONS = {
+  Pesaje: Scale,
+  Briefing: Megaphone,
+  Plataforma: Dumbbell,
+}
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -173,9 +194,11 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
             <ol className="pitbull-athletes-journey__steps">
               {group.items.map((item) => {
                 const num = String(item.index + 1).padStart(2, '0')
+                const StepIcon = ATHLETE_STEP_ICONS[item.id]
                 const body = (
                   <>
                     <span className="pitbull-athletes-journey__index" aria-hidden>
+                      {StepIcon ? <StepIcon size={14} aria-hidden /> : null}
                       {num}
                     </span>
                     <div className="pitbull-athletes-journey__copy">
@@ -439,17 +462,21 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
         stagger={70}
         aria-label={t('pages.pitbull.featureFactsAria')}
       >
-        {featureFacts.map((fact, index) => (
-          <li key={fact.label} className="pitbull-feature-flow__step">
-            <span className="pitbull-feature-flow__index" aria-hidden>
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <div className="pitbull-feature-flow__copy">
-              <span className="pitbull-feature-flow__label">{fact.label}</span>
-              <p className="pitbull-feature-flow__detail">{fact.value}</p>
-            </div>
-          </li>
-        ))}
+        {featureFacts.map((fact, index) => {
+          const FactIcon = FEATURE_FACT_ICONS[fact.label]
+          return (
+            <li key={fact.label} className="pitbull-feature-flow__step">
+              <span className="pitbull-feature-flow__index" aria-hidden>
+                {FactIcon ? <FactIcon size={13} aria-hidden /> : null}
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div className="pitbull-feature-flow__copy">
+                <span className="pitbull-feature-flow__label">{fact.label}</span>
+                <p className="pitbull-feature-flow__detail">{fact.value}</p>
+              </div>
+            </li>
+          )
+        })}
       </StaggerGroup>
 
       {schedule?.length > 0 ? (
