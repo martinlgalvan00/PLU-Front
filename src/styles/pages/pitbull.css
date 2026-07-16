@@ -420,7 +420,7 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__head {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
   max-width: none;
   padding-left: clamp(14px, 2vw, 20px);
@@ -429,61 +429,65 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__head::before {
-  background: var(--pitbull-editorial-rule, var(--home-hero-editorial-rule, var(--color-brand-celeste)));
+  background: linear-gradient(
+    180deg,
+    var(--plu-celeste-500),
+    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
+  );
   border-radius: 99px;
-  bottom: 4px;
+  bottom: 6%;
   content: '';
   left: 0;
-  opacity: 0.85;
+  opacity: 0.9;
   position: absolute;
-  top: 4px;
+  top: 6%;
   width: 2px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__kicker {
   align-items: baseline;
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 8px 10px;
+  gap: 8px 12px;
   margin: 0;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__index {
-  color: var(--color-text-muted);
-  font-family: var(--font-family);
-  font-size: 12px;
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   line-height: 1;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__eyebrow {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__title {
   font-family: var(--font-display);
-  font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+  font-size: clamp(1.55rem, 3vw, 2.05rem);
   font-weight: 700;
-  letter-spacing: -0.032em;
-  line-height: 1.12;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   margin: 0;
-  max-width: 28ch;
+  max-width: 22ch;
   text-wrap: balance;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__lead {
   color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 46ch;
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin: 2px 0 0;
+  max-width: 42ch;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__body {
@@ -502,27 +506,26 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head::before {
-  background: var(--pitbull-editorial-rule);
+  background: linear-gradient(
+    180deg,
+    var(--plu-celeste-500),
+    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
+  );
   border-radius: 99px;
-  bottom: 4px;
+  bottom: 6%;
   content: '';
   left: 0;
   position: absolute;
-  top: 4px;
+  top: 6%;
   width: 2px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__kicker {
-  gap: 6px 8px;
+  gap: 8px 12px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__index::after {
-  color: var(--color-text-muted);
-  content: '·';
-  font-size: 10px;
-  font-weight: 500;
-  margin-left: 8px;
-  opacity: 0.45;
+  display: none;
 }
 
 .pitbull-dossier--minimal .pitbull-feature-facts {
@@ -579,22 +582,35 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
   align-items: start;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   display: grid;
-  gap: 10px 40px;
-  margin-bottom: clamp(4px, 1vw, 8px);
+  gap: 8px 48px;
+  margin-bottom: clamp(6px, 1.2vw, 10px);
   max-width: none;
-  padding-bottom: clamp(18px, 2.6vw, 24px);
-  padding-left: 0;
+  padding-bottom: clamp(16px, 2.4vw, 22px);
+  padding-left: clamp(14px, 2vw, 20px);
   position: relative;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head::before {
-  display: none;
+  background: linear-gradient(
+    180deg,
+    var(--plu-celeste-500),
+    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
+  );
+  border-radius: 99px;
+  bottom: 18%;
+  content: '';
+  display: block;
+  left: 0;
+  opacity: 0.9;
+  position: absolute;
+  top: 8%;
+  width: 2px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__kicker {
-  align-items: center;
+  align-items: baseline;
   display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -604,78 +620,68 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index {
-  color: var(--color-brand-celeste);
+  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-primary));
   display: inline;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   line-height: 1;
   margin: 0;
   opacity: 1;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index::after {
-  background: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
-  content: '';
-  display: inline-block;
-  height: 1px;
-  margin-left: 10px;
-  vertical-align: middle;
-  width: 28px;
+  display: none;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__eyebrow {
   color: var(--color-text-muted);
   font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__title {
   font-family: var(--font-display);
-  font-size: clamp(1.85rem, 4vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.042em;
-  line-height: 1.02;
+  font-size: clamp(1.9rem, 4.2vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.048em;
+  line-height: 0.98;
   margin: 0;
-  max-width: 12ch;
+  max-width: 14ch;
   text-wrap: balance;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
   color: var(--color-text-muted);
-  font-size: clamp(14px, 1.7vw, 15.5px);
+  font-size: clamp(13.5px, 1.5vw, 15px);
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0;
-  max-width: 28ch;
+  max-width: 26ch;
   opacity: 1;
 }
 
 @media (min-width: 820px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
     align-items: end;
-    grid-template-columns: minmax(0, 1.15fr) minmax(12rem, 0.85fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(11rem, 0.8fr);
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
     justify-self: end;
-    max-width: 26ch;
-    padding-bottom: 6px;
+    max-width: 22ch;
+    padding-bottom: 4px;
     text-align: right;
   }
 }
 
 [data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
-  border-bottom-color: rgba(15, 17, 23, 0.1);
-}
-
-[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index::after {
-  background: rgba(15, 17, 23, 0.2);
+  border-bottom-color: rgba(15, 17, 23, 0.08);
 }
 
 .pitbull-feature-flow {
@@ -683,55 +689,65 @@
   gap: 0;
   grid-template-columns: 1fr;
   list-style: none;
-  margin: 0 0 clamp(18px, 2.8vw, 28px);
+  margin: 0 0 clamp(16px, 2.4vw, 24px);
   padding: 0;
 }
 
 @media (min-width: 720px) {
   .pitbull-feature-flow {
-    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+    border-top: none;
+    column-gap: clamp(20px, 3vw, 36px);
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding-top: clamp(20px, 2.8vw, 28px);
+    padding-top: 0;
+    position: relative;
+  }
+
+  .pitbull-feature-flow::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--plu-gold-500) 45%, transparent) 18%,
+      color-mix(in oklab, var(--plu-gold-500) 45%, transparent) 82%,
+      transparent
+    );
+    content: '';
+    height: 1px;
+    left: 8%;
+    position: absolute;
+    right: 8%;
+    top: 11px;
   }
 }
 
 .pitbull-feature-flow__step {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 16px 0;
+  padding: 14px 0;
   position: relative;
 }
 
 @media (min-width: 720px) {
   .pitbull-feature-flow__step {
-    gap: 12px;
-    padding: 0 clamp(16px, 2.2vw, 28px);
+    gap: 10px;
+    padding: 0;
   }
 
-  .pitbull-feature-flow__step:first-child {
-    padding-left: 0;
-  }
-
+  .pitbull-feature-flow__step:first-child,
   .pitbull-feature-flow__step:last-child {
-    padding-right: 0;
+    padding-inline: 0;
   }
 
   .pitbull-feature-flow__step:not(:last-child)::after {
-    background: var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-    bottom: 4px;
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 4px;
-    width: 1px;
+    display: none;
   }
 }
 
 @media (max-width: 719px) {
   .pitbull-feature-flow__step {
-    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+    border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
     grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
     padding: 14px 0;
   }
 
@@ -742,49 +758,59 @@
 }
 
 .pitbull-feature-flow__index {
-  color: var(--color-brand-celeste);
+  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-primary));
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 720px) {
+  .pitbull-feature-flow__index {
+    background: var(--color-bg-primary);
+    padding-right: 10px;
+    width: fit-content;
+  }
 }
 
 .pitbull-feature-flow__copy {
   display: grid;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
 }
 
 .pitbull-feature-flow__label {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(17px, 2.1vw, 20px);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
 .pitbull-feature-flow__detail {
   color: var(--color-text-muted);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0;
-  max-width: 30ch;
+  max-width: 28ch;
 }
 
 [data-theme='light'] .pitbull-feature-flow {
-  border-top-color: rgba(15, 17, 23, 0.1);
-}
-
-[data-theme='light'] .pitbull-feature-flow__step:not(:last-child)::after {
-  background: rgba(15, 17, 23, 0.1);
+  border-top-color: transparent;
 }
 
 [data-theme='light'] .pitbull-feature-flow__step {
   border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-feature-flow__index {
+  background: var(--color-bg-primary);
 }
 
 .motion-section-header--pitbull-briefing {
@@ -6094,8 +6120,77 @@
 
 .pitbull-categories-explorer__switch {
   justify-self: start;
-  max-width: 22rem;
-  width: min(100%, 22rem);
+  max-width: 24rem;
+  width: min(100%, 24rem);
+}
+
+.segmented-switch--pitbull {
+  --switch-pad: 3px;
+  --switch-track-bg: color-mix(in oklab, var(--color-text-primary) 3.5%, transparent);
+  --switch-track-border: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  --switch-thumb-bg: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--plu-gold-500) 92%, #fff) 0%,
+    var(--plu-gold-500) 100%
+  );
+  --switch-thumb-border: color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  --switch-thumb-shadow:
+    0 1px 0 color-mix(in oklab, #fff 35%, transparent) inset,
+    0 8px 18px -12px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  --switch-option-fg: var(--color-text-muted);
+  --switch-option-active-fg: #14181f;
+  background: var(--switch-track-bg);
+  border-color: var(--switch-track-border);
+  box-shadow: none;
+  padding: var(--switch-pad);
+}
+
+.segmented-switch--pitbull .segmented-switch__option {
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.segmented-switch--pitbull .segmented-switch__option:hover:not(.is-active) {
+  color: color-mix(in oklab, var(--plu-gold-500) 55%, var(--color-text-secondary));
+}
+
+.segmented-switch--pitbull .segmented-switch__option.is-active {
+  color: var(--switch-option-active-fg);
+}
+
+.segmented-switch--pitbull .segmented-switch__thumb::after {
+  background: linear-gradient(180deg, color-mix(in oklab, #fff 42%, transparent) 0%, transparent 70%);
+}
+
+.segmented-switch--pitbull:focus-within {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
+}
+
+.segmented-switch--pitbull .segmented-switch__option:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--plu-gold-500) 50%, transparent);
+  outline-offset: 2px;
+}
+
+[data-theme='light'] .segmented-switch--pitbull {
+  --switch-track-bg: #fff;
+  --switch-track-border: rgba(15, 17, 23, 0.1);
+  --switch-thumb-bg: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--plu-gold-500) 88%, #fff) 0%,
+    var(--plu-gold-500) 100%
+  );
+  --switch-thumb-border: color-mix(in oklab, var(--plu-gold-600, var(--plu-gold-500)) 40%, transparent);
+  --switch-option-active-fg: #14181f;
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .segmented-switch--pitbull .segmented-switch__option.is-active {
+  color: #14181f;
 }
 
 .pitbull-categories-explorer__pane {
@@ -7222,7 +7317,50 @@
   border-radius: var(--border-radius-lg);
   display: block;
   height: clamp(180px, 28vw, 260px);
+  position: relative;
   width: 100%;
+  z-index: 1;
+}
+
+.pitbull-location__map-placeholder {
+  align-items: center;
+  background:
+    radial-gradient(circle at 22% 28%, color-mix(in oklab, var(--plu-celeste-500) 20%, transparent), transparent 55%),
+    radial-gradient(circle at 78% 72%, color-mix(in oklab, var(--plu-gold-500) 16%, transparent), transparent 58%),
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--color-text-primary) 5%, transparent) 0,
+      color-mix(in oklab, var(--color-text-primary) 5%, transparent) 1px,
+      transparent 1px,
+      transparent 22px
+    ),
+    var(--pitbull-control-rail-bg, rgba(15, 17, 23, 0.03));
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: clamp(180px, 28vw, 260px);
+  inset: 0;
+  justify-content: center;
+  opacity: 1;
+  position: absolute;
+  text-align: center;
+  transition: opacity 0.4s ease;
+  width: 100%;
+  z-index: 0;
+}
+
+.pitbull-location__map-placeholder span {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pitbull-location__map-placeholder--hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .pitbull-location__map-overlay {
@@ -7416,134 +7554,31 @@
 }
 
 /* =============================================
-   PITBULL — TICKET CHANNELS (online vs presencial)
+   PITBULL — TICKET CTA (precios online + puerta)
    ============================================= */
 
-.pitbull-ticket-pass__channels {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.pitbull-ticket-pass--cta {
+  align-items: start;
+  display: flex;
+  padding-top: clamp(4px, 1vw, 8px);
+  width: 100%;
 }
 
-.pitbull-ticket-pass__channel {
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
-  border-radius: var(--border-radius-lg);
-  display: grid;
-  gap: 12px;
-  padding: clamp(14px, 2vw, 18px);
-}
-
-.pitbull-ticket-pass__channel--online {
-  background: linear-gradient(
-    145deg,
-    rgba(242, 183, 5, 0.07) 0%,
-    transparent 55%
-  );
-  border-color: rgba(242, 183, 5, 0.2);
-}
-
-.pitbull-ticket-pass__channel--presencial {
-  background: rgba(255, 255, 255, 0.018);
-}
-
-.pitbull-ticket-pass__channel-badge {
-  align-items: center;
-  background: var(--color-brand-action);
-  border-radius: var(--border-radius-pill);
-  color: #fff;
-  display: inline-flex;
-  font-size: 8.5px;
-  font-weight: 700;
-  gap: 5px;
-  justify-self: start;
-  letter-spacing: 0.1em;
-  padding: 3px 9px;
-  text-transform: uppercase;
-}
-
-.pitbull-ticket-pass__channel-badge--muted {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.pitbull-ticket-pass__channel-note {
-  color: var(--color-text-muted);
-  font-size: 10.5px;
-  line-height: 1.5;
-  margin: 0;
-  opacity: 0.72;
-}
-
-.pitbull-ticket-pass__channel-note--highlight {
-  color: var(--color-brand-gold);
-  font-weight: 600;
-  opacity: 1;
-}
-
-/* Pricing inside channels: bigger numbers */
-
-.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__pricing {
+.pitbull-dossier--minimal .pitbull-ticket-pass--cta .pitbull-ticket-pass__actions {
   border: none;
-  display: grid;
-  gap: 8px 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-}
-
-.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price {
-  background: transparent;
-  border: none;
-  display: grid;
-  gap: 3px;
-  margin: 0;
+  display: flex;
   padding: 0;
 }
 
-.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dt {
-  color: var(--color-text-muted);
-  font-size: 8.5px;
-  letter-spacing: 0.12em;
-  opacity: 0.72;
-  text-transform: uppercase;
+.pitbull-ticket-pass__cta {
+  white-space: nowrap;
 }
 
-.pitbull-dossier--minimal .pitbull-ticket-pass__channels .pitbull-ticket-pass__price dd {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(18px, 2.6vw, 22px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.pitbull-ticket-pass__channel--presencial .pitbull-ticket-pass__price dd {
-  opacity: 0.65;
-}
-
-@media (max-width: 480px) {
-  .pitbull-ticket-pass__channels {
-    grid-template-columns: 1fr;
+@media (max-width: 719px) {
+  .pitbull-ticket-pass__cta {
+    justify-content: center;
+    width: 100%;
   }
-}
-
-[data-theme='light'] .pitbull-ticket-pass__channel {
-  border-color: rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .pitbull-ticket-pass__channel--online {
-  background: linear-gradient(145deg, rgba(31, 95, 158, 0.04) 0%, transparent 55%);
-  border-color: rgba(31, 95, 158, 0.12);
-}
-
-[data-theme='light'] .pitbull-ticket-pass__channel--presencial {
-  background: rgba(15, 17, 23, 0.02);
-}
-
-[data-theme='light'] .pitbull-ticket-pass__channel-badge--muted {
-  background: rgba(15, 17, 23, 0.06);
-  color: rgba(15, 17, 23, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -7655,11 +7690,6 @@
 
   .pitbull-inscription-shell__extras {
     grid-column: 1;
-  }
-
-  /* ── Ticket: layout más compacto ── */
-  .pitbull-ticket-pass__channels {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   /* ── Separador de sección: más élégant ── */
@@ -7820,12 +7850,12 @@
   line-height: 1.68;
 }
 
-/* Divisores de sección más finos y elegantes */
-.pitbull-dossier--minimal .pitbull-dossier__section {
+/* Divisores entre secciones — no en la primera (el dossier ya trae border-top) */
+.pitbull-dossier--minimal > .pitbull-dossier__section + .pitbull-dossier__section {
   border-top: 1px solid rgba(255, 255, 255, 0.055);
 }
 
-[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section {
+[data-theme='light'] .pitbull-dossier--minimal > .pitbull-dossier__section + .pitbull-dossier__section {
   border-top-color: rgba(15, 17, 23, 0.065);
 }
 
@@ -7923,6 +7953,17 @@
   display: grid;
   grid-template-columns: 1fr;
   min-height: 0;
+}
+
+.pitbull-hero-masthead__visual-slot {
+  margin-top: clamp(24px, 3.6vw, 40px);
+  max-width: min(64rem, 100%);
+}
+
+@media (min-width: 900px) {
+  .pitbull-hero-masthead__visual-slot .pitbull-hero-visual__media {
+    max-height: clamp(220px, 22vw, 320px);
+  }
 }
 
 .pitbull-hero-masthead--text .pitbull-hero-masthead__layout--text {
@@ -8741,6 +8782,7 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
+  width: 100%;
 }
 
 .pitbull-hero-visual__img {

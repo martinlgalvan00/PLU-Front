@@ -1,5 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
-import { getAthletePhotoPublicUrl } from './athletePhotoService.js'
+import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 
 /**
  * athleteApi.js — PLU ARG
@@ -34,7 +34,7 @@ function toCamelAthlete(row) {
     estimatedWeight: row.estimated_weight,
     status: row.status,
     photoPath: row.photo_path,
-    photoUrl: getAthletePhotoPublicUrl(row.photo_path),
+    photoUrl: row.photo_url ?? null,
   }
 }
 
@@ -143,8 +143,8 @@ function mapAthleteData({ athletes, athlete, memberships, registrations, payment
 }
 
 /** Snapshot público de UN atleta (perfil propio, sin sesión de Supabase Auth). */
-export async function fetchAthleteSnapshot(athleteId) {
-  const result = await callRpc('get_athlete_snapshot', { p_athlete_id: athleteId })
+export async function fetchAthleteSnapshot() {
+  const result = await apiGet('/api/athletes/session')
   const mapped = mapAthleteData(result)
   return {
     athlete: mapped.athletes[0] ?? null,
@@ -154,15 +154,34 @@ export async function fetchAthleteSnapshot(athleteId) {
   }
 }
 
+export async function fetchAthleteSession() {
+  const result = await apiGet('/api/athletes/session')
+  const mapped = mapAthleteData(result)
+  return {
+    user: result.user,
+    athlete: mapped.athletes[0] ?? null,
+    memberships: mapped.memberships,
+    registrations: mapped.registrations,
+    payments: mapped.payments,
+  }
+}
+
+export function logoutAthleteSession() {
+  return apiPost('/api/athletes/logout', {})
+}
+
+export function loginAthleteSession(credentials) {
+  return apiPost('/api/athletes/login', credentials)
+}
+
 /** Snapshot completo para el panel admin/seguridad. */
 export async function fetchAdminAthleteData() {
-  const result = await callRpc('list_athlete_admin_data', {})
+  const result = await apiGet('/api/athletes/admin')
   return mapAthleteData(result)
 }
 
 export async function registerAthlete(form) {
-  const row = await callRpc('register_athlete', {
-    p_form: {
+  const { athlete: row } = await apiPost('/api/athletes/register', {
       fullName: form.fullName,
       documentId: form.documentId,
       email: form.email,
@@ -176,19 +195,15 @@ export async function registerAthlete(form) {
       division: form.division,
       category: form.category,
       estimatedWeight: form.estimatedWeight,
-    },
+      password: form.password,
   })
   return { athlete: toCamelAthlete(row) }
 }
 
-export async function updateAthleteProfile(athleteId, updates) {
-  const row = await callRpc('update_athlete_profile', {
-    p_athlete_id: athleteId,
-    p_email: updates.email,
-    p_phone: updates.phone,
-    p_city: updates.city,
-    p_province: updates.province,
-    p_gym: updates.gym,
+export async function updateAthleteProfile(_athleteId, updates) {
+  const { athlete: row } = await apiRequest('/api/athletes/me', {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
   })
   return { athlete: toCamelAthlete(row) }
 }
@@ -208,11 +223,11 @@ function toCamelMembershipPlan(row) {
   }
 }
 
-export async function createMembershipOrder(athleteId, paymentMethod, planCode = 'plu-annual') {
-  const result = await callRpc('create_membership_order', {
-    p_athlete_id: athleteId,
-    p_payment_method: paymentMethod,
-    p_plan_code: planCode,
+export async function createMembershipOrder(_athleteId, paymentMethod, planCode = 'plu-annual', idempotencyKey = crypto.randomUUID()) {
+  const result = await apiPost('/api/athletes/me/membership-orders', {
+    paymentMethod,
+    planCode,
+    idempotencyKey,
   })
   return {
     order: toCamelPaymentOrder(result.order),
@@ -222,20 +237,20 @@ export async function createMembershipOrder(athleteId, paymentMethod, planCode =
 }
 
 export async function createCompetitionRegistration({
-  athleteId,
   eventSlug,
   division,
   category,
   bodyweightKg,
   paymentMethod,
+  idempotencyKey = crypto.randomUUID(),
 }) {
-  const result = await callRpc('create_competition_registration', {
-    p_athlete_id: athleteId,
-    p_event_slug: eventSlug,
-    p_division: division,
-    p_category: category,
-    p_bodyweight_kg: bodyweightKg,
-    p_payment_method: paymentMethod,
+  const result = await apiPost('/api/athletes/me/registrations', {
+    eventSlug,
+    division,
+    category,
+    bodyweightKg,
+    paymentMethod,
+    idempotencyKey,
   })
   return {
     order: toCamelPaymentOrder(result.order),
@@ -244,7 +259,7 @@ export async function createCompetitionRegistration({
 }
 
 export async function approveAthletePaymentOrder(orderId) {
-  const result = await callRpc('approve_athlete_payment_order', { p_order_id: orderId })
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {})
   return {
     order: toCamelPaymentOrder(result.order),
     membership: toCamelMembership(result.membership),
@@ -264,19 +279,13 @@ export async function getMembershipByCodeOrToken(code, eventSlug) {
   }
 }
 
-export async function registerAthletePhoto(athleteId, photoPath) {
-  const row = await callRpc('register_athlete_photo', {
-    p_athlete_id: athleteId,
-    p_photo_path: photoPath,
-  })
+export async function registerAthletePhoto(_athleteId, photoPath) {
+  const { athlete: row } = await apiPost('/api/athletes/me/photo', { photoPath })
   return { athlete: toCamelAthlete(row) }
 }
 
 export async function checkInRegistration(registrationId, gate) {
-  const result = await callRpc('check_in_registration', {
-    p_registration_id: registrationId,
-    p_gate: gate,
-  })
+  const result = await apiPost(`/api/tickets/registrations/${registrationId}/checkin`, { gate })
   return {
     registration: toCamelRegistrationEntry({ registration: result.registration }),
     checkIn: { id: result.checkIn?.id, scannedAt: result.checkIn?.scanned_at },
@@ -284,5 +293,5 @@ export async function checkInRegistration(registrationId, gate) {
 }
 
 export async function getEventCheckinAllowlist(eventSlug) {
-  return callRpc('get_event_checkin_allowlist', { p_event_slug: eventSlug })
+  return apiGet(`/api/tickets/allowlist/${encodeURIComponent(eventSlug)}`)
 }

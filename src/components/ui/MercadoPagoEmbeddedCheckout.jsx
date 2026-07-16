@@ -66,6 +66,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       if (!payload?.formData) throw new Error(t('payments.embeddedError'))
       const response = await processEmbeddedPayment({
         paymentOrderId: orderId,
+        orderAccessToken: order?.orderAccessToken,
         formData: payload.formData,
       })
       const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
@@ -76,13 +77,14 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       setError(submitError?.message ?? t('payments.embeddedError'))
       throw submitError
     }
-  }, [onResult, orderId, t])
+  }, [onResult, order?.orderAccessToken, orderId, t])
 
   const submitSubscription = useCallback(async (formData) => {
     setError('')
     try {
       const response = await processEmbeddedSubscription({
         paymentOrderId: orderId,
+        orderAccessToken: order?.orderAccessToken,
         planCode: order.plan?.code,
         cardToken: formData.token,
       })
@@ -94,14 +96,14 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       setError(submitError?.message ?? t('payments.embeddedError'))
       throw submitError
     }
-  }, [onResult, order?.plan?.code, orderId, t])
+  }, [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t])
 
   const handleReady = useCallback(() => setReady(true), [])
   const handleRenderError = useCallback(() => setError(t('payments.embeddedRenderError')), [t])
   const refreshStatus = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setChecking(true)
     try {
-      const response = await getPaymentOrderStatus(orderId)
+      const response = await getPaymentOrderStatus(orderId, order?.orderAccessToken)
       const status = normalizePaymentStatus(response.order?.status)
       setResult((current) => ({ status, data: current?.data ?? response }))
       if (status !== 'pending') {
@@ -115,7 +117,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
     } finally {
       if (!quiet) setChecking(false)
     }
-  }, [onResult, orderId, t])
+  }, [onResult, order?.orderAccessToken, orderId, t])
 
   useEffect(() => {
     if (result?.status !== 'pending' || isSubscription) return undefined

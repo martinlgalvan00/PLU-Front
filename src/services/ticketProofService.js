@@ -1,4 +1,4 @@
-import { ApiError } from '../lib/api.js'
+import { ApiError, apiPost } from '../lib/api.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 
 const PROOF_BUCKET = 'ticket-payment-proofs'
@@ -23,12 +23,7 @@ export function validateTicketPaymentProofFile(file) {
   return { ok: true }
 }
 
-function buildProofStoragePath(orderId, fileName) {
-  const safeName = sanitizeFileName(fileName)
-  return `${orderId}/${Date.now()}-${safeName}`
-}
-
-export async function uploadTicketPaymentProof(orderId, file) {
+export async function uploadTicketPaymentProof(orderId, accessToken, file) {
   const validation = validateTicketPaymentProofFile(file)
   if (validation.error) {
     throw new ApiError(validation.error, { status: 400 })
@@ -41,20 +36,21 @@ export async function uploadTicketPaymentProof(orderId, file) {
     )
   }
 
-  const storagePath = buildProofStoragePath(orderId, file.name)
+  const upload = await apiPost(`/api/tickets/orders/${orderId}/proof-upload`, {
+    accessToken,
+    fileName: sanitizeFileName(file.name),
+    contentType: file.type,
+    size: file.size,
+  })
   const { error: uploadError } = await supabase.storage
     .from(PROOF_BUCKET)
-    .upload(storagePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type,
-    })
+    .uploadToSignedUrl(upload.path, upload.token, file, { contentType: file.type })
 
   if (uploadError) {
     throw new ApiError(uploadError.message ?? 'No se pudo subir el comprobante.', { status: 400 })
   }
 
-  return { storagePath }
+  return { storagePath: upload.path }
 }
 
 export { PROOF_BUCKET }

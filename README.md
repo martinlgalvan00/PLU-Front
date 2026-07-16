@@ -34,13 +34,13 @@ npm run db:seed
 
 ## Estado del proyecto
 
-El proyecto está en **MVP avanzado**: la UI y la lógica de negocio están desarrolladas; parte de los datos vive en `localStorage` (demo) y otra en PostgreSQL (tickets, usuarios, sesiones).
+Prisma conserva identidad y sesiones del staff. Supabase es la fuente transaccional de eventos, atletas, afiliaciones, inscripciones, entradas y pagos; `localStorage` queda solamente para cuentas y contenido de demostración.
 
 | Área | Estado actual | Target |
 |------|---------------|--------|
-| Atletas, afiliaciones, inscripciones | `localStorage` + servicios frontend | PostgreSQL vía API |
-| Entradas (Pitbull) | API real + Postgres | Producción con MP webhook |
-| Auth atletas/admins | API con sesión + demo local | Solo API/OAuth |
+| Atletas, afiliaciones, inscripciones | Supabase vía API y sesión HTTP-only | Operativo |
+| Entradas (Pitbull) | Supabase vía API, reservas e idempotencia | Operativo |
+| Auth atletas/admins | Sesión opaca atleta + Prisma/Auth0 staff | Operativo |
 | Pagos afiliación/inscripción | Checkout Bricks embebido + webhook idempotente | Pruebas sandbox y credenciales productivas |
 | Resultados | Archivo mock + filtros UI | Import LiftingCast |
 | Records | Página placeholder | Tabla de récords oficiales |
@@ -157,13 +157,17 @@ La lógica de permisos vive en `src/lib/roles.js` y se aplica en UI y middleware
 
 | Ruta | Endpoints principales |
 |------|----------------------|
-| `/api/health` | Health check |
+| `/health`, `/ready` | Vida del proceso y dependencias reales |
 | `/api/auth` | `POST /login`, `GET /me`, `POST /oauth/session`, `POST /logout` |
+| `/api/athletes` | Sesión, perfil, afiliación, inscripciones y administración |
 | `/api/tickets` | Órdenes, tickets, check-in, comprobantes, add-ons |
+| `/api/events` | Configuración transaccional de eventos y cupos |
 | `/api/payments` | Workflow de pagos (eventos de integración) |
 | `/api/emails` | Workflow de notificaciones (Brevo) |
 
-**Seguridad:** Helmet, CORS con credenciales, rate limit en login, cookies HTTP-only, validación Zod, roles en rutas sensibles.
+**Seguridad:** Helmet, CORS con credenciales, anti-CSRF, rate limit, cookies HTTP-only, validación Zod, roles, buckets privados y URLs firmadas. El navegador nunca confirma pagos.
+
+La instalación y operación están documentadas en [`docs/PAYMENTS_OPERATIONS.md`](docs/PAYMENTS_OPERATIONS.md).
 
 **Workflows de integración:** eventos idempotentes (`IntegrationEvent` / `IntegrationAttempt`) para pagos y emails, con store en memoria en MVP y contrato Prisma listo para persistencia.
 

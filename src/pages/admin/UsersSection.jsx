@@ -9,13 +9,20 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { ROLE_OPTIONS } from '../../lib/constants.js'
 import { getRoleLabel } from '../../lib/roles.js'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'seguridad_plu_arg' }
+const EMPTY_DRAFT = { name: '', email: '', role: 'seguridad_plu_arg', eventId: '' }
 
-export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRole, users }) {
+export default function UsersSection({ adminEvents, canManageUsers, onCreateSecurityUser, onCreateUser, onUpdateRole, users }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
+  const [tempPassword, setTempPassword] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const eventOptions = useMemo(
+    () => (adminEvents ?? []).map((event) => [event.id, event.title]),
+    [adminEvents],
+  )
 
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -28,7 +35,7 @@ export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRol
     })
   }, [users, query])
 
-  function handleAddUser(event) {
+  async function handleAddUser(event) {
     event.preventDefault()
     if (draft.name.trim().length < 3) {
       setFormError(t('admin.users.errorName'))
@@ -38,9 +45,30 @@ export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRol
       setFormError(t('admin.users.errorEmail'))
       return
     }
+    if (draft.role === 'seguridad_plu_arg' && !draft.eventId) {
+      setFormError(t('admin.users.errorEvent'))
+      return
+    }
+
     setFormError('')
-    onCreateUser(draft)
-    setDraft(EMPTY_DRAFT)
+    setTempPassword(null)
+
+    if (draft.role !== 'seguridad_plu_arg') {
+      onCreateUser(draft)
+      setDraft(EMPTY_DRAFT)
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const { user, tempPassword: password } = await onCreateSecurityUser(draft)
+      setTempPassword({ email: user.email, password })
+      setDraft(EMPTY_DRAFT)
+    } catch (error) {
+      setFormError(error?.status === 409 ? t('admin.users.errorEmailTaken') : t('admin.users.errorCreate'))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -75,17 +103,31 @@ export default function UsersSection({ canManageUsers, onCreateUser, onUpdateRol
             label={t('admin.columns.role')}
             name="role"
             value={draft.role}
-            onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value }))}
+            onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
             options={ROLE_OPTIONS}
           />
-          <Button type="submit" className="btn--small admin-users__add-btn">
+          {draft.role === 'seguridad_plu_arg' && (
+            <Select
+              label={t('admin.users.event')}
+              name="eventId"
+              value={draft.eventId}
+              onChange={(e) => setDraft((current) => ({ ...current, eventId: e.target.value }))}
+              options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
+            />
+          )}
+          <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
             <UserPlus size={14} aria-hidden />
-            {t('admin.users.addUser')}
+            {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
           </Button>
         </form>
       )}
 
       {formError && <p className="admin-users__form-error">{formError}</p>}
+      {tempPassword && (
+        <p className="admin-users__temp-password" role="status">
+          {t('admin.users.tempPasswordNote', { email: tempPassword.email, password: tempPassword.password })}
+        </p>
+      )}
 
       <DataTable
         variant="admin"

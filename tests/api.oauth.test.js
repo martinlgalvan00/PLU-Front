@@ -130,6 +130,8 @@ describe('oauth auth api', () => {
       email: 'admin@pluarg.com',
       name: 'Admin PLU',
       role: 'admin_plu_arg',
+      eventId: null,
+      eventSlug: null,
     })
 
     const me = await fetch(`${target.url}/api/auth/me`, { headers: { Cookie: cookie } })

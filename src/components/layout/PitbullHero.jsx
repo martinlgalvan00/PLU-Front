@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
+import PitbullHeroVisual from '../ui/PitbullHeroVisual.jsx'
 
 function PitbullHeroPanel({
   eventStatus,
@@ -18,7 +19,7 @@ function PitbullHeroPanel({
 }) {
   const { label: statusLabel } = getStatusMeta(eventStatus, t)
   const primaryLabel = t('pages.pitbull.register')
-  const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
+  const secondaryLabel = ticketsOpen ? t('pages.pitbull.ticketsTitle') : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
 
@@ -131,6 +132,15 @@ export default function PitbullHero({
     />
   )
 
+  const visual = (
+    <PitbullHeroVisual
+      categories={pitbullClassic.categories}
+      date={pitbullClassic.date}
+      t={t}
+      venue={`${pitbullClassic.venue} · ${pitbullClassic.location}`}
+    />
+  )
+
   if (reducedMotion) {
     return (
       <header className="pitbull-hero-masthead pitbull-hero-masthead--text">
@@ -140,6 +150,7 @@ export default function PitbullHero({
           <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
             {panel}
           </div>
+          <div className="pitbull-hero-masthead__visual-slot">{visual}</div>
         </div>
       </header>
     )
@@ -158,6 +169,9 @@ export default function PitbullHero({
         <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
           {panel}
         </div>
+        <m.div className="pitbull-hero-masthead__visual-slot" variants={heroSequenceItem}>
+          {visual}
+        </m.div>
       </div>
     </m.header>
   )

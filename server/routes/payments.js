@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import rateLimit from 'express-rate-limit'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { getPrisma } from '../lib/prisma.js'
@@ -25,11 +24,14 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { requireRole } from '../middleware/auth.js'
+import { checkoutLimiter, publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
 
 const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const preferenceSchema = z.object({
   paymentOrderId: z.string().uuid(),
+  orderAccessToken: z.string().trim().min(32).optional(),
 })
 
 const embeddedPayerSchema = z.object({
@@ -44,6 +46,7 @@ const embeddedPayerSchema = z.object({
 
 const embeddedPaymentSchema = z.object({
   paymentOrderId: z.string().uuid(),
+  orderAccessToken: z.string().trim().min(32).optional(),
   formData: z.object({
     token: z.string().trim().min(10).optional(),
     issuer_id: z.union([z.string(), z.number()]).optional(),
@@ -56,6 +59,7 @@ const embeddedPaymentSchema = z.object({
 
 const embeddedSubscriptionSchema = z.object({
   paymentOrderId: z.string().uuid(),
+  orderAccessToken: z.string().trim().min(32).optional(),
   planCode: z.string().trim().min(2),
   cardToken: z.string().trim().min(10),
 })
@@ -69,14 +73,6 @@ const webhookSchema = z
     data: z.object({ id: z.union([z.string(), z.number()]) }).passthrough(),
   })
   .passthrough()
-
-const checkoutLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { error: 'Demasiados intentos de checkout. Probá nuevamente en unos minutos.' },
-})
 
 const operationsQuerySchema = z.object({
   status: z.enum(['received', 'processing', 'processed', 'failed', 'skipped']).optional(),
@@ -119,8 +115,26 @@ export function createPaymentRoutes(deps = {}) {
     return result
   }
 
+  async function requireOrderAccess(req, paymentOrderId, accessToken) {
+    const paymentRepository = repository()
+    const order = await paymentRepository.getOrder(paymentOrderId)
+    if (order.kind === 'ticket') {
+      await paymentRepository.assertTicketOrderAccess(paymentOrderId, accessToken)
+      return order
+    }
+    const athleteSession = await readAthleteSession({
+      client: deps.supabaseAdmin ?? getSupabaseAdmin(),
+      token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
+    })
+    if (!athleteSession || athleteSession.athleteId !== order.athleteId) {
+      throw new HttpError(403, 'La orden no pertenece a la sesion actual.')
+    }
+    return order
+  }
+
   router.post('/preferences', checkoutLimiter, validateBody(preferenceSchema), async (req, res, next) => {
     try {
+      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await createPaymentPreference(
         {
           ...req.validatedBody,
@@ -137,6 +151,7 @@ export function createPaymentRoutes(deps = {}) {
 
   router.post('/embedded/process', checkoutLimiter, validateBody(embeddedPaymentSchema), async (req, res, next) => {
     try {
+      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await processEmbeddedPayment(req.validatedBody, services({ notifications: true }))
       res.status(result.duplicate ? 200 : 201).json(result)
     } catch (error) {
@@ -144,10 +159,10 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.get('/orders/:orderId/status', async (req, res, next) => {
+  router.get('/orders/:orderId/status', publicReadLimiter, async (req, res, next) => {
     try {
       const orderId = parseInput(z.string().uuid(), req.params.orderId)
-      const order = await repository().getOrder(orderId)
+      const order = await requireOrderAccess(req, orderId, req.get('x-order-access-token'))
       res.json({
         order: {
           id: order.id,
@@ -162,7 +177,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.get('/plans', async (_req, res, next) => {
+  router.get('/plans', publicReadLimiter, async (_req, res, next) => {
     try {
       const plans = await repository().listPlans()
       res.json({ plans: plans.map(serializePlan) })
@@ -171,7 +186,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.get('/operations', ...financeGuard, async (req, res, next) => {
+  router.get('/operations', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {
       const query = parseInput(operationsQuerySchema, req.query)
       const paymentRepository = repository()
@@ -194,7 +209,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/recover', ...financeGuard, async (_req, res, next) => {
+  router.post('/operations/recover', ...financeGuard, staffLimiter, async (_req, res, next) => {
     try {
       const result = await recoverPaymentOperations({
         ...services({ notifications: true }),
@@ -207,7 +222,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/events/:eventId/retry', ...financeGuard, async (req, res, next) => {
+  router.post('/operations/events/:eventId/retry', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventId = parseInput(z.string().uuid(), req.params.eventId)
       const paymentServices = services({ notifications: true })
@@ -220,7 +235,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/reconciliations/:attemptId/retry', ...financeGuard, async (req, res, next) => {
+  router.post('/operations/reconciliations/:attemptId/retry', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {
       const attemptId = parseInput(z.string().uuid(), req.params.attemptId)
       const paymentServices = services({ notifications: true })
@@ -235,6 +250,7 @@ export function createPaymentRoutes(deps = {}) {
 
   router.post('/subscriptions/process', checkoutLimiter, validateBody(embeddedSubscriptionSchema), async (req, res, next) => {
     try {
+      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await createEmbeddedRecurringSubscription(
         { ...req.validatedBody, appUrl: env.APP_URL ?? env.VITE_APP_URL },
         services(),

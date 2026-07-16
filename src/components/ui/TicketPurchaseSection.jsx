@@ -5,6 +5,7 @@ import CardPreviewModal from './CardPreviewModal.jsx'
 import FormSection from './FormSection.jsx'
 import { Field, Select } from './FormFields.jsx'
 import StatusPill from './StatusPill.jsx'
+import TicketPassPreview from './TicketPassPreview.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
@@ -345,6 +346,7 @@ function TicketPaymentOptions({ paymentMethod, onChange, t }) {
 
 export default function TicketPurchaseSection({
   editorial = false,
+  showPassPreview = true,
   event,
   dayLabels = { day1: 'día 1', day2: 'día 2' },
   pricing = { day: PRICING.ticket, bothDays: PRICING.ticketBothDays },
@@ -472,7 +474,7 @@ export default function TicketPurchaseSection({
         : t('pages.tickets.confirmationCount_other', { count: visibleOrder.quantity })
 
     return (
-      <div className="ticket-purchase ticket-purchase--confirmation">
+      <div className="ticket-purchase ticket-purchase--confirmation ticket-purchase--confirmation-editorial">
         <div className="ticket-purchase__confirmation-head">
           <TicketIcon size={22} aria-hidden />
           <div>
@@ -483,6 +485,8 @@ export default function TicketPurchaseSection({
           </div>
           <StatusPill value={visibleOrder.status} />
         </div>
+
+        <p className="ticket-purchase__confirmation-lead">{t('pages.tickets.confirmationQrLead')}</p>
 
         {visibleOrder.paymentMethod === 'mercado_pago' && visibleOrder.status !== 'aprobado' ? (
           <>
@@ -553,27 +557,38 @@ export default function TicketPurchaseSection({
           </div>
         ) : null}
 
-        <ul className="ticket-purchase__list">
+        <ul className="ticket-purchase__list ticket-purchase__list--passes">
           {orderTickets.map((ticket) => (
-            <li key={ticket.id} className="ticket-purchase__ticket-row">
-              <div className="ticket-purchase__ticket-info">
-                <strong>{ticket.attendeeName}</strong>
-                <span>
-                  {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode} ·{' '}
-                  {dayPassLabels[ticket.dayPass] ?? ticket.dayPass}
-                </span>
-                {ticket.addons?.length ? (
-                  <span className="ticket-purchase__ticket-benefits">
-                    {t('pages.tickets.redeemBenefits')}:{' '}
-                    {ticket.addons.map((addon) => addon.label).join(' · ')}
+            <li key={ticket.id} className="ticket-purchase__pass-item">
+              <TicketPassPreview
+                live
+                interactive={false}
+                attendeeName={ticket.attendeeName}
+                date={ticket.eventDate || event?.date}
+                dayPassLabel={dayPassLabels[ticket.dayPass] ?? ticket.dayPass}
+                eventSlug={ticket.eventSlug || event?.slug || ''}
+                eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
+                qrCode={ticket.qrToken || ticket.ticketCode || ''}
+                venue={ticket.eventVenue || event?.venue}
+              />
+              <div className="ticket-purchase__pass-actions">
+                <div className="ticket-purchase__ticket-info">
+                  <span>
+                    {t('pages.tickets.dni')} {ticket.attendeeDni} · {ticket.ticketCode}
                   </span>
-                ) : null}
+                  {ticket.addons?.length ? (
+                    <span className="ticket-purchase__ticket-benefits">
+                      {t('pages.tickets.redeemBenefits')}:{' '}
+                      {ticket.addons.map((addon) => addon.label).join(' · ')}
+                    </span>
+                  ) : null}
+                </div>
+                <StatusPill value={ticket.status} />
+                <button type="button" className="ticket-purchase__qr-btn" onClick={() => setActiveTicketId(ticket.id)}>
+                  <QrCode size={14} aria-hidden />
+                  {t('pages.tickets.viewTicket')}
+                </button>
               </div>
-              <StatusPill value={ticket.status} />
-              <button type="button" className="ticket-purchase__qr-btn" onClick={() => setActiveTicketId(ticket.id)}>
-                <QrCode size={14} aria-hidden />
-                {t('pages.tickets.viewTicket')}
-              </button>
             </li>
           ))}
         </ul>
@@ -603,12 +618,19 @@ export default function TicketPurchaseSection({
     )
   }
 
-  const buyLabel =
-    quantity === 1
+  const buyLabel = submitting
+    ? t('pages.tickets.buySubmitting')
+    : quantity === 1
       ? t('pages.tickets.buy_one')
       : t('pages.tickets.buy_other', { count: quantity })
 
-  const formClass = ['ticket-purchase', editorial ? 'ticket-purchase--editorial' : ''].filter(Boolean).join(' ')
+  const formClass = [
+    'ticket-purchase',
+    editorial ? 'ticket-purchase--editorial' : '',
+    editorial && !showPassPreview ? 'ticket-purchase--editorial-solo' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   const formBody = (
     <>
@@ -812,10 +834,31 @@ export default function TicketPurchaseSection({
     </>
   )
 
+  const previewDayLabel =
+    dayPassLabels[attendees[0]?.dayPass] ?? dayChipOptions.find(([pass]) => pass === attendees[0]?.dayPass)?.[1] ?? ''
+
   return (
     <form className={formClass} onSubmit={handleSubmit}>
       {editorial ? (
-        formBody
+        <div className="ticket-purchase__stage">
+          <div className="ticket-purchase__form-col">{formBody}</div>
+          {showPassPreview ? (
+            <aside className="ticket-purchase__preview-col" aria-label={t('pages.ticketsPage.passLiveAria')}>
+              <TicketPassPreview
+                live
+                showHint={false}
+                attendeeName={attendees[0]?.fullName}
+                date={event?.date}
+                dayPassLabel={previewDayLabel}
+                eventSlug={event?.slug ?? event?.id ?? ''}
+                eventTitle={event?.title}
+                quantity={quantity}
+                venue={event?.venue}
+              />
+              <p className="ticket-purchase__preview-note">{t('pages.ticketsPage.passLiveNote')}</p>
+            </aside>
+          ) : null}
+        </div>
       ) : (
         <FormSection
           title={t('pages.tickets.title')}

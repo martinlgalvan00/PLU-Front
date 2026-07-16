@@ -1,4 +1,4 @@
-import { ApiError } from '../lib/api.js'
+import { ApiError, apiPost } from '../lib/api.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
@@ -23,12 +23,7 @@ export function validateAthletePhotoFile(file) {
   return { ok: true }
 }
 
-function buildPhotoStoragePath(athleteId, fileName) {
-  const safeName = sanitizeFileName(fileName)
-  return `${athleteId}/${Date.now()}-${safeName}`
-}
-
-export async function uploadAthletePhoto(athleteId, file) {
+export async function uploadAthletePhoto(_athleteId, file) {
   const validation = validateAthletePhotoFile(file)
   if (validation.error) {
     throw new ApiError(validation.error, { status: 400 })
@@ -41,26 +36,21 @@ export async function uploadAthletePhoto(athleteId, file) {
     )
   }
 
-  const storagePath = buildPhotoStoragePath(athleteId, file.name)
+  const upload = await apiPost('/api/athletes/me/photo-upload', {
+    fileName: sanitizeFileName(file.name),
+    contentType: file.type,
+    size: file.size,
+  })
   const { error: uploadError } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .upload(storagePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type,
-    })
+    .uploadToSignedUrl(upload.path, upload.token, file, { contentType: file.type })
 
   if (uploadError) {
     throw new ApiError(uploadError.message ?? 'No se pudo subir la foto.', { status: 400 })
   }
 
-  return { storagePath }
+  return { storagePath: upload.path }
 }
 
 /** URL pública del bucket (bucket public=true, no necesita firma). */
-export function getAthletePhotoPublicUrl(photoPath) {
-  if (!photoPath || !isSupabaseConfigured || !supabase) return null
-  return supabase.storage.from(PHOTO_BUCKET).getPublicUrl(photoPath).data.publicUrl
-}
-
 export { PHOTO_BUCKET }

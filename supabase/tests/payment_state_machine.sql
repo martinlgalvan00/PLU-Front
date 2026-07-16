@@ -218,8 +218,12 @@ begin
     raise exception 'Smoke: el worker no recupero el lock vencido.';
   end if;
 
-  if public.get_payment_system_health() ->> 'schemaVersion' <> '20260715000500' then
-    raise exception 'Smoke: version de health check inesperada.';
+  -- "Al menos esta migracion esta aplicada" en vez de igualdad estricta:
+  -- los slugs de migracion son YYYYMMDDHHMMSS..., asi que la comparacion
+  -- lexicografica funciona como comparacion temporal. Con "=" este smoke
+  -- test se rompia con cada migracion nueva no relacionada al pago.
+  if public.get_payment_system_health() ->> 'schemaVersion' < '20260715000500' then
+    raise exception 'Smoke: version de health check inesperada (desactualizada).';
   end if;
 end;
 $test$;

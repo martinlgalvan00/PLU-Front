@@ -1,19 +1,18 @@
 import { useState } from 'react'
 import {
-  ArrowLeft,
   ArrowRight,
   ExternalLink,
   MapPin,
+  MapPinned,
 } from 'lucide-react'
 import { m } from 'motion/react'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { resolveEventPricing, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { resolveEventPricing } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
@@ -264,6 +263,8 @@ function PitbullScheduleStrip({ schedule, t }) {
 }
 
 function PitbullLocationSection({ venue, t }) {
+  const [mapLoaded, setMapLoaded] = useState(false)
+
   return (
     <PitbullDossierSection
       id="lugar"
@@ -276,6 +277,10 @@ function PitbullLocationSection({ venue, t }) {
     >
       <div className="pitbull-location pitbull-location--editorial">
         <Reveal as="div" direction="scale" className="pitbull-location__map-shell">
+          <div className={`pitbull-location__map-placeholder${mapLoaded ? ' pitbull-location__map-placeholder--hidden' : ''}`} aria-hidden>
+            <MapPinned size={26} aria-hidden />
+            <span>{venue.name}</span>
+          </div>
           <iframe
             className="pitbull-location__map"
             src={venue.mapsEmbedUrl}
@@ -283,6 +288,7 @@ function PitbullLocationSection({ venue, t }) {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
+            onLoad={() => setMapLoaded(true)}
           />
           <div className="pitbull-location__map-overlay" aria-hidden />
         </Reveal>
@@ -312,53 +318,14 @@ function PitbullLocationSection({ venue, t }) {
   )
 }
 
-function PitbullTicketPass({ locale, onOpen, pricing, t }) {
+function PitbullTicketPass({ onOpen, t }) {
   return (
-    <div className="pitbull-ticket-pass">
-      <div className="pitbull-ticket-pass__channels">
-        <div className="pitbull-ticket-pass__channel pitbull-ticket-pass__channel--online">
-          <span className="pitbull-ticket-pass__channel-badge">
-            {t('pages.pitbull.ticketOnlineLabel')}
-          </span>
-          <dl className="pitbull-ticket-pass__pricing" aria-label={t('pages.pitbull.ticketPricingAria')}>
-            <div className="pitbull-ticket-pass__price">
-              <dt>{t('pages.pitbull.ticketDayLabel')}</dt>
-              <dd>{money(pricing.day, locale)}</dd>
-            </div>
-            <div className="pitbull-ticket-pass__price pitbull-ticket-pass__price--both">
-              <dt>{t('pages.pitbull.ticketBothLabel')}</dt>
-              <dd>{money(pricing.bothDays, locale)}</dd>
-            </div>
-          </dl>
-          <p className="pitbull-ticket-pass__channel-note pitbull-ticket-pass__channel-note--highlight">
-            {t('pages.pitbull.ticketOnlineNote')}
-          </p>
-          <div className="pitbull-ticket-pass__actions">
-            <button type="button" className="pitbull-dossier__cta" onClick={onOpen}>
-              {t('pages.pitbull.ticketPassCta')}
-              <ArrowRight size={14} aria-hidden />
-            </button>
-          </div>
-        </div>
-
-        <div className="pitbull-ticket-pass__channel pitbull-ticket-pass__channel--presencial">
-          <span className="pitbull-ticket-pass__channel-badge pitbull-ticket-pass__channel-badge--muted">
-            {t('pages.pitbull.ticketPresencialLabel')}
-          </span>
-          <dl className="pitbull-ticket-pass__pricing" aria-label={`${t('pages.pitbull.ticketPricingAria')}: ${t('pages.pitbull.ticketPresencialLabel')}`}>
-            <div className="pitbull-ticket-pass__price">
-              <dt>{t('pages.pitbull.ticketDayLabel')}</dt>
-              <dd>{money(pricing.dayPresencial, locale)}</dd>
-            </div>
-            <div className="pitbull-ticket-pass__price pitbull-ticket-pass__price--both">
-              <dt>{t('pages.pitbull.ticketBothLabel')}</dt>
-              <dd>{money(pricing.bothDaysPresencial, locale)}</dd>
-            </div>
-          </dl>
-          <p className="pitbull-ticket-pass__channel-note">
-            {t('pages.pitbull.ticketPresencialNote')}
-          </p>
-        </div>
+    <div className="pitbull-ticket-pass pitbull-ticket-pass--cta">
+      <div className="pitbull-ticket-pass__actions">
+        <button type="button" className="pitbull-dossier__cta pitbull-ticket-pass__cta" onClick={onOpen}>
+          {t('pages.pitbull.ticketsFormTitle')}
+          <ArrowRight size={14} aria-hidden />
+        </button>
       </div>
     </div>
   )
@@ -456,7 +423,7 @@ function PitbullInscriptionSection({
   )
 }
 
-function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
+function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, ticketsOpen, t }) {
   return (
     <PitbullDossierSection
       className="pitbull-dossier__section--feature"
@@ -494,9 +461,15 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, t }) {
           {t('pages.pitbull.ctaInscription')}
           <ArrowRight size={14} aria-hidden />
         </button>
-        <button type="button" className="pitbull-dossier__text-link" onClick={() => onNavigate('rulebook')}>
-          {t('pages.pitbull.ctaRulebook')}
-        </button>
+        {ticketsOpen ? (
+          <button type="button" className="pitbull-dossier__text-link" onClick={onTickets}>
+            {t('pages.pitbull.ticketsTitle')}
+          </button>
+        ) : (
+          <button type="button" className="pitbull-dossier__text-link" onClick={() => onNavigate('rulebook')}>
+            {t('pages.pitbull.ctaRulebook')}
+          </button>
+        )}
       </div>
     </PitbullDossierSection>
   )
@@ -530,7 +503,7 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
         <SegmentedSwitch
           active={tab}
           ariaLabel={t('pages.pitbull.categoriesTabsAria')}
-          className="pitbull-categories-explorer__switch"
+          className="pitbull-categories-explorer__switch segmented-switch--pitbull"
           onChange={setTab}
           options={tabOptions}
         />
@@ -580,11 +553,6 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
 export default function PitbullPage({
   onNavigate,
   events = UPCOMING_EVENTS,
-  tickets = [],
-  createdOrder,
-  onSubmitTicketPurchase,
-  onApproveTicketPurchase,
-  onUploadPaymentProof,
 }) {
   const {
     PITBULL_ATHLETE_GROUPS,
@@ -600,31 +568,10 @@ export default function PitbullPage({
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
   const canRegister = eventStatus === 'inscripcion_abierta' || eventStatus === 'cupos_limitados'
   const eventPricing = resolveEventPricing(pitbullEvent)
-  const ticketPricing = ticketPricingFromEvent(pitbullEvent)
   const ticketsOpen = eventPricing.ticketsEnabled !== false
 
-  const ticketEvent = pitbullEvent ?? {
-    title: PITBULL_CLASSIC.title,
-    slug: 'pitbull-classic-2026',
-    venue: PITBULL_CLASSIC.venue,
-    date: PITBULL_CLASSIC.date,
-    location: PITBULL_CLASSIC.location,
-  }
-
-  const [ticketDay1, ticketDay2] = PITBULL_CLASSIC.dateDay.split(/[–-]/)
-  const ticketDayLabels = {
-    day1: `${ticketDay1} ${PITBULL_CLASSIC.dateMonth}`,
-    day2: `${ticketDay2 ?? ticketDay1} ${PITBULL_CLASSIC.dateMonth}`,
-  }
-
-  const [ticketFormOpen, setTicketFormOpen] = useState(false)
-  const hasTicketOrder = createdOrder?.type === 'tickets'
-
-  function openTicketForm() {
-    setTicketFormOpen(true)
-    requestAnimationFrame(() => {
-      document.getElementById('pitbull-ticket-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    })
+  function goToTicketsPage() {
+    onNavigate('tickets')
   }
 
   function handleHeroRegister() {
@@ -637,7 +584,7 @@ export default function PitbullPage({
 
   function handleHeroSecondary() {
     if (ticketsOpen) {
-      scrollToSection('entradas')
+      goToTicketsPage()
       return
     }
     scrollToSection('categorias')
@@ -667,6 +614,8 @@ export default function PitbullPage({
             featureFacts={featureFacts}
             schedule={PITBULL_SCHEDULE ?? []}
             onNavigate={onNavigate}
+            onTickets={goToTicketsPage}
+            ticketsOpen={ticketsOpen}
             t={t}
           />
 
@@ -695,49 +644,14 @@ export default function PitbullPage({
           {ticketsOpen ? (
             <PitbullDossierSection
               id="entradas"
-              className={`pitbull-dossier__section--tickets pitbull-tickets${ticketFormOpen || hasTicketOrder ? ' pitbull-tickets--checkout' : ''}`}
+              className="pitbull-dossier__section--tickets pitbull-tickets"
               eyebrow={t('pages.pitbull.ticketsEyebrow')}
               index={t('pages.pitbull.ticketsIndex')}
               lead={t('pages.pitbull.ticketsLead')}
-              title={
-                ticketFormOpen || hasTicketOrder
-                  ? t('pages.pitbull.ticketsFormTitle')
-                  : t('pages.pitbull.ticketsTitle')
-              }
+              title={t('pages.pitbull.ticketsTitle')}
               titleId="pitbull-tickets-title"
             >
-              <MotionContentSwap swapKey={!ticketFormOpen && !hasTicketOrder ? 'pass' : 'form'}>
-                {!ticketFormOpen && !hasTicketOrder ? (
-                  <PitbullTicketPass locale={locale} onOpen={openTicketForm} pricing={ticketPricing} t={t} />
-                ) : (
-                  <div id="pitbull-ticket-form" className="pitbull-tickets__form-shell">
-                    {!hasTicketOrder ? (
-                      <div className="pitbull-tickets__form-toolbar">
-                        <button
-                          type="button"
-                          className="pitbull-tickets__form-back"
-                          onClick={() => setTicketFormOpen(false)}
-                        >
-                          <ArrowLeft size={14} aria-hidden />
-                          {t('pages.pitbull.ticketsCloseForm')}
-                        </button>
-                      </div>
-                    ) : null}
-
-                    <TicketPurchaseSection
-                      editorial
-                      event={ticketEvent}
-                      dayLabels={ticketDayLabels}
-                      pricing={ticketPricing}
-                      tickets={tickets}
-                      createdOrder={createdOrder}
-                      onSubmit={onSubmitTicketPurchase}
-                      onApprovePayment={onApproveTicketPurchase}
-                      onUploadPaymentProof={onUploadPaymentProof}
-                    />
-                  </div>
-                )}
-              </MotionContentSwap>
+              <PitbullTicketPass onOpen={goToTicketsPage} t={t} />
             </PitbullDossierSection>
           ) : (
             <Reveal

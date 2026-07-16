@@ -1,6 +1,7 @@
 import { DEFAULT_EVENT_PRICING, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { apiGet, apiPost } from '../lib/api.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -37,7 +38,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     featured: Boolean(draft.featured),
     slots,
     registered: sourceEvent?.registered ?? 0,
-    slug: title && dateISO ? slugify(title, dateISO) : sourceEvent?.slug ?? 'evento-preview',
+    slug: sourceEvent?.slug ?? (title && dateISO ? slugify(title, dateISO) : 'evento-preview'),
   }
 }
 
@@ -167,7 +168,7 @@ export function updateAdminEvent(events, eventId, payload) {
       status: payload.status ?? event.status,
       featured: payload.featured ?? event.featured,
       slots: Number(payload.slots) || event.slots,
-      slug: slugify(payload.title ?? event.title, dateISO),
+      slug: event.slug ?? slugify(payload.title ?? event.title, dateISO),
       pricing: normalizeEventPricingInput(payload.pricing ?? event.pricing),
       startsAt: payload.startsAt ?? event.startsAt ?? '',
       endsAt: payload.endsAt ?? event.endsAt ?? '',
@@ -268,6 +269,7 @@ export function buildEventTicketStats(tickets, eventSlug) {
  * localStorage por ahora — ver AdminEventEditor.jsx.
  */
 export function mapSupabaseEventRow(row) {
+  const rules = row.rules ?? {}
   return {
     slug: row.slug,
     title: row.title,
@@ -289,6 +291,18 @@ export function mapSupabaseEventRow(row) {
     liveStreamUrl: row.live_stream_url,
     liveStreamProvider: row.live_stream_provider,
     liveStatus: row.live_status,
+    dateISO: row.starts_at?.slice(0, 10) ?? '',
+    slots: row.capacity ?? DEFAULT_SLOTS,
+    featured: Boolean(rules.featured),
+    pricing: normalizeEventPricingInput({
+      registration: row.price,
+      membership: rules.membershipPrice,
+      combo: rules.comboPrice,
+      ticketDay: rules.ticketPricing?.day,
+      ticketBothDays: rules.ticketPricing?.bothDays,
+      ticketsEnabled: rules.ticketsEnabled,
+      ticketAddons: rules.ticketAddons,
+    }),
   }
 }
 
@@ -311,59 +325,48 @@ export async function fetchPublishedEvents() {
  * en cuanto esa fase esté lista, sin tener que reescribir el formulario.
  */
 export async function upsertEventCalendarLiveFields(draft) {
-  if (!isSupabaseConfigured || !supabase) return null
-
   if (!draft.slug) throw new Error('Falta el slug del evento.')
 
   const startsAt = draft.startsAt || (draft.dateISO ? `${draft.dateISO}T00:00:00` : null)
   const endsAt = draft.endsAt || startsAt
   if (!startsAt || !endsAt) throw new Error('Falta la fecha del evento.')
 
-  const { data: event, error } = await supabase
-    .from('events')
-    .upsert(
-      {
-        slug: draft.slug,
-        title: draft.title,
-        venue: draft.venue,
-        location: draft.location,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        registration_opens_at: draft.registrationOpensAt || null,
-        registration_closes_at: draft.registrationClosesAt || null,
-        ticket_sales_opens_at: draft.ticketSalesOpensAt || null,
-        ticket_sales_closes_at: draft.ticketSalesClosesAt || null,
-        status: draft.status,
-        published: Boolean(draft.published),
-        price: Number(draft.pricing?.registration) || 0,
-        rules: {
-          ticketAddons: normalizeEventPricingInput(draft.pricing).ticketAddons,
-        },
-        live_stream_url: draft.liveStreamUrl || null,
-        live_stream_provider: draft.liveStreamProvider || null,
-        live_status: draft.liveStatus || 'offline',
-      },
-      { onConflict: 'slug' },
-    )
-    .select()
-    .single()
-
-  if (error) throw error
-
-  const capacityRows = [
-    ['day1', draft.capacityDay1],
-    ['day2', draft.capacityDay2],
-    ['both', draft.capacityBoth],
-  ]
-    .filter(([, limit]) => limit !== '' && limit != null)
-    .map(([key, limit]) => ({ event_id: event.id, scope: 'day', key, limit_count: Number(limit) }))
-
-  if (capacityRows.length > 0) {
-    const { error: capacityError } = await supabase
-      .from('event_capacity_rules')
-      .upsert(capacityRows, { onConflict: 'event_id,scope,key' })
-    if (capacityError) throw capacityError
-  }
-
+  const { event } = await apiPost('/api/events/upsert', {
+    ...draft,
+    startsAt,
+    endsAt,
+    pricing: normalizeEventPricingInput(draft.pricing),
+  })
   return mapSupabaseEventRow(event)
+}
+
+export async function fetchAdminEvents() {
+  const { events } = await apiGet('/api/events')
+  return events.map((row) => {
+    const rules = row.rules ?? {}
+    const pricing = normalizeEventPricingInput({
+      registration: row.price,
+      membership: rules.membershipPrice,
+      combo: rules.comboPrice,
+      ticketDay: rules.ticketPricing?.day,
+      ticketBothDays: rules.ticketPricing?.bothDays,
+      ticketsEnabled: rules.ticketsEnabled,
+      ticketAddons: rules.ticketAddons,
+    })
+    const capacity = Object.fromEntries((row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]))
+    return {
+      id: row.id,
+      ...mapSupabaseEventRow(row),
+      dateISO: row.starts_at?.slice(0, 10) ?? '',
+      date: row.starts_at ? formatEventDate(row.starts_at.slice(0, 10)) : '—',
+      slots: row.capacity ?? capacity.event ?? DEFAULT_SLOTS,
+      capacityDay1: capacity.day1 ?? '',
+      capacityDay2: capacity.day2 ?? '',
+      capacityBoth: capacity.both ?? '',
+      pricing,
+      featured: false,
+      registered: 0,
+      createdAt: row.created_at,
+    }
+  })
 }

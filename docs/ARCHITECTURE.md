@@ -4,7 +4,7 @@
 
 - **Frontend:** Vite 8 + React 19 + CSS modular
 - **API:** Express 5 (scaffold en `server/`)
-- **DB:** PostgreSQL 16 + Prisma
+- **DB:** PostgreSQL 16: Prisma para identidad staff y Supabase para dominios transaccionales
 - **Pagos:** Mercado Pago Checkout Bricks (`Payment Brick` y `Card Payment Brick`) + Suscripciones
 - **Emails:** Brevo API (adaptador en `src/services/emailService.js`)
 - **Tests:** Vitest
@@ -37,8 +37,8 @@ Los componentes solo renderizan y delegan eventos.
 
 | Capa | MVP actual | Target |
 |------|------------|--------|
-| Persistencia | localStorage | PostgreSQL/Supabase normalizado vía API/RPC |
-| Auth | Selector de rol UI | Login + JWT/sesión |
+| Persistencia | Supabase detrás de Express | Multi-organización completa |
+| Auth | Cookie HTTP-only staff/atleta + Auth0 opcional | SSO institucional completo |
 | Pagos | Bricks embebido + persistencia Supabase | Validación sandbox y operación productiva |
 | Emails | Mock console | Brevo templates |
 
@@ -49,10 +49,10 @@ las entidades sensibles (`Event`, `Membership`, `TicketOrder`, `PaymentOrder`,
 `AuditLog`, integraciones, etc.) llevan `organizationId` para consultas rápidas,
 RLS y auditoría.
 
-La escritura queda normalizada en Prisma/PostgreSQL. Para extracción eficiente en
-Supabase, el frontend debe consumir vistas/RPCs de lectura como resumen de
-eventos, padrón de afiliados, ventas de tickets, conciliación de pagos y
-actividad de check-in.
+El navegador no escribe tablas ni RPC sensibles. Express valida la sesión y el
+rol, y usa `service_role` para ejecutar RPCs atómicas en Supabase. Prisma queda
+acotado a usuarios, roles y sesiones del staff. Las verificaciones QR públicas
+exponen una proyección mínima sin DNI ni datos de pago.
 
 ## Integraciones
 

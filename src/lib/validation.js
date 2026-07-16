@@ -30,6 +30,7 @@ function buildAthleteProfileSchema(t) {
       }, msg('documentIdFormat') ?? 'Documento inválido. DNI: 7 u 8 dígitos.'),
     birthDate: isoDate,
     email: z.string().trim().email(msg('email') ?? 'Ingresá un correo electrónico válido.'),
+    password: z.string().min(12, msg('password') ?? 'Usá al menos 12 caracteres.'),
     phone: z
       .string()
       .refine(

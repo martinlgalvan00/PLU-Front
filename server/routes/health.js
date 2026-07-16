@@ -1,13 +1,31 @@
 import { Router } from 'express'
 
-const router = Router()
-
-router.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'plu-arg-api',
-    timestamp: new Date().toISOString(),
+export function createHealthRoutes({ getPrisma, getSupabaseAdmin } = {}) {
+  const router = Router()
+  router.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'plu-arg-api', timestamp: new Date().toISOString() })
   })
-})
+  router.get('/ready', async (_req, res) => {
+    const checks = { prisma: false, supabase: false }
+    try {
+      const prisma = getPrisma?.()
+      if (prisma) {
+        await prisma.$queryRaw`SELECT 1`
+        checks.prisma = true
+      }
+      const supabase = getSupabaseAdmin?.()
+      if (supabase) {
+        const { error } = await supabase.from('events').select('id', { head: true, count: 'exact' }).limit(1)
+        if (error) throw error
+        checks.supabase = true
+      }
+      const ready = checks.prisma && checks.supabase
+      res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready', checks })
+    } catch (error) {
+      res.status(503).json({ status: 'not_ready', checks, error: error.message })
+    }
+  })
+  return router
+}
 
-export default router
+export default createHealthRoutes()

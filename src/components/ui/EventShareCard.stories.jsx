@@ -40,6 +40,12 @@ export const Story = {
   args: { format: 'story' },
 }
 
+export const EventWithPhoto = {
+  args: {
+    athletePhotoUrl: 'https://picsum.photos/seed/event-card/400/400',
+  },
+}
+
 export const MembershipWithPhoto = {
   args: {
     variant: 'membership',

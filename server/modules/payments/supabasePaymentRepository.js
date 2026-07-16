@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
@@ -77,6 +78,20 @@ export function createSupabasePaymentRepository(client) {
 
   return {
     getOrder,
+
+    async assertTicketOrderAccess(orderId, accessToken) {
+      if (!accessToken) throw new HttpError(401, 'Falta el token de acceso de la orden.')
+      const tokenHash = createHash('sha256').update(accessToken).digest('hex')
+      const result = await client
+        .from('ticket_orders')
+        .select('id')
+        .eq('id', orderId)
+        .eq('access_token_hash', tokenHash)
+        .maybeSingle()
+      const order = assertResult(result, 'No se pudo validar la orden.')
+      if (!order) throw new HttpError(403, 'Token de orden invalido.')
+      return order
+    },
 
     async claimEmbeddedAttempt({ order, tokenFingerprint, idempotencyKey, operationKind = 'payment' }) {
       return assertResult(
@@ -310,7 +325,15 @@ export function createSupabasePaymentRepository(client) {
         throw new HttpError(409, 'La orden no coincide con el plan de suscripcion.')
       }
 
-      const membership = assertResult(
+      const target = assertResult(
+        await client
+          .from('membership_order_targets')
+          .select('membership:memberships(*)')
+          .eq('order_id', paymentOrderId)
+          .maybeSingle(),
+        'No se pudo leer el ciclo de afiliacion.',
+      )
+      const membership = target?.membership ?? assertResult(
         await client.from('memberships').select('*').eq('payment_order_id', paymentOrderId).maybeSingle(),
         'No se pudo leer la afiliacion.',
       )

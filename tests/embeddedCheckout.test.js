@@ -31,7 +31,8 @@ describe('Mercado Pago Checkout Bricks', () => {
   it('descarta el monto del navegador y procesa la orden autoritativa', async () => {
     let received
     const repository = {
-      getOrder: vi.fn(async () => paymentOrder()),
+      getOrder: vi.fn(async () => ({ ...paymentOrder(), kind: 'ticket', athleteId: null })),
+      assertTicketOrderAccess: vi.fn(async () => ({ id: ORDER_ID })),
       claimEmbeddedAttempt: vi.fn(async () => ({
         created: true,
         attempt: { id: 'attempt-1', idempotency_key: 'server-key' },
@@ -66,6 +67,7 @@ describe('Mercado Pago Checkout Bricks', () => {
       },
       body: JSON.stringify({
         paymentOrderId: ORDER_ID,
+        orderAccessToken: 'test-order-access-token-with-enough-entropy',
         formData: {
           token: 'temporary-card-token',
           payment_method_id: 'visa',
@@ -83,6 +85,7 @@ describe('Mercado Pago Checkout Bricks', () => {
     expect(received.order.amount).toBe(25000)
     expect(received.formData).not.toHaveProperty('transaction_amount')
     expect(received.idempotencyKey).toBe('server-key')
+    expect(repository.assertTicketOrderAccess).toHaveBeenCalledOnce()
   })
 
   it('autoriza la suscripcion embebida con token sin persistir la tarjeta', async () => {

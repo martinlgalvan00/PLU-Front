@@ -78,6 +78,10 @@ export function loginRequest(credentials) {
   return apiPost('/api/auth/login', credentials)
 }
 
+export function createSecurityUserRequest({ name, email, eventId }) {
+  return apiPost('/api/auth/security-users', { name, email, eventId })
+}
+
 export function meRequest() {
   return apiRequest('/api/auth/me')
 }

@@ -123,10 +123,10 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
         </Reveal>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--faq" id="members-faq">
-          <header className="members-plu-block__head">
+          <header className="members-plu-block__head members-plu-block__head--faq">
             <h2 className="members-plu-block__title">{t('pages.members.faqTitle')}</h2>
           </header>
-          <FAQAccordion items={MEMBERSHIP_FAQ} />
+          <FAQAccordion items={MEMBERSHIP_FAQ} variant="ref" numbered />
         </Reveal>
       </div>
     </main>
