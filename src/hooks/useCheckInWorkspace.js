@@ -260,7 +260,7 @@ export function useCheckInWorkspace({
               : value === 'done'
                 ? statusCounts.done
                 : statusCounts.pending
-        return [value, `${t(key)} (${count})`]
+        return [value, t(key), count]
       }),
     [allRows.length, statusCounts, t],
   )

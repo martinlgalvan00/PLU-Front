@@ -9,7 +9,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { ROLE_OPTIONS } from '../../lib/constants.js'
 import { getRoleLabel } from '../../lib/roles.js'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'seguridad_plu_arg', eventId: '' }
+const EMPTY_DRAFT = { name: '', email: '', role: 'operador_plu_arg', eventId: '' }
 
 export default function UsersSection({ adminEvents, canManageUsers, onCreateSecurityUser, onCreateUser, onUpdateRole, users }) {
   const { t } = useI18n()
@@ -18,6 +18,8 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
   const [formError, setFormError] = useState('')
   const [tempPassword, setTempPassword] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isSecurityRole = draft.role === 'seguridad_plu_arg'
 
   const eventOptions = useMemo(
     () => (adminEvents ?? []).map((event) => [event.id, event.title]),
@@ -45,7 +47,7 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
       setFormError(t('admin.users.errorEmail'))
       return
     }
-    if (draft.role === 'seguridad_plu_arg' && !draft.eventId) {
+    if (isSecurityRole && !draft.eventId) {
       setFormError(t('admin.users.errorEvent'))
       return
     }
@@ -53,7 +55,7 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
     setFormError('')
     setTempPassword(null)
 
-    if (draft.role !== 'seguridad_plu_arg') {
+    if (!isSecurityRole) {
       onCreateUser(draft)
       setDraft(EMPTY_DRAFT)
       return
@@ -83,50 +85,84 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
       onQueryChange={setQuery}
     >
       {canManageUsers && (
-        <form className="admin-users__add-form" onSubmit={handleAddUser}>
-          <Field
-            label={t('admin.users.name')}
-            name="name"
-            value={draft.name}
-            onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-            placeholder={t('admin.users.namePlaceholder')}
-          />
-          <Field
-            label={t('admin.users.email')}
-            name="email"
-            type="email"
-            value={draft.email}
-            onChange={(e) => setDraft((current) => ({ ...current, email: e.target.value }))}
-            placeholder="nombre@pluarg.com.ar"
-          />
-          <Select
-            label={t('admin.columns.role')}
-            name="role"
-            value={draft.role}
-            onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
-            options={ROLE_OPTIONS}
-          />
-          {draft.role === 'seguridad_plu_arg' && (
-            <Select
-              label={t('admin.users.event')}
-              name="eventId"
-              value={draft.eventId}
-              onChange={(e) => setDraft((current) => ({ ...current, eventId: e.target.value }))}
-              options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
+        <form
+          className={`admin-users__add-form${isSecurityRole ? ' admin-users__add-form--security' : ''}`}
+          onSubmit={handleAddUser}
+        >
+          <header className="admin-users__add-form-head">
+            <h3 className="admin-users__add-form-title">{t('admin.users.formTitle')}</h3>
+            <p className="admin-users__add-form-lead">{t('admin.users.formLead')}</p>
+          </header>
+
+          <div className="admin-users__add-form-fields">
+            <Field
+              label={t('admin.users.name')}
+              name="name"
+              value={draft.name}
+              onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+              placeholder={t('admin.users.namePlaceholder')}
+              autoComplete="name"
             />
-          )}
-          <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
-            <UserPlus size={14} aria-hidden />
-            {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
-          </Button>
+            <Field
+              label={t('admin.users.email')}
+              name="email"
+              type="email"
+              value={draft.email}
+              onChange={(e) => setDraft((current) => ({ ...current, email: e.target.value }))}
+              placeholder="nombre@pluarg.com.ar"
+              autoComplete="email"
+            />
+            <Select
+              label={t('admin.columns.role')}
+              name="role"
+              value={draft.role}
+              onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
+              options={ROLE_OPTIONS}
+            />
+            {isSecurityRole && (
+              <Select
+                label={t('admin.users.event')}
+                name="eventId"
+                value={draft.eventId}
+                onChange={(e) => setDraft((current) => ({ ...current, eventId: e.target.value }))}
+                options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
+              />
+            )}
+          </div>
+
+          {isSecurityRole && <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p>}
+
+          <div className="admin-users__add-form-actions">
+            <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
+              <UserPlus size={14} aria-hidden />
+              {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
+            </Button>
+          </div>
         </form>
       )}
 
-      {formError && <p className="admin-users__form-error">{formError}</p>}
-      {tempPassword && (
-        <p className="admin-users__temp-password" role="status">
-          {t('admin.users.tempPasswordNote', { email: tempPassword.email, password: tempPassword.password })}
+      {formError && (
+        <p className="admin-users__form-error" role="alert">
+          {formError}
         </p>
+      )}
+      {tempPassword && (
+        <div className="admin-users__temp-password" role="status">
+          <p className="admin-users__temp-password-title">{t('admin.users.tempPasswordTitle')}</p>
+          <dl className="admin-users__temp-password-meta">
+            <div>
+              <dt>{t('admin.users.email')}</dt>
+              <dd>{tempPassword.email}</dd>
+            </div>
+            <div>
+              <dt>{t('admin.users.tempPasswordLabel')}</dt>
+              <dd>
+                <code>{tempPassword.password}</code>
+              </dd>
+            </div>
+          </dl>
+          <p className="admin-users__temp-password-note">{t('admin.users.tempPasswordWarn')}</p>
+        </div>
       )}
 
       <DataTable

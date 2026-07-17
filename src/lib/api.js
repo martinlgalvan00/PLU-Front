@@ -68,6 +68,13 @@ export function apiPost(path, payload) {
   })
 }
 
+export function apiPatch(path, payload) {
+  return apiRequest(path, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function apiGet(path) {
   return apiRequest(path)
 }
@@ -80,6 +87,14 @@ export function loginRequest(credentials) {
 
 export function createSecurityUserRequest({ name, email, eventId }) {
   return apiPost('/api/auth/security-users', { name, email, eventId })
+}
+
+export function listSecurityUsersRequest(eventId) {
+  return apiGet(`/api/auth/security-users?eventId=${encodeURIComponent(eventId)}`)
+}
+
+export function updateSecurityUserStatusRequest(userId, status) {
+  return apiPatch(`/api/auth/security-users/${encodeURIComponent(userId)}/status`, { status })
 }
 
 export function meRequest() {

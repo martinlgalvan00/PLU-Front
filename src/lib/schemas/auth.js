@@ -18,3 +18,7 @@ export const createSecurityUserSchema = z.object({
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
   eventId: z.string().trim().min(1, 'Elegí un evento.'),
 })
+
+export const updateSecurityUserStatusSchema = z.object({
+  status: z.enum(['active', 'disabled']),
+})

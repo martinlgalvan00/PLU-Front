@@ -114,11 +114,23 @@ export default function CheckInSection({
       ]}
       totalCount={workspace.allRows.length}
       filters={[
-        { id: 'type', label: t('admin.checkin.type'), value: workspace.type, onChange: workspace.setType, options: workspace.typeOptions },
-        { id: 'day', label: t('admin.checkin.dayLabel'), value: workspace.day, onChange: workspace.setDay, options: workspace.dayOptions },
+        {
+          id: 'type',
+          label: t('admin.checkin.type'),
+          value: workspace.type,
+          onChange: workspace.setType,
+          options: workspace.typeOptions,
+        },
+        {
+          id: 'day',
+          label: t('admin.checkin.dayLabel'),
+          value: workspace.day,
+          onChange: workspace.setDay,
+          options: workspace.dayOptions,
+        },
         {
           id: 'checkinStatus',
-          label: t('admin.checkin.statusLabel'),
+          label: t('admin.checkin.statusLabelShort'),
           value: workspace.checkinStatus,
           onChange: workspace.setCheckinStatus,
           options: workspace.statusOptions,

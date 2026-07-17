@@ -32,6 +32,8 @@ export function createSupabaseTicketRepository(client) {
       return { ...result, orderAccessToken: accessToken }
     },
     verify: (qrToken) => rpc('get_ticket_by_qr_token', { p_qr_token: qrToken }, 'No se pudo verificar la entrada.'),
+    availability: (eventSlug) =>
+      rpc('get_event_ticket_availability', { p_event_slug: eventSlug }, 'No se pudo consultar la disponibilidad.'),
     listForEvent: (eventSlug) => rpc('staff_list_tickets_for_event', { p_event_slug: eventSlug }, 'No se pudieron listar las entradas.'),
     allowlist: (eventSlug) => rpc('staff_get_event_checkin_allowlist', { p_event_slug: eventSlug }, 'No se pudo descargar la lista de ingreso.'),
     checkIn: (qrToken, gate, actor) => rpc('staff_check_in_ticket', { p_qr_token: qrToken, p_gate: gate, p_actor: actor }, 'No se pudo registrar el ingreso.'),

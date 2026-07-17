@@ -89,6 +89,7 @@ export const NAV_SECONDARY = ['rulebook', 'community', 'faq', 'contact']
 /** Nav agrupada como en design-reference (Claude Design) */
 export const NAV_EVENTOS = [
   { key: 'events' },
+  { key: 'shop' },
   { key: 'results' },
   { key: 'records' },
 ]

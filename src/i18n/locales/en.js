@@ -26,6 +26,11 @@ export default {
     reloadCheckout: 'Reload checkout',
     statusError: 'Could not check the status. The system will continue reconciling the payment automatically.',
   },
+  ticketAvailability: {
+    soldOut: 'Sold out',
+    lowStock: 'Only {{count}} left!',
+    availableCount: '{{count}} tickets left',
+  },
   nav: {
     home: 'Home',
     mainAria: 'Main',
@@ -66,6 +71,8 @@ export default {
     rulebookHint: 'Categories, divisions and rules',
     communityHint: 'Affiliated gyms and athletes',
     faqHint: 'Frequently asked questions',
+    shop: 'Shop',
+    shopHint: 'Tickets by event and more',
   },
   hero: {
     eyebrow: 'Powerlifting United Argentina',
@@ -1038,6 +1045,21 @@ export default {
       checkoutStep3: 'Payment',
       secureFlow: 'Payment and QR in one flow',
       closed: 'Ticket sales are not enabled for this event.',
+    },
+    shop: {
+      eyebrow: 'Shop',
+      title: 'Tickets by event',
+      ticketsHeading: 'Available tickets',
+      moreHeading: 'More options',
+      noEvents: 'There are no events with open ticket sales yet.',
+      fromPrice: 'From {{amount}}',
+      salesClosed: 'Sales closed',
+      buyTickets: 'Buy tickets',
+      merchTitle: 'Official merch',
+      merchText: 'Coming soon: shirts, accessories, and event gear.',
+      registrationsTitle: 'Registrations',
+      registrationsText: 'Register for official PLU ARG competitions here.',
+      registrationsAction: 'Register',
     },
     tickets: {
       title: 'Buy your ticket',

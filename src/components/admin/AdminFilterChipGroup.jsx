@@ -7,6 +7,7 @@ import { useCallback, useRef } from 'react'
 export default function AdminFilterChipGroup({
   id,
   label,
+  ariaLabel,
   value,
   onChange,
   options = [],
@@ -87,6 +88,7 @@ export default function AdminFilterChipGroup({
         .filter(Boolean)
         .join(' ')}
       role="group"
+      aria-label={!label ? ariaLabel || undefined : undefined}
       aria-labelledby={labelId}
     >
       {label && (

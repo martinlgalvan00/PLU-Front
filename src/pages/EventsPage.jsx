@@ -307,7 +307,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
                   <EventsAudienceTicketsPanel
                     event={pitbull}
                     locale={locale}
-                    onBuyTickets={() => onNavigate('tickets')}
+                    onBuyTickets={() => onNavigate('tickets', { eventSlug: pitbull?.slug })}
                     t={t}
                   />
                 </div>

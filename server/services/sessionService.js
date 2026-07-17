@@ -65,8 +65,10 @@ export function serializeUser(user) {
     email: user.email,
     name: profileName || user.email,
     role: user.role,
+    status: user.status,
     eventId: user.eventId ?? null,
     eventSlug: user.event?.slug ?? null,
+    lastLoginAt: user.lastLoginAt ?? null,
   }
 }
 

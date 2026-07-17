@@ -33,6 +33,8 @@ export default function AdminPage({
   onRefreshTickets,
   onRefreshPendingTicketOrders,
   onCreateSecurityUser,
+  onListSecurityUsers,
+  onUpdateSecurityUserStatus,
   onCreateUser,
   onExportAdmin,
   onExportPluUsa,
@@ -130,7 +132,16 @@ export default function AdminPage({
 
     if (section === 'events') {
       return (
-        <EventsSection adminEvents={adminEvents} canEdit={canEdit} onSaveEvent={onSaveEvent} tickets={tickets} />
+        <EventsSection
+          adminEvents={adminEvents}
+          canEdit={canEdit}
+          canManageUsers={canManageUsers}
+          onCreateSecurityUser={onCreateSecurityUser}
+          onListSecurityUsers={onListSecurityUsers}
+          onSaveEvent={onSaveEvent}
+          onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          tickets={tickets}
+        />
       )
     }
 
