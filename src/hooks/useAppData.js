@@ -1,5 +1,14 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, createSecurityUserRequest, loginRequest, logoutRequest, meRequest, oauthSessionRequest } from '../lib/api.js'
+import {
+  ApiError,
+  createSecurityUserRequest,
+  listSecurityUsersRequest,
+  loginRequest,
+  logoutRequest,
+  meRequest,
+  oauthSessionRequest,
+  updateSecurityUserStatusRequest,
+} from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { canEdit } from '../lib/roles.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
@@ -701,6 +710,21 @@ export function useAppData() {
     return { user, tempPassword }
   }, [])
 
+  // Listado real (Prisma) de cuentas seguridad_plu_arg de un evento puntual
+  // -- vive fuera de `users` a propósito: ese array es un cache local
+  // ligero (ver getInitialUsers) que no refleja lo que hay en el backend
+  // para este rol, así que el panel de "Seguridad" de cada evento pide su
+  // propia lista en vez de confiar en `users`.
+  const listSecurityUsersForEventAction = useCallback(async (eventId) => {
+    const { users: securityUsers } = await listSecurityUsersRequest(eventId)
+    return securityUsers
+  }, [])
+
+  const updateSecurityUserStatusAction = useCallback(async (userId, status) => {
+    const { user } = await updateSecurityUserStatusRequest(userId, status)
+    return user
+  }, [])
+
   const login = useCallback(async (credentialsOrAccountType) => {
     if (credentialsOrAccountType === 'athlete') {
       const demoAthleteSession = {
@@ -1023,6 +1047,8 @@ export function useAppData() {
     updateUserRoleAction,
     createUserAction,
     createSecurityUserAction,
+    listSecurityUsersForEventAction,
+    updateSecurityUserStatusAction,
     handleApprovePayment,
     exportAdminCsv,
     exportPluUsaCsv,

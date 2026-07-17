@@ -6,7 +6,7 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
 
 /**
- * SecurityGatePage — puerta de entrada dedicada por evento (/:eventoSlug/seguridad).
+ * SecurityGatePage — puerta de entrada dedicada por evento (/evento/:eventoSlug/seguridad).
  *
  * Login liviano scopeado a un evento puntual: una cuenta seguridad_plu_arg
  * solo entra si session.role + session.eventSlug matchean el slug de la URL

@@ -26,6 +26,11 @@ export default {
     reloadCheckout: 'Recargar checkout',
     statusError: 'No se pudo consultar el estado. El sistema seguirá conciliando el pago automáticamente.',
   },
+  ticketAvailability: {
+    soldOut: 'Agotado',
+    lowStock: '¡Quedan solo {{count}}!',
+    availableCount: 'Quedan {{count}} entradas',
+  },
   nav: {
     home: 'Inicio',
     mainAria: 'Principal',
@@ -66,6 +71,8 @@ export default {
     rulebookHint: 'Categorías, divisiones y reglas',
     communityHint: 'Gimnasios y atletas afiliados',
     faqHint: 'Preguntas frecuentes',
+    shop: 'Tienda',
+    shopHint: 'Entradas por evento y más',
   },
   hero: {
     eyebrow: 'Powerlifting United Argentina',
@@ -1035,6 +1042,21 @@ export default {
       checkoutStep3: 'Pago',
       secureFlow: 'Pago y QR en el mismo flujo',
       closed: 'La venta de entradas para este evento no está habilitada.',
+    },
+    shop: {
+      eyebrow: 'Tienda',
+      title: 'Entradas por evento',
+      ticketsHeading: 'Entradas disponibles',
+      moreHeading: 'Más opciones',
+      noEvents: 'Todavía no hay eventos con venta de entradas abierta.',
+      fromPrice: 'Desde {{amount}}',
+      salesClosed: 'Venta cerrada',
+      buyTickets: 'Comprar entradas',
+      merchTitle: 'Merch oficial',
+      merchText: 'Próximamente: remeras, accesorios y productos de eventos.',
+      registrationsTitle: 'Inscripciones',
+      registrationsText: 'Inscribite a competencias oficiales PLU ARG desde acá.',
+      registrationsAction: 'Inscribirse',
     },
     tickets: {
       title: 'Comprá tu entrada',

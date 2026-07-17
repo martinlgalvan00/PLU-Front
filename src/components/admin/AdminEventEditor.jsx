@@ -14,6 +14,7 @@ import {
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
+import AdminEventSecuritySection from './AdminEventSecuritySection.jsx'
 
 function updatePricingField(draft, field, value) {
   return {
@@ -103,10 +104,14 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
 
 export default function AdminEventEditor({
   canEdit,
+  canManageUsers,
   draft,
   onCancel,
   onChange,
+  onCreateSecurityUser,
+  onListSecurityUsers,
   onSubmit,
+  onUpdateSecurityUserStatus,
   sourceEvent = null,
 }) {
   const { t } = useI18n()
@@ -320,6 +325,17 @@ export default function AdminEventEditor({
           canEdit={canEdit}
           onChange={(ticketAddons) => onChange(updatePricingField(draft, 'ticketAddons', ticketAddons))}
         />
+
+        {draft.id && (
+          <AdminEventSecuritySection
+            canManageUsers={canManageUsers}
+            eventId={draft.id}
+            eventSlug={sourceEvent?.slug}
+            onCreateSecurityUser={onCreateSecurityUser}
+            onListSecurityUsers={onListSecurityUsers}
+            onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          />
+        )}
 
         <AdminFilterChipGroup
           compact

@@ -67,6 +67,9 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
   router.get('/verify/:qrToken', publicReadLimiter, async (req, res, next) => {
     try { res.json({ ticket: await repo().verify(req.params.qrToken) }) } catch (error) { next(error) }
   })
+  router.get('/availability/:eventSlug', publicReadLimiter, async (req, res, next) => {
+    try { res.json({ availability: await repo().availability(req.params.eventSlug) }) } catch (error) { next(error) }
+  })
 
   router.get('/orders/pending-manual', ...financeGuard, staffLimiter, async (_req, res, next) => {
     try { res.json({ orders: await repo().listPending() }) } catch (error) { next(error) }

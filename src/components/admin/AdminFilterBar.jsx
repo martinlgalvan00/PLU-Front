@@ -39,7 +39,18 @@ export default function AdminFilterBar({
             filter.variant === 'select' ? (
               <AdminFilterSelect key={filter.id} {...filter} />
             ) : (
-              <AdminFilterChipGroup key={filter.id} compact={compact} inline={inline} {...filter} />
+              <AdminFilterChipGroup
+                key={filter.id}
+                compact={compact}
+                inline={inline}
+                ariaLabel={filter.ariaLabel}
+                id={filter.id}
+                label={filter.label}
+                value={filter.value}
+                onChange={filter.onChange}
+                options={filter.options}
+                disabled={filter.disabled}
+              />
             ),
           )}
         </div>

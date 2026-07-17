@@ -1,0 +1,121 @@
+/* =============================================
+   SHOP PAGE — vidriera de eventos publicados
+   Cada evento nuevo se agrupa acá solo, sin CSS
+   ni componentes nuevos por evento.
+   ============================================= */
+
+.shop-section {
+  margin-top: 48px;
+}
+
+.shop-section:first-of-type {
+  margin-top: 0;
+}
+
+.shop-section__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 20px;
+}
+
+.shop-section__empty {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.shop-events-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1060px) {
+  .shop-events-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shop-events-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shop-event-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  display: grid;
+  gap: 10px;
+  padding: 24px;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.shop-event-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: var(--elevation-md);
+  transform: translateY(-2px);
+}
+
+.shop-event-card .status-pill {
+  width: fit-content;
+}
+
+.shop-event-card__title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.shop-event-card__meta {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 6px;
+  margin: 0;
+}
+
+.shop-event-card__meta-sep {
+  opacity: 0.5;
+}
+
+.shop-event-card__footer {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.shop-event-card__price {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.shop-event-card__cta {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.shop-event-card__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+[data-theme='light'] .shop-event-card {
+  background: #ffffff;
+}

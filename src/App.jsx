@@ -6,7 +6,12 @@ import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
-import { clearTicketsRoute, matchTicketsRoute, pushTicketsRoute } from './lib/ticketsRoute.js'
+import {
+  clearTicketsRoute,
+  getTicketsRouteEventSlug,
+  matchTicketsRoute,
+  pushTicketsRoute,
+} from './lib/ticketsRoute.js'
 import { PRICING } from './lib/constants.js'
 import { getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
@@ -30,6 +35,7 @@ const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
+const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
 const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
 const PUBLIC_VIEWS = {
@@ -43,6 +49,7 @@ const PUBLIC_VIEWS = {
   community: CommunityPage,
   faq: FAQPage,
   contact: ContactPage,
+  shop: ShopPage,
   tickets: TicketsPage,
   register: RegisterPage,
   login: LoginPage,
@@ -52,6 +59,9 @@ export default function App() {
   const [view, setView] = useState(() => (matchTicketsRoute() ? 'tickets' : 'home'))
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
+  const [ticketEventSlug, setTicketEventSlug] = useState(() =>
+    matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
+  )
   const app = useAppData()
   const publicEvents = app.adminEvents.filter((event) => event.published !== false)
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
@@ -67,6 +77,7 @@ export default function App() {
   useEffect(() => {
     function onPopState() {
       if (matchTicketsRoute()) {
+        setTicketEventSlug(getTicketsRouteEventSlug())
         setView('tickets')
         return
       }
@@ -87,14 +98,16 @@ export default function App() {
       const resolvedView = blocked ? 'login' : nextView
 
       if (resolvedView === 'tickets') {
-        pushTicketsRoute()
+        pushTicketsRoute(options.eventSlug)
+        setTicketEventSlug(options.eventSlug ?? null)
       } else if (view === 'tickets') {
         clearTicketsRoute()
       }
 
       // openTickets en pitbull: ir a la página completa de entradas
       if (resolvedView === 'pitbull' && options.openTickets) {
-        pushTicketsRoute()
+        pushTicketsRoute(options.eventSlug)
+        setTicketEventSlug(options.eventSlug ?? null)
         setTransitionDirection(getTransitionDirection(view, 'tickets'))
         setView('tickets')
         return
@@ -191,6 +204,8 @@ export default function App() {
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
           onCreateSecurityUser={app.createSecurityUserAction}
+          onListSecurityUsers={app.listSecurityUsersForEventAction}
+          onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
@@ -239,16 +254,19 @@ export default function App() {
                   onNavigate: navigate,
                   events: publicEvents,
                 }
-              : view === 'tickets'
-                ? {
-                    onNavigate: navigate,
-                    event: nextEvent,
-                    events: publicEvents,
-                    tickets: app.tickets,
-                    createdOrder: app.createdOrder,
-                    onSubmitTicketPurchase: app.submitTicketPurchase,
-                    onUploadPaymentProof: app.uploadTicketPaymentProofAction,
-                  }
+              : view === 'shop'
+                ? { onNavigate: navigate, events: publicEvents }
+                : view === 'tickets'
+                  ? {
+                      onNavigate: navigate,
+                      event: nextEvent,
+                      events: publicEvents,
+                      initialEventSlug: ticketEventSlug,
+                      tickets: app.tickets,
+                      createdOrder: app.createdOrder,
+                      onSubmitTicketPurchase: app.submitTicketPurchase,
+                      onUploadPaymentProof: app.uploadTicketPaymentProofAction,
+                    }
               : view === 'results'
                 ? { onNavigate: navigate, events: publicEvents }
               : view === 'members'

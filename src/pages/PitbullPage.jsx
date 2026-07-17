@@ -598,7 +598,7 @@ export default function PitbullPage({
   const ticketsOpen = eventPricing.ticketsEnabled !== false
 
   function goToTicketsPage() {
-    onNavigate('tickets')
+    onNavigate('tickets', { eventSlug: pitbullEvent?.slug })
   }
 
   function handleHeroRegister() {

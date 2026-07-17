@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/powerlifting-hero.png'
+import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import { ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
@@ -20,9 +22,18 @@ function buildTicketDayLabels(event, t) {
   }
 }
 
+function resolveInitialEventId(initialEventSlug, ticketEvents, fallbackEvent) {
+  if (initialEventSlug) {
+    const match = ticketEvents.find((item) => (item.slug ?? item.id) === initialEventSlug)
+    if (match) return match.id ?? match.slug ?? match.title
+  }
+  return fallbackEvent?.id ?? fallbackEvent?.slug ?? fallbackEvent?.title
+}
+
 export default function TicketsPage({
   event,
   events = [],
+  initialEventSlug = null,
   tickets = [],
   createdOrder,
   onNavigate,
@@ -38,11 +49,14 @@ export default function TicketsPage({
     }
     return [...keyed.values()]
   }, [event, events])
-  const [selectedEventId, setSelectedEventId] = useState(event?.id ?? event?.slug ?? event?.title)
+  const [selectedEventId, setSelectedEventId] = useState(() =>
+    resolveInitialEventId(initialEventSlug, ticketEvents, event),
+  )
   const selectedEvent =
     ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
   const pricing = ticketPricingFromEvent(selectedEvent)
   const ticketSalesOpen = selectedEvent?.pricing?.ticketsEnabled !== false
+  const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const dayLabels = buildTicketDayLabels(selectedEvent, t)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title ? createdOrder : null
@@ -56,8 +70,8 @@ export default function TicketsPage({
       ?.toUpperCase() || t('pages.ticketsPage.heroWatermark')
 
   useEffect(() => {
-    setSelectedEventId(event?.id ?? event?.slug ?? event?.title)
-  }, [event])
+    setSelectedEventId(resolveInitialEventId(initialEventSlug, ticketEvents, event))
+  }, [event, initialEventSlug])
 
   const Item = reducedMotion ? 'div' : m.div
   const itemProps = reducedMotion ? {} : { variants: heroSequenceItem }
@@ -141,6 +155,12 @@ export default function TicketsPage({
               <Item {...itemProps}>
                 <p className="tickets-page__lead">{t('pages.ticketsPage.lead')}</p>
               </Item>
+
+              {ticketSalesOpen && availabilityRemaining != null ? (
+                <Item {...itemProps}>
+                  <TicketAvailabilityBadge remaining={availabilityRemaining} />
+                </Item>
+              ) : null}
 
               {ticketSalesOpen ? (
                 <Item {...itemProps}>

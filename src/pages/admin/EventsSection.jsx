@@ -16,7 +16,16 @@ import {
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
 
-export default function EventsSection({ adminEvents, canEdit, onSaveEvent, tickets = [] }) {
+export default function EventsSection({
+  adminEvents,
+  canEdit,
+  canManageUsers,
+  onCreateSecurityUser,
+  onListSecurityUsers,
+  onSaveEvent,
+  onUpdateSecurityUserStatus,
+  tickets = [],
+}) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
@@ -236,7 +245,11 @@ export default function EventsSection({ adminEvents, canEdit, onSaveEvent, ticke
       {formOpen ? (
         <AdminEventEditor
           canEdit={canEdit}
+          canManageUsers={canManageUsers}
           draft={draft}
+          onCreateSecurityUser={onCreateSecurityUser}
+          onListSecurityUsers={onListSecurityUsers}
+          onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           sourceEvent={editingSource}
           onCancel={closeForm}
           onChange={setDraft}

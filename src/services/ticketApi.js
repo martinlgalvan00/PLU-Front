@@ -155,6 +155,17 @@ export async function verifyTicketByQrToken(qrToken) {
   return { ticket: toCamelTicket(result.ticket, { event: result.event, checkIn: result.checkIn }) }
 }
 
+/**
+ * Disponibilidad de entradas antes de comprar (cupo evento + por día).
+ * `limit: null` significa sin tope configurado. Si Supabase no está
+ * disponible o el evento no tiene reglas de cupo, la UI simplemente no
+ * muestra el aviso — no es un dato bloqueante para poder comprar.
+ */
+export async function fetchTicketAvailability(eventSlug) {
+  const { availability } = await apiGet(`/api/tickets/availability/${encodeURIComponent(eventSlug)}`)
+  return availability
+}
+
 export async function listTicketsForEvent(eventSlug) {
   const { tickets: rows } = await apiGet(`/api/tickets?eventSlug=${encodeURIComponent(eventSlug)}`)
   return { tickets: rows.map((row) => toCamelTicket(row.ticket, { checkIn: row.checkIn })) }

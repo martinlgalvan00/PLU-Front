@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
-import { createSecurityUserSchema, loginSchema } from '../../src/lib/schemas/auth.js'
+import { createSecurityUserSchema, loginSchema, updateSecurityUserStatusSchema } from '../../src/lib/schemas/auth.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requireRole } from '../middleware/auth.js'
@@ -161,6 +161,57 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
         })
 
         res.status(201).json({ user: serializeUser(created), tempPassword })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Cuentas seguridad_plu_arg de un evento puntual -- se listan por evento
+  // (no hay una vista "todos los usuarios de seguridad de todos los
+  // eventos" todavia) para que el admin vea, dentro del editor de ese
+  // evento, a quien le dio acceso.
+  router.get('/security-users', ...manageUsersGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const prisma = getPrisma()
+      const eventId = String(req.query.eventId ?? '')
+      if (!eventId) throw new HttpError(400, 'Falta eventId.')
+
+      const users = await prisma.user.findMany({
+        where: { role: 'seguridad_plu_arg', eventId },
+        include: { profile: true, event: true },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      res.json({ users: users.map(serializeUser) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.patch(
+    '/security-users/:userId/status',
+    ...manageUsersGuard,
+    staffLimiter,
+    validateBody(updateSecurityUserStatusSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const target = await prisma.user.findUnique({ where: { id: req.params.userId } })
+        if (!target || target.role !== 'seguridad_plu_arg') {
+          throw new HttpError(404, 'Usuario de seguridad no encontrado.')
+        }
+
+        // status pasa a 'disabled' -> readSession corta la sesion activa en
+        // el proximo request (chequea user.status === 'active'), sin tener
+        // que revocar tokens uno por uno.
+        const updated = await prisma.user.update({
+          where: { id: target.id },
+          data: { status: req.validatedBody.status },
+          include: { profile: true, event: true },
+        })
+
+        res.json({ user: serializeUser(updated) })
       } catch (error) {
         next(error)
       }
