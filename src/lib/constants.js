@@ -155,8 +155,8 @@ export const DEFAULT_FORM = {
 
 export const FORM_OPTIONS = {
   sex: ['Masculino', 'Femenino'],
-  division: ['Open', 'Junior', 'Sub-Junior', 'Master I', 'Master II'],
-  category: ['Raw', 'Classic Raw', 'Equipped'],
+  division: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],
+  category: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
   paymentMethod: [
     ['mercado_pago', 'Mercado Pago'],
     ['manual_link', 'Link de pago + validación manual'],

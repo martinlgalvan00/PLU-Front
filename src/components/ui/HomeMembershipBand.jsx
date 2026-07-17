@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import HomeMembershipArtifact from './HomeMembershipArtifact.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -189,42 +190,38 @@ export default function HomeMembershipBand({ onNavigate }) {
           </div>
         </div>
 
-        <div className="home-membership-reel__stage">
-          <span className="home-membership-reel__glow" aria-hidden />
-          {reducedMotion ? (
-            <div className="home-membership-reel__slide">
-              <span className="home-membership-reel__number" aria-hidden>
-                {indexLabel}
-              </span>
+        {reducedMotion ? (
+          <div className="home-membership-reel__stage">
+            <span className="home-membership-reel__glow" aria-hidden />
+            <div className="home-membership-reel__copy">
               <h3 className="home-membership-reel__title">{active?.title}</h3>
               <p className="home-membership-reel__text">{active?.text}</p>
             </div>
-          ) : (
-            <AnimatePresence mode="wait" initial={false} custom={direction}>
-              <m.div
-                key={active?.id ?? activeIndex}
-                className="home-membership-reel__slide"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
-              >
-                <m.span
-                  className="home-membership-reel__number"
-                  aria-hidden
-                  initial={{ opacity: 0, y: direction * 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.03 }}
-                >
-                  {indexLabel}
-                </m.span>
+            <div className="home-membership-reel__artifact-stage">
+              <span className="home-membership-reel__halo" aria-hidden />
+              <HomeMembershipArtifact benefitId={active?.id} paused reducedMotion />
+              <span className="home-membership-reel__plinth" aria-hidden />
+            </div>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <m.div
+              key={active?.id ?? activeIndex}
+              className="home-membership-reel__stage"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
+            >
+              <span className="home-membership-reel__glow" aria-hidden />
+              <div className="home-membership-reel__copy">
                 <m.h3
                   className="home-membership-reel__title"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.08 }}
+                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.04 }}
                 >
                   {active?.title}
                 </m.h3>
@@ -232,14 +229,19 @@ export default function HomeMembershipBand({ onNavigate }) {
                   className="home-membership-reel__text"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.14 }}
+                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.1 }}
                 >
                   {active?.text}
                 </m.p>
-              </m.div>
-            </AnimatePresence>
-          )}
-        </div>
+              </div>
+              <div className="home-membership-reel__artifact-stage">
+                <span className="home-membership-reel__halo" aria-hidden />
+                <HomeMembershipArtifact benefitId={active?.id} paused={paused} reducedMotion={false} />
+                <span className="home-membership-reel__plinth" aria-hidden />
+              </div>
+            </m.div>
+          </AnimatePresence>
+        )}
 
         <div
           className="home-membership-reel__dots"

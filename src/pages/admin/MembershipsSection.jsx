@@ -59,8 +59,11 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
       filteredCount={rows.length}
       placeholder={t('admin.search.membership')}
       query={query}
-      showHeader={false}
+      showHeader
       showStats={false}
+      eyebrow={t('admin.sections.memberships.eyebrow')}
+      title={t('admin.sections.memberships.title')}
+      subtitle={t('admin.sections.memberships.subtitle')}
       totalCount={memberships.length}
       filters={[
         {
@@ -87,18 +90,20 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
             key: 'athlete',
             label: t('admin.columns.athlete'),
             mobile: 'primary',
+            sortable: true,
             render: (row) => <MembershipIdentity document={row.document} name={row.athlete} />,
           },
-          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default' },
-          { key: 'year', label: t('admin.columns.year'), mobile: 'default' },
+          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default', sortable: true },
+          { key: 'year', label: t('admin.columns.year'), mobile: 'default', sortable: true },
           {
             key: 'status',
             label: t('admin.columns.status'),
             mobile: 'badge',
+            sortable: true,
             render: (row) => <StatusBadge value={row.status} />,
           },
-          { key: 'startDate', label: t('admin.columns.start'), mobile: 'default' },
-          { key: 'expirationDate', label: t('admin.columns.expiration'), mobile: 'default' },
+          { key: 'startDate', label: t('admin.columns.start'), mobile: 'default', sortable: true },
+          { key: 'expirationDate', label: t('admin.columns.expiration'), mobile: 'default', sortable: true },
         ]}
         rows={rows}
         emptyMessage={t('admin.sections.memberships.empty')}

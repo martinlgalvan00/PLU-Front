@@ -7,23 +7,35 @@ export function createHealthRoutes({ getPrisma, getSupabaseAdmin } = {}) {
   })
   router.get('/ready', async (_req, res) => {
     const checks = { prisma: false, supabase: false }
+    const errors = []
+
     try {
       const prisma = getPrisma?.()
       if (prisma) {
         await prisma.$queryRaw`SELECT 1`
         checks.prisma = true
       }
+    } catch (error) {
+      errors.push(`prisma: ${error.message}`)
+    }
+
+    try {
       const supabase = getSupabaseAdmin?.()
       if (supabase) {
         const { error } = await supabase.from('events').select('id', { head: true, count: 'exact' }).limit(1)
         if (error) throw error
         checks.supabase = true
       }
-      const ready = checks.prisma && checks.supabase
-      res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready', checks })
     } catch (error) {
-      res.status(503).json({ status: 'not_ready', checks, error: error.message })
+      errors.push(`supabase: ${error.message}`)
     }
+
+    const ready = checks.prisma && checks.supabase
+    res.status(ready ? 200 : 503).json({
+      status: ready ? 'ready' : 'not_ready',
+      checks,
+      ...(errors.length ? { error: errors.join(' | ') } : {}),
+    })
   })
   return router
 }

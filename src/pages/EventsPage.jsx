@@ -13,6 +13,7 @@ import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
+import { getDaysUntilEvent, getFeaturedEvent, getNextUpcomingEvent } from '../lib/eventNavigation.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { resolveEventPricing } from '../lib/eventPricing.js'
@@ -22,6 +23,22 @@ import { fetchPublishedEvents } from '../services/eventAdminService.js'
 function EventStatusBadge({ status, t }) {
   const { label, tone } = getStatusMeta(status, t)
   return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
+}
+
+function EventsCountdownChip({ event, days, t }) {
+  if (!event || days == null) return null
+
+  return (
+    <div className="events-countdown-chip">
+      <span className="events-countdown-chip__value">{days}</span>
+      <span className="events-countdown-chip__copy">
+        <span className="events-countdown-chip__label">
+          {days === 1 ? t('pages.events.countdownDay_one') : t('pages.events.countdownDay_other')}
+        </span>
+        <strong className="events-countdown-chip__title">{event.title}</strong>
+      </span>
+    </div>
+  )
 }
 
 function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t }) {
@@ -122,7 +139,13 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
   )
 }
 
-export default function EventsPage({ onNavigate, onSelectEvent, events: eventsProp = UPCOMING_EVENTS, session }) {
+export default function EventsPage({
+  initialEventSlug,
+  onNavigate,
+  onSelectEvent,
+  events: eventsProp = UPCOMING_EVENTS,
+  session,
+}) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
   // (localStorage/mock); acá lo enriquecemos con lo que ya es real en
@@ -177,11 +200,19 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
     [eventsProp, supabaseBySlug, formatEventDate],
   )
 
-  const pitbull = events.find((event) => event.featured) ?? events[0]
+  const pitbull = getFeaturedEvent(events)
+  const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
+  const daysUntilNext = useMemo(() => getDaysUntilEvent(nextEvent), [nextEvent])
   // Se guarda el slug (no el objeto) para que `selected` siempre refleje la
   // versión más reciente del evento en `events` — incluidos los campos que
   // llegan async desde Supabase (calendario/directo) después del primer render.
-  const [selectedSlug, setSelectedSlug] = useState(pitbull?.slug ?? null)
+  // Si llega un slug por deep-link (/evento/:slug), arranca con ese preseleccionado.
+  const [selectedSlug, setSelectedSlug] = useState(() => {
+    if (initialEventSlug && eventsProp.some((event) => event.slug === initialEventSlug)) {
+      return initialEventSlug
+    }
+    return pitbull?.slug ?? null
+  })
   const selected = events.find((event) => event.slug === selectedSlug) ?? null
   const [filter, setFilter] = useState('all')
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
@@ -225,6 +256,13 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
   }, [filter, filteredEvents, showPitbull])
 
   useEffect(() => {
+    // El evento destacado se excluye de `listEvents` porque ya se muestra en
+    // el spotlight principal — pero sigue "visible" en el sidebar (calendario +
+    // detalle), así que no hay que sacarlo de la selección solo por no estar
+    // en esa lista.
+    const pitbullSelected = showPitbull && pitbull?.slug && selectedSlug === pitbull.slug
+    if (pitbullSelected) return
+
     if (listEvents.length === 0) {
       if (showPitbull && pitbull?.slug) {
         setSelectedSlug(pitbull.slug)
@@ -351,6 +389,7 @@ export default function EventsPage({ onNavigate, onSelectEvent, events: eventsPr
           </MotionContentSwap>
 
           <Reveal variant="from-right" as="aside" className="events-sidebar-card">
+            <EventsCountdownChip event={nextEvent} days={daysUntilNext} t={t} />
             <EventCalendar
               events={events}
               initialDate="2026-12-01"

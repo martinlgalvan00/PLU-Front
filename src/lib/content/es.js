@@ -99,33 +99,33 @@ export const HOME_MEMBERSHIP_FEATURES = [
 export const HOME_MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Meets oficiales',
-    text: 'Habilitado para inscribirte al calendario PLU Argentina.',
+    title: 'Subite a la tarima',
+    text: 'Cupo confirmado para el calendario PLU Argentina.',
   },
   {
     id: 'credential',
-    title: 'Credencial digital',
-    text: 'Membresía con QR para check-in y validación en sede.',
+    title: 'Tu QR, tu pase',
+    text: 'Check-in y validación instantánea en cualquier sede.',
   },
   {
     id: 'discounts',
-    title: 'Tarifa de afiliado',
-    text: 'Preferenciales en inscripciones y red de gimnasios PLU.',
+    title: 'Ahorrá en cada inscripción',
+    text: 'Tarifas preferenciales en la red de gimnasios PLU.',
   },
   {
     id: 'results',
-    title: 'Resultados PLU',
-    text: 'Marcas publicadas con el mismo criterio internacional.',
+    title: 'Tu marca, registrada',
+    text: 'Resultados publicados con criterio internacional.',
   },
   {
     id: 'access',
-    title: 'Panel del atleta',
-    text: 'Afiliación, eventos e historial desde tu cuenta.',
+    title: 'Todo en un panel',
+    text: 'Afiliación, eventos e historial, siempre a mano.',
   },
   {
     id: 'network',
-    title: 'Red oficial',
-    text: 'Comunidad, sedes adheridas y calendario compartido.',
+    title: 'Una red, un calendario',
+    text: 'Sedes adheridas y agenda compartida en todo el país.',
   },
 ]
 
@@ -348,8 +348,8 @@ export const PITBULL_CLASSIC = {
   location: 'Buenos Aires, Argentina',
   slots: 120,
   registered: 48,
-  categories: ['Raw', 'Classic Raw', 'Equipped'],
-  divisions: ['Open', 'Junior', 'Sub-Junior', 'Master'],
+  categories: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
+  divisions: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],
 }
 
 export const PITBULL_VENUE = {
@@ -493,7 +493,7 @@ export const PITBULL_CREDENTIAL_SAMPLE = {
 export const RECENT_RESULTS = [
   { athlete: 'Martina Rivas', event: 'Pitbull Classic 2025', total: '412.5 kg', place: '1° Open Raw F', date: '2025-08-10' },
   { athlete: 'Nicolás Aguirre', event: 'Argentina Open 2025', total: '580 kg', place: '2° Junior Classic', date: '2025-10-18' },
-  { athlete: 'Lucía Fernández', event: 'Rookie Meet Córdoba', total: '325 kg', place: '1° Sub-Junior', date: '2025-09-05' },
+  { athlete: 'Lucía Fernández', event: 'Rookie Meet Córdoba', total: '325 kg', place: '1° Youth', date: '2025-09-05' },
 ]
 
 export const FAQ_ITEMS = [
@@ -659,7 +659,7 @@ export const COMMUNITY_RECENT_MEMBERS = [
     name: 'Nicolás A.',
     gym: 'Pitbull Barbell',
     province: 'Córdoba',
-    division: 'Junior · Classic Raw',
+    division: 'Junior · Raw With Wraps',
     memberCode: 'PLU-ARG-2026-002',
     affiliatedAt: '2026-03-10',
   },
@@ -677,7 +677,7 @@ export const COMMUNITY_RECENT_MEMBERS = [
     name: 'Tomás V.',
     gym: 'Maximal Power',
     province: 'Buenos Aires',
-    division: 'Master · Equipped',
+    division: 'Masters · Single-Ply',
     memberCode: 'PLU-ARG-2026-004',
     affiliatedAt: '2026-03-22',
   },

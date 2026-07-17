@@ -105,8 +105,11 @@ export default function CheckInSection({
       filteredCount={workspace.rows.length}
       placeholder={t('admin.checkin.searchPlaceholder')}
       query={workspace.query}
-      showHeader={false}
+      showHeader
       showStats
+      eyebrow={t('admin.sections.checkin.eyebrow')}
+      title={t('admin.sections.checkin.title')}
+      subtitle={t('admin.sections.checkin.subtitle')}
       stats={[
         { label: t('admin.checkin.statReady'), value: workspace.statusCounts.ready, tone: 'success' },
         { label: t('admin.checkin.statDone'), value: workspace.statusCounts.done, tone: 'default' },

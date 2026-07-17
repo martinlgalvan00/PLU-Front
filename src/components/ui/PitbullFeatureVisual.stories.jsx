@@ -1,4 +1,4 @@
-import pitbullVisual from '../../assets/powerlifting-hero.png'
+import pitbullVisual from '../../assets/DSC01606.jpg'
 import PitbullFeatureVisual from './PitbullFeatureVisual.jsx'
 
 export default {

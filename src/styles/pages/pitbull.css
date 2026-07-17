@@ -498,9 +498,20 @@
   width: 100%;
 }
 
-/* ── 01 Feature — editorial split ─────────────── */
+/* ── 03 Feature / Programa — editorial lux ───── */
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature {
+  display: block;
+}
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 8px 40px;
+  margin-bottom: clamp(8px, 1.4vw, 14px);
+  max-width: none;
+  padding-bottom: clamp(16px, 2.4vw, 22px);
   padding-left: clamp(14px, 2vw, 20px);
   position: relative;
 }
@@ -512,20 +523,103 @@
     color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
   );
   border-radius: 99px;
-  bottom: 6%;
+  bottom: 16%;
   content: '';
   left: 0;
+  opacity: 0.9;
   position: absolute;
-  top: 6%;
+  top: 8%;
   width: 2px;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__kicker {
-  gap: 8px 12px;
+  align-items: baseline;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__index {
+  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  opacity: 1;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__index::after {
   display: none;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.2vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.048em;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead {
+  color: var(--color-text-muted);
+  font-size: clamp(13.5px, 1.5vw, 15px);
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 28ch;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+  margin-top: clamp(18px, 2.6vw, 26px);
+}
+
+@media (min-width: 1280px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+    align-items: end;
+    grid-template-columns: minmax(0, 1.25fr) minmax(12rem, 0.75fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead {
+    justify-self: end;
+    max-width: 24ch;
+    padding-bottom: 4px;
+    text-align: right;
+  }
+}
+
+@media (max-width: 1279px) {
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead {
+    justify-self: start;
+    max-width: 42ch;
+    text-align: left;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__title {
+    max-width: 18ch;
+  }
+}
+
+[data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
 }
 
 .pitbull-dossier--minimal .pitbull-feature-facts {
@@ -566,18 +660,133 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__actions--feature {
-  border-top: 1px solid var(--pitbull-section-divider);
-  margin-top: 2px;
-  padding-top: 14px;
+  align-items: center;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: clamp(18px, 2.8vw, 26px);
+  padding-top: clamp(14px, 2vw, 18px);
 }
 
-/* La sección feature ahora muestra header editorial. */
-.pitbull-dossier--minimal .pitbull-dossier__section--feature {
-  display: block;
+/* Flow lux: números grandes + copy editorial */
+.pitbull-feature-flow {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: 0 0 clamp(20px, 3vw, 28px);
+  padding: 0;
 }
 
-.pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
-  margin-top: clamp(14px, 2.2vw, 18px);
+.pitbull-feature-flow__step {
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+  padding: clamp(16px, 2.2vw, 20px) 0;
+  position: relative;
+}
+
+.pitbull-feature-flow__step:first-child {
+  padding-top: 0;
+}
+
+.pitbull-feature-flow__step:last-child {
+  padding-bottom: 0;
+}
+
+.pitbull-feature-flow__step + .pitbull-feature-flow__step {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+}
+
+.pitbull-feature-flow__num {
+  color: color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+  padding-top: 2px;
+  user-select: none;
+}
+
+.pitbull-feature-flow__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.pitbull-feature-flow__label {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: -0.028em;
+  line-height: 1.15;
+}
+
+.pitbull-feature-flow__icon {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
+  flex: none;
+  opacity: 0.9;
+}
+
+.pitbull-feature-flow__detail {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 32ch;
+}
+
+@media (min-width: 1280px) {
+  .pitbull-feature-flow {
+    column-gap: clamp(24px, 3.5vw, 40px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pitbull-feature-flow__step {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+
+  .pitbull-feature-flow__step + .pitbull-feature-flow__step {
+    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+    border-top: none;
+    padding-left: clamp(20px, 2.8vw, 32px);
+  }
+
+  .pitbull-feature-flow__num {
+    font-size: clamp(2.1rem, 3.2vw, 2.75rem);
+    opacity: 0.85;
+  }
+
+  .pitbull-feature-flow__copy {
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .pitbull-feature-flow__detail {
+    max-width: 26ch;
+  }
+}
+
+[data-theme='light'] .pitbull-feature-flow__step + .pitbull-feature-flow__step {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-feature-flow__num {
+  color: color-mix(in oklab, var(--plu-gold-500) 42%, rgba(15, 17, 23, 0.22));
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
@@ -682,138 +891,6 @@
 
 [data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
   border-bottom-color: rgba(15, 17, 23, 0.08);
-}
-
-.pitbull-feature-flow {
-  display: grid;
-  gap: 0;
-  grid-template-columns: 1fr;
-  list-style: none;
-  margin: 0 0 clamp(16px, 2.4vw, 24px);
-  padding: 0;
-}
-
-@media (min-width: 720px) {
-  .pitbull-feature-flow {
-    border-top: none;
-    column-gap: clamp(20px, 3vw, 36px);
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding-top: 0;
-    position: relative;
-  }
-
-  .pitbull-feature-flow::before {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in oklab, var(--plu-gold-500) 45%, transparent) 18%,
-      color-mix(in oklab, var(--plu-gold-500) 45%, transparent) 82%,
-      transparent
-    );
-    content: '';
-    height: 1px;
-    left: 8%;
-    position: absolute;
-    right: 8%;
-    top: 11px;
-  }
-}
-
-.pitbull-feature-flow__step {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 14px 0;
-  position: relative;
-}
-
-@media (min-width: 720px) {
-  .pitbull-feature-flow__step {
-    gap: 10px;
-    padding: 0;
-  }
-
-  .pitbull-feature-flow__step:first-child,
-  .pitbull-feature-flow__step:last-child {
-    padding-inline: 0;
-  }
-
-  .pitbull-feature-flow__step:not(:last-child)::after {
-    display: none;
-  }
-}
-
-@media (max-width: 719px) {
-  .pitbull-feature-flow__step {
-    border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 12px;
-    padding: 14px 0;
-  }
-
-  .pitbull-feature-flow__step:first-child {
-    border-top: none;
-    padding-top: 0;
-  }
-}
-
-.pitbull-feature-flow__index {
-  align-items: center;
-  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-primary));
-  display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  gap: 6px;
-  letter-spacing: 0.14em;
-  line-height: 1.2;
-  position: relative;
-  z-index: 1;
-}
-
-@media (min-width: 720px) {
-  .pitbull-feature-flow__index {
-    background: var(--color-bg-primary);
-    padding-right: 10px;
-    width: fit-content;
-  }
-}
-
-.pitbull-feature-flow__copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.pitbull-feature-flow__label {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.pitbull-feature-flow__detail {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 28ch;
-}
-
-[data-theme='light'] .pitbull-feature-flow {
-  border-top-color: transparent;
-}
-
-[data-theme='light'] .pitbull-feature-flow__step {
-  border-top-color: rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .pitbull-feature-flow__index {
-  background: var(--color-bg-primary);
 }
 
 .motion-section-header--pitbull-briefing {
@@ -5957,15 +6034,78 @@
 
 .pitbull-program {
   background: transparent;
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
   display: grid;
   gap: 0;
   margin-inline: auto;
-  margin-top: clamp(4px, 1vw, 8px);
+  margin-top: clamp(8px, 1.6vw, 14px);
   max-width: 100%;
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
+  padding-top: clamp(4px, 1vw, 8px);
   width: 100%;
+}
+
+.pitbull-program__matrix {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.pitbull-program__stack {
+  display: none;
+  gap: clamp(16px, 2.4vw, 22px);
+  min-width: 0;
+  width: 100%;
+}
+
+.pitbull-program__day-block {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-md) + 2px);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pitbull-program__day-block-head {
+  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+}
+
+.pitbull-program__day-block-list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-program__day-block-row {
+  align-items: start;
+  border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+  display: grid;
+  gap: 0;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  min-width: 0;
+}
+
+.pitbull-program__day-block-row:first-child {
+  border-top: none;
+}
+
+.pitbull-program__day-block-row .pitbull-program__time {
+  justify-content: flex-start;
+  padding-inline: 12px;
+}
+
+.pitbull-program__day-block-row .pitbull-program__cell {
+  border-right: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pitbull-program__head {
@@ -5973,6 +6113,7 @@
   display: grid;
   gap: 0;
   grid-template-columns: 64px repeat(2, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .pitbull-program__corner {
@@ -6017,6 +6158,7 @@
   display: grid;
   gap: 0;
   grid-template-columns: 64px repeat(2, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .pitbull-program__rows > *:first-child .pitbull-program__row,
@@ -6043,6 +6185,8 @@
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
   padding: clamp(11px, 1.5vw, 13px) clamp(12px, 1.6vw, 16px);
 }
 
@@ -6051,20 +6195,12 @@
 }
 
 @media (max-width: 899px) {
-  .pitbull-program {
-    -webkit-overflow-scrolling: touch;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .pitbull-program::-webkit-scrollbar {
+  .pitbull-program__matrix {
     display: none;
   }
 
-  .pitbull-program__head,
-  .pitbull-program__row {
-    grid-template-columns: 44px repeat(2, minmax(128px, 1fr));
-    min-width: min(100%, 480px);
+  .pitbull-program__stack {
+    display: grid;
   }
 
   .pitbull-benefits-lanes,
@@ -6072,7 +6208,7 @@
     grid-template-columns: 1fr;
   }
 
-  .pitbull-benefits-lane--spectator,
+  .pitbull-benefits-lane--audience,
   .pitbull-categories-shell__lane--division {
     border-left: none;
     border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
@@ -6084,16 +6220,30 @@
 }
 
 @media (max-width: 640px) {
-  .pitbull-program__head,
-  .pitbull-program__row {
-    grid-template-columns: 44px repeat(2, minmax(132px, 1fr));
-    min-width: 360px;
+  .pitbull-program__day-block-row {
+    grid-template-columns: 3.75rem minmax(0, 1fr);
+  }
+
+  .pitbull-program__day-block-row .pitbull-program__time {
+    font-size: 10.5px;
+    padding-inline: 10px;
+  }
+
+  .pitbull-program__day-block-row .pitbull-program__cell {
+    font-size: 12px;
+    padding-inline: 10px;
   }
 }
 
 [data-theme='light'] .pitbull-program {
   background: transparent;
   border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-program__day-block,
+[data-theme='light'] .pitbull-program__day-block-head,
+[data-theme='light'] .pitbull-program__day-block-row {
+  border-color: rgba(15, 17, 23, 0.08);
 }
 
 [data-theme='light'] .pitbull-program__head,
@@ -6810,15 +6960,29 @@
   margin: 0;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 1100px) {
   .pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
     align-items: center;
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .pitbull-inscription-shell--compact .pitbull-inscription-shell__actions {
-    flex-wrap: nowrap;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 720px) and (max-width: 1099px) {
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-width: 0;
   }
 }
 
@@ -7388,7 +7552,7 @@
 }
 
 .pitbull-location__kicker {
-  align-items: center;
+  align-items: flex-start;
   color: var(--color-text-primary);
   display: inline-flex;
   font-family: var(--font-display);
@@ -7398,6 +7562,8 @@
   letter-spacing: -0.02em;
   line-height: 1.3;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pitbull-location__kicker svg {
@@ -7523,25 +7689,27 @@
   max-width: none;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1400px) {
   .pitbull-location {
     align-items: start;
     gap: clamp(20px, 3vw, 32px);
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   }
 
-  .pitbull-location__map {
-    height: clamp(200px, 30vw, 280px);
+  .pitbull-location__map,
+  .pitbull-location__map-placeholder {
+    height: clamp(240px, 28vw, 320px);
   }
 }
 
-@media (max-width: 899px) {
+@media (max-width: 1399px) {
   .pitbull-location {
     grid-template-columns: 1fr;
   }
 
-  .pitbull-location__map {
-    height: clamp(180px, 42vw, 240px);
+  .pitbull-location__map,
+  .pitbull-location__map-placeholder {
+    height: clamp(200px, 42vw, 300px);
   }
 }
 
@@ -7577,19 +7745,20 @@
   white-space: nowrap;
 }
 
-@media (max-width: 719px) {
+@media (max-width: 899px) {
   .pitbull-ticket-pass__cta {
     justify-content: center;
+    white-space: normal;
     width: 100%;
   }
 }
 
 /* ═══════════════════════════════════════════════════════
-   EDITORIAL UPGRADE — NOTEBOOK 900-1199px
+   EDITORIAL UPGRADE — NOTEBOOK 900-1399px
    Layout: kicker/título anclado a la izquierda,
    contenido fluyendo a la derecha. Estilo dossier lujoso.
    ═══════════════════════════════════════════════════════ */
-@media (min-width: 900px) and (max-width: 1199px) {
+@media (min-width: 900px) and (max-width: 1399px) {
 
   .pitbull-page--premium .pitbull-page__body {
     padding-inline: clamp(28px, 5vw, 64px);
@@ -7896,6 +8065,113 @@
   z-index: -1;
 }
 
+.pitbull-hero-masthead--medals {
+  isolation: isolate;
+  min-height: clamp(420px, 72vh, 640px);
+  overflow: hidden;
+}
+
+.pitbull-hero-masthead--medals::before {
+  display: none;
+}
+
+.pitbull-hero-masthead__backdrop {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.pitbull-hero-masthead__backdrop-img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  transform: scale(1.04);
+  width: 100%;
+}
+
+.pitbull-hero-masthead__backdrop-scrim {
+  background:
+    linear-gradient(180deg, rgba(8, 9, 12, 0.55) 0%, rgba(8, 9, 12, 0.42) 42%, rgba(8, 9, 12, 0.78) 78%, var(--color-page-canvas) 100%),
+    linear-gradient(90deg, rgba(8, 9, 12, 0.72) 0%, rgba(8, 9, 12, 0.45) 48%, rgba(8, 9, 12, 0.28) 100%);
+  inset: 0;
+  position: absolute;
+}
+
+[data-theme='light'] .pitbull-hero-masthead__backdrop-scrim {
+  background:
+    linear-gradient(180deg, rgba(247, 246, 243, 0.42) 0%, rgba(247, 246, 243, 0.28) 38%, rgba(247, 246, 243, 0.72) 78%, var(--color-page-canvas) 100%),
+    linear-gradient(90deg, rgba(247, 246, 243, 0.78) 0%, rgba(247, 246, 243, 0.48) 52%, rgba(247, 246, 243, 0.22) 100%);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__shell {
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__mark {
+  color: #fff;
+  opacity: 0.12;
+}
+
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__mark {
+  color: var(--color-text-primary);
+  opacity: 0.1;
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__panel {
+  max-width: min(38rem, 100%);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__title,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__date,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__lead,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb button,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__text-link {
+  color: #fff;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.35);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__status {
+  color: var(--color-brand-celeste);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__venue-text,
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__actions {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
+.pitbull-hero-masthead--medals .pitbull-hero-masthead__text-link:hover {
+  color: #fff;
+}
+
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__title,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__date,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__lead,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb button,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__text-link {
+  color: var(--color-text-primary);
+  text-shadow: none;
+}
+
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__venue-text,
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__breadcrumb span {
+  color: var(--color-text-muted);
+}
+
+[data-theme='light'] .pitbull-hero-masthead--medals .pitbull-hero-masthead__actions {
+  border-top-color: rgba(15, 17, 23, 0.12);
+}
+
 .pitbull-hero-masthead__shell {
   background: transparent;
   border: none;
@@ -7956,17 +8232,6 @@
   display: grid;
   grid-template-columns: 1fr;
   min-height: 0;
-}
-
-.pitbull-hero-masthead__visual-slot {
-  margin-top: clamp(24px, 3.6vw, 40px);
-  max-width: min(64rem, 100%);
-}
-
-@media (min-width: 900px) {
-  .pitbull-hero-masthead__visual-slot .pitbull-hero-visual__media {
-    max-height: clamp(220px, 22vw, 320px);
-  }
 }
 
 .pitbull-hero-masthead--text .pitbull-hero-masthead__layout--text {
@@ -8779,10 +9044,10 @@
 }
 
 .pitbull-hero-visual__media {
-  aspect-ratio: 2.35 / 1;
+  aspect-ratio: 3 / 4;
   isolation: isolate;
-  max-height: clamp(132px, 20vw, 188px);
-  min-height: 0;
+  max-height: clamp(320px, 72vw, 520px);
+  min-height: 280px;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -8793,7 +9058,7 @@
   height: 100%;
   min-height: 0;
   object-fit: cover;
-  object-position: center 32%;
+  object-position: center 42%;
   width: 100%;
 }
 
@@ -8897,13 +9162,21 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .pitbull-hero-visual__media {
-    max-height: clamp(148px, 14vw, 196px);
+    max-height: min(68vh, 560px);
+    min-height: 360px;
   }
 
   .pitbull-hero-visual__img {
-    object-position: center 28%;
+    object-position: center 40%;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pitbull-hero-visual__media {
+    max-height: min(72vh, 620px);
+    min-height: 420px;
   }
 }
 
@@ -8991,46 +9264,210 @@
   max-width: 36ch;
 }
 
-/* Camino del competidor — timeline compacta en dos fases */
+/* Camino del competidor — timeline responsive + foto live */
+.pitbull-athletes-layout {
+  display: grid;
+  gap: clamp(18px, 2.8vw, 28px);
+  width: 100%;
+}
+
+@media (max-width: 899px) {
+  .pitbull-athletes-layout {
+    align-items: stretch;
+  }
+
+  .pitbull-athletes-layout__main {
+    display: contents;
+  }
+
+  .pitbull-athletes-journey {
+    order: 1;
+  }
+
+  .pitbull-athletes-layout__visual {
+    order: 2;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
+    order: 3;
+  }
+}
+
+/* Notebook: stack — foto landscape arriba, journey a 2 fases abajo */
+@media (min-width: 900px) and (max-width: 1399px) {
+  .pitbull-athletes-layout {
+    align-items: start;
+    gap: clamp(20px, 2.8vw, 28px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pitbull-athletes-layout__visual {
+    order: -1;
+    position: static;
+    width: 100%;
+  }
+
+  .pitbull-athletes-layout__img {
+    aspect-ratio: 16 / 9;
+    max-height: min(320px, 36vh);
+    min-height: 200px;
+    object-position: center 34%;
+  }
+
+  .pitbull-athletes-layout__visual::after {
+    background: linear-gradient(180deg, transparent 50%, rgba(8, 9, 12, 0.22) 100%);
+  }
+}
+
+@media (min-width: 1400px) {
+  .pitbull-athletes-layout {
+    align-items: start;
+    column-gap: clamp(28px, 3.5vw, 48px);
+    grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.55fr);
+  }
+
+  .pitbull-athletes-layout__visual {
+    position: sticky;
+    top: calc(var(--header-height) + 20px);
+  }
+}
+
+.pitbull-athletes-layout__main {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.pitbull-athletes-layout__visual {
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  isolation: isolate;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-athletes-layout__visual::after {
+  background: linear-gradient(180deg, transparent 55%, rgba(8, 9, 12, 0.35) 100%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.pitbull-athletes-layout__img {
+  aspect-ratio: 16 / 9;
+  display: block;
+  height: auto;
+  max-height: 200px;
+  min-height: 140px;
+  object-fit: cover;
+  object-position: center 32%;
+  width: 100%;
+}
+
+@media (min-width: 1400px) {
+  .pitbull-athletes-layout__img {
+    aspect-ratio: 3 / 4;
+    max-height: min(480px, 58vh);
+    min-height: 280px;
+    object-position: center 28%;
+  }
+
+  .pitbull-athletes-layout__visual::after {
+    background: linear-gradient(180deg, transparent 62%, rgba(8, 9, 12, 0.28) 100%);
+  }
+}
+
+.pitbull-athletes-layout__caption {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+[data-theme='light'] .pitbull-athletes-layout__visual {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-athletes-layout__visual::after {
+  background: linear-gradient(180deg, transparent 58%, rgba(247, 246, 243, 0.22) 100%);
+}
+
 .pitbull-athletes-journey {
   display: grid;
-  gap: clamp(24px, 3.5vw, 36px);
+  gap: clamp(18px, 2.8vw, 28px);
   margin: 0;
   padding: 0;
   width: 100%;
 }
 
-@media (min-width: 820px) {
+@media (min-width: 700px) and (max-width: 899px) {
   .pitbull-athletes-journey {
-    column-gap: clamp(24px, 3.5vw, 40px);
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-athletes-journey__phase--meet {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+    padding-left: 0;
+    padding-top: clamp(16px, 2.5vw, 22px);
+  }
+}
+
+@media (max-width: 699px) {
+  .pitbull-athletes-journey__phase--meet {
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+    padding-top: clamp(16px, 2.5vw, 22px);
+  }
+}
+
+/* Con layout stack (≤1399), journey a 2 columnas aprovecha el ancho completo */
+@media (min-width: 900px) and (max-width: 1399px) {
+  .pitbull-athletes-layout .pitbull-athletes-journey {
+    column-gap: clamp(24px, 3vw, 40px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-athletes-journey__phase--meet {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+    border-top: none;
+    padding-left: clamp(18px, 2.5vw, 28px);
+    padding-top: 0;
+  }
+}
+
+@media (min-width: 1400px) {
+  .pitbull-athletes-layout .pitbull-athletes-journey {
+    column-gap: clamp(20px, 2.5vw, 32px);
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-athletes-journey__phase--meet {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
+    padding-left: 0;
+    padding-top: clamp(18px, 2.5vw, 24px);
   }
 }
 
 .pitbull-athletes-journey__phase {
   display: grid;
-  gap: clamp(12px, 1.8vw, 16px);
+  gap: clamp(10px, 1.6vw, 14px);
   min-width: 0;
-}
-
-@media (min-width: 820px) {
-  .pitbull-athletes-journey__phase--meet {
-    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-    padding-left: clamp(22px, 3vw, 32px);
-  }
-}
-
-@media (max-width: 819px) {
-  .pitbull-athletes-journey__phase--meet {
-    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-    padding-top: clamp(20px, 3vw, 28px);
-  }
 }
 
 .pitbull-athletes-journey__phase-label {
   align-items: center;
   color: var(--color-text-muted);
   display: inline-flex;
+  flex-wrap: wrap;
   font-family: var(--font-family);
   font-size: 12px;
   font-weight: 500;
@@ -9039,6 +9476,15 @@
   line-height: 1.3;
   margin: 0;
   text-transform: none;
+}
+
+.pitbull-athletes-journey__phase-index {
+  color: color-mix(in srgb, var(--color-brand-celeste) 85%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .pitbull-athletes-journey__phase-dot {
@@ -9051,6 +9497,10 @@
 
 .pitbull-athletes-journey__phase--meet .pitbull-athletes-journey__phase-label {
   color: color-mix(in srgb, var(--color-brand-gold) 78%, var(--color-text-muted));
+}
+
+.pitbull-athletes-journey__phase--meet .pitbull-athletes-journey__phase-index {
+  color: color-mix(in srgb, var(--color-brand-gold) 82%, var(--color-text-muted));
 }
 
 .pitbull-athletes-journey__phase--meet .pitbull-athletes-journey__phase-dot {
@@ -9068,20 +9518,20 @@
 
 .pitbull-athletes-journey__steps::before {
   background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  bottom: 10px;
+  bottom: 8px;
   content: '';
-  left: 11px;
+  left: 13px;
   position: absolute;
-  top: 10px;
+  top: 8px;
   width: 1px;
 }
 
 .pitbull-athletes-journey__step {
   align-items: start;
   display: grid;
-  gap: 10px 14px;
+  gap: 10px 12px;
   grid-template-columns: auto minmax(0, 1fr);
-  padding: clamp(10px, 1.5vw, 14px) 0;
+  padding: clamp(8px, 1.3vw, 12px) 0;
   position: relative;
 }
 
@@ -9097,21 +9547,19 @@
   align-items: center;
   background: color-mix(in oklab, var(--plu-celeste-500) 14%, var(--color-page-canvas, var(--color-bg)));
   border: 1px solid color-mix(in oklab, var(--plu-celeste-500) 32%, transparent);
-  border-radius: var(--border-radius-md, 8px);
+  border-radius: 999px;
   color: var(--color-brand-celeste);
   display: inline-flex;
-  flex-direction: column;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  gap: 3px;
-  height: 34px;
+  height: 28px;
   justify-content: center;
   letter-spacing: 0.02em;
   line-height: 1;
   position: relative;
-  width: 34px;
+  width: 28px;
   z-index: 1;
 }
 
@@ -9125,16 +9573,30 @@
   display: grid;
   gap: 3px;
   min-width: 0;
-  padding-top: 0;
+  padding-top: 2px;
 }
 
 .pitbull-athletes-journey__title {
+  align-items: center;
   color: var(--color-text-primary);
+  display: inline-flex;
+  flex-wrap: wrap;
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  font-size: clamp(0.98rem, 1.5vw, 1.1rem);
   font-weight: 600;
+  gap: 7px;
   letter-spacing: -0.022em;
   line-height: 1.25;
+}
+
+.pitbull-athletes-journey__title-icon {
+  color: var(--color-text-muted);
+  flex: none;
+  opacity: 0.85;
+}
+
+.pitbull-athletes-journey__phase--meet .pitbull-athletes-journey__title-icon {
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, var(--color-text-muted));
 }
 
 .pitbull-athletes-journey__text {
@@ -9143,15 +9605,29 @@
   font-weight: 400;
   line-height: 1.45;
   margin: 0;
-  max-width: 28ch;
+  max-width: none;
+}
+
+@media (min-width: 700px) {
+  .pitbull-athletes-journey__text {
+    max-width: 32ch;
+  }
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
   align-items: center;
   border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px 18px;
-  margin-top: clamp(20px, 3vw, 28px);
+  margin-top: 0;
   padding-top: clamp(14px, 2vw, 18px);
+}
+
+@media (min-width: 900px) {
+  .pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
+    margin-top: clamp(18px, 2.5vw, 26px);
+  }
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__cta--primary {
@@ -9854,3 +10330,65 @@
     margin-top: 0;
   }
 }
+
+/* RESPONSIVE HARDENING — PITBULL PAGE */
+
+@media (max-width: 640px) {
+  .pitbull-hero-masthead {
+    padding-inline: var(--layout-gutter-sm);
+  }
+
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__title {
+    font-size: clamp(2rem, 9vw, 2.75rem);
+    max-width: 14ch;
+  }
+
+  .pitbull-hero-masthead__panel,
+  .pitbull-hero-masthead__shell,
+  .pitbull-hero-masthead__layout {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pitbull-hero-masthead__venue-text {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 640px) {
+  .segmented-switch--pitbull {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .segmented-switch--pitbull .segmented-switch__option {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 7px 8px;
+  }
+
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__pricing {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
+    border-left: none;
+    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    padding-left: 0;
+    padding-top: 12px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__cta,
+  .pitbull-inscription__cta {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .pitbull-location__maps-link {
+    justify-content: center;
+    max-width: 100%;
+    width: 100%;
+  }
+}
+

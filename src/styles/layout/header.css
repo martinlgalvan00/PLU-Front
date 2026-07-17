@@ -1770,12 +1770,25 @@
   }
 }
 
-/* Desktop medio (1200–1399px) */
+/* Desktop medio (1200–1399px) — notebook full HD angosto */
 @media (min-width: 1200px) and (max-width: 1399px) {
   .site-header__nav-track .site-header__link,
   .site-header__nav-track .site-header__dropdown-trigger {
-    font-size: 12.5px;
-    padding: 7px 10px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .site-header__nav-track .site-header__link--event {
+    max-width: 7.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-header__nav-track .site-header__link--tickets {
+    font-size: 11px;
+    margin-left: 2px;
+    padding-inline: 10px;
   }
 
   .site-header__dropdown-menu {
@@ -1796,22 +1809,22 @@
   }
 
   .site-header__logo--design {
-    max-width: min(100%, 220px);
+    max-width: min(100%, 200px);
   }
 
   .site-header__logo--design .site-header__logo-letterhead {
-    height: 24px;
+    height: 22px;
   }
 
   .site-header__cta--pill,
   .site-header__cta--affiliate {
-    font-size: 10.5px !important;
-    padding: 7px 14px !important;
+    font-size: 10px !important;
+    padding: 6px 12px !important;
   }
 
   .site-header__cta--ghost {
     font-size: 10px !important;
-    padding-inline: 8px !important;
+    padding-inline: 6px !important;
   }
 }
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { CalendarDays, MapPin, Pencil, Plus, Users } from 'lucide-react'
+import { CalendarDays, MapPin, Pencil, Plus, Star, Users } from 'lucide-react'
+import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
 import AdminEventEditor, { AdminEventLivePreview } from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
@@ -9,7 +10,10 @@ import Button from '../../components/ui/Button.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount, translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { buildEventPagePath } from '../../lib/eventPageRoute.js'
+import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { getStatusMeta } from '../../lib/status.js'
+import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import {
   ADMIN_EVENT_FORM_DEFAULT,
   ADMIN_EVENT_STATUS_OPTIONS,
@@ -96,14 +100,39 @@ export default function EventsSection({
     if (saved?.event?.id) setSelectedId(saved.event.id)
   }
 
+  function buildEventLinks(row) {
+    if (!row?.slug) return []
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return [
+      {
+        id: 'public',
+        label: t('admin.copyLinkMenu.public'),
+        url: `${origin}${buildEventPagePath(row.slug)}`,
+      },
+      {
+        id: 'tickets',
+        label: t('admin.copyLinkMenu.tickets'),
+        url: `${origin}${TICKETS_PATH}?evento=${encodeURIComponent(row.slug)}`,
+      },
+      {
+        id: 'security',
+        label: t('admin.copyLinkMenu.security'),
+        url: `${origin}${buildSecurityGatePath(row.slug)}`,
+      },
+    ]
+  }
+
   return (
     <AdminListSection
       filteredCount={rows.length}
       meta={resultMeta}
       placeholder={t('admin.search.event')}
       query={query}
-      showHeader={false}
+      showHeader
       showStats={false}
+      eyebrow={t('admin.sections.events.eyebrow')}
+      title={t('admin.sections.events.title')}
+      subtitle={t('admin.sections.events.subtitle')}
       totalCount={adminEvents.length}
       variant="events"
       actions={
@@ -166,6 +195,15 @@ export default function EventsSection({
 
                     <div className="admin-event-row__body">
                       <div className="admin-event-row__title-wrap">
+                        {row.featured ? (
+                          <span
+                            className="admin-event-row__featured-badge"
+                            title={t('admin.sections.events.featuredBadge')}
+                          >
+                            <Star size={11} aria-hidden />
+                            {t('admin.sections.events.featuredBadge')}
+                          </span>
+                        ) : null}
                         <strong className="admin-event-row__title">{row.title}</strong>
                         <code className="admin-event-row__slug">{row.slug}</code>
                       </div>
@@ -204,6 +242,7 @@ export default function EventsSection({
                       className="admin-event-row__actions"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <AdminCopyLinkMenu links={buildEventLinks(row)} />
                       <AdminIconButton
                         disabled={!canEdit}
                         icon={Pencil}
@@ -226,14 +265,17 @@ export default function EventsSection({
           >
             <div className="admin-event-preview__head">
               <span className="admin-event-preview__label">{t('admin.sections.events.previewLabel')}</span>
-              {canEdit && (
-                <AdminIconButton
-                  icon={Pencil}
-                  label={t('admin.sections.events.customize')}
-                  onClick={() => openEditForm(selectedEvent)}
-                  variant="ghost"
-                />
-              )}
+              <div className="admin-event-preview__head-actions">
+                <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
+                {canEdit && (
+                  <AdminIconButton
+                    icon={Pencil}
+                    label={t('admin.sections.events.customize')}
+                    onClick={() => openEditForm(selectedEvent)}
+                    variant="ghost"
+                  />
+                )}
+              </div>
             </div>
             <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
             <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />

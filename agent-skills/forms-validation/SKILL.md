@@ -92,8 +92,8 @@ export const athleteRegistrationSchema = z.object({
   city: z.string().min(2),
   gym: z.string().min(2),
   sex: z.enum(['Masculino', 'Femenino']),
-  division: z.enum(['Open', 'Junior', 'Sub-Junior', 'Master I', 'Master II']),
-  category: z.enum(['Raw', 'Classic Raw', 'Equipped']),
+  division: z.enum(['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters']),
+  category: z.enum(['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited']),
   estimatedWeight: z.string().min(1),
   procedureType: z.enum(['both', 'membership', 'event']),
   paymentMethod: z.enum(['mercado_pago', 'manual_link']),
@@ -117,7 +117,7 @@ Zod ya está en `package.json` (`^3.25.76`).
 | Regla | Implementación |
 |-------|----------------|
 | Duplicado email/DNI | `findDuplicateAthlete` antes de crear |
-| Junior pricing | Si `division` es Junior/Sub-Junior → usar `PRICING.membershipJunior` (pendiente en `calculateAmount`) |
+| Junior pricing | Si `division` es Youth/Junior → usar `PRICING.membershipJunior` (pendiente en `calculateAmount`) |
 | Solo evento sin afiliación | Permitido en MVP; validar `requiresMembership` al confirmar |
 | Monto visible | `PROCEDURE_TYPES[procedureType].amount` en UI |
 

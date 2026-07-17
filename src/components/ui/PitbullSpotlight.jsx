@@ -1,5 +1,9 @@
 import { ArrowRight } from 'lucide-react'
-import pitbullVisual from '../../assets/powerlifting-hero.png'
+import photoBooth from '../../assets/DSC02270.jpg'
+import photoDesk from '../../assets/DSC02483.jpg'
+import photoLift from '../../assets/DSC00346.jpg'
+import photoMedals from '../../assets/DSC01606.jpg'
+import photoSpotters from '../../assets/DSC00286.jpg'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
@@ -89,24 +93,72 @@ export default function PitbullSpotlight({
   }
 
   if (isHome) {
+    const stripPhotos = [
+      { src: photoLift, key: 'lift' },
+      { src: photoDesk, key: 'desk' },
+      { src: photoBooth, key: 'booth' },
+    ]
+
     return (
       <article className="pitbull-spotlight pitbull-spotlight--home">
-        <div className="pitbull-spotlight__home-layout">
-          <figure className="pitbull-spotlight__home-media-shell">
-            <MaskReveal className="pitbull-spotlight__home-media" direction="left">
-              <img
-                src={pitbullVisual}
-                alt=""
-                className="pitbull-spotlight__home-media-img"
-                loading="lazy"
-                decoding="async"
-              />
+        <p className="pitbull-spotlight__home-mark" aria-hidden>
+          PITBULL
+        </p>
+
+        <div className="pitbull-spotlight__home-stage">
+          <div className="pitbull-spotlight__home-media">
+            <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
+              <figure className="pitbull-spotlight__home-hero-frame">
+                <picture>
+                  {/* Notebook apilado: foto landscape del meet (las medallas son portrait). */}
+                  <source
+                    media="(min-width: 960px) and (max-width: 1399px)"
+                    srcSet={photoLift}
+                  />
+                  <img
+                    src={photoMedals}
+                    alt=""
+                    className="pitbull-spotlight__home-hero-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+                <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
+                <span className="pitbull-spotlight__home-hero-badge">
+                  {t('pages.pitbull.spotlight.featured')}
+                </span>
+                <EventDatePlate
+                  day={PITBULL_CLASSIC.dateDay}
+                  month={dateMonthLabel}
+                  className="pitbull-spotlight__home-date"
+                  as="div"
+                  tilt={false}
+                />
+              </figure>
             </MaskReveal>
-          </figure>
+
+            <div className="pitbull-spotlight__home-strip" aria-hidden>
+              {stripPhotos.map((photo) => (
+                <figure
+                  key={photo.key}
+                  className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
+                >
+                  <img
+                    src={photo.src}
+                    alt=""
+                    className="pitbull-spotlight__home-strip-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </figure>
+              ))}
+            </div>
+          </div>
 
           <div className="pitbull-spotlight__home-panel">
             <header className="pitbull-spotlight__home-head">
               <p className="pitbull-spotlight__home-kicker">
+                <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
                 <span>{t('pages.pitbull.heroEyebrow')}</span>
                 <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
                   ·
@@ -134,7 +186,11 @@ export default function PitbullSpotlight({
               </div>
             </dl>
 
-            <p className="pitbull-spotlight__home-modalities">{PITBULL_CLASSIC.categories.join(' · ')}</p>
+            <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
+              {PITBULL_CLASSIC.categories.map((category) => (
+                <li key={category}>{category}</li>
+              ))}
+            </ul>
 
             <footer className="pitbull-spotlight__home-actions">
               <button
@@ -199,7 +255,7 @@ export default function PitbullSpotlight({
       </div>
 
       <MaskReveal className="pitbull-spotlight__visual" direction="right">
-        <img src={pitbullVisual} alt="" className="pitbull-spotlight__visual-img" aria-hidden />
+        <img src={photoSpotters} alt="" className="pitbull-spotlight__visual-img" aria-hidden />
         <div className="pitbull-spotlight__visual-overlay" aria-hidden />
         <span className="pitbull-spotlight__badge">{t('pages.pitbull.spotlight.featured')}</span>
         <EventDatePlate

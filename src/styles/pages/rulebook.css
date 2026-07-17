@@ -1187,16 +1187,19 @@
 }
 
 .rulebook-doc-intro .motion-section-header__title {
-  font-size: clamp(28px, 5.2vw, 42px);
+  font-size: clamp(22px, 3.2vw, 30px);
+  letter-spacing: -0.025em;
   margin: 0;
-  max-width: none;
+  max-width: 18ch;
   width: 100%;
 }
 
 .rulebook-doc-intro .motion-section-header__lead {
-  font-size: clamp(14px, 2.2vw, 17px);
+  color: var(--color-text-secondary);
+  font-size: clamp(14px, 1.8vw, 15.5px);
+  line-height: 1.5;
   margin: 0;
-  max-width: none;
+  max-width: 36ch;
   width: 100%;
 }
 
@@ -1232,14 +1235,16 @@
 
 @media (max-width: 479px) {
   .rulebook-doc-intro .motion-section-header__title {
-    font-size: clamp(24px, 7.2vw, 30px);
+    font-size: clamp(20px, 6vw, 26px);
     letter-spacing: -0.03em;
-    line-height: 1.08;
+    line-height: 1.1;
+    max-width: none;
   }
 
   .rulebook-doc-intro .motion-section-header__lead {
     font-size: 14px;
     line-height: 1.5;
+    max-width: none;
   }
 }
 

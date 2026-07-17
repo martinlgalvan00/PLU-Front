@@ -20,7 +20,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  *   eventDate        string  — ej. "12-13 Dic 2026"
  *   eventVenue       string  — ej. "Maximal Strength Club"
  *   eventLocation    string  — ej. "Buenos Aires"
- *   category         string? — ej. "Sub-Junior"
+ *   category         string? — ej. "Youth"
  *   division         string? — ej. "Clásico"
  *   eventSlug        string? — slug del evento (variant 'event' | 'ticket'), va en la URL del QR
  *   membershipSeason      string? — ej. "2026" (variant 'membership')

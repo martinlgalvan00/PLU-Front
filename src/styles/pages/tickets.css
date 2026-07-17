@@ -50,24 +50,25 @@
   pointer-events: none;
   position: absolute;
   z-index: 0;
-  -webkit-mask-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.55) 52%,
-    #000 76%
-  );
-  mask-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.55) 52%,
-    #000 76%
-  );
 }
 
 .tickets-page__hero-backdrop::after {
-  background: linear-gradient(180deg, rgba(8, 9, 12, 0.15) 0%, rgba(8, 9, 12, 0.5) 82%, rgba(8, 9, 12, 0.7) 100%);
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 88%, transparent) 0%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 72%, transparent) 30%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 36%, transparent) 54%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 10%, transparent) 78%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 24%, transparent) 0%,
+      transparent 30%,
+      transparent 58%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 58%, transparent) 100%
+    );
   content: '';
   inset: 0;
   position: absolute;
@@ -77,39 +78,36 @@
   display: block;
   height: 100%;
   object-fit: cover;
-  object-position: 66% 30%;
+  object-position: 58% 38%;
   width: 100%;
 }
 
 @media (max-width: 899px) {
-  .tickets-page__hero-backdrop {
-    -webkit-mask-image: linear-gradient(
+  .tickets-page__hero-backdrop::after {
+    background: linear-gradient(
       180deg,
-      transparent 0%,
-      transparent 40%,
-      rgba(0, 0, 0, 0.6) 64%,
-      #000 84%
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 82%, transparent) 0%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 55%, transparent) 38%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 28%, transparent) 60%,
+      color-mix(in oklab, var(--design-hero-bg, #0a0b0d) 52%, transparent) 100%
     );
-    mask-image: linear-gradient(
-      180deg,
-      transparent 0%,
-      transparent 40%,
-      rgba(0, 0, 0, 0.6) 64%,
-      #000 84%
-    );
+  }
+
+  .tickets-page__hero-backdrop-img {
+    object-position: 55% 30%;
   }
 }
 
 .tickets-page__hero-atmosphere {
   background:
-    radial-gradient(ellipse 80% 70% at 12% 20%, var(--design-hero-ambient-celeste, rgba(116, 172, 223, 0.2)), transparent 60%),
-    radial-gradient(ellipse 65% 58% at 88% 12%, color-mix(in oklab, var(--plu-gold-500) 22%, transparent), transparent 62%),
-    radial-gradient(ellipse 50% 40% at 50% 100%, color-mix(in oklab, var(--plu-gold-500) 8%, transparent), transparent 70%),
-    linear-gradient(180deg, transparent 48%, var(--color-page-canvas, var(--color-bg-primary)) 100%);
+    radial-gradient(ellipse 80% 70% at 12% 20%, var(--design-hero-ambient-celeste, rgba(116, 172, 223, 0.12)), transparent 60%),
+    radial-gradient(ellipse 65% 58% at 88% 12%, color-mix(in oklab, var(--plu-gold-500) 12%, transparent), transparent 62%),
+    linear-gradient(180deg, transparent 55%, var(--color-page-canvas, var(--color-bg-primary)) 100%);
   inset: 0;
+  opacity: 0.7;
   pointer-events: none;
   position: absolute;
-  z-index: 0;
+  z-index: 1;
 }
 
 .tickets-page__hero-watermark {
@@ -148,7 +146,7 @@
     calc(var(--header-height, 72px) + clamp(20px, 3vw, 32px))
     clamp(48px, 8vw, 88px);
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .tickets-page__back {

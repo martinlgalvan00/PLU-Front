@@ -865,7 +865,8 @@ revoke all on function public.register_athlete(jsonb) from public, anon, authent
 revoke all on function public.get_athlete_snapshot(uuid) from public, anon, authenticated;
 revoke all on function public.update_athlete_profile(uuid, text, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.create_membership_order(uuid, text, text) from public, anon, authenticated;
-revoke all on function public.create_membership_order(uuid, text) from public, anon, authenticated;
+-- Firma de phase2; phase4 la reemplazó por (uuid, text, text). IF EXISTS evita fallar en installs limpias.
+drop function if exists public.create_membership_order(uuid, text);
 revoke all on function public.create_competition_registration(uuid, text, text, text, numeric, text) from public, anon, authenticated;
 revoke all on function public.register_athlete_photo(uuid, text) from public, anon, authenticated;
 revoke all on function public.create_ticket_order(text, jsonb, jsonb) from public, anon, authenticated;

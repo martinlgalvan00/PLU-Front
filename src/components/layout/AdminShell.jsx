@@ -40,6 +40,7 @@ const ICONS = {
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
+const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'audit'])
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 
 function readStoredCollapsed() {
@@ -74,6 +75,11 @@ export default function AdminShell({
         .filter((group) => group.items.length > 0)
     }
     return ADMIN_NAV_GROUPS
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
+      }))
+      .filter((group) => group.items.length > 0)
   }, [restrictedNav])
 
   const activeLabel = useMemo(() => {
@@ -168,6 +174,7 @@ export default function AdminShell({
                       key={key}
                       type="button"
                       className={activeSection === key ? 'active' : ''}
+                      aria-current={activeSection === key ? 'page' : undefined}
                       onClick={() => handleSectionChange(key)}
                       title={collapsed ? label : undefined}
                     >
@@ -194,7 +201,13 @@ export default function AdminShell({
 
         <div className="admin-shell__footer">
           <div className="admin-shell__session-bar">
-            <span className="admin-shell__session-role">{roleLabel}</span>
+            <span className="admin-shell__session-context">
+              <span className="admin-shell__session-dot" aria-hidden />
+              <span className="admin-shell__session-copy">
+                <small>{t('admin.shell.activeProfile')}</small>
+                <span className="admin-shell__session-role">{roleLabel}</span>
+              </span>
+            </span>
             <div className="admin-shell__prefs">
               <ThemeToggle compact />
               <LanguageToggle compact />

@@ -104,6 +104,30 @@
   --filter-pill-text: rgba(255, 255, 255, 0.52);
   --filter-pill-active-text: #14181f;
 
+  /* Admin institucional — misma jerarquía en modo ejecutivo */
+  --admin-canvas: var(--plu-cool-950);
+  --admin-surface: var(--plu-cool-850);
+  --admin-surface-raised: var(--plu-cool-800);
+  --admin-surface-muted: var(--plu-cool-900);
+  --admin-sidebar: color-mix(in srgb, var(--plu-cool-950) 92%, black);
+  --admin-sidebar-surface: var(--plu-cool-900);
+  --admin-sidebar-text: var(--plu-ink-inverse);
+  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-inverse) 50%, transparent);
+  --admin-ink: var(--plu-ink-inverse);
+  --admin-text-secondary: var(--color-text-secondary);
+  --admin-muted: var(--color-text-muted);
+  --admin-hairline: color-mix(in srgb, var(--plu-ink-inverse) 9%, transparent);
+  --admin-hairline-strong: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
+  --admin-accent: var(--plu-gold-400);
+  --admin-accent-soft: color-mix(in srgb, var(--plu-gold-500) 10%, transparent);
+  --admin-focus: var(--plu-celeste-300);
+  --admin-focus-soft: color-mix(in srgb, var(--plu-celeste-400) 10%, transparent);
+  --admin-row-hover: color-mix(in srgb, var(--plu-celeste-400) 6%, transparent);
+  --admin-shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.2);
+  --admin-shadow-panel: 0 26px 72px rgba(0, 0, 0, 0.34);
+  --admin-attention-bg: var(--plu-cool-800);
+  --admin-attention-text: var(--plu-ink-inverse);
+
   --scrollbar-thumb: rgba(255, 255, 255, 0.14);
   --scrollbar-thumb-hover: rgba(242, 183, 5, 0.42);
   --scrollbar-track: transparent;
@@ -113,4 +137,3 @@
 [data-theme='dark'] {
   color-scheme: dark;
 }
-

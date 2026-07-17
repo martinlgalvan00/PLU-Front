@@ -216,9 +216,11 @@ export default function DashboardSection({
   const secondaryMetrics = useMemo(() => mapMetrics(secondary, t), [secondary, t])
 
   return (
-    <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury">
+    <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury admin-dashboard--executive">
       <AdminTopBar
+        eyebrow={t('admin.dashboard.eyebrow')}
         title={t('admin.dashboard.title')}
+        subtitle={t('admin.dashboard.subtitle')}
         searchValue={globalSearch}
         onSearchChange={onGlobalSearchChange}
         alertCount={pendingActions.length > 0 ? pendingActions.length : pendingPayments}
