@@ -1,9 +1,16 @@
+import { loadEnvFile } from 'node:process'
 import { createApp } from './app.js'
 import { applyServerRuntimeDefaults } from './lib/runtime.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startPaymentRecoveryJob } from './jobs/paymentRecoveryJob.js'
 import { startDomainMaintenanceJob } from './jobs/domainMaintenanceJob.js'
+
+try {
+  loadEnvFile()
+} catch {
+  // Las variables también pueden venir del entorno del proceso o del CI.
+}
 
 const app = createApp()
 const port = Number(process.env.PORT) || 3001

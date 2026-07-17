@@ -1,10 +1,10 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
+import photoMedals from '../../assets/DSC01606.jpg'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
-import PitbullHeroVisual from '../ui/PitbullHeroVisual.jsx'
 
 function PitbullHeroPanel({
   eventStatus,
@@ -85,6 +85,24 @@ function PitbullHeroPanel({
   )
 }
 
+function PitbullHeroBackdrop() {
+  return (
+    <div className="pitbull-hero-masthead__backdrop" aria-hidden>
+      <img
+        className="pitbull-hero-masthead__backdrop-img"
+        src={photoMedals}
+        alt=""
+        width={800}
+        height={1200}
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+      />
+      <div className="pitbull-hero-masthead__backdrop-scrim" />
+    </div>
+  )
+}
+
 export default function PitbullHero({
   eventStatus,
   onHome,
@@ -132,25 +150,18 @@ export default function PitbullHero({
     />
   )
 
-  const visual = (
-    <PitbullHeroVisual
-      categories={pitbullClassic.categories}
-      date={pitbullClassic.date}
-      t={t}
-      venue={`${pitbullClassic.venue} · ${pitbullClassic.location}`}
-    />
-  )
+  const backdrop = <PitbullHeroBackdrop />
 
   if (reducedMotion) {
     return (
-      <header className="pitbull-hero-masthead pitbull-hero-masthead--text">
+      <header className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--medals">
+        {backdrop}
         <div className="pitbull-hero-masthead__shell">
           {mark}
           <div className="pitbull-hero-masthead__stripe" aria-hidden />
           <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
             {panel}
           </div>
-          <div className="pitbull-hero-masthead__visual-slot">{visual}</div>
         </div>
       </header>
     )
@@ -158,20 +169,18 @@ export default function PitbullHero({
 
   return (
     <m.header
-      className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--motion"
+      className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--medals pitbull-hero-masthead--motion"
       initial="hidden"
       animate="visible"
       variants={heroStaggerContainer}
     >
+      {backdrop}
       <div className="pitbull-hero-masthead__shell">
         {mark}
         <m.div className="pitbull-hero-masthead__stripe" aria-hidden variants={heroSequenceItem} />
         <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
           {panel}
         </div>
-        <m.div className="pitbull-hero-masthead__visual-slot" variants={heroSequenceItem}>
-          {visual}
-        </m.div>
       </div>
     </m.header>
   )

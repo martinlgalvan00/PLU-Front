@@ -113,24 +113,26 @@ export default function TicketOrdersSection({
       ) : (
       <DataTable
         columns={[
-          { key: 'reference', label: t('admin.columns.reference') },
-          { key: 'event', label: t('admin.columns.event') },
-          { key: 'attendees', label: t('admin.columns.attendee') },
-          { key: 'ticketCount', label: t('admin.ticketOrders.tickets') },
-          { key: 'amount', label: t('admin.columns.amount') },
+          { key: 'reference', label: t('admin.columns.reference'), sortable: true },
+          { key: 'event', label: t('admin.columns.event'), sortable: true },
+          { key: 'attendees', label: t('admin.columns.attendee'), sortable: true },
+          { key: 'ticketCount', label: t('admin.ticketOrders.tickets'), sortable: true },
+          { key: 'amount', label: t('admin.columns.amount'), sortable: true },
           {
             key: 'proofStatus',
             label: t('admin.ticketOrders.proof'),
+            sortable: true,
             render: (row) => (
               <span className={row.paymentProofPath ? 'admin-proof-pill admin-proof-pill--ok' : 'admin-proof-pill'}>
                 {row.proofStatus}
               </span>
             ),
           },
-          { key: 'proofUploadedAt', label: t('admin.ticketOrders.uploadedAt') },
+          { key: 'proofUploadedAt', label: t('admin.ticketOrders.uploadedAt'), sortable: true },
           {
             key: 'status',
             label: t('admin.columns.status'),
+            sortable: true,
             render: (row) => <StatusBadge value={row.status} />,
           },
           {

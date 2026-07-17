@@ -268,10 +268,6 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               {latestEventTitle}
             </NavLink>
 
-            <NavLink active={activeView === 'tickets'} className="site-header__link--tickets" onClick={() => go('tickets')}>
-              {t('nav.buyTickets')}
-            </NavLink>
-
             <span
               className={`site-header__nav-indicator ${indicator.visible ? 'is-visible' : ''}`}
               style={{ left: indicator.left, width: indicator.width }}
@@ -470,13 +466,6 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   onClick={() => go(latestEventView)}
                 >
                   {latestEventTitle}
-                </DrawerItem>
-                <DrawerItem
-                  active={activeView === 'tickets'}
-                  hint={t('nav.buyTicketsHint')}
-                  onClick={() => go('tickets')}
-                >
-                  {t('nav.buyTickets')}
                 </DrawerItem>
               </DrawerSection>
 

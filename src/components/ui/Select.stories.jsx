@@ -8,7 +8,7 @@ export default {
     label: 'Categoría',
     name: 'category',
     options: [
-      ['sub-junior', 'Sub-Junior'],
+      ['youth', 'Youth'],
       ['open', 'Open'],
       ['master', 'Master'],
     ],

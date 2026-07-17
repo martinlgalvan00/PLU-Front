@@ -180,11 +180,11 @@ export default function PaymentsOperationsSection({
             emptyMessage={t('admin.paymentOperations.empty')}
             rows={operationRows}
             columns={[
-              { key: 'event_type', label: t('admin.paymentOperations.type'), mobile: 'primary' },
-              { key: 'resource_id', label: t('admin.paymentOperations.resource'), mobile: 'default' },
-              { key: 'status', label: t('admin.columns.status'), mobile: 'badge', render: (row) => <StatusBadge value={row.status} /> },
-              { key: 'attempts_count', label: t('admin.paymentOperations.attempts'), mobile: 'default', render: (row) => `${row.attempts_count}/${row.max_attempts}` },
-              { key: 'last_attempt_at', label: t('admin.paymentOperations.lastAttempt'), mobile: 'default', render: (row) => formatDate(row.last_attempt_at, locale) },
+              { key: 'event_type', label: t('admin.paymentOperations.type'), mobile: 'primary', sortable: true },
+              { key: 'resource_id', label: t('admin.paymentOperations.resource'), mobile: 'default', sortable: true },
+              { key: 'status', label: t('admin.columns.status'), mobile: 'badge', sortable: true, render: (row) => <StatusBadge value={row.status} /> },
+              { key: 'attempts_count', label: t('admin.paymentOperations.attempts'), mobile: 'default', sortable: true, render: (row) => `${row.attempts_count}/${row.max_attempts}` },
+              { key: 'last_attempt_at', label: t('admin.paymentOperations.lastAttempt'), mobile: 'default', sortable: true, render: (row) => formatDate(row.last_attempt_at, locale) },
               { key: 'error', label: t('admin.paymentOperations.detail'), mobile: 'hidden', render: (row) => row.error || '—' },
               {
                 key: 'actions',

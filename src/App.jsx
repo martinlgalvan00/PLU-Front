@@ -5,6 +5,7 @@ import PageTransition from './components/layout/PageTransition.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
+import { clearEventPageRoute, matchEventPageRoute, pushEventPageRoute } from './lib/eventPageRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
   clearTicketsRoute,
@@ -56,11 +57,18 @@ const PUBLIC_VIEWS = {
 }
 
 export default function App() {
-  const [view, setView] = useState(() => (matchTicketsRoute() ? 'tickets' : 'home'))
+  const [view, setView] = useState(() => {
+    if (matchTicketsRoute()) return 'tickets'
+    if (matchEventPageRoute()) return 'events'
+    return 'home'
+  })
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [ticketEventSlug, setTicketEventSlug] = useState(() =>
     matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
+  )
+  const [eventPageSlug, setEventPageSlug] = useState(() =>
+    matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
   const app = useAppData()
   const publicEvents = app.adminEvents.filter((event) => event.published !== false)
@@ -81,7 +89,17 @@ export default function App() {
         setView('tickets')
         return
       }
-      setView((current) => (current === 'tickets' ? 'pitbull' : current))
+      const eventPageMatch = matchEventPageRoute()
+      if (eventPageMatch) {
+        setEventPageSlug(eventPageMatch.eventSlug)
+        setView('events')
+        return
+      }
+      setView((current) => {
+        if (current === 'tickets') return 'pitbull'
+        if (current === 'events') return 'home'
+        return current
+      })
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -102,6 +120,14 @@ export default function App() {
         setTicketEventSlug(options.eventSlug ?? null)
       } else if (view === 'tickets') {
         clearTicketsRoute()
+      }
+
+      if (resolvedView === 'events' && options.eventSlug) {
+        pushEventPageRoute(options.eventSlug)
+        setEventPageSlug(options.eventSlug)
+      } else if (view === 'events' && resolvedView !== 'events') {
+        clearEventPageRoute()
+        setEventPageSlug(null)
       }
 
       // openTickets en pitbull: ir a la página completa de entradas
@@ -246,7 +272,13 @@ export default function App() {
       : view === 'login'
         ? { onNavigate: navigate, onLogin: app.login }
         : view === 'events'
-          ? { onNavigate: navigate, onSelectEvent: selectEvent, events: publicEvents, session: app.session }
+          ? {
+              onNavigate: navigate,
+              onSelectEvent: selectEvent,
+              events: publicEvents,
+              initialEventSlug: eventPageSlug,
+              session: app.session,
+            }
           : view === 'home'
             ? { onNavigate: navigate, onSelectEvent: selectEvent }
             : view === 'pitbull'

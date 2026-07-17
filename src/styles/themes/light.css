@@ -78,6 +78,30 @@
   --filter-pill-border: rgba(15, 17, 23, 0.10);
   --filter-pill-text: rgba(15, 17, 23, 0.55);
   --filter-pill-active-text: #14181f;
+
+  /* Admin institucional — superficies cálidas + sidebar tinta */
+  --admin-canvas: var(--plu-warm-50);
+  --admin-surface: color-mix(in srgb, white 92%, var(--plu-warm-100));
+  --admin-surface-raised: white;
+  --admin-surface-muted: color-mix(in srgb, var(--plu-warm-100) 72%, white);
+  --admin-sidebar: var(--plu-cool-950);
+  --admin-sidebar-surface: var(--plu-cool-900);
+  --admin-sidebar-text: var(--plu-ink-inverse);
+  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-inverse) 52%, transparent);
+  --admin-ink: var(--plu-ink-900);
+  --admin-text-secondary: var(--plu-ink-700);
+  --admin-muted: var(--plu-ink-500);
+  --admin-hairline: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
+  --admin-hairline-strong: color-mix(in srgb, var(--plu-ink-900) 18%, transparent);
+  --admin-accent: var(--plu-gold-600);
+  --admin-accent-soft: color-mix(in srgb, var(--plu-gold-500) 12%, transparent);
+  --admin-focus: var(--plu-celeste-600);
+  --admin-focus-soft: color-mix(in srgb, var(--plu-celeste-600) 10%, transparent);
+  --admin-row-hover: color-mix(in srgb, var(--plu-celeste-600) 5%, transparent);
+  --admin-shadow-soft: 0 10px 30px rgba(26, 28, 34, 0.055);
+  --admin-shadow-panel: 0 24px 64px rgba(26, 28, 34, 0.08);
+  --admin-attention-bg: var(--plu-cool-900);
+  --admin-attention-text: var(--plu-ink-inverse);
 }
 
 /* =============================================

@@ -38,3 +38,18 @@ export function getUpcomingEventsByDate(events = [], now = new Date()) {
 export function getNextUpcomingEvent(events = [], now = new Date()) {
   return getUpcomingEventsByDate(events, now)[0] ?? null
 }
+
+export function getFeaturedEvent(events = []) {
+  return events.find((event) => event.featured) ?? events[0] ?? null
+}
+
+export function getDaysUntilEvent(event, now = new Date()) {
+  const eventTime = eventDateTime(event)
+  if (!Number.isFinite(eventTime)) return null
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const eventDay = new Date(eventTime)
+  eventDay.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((eventDay.getTime() - today.getTime()) / 86400000)
+  return diffDays >= 0 ? diffDays : null
+}

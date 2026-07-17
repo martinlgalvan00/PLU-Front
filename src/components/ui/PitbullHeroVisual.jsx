@@ -1,4 +1,4 @@
-import heroPhoto from '../../assets/powerlifting-hero.png'
+import photoMedals from '../../assets/DSC01606.jpg'
 
 export default function PitbullHeroVisual({ categories = [], date, minimal = false, t, venue }) {
   if (minimal) {
@@ -6,10 +6,10 @@ export default function PitbullHeroVisual({ categories = [], date, minimal = fal
       <figure className="pitbull-hero-visual pitbull-hero-visual--band">
         <img
           className="pitbull-hero-visual__img"
-          src={heroPhoto}
+          src={photoMedals}
           alt=""
-          width={960}
-          height={600}
+          width={800}
+          height={1200}
           loading="eager"
           decoding="async"
           fetchPriority="high"
@@ -20,15 +20,15 @@ export default function PitbullHeroVisual({ categories = [], date, minimal = fal
   }
 
   return (
-    <figure className="pitbull-hero-visual">
+    <figure className="pitbull-hero-visual pitbull-hero-visual--portrait">
       <div className="pitbull-hero-visual__frame">
         <div className="pitbull-hero-visual__media">
           <img
             className="pitbull-hero-visual__img"
-            src={heroPhoto}
+            src={photoMedals}
             alt=""
-            width={960}
-            height={600}
+            width={800}
+            height={1200}
             loading="eager"
             decoding="async"
             fetchPriority="high"

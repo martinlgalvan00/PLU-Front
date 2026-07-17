@@ -84,21 +84,21 @@
       ]
     },
     {
-      "name": "Master I Raw · Hombres -93 kg",
+      "name": "Masters Raw · Hombres -93 kg",
       "lifters": [
         { "place": 1, "name": "Gustavo Rinaldi", "bodyweight": 91.5, "squat": 180, "bench": 120, "deadlift": 210, "total": 510, "dots": 368.9 },
         { "place": 2, "name": "Pablo Herrera", "bodyweight": 92.1, "squat": 175, "bench": 115, "deadlift": 200, "total": 490, "dots": 352.4 }
       ]
     },
     {
-      "name": "Master I Raw · Mujeres -84 kg",
+      "name": "Masters Raw · Mujeres -84 kg",
       "lifters": [
         { "place": 1, "name": "Carolina Vega", "bodyweight": 82.8, "squat": 135, "bench": 75, "deadlift": 165, "total": 375, "dots": 301.4 },
         { "place": 2, "name": "Patricia Gómez", "bodyweight": 83.5, "squat": 130, "bench": 70, "deadlift": 160, "total": 360, "dots": 287.9 }
       ]
     },
     {
-      "name": "Sub-Junior Raw · Hombres -66 kg",
+      "name": "Youth Raw · Hombres -66 kg",
       "lifters": [
         { "place": 1, "name": "Ian Molina", "bodyweight": 65.2, "squat": 130, "bench": 85, "deadlift": 155, "total": 370, "dots": 336.7 },
         { "place": 2, "name": "Franco Ibáñez", "bodyweight": 65.8, "squat": 125, "bench": 80, "deadlift": 147.5, "total": 352.5, "dots": 318.2 }

@@ -52,8 +52,11 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
       filteredCount={rows.length}
       placeholder={t('admin.search.athlete')}
       query={query}
-      showHeader={false}
+      showHeader
       showStats={false}
+      eyebrow={t('admin.sections.athletes.eyebrow')}
+      title={t('admin.sections.athletes.title')}
+      subtitle={t('admin.sections.athletes.subtitle')}
       totalCount={athletes.length}
       filters={[
         {
@@ -73,15 +76,17 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             key: 'fullName',
             label: t('admin.columns.athlete'),
             mobile: 'primary',
+            sortable: true,
             render: (row) => <AthleteIdentity email={row.email} name={row.fullName} />,
           },
-          { key: 'documentId', label: t('admin.columns.document'), mobile: 'default' },
-          { key: 'gym', label: t('admin.columns.gym'), mobile: 'default' },
-          { key: 'division', label: t('admin.columns.division'), mobile: 'default' },
+          { key: 'documentId', label: t('admin.columns.document'), mobile: 'default', sortable: true },
+          { key: 'gym', label: t('admin.columns.gym'), mobile: 'default', sortable: true },
+          { key: 'division', label: t('admin.columns.division'), mobile: 'default', sortable: true },
           {
             key: 'status',
             label: t('admin.columns.status'),
             mobile: 'badge',
+            sortable: true,
             render: (row) => <StatusBadge value={row.status} />,
           },
         ]}

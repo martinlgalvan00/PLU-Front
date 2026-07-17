@@ -202,12 +202,15 @@
   text-transform: uppercase;
 }
 
-/* Pitbull spotlight — home */
+/* Pitbull spotlight — home date badge */
 .pitbull-spotlight__home-date.event-date-plate {
-  bottom: 10px;
-  left: 10px;
+  bottom: auto;
+  left: auto;
   position: absolute;
-  z-index: 2;
+  right: 12px;
+  top: 12px;
+  width: auto;
+  z-index: 3;
 }
 
 .pitbull-spotlight__home-date.event-date-plate:not(.event-date-plate--static) {
@@ -218,35 +221,39 @@
 
 .pitbull-spotlight__home-date.event-date-plate--static,
 .pitbull-spotlight__home-date .event-date-plate__face {
-  background: rgba(8, 10, 16, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: calc(var(--border-radius-md) - 2px);
+  backdrop-filter: blur(10px);
+  background: color-mix(in oklab, #0a0b0d 62%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
   line-height: 1;
-  padding: 6px 8px;
-  text-align: center;
+  max-width: max-content;
+  padding: 10px 12px;
+  text-align: left;
+  width: max-content;
 }
 
 .pitbull-spotlight__home-date.event-date-plate--static .event-date-plate__content {
   display: grid;
-  gap: 0;
+  gap: 4px;
   margin: 0;
-  text-align: center;
+  text-align: left;
 }
 
 .pitbull-spotlight__home-date .event-date-plate__day {
   color: #fff;
   font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.15rem, 2.4vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
 .pitbull-spotlight__home-date .event-date-plate__month {
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  margin-top: 2px;
+  color: color-mix(in oklab, var(--plu-gold-400) 78%, #fff);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-top: 0;
   text-transform: uppercase;
 }
 
@@ -303,8 +310,8 @@
 
 [data-theme='light'] .pitbull-spotlight__home-date.event-date-plate--static,
 [data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__face {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(15, 17, 23, 0.1);
+  background: color-mix(in oklab, #fff 88%, transparent);
+  border-color: rgba(15, 17, 23, 0.12);
 }
 
 [data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__day {
@@ -312,7 +319,7 @@
 }
 
 [data-theme='light'] .pitbull-spotlight__home-date .event-date-plate__month {
-  color: var(--color-text-muted);
+  color: #8a6d28;
 }
 
 @media (prefers-reduced-motion: reduce) {

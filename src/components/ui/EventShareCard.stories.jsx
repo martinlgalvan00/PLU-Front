@@ -12,7 +12,7 @@ export default {
     eventDate: '08-09 Ago 2026',
     eventVenue: 'Club Atlético River',
     eventLocation: 'Buenos Aires',
-    category: 'Sub-Junior',
+    category: 'Youth',
     division: 'Clásico',
     eventSlug: 'apertura-nacional-2026',
   },

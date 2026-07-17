@@ -18,8 +18,8 @@ Gestionar **eventos de competencia** y sus **inscripciones** en PLU ARG: cupos, 
 |---------|-------------|
 | Evento | slug, título, fecha, venue, capacity |
 | Atleta | datos + estado afiliación |
-| Categoría | Raw, Classic Raw, Equipped |
-| División | Open, Junior, Sub-Junior, Master I/II |
+| Categoría | Raw, Raw With Wraps, Single-Ply, Multi-Ply, Unlimited |
+| División | Open, Youth, Junior, Sub-Masters, Masters |
 | procedureType | `event` o `both` en registro |
 
 ## Salidas esperadas
@@ -87,17 +87,19 @@ model EventRegistration {
 
 Definidas en `FORM_OPTIONS`:
 
-**Categoría (equipamiento):**
+**Categoría (equipamiento) — Estándares de Competición v26.1:**
 
-- `Raw` — sin equipamiento
-- `Classic Raw` — rodilleras + cinturón
-- `Equipped` — squat/deadlift suit
+- `Raw`
+- `Raw With Wraps`
+- `Single-Ply`
+- `Multi-Ply`
+- `Unlimited`
 
-**División (edad):**
+**División (edad) — Estándares de Competición v26.1 §1.3:**
 
-- `Open`, `Junior`, `Sub-Junior`, `Master I`, `Master II`
+- `Youth` (10–12), `Junior` (13–23 por franja), `Open` (10+), `Sub-Masters` (35–39), `Masters` (40+)
 
-**Regla futura:** validar división según `birthDate` vs fecha del evento (IPF rules).
+**Regla futura:** validar división según `birthDate` vs fecha del evento (PLU age groups).
 
 ### 4. Flujo de inscripción
 

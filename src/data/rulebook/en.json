@@ -1,6 +1,6 @@
 {
   "download": {
-    "title": "Competition Standards",
+    "title": "Standards of Competition",
     "subtitle": "Version 26.1 · Powerlifting United"
   },
   "summary": [
@@ -35,7 +35,7 @@
       "cards": [
         {
           "title": "Lifts and formats",
-          "text": "Full Power (squat, bench press, deadlift), Push-Pull (bench press and deadlift), and single-lift specialist formats, always in the squat → bench press → deadlift sequence."
+          "text": "Full Power (squat, bench press, deadlift), Push-Pull (bench press and deadlift), and Squat Only, Bench Press Only, or Deadlift Only, always in the squat → bench press → deadlift sequence."
         },
         {
           "title": "Drug Tested and Non-Tested divisions",
@@ -357,7 +357,7 @@
         { "label": "110", "range": "100.01 – 110.0 kg" },
         { "label": "125", "range": "110.01 – 125.0 kg" },
         { "label": "140", "range": "125.01 – 140.0 kg" },
-        { "label": "140+", "range": "140.01 kg and up" }
+        { "label": "140+", "range": "140.01 kg to unlimited" }
       ]
     },
     {
@@ -376,26 +376,26 @@
         { "label": "110", "range": "100.01 – 110.0 kg" },
         { "label": "125", "range": "110.01 – 125.0 kg" },
         { "label": "140", "range": "125.01 – 140.0 kg" },
-        { "label": "140+", "range": "140.01 kg and up" }
+        { "label": "140+", "range": "140.01 kg to unlimited" }
       ]
     }
   ],
   "ageDivisions": [
-    { "title": "Sub-Junior", "range": "10 – 12 years" },
+    { "title": "Youth", "range": "10 – 12 years" },
     { "title": "Junior 13–15", "range": "13 – 15 years" },
     { "title": "Junior 16–17", "range": "16 – 17 years" },
     { "title": "Junior 18–19", "range": "18 – 19 years" },
     { "title": "Junior 20–23", "range": "20 – 23 years" },
     { "title": "Open", "range": "10 years and up" },
-    { "title": "Sub-Master", "range": "35 – 39 years" },
-    { "title": "Master 40–44", "range": "40 – 44 years" },
-    { "title": "Master 45–49", "range": "45 – 49 years" },
-    { "title": "Master 50–54", "range": "50 – 54 years" },
-    { "title": "Master 55–59", "range": "55 – 59 years" },
-    { "title": "Master 60–64", "range": "60 – 64 years" },
-    { "title": "Master 65–69", "range": "65 – 69 years" },
-    { "title": "Master 70–74", "range": "70 – 74 years" },
-    { "title": "Master 75–79", "range": "75 – 79 years" },
-    { "title": "Master 80+", "range": "80 years and up" }
+    { "title": "Sub-Masters", "range": "35 – 39 years" },
+    { "title": "Masters 40–44", "range": "40 – 44 years" },
+    { "title": "Masters 45–49", "range": "45 – 49 years" },
+    { "title": "Masters 50–54", "range": "50 – 54 years" },
+    { "title": "Masters 55–59", "range": "55 – 59 years" },
+    { "title": "Masters 60–64", "range": "60 – 64 years" },
+    { "title": "Masters 65–69", "range": "65 – 69 years" },
+    { "title": "Masters 70–74", "range": "70 – 74 years" },
+    { "title": "Masters 75–79", "range": "75 – 79 years" },
+    { "title": "Masters 80+", "range": "80 years and up" }
   ]
 }

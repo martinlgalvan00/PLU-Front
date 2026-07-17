@@ -35,11 +35,11 @@
       "cards": [
         {
           "title": "Levantamientos y modalidades",
-          "text": "Full Power (sentadilla, press de banca y peso muerto), Push-Pull (banca y muerto) y modalidades de especialista en un solo levantamiento, siempre en la secuencia sentadilla → banca → muerto."
+          "text": "Full Power (sentadilla, press de banca y peso muerto), Push-Pull (press de banca y peso muerto) y especialistas en sentadilla, banca o peso muerto, siempre en la secuencia sentadilla → press de banca → peso muerto."
         },
         {
           "title": "Divisiones con y sin control antidopaje",
-          "text": "Las competencias pueden sancionarse con control antidopaje, sin control, o ambas; incluyen además la División de Género Neutral (N) y la División de Parasports para atletas adaptados."
+          "text": "Las competencias pueden sancionarse con control antidopaje, sin control, o ambas; incluyen además la División de Género Neutral (N) y la División de Paradeportes (Parasports) para atletas adaptados."
         },
         {
           "title": "Definición de ganadores",
@@ -47,7 +47,7 @@
         },
         {
           "title": "Equipos",
-          "text": "De 4 a 15 levantadores por equipo, puntuación por el promedio DOTS de los 5 mejores puntajes, categoría de equipo uniforme (Raw, Raw con vendas, Single o Multi ply) y mínimo 3 equipos para entrega de premios."
+          "text": "De 4 a 15 levantadores por equipo, puntuación por el promedio DOTS de los 5 mejores puntajes, categoría de equipo uniforme (Raw, Raw con vendas, Single ply o Multi ply) y mínimo 3 equipos para entrega de premios."
         },
         {
           "title": "Récords",
@@ -90,7 +90,7 @@
           "text": "Construcción robusta con medidas reglamentarias (largo mínimo 1,22 m, montantes ajustables de 75 a 110 cm) y topes de fallo ajustables."
         },
         {
-          "title": "Sistema de luces y tarjetas",
+          "title": "Sistema de luces y tarjetas para los jueces",
           "text": "Tres luces blancas y tres rojas, una por árbitro, más tarjetas de color: roja (posición), azul (técnica), amarilla (órdenes y otros), para transparencia en el arbitraje."
         },
         {
@@ -110,11 +110,11 @@
           "text": "Una sola pieza, ajustado al cuerpo, de tela sin soporte adicional; mangas siempre sobre los hombros. Aplica a levantadores raw y raw con vendas. Para equipados, ver Capítulo VII."
         },
         {
-          "title": "Remera",
+          "title": "Remeras",
           "text": "Camiseta de mezcla de algodón, sin botones ni costuras reforzadas, obligatoria bajo el singlet en sentadilla y press de banca; opcional en peso muerto."
         },
         {
-          "title": "Ropa interior y calcetines",
+          "title": "Calzoncillos / ropa interior y calcetines / medias",
           "text": "Calzoncillo sin piernas de algodón, nylon o poliéster (no obligatorio) y un solo par de medias o calcetines por levantador."
         },
         {
@@ -122,19 +122,19 @@
           "text": "Equipamiento personal permitido según las especificaciones de ancho, grosor y materiales del reglamento oficial."
         },
         {
-          "title": "Muñequeras y rodilleras",
+          "title": "Muñequeras, rodilleras / vendas de rodilla y coderas",
           "text": "Vendas y rodilleras permitidas dentro de las longitudes y materiales autorizados; deben usarse sobre la manga cuando se usa un traje de cuerpo completo."
         },
         {
           "title": "Vendaje sin asistencia",
-          "text": "El levantador debe poder colocarse y ajustarse su propio equipo personal sin asistencia externa en la plataforma."
+          "text": "Vendajes no asistivos permitidos según las especificaciones del reglamento; el levantador debe poder colocarse y ajustarse su propio equipo personal sin asistencia externa en la plataforma."
         },
         {
           "title": "Inspección del equipo personal",
           "text": "Todo el equipo personal se revisa antes de la competencia para verificar que cumple las especificaciones aprobadas."
         },
         {
-          "title": "Manejo de fluidos corporales",
+          "title": "Manejo de fluidos corporales en la plataforma",
           "text": "Sangre o restos de piel en la barra o la plataforma deben limpiarse de inmediato antes de continuar la competencia."
         }
       ]
@@ -158,7 +158,7 @@
           "text": "El árbitro principal controla la carga de la barra y el orden en plataforma; tres intentos fallidos en un mismo levantamiento descalifican al atleta de ese movimiento."
         },
         {
-          "title": "Descuidos, infracciones y trampas",
+          "title": "Descuidos menores, infracciones y trampas",
           "text": "El reglamento distingue descuidos menores corregibles, infracciones que deben subsanarse antes de competir, y trampas deliberadas, cada categoría con su propio tratamiento disciplinario."
         }
       ]
@@ -232,15 +232,15 @@
       "sourceLabel": "Secciones 7.1 – 7.3",
       "cards": [
         {
-          "title": "Single ply (capa única)",
+          "title": "Single ply — Capa única",
           "text": "Traje de sentadilla/peso muerto y camiseta de banca de una sola capa de tela, con especificaciones de costura y material detalladas en el reglamento oficial."
         },
         {
-          "title": "Multi ply (multi capa)",
+          "title": "Multi ply — Multi capa",
           "text": "Traje de sentadilla/peso muerto de tela en varias capas; se permite camiseta de compresión/erectores y medias mallas, y \"lift off\" de tres personas según la categoría."
         },
         {
-          "title": "Unlimited (sin límite)",
+          "title": "Unlimited — Ilimitado",
           "text": "División que permite camisetas de banca sin límite de capas; no es obligatorio usar remera debajo, y el resto de las reglas de equipamiento se mantiene sin cambios."
         }
       ]
@@ -316,7 +316,7 @@
     {
       "id": "policies",
       "numeral": "",
-      "title": "Políticas y anexos",
+      "title": "Políticas y apéndices",
       "sourceLabel": "Políticas y apéndices",
       "cards": [
         {
@@ -324,7 +324,7 @@
           "text": "Tolerancia cero ante discriminación o acoso por discapacidad; las quejas se envían a support@powerliftingunited.com y se responden dentro de 5 días hábiles."
         },
         {
-          "title": "Verificación de antecedentes",
+          "title": "Política de verificación de antecedentes",
           "text": "Todo el personal, directores y funcionarios pasan una verificación de antecedentes penales; delitos violentos, sexuales o contra menores implican rescisión automática del vínculo con PLU."
         },
         {
@@ -357,7 +357,7 @@
         { "label": "110", "range": "100,01 – 110,0 kg" },
         { "label": "125", "range": "110,01 – 125,0 kg" },
         { "label": "140", "range": "125,01 – 140,0 kg" },
-        { "label": "140+", "range": "140,01 kg o más" }
+        { "label": "140+", "range": "140,01 kg a peso ilimitado" }
       ]
     },
     {
@@ -376,7 +376,7 @@
         { "label": "110", "range": "100,01 – 110,0 kg" },
         { "label": "125", "range": "110,01 – 125,0 kg" },
         { "label": "140", "range": "125,01 – 140,0 kg" },
-        { "label": "140+", "range": "140,01 kg o más" }
+        { "label": "140+", "range": "140,01 kg a peso ilimitado" }
       ]
     }
   ],

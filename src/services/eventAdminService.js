@@ -107,6 +107,7 @@ export function createAdminEvent(events, payload) {
   const dateISO = payload.dateISO
   const date = formatEventDate(dateISO)
   const createdAt = new Date().toISOString()
+  const featured = Boolean(payload.featured)
   const event = {
     id: `evt-${Date.now()}`,
     title: payload.title.trim(),
@@ -116,7 +117,7 @@ export function createAdminEvent(events, payload) {
     location: payload.location.trim(),
     slug: slugify(payload.title, dateISO),
     status: payload.status ?? 'proximamente',
-    featured: Boolean(payload.featured),
+    featured,
     createdAt,
     createdOrder: Date.now(),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
@@ -137,9 +138,11 @@ export function createAdminEvent(events, payload) {
     published: Boolean(payload.published),
   }
 
+  const siblings = featured ? events.map((item) => ({ ...item, featured: false })) : events
+
   return {
     event,
-    events: [event, ...events],
+    events: [event, ...siblings],
     auditLog: {
       id: `audit-evt-${Date.now()}`,
       action: 'event.created',
@@ -153,9 +156,12 @@ export function createAdminEvent(events, payload) {
 
 export function updateAdminEvent(events, eventId, payload) {
   let updated = null
+  const featured = payload.featured ?? false
 
   const nextEvents = events.map((event) => {
-    if (event.id !== eventId) return event
+    if (event.id !== eventId) {
+      return featured && event.featured ? { ...event, featured: false } : event
+    }
 
     const dateISO = payload.dateISO ?? event.dateISO
     updated = {
@@ -364,7 +370,6 @@ export async function fetchAdminEvents() {
       capacityDay2: capacity.day2 ?? '',
       capacityBoth: capacity.both ?? '',
       pricing,
-      featured: false,
       registered: 0,
       createdAt: row.created_at,
     }

@@ -13,6 +13,7 @@ import {
   Trophy,
 } from 'lucide-react'
 import { m } from 'motion/react'
+import photoMeetFloor from '../assets/DSC00346.jpg'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -174,81 +175,107 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
       title={t('pages.pitbull.athletesTitle')}
       titleId="pitbull-athletes-title"
     >
-      <m.div
-        className="pitbull-athletes-journey"
-        aria-label={t('pages.pitbull.athletesAria')}
-        variants={reducedMotion ? undefined : phaseMotion}
-        initial={reducedMotion ? undefined : 'hidden'}
-        whileInView={reducedMotion ? undefined : 'show'}
-        viewport={MOTION_VIEWPORT}
-      >
-        {numberedGroups.map((group) => (
-          <section
-            key={group.id}
-            className={`pitbull-athletes-journey__phase pitbull-athletes-journey__phase--${group.id}`}
+      <div className="pitbull-athletes-layout">
+        <div className="pitbull-athletes-layout__main">
+          <m.div
+            className="pitbull-athletes-journey"
+            aria-label={t('pages.pitbull.athletesAria')}
+            variants={reducedMotion ? undefined : phaseMotion}
+            initial={reducedMotion ? undefined : 'hidden'}
+            whileInView={reducedMotion ? undefined : 'show'}
+            viewport={MOTION_VIEWPORT}
           >
-            <h3 className="pitbull-athletes-journey__phase-label">
-              <span className="pitbull-athletes-journey__phase-dot" aria-hidden />
-              {group.label}
-            </h3>
-            <ol className="pitbull-athletes-journey__steps">
-              {group.items.map((item) => {
-                const num = String(item.index + 1).padStart(2, '0')
-                const StepIcon = ATHLETE_STEP_ICONS[item.id]
-                const body = (
-                  <>
-                    <span className="pitbull-athletes-journey__index" aria-hidden>
-                      {StepIcon ? <StepIcon size={14} aria-hidden /> : null}
-                      {num}
-                    </span>
-                    <div className="pitbull-athletes-journey__copy">
-                      <span className="pitbull-athletes-journey__title">{item.title}</span>
-                      <p className="pitbull-athletes-journey__text">{item.text}</p>
-                    </div>
-                  </>
-                )
+            {numberedGroups.map((group, groupIndex) => (
+              <section
+                key={group.id}
+                className={`pitbull-athletes-journey__phase pitbull-athletes-journey__phase--${group.id}`}
+              >
+                <h3 className="pitbull-athletes-journey__phase-label">
+                  <span className="pitbull-athletes-journey__phase-index" aria-hidden>
+                    {String(groupIndex + 1).padStart(2, '0')}
+                  </span>
+                  <span className="pitbull-athletes-journey__phase-dot" aria-hidden />
+                  {group.label}
+                </h3>
+                <ol className="pitbull-athletes-journey__steps">
+                  {group.items.map((item) => {
+                    const num = String(item.index + 1).padStart(2, '0')
+                    const StepIcon = ATHLETE_STEP_ICONS[item.id]
+                    const body = (
+                      <>
+                        <span className="pitbull-athletes-journey__index" aria-hidden>
+                          {num}
+                        </span>
+                        <div className="pitbull-athletes-journey__copy">
+                          <span className="pitbull-athletes-journey__title">
+                            {StepIcon ? (
+                              <StepIcon size={14} aria-hidden className="pitbull-athletes-journey__title-icon" />
+                            ) : null}
+                            {item.title}
+                          </span>
+                          <p className="pitbull-athletes-journey__text">{item.text}</p>
+                        </div>
+                      </>
+                    )
 
-                if (reducedMotion) {
-                  return (
-                    <li key={item.id} className="pitbull-athletes-journey__step">
-                      {body}
-                    </li>
-                  )
-                }
+                    if (reducedMotion) {
+                      return (
+                        <li key={item.id} className="pitbull-athletes-journey__step">
+                          {body}
+                        </li>
+                      )
+                    }
 
-                return (
-                  <m.li
-                    key={item.id}
-                    className="pitbull-athletes-journey__step"
-                    variants={stepMotion}
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
-                  >
-                    {body}
-                  </m.li>
-                )
-              })}
-            </ol>
-          </section>
-        ))}
-      </m.div>
+                    return (
+                      <m.li
+                        key={item.id}
+                        className="pitbull-athletes-journey__step"
+                        variants={stepMotion}
+                        whileHover={{ x: 3 }}
+                        transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+                      >
+                        {body}
+                      </m.li>
+                    )
+                  })}
+                </ol>
+              </section>
+            ))}
+          </m.div>
 
-      <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
-        <button
-          type="button"
-          className="pitbull-dossier__cta pitbull-dossier__cta--primary motion-icon-shift"
-          onClick={scrollToInscription}
-        >
-          {t('pages.pitbull.athletesCta')}
-          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-        </button>
-        <button
-          type="button"
-          className="pitbull-dossier__text-link pitbull-dossier__text-link--rulebook"
-          onClick={() => onNavigate('rulebook')}
-        >
-          {t('pages.pitbull.athletesRulebook')}
-        </button>
+          <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
+            <button
+              type="button"
+              className="pitbull-dossier__cta pitbull-dossier__cta--primary motion-icon-shift"
+              onClick={scrollToInscription}
+            >
+              {t('pages.pitbull.athletesCta')}
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+            </button>
+            <button
+              type="button"
+              className="pitbull-dossier__text-link pitbull-dossier__text-link--rulebook"
+              onClick={() => onNavigate('rulebook')}
+            >
+              {t('pages.pitbull.athletesRulebook')}
+            </button>
+          </div>
+        </div>
+
+        <figure className="pitbull-athletes-layout__visual">
+          <img
+            className="pitbull-athletes-layout__img"
+            src={photoMeetFloor}
+            alt=""
+            width={1600}
+            height={1067}
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption className="pitbull-athletes-layout__caption">
+            {t('pages.pitbull.athletesVisualAlt')}
+          </figcaption>
+        </figure>
       </div>
     </PitbullDossierSection>
   )
@@ -259,28 +286,49 @@ function PitbullScheduleStrip({ schedule, t }) {
 
   return (
     <Reveal as="div" direction="up" delay={80} className="pitbull-program" aria-label={t('pages.pitbull.programAria')}>
-      <div className="pitbull-program__head" aria-hidden>
-        <span className="pitbull-program__corner" />
-        {schedule.map((day) => (
-          <div key={day.day} className="pitbull-program__day-head">
-            <span className="pitbull-program__day-name">{day.day}</span>
-            <span className="pitbull-program__day-date">{day.date}</span>
-          </div>
-        ))}
+      <div className="pitbull-program__matrix">
+        <div className="pitbull-program__head" aria-hidden>
+          <span className="pitbull-program__corner" />
+          {schedule.map((day) => (
+            <div key={day.day} className="pitbull-program__day-head">
+              <span className="pitbull-program__day-name">{day.day}</span>
+              <span className="pitbull-program__day-date">{day.date}</span>
+            </div>
+          ))}
+        </div>
+
+        <StaggerGroup as="div" className="pitbull-program__rows" stagger={55} direction="up">
+          {schedule[0].items.map((slot, rowIndex) => (
+            <div key={slot.time} className="pitbull-program__row">
+              <span className="pitbull-program__time">{slot.time}</span>
+              {schedule.map((day) => (
+                <p key={`${day.day}-${slot.time}`} className="pitbull-program__cell">
+                  {day.items[rowIndex]?.label}
+                </p>
+              ))}
+            </div>
+          ))}
+        </StaggerGroup>
       </div>
 
-      <StaggerGroup as="div" className="pitbull-program__rows" stagger={55} direction="up">
-        {schedule[0].items.map((slot, rowIndex) => (
-          <div key={slot.time} className="pitbull-program__row">
-            <span className="pitbull-program__time">{slot.time}</span>
-            {schedule.map((day) => (
-              <p key={`${day.day}-${slot.time}`} className="pitbull-program__cell">
-                {day.items[rowIndex]?.label}
-              </p>
-            ))}
-          </div>
+      <div className="pitbull-program__stack">
+        {schedule.map((day) => (
+          <section key={day.day} className="pitbull-program__day-block">
+            <header className="pitbull-program__day-block-head">
+              <span className="pitbull-program__day-name">{day.day}</span>
+              <span className="pitbull-program__day-date">{day.date}</span>
+            </header>
+            <ol className="pitbull-program__day-block-list">
+              {day.items.map((slot) => (
+                <li key={`${day.day}-${slot.time}`} className="pitbull-program__day-block-row">
+                  <span className="pitbull-program__time">{slot.time}</span>
+                  <p className="pitbull-program__cell">{slot.label}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
         ))}
-      </StaggerGroup>
+      </div>
     </Reveal>
   )
 }
@@ -464,14 +512,19 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
       >
         {featureFacts.map((fact, index) => {
           const FactIcon = FEATURE_FACT_ICONS[fact.label]
+          const num = String(index + 1).padStart(2, '0')
           return (
             <li key={fact.label} className="pitbull-feature-flow__step">
-              <span className="pitbull-feature-flow__index" aria-hidden>
-                {FactIcon ? <FactIcon size={13} aria-hidden /> : null}
-                {String(index + 1).padStart(2, '0')}
+              <span className="pitbull-feature-flow__num" aria-hidden>
+                {num}
               </span>
               <div className="pitbull-feature-flow__copy">
-                <span className="pitbull-feature-flow__label">{fact.label}</span>
+                <span className="pitbull-feature-flow__label">
+                  {FactIcon ? (
+                    <FactIcon size={14} aria-hidden className="pitbull-feature-flow__icon" />
+                  ) : null}
+                  {fact.label}
+                </span>
                 <p className="pitbull-feature-flow__detail">{fact.value}</p>
               </div>
             </li>
@@ -484,16 +537,24 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
       ) : null}
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--feature">
-        <button type="button" className="pitbull-dossier__cta" onClick={scrollToInscription}>
+        <button
+          type="button"
+          className="pitbull-dossier__cta pitbull-dossier__cta--primary motion-icon-shift"
+          onClick={scrollToInscription}
+        >
           {t('pages.pitbull.ctaInscription')}
-          <ArrowRight size={14} aria-hidden />
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
         </button>
         {ticketsOpen ? (
           <button type="button" className="pitbull-dossier__text-link" onClick={onTickets}>
             {t('pages.pitbull.ticketsTitle')}
           </button>
         ) : (
-          <button type="button" className="pitbull-dossier__text-link" onClick={() => onNavigate('rulebook')}>
+          <button
+            type="button"
+            className="pitbull-dossier__text-link"
+            onClick={() => onNavigate('rulebook')}
+          >
             {t('pages.pitbull.ctaRulebook')}
           </button>
         )}

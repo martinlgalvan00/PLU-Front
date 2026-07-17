@@ -124,11 +124,20 @@ export function inferDivisionSex(name = '') {
 /** Age/equipment class group from division label. */
 export function inferDivisionGroup(name = '') {
   const normalized = String(name).toLowerCase()
-  if (normalized.includes('sub-junior') || normalized.includes('sub junior') || normalized.includes('subjunior')) {
-    return 'sub-junior'
+  if (
+    normalized.includes('youth') ||
+    normalized.includes('juvenil') ||
+    normalized.includes('sub-junior') ||
+    normalized.includes('sub junior') ||
+    normalized.includes('subjunior')
+  ) {
+    return 'youth'
+  }
+  if (normalized.includes('sub-master') || normalized.includes('sub master') || normalized.includes('submáster') || normalized.includes('sub-máster')) {
+    return 'sub-masters'
   }
   if (normalized.includes('junior')) return 'junior'
-  if (normalized.includes('master')) return 'master'
+  if (normalized.includes('master') || normalized.includes('máster')) return 'masters'
   if (normalized.includes('open')) return 'open'
   return 'other'
 }
@@ -169,7 +178,7 @@ export function getDivisionSexOptions(navItems, t) {
   ]
 }
 
-const DIVISION_GROUP_ORDER = ['open', 'junior', 'sub-junior', 'master', 'other']
+const DIVISION_GROUP_ORDER = ['open', 'youth', 'junior', 'sub-masters', 'masters', 'other']
 
 export function getDivisionGroupOptions(navItems, t) {
   const present = new Set(navItems.map((item) => item.group).filter(Boolean))

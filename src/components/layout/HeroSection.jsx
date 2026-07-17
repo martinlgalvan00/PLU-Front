@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import heroPhoto from '../../assets/powerlifting-hero.png'
+import heroPhoto from '../../assets/DSC00346.jpg'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -97,6 +97,9 @@ export default function HeroSection({ onNavigate }) {
 
       <div className="hero__copy">
         <div className="hero__shell">
+          <p className="hero__brand-mark" aria-hidden>
+            PLU
+          </p>
           {reducedMotion ? (
             <div className="hero__copy-inner">
               <div className="hero__main">
@@ -108,7 +111,7 @@ export default function HeroSection({ onNavigate }) {
                 <div className="hero__actions">{actions}</div>
               </div>
               <div className="hero__proof">
-                <HeroStatusCard />
+                <HeroStatusCard onSelect={() => onNavigate('pitbull')} />
               </div>
             </div>
           ) : (
@@ -145,7 +148,7 @@ export default function HeroSection({ onNavigate }) {
                 animate="visible"
                 variants={heroProofItem}
               >
-                <HeroStatusCard />
+                <HeroStatusCard onSelect={() => onNavigate('pitbull')} />
               </m.div>
             </div>
           )}

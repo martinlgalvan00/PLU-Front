@@ -1,8 +1,21 @@
-import { Inbox } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ArrowDown, ArrowUp, ChevronsUpDown, Inbox } from 'lucide-react'
 import StatusBadge from './StatusBadge.jsx'
 
 function cellValue(col, row) {
   return col.render ? col.render(row) : row[col.key]
+}
+
+function sortValue(col, row) {
+  return col.sortAccessor ? col.sortAccessor(row) : row[col.key]
+}
+
+function compareValues(a, b) {
+  if (a == null && b == null) return 0
+  if (a == null) return 1
+  if (b == null) return -1
+  if (typeof a === 'number' && typeof b === 'number') return a - b
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' })
 }
 
 function hasMobileLayout(columns) {
@@ -81,6 +94,25 @@ export default function DataTable({
   const cardsClass = `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
   const useCompactCards = variant === 'admin' && hasMobileLayout(columns)
 
+  const [sort, setSort] = useState(null)
+
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows
+    const col = columns.find((item) => item.key === sort.key)
+    if (!col) return rows
+    const factor = sort.direction === 'desc' ? -1 : 1
+    return [...rows].sort((a, b) => factor * compareValues(sortValue(col, a), sortValue(col, b)))
+  }, [rows, sort, columns])
+
+  function toggleSort(col) {
+    if (!col.sortable) return
+    setSort((current) => {
+      if (current?.key !== col.key) return { key: col.key, direction: 'asc' }
+      if (current.direction === 'asc') return { key: col.key, direction: 'desc' }
+      return null
+    })
+  }
+
   if (!rows.length) {
     return (
       <div className={`data-table__empty-wrap ${variant === 'admin' ? 'data-table__empty-wrap--admin' : ''}`.trim()}>
@@ -116,15 +148,40 @@ export default function DataTable({
         <table>
           <thead>
             <tr>
-              {columns.map((col) => (
-                <th key={col.key} scope="col">
-                  {col.label}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const isSorted = sort?.key === col.key
+                if (!col.sortable) {
+                  return (
+                    <th key={col.key} scope="col">
+                      {col.label}
+                    </th>
+                  )
+                }
+                return (
+                  <th
+                    key={col.key}
+                    scope="col"
+                    aria-sort={isSorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  >
+                    <button type="button" className="data-table__sort-btn" onClick={() => toggleSort(col)}>
+                      {col.label}
+                      {isSorted ? (
+                        sort.direction === 'asc' ? (
+                          <ArrowUp size={11} aria-hidden className="data-table__sort-icon" />
+                        ) : (
+                          <ArrowDown size={11} aria-hidden className="data-table__sort-icon" />
+                        )
+                      ) : (
+                        <ChevronsUpDown size={11} aria-hidden className="data-table__sort-icon data-table__sort-icon--idle" />
+                      )}
+                    </button>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {sortedRows.map((row) => (
               <tr
                 key={row.id}
                 className={[rowClassName, getRowClassName?.(row)].filter(Boolean).join(' ')}
@@ -142,7 +199,7 @@ export default function DataTable({
       </div>
 
       <div className={cardsClass} aria-label="Lista de registros">
-        {rows.map((row) => {
+        {sortedRows.map((row) => {
           const articleClass = [
             'data-table-card',
             rowClassName,

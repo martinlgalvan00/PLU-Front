@@ -79,8 +79,11 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
       filteredCount={rows.length}
       placeholder={t('admin.search.users')}
       query={query}
-      showHeader={false}
+      showHeader
       showStats={false}
+      eyebrow={t('admin.sections.users.eyebrow')}
+      title={t('admin.sections.users.title')}
+      subtitle={t('admin.sections.users.subtitle')}
       totalCount={users.length}
       onQueryChange={setQuery}
     >
@@ -172,12 +175,14 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
             key: 'name',
             label: t('admin.columns.user'),
             mobile: 'primary',
+            sortable: true,
             render: (row) => <AdminIdentityCell name={row.name} sub={row.email} />,
           },
           {
             key: 'role',
             label: t('admin.columns.role'),
             mobile: 'badge',
+            sortable: true,
             render: (row) =>
               canManageUsers ? (
                 <label className="admin-users__role-select">

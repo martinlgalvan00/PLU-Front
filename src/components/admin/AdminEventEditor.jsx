@@ -70,34 +70,36 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
         />
       </div>
 
-      <div className="admin-event-preview__capacity">
-        <CapacityBar
-          current={previewEvent.registered}
-          total={previewEvent.slots}
-          label={t('admin.eventEditor.slotsLabel', {
-            registered: previewEvent.registered,
-            slots: previewEvent.slots,
-            percent: fillPercent,
-          })}
-        />
-      </div>
+      <div className="admin-event-preview__footer">
+        <div className="admin-event-preview__capacity">
+          <CapacityBar
+            current={previewEvent.registered}
+            total={previewEvent.slots}
+            label={t('admin.eventEditor.slotsLabel', {
+              registered: previewEvent.registered,
+              slots: previewEvent.slots,
+              percent: fillPercent,
+            })}
+          />
+        </div>
 
-      <ul className="admin-event-preview__meta">
-        <li>
-          <CalendarDays size={13} aria-hidden />
-          <strong>{previewEvent.date}</strong>
-        </li>
-        <li>
-          <MapPin size={13} aria-hidden />
-          <span>
-            {previewEvent.venue}, {previewEvent.location}
-          </span>
-        </li>
-        <li>
-          <Link2 size={13} aria-hidden />
-          <code>{previewEvent.slug}</code>
-        </li>
-      </ul>
+        <ul className="admin-event-preview__meta">
+          <li>
+            <CalendarDays size={13} aria-hidden />
+            <strong>{previewEvent.date}</strong>
+          </li>
+          <li>
+            <MapPin size={13} aria-hidden />
+            <span>
+              {previewEvent.venue}, {previewEvent.location}
+            </span>
+          </li>
+          <li>
+            <Link2 size={13} aria-hidden />
+            <code>{previewEvent.slug}</code>
+          </li>
+        </ul>
+      </div>
     </div>
   )
 }
