@@ -643,6 +643,7 @@ export const ADMIN_NAV_GROUPS = [
   {
     labelKey: 'admin.nav.groups.finance',
     items: [
+      ['shop', 'admin.nav.shop', 'ShoppingBag'],
       ['payments', 'admin.nav.payments', 'CreditCard'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],

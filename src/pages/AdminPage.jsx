@@ -10,6 +10,7 @@ import PlaceholderSection from './admin/PlaceholderSection.jsx'
 import PluUsaSection from './admin/PluUsaSection.jsx'
 import RegistrationsSection from './admin/RegistrationsSection.jsx'
 import PaymentsOperationsSection from './admin/PaymentsOperationsSection.jsx'
+import ShopSection from './admin/ShopSection.jsx'
 import UsersSection from './admin/UsersSection.jsx'
 
 export default function AdminPage({
@@ -39,8 +40,10 @@ export default function AdminPage({
   onExportAdmin,
   onExportPluUsa,
   onSaveEvent,
+  onSaveShopProduct,
   onSetFilters,
   onUpdateUserRole,
+  onDeleteShopProduct,
   payments,
   pendingTicketOrders,
   pendingTicketOrdersLoading,
@@ -48,6 +51,7 @@ export default function AdminPage({
   athletes,
   registrations,
   tickets,
+  shopProducts,
   users,
   roleLabel,
   isPluUsaPartner = false,
@@ -183,6 +187,17 @@ export default function AdminPage({
           loadError={pendingTicketOrdersError}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRefresh={onRefreshPendingTicketOrders}
+        />
+      )
+    }
+
+    if (section === 'shop') {
+      return (
+        <ShopSection
+          canEdit={canEdit}
+          products={shopProducts}
+          onDeleteProduct={onDeleteShopProduct}
+          onSaveProduct={onSaveShopProduct}
         />
       )
     }
