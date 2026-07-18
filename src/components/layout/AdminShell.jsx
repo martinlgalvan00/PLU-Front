@@ -14,6 +14,7 @@ import {
   ScanLine,
   ScrollText,
   Shield,
+  ShoppingBag,
   Trophy,
   Users,
   X,
@@ -37,6 +38,7 @@ const ICONS = {
   ScrollText,
   ScanLine,
   Eye,
+  ShoppingBag,
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])

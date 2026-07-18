@@ -10,6 +10,7 @@ import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getFeaturedEvent, getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import { ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
+import { getPublishedShopProducts } from '../services/shopService.js'
 import '../styles/pages/shop.css'
 
 /**
@@ -103,6 +104,71 @@ function ShopDepartmentCard({ icon: Icon, badge, title, titleId, text, action })
   )
 }
 
+function ShopProductCard({ locale, onAddToCart, product, t }) {
+  const soldOut = product.stock <= 0
+
+  return (
+    <article className="shop-product-card">
+      <div className="shop-product-card__media">
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <ShoppingBag size={28} aria-hidden />
+        )}
+        {product.featured ? <span>{t('pages.shop.productFeatured')}</span> : null}
+      </div>
+      <div className="shop-product-card__body">
+        <small>{t(`pages.shop.productCategories.${product.category}`)}</small>
+        <h3>{product.title}</h3>
+        <p>{product.description || t('pages.shop.productNoDescription')}</p>
+      </div>
+      <div className="shop-product-card__foot">
+        <div>
+          <strong>{money(product.price, locale)}</strong>
+          <span>{soldOut ? t('pages.shop.productSoldOut') : t('pages.shop.productStock', { stock: product.stock })}</span>
+        </div>
+        <button type="button" className="btn shop-product-card__cta" disabled={soldOut} onClick={() => onAddToCart(product)}>
+          {t('pages.shop.addToCart')}
+        </button>
+      </div>
+    </article>
+  )
+}
+
+function ShopCart({ cart, locale, onCheckout, onRemove, t }) {
+  const items = Object.values(cart)
+  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+
+  if (items.length === 0) return null
+
+  return (
+    <aside className="shop-cart" aria-label={t('pages.shop.cartAria')}>
+      <div className="shop-cart__head">
+        <strong>{t('pages.shop.cartTitle')}</strong>
+        <span>{t('pages.shop.cartCount', { count: items.reduce((sum, item) => sum + item.quantity, 0) })}</span>
+      </div>
+      <ul className="shop-cart__items">
+        {items.map(({ product, quantity }) => (
+          <li key={product.id}>
+            <span>{product.title}</span>
+            <em>{quantity} x {money(product.price, locale)}</em>
+            <button type="button" onClick={() => onRemove(product.id)}>
+              {t('pages.shop.cartRemove')}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="shop-cart__total">
+        <span>{t('pages.shop.cartTotal')}</span>
+        <strong>{money(total, locale)}</strong>
+      </div>
+      <button type="button" className="btn shop-cart__checkout" onClick={onCheckout}>
+        {t('pages.shop.cartCheckout')}
+      </button>
+    </aside>
+  )
+}
+
 function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketsOpen = pricing.day > 0 || pricing.bothDays > 0
@@ -175,11 +241,15 @@ function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
   )
 }
 
-export default function ShopPage({ events = [], onNavigate }) {
+export default function ShopPage({ events = [], products = [], onNavigate }) {
   const { locale, t } = useI18n()
   const [detailEvent, setDetailEvent] = useState(null)
   const [activeCategory, setActiveCategory] = useState('tickets')
+  const [cart, setCart] = useState({})
+  const [checkoutDone, setCheckoutDone] = useState(false)
   const featuredEvent = getFeaturedEvent(events)
+  const publishedProducts = getPublishedShopProducts(products)
+  const hasLoadedProducts = products.length > 0
   const shopEvents = getUpcomingEventsByDate(events).filter(
     (event) => (event.slug ?? event.id) !== (featuredEvent?.slug ?? featuredEvent?.id),
   )
@@ -196,6 +266,31 @@ export default function ShopPage({ events = [], onNavigate }) {
       return
     }
     onNavigate('events', { eventSlug: event.slug ?? event.id })
+  }
+
+  function addToCart(product) {
+    setCheckoutDone(false)
+    setCart((current) => {
+      const currentQuantity = current[product.id]?.quantity ?? 0
+      const nextQuantity = Math.min(product.stock, currentQuantity + 1)
+      return {
+        ...current,
+        [product.id]: { product, quantity: nextQuantity },
+      }
+    })
+  }
+
+  function removeFromCart(productId) {
+    setCart((current) => {
+      const next = { ...current }
+      delete next[productId]
+      return next
+    })
+  }
+
+  function checkoutCart() {
+    setCheckoutDone(true)
+    setCart({})
   }
 
   return (
@@ -266,13 +361,43 @@ export default function ShopPage({ events = [], onNavigate }) {
 
       {activeCategory === 'merch' ? (
         <section className="shop-section shop-department" aria-labelledby="shop-merch-title">
-          <ShopDepartmentCard
-            icon={ShoppingBag}
-            badge={t('pages.shop.merchSoon')}
-            title={t('pages.shop.merchTitle')}
-            titleId="shop-merch-title"
-            text={t('pages.shop.merchText')}
-          />
+          <div className="shop-section__header">
+            <h2 id="shop-merch-title" className="shop-section__title">
+              {t('pages.shop.merchTitle')}
+            </h2>
+            <p className="shop-section__lead">{t('pages.shop.merchText')}</p>
+          </div>
+
+          {publishedProducts.length > 0 ? (
+            <>
+              <div className="shop-products-grid">
+                {publishedProducts.map((product) => (
+                  <ShopProductCard
+                    key={product.id}
+                    locale={locale}
+                    product={product}
+                    t={t}
+                    onAddToCart={addToCart}
+                  />
+                ))}
+              </div>
+              <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} />
+              {checkoutDone ? <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p> : null}
+            </>
+          ) : hasLoadedProducts ? (
+            <div className="shop-empty shop-empty--products-pending">
+              <ShoppingBag size={22} aria-hidden />
+              <p className="shop-empty__text">{t('pages.shop.productsNotPublished')}</p>
+            </div>
+          ) : (
+            <ShopDepartmentCard
+              icon={ShoppingBag}
+              badge={t('pages.shop.merchSoon')}
+              title={t('pages.shop.merchTitle')}
+              titleId="shop-merch-title"
+              text={t('pages.shop.merchText')}
+            />
+          )}
         </section>
       ) : null}
 

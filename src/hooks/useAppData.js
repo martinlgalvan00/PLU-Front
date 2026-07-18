@@ -72,6 +72,11 @@ import {
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
+import {
+  deleteShopProduct,
+  getInitialShopProducts,
+  upsertShopProduct,
+} from '../services/shopService.js'
 
 // El login de esta app corre sobre Prisma/Auth0, nunca sobre supabase.auth
 // -- sin esto, auth.uid() es siempre null en el navegador y ninguna RPC
@@ -126,6 +131,7 @@ export function useAppData() {
   const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
   const [auditLogs, setAuditLogs] = useState(() => storedData?.auditLogs ?? [])
   const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
+  const [shopProducts, setShopProducts] = useState(() => getInitialShopProducts(storedData?.shopProducts))
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
@@ -140,8 +146,8 @@ export function useAppData() {
   // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
   // siendo locales) tampoco necesitan persistirse entre recargas.
   useEffect(() => {
-    writeStorage({ createdOrder, auditLogs, adminEvents, users })
-  }, [createdOrder, auditLogs, adminEvents, users])
+    writeStorage({ createdOrder, auditLogs, adminEvents, shopProducts, users })
+  }, [createdOrder, auditLogs, adminEvents, shopProducts, users])
 
   useEffect(() => {
     let active = true
@@ -995,6 +1001,36 @@ export function useAppData() {
     [adminEvents, userCanEdit],
   )
 
+  const saveShopProduct = useCallback(
+    (draft) => {
+      if (!userCanEdit) return { error: 'Sin permisos para editar productos.' }
+      const nextProducts = upsertShopProduct(shopProducts, draft)
+      const savedProduct = draft.id
+        ? nextProducts.find((product) => product.id === draft.id)
+        : nextProducts[0]
+      setShopProducts(nextProducts)
+      setAuditLogs((current) => [
+        buildAuditLog(draft.id ? 'shop.product.updated' : 'shop.product.created', 'shop_product', savedProduct?.id ?? draft.id, 'admin'),
+        ...current,
+      ])
+      return { product: savedProduct }
+    },
+    [shopProducts, userCanEdit],
+  )
+
+  const deleteShopProductAction = useCallback(
+    (productId) => {
+      if (!userCanEdit) return { error: 'Sin permisos para eliminar productos.' }
+      setShopProducts((current) => deleteShopProduct(current, productId))
+      setAuditLogs((current) => [
+        buildAuditLog('shop.product.deleted', 'shop_product', productId, 'admin'),
+        ...current,
+      ])
+      return { ok: true }
+    },
+    [userCanEdit],
+  )
+
   return {
     role,
     session,
@@ -1018,7 +1054,10 @@ export function useAppData() {
     dashboard,
     dashboardOverview,
     adminEvents,
+    shopProducts,
     saveAdminEvent,
+    saveShopProduct,
+    deleteShopProductAction,
     filteredRegistrations,
     enrichedMemberships,
     pendingActions,

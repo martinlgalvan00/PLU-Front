@@ -233,9 +233,11 @@ export default function App() {
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}
+          onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
+          onSaveShopProduct={app.saveShopProduct}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
           payments={app.payments}
@@ -244,6 +246,7 @@ export default function App() {
           pendingTicketOrdersError={app.pendingTicketOrdersError}
           athletes={app.athletes}
           registrations={app.registrations}
+          shopProducts={app.shopProducts}
           tickets={app.tickets}
           users={app.users}
           roleLabel={getRoleLabel(app.session?.role)}
@@ -287,7 +290,7 @@ export default function App() {
                   events: publicEvents,
                 }
               : view === 'shop'
-                ? { onNavigate: navigate, events: publicEvents }
+                ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
                 : view === 'tickets'
                   ? {
                       onNavigate: navigate,

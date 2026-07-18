@@ -27,5 +27,6 @@ export function normalizeStoredData(data) {
       : data.createdOrder,
     auditLogs: data.auditLogs ?? [],
     adminEvents: data.adminEvents ?? [],
+    shopProducts: data.shopProducts ?? [],
   }
 }
