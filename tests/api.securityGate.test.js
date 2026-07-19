@@ -27,11 +27,31 @@ function authHeaders(cookie) {
 
 function createPrismaDouble(users) {
   const sessions = []
+  let userSequence = users.length
   return {
     user: {
       findUnique: async ({ where }) => {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
         return users.find((user) => user.id === where.id) ?? null
+      },
+      findMany: async ({ where }) => {
+        if (where?.email?.in) return users.filter((user) => where.email.in.includes(user.email))
+        return users
+      },
+      create: async ({ data }) => {
+        userSequence += 1
+        const user = {
+          id: `usr-created-${userSequence}`,
+          email: data.email,
+          passwordHash: data.passwordHash,
+          role: data.role,
+          status: data.status,
+          eventId: data.eventId,
+          eventSlug: data.eventSlug,
+          profile: data.profile?.create ?? null,
+        }
+        users.push(user)
+        return user
       },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
@@ -64,6 +84,7 @@ async function buildGuard(overrides = {}) {
     status: 'active',
     profile: { firstName: 'Guardia', lastName: 'Uno' },
     eventId: 'evt-1',
+    eventSlug: 'pitbull-classic-2026',
     event: { id: 'evt-1', slug: 'pitbull-classic-2026', title: 'Pitbull Classic' },
     ...overrides,
   }
@@ -93,6 +114,26 @@ async function loginAdmin(url, admin) {
 
 const gateToken = (guard, ttlMs = 60_000) =>
   createAccessToken({ userId: guard.id, eventId: guard.eventId, expiresAt: new Date(Date.now() + ttlMs), secret: SECRET })
+
+function createSupabaseEventDouble() {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: {
+              id: 'evt-1',
+              slug: 'pitbull-classic-2026',
+              title: 'Pitbull Classic',
+              ends_at: '2026-08-16T22:00:00.000Z',
+            },
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  }
+}
 
 describe('security-gate (login por credencial de acceso)', () => {
   it('deja entrar con un token válido y setea la cookie de sesión', async () => {
@@ -196,6 +237,39 @@ describe('access-link (generación de credencial)', () => {
       })
 
       expect(response.status).toBe(401)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('alta de equipo con acceso personal', () => {
+  it('crea varias cuentas y devuelve sus links firmados en una sola operación', async () => {
+    const admin = await buildAdmin()
+    const prisma = createPrismaDouble([admin])
+    const target = listen(createApp({ prisma, supabaseAdmin: createSupabaseEventDouble(), env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url, admin)
+      const response = await fetch(`${target.url}/api/auth/security-users/bulk`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          eventId: 'evt-1',
+          sendEmail: false,
+          users: [
+            { name: 'Puerta Uno', email: 'puerta1@pluarg.test' },
+            { name: 'Puerta Dos', email: 'puerta2@pluarg.test' },
+          ],
+        }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(201)
+      expect(body.created).toHaveLength(2)
+      expect(body.created.every((item) => item.accessUrl.includes('?acceso='))).toBe(true)
+      expect(body.created.every((item) => item.expiresAt)).toBe(true)
+      expect(body.skipped).toEqual([])
     } finally {
       await target.close()
     }

@@ -7,12 +7,11 @@ import {
   NAV_RECURSOS_VIEWS,
 } from '../../lib/constants.js'
 import { canViewAdmin } from '../../lib/roles.js'
-import { sessionDisplayName, sessionInitial } from '../../lib/format.js'
+import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import Button from '../ui/Button.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
-import LoginButton from '../ui/LoginButton.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 
@@ -118,6 +117,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
   const sessionShortName = session ? sessionDisplayName(session, { short: true }) : ''
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
+  const sessionPhoto = session ? sessionPhotoUrl(session) : ''
 
   const eventosActive = NAV_EVENTOS_VIEWS.includes(activeView)
   const recursosActive = NAV_RECURSOS_VIEWS.includes(activeView)
@@ -295,12 +295,22 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               {t('hero.ctaAffiliate')}
             </Button>
             {session ? (
-              <>
-                <LoginButton
-                  compact
-                  label={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
+              <div className="site-header__account-actions">
+                <button
+                  type="button"
+                  className="site-header__profile-action"
                   onClick={() => go(adminSession ? 'admin' : 'profile')}
-                />
+                  title={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
+                  aria-label={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
+                >
+                  <span className={`site-header__profile-avatar${sessionPhoto ? ' site-header__profile-avatar--photo' : ''}`} aria-hidden>
+                    {sessionPhoto ? (
+                      <img src={sessionPhoto} alt="" />
+                    ) : (
+                      sessionInitialLetter
+                    )}
+                  </span>
+                </button>
                 <button
                   type="button"
                   className="site-header__icon-action site-header__logout-action"
@@ -308,9 +318,9 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   title={t('nav.logout')}
                   aria-label={t('nav.logout')}
                 >
-                  <LogOut size={16} />
+                  <LogOut size={15} strokeWidth={2} aria-hidden />
                 </button>
-              </>
+              </div>
             ) : (
               <Button
                 className="site-header__cta site-header__cta--lux site-header__cta--ghost btn--small"
@@ -341,8 +351,8 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                     onClick={() => go(adminSession ? 'admin' : 'profile')}
                     title={sessionFullName}
                   >
-                    <span className="site-header__mobile-chip-avatar" aria-hidden>
-                      {sessionInitialLetter}
+                    <span className={`site-header__mobile-chip-avatar${sessionPhoto ? ' site-header__mobile-chip-avatar--photo' : ''}`} aria-hidden>
+                      {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
                     </span>
                     <span className="site-header__mobile-chip-text">{sessionShortName}</span>
                   </button>

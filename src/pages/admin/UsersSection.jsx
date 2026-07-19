@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
-import DataTable from '../../components/ui/DataTable.jsx'
+import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -17,6 +17,7 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
   const [tempPassword, setTempPassword] = useState(null)
+  const [inviteNotice, setInviteNotice] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isSecurityRole = draft.role === 'seguridad_plu_arg'
@@ -54,15 +55,17 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
 
     setFormError('')
     setTempPassword(null)
-
-    if (!isSecurityRole) {
-      onCreateUser(draft)
-      setDraft(EMPTY_DRAFT)
-      return
-    }
+    setInviteNotice(null)
 
     setIsSubmitting(true)
     try {
+      if (!isSecurityRole) {
+        const user = await onCreateUser(draft)
+        setInviteNotice({ email: user?.email ?? draft.email.trim().toLowerCase() })
+        setDraft(EMPTY_DRAFT)
+        return
+      }
+
       const { user, tempPassword: password } = await onCreateSecurityUser(draft)
       setTempPassword({ email: user.email, password })
       setDraft(EMPTY_DRAFT)
@@ -167,8 +170,16 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
           <p className="admin-users__temp-password-note">{t('admin.users.tempPasswordWarn')}</p>
         </div>
       )}
+      {inviteNotice && (
+        <div className="admin-users__temp-password" role="status">
+          <p className="admin-users__temp-password-title">{t('admin.users.inviteTitle')}</p>
+          <p className="admin-users__temp-password-note">
+            {t('admin.users.inviteNote', { email: inviteNotice.email })}
+          </p>
+        </div>
+      )}
 
-      <DataTable
+      <AdminDataTable
         variant="admin"
         columns={[
           {

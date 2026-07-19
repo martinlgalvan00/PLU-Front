@@ -42,11 +42,14 @@ const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'ob
 
 const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado'])
 
+const INFO = new Set(['pre_registrado', 'registrado', 'proximamente'])
+
 export function getStatusMeta(value, t) {
   let tone = 'neutral'
   if (SUCCESS.has(value)) tone = 'success'
   else if (WARNING.has(value)) tone = 'warning'
   else if (DANGER.has(value)) tone = 'danger'
+  else if (INFO.has(value)) tone = 'info'
 
   let label = STATUS_LABELS[value] ?? value ?? '—'
   if (t && value) {

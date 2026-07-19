@@ -97,7 +97,13 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const auth = await athlete(req)
       const data = await repo().snapshot(auth.athleteId)
       res.json({
-        user: { role: 'athlete_plu', athleteId: auth.athleteId, name: data.athlete.full_name, email: data.athlete.email },
+        user: {
+          role: 'athlete_plu',
+          athleteId: auth.athleteId,
+          name: data.athlete.full_name,
+          email: data.athlete.email,
+          photoUrl: data.athlete.photo_url ?? null,
+        },
         ...data,
       })
     } catch (error) { next(error) }

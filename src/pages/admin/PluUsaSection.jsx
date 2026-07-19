@@ -1,27 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Download, Lock } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
 import { filterMemberships, isExpiringSoon } from '../../services/membershipService.js'
-
-function RosterIdentity({ document, name }) {
-  const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
-
-  return (
-    <div className="data-table__identity">
-      <span className="data-table__avatar data-table__avatar--gold" aria-hidden>
-        {initial}
-      </span>
-      <div className="data-table__identity-copy">
-        <strong>{name}</strong>
-        <span className="data-table__sub">{document}</span>
-      </div>
-    </div>
-  )
-}
 
 export default function PluUsaSection({ athletes, memberships, registrations, onExportPluUsa }) {
   const { t } = useI18n()
@@ -102,22 +87,24 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
         </>
       }
     >
-      <DataTable
+      <AdminDataTable
         variant="admin"
         columns={[
           {
             key: 'athlete',
             label: t('admin.columns.athlete'),
-            render: (row) => <RosterIdentity document={row.document} name={row.athlete} />,
+            mobile: 'primary',
+            render: (row) => <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} />,
           },
-          { key: 'memberCode', label: t('admin.columns.code') },
-          { key: 'year', label: t('admin.columns.year') },
+          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default' },
+          { key: 'year', label: t('admin.columns.year'), mobile: 'default', desktop: 'numeric', align: 'end' },
           {
             key: 'status',
             label: t('admin.columns.status'),
+            mobile: 'badge',
             render: (row) => <StatusBadge value={row.status} />,
           },
-          { key: 'expirationDate', label: t('admin.columns.expiration') },
+          { key: 'expirationDate', label: t('admin.columns.expiration'), mobile: 'default' },
         ]}
         rows={rows}
         emptyMessage={t('admin.sections.pluUsa.empty')}

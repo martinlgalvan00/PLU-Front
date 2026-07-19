@@ -1,6 +1,8 @@
-import { LockKeyhole } from 'lucide-react'
+import { LockKeyhole, UserRound } from 'lucide-react'
 
 export default function LoginButton({ onClick, className = '', label = 'Acceder al panel', compact = false }) {
+  const Icon = compact ? UserRound : LockKeyhole
+
   return (
     <button
       type="button"
@@ -9,7 +11,7 @@ export default function LoginButton({ onClick, className = '', label = 'Acceder 
       title={compact ? label : undefined}
       aria-label={compact ? label : undefined}
     >
-      <LockKeyhole size={compact ? 18 : 16} strokeWidth={compact ? 2.25 : 2} />
+      <Icon size={compact ? 18 : 16} strokeWidth={compact ? 2.1 : 2} aria-hidden />
       {!compact && label}
     </button>
   )

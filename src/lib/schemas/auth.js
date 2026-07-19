@@ -13,6 +13,19 @@ export const loginSchema = z.object({
   eventSlug: z.string().trim().min(1).optional(),
 })
 
+// Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean
+// sin contraseña: entran por Auth0 (invitación) y resolveOAuthUser vincula la
+// identidad por email en el primer login. seguridad_plu_arg queda afuera a
+// propósito -- esas cuentas van por createSecurityUserSchema (atadas a un
+// evento y con credencial de puerta).
+export const STAFF_ROLES = ['admin_plu_arg', 'operador_plu_arg', 'viewer_plu_usa']
+
+export const createStaffUserSchema = z.object({
+  name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
+  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
+  role: z.enum(STAFF_ROLES),
+})
+
 export const createSecurityUserSchema = z.object({
   name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),

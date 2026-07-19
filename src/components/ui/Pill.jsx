@@ -7,5 +7,10 @@
  * pill/CSS (status-pill, ya themeado en claro/oscuro) sin esa resolución.
  */
 export default function Pill({ tone = 'neutral', className = '', children }) {
-  return <span className={`status-pill status-pill--${tone} ${className}`.trim()}>{children}</span>
+  return (
+    <span className={`status-pill status-pill--${tone} ${className}`.trim()}>
+      <span className="status-pill__dot" aria-hidden />
+      <span className="status-pill__label">{children}</span>
+    </span>
+  )
 }

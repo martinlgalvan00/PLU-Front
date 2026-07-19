@@ -39,6 +39,12 @@ export function sessionInitial(session) {
   return label.charAt(0).toUpperCase() || '?'
 }
 
+export function sessionPhotoUrl(session) {
+  if (!session) return ''
+  const url = session.photoUrl ?? session.avatarUrl ?? session.picture ?? ''
+  return String(url).trim()
+}
+
 export function initials(name = '') {
   return name
     .split(' ')

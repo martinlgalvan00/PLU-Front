@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react'
+import { Check } from 'lucide-react'
 
 /**
  * Fila de chips con scroll horizontal arrastrable (touch + mouse).
@@ -118,6 +119,9 @@ export default function AdminFilterChipGroup({
               disabled={disabled}
               onClick={() => onChange(optionValue)}
             >
+              <span className="admin-filter-chip__indicator" aria-hidden>
+                {active ? <Check size={10} strokeWidth={2.5} /> : null}
+              </span>
               <span className="admin-filter-chip__label">{optionLabel}</span>
               {showCount ? (
                 <span className="admin-filter-chip__count" aria-hidden>

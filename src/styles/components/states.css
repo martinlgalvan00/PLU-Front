@@ -191,15 +191,25 @@
   padding: 6px 10px;
 }
 
-/* ── Locale switch (AR / US) ─────────────────── */
+/* ── Locale switch (ES / EN) — tipográfico, minimal ── */
 
 .locale-switch {
   --locale-pad: 3px;
-  --locale-track-w: 72px;
-  --locale-track-h: 36px;
+  --locale-track-w: 66px;
+  --locale-track-h: 32px;
   --locale-thumb-w: 30px;
   --locale-travel: calc(var(--locale-track-w) - (var(--locale-pad) * 2) - var(--locale-thumb-w));
-  --locale-ease: cubic-bezier(0.34, 1.12, 0.64, 1);
+  --locale-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --locale-track-bg: rgba(255, 255, 255, 0.04);
+  --locale-track-border: rgba(255, 255, 255, 0.1);
+  --locale-track-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.18);
+  --locale-thumb-bg: color-mix(in srgb, var(--color-brand-gold) 14%, rgba(255, 255, 255, 0.1));
+  --locale-thumb-border: color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+  --locale-thumb-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  --locale-code: rgba(255, 255, 255, 0.38);
+  --locale-code-active: color-mix(in srgb, var(--color-brand-gold) 72%, #fff);
+  --locale-hover-border: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  --locale-focus-ring: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
 
   align-items: center;
   background: transparent;
@@ -212,25 +222,20 @@
 }
 
 .locale-switch--compact {
-  --locale-track-w: 68px;
-  --locale-track-h: 34px;
+  --locale-track-w: 62px;
+  --locale-track-h: 30px;
   --locale-thumb-w: 28px;
 }
 
 .locale-switch:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .locale-switch__track {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.018) 100%),
-    var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
+  background: var(--locale-track-bg);
+  border: 1px solid var(--locale-track-border);
   border-radius: var(--border-radius-pill);
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.05),
-    0 8px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--locale-track-shadow);
   display: block;
   height: var(--locale-track-h);
   isolation: isolate;
@@ -238,168 +243,65 @@
   padding: var(--locale-pad);
   position: relative;
   transition:
-    border-color var(--transition-fast),
-    box-shadow 320ms ease;
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
   width: var(--locale-track-w);
 }
 
-.locale-switch[data-locale='es'] .locale-switch__track {
-  background:
-    linear-gradient(
-      90deg,
-      rgba(116, 172, 223, 0.16) 0%,
-      rgba(116, 172, 223, 0.06) 42%,
-      rgba(242, 183, 5, 0.02) 58%,
-      rgba(255, 255, 255, 0.015) 100%
-    ),
-    var(--color-bg-elevated);
-}
-
-.locale-switch[data-locale='en'] .locale-switch__track {
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.015) 0%,
-      rgba(242, 183, 5, 0.02) 42%,
-      rgba(116, 172, 223, 0.06) 58%,
-      rgba(116, 172, 223, 0.16) 100%
-    ),
-    var(--color-bg-elevated);
-}
-
 .locale-switch__code {
-  color: var(--color-text-muted);
+  color: var(--locale-code);
   font-family: var(--font-display);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   line-height: 1;
-  opacity: 0.34;
   pointer-events: none;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   transition:
-    opacity 240ms ease,
-    color 240ms ease;
-  z-index: 0;
+    color 220ms ease,
+    opacity 220ms ease;
+  z-index: 1;
 }
 
 .locale-switch__code--es {
-  left: calc(var(--locale-pad) + 5px);
+  left: calc(var(--locale-pad) + 7px);
 }
 
 .locale-switch__code--en {
-  right: calc(var(--locale-pad) + 5px);
+  right: calc(var(--locale-pad) + 7px);
 }
 
 .locale-switch[data-locale='es'] .locale-switch__code--es,
 .locale-switch[data-locale='en'] .locale-switch__code--en {
-  color: var(--color-brand-celeste);
-  opacity: 0.72;
+  color: var(--locale-code-active);
 }
 
 .locale-switch[data-locale='es'] .locale-switch__code--en,
 .locale-switch[data-locale='en'] .locale-switch__code--es {
-  opacity: 0.16;
-}
-
-.locale-switch__flag {
-  align-items: center;
-  display: inline-flex;
-  filter: saturate(0.72) brightness(0.92);
-  justify-content: center;
-  line-height: 0;
-  opacity: 0.24;
-  pointer-events: none;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  transition:
-    opacity 220ms ease,
-    filter 220ms ease;
-  z-index: 0;
-}
-
-.locale-switch__flag svg {
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-  display: block;
-  height: auto;
-  width: 15px;
-}
-
-.locale-switch--compact .locale-switch__flag svg {
-  width: 14px;
-}
-
-.locale-switch__flag--ar {
-  left: calc(var(--locale-pad) + (var(--locale-thumb-w) - 15px) / 2);
-}
-
-.locale-switch__flag--us {
-  right: calc(var(--locale-pad) + (var(--locale-thumb-w) - 15px) / 2);
-}
-
-.locale-switch--compact .locale-switch__flag--ar {
-  left: calc(var(--locale-pad) + (var(--locale-thumb-w) - 14px) / 2);
-}
-
-.locale-switch--compact .locale-switch__flag--us {
-  right: calc(var(--locale-pad) + (var(--locale-thumb-w) - 14px) / 2);
-}
-
-.locale-switch[data-locale='es'] .locale-switch__flag--us,
-.locale-switch[data-locale='en'] .locale-switch__flag--ar {
-  opacity: 0.18;
+  opacity: 0.55;
 }
 
 .locale-switch__thumb {
-  align-items: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.09) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: var(--locale-thumb-bg);
+  border: 1px solid var(--locale-thumb-border);
   border-radius: var(--border-radius-pill);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 6px 14px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(242, 183, 5, 0.06);
-  display: inline-flex;
+  box-shadow: var(--locale-thumb-shadow);
+  display: block;
   height: calc(var(--locale-track-h) - (var(--locale-pad) * 2));
-  justify-content: center;
   left: var(--locale-pad);
-  line-height: 0;
-  overflow: hidden;
+  pointer-events: none;
   position: absolute;
   top: var(--locale-pad);
   transition:
-    transform 340ms var(--locale-ease),
-    box-shadow 260ms ease,
-    border-color 260ms ease;
+    transform 300ms var(--locale-ease),
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
   width: var(--locale-thumb-w);
-  z-index: 2;
-}
-
-.locale-switch__thumb::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, transparent 72%);
-  border-radius: inherit;
-  content: '';
-  inset: 1px 2px auto;
-  pointer-events: none;
-  position: absolute;
-}
-
-.locale-switch__thumb svg {
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-  display: block;
-  height: auto;
-  position: relative;
-  width: 17px;
-  z-index: 1;
-}
-
-.locale-switch--compact .locale-switch__thumb svg {
-  width: 15px;
+  z-index: 0;
 }
 
 .locale-switch__thumb--en {
@@ -418,78 +320,46 @@
 }
 
 .locale-switch:hover .locale-switch__track {
-  border-color: rgba(116, 172, 223, 0.32);
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(116, 172, 223, 0.1),
-    0 10px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--locale-hover-border);
 }
 
 .locale-switch:hover .locale-switch__thumb {
-  border-color: rgba(255, 255, 255, 0.32);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.16) inset,
-    0 8px 18px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(242, 183, 5, 0.1);
+  background: color-mix(in srgb, var(--color-brand-gold) 20%, rgba(255, 255, 255, 0.12));
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
 }
 
-.locale-switch:focus-visible .locale-switch__track {
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.14),
-    0 0 0 2px rgba(116, 172, 223, 0.38);
+.locale-switch:focus-visible {
   outline: none;
 }
 
-[data-theme='light'] .locale-switch__track {
-  background:
-    linear-gradient(180deg, #fff 0%, #f3f5f8 100%);
+.locale-switch:focus-visible .locale-switch__track {
+  border-color: var(--locale-hover-border);
   box-shadow:
-    inset 0 1px 2px rgba(15, 17, 23, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.9);
+    var(--locale-track-shadow),
+    0 0 0 2px var(--locale-focus-ring);
 }
 
-[data-theme='light'] .locale-switch[data-locale='es'] .locale-switch__track {
-  background:
-    linear-gradient(
-      90deg,
-      rgba(26, 107, 176, 0.1) 0%,
-      rgba(26, 107, 176, 0.05) 48%,
-      #f3f5f8 52%,
-      #eef1f5 100%
-    );
+[data-theme='light'] .locale-switch {
+  --locale-track-bg: rgba(15, 17, 23, 0.04);
+  --locale-track-border: rgba(15, 17, 23, 0.1);
+  --locale-track-shadow: inset 0 1px 1px rgba(15, 17, 23, 0.04);
+  --locale-thumb-bg: color-mix(in srgb, var(--color-brand-gold) 18%, #fff);
+  --locale-thumb-border: color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  --locale-thumb-shadow: 0 1px 2px rgba(15, 17, 23, 0.06);
+  --locale-code: rgba(15, 17, 23, 0.42);
+  --locale-code-active: color-mix(in srgb, var(--color-brand-gold) 58%, #111318);
+  --locale-hover-border: color-mix(in srgb, var(--color-brand-gold) 34%, transparent);
+  --locale-focus-ring: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
 }
 
-[data-theme='light'] .locale-switch[data-locale='en'] .locale-switch__track {
-  background:
-    linear-gradient(
-      90deg,
-      #eef1f5 0%,
-      #f3f5f8 48%,
-      rgba(26, 107, 176, 0.05) 52%,
-      rgba(26, 107, 176, 0.1) 100%
-    );
-}
-
-[data-theme='light'] .locale-switch__thumb {
-  background: linear-gradient(180deg, #fff 0%, #f7f8fa 100%);
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 3px 8px rgba(15, 17, 23, 0.12),
-    0 1px 2px rgba(15, 17, 23, 0.08);
-}
-
-[data-theme='light'] .locale-switch__flag {
-  filter: saturate(0.88) brightness(0.98);
+[data-theme='light'] .locale-switch:hover .locale-switch__thumb {
+  background: color-mix(in srgb, var(--color-brand-gold) 26%, #fff);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .locale-switch__thumb {
     transition: transform 120ms linear;
-  }
-
-  .locale-switch__flag {
-    transition: none;
   }
 }
 

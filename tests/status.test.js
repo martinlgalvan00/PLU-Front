@@ -11,5 +11,7 @@ describe('status', () => {
     expect(getStatusMeta('aprobado').tone).toBe('success')
     expect(getStatusMeta('pendiente_pago').tone).toBe('warning')
     expect(getStatusMeta('rechazado').tone).toBe('danger')
+    expect(getStatusMeta('registrado').tone).toBe('info')
+    expect(getStatusMeta('proximamente').tone).toBe('info')
   })
 })

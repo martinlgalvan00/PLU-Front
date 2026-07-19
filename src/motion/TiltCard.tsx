@@ -31,6 +31,11 @@ export default function TiltCard({
     node.style.setProperty('--tilt-y', '0deg')
     node.style.setProperty('--tilt-shift-x', '0px')
     node.style.setProperty('--tilt-shift-y', '0px')
+    node.style.setProperty('--tilt-px', '0')
+    node.style.setProperty('--tilt-py', '0')
+    node.style.setProperty('--tilt-glare-x', '50%')
+    node.style.setProperty('--tilt-glare-y', '0%')
+    node.style.setProperty('--tilt-active', '0')
   }, [])
 
   const handlePointerMove = useCallback(
@@ -43,8 +48,10 @@ export default function TiltCard({
       if (leaveTimerRef.current != null) window.clearTimeout(leaveTimerRef.current)
 
       const rect = node.getBoundingClientRect()
-      const px = (event.clientX - rect.left) / rect.width - 0.5
-      const py = (event.clientY - rect.top) / rect.height - 0.5
+      const nx = (event.clientX - rect.left) / rect.width
+      const ny = (event.clientY - rect.top) / rect.height
+      const px = nx - 0.5
+      const py = ny - 0.5
       const rotateY = px * maxTilt * 2
       const rotateX = -py * maxTilt * 2
 
@@ -53,6 +60,13 @@ export default function TiltCard({
         node.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`)
         node.style.setProperty('--tilt-shift-x', `${(px * 6).toFixed(1)}px`)
         node.style.setProperty('--tilt-shift-y', `${(py * 4).toFixed(1)}px`)
+        // Puntero normalizado (-0.5..0.5) para parallax por capas
+        node.style.setProperty('--tilt-px', px.toFixed(3))
+        node.style.setProperty('--tilt-py', py.toFixed(3))
+        // Posición del brillo reactivo que sigue al cursor
+        node.style.setProperty('--tilt-glare-x', `${(nx * 100).toFixed(1)}%`)
+        node.style.setProperty('--tilt-glare-y', `${(ny * 100).toFixed(1)}%`)
+        node.style.setProperty('--tilt-active', '1')
       })
     },
     [canTilt, maxTilt],

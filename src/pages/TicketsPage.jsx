@@ -176,6 +176,16 @@ export default function TicketsPage({
                 </Item>
               ) : null}
             </div>
+
+            <Item {...itemProps} className="tickets-page__hero-visual">
+              <TicketPassPreview
+                eventTitle={selectedEvent?.title ?? t('pages.ticketsPage.eventFallback')}
+                eventSlug={selectedEvent?.slug ?? selectedEvent?.id ?? ''}
+                date={selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
+                venue={selectedEvent?.venue ?? t('pages.ticketsPage.venueFallback')}
+                showHint={false}
+              />
+            </Item>
           </div>
         </div>
       </HeroRoot>

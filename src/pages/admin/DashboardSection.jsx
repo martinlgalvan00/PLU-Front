@@ -6,7 +6,6 @@ import {
   ChevronRight,
   ClipboardList,
   MapPin,
-  ScanLine,
   Shield,
   Users,
 } from 'lucide-react'
@@ -54,12 +53,6 @@ const QUICK_ACTIONS = [
     icon: CalendarDays,
     labelKey: 'admin.nav.events',
     hintKey: 'admin.dashboard.quickEvents',
-  },
-  {
-    section: 'checkin',
-    icon: ScanLine,
-    labelKey: 'admin.nav.checkin',
-    hintKey: 'admin.dashboard.quickCheckin',
   },
 ]
 

@@ -18,11 +18,12 @@ const REQUIREMENT_ICONS = {
 }
 
 const headMotion = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, x: -10, y: 8 },
   show: {
     opacity: 1,
+    x: 0,
     y: 0,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
   },
 }
 
@@ -37,12 +38,43 @@ const gridMotion = {
 }
 
 const cellMotion = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: (index = 0) => ({
+    opacity: 0,
+    x: index % 2 === 0 ? -14 : 14,
+    y: 18,
+  }),
   show: {
     opacity: 1,
+    x: 0,
     y: 0,
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
   },
+  hover: {
+    y: -5,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+
+const iconMotion = {
+  hidden: { opacity: 0, scale: 0.84, rotate: -6 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    rotate: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.emphasized },
+  },
+  hover: {
+    scale: 1.08,
+    rotate: 3,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+
+function handleCellPointer(event) {
+  const el = event.currentTarget
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`)
+  el.style.setProperty('--my', `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`)
 }
 
 export default function MembersRequirementsCarousel({
@@ -91,9 +123,15 @@ export default function MembersRequirementsCarousel({
                 <span className="members-req__index" aria-hidden>
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <span className="members-req__icon" aria-hidden>
-                  <Icon size={16} strokeWidth={1.4} />
-                </span>
+                {reducedMotion ? (
+                  <span className="members-req__icon" aria-hidden>
+                    <Icon size={16} strokeWidth={1.4} />
+                  </span>
+                ) : (
+                  <m.span className="members-req__icon" aria-hidden variants={iconMotion}>
+                    <Icon size={16} strokeWidth={1.4} />
+                  </m.span>
+                )}
               </div>
               <div className="members-req__body">
                 <h3 className="members-req__label">{item.title}</h3>
@@ -111,7 +149,14 @@ export default function MembersRequirementsCarousel({
           }
 
           return (
-            <m.li key={item.id} className="members-req__cell" variants={cellMotion}>
+            <m.li
+              key={item.id}
+              className="members-req__cell"
+              custom={index}
+              variants={cellMotion}
+              whileHover="hover"
+              onPointerMove={handleCellPointer}
+            >
               {content}
             </m.li>
           )

@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react'
 import Button from './Button.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -77,30 +76,47 @@ export default function MembersPluHero({
         </div>
 
         <TiltCard
-          className="members-plu-hero__card-tilt"
-          innerClassName="members-plu-hero__card members-plu-hero__card-inner"
+          className="members-plu-hero__card-tilt members-cred-tilt"
+          innerClassName="members-plu-hero__card members-plu-hero__card-inner members-cred"
+          maxTilt={7}
         >
-          <aside aria-label={t('pages.members.credentialPreviewLabel')}>
-            <p className="members-plu-hero__card-label">{t('pages.members.credentialPreviewLabel')}</p>
-            <dl className="members-plu-hero__card-rows">
-              <div className="members-plu-hero__card-row">
-                <dt>{t('pages.members.credentialAthleteLabel')}</dt>
-                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</dd>
+          <aside className="members-cred__stack" aria-label={t('pages.members.credentialPreviewLabel')}>
+            <span className="members-cred__glow" aria-hidden />
+            <span className="members-cred__grain" aria-hidden />
+            <span className="members-cred__watermark" aria-hidden>
+              PLU
+            </span>
+            <span className="members-cred__stripe" aria-hidden />
+
+            <div className="members-cred__layer members-cred__layer--front">
+              <header className="members-cred__head">
+                <p className="members-cred__brand">{t('pages.members.credentialPreviewLabel')}</p>
+                <span className="members-cred__chip" aria-hidden>
+                  <span className="members-cred__chip-shine" />
+                </span>
+              </header>
+
+              <div className="members-cred__identity">
+                <p className="members-cred__code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</p>
+                <p className="members-cred__name">{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</p>
               </div>
-              <div className="members-plu-hero__card-row">
-                <dt>{t('pages.members.credentialCodeLabel')}</dt>
-                <dd className="members-plu-hero__card-code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</dd>
-              </div>
-              <div className="members-plu-hero__card-row">
-                <dt>{t('pages.members.credentialSeasonLabel')}</dt>
-                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</dd>
-              </div>
-              <div className="members-plu-hero__card-row">
-                <dt>{t('pages.members.credentialStatusLabel')}</dt>
-                <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.status}</dd>
-              </div>
-            </dl>
-            <p className="members-plu-hero__card-note">{t('pages.members.credentialPreviewNote')}</p>
+
+              <dl className="members-cred__meta">
+                <div className="members-cred__meta-item">
+                  <dt>{t('pages.members.credentialSeasonLabel')}</dt>
+                  <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</dd>
+                </div>
+                <div className="members-cred__meta-item members-cred__meta-item--status">
+                  <dt>{t('pages.members.credentialStatusLabel')}</dt>
+                  <dd>
+                    <span className="members-cred__status-dot" aria-hidden />
+                    {MEMBERSHIP_CREDENTIAL_SAMPLE.status}
+                  </dd>
+                </div>
+              </dl>
+
+              <p className="members-cred__note">{t('pages.members.credentialPreviewNote')}</p>
+            </div>
           </aside>
         </TiltCard>
       </div>

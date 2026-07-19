@@ -1,4 +1,14 @@
-import { m } from 'motion/react'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardPen,
+  Send,
+  ShieldCheck,
+} from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
   MOTION_DURATION,
@@ -8,43 +18,62 @@ import {
 } from '../../motion/tokens.ts'
 import MembersBlockHead from './MembersBlockHead.jsx'
 
-const railContainer = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: MOTION_STAGGER.step,
-      delayChildren: 0.16,
-    },
+const SCENE_INTERVAL_MS = 4800
+
+const STEP_ICONS = [ClipboardPen, Send, ShieldCheck, CheckCircle2]
+
+const headMotion = {
+  hidden: { opacity: 0, x: -10, y: 8 },
+  show: {
+    opacity: 1,
+    x: 0,
+    y: 0,
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
   },
 }
 
-const itemVariant = {
-  hidden: { opacity: 0, y: 18 },
-  visible: {
+const sceneVariants = {
+  enter: (direction) => ({
+    opacity: 0,
+    x: direction > 0 ? 28 : -28,
+    y: 10,
+    scale: 0.985,
+    filter: 'blur(4px)',
+  }),
+  center: {
     opacity: 1,
+    x: 0,
     y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
     transition: {
       duration: MOTION_DURATION.slow,
       ease: MOTION_EASE.out,
+      staggerChildren: MOTION_STAGGER.stepFast,
+      delayChildren: 0.06,
     },
   },
+  exit: (direction) => ({
+    opacity: 0,
+    x: direction > 0 ? -18 : 18,
+    y: -6,
+    scale: 0.99,
+    filter: 'blur(3px)',
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.inOut },
+  }),
 }
 
-const indexVariant = {
-  hidden: { opacity: 0, scale: 0.6 },
-  visible: {
+const sceneChild = {
+  enter: { opacity: 0, y: 14 },
+  center: {
     opacity: 1,
-    scale: 1,
-    transition: {
-      duration: MOTION_DURATION.base,
-      ease: MOTION_EASE.out,
-    },
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
   },
 }
 
 /**
- * Proceso de afiliación — timeline editorial con entrada stagger.
- * Los pasos se ven de una: sin carrusel ni autoplay.
+ * Proceso de afiliación — showcase animado (escenas + profundidad, sin 3D).
  */
 export default function MembersProcessStepper({
   steps = [],
@@ -53,77 +82,221 @@ export default function MembersProcessStepper({
   title,
   lead,
 }) {
+  const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [direction, setDirection] = useState(1)
+  const [paused, setPaused] = useState(false)
   const stepCount = Math.max(steps.length, 1)
+
+  useEffect(() => {
+    if (reducedMotion || paused || steps.length < 2) return undefined
+
+    const timer = window.setInterval(() => {
+      setDirection(1)
+      setActiveIndex((current) => (current + 1) % steps.length)
+    }, SCENE_INTERVAL_MS)
+
+    return () => window.clearInterval(timer)
+  }, [paused, reducedMotion, steps.length])
+
+  function selectStep(index) {
+    if (index === activeIndex) return
+    setDirection(index > activeIndex ? 1 : -1)
+    setActiveIndex(index)
+  }
+
+  function handleStagePointer(event) {
+    if (reducedMotion) return
+    const el = event.currentTarget
+    const rect = el.getBoundingClientRect()
+    const nx = (event.clientX - rect.left) / rect.width
+    const ny = (event.clientY - rect.top) / rect.height
+    el.style.setProperty('--px', (nx - 0.5).toFixed(3))
+    el.style.setProperty('--py', (ny - 0.5).toFixed(3))
+    el.style.setProperty('--glow-x', `${(nx * 100).toFixed(1)}%`)
+    el.style.setProperty('--glow-y', `${(ny * 100).toFixed(1)}%`)
+    el.style.setProperty('--active', '1')
+  }
+
+  function resetStagePointer(event) {
+    const el = event.currentTarget
+    el.style.setProperty('--px', '0')
+    el.style.setProperty('--py', '0')
+    el.style.setProperty('--active', '0')
+  }
+
+  function stepBy(delta) {
+    if (steps.length < 2) return
+    setDirection(delta > 0 ? 1 : -1)
+    setActiveIndex((current) => (current + delta + steps.length) % steps.length)
+  }
+
+  if (!steps.length) return null
+
+  const active = steps[activeIndex] ?? steps[0]
+  const indexLabel = String(activeIndex + 1).padStart(2, '0')
+  const totalLabel = String(stepCount).padStart(2, '0')
+  const Icon = STEP_ICONS[activeIndex % STEP_ICONS.length] ?? ClipboardPen
+
+  const head = <MembersBlockHead eyebrow={eyebrow} title={title} lead={lead} />
 
   return (
     <div className="members-plu-stepper" aria-label={ariaLabel}>
-      <MembersBlockHead eyebrow={eyebrow} title={title} lead={lead} />
-
       {reducedMotion ? (
+        head
+      ) : (
+        <m.div variants={headMotion} initial="hidden" whileInView="show" viewport={MOTION_VIEWPORT}>
+          {head}
+        </m.div>
+      )}
+
+      <div
+        className={`members-plu-stepper__showcase${paused ? ' is-paused' : ''}`}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocusCapture={() => setPaused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false)
+        }}
+      >
+        <div
+          className="members-plu-stepper__stage"
+          aria-live="polite"
+          onPointerMove={reducedMotion ? undefined : handleStagePointer}
+          onPointerLeave={reducedMotion ? undefined : resetStagePointer}
+        >
+          <span className="members-plu-stepper__glow" aria-hidden />
+          <span className="members-plu-stepper__ghost" aria-hidden>
+            {indexLabel}
+          </span>
+
+          <div className="members-plu-stepper__stage-meta">
+            <span className="members-plu-stepper__counter">
+              {reducedMotion ? (
+                <>
+                  {indexLabel}
+                  <span aria-hidden> / </span>
+                  {totalLabel}
+                </>
+              ) : (
+                <>
+                  <span className="members-plu-stepper__counter-current">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <m.span
+                        key={indexLabel}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+                      >
+                        {indexLabel}
+                      </m.span>
+                    </AnimatePresence>
+                  </span>
+                  <span aria-hidden> / </span>
+                  {totalLabel}
+                </>
+              )}
+            </span>
+
+            <div className="members-plu-stepper__progress" aria-hidden>
+              <span
+                key={activeIndex}
+                className={`members-plu-stepper__progress-bar${paused || reducedMotion ? ' is-paused' : ''}`}
+                style={{ '--scene-duration': `${SCENE_INTERVAL_MS}ms` }}
+              />
+            </div>
+
+            <div className="members-plu-stepper__controls">
+              <button
+                type="button"
+                className="members-plu-stepper__control"
+                aria-label={t('pages.members.processPrev')}
+                onClick={() => stepBy(-1)}
+              >
+                <ChevronLeft size={16} strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="members-plu-stepper__control"
+                aria-label={t('pages.members.processNext')}
+                onClick={() => stepBy(1)}
+              >
+                <ChevronRight size={16} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          </div>
+
+          {reducedMotion ? (
+            <div className="members-plu-stepper__scene">
+              <span className="members-plu-stepper__scene-icon" aria-hidden>
+                <Icon size={28} strokeWidth={1.5} />
+              </span>
+              <span className="members-plu-stepper__scene-index" aria-hidden>
+                {indexLabel}
+              </span>
+              <h3 className="members-plu-stepper__scene-title">{active.title}</h3>
+              <p className="members-plu-stepper__scene-text">{active.text}</p>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <m.div
+                key={active.step ?? indexLabel}
+                className="members-plu-stepper__scene"
+                custom={direction}
+                variants={sceneVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <m.span className="members-plu-stepper__scene-icon" aria-hidden variants={sceneChild}>
+                  <Icon size={28} strokeWidth={1.5} />
+                </m.span>
+                <m.span className="members-plu-stepper__scene-index" aria-hidden variants={sceneChild}>
+                  {indexLabel}
+                </m.span>
+                <m.h3 className="members-plu-stepper__scene-title" variants={sceneChild}>
+                  {active.title}
+                </m.h3>
+                <m.p className="members-plu-stepper__scene-text" variants={sceneChild}>
+                  {active.text}
+                </m.p>
+              </m.div>
+            </AnimatePresence>
+          )}
+        </div>
+
         <ol className="members-plu-stepper__rail" style={{ '--step-count': String(stepCount) }}>
           {steps.map((step, index) => {
             const num = String(index + 1).padStart(2, '0')
+            const StepIcon = STEP_ICONS[index % STEP_ICONS.length] ?? ClipboardPen
+            const isActive = index === activeIndex
+
             return (
-              <li key={step.step ?? num} className="members-plu-stepper__item">
-                <span className="members-plu-stepper__index" aria-hidden>
-                  {num}
-                </span>
-                <div className="members-plu-stepper__copy">
-                  <h3 className="members-plu-stepper__item-title">{step.title}</h3>
-                  <p className="members-plu-stepper__item-text">{step.text}</p>
-                </div>
+              <li key={step.step ?? num}>
+                <button
+                  type="button"
+                  className={`members-plu-stepper__item${isActive ? ' is-active' : ''}`}
+                  aria-current={isActive ? 'step' : undefined}
+                  onClick={() => selectStep(index)}
+                >
+                  <span className="members-plu-stepper__item-mark" aria-hidden>
+                    <span className="members-plu-stepper__index">{num}</span>
+                    <span className="members-plu-stepper__item-icon">
+                      <StepIcon size={14} strokeWidth={1.6} />
+                    </span>
+                  </span>
+                  <span className="members-plu-stepper__copy">
+                    <span className="members-plu-stepper__item-title">{step.title}</span>
+                    <span className="members-plu-stepper__item-text">{step.text}</span>
+                  </span>
+                </button>
               </li>
             )
           })}
         </ol>
-      ) : (
-        <div className="members-plu-stepper__track">
-          <m.span
-            className="members-plu-stepper__line"
-            aria-hidden
-            initial={{ scaleX: 0, opacity: 0 }}
-            whileInView={{ scaleX: 1, opacity: 1 }}
-            viewport={{ once: MOTION_VIEWPORT.once, amount: 0.35 }}
-            transition={{
-              duration: MOTION_DURATION.cinematic,
-              ease: MOTION_EASE.emphasized,
-            }}
-            style={{ transformOrigin: 'left center' }}
-          />
-          <m.ol
-            className="members-plu-stepper__rail members-plu-stepper__rail--motion"
-            style={{ '--step-count': String(stepCount) }}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: MOTION_VIEWPORT.once, amount: 0.28 }}
-            variants={railContainer}
-          >
-            {steps.map((step, index) => {
-              const num = String(index + 1).padStart(2, '0')
-              return (
-                <m.li
-                  key={step.step ?? num}
-                  className="members-plu-stepper__item"
-                  variants={itemVariant}
-                >
-                  <m.span
-                    className="members-plu-stepper__index"
-                    aria-hidden
-                    variants={indexVariant}
-                  >
-                    {num}
-                  </m.span>
-                  <div className="members-plu-stepper__copy">
-                    <h3 className="members-plu-stepper__item-title">{step.title}</h3>
-                    <p className="members-plu-stepper__item-text">{step.text}</p>
-                  </div>
-                </m.li>
-              )
-            })}
-          </m.ol>
-        </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -110,9 +110,9 @@ export default function PitbullSpotlight({
             <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
               <figure className="pitbull-spotlight__home-hero-frame">
                 <picture>
-                  {/* Notebook apilado: foto landscape del meet (las medallas son portrait). */}
+                  {/* Notebook: foto landscape; desktop amplio usa el retrato de medallas. */}
                   <source
-                    media="(min-width: 960px) and (max-width: 1399px)"
+                    media="(min-width: 960px) and (max-width: 1199px)"
                     srcSet={photoLift}
                   />
                   <img

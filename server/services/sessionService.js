@@ -67,7 +67,7 @@ export function serializeUser(user) {
     role: user.role,
     status: user.status,
     eventId: user.eventId ?? null,
-    eventSlug: user.event?.slug ?? null,
+    eventSlug: user.eventSlug ?? null,
     lastLoginAt: user.lastLoginAt ?? null,
   }
 }
@@ -77,7 +77,7 @@ export async function readSession({ prisma, token, now = new Date() }) {
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { user: { include: { profile: true, event: true } } },
+    include: { user: { include: { profile: true } } },
   })
 
   if (

@@ -11,6 +11,11 @@ import {
   registrationCheckinStatus,
   resolveCredentialScan,
 } from '../services/checkinScanService.js'
+import {
+  buildCheckinRows,
+  filterCheckinRows,
+  summarizeCheckinRows,
+} from '../services/checkinWorkspaceService.js'
 
 const MAX_SCAN_HISTORY = 15
 const FEEDBACK_STORAGE_KEY = 'plu-checkin-feedback'
@@ -37,6 +42,7 @@ export const STATUS_FILTERS = [
 
 export const SCAN_VERDICT_META = {
   ready: { Icon: CheckCircle2, tone: 'success' },
+  checked_in: { Icon: CheckCircle2, tone: 'success' },
   already_used: { Icon: AlertTriangle, tone: 'warning' },
   not_ready: { Icon: HelpCircle, tone: 'warning' },
   no_registration: { Icon: HelpCircle, tone: 'warning' },
@@ -98,48 +104,6 @@ function buildOfflineScanResult(found) {
       status,
     },
   }
-}
-
-function matchesCheckinStatus(row, filter) {
-  if (filter === 'all') return true
-  if (filter === 'done') return row.status === 'usada'
-  if (filter === 'ready') return row.status === 'pagada'
-  return row.status !== 'usada' && row.status !== 'pagada'
-}
-
-function buildRows(athletes, registrations, tickets) {
-  const athleteRows = registrations
-    .filter((registration) => registration.status !== 'cancelada')
-    .map((registration) => {
-      const athlete = athletes.find((item) => item.id === registration.athleteId)
-      return {
-        id: `reg-${registration.id}`,
-        registrationId: registration.id,
-        type: 'atleta',
-        name: athlete?.fullName,
-        document: athlete?.documentId,
-        meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-        day: 'both',
-        status: registrationCheckinStatus(registration),
-        checkedInAt: registration.checkedInAt,
-      }
-    })
-
-  const ticketRows = tickets.map((ticket) => ({
-    id: `tkt-${ticket.id}`,
-    ticketCode: ticket.ticketCode,
-    qrToken: ticket.qrToken,
-    type: 'espectador',
-    name: ticket.attendeeName,
-    document: ticket.attendeeDni,
-    meta: ticket.ticketCode,
-    day: ticket.dayPass,
-    status: ticket.status,
-    checkedInAt: ticket.checkedInAt,
-    addons: ticket.addons ?? [],
-  }))
-
-  return [...athleteRows, ...ticketRows]
 }
 
 function readFeedbackPrefs() {
@@ -218,7 +182,7 @@ export function useCheckInWorkspace({
     setScanHistory((current) =>
       current.map((item) =>
         item.id === historyId
-          ? { ...item, checkedIn: true, outcome: 'already_used', tone: getFeedbackTone('already_used') }
+          ? { ...item, checkedIn: true, outcome: 'checked_in', tone: getFeedbackTone('checkin_ok') }
           : item,
       ),
     )
@@ -229,18 +193,11 @@ export function useCheckInWorkspace({
   }, [eventSlug, onRefreshTickets])
 
   const allRows = useMemo(
-    () => buildRows(athletes, registrations, tickets),
-    [athletes, registrations, tickets],
+    () => buildCheckinRows({ athletes, registrations, tickets, eventSlug }),
+    [athletes, eventSlug, registrations, tickets],
   )
 
-  const statusCounts = useMemo(
-    () => ({
-      ready: allRows.filter((row) => row.status === 'pagada').length,
-      done: allRows.filter((row) => row.status === 'usada').length,
-      pending: allRows.filter((row) => row.status !== 'usada' && row.status !== 'pagada').length,
-    }),
-    [allRows],
-  )
+  const statusCounts = useMemo(() => summarizeCheckinRows(allRows), [allRows])
 
   const addonReport = useMemo(
     () => buildEventTicketAddonReport(tickets, eventSlug),
@@ -249,37 +206,30 @@ export function useCheckInWorkspace({
 
   const typeOptions = useMemo(() => TYPE_FILTERS.map(([value, key]) => [value, t(key)]), [t])
   const dayOptions = useMemo(() => DAY_FILTERS.map(([value, key]) => [value, t(key)]), [t])
+  const filteredScopeCounts = useMemo(
+    () => summarizeCheckinRows(filterCheckinRows(allRows, { type, day })),
+    [allRows, day, type],
+  )
   const statusOptions = useMemo(
     () =>
       STATUS_FILTERS.map(([value, key]) => {
         const count =
           value === 'all'
-            ? allRows.length
+            ? filteredScopeCounts.total
             : value === 'ready'
-              ? statusCounts.ready
+              ? filteredScopeCounts.ready
               : value === 'done'
-                ? statusCounts.done
-                : statusCounts.pending
+                ? filteredScopeCounts.done
+                : filteredScopeCounts.pending
         return [value, t(key), count]
       }),
-    [allRows.length, statusCounts, t],
+    [filteredScopeCounts, t],
   )
 
-  const rows = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    return allRows.filter((row) => {
-      const typeMatch = type === 'all' || row.type === type
-      const dayMatch = day === 'all' || row.day === day
-      const statusMatch = matchesCheckinStatus(row, checkinStatus)
-      const queryMatch =
-        !normalizedQuery ||
-        row.name?.toLowerCase().includes(normalizedQuery) ||
-        row.document?.includes(normalizedQuery) ||
-        row.meta?.toLowerCase().includes(normalizedQuery)
-      return typeMatch && dayMatch && statusMatch && queryMatch
-    })
-  }, [allRows, query, type, day, checkinStatus])
+  const rows = useMemo(
+    () => filterCheckinRows(allRows, { query, type, day, status: checkinStatus }),
+    [allRows, checkinStatus, day, query, type],
+  )
 
   const handleScan = useCallback(
     async (raw) => {
@@ -348,7 +298,7 @@ export function useCheckInWorkspace({
         if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
         setScanResult((current) =>
           current?.row?.id === row.id
-            ? { ...current, outcome: 'already_used', canCheckIn: false, status: 'usada' }
+            ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
             : current,
         )
       }
@@ -363,7 +313,7 @@ export function useCheckInWorkspace({
       if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
       setScanResult((current) =>
         current?.row?.id === row.id
-          ? { ...current, outcome: 'already_used', canCheckIn: false, status: 'usada' }
+          ? { ...current, outcome: 'checked_in', canCheckIn: false, status: 'usada' }
           : current,
       )
     }
@@ -403,7 +353,7 @@ export function useCheckInWorkspace({
         const nextTicket = result.ticket ?? scanResult.ticket
         setScanResult({
           ...scanResult,
-          outcome: 'already_used',
+          outcome: result.outcome === 'ok' ? 'checked_in' : 'already_used',
           canCheckIn: false,
           status: 'usada',
           ticket: nextTicket,
@@ -418,7 +368,7 @@ export function useCheckInWorkspace({
       if (result?.outcome === 'ok') {
         playCheckinFeedback('checkin_ok', feedbackPrefs)
         if (activeHistoryId) markHistoryCheckedIn(activeHistoryId)
-        setScanResult({ ...scanResult, outcome: 'already_used', canCheckIn: false, status: 'usada' })
+        setScanResult({ ...scanResult, outcome: 'checked_in', canCheckIn: false, status: 'usada' })
       }
     }
   }

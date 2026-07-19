@@ -3,7 +3,7 @@ import { ExternalLink } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -111,16 +111,17 @@ export default function TicketOrdersSection({
       ) : loadError ? (
         <ErrorState message={loadError} onRetry={onRefresh} retryLabel={t('common.retry')} />
       ) : (
-      <DataTable
+      <AdminDataTable
         columns={[
-          { key: 'reference', label: t('admin.columns.reference'), sortable: true },
-          { key: 'event', label: t('admin.columns.event'), sortable: true },
-          { key: 'attendees', label: t('admin.columns.attendee'), sortable: true },
-          { key: 'ticketCount', label: t('admin.ticketOrders.tickets'), sortable: true },
-          { key: 'amount', label: t('admin.columns.amount'), sortable: true },
+          { key: 'reference', label: t('admin.columns.reference'), mobile: 'primary', sortable: true },
+          { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
+          { key: 'attendees', label: t('admin.columns.attendee'), mobile: 'default', sortable: true },
+          { key: 'ticketCount', label: t('admin.ticketOrders.tickets'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true },
+          { key: 'amount', label: t('admin.columns.amount'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true },
           {
             key: 'proofStatus',
             label: t('admin.ticketOrders.proof'),
+            mobile: 'badge',
             sortable: true,
             render: (row) => (
               <span className={row.paymentProofPath ? 'admin-proof-pill admin-proof-pill--ok' : 'admin-proof-pill'}>
@@ -128,16 +129,18 @@ export default function TicketOrdersSection({
               </span>
             ),
           },
-          { key: 'proofUploadedAt', label: t('admin.ticketOrders.uploadedAt'), sortable: true },
+          { key: 'proofUploadedAt', label: t('admin.ticketOrders.uploadedAt'), mobile: 'hidden', sortable: true },
           {
             key: 'status',
             label: t('admin.columns.status'),
+            mobile: 'badge',
             sortable: true,
             render: (row) => <StatusBadge value={row.status} />,
           },
           {
             key: 'actions',
             label: t('admin.columns.action'),
+            mobile: 'action',
             render: (row) => (
               <AdminTableActions>
                 {row.paymentProofPath ? (

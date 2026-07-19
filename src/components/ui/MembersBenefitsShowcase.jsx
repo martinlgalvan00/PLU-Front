@@ -18,11 +18,12 @@ const BENEFIT_ICONS = {
 }
 
 const headMotion = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, x: -12, y: 10 },
   show: {
     opacity: 1,
+    x: 0,
     y: 0,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
   },
 }
 
@@ -37,21 +38,43 @@ const gridMotion = {
 }
 
 const cellMotion = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: (index = 0) => ({
+    opacity: 0,
+    x: index % 2 === 0 ? -16 : 16,
+    y: 24,
+  }),
   show: {
     opacity: 1,
+    x: 0,
     y: 0,
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
+  hover: {
+    y: -6,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
   },
 }
 
 const iconMotion = {
-  hidden: { opacity: 0, scale: 0.88 },
+  hidden: { opacity: 0, rotate: -8, scale: 0.82 },
   show: {
     opacity: 1,
+    rotate: 0,
     scale: 1,
     transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.emphasized },
   },
+  hover: {
+    rotate: 3,
+    scale: 1.08,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+
+function handleCellPointer(event) {
+  const el = event.currentTarget
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`)
+  el.style.setProperty('--my', `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`)
 }
 
 export default function MembersBenefitsShowcase({ items = [], title, lead, ariaLabel }) {
@@ -91,19 +114,19 @@ export default function MembersBenefitsShowcase({ items = [], title, lead, ariaL
 
           const content = (
             <>
+              <span className="members-benefits__ghost" aria-hidden>
+                {String(index + 1).padStart(2, '0')}
+              </span>
               <div className="members-benefits__mark">
                 {reducedMotion ? (
                   <span className="members-benefits__icon" aria-hidden>
-                    <Icon size={18} strokeWidth={1.5} />
+                    <Icon size={19} strokeWidth={1.5} />
                   </span>
                 ) : (
                   <m.span className="members-benefits__icon" aria-hidden variants={iconMotion}>
-                    <Icon size={18} strokeWidth={1.5} />
+                    <Icon size={19} strokeWidth={1.5} />
                   </m.span>
                 )}
-                <span className="members-benefits__index" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
               </div>
               <div className="members-benefits__body">
                 <h3 className="members-benefits__label">{item.title}</h3>
@@ -124,9 +147,10 @@ export default function MembersBenefitsShowcase({ items = [], title, lead, ariaL
             <m.li
               key={item.id}
               className="members-benefits__cell"
+              custom={index}
               variants={cellMotion}
-              whileHover={{ y: -3 }}
-              transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+              whileHover="hover"
+              onPointerMove={handleCellPointer}
             >
               {content}
             </m.li>

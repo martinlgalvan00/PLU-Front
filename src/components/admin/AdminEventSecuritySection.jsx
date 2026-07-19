@@ -1,55 +1,32 @@
-import { useEffect, useState } from 'react'
-import { Check, Copy, Mail, QrCode, Shield, ShieldOff, UserPlus, Users } from 'lucide-react'
-import Button from '../ui/Button.jsx'
+import { useEffect, useRef, useState } from 'react'
+import {
+  ExternalLink,
+  ListChecks,
+  QrCode,
+  ScanLine,
+  Send,
+  Shield,
+  ShieldOff,
+  UserPlus,
+} from 'lucide-react'
 import Pill from '../ui/Pill.jsx'
-import { Field } from '../ui/FormFields.jsx'
 import { AdminIdentityCell } from './AdminTableCells.jsx'
+import AdminApiConnectionNotice from './AdminApiConnectionNotice.jsx'
 import SecurityCredentialModal from './SecurityCredentialModal.jsx'
+import SecurityTeamBuilder from './SecurityTeamBuilder.jsx'
+import SecurityTeamDelivery from './SecurityTeamDelivery.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
-
-const EMPTY_DRAFT = { name: '', email: '' }
-const EMAIL_RE = /^\S+@\S+\.\S+$/
-
-/**
- * Parsea el textarea de alta masiva. Cada línea es "Nombre, email" o solo
- * "email" (en cuyo caso el nombre se deriva del local-part). Deduplica por
- * email quedándose con la primera aparición y separa las líneas inválidas.
- */
-function parseBulkLines(raw) {
-  const seen = new Set()
-  const entries = []
-  const invalid = []
-
-  raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .forEach((line) => {
-      const hasComma = line.includes(',')
-      const email = (hasComma ? line.slice(line.indexOf(',') + 1) : line).trim().toLowerCase()
-      if (!EMAIL_RE.test(email)) {
-        invalid.push(line)
-        return
-      }
-      if (seen.has(email)) return
-      seen.add(email)
-
-      let name = hasComma ? line.slice(0, line.indexOf(',')).trim() : ''
-      if (name.length < 3) name = email.split('@')[0].replace(/[._-]+/g, ' ').trim()
-      if (name.length < 3) name = email
-
-      entries.push({ name, email })
-    })
-
-  return { entries, invalid }
-}
+import {
+  SECURITY_TEAM_MAX,
+  createSecurityTeamMember,
+  parseSecurityTeamImport,
+  validateSecurityTeamMembers,
+} from '../../services/securityTeamService.js'
 
 /**
- * Cuentas seguridad_plu_arg de este evento puntual: quién tiene acceso a
- * /evento/:slug/seguridad, con alta (individual o masiva), envío de
- * credenciales por email y baja (individual o total). Separado a propósito
- * de la sección "Usuarios" (todos los roles) y de "Check-in" (el scanner).
+ * Equipo seguridad_plu_arg del evento. El alta individual y masiva comparten
+ * un único flujo: cargar personas, crear cuentas y entregar links personales.
  */
 export default function AdminEventSecuritySection({
   canManageUsers,
@@ -63,24 +40,20 @@ export default function AdminEventSecuritySection({
   onUpdateSecurityUserStatus,
 }) {
   const { t } = useI18n()
+  const memberIdRef = useRef(1)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-  const [mode, setMode] = useState('single')
-  const [sendEmail, setSendEmail] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const [draft, setDraft] = useState(EMPTY_DRAFT)
-  const [formError, setFormError] = useState('')
-  const [tempPassword, setTempPassword] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [members, setMembers] = useState(() => [createSecurityTeamMember('security-member-1')])
+  const [memberErrors, setMemberErrors] = useState({})
+  const [sendEmail, setSendEmail] = useState(true)
+  const [teamSubmitting, setTeamSubmitting] = useState(false)
+  const [teamSubmitError, setTeamSubmitError] = useState(null)
+  const [teamResult, setTeamResult] = useState(null)
 
-  const [bulkText, setBulkText] = useState('')
-  const [bulkError, setBulkError] = useState('')
-  const [bulkSubmitting, setBulkSubmitting] = useState(false)
-  const [bulkResult, setBulkResult] = useState(null)
-  const [bulkCopied, setBulkCopied] = useState(false)
-
-  const [copied, setCopied] = useState(false)
+  const [operationError, setOperationError] = useState('')
   const [pendingStatusId, setPendingStatusId] = useState(null)
   const [confirmingDeactivateAll, setConfirmingDeactivateAll] = useState(false)
   const [deactivatingAll, setDeactivatingAll] = useState(false)
@@ -90,18 +63,23 @@ export default function AdminEventSecuritySection({
   const gateUrl = gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
   const activeCount = users.filter((user) => user.status === 'active').length
 
+  function nextMember(values = {}) {
+    memberIdRef.current += 1
+    return createSecurityTeamMember(`security-member-${memberIdRef.current}`, values)
+  }
+
   useEffect(() => {
     let active = true
     if (!eventId) return undefined
 
     setLoading(true)
-    setLoadError('')
+    setLoadError(null)
     onListSecurityUsers(eventId)
       .then((rows) => {
         if (active) setUsers(rows)
       })
       .catch((error) => {
-        if (active) setLoadError(error?.message ?? t('admin.eventEditor.security.errorLoad'))
+        if (active) setLoadError(error)
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -110,96 +88,137 @@ export default function AdminEventSecuritySection({
     return () => {
       active = false
     }
-  }, [eventId, onListSecurityUsers, t])
+  }, [eventId, onListSecurityUsers, reloadKey])
 
-  async function handleCopyLink() {
-    try {
-      await navigator.clipboard.writeText(gateUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Clipboard API puede fallar sin permisos/HTTPS -- no es crítico, el
-      // link ya queda visible en pantalla para copiar a mano.
-    }
+  function handleMemberChange(id, field, value) {
+    setMembers((current) => current.map((member) => (member.id === id ? { ...member, [field]: value } : member)))
+    setMemberErrors((current) => {
+      if (!current[id]?.[field]) return current
+      const nextRow = { ...current[id] }
+      delete nextRow[field]
+      const next = { ...current }
+      if (Object.keys(nextRow).length) next[id] = nextRow
+      else delete next[id]
+      return next
+    })
   }
 
-  async function handleAddUser(event) {
-    event.preventDefault()
-    if (draft.name.trim().length < 3) {
-      setFormError(t('admin.users.errorName'))
-      return
-    }
-    if (!EMAIL_RE.test(draft.email.trim())) {
-      setFormError(t('admin.users.errorEmail'))
-      return
-    }
-
-    setFormError('')
-    setTempPassword(null)
-    setIsSubmitting(true)
-    try {
-      const { user, tempPassword: password, emailed } = await onCreateSecurityUser({ ...draft, eventId, sendEmail })
-      setUsers((current) => [user, ...current])
-      setTempPassword({ email: user.email, password, emailed })
-      setDraft(EMPTY_DRAFT)
-    } catch (error) {
-      setFormError(error?.status === 409 ? t('admin.users.errorEmailTaken') : t('admin.users.errorCreate'))
-    } finally {
-      setIsSubmitting(false)
-    }
+  function handleAddMember() {
+    if (members.length >= SECURITY_TEAM_MAX) return
+    setMembers((current) => [...current, nextMember()])
   }
 
-  async function handleAddBulk(event) {
-    event.preventDefault()
-    const { entries, invalid } = parseBulkLines(bulkText)
-    if (invalid.length) {
-      setBulkError(t('admin.eventEditor.security.bulkInvalidLines', { lines: invalid.join(', ') }))
-      return
-    }
-    if (entries.length === 0) {
-      setBulkError(t('admin.eventEditor.security.bulkEmpty'))
-      return
-    }
+  function handleRemoveMember(id) {
+    setMembers((current) => current.length === 1 ? current : current.filter((member) => member.id !== id))
+    setMemberErrors((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+  }
 
-    setBulkError('')
-    setBulkResult(null)
-    setBulkSubmitting(true)
-    try {
-      const { created, skipped } = await onCreateSecurityUsersBulk({ eventId, users: entries, sendEmail })
-      if (created.length) {
-        setUsers((current) => [...created.map((item) => item.user), ...current])
+  function handleImportMembers(raw) {
+    const parsed = parseSecurityTeamImport(raw)
+    if (parsed.invalid.length) {
+      return {
+        ok: false,
+        message: t('admin.eventEditor.security.importInvalid', {
+          lines: parsed.invalid.map((item) => item.line).join(', '),
+        }),
       }
-      setBulkResult({ created, skipped })
-      setBulkText('')
-    } catch (error) {
-      setBulkError(error?.body?.error ?? t('admin.users.errorCreate'))
-    } finally {
-      setBulkSubmitting(false)
     }
+    if (!parsed.members.length) {
+      return { ok: false, message: t('admin.eventEditor.security.bulkEmpty') }
+    }
+
+    const currentHasContent = members.some((member) => member.name.trim() || member.email.trim())
+    const available = SECURITY_TEAM_MAX - (currentHasContent ? members.length : 0)
+    if (parsed.members.length > available) {
+      return { ok: false, message: t('admin.eventEditor.security.importLimit', { max: SECURITY_TEAM_MAX }) }
+    }
+
+    const imported = parsed.members.map((member) => nextMember(member))
+    setMembers((current) => currentHasContent ? [...current, ...imported] : imported)
+    setMemberErrors({})
+    return { ok: true }
   }
 
-  async function handleCopyBulkCredentials() {
-    if (!bulkResult?.created.length) return
-    const text = bulkResult.created
-      .map((item) => `${item.user.name} <${item.user.email}>: ${item.tempPassword}`)
-      .join('\n')
+  async function createPersonalAccess(created) {
+    if (!onCreateSecurityAccessLink || created.every((item) => item.accessUrl)) return created
+
+    const settled = await Promise.allSettled(
+      created.map((item) => item.accessUrl
+        ? Promise.resolve({
+            url: item.accessUrl,
+            expiresAt: item.expiresAt,
+            emailed: item.emailed,
+          })
+        : onCreateSecurityAccessLink(item.user.id, sendEmail)),
+    )
+
+    return created.map((item, index) => {
+      const credential = settled[index]
+      if (credential.status !== 'fulfilled') return { ...item, accessError: true }
+      return {
+        ...item,
+        accessUrl: credential.value.url,
+        expiresAt: credential.value.expiresAt,
+        emailed: credential.value.emailed,
+      }
+    })
+  }
+
+  async function handleCreateTeam() {
+    const validation = validateSecurityTeamMembers(members)
+    setMemberErrors(validation.errors)
+    if (!validation.isValid) return
+
+    setTeamSubmitting(true)
+    setTeamSubmitError(null)
+    setTeamResult(null)
+
     try {
-      await navigator.clipboard.writeText(text)
-      setBulkCopied(true)
-      setTimeout(() => setBulkCopied(false), 2000)
-    } catch {
-      // Idem handleCopyLink: sin clipboard las credenciales igual están en pantalla.
+      let result
+      if (validation.members.length === 1) {
+        const created = await onCreateSecurityUser({
+          ...validation.members[0],
+          eventId,
+          sendEmail,
+        })
+        result = { created: [created], skipped: [] }
+      } else {
+        result = await onCreateSecurityUsersBulk({
+          eventId,
+          users: validation.members,
+          sendEmail,
+        })
+      }
+
+      const createdWithAccess = await createPersonalAccess(result.created)
+      const createdUsers = createdWithAccess.map((item) => item.user)
+      setUsers((current) => [
+        ...createdUsers,
+        ...current.filter((user) => !createdUsers.some((created) => created.id === user.id)),
+      ])
+      setTeamResult({ created: createdWithAccess, skipped: result.skipped })
+      setMembers([nextMember()])
+      setMemberErrors({})
+    } catch (error) {
+      setTeamSubmitError(error)
+    } finally {
+      setTeamSubmitting(false)
     }
   }
 
   async function handleToggleStatus(user) {
     const nextStatus = user.status === 'active' ? 'disabled' : 'active'
     setPendingStatusId(user.id)
+    setOperationError('')
     try {
       const updated = await onUpdateSecurityUserStatus(user.id, nextStatus)
       setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)))
     } catch {
-      setLoadError(t('admin.eventEditor.security.errorStatus'))
+      setOperationError(t('admin.eventEditor.security.errorStatus'))
     } finally {
       setPendingStatusId(null)
     }
@@ -207,12 +226,13 @@ export default function AdminEventSecuritySection({
 
   async function handleDeactivateAll() {
     setDeactivatingAll(true)
+    setOperationError('')
     try {
       await onDeactivateAllSecurityUsers(eventId)
       setUsers((current) => current.map((user) => ({ ...user, status: 'disabled' })))
       setConfirmingDeactivateAll(false)
     } catch {
-      setLoadError(t('admin.eventEditor.security.errorStatus'))
+      setOperationError(t('admin.eventEditor.security.errorStatus'))
     } finally {
       setDeactivatingAll(false)
     }
@@ -226,196 +246,102 @@ export default function AdminEventSecuritySection({
       </legend>
       <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.security.lead')}</p>
 
+      <ol className="admin-event-security__flow" aria-label={t('admin.eventEditor.security.flowLabel')}>
+        <li className={activeCount > 0 ? 'is-complete' : 'is-current'}>
+          <UserPlus size={14} aria-hidden />
+          <span><strong>{activeCount > 0 ? '✓' : '1'}</strong>{t('admin.eventEditor.security.flowCreate')}</span>
+        </li>
+        <li className={teamResult?.created.length ? 'is-complete' : activeCount > 0 ? 'is-current' : ''}>
+          <Send size={14} aria-hidden />
+          <span><strong>{teamResult?.created.length ? '✓' : '2'}</strong>{t('admin.eventEditor.security.flowShare')}</span>
+        </li>
+        <li>
+          <ScanLine size={14} aria-hidden />
+          <span><strong>3</strong>{t('admin.eventEditor.security.flowOperate')}</span>
+        </li>
+      </ol>
+
       {gateUrl && (
-        <div className="admin-event-security__link">
-          <code>{gateUrl}</code>
-          <button
-            type="button"
-            className={`admin-event-security__copy${copied ? ' admin-event-security__copy--done' : ''}`}
-            onClick={handleCopyLink}
-          >
-            {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-            {copied ? t('admin.eventEditor.security.copied') : t('admin.eventEditor.security.copyLink')}
-          </button>
-        </div>
-      )}
-
-      {canManageUsers && (
-        <>
-          <div className="admin-event-security__modes" role="tablist" aria-label={t('admin.eventEditor.security.addUser')}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'single'}
-              className={`admin-event-security__mode${mode === 'single' ? ' is-active' : ''}`}
-              onClick={() => setMode('single')}
-            >
-              <UserPlus size={14} aria-hidden />
-              {t('admin.eventEditor.security.modeSingle')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'bulk'}
-              className={`admin-event-security__mode${mode === 'bulk' ? ' is-active' : ''}`}
-              onClick={() => setMode('bulk')}
-            >
-              <Users size={14} aria-hidden />
-              {t('admin.eventEditor.security.modeBulk')}
-            </button>
-          </div>
-
-          <label className="admin-event-security__send-email">
-            <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
-            <Mail size={13} aria-hidden />
-            {t('admin.eventEditor.security.sendEmail')}
-          </label>
-
-          {mode === 'single' ? (
-            <form className="admin-users__add-form admin-users__add-form--compact" onSubmit={handleAddUser}>
-              <div className="admin-users__add-form-fields">
-                <Field
-                  label={t('admin.users.name')}
-                  name="name"
-                  value={draft.name}
-                  onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-                  placeholder={t('admin.users.namePlaceholder')}
-                  autoComplete="name"
-                />
-                <Field
-                  label={t('admin.users.email')}
-                  name="email"
-                  type="email"
-                  value={draft.email}
-                  onChange={(e) => setDraft((current) => ({ ...current, email: e.target.value }))}
-                  placeholder="nombre@pluarg.com.ar"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="admin-users__add-form-actions">
-                <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
-                  <UserPlus size={14} aria-hidden />
-                  {isSubmitting ? t('admin.users.creating') : t('admin.eventEditor.security.addUser')}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <form className="admin-users__add-form admin-users__add-form--compact" onSubmit={handleAddBulk}>
-              <label className="admin-event-security__bulk-field">
-                <span>{t('admin.eventEditor.security.bulkLabel')}</span>
-                <textarea
-                  className="admin-event-security__bulk-input"
-                  rows={5}
-                  value={bulkText}
-                  onChange={(e) => setBulkText(e.target.value)}
-                  placeholder={t('admin.eventEditor.security.bulkPlaceholder')}
-                />
-                <small className="admin-event-security__bulk-hint">{t('admin.eventEditor.security.bulkHint')}</small>
-              </label>
-              <div className="admin-users__add-form-actions">
-                <Button type="submit" className="btn--small admin-users__add-btn" disabled={bulkSubmitting}>
-                  <Users size={14} aria-hidden />
-                  {bulkSubmitting ? t('admin.users.creating') : t('admin.eventEditor.security.bulkSubmit')}
-                </Button>
-              </div>
-            </form>
-          )}
-        </>
-      )}
-
-      {formError && (
-        <p className="admin-users__form-error" role="alert">
-          {formError}
-        </p>
-      )}
-      {bulkError && (
-        <p className="admin-users__form-error" role="alert">
-          {bulkError}
-        </p>
-      )}
-
-      {tempPassword && (
-        <div className="admin-users__temp-password" role="status">
-          <p className="admin-users__temp-password-title">{t('admin.users.tempPasswordTitle')}</p>
-          <dl className="admin-users__temp-password-meta">
+        <div className="admin-event-security__command">
+          <div className="admin-event-security__command-copy">
+            <span className="admin-event-security__command-icon" aria-hidden><ScanLine size={17} /></span>
             <div>
-              <dt>{t('admin.users.email')}</dt>
-              <dd>{tempPassword.email}</dd>
+              <strong>{t('admin.eventEditor.security.commandTitle')}</strong>
+              <span>{t('admin.eventEditor.security.commandLead')}</span>
             </div>
-            <div>
-              <dt>{t('admin.users.tempPasswordLabel')}</dt>
-              <dd>
-                <code>{tempPassword.password}</code>
-              </dd>
-            </div>
-          </dl>
-          {tempPassword.emailed && (
-            <p className="admin-event-security__emailed">
-              <Mail size={12} aria-hidden />
-              {t('admin.eventEditor.security.emailSent')}
-            </p>
-          )}
-          <p className="admin-users__temp-password-note">{t('admin.users.tempPasswordWarn')}</p>
-        </div>
-      )}
-
-      {bulkResult && (
-        <div className="admin-event-security__bulk-result" role="status">
-          <div className="admin-event-security__bulk-result-head">
-            <p className="admin-users__temp-password-title">
-              {t('admin.eventEditor.security.bulkResultTitle', {
-                created: bulkResult.created.length,
-                skipped: bulkResult.skipped.length,
-              })}
-            </p>
-            {bulkResult.created.length > 0 && (
-              <button
-                type="button"
-                className={`admin-event-security__copy${bulkCopied ? ' admin-event-security__copy--done' : ''}`}
-                onClick={handleCopyBulkCredentials}
-              >
-                {bulkCopied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-                {bulkCopied ? t('admin.eventEditor.security.copied') : t('admin.eventEditor.security.bulkCopyAll')}
-              </button>
-            )}
           </div>
-
-          {bulkResult.created.length > 0 && (
-            <ul className="admin-event-security__bulk-created">
-              {bulkResult.created.map((item) => (
-                <li key={item.user.id}>
-                  <span className="admin-event-security__bulk-created-who">
-                    {item.user.name} · {item.user.email}
-                  </span>
-                  <code>{item.tempPassword}</code>
-                  {item.emailed && <Mail size={12} aria-hidden className="admin-event-security__emailed-icon" />}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {bulkResult.skipped.length > 0 && (
-            <ul className="admin-event-security__bulk-skipped">
-              {bulkResult.skipped.map((item) => (
-                <li key={item.email}>
-                  {item.email} — {t(`admin.eventEditor.security.skipReason.${item.reason}`)}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <p className="admin-users__temp-password-note">{t('admin.users.tempPasswordWarn')}</p>
+          <div className="admin-event-security__command-actions">
+            <a className="admin-event-security__launch" href={gateUrl} target="_blank" rel="noreferrer">
+              <ExternalLink size={13} aria-hidden />
+              {t('admin.eventEditor.security.previewControl')}
+            </a>
+          </div>
         </div>
       )}
 
-      {loadError && <p className="admin-users__form-error">{loadError}</p>}
+      {loadError && (
+        <AdminApiConnectionNotice
+          error={loadError}
+          retrying={loading}
+          onRetry={() => setReloadKey((current) => current + 1)}
+        />
+      )}
+
+      {canManageUsers && !loadError && (
+        teamResult ? (
+          <SecurityTeamDelivery
+            result={teamResult}
+            onOpenCredential={setCredentialUser}
+            onClose={() => setTeamResult(null)}
+          />
+        ) : (
+          <SecurityTeamBuilder
+            members={members}
+            errors={memberErrors}
+            sendEmail={sendEmail}
+            submitting={teamSubmitting}
+            onAdd={handleAddMember}
+            onChange={handleMemberChange}
+            onImport={handleImportMembers}
+            onRemove={handleRemoveMember}
+            onSendEmailChange={setSendEmail}
+            onSubmit={handleCreateTeam}
+          />
+        )
+      )}
+
+      {teamSubmitError && (
+        teamSubmitError.status === 0 ? (
+          <AdminApiConnectionNotice
+            error={teamSubmitError}
+            retrying={teamSubmitting}
+            onRetry={handleCreateTeam}
+          />
+        ) : (
+          <p className="admin-users__form-error" role="alert">
+            {teamSubmitError.status === 409
+              ? t('admin.users.errorEmailTaken')
+              : teamSubmitError.body?.error ?? t('admin.users.errorCreate')}
+          </p>
+        )
+      )}
+
+      {operationError && <p className="admin-users__form-error" role="alert">{operationError}</p>}
 
       {loading ? (
         <p className="admin-event-security__empty">{t('admin.eventEditor.security.loading')}</p>
-      ) : users.length === 0 ? (
-        <p className="admin-event-security__empty">{t('admin.eventEditor.security.empty')}</p>
-      ) : (
+      ) : !loadError && users.length === 0 ? (
+        <div className="admin-event-security__empty admin-event-security__empty--team">
+          <UserPlus size={18} aria-hidden />
+          <strong>{t('admin.eventEditor.security.emptyTitle')}</strong>
+          <span>{t('admin.eventEditor.security.empty')}</span>
+        </div>
+      ) : !loadError ? (
         <>
+          <div className="admin-event-security__roster-head">
+            <span><ListChecks size={13} aria-hidden />{t('admin.eventEditor.security.rosterTitle')}</span>
+            <small>{t('admin.eventEditor.security.activeCount', { active: activeCount, total: users.length })}</small>
+          </div>
           {canManageUsers && activeCount > 0 && (
             <div className="admin-event-security__list-actions">
               {confirmingDeactivateAll ? (
@@ -495,12 +421,12 @@ export default function AdminEventSecuritySection({
             })}
           </ul>
         </>
-      )}
+      ) : null}
 
       {credentialUser && (
         <SecurityCredentialModal
           user={credentialUser}
-          onGenerate={(sendEmail) => onCreateSecurityAccessLink(credentialUser.id, sendEmail)}
+          onGenerate={(shouldSendEmail) => onCreateSecurityAccessLink(credentialUser.id, shouldSendEmail)}
           onClose={() => setCredentialUser(null)}
         />
       )}

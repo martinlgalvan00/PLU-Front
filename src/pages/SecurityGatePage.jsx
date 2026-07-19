@@ -76,6 +76,7 @@ export default function SecurityGatePage({
         athletes={athletes}
         canCheckIn={canCheckIn(session.role)}
         eventSlug={eventSlug}
+        eventTitle={event?.title}
         onCheckInRegistration={onCheckInRegistration}
         onCheckInTicket={onCheckInTicket}
         onExit={onLogout}

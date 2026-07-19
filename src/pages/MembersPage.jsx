@@ -1,3 +1,4 @@
+import { CalendarClock } from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembersBenefitsShowcase from '../components/ui/MembersBenefitsShowcase.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
@@ -96,9 +97,10 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
             />
 
             <aside className="members-req-validity" aria-labelledby="members-validity-title">
+              <span className="members-req-validity__glow" aria-hidden />
               <header className="members-req-validity__head">
-                <span className="members-req-validity__index" aria-hidden>
-                  01
+                <span className="members-req-validity__icon" aria-hidden>
+                  <CalendarClock size={20} strokeWidth={1.5} />
                 </span>
                 <p className="members-req-validity__eyebrow" id="members-validity-title">
                   {t('pages.members.validityTitle')}
