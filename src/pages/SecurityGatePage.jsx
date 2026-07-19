@@ -3,7 +3,14 @@ import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import CheckInAppPage from './CheckInAppPage.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { UPCOMING_EVENTS } from '../lib/events.js'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
+
+function resolveGateEvent(adminEvents, eventSlug) {
+  const fromAdmin = adminEvents?.find((item) => item.slug === eventSlug)
+  if (fromAdmin) return fromAdmin
+  return UPCOMING_EVENTS.find((item) => item.slug === eventSlug) ?? null
+}
 
 /**
  * Lee el token de credencial de acceso del query param (?acceso=...) y lo
@@ -46,7 +53,7 @@ export default function SecurityGatePage({
   tickets,
 }) {
   const { t } = useI18n()
-  const event = adminEvents.find((item) => item.slug === eventSlug)
+  const event = resolveGateEvent(adminEvents, eventSlug)
   const isAuthorized = session?.role === 'seguridad_plu_arg' && session?.eventSlug === eventSlug
 
   // Credencial de acceso: si la URL trae ?acceso=<token>, intentamos entrar
@@ -91,14 +98,18 @@ export default function SecurityGatePage({
 
   if (tokenPhase === 'loading') {
     return (
-      <main className="page login-page--design">
-        <div className="login-shell">
-          <section className="login-card security-gate-loading" aria-live="polite">
+      <main className="page login-page--design login-page--gate">
+        <div className="login-shell login-shell--gate">
+          <section className="login-card security-gate-card security-gate-loading" aria-live="polite">
             <span className="security-gate-loading__icon" aria-hidden>
               <ShieldCheck size={26} />
             </span>
             <h1>{t('securityGate.tokenLoadingTitle')}</h1>
-            <p className="login-card__lead">{t('securityGate.tokenLoadingLead')}</p>
+            <p className="login-card__lead">
+              {event
+                ? t('securityGate.tokenLoadingLeadWithEvent', { event: event.title })
+                : t('securityGate.tokenLoadingLead')}
+            </p>
             <span className="security-gate-loading__spinner" aria-hidden />
           </section>
         </div>
@@ -125,6 +136,9 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
+  const eventTitle = event?.title ?? null
+  const eventMeta = [event?.venue, event?.location, event?.date].filter(Boolean).join(' · ')
+
   async function handleSubmit(formEvent) {
     formEvent.preventDefault()
     setSubmitError('')
@@ -140,19 +154,30 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
   }
 
   return (
-    <main className="page login-page--design">
-      <div className="login-shell">
-        <section className="login-card" aria-labelledby="security-gate-heading">
-          <header className="login-card__header">
+    <main className="page login-page--design login-page--gate">
+      <div className="login-shell login-shell--gate">
+        <section className="login-card security-gate-card" aria-labelledby="security-gate-heading">
+          <header className="login-card__header security-gate-card__header">
             <div className="login-card__logos">
               <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />
               <BrandLogo variant="letterhead" imgClassName="login-card__logo" height={28} />
             </div>
-            <span className="login-card__eyebrow">{t('securityGate.eyebrow')}</span>
+
+            <div className="security-gate-card__badge">
+              <ShieldCheck size={15} aria-hidden />
+              <span>{t('securityGate.eyebrow')}</span>
+            </div>
+
+            <p className="security-gate-card__kicker">{t('securityGate.areaLabel')}</p>
             <h1 id="security-gate-heading">
-              {event ? t('securityGate.titleWithEvent', { event: event.title }) : t('securityGate.title')}
+              {eventTitle ?? t('securityGate.title')}
             </h1>
-            <p className="login-card__lead">{t('securityGate.subtitle')}</p>
+            <p className="login-card__lead">
+              {eventTitle
+                ? t('securityGate.subtitleWithEvent', { event: eventTitle })
+                : t('securityGate.subtitle')}
+            </p>
+            {eventMeta ? <p className="security-gate-card__meta">{eventMeta}</p> : null}
           </header>
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -196,7 +221,7 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
             </label>
 
             <button type="submit" className="login-submit" disabled={isSubmitting}>
-              {isSubmitting ? t('login.submitting') : t('login.submit')}
+              {isSubmitting ? t('login.submitting') : t('securityGate.submit')}
               {!isSubmitting && <ArrowRight size={16} aria-hidden />}
             </button>
             {(submitError || tokenError || hadSession) && (

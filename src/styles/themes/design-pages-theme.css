@@ -1071,6 +1071,20 @@
   color: rgba(15, 17, 23, 0.55);
 }
 
+[data-theme='light'] .security-gate-card__badge {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, #fff);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, transparent);
+  color: color-mix(in srgb, var(--color-brand-celeste) 78%, #0a2740);
+}
+
+[data-theme='light'] .security-gate-card__kicker {
+  color: rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .security-gate-card__meta {
+  color: rgba(15, 17, 23, 0.42);
+}
+
 [data-theme='light'] .login-card__lead {
   color: rgba(15, 17, 23, 0.58);
 }

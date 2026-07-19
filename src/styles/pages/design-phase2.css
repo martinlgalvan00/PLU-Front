@@ -1158,6 +1158,83 @@
   z-index: 1;
 }
 
+/* Puerta de seguridad: una sola columna centrada (sin panel login-brand).
+   Sin esto, el card cae en la columna 2 del grid de 2 cols y el header
+   queda oculto en desktop (regla .login-card__header { display: none }). */
+.login-page--gate {
+  justify-content: center;
+  min-height: 100dvh;
+}
+
+.login-shell--gate {
+  align-content: center;
+  align-items: center;
+  grid-template-columns: minmax(0, min(440px, 100%));
+  justify-content: center;
+  margin: auto;
+  max-width: 480px;
+  min-height: inherit;
+}
+
+.login-shell--gate .login-card,
+.login-shell--gate .security-gate-card {
+  grid-column: 1;
+  max-width: none;
+  width: 100%;
+}
+
+.login-shell--gate .login-card__header,
+.login-shell--gate .security-gate-card__header {
+  display: grid;
+}
+
+.security-gate-card__header {
+  text-align: center;
+}
+
+.security-gate-card__header .login-card__logos {
+  justify-content: center;
+}
+
+.security-gate-card__badge {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--color-brand-celeste) 92%, #fff);
+  display: inline-flex;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  margin: 18px auto 0;
+  padding: 6px 12px;
+  width: fit-content;
+}
+
+.security-gate-card__kicker {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 18px 0 0;
+  text-transform: uppercase;
+}
+
+.security-gate-card__header h1 {
+  margin-top: 6px;
+}
+
+.security-gate-card__meta {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 12.5px;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+  margin: 10px 0 0;
+}
+
 @media (min-width: 841px) {
   .login-shell {
     align-items: center;
@@ -1916,6 +1993,11 @@
     padding-block: var(--space-md);
   }
 
+  .login-page--gate {
+    justify-content: center;
+    min-height: 100dvh;
+  }
+
   .page-transition:has(.login-page--design) {
     min-height: auto;
   }
@@ -1927,6 +2009,12 @@
     margin: 0 auto;
     max-width: min(480px, 100%);
     padding-inline: var(--space-md);
+  }
+
+  .login-shell--gate {
+    align-content: center;
+    margin: auto;
+    max-width: min(440px, 100%);
   }
 
   .login-brand {

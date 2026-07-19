@@ -276,14 +276,19 @@ export default {
     backToSite: 'Volver al sitio público',
   },
   securityGate: {
-    eyebrow: 'Acceso de seguridad',
+    eyebrow: 'Personal de puerta',
+    areaLabel: 'Área de seguridad',
     title: 'Ingreso de seguridad',
     titleWithEvent: 'Ingreso de seguridad — {{event}}',
     subtitle: 'Iniciá sesión con la cuenta que te asignó el administrador del evento.',
+    subtitleWithEvent:
+      'Estás entrando al control de acceso de {{event}}. Usá la cuenta de seguridad asignada para este evento.',
+    submit: 'Entrar a seguridad',
     errorInvalid: 'Email, contraseña o evento incorrectos.',
     errorEventMismatch: 'Esta cuenta no tiene acceso a este evento.',
     tokenLoadingTitle: 'Validando tu credencial',
     tokenLoadingLead: 'Estamos verificando tu acceso a la puerta…',
+    tokenLoadingLeadWithEvent: 'Verificando tu acceso a la puerta de {{event}}…',
     tokenError: 'La credencial no es válida o venció. Ingresá con tu email y contraseña.',
   },
   account: {
