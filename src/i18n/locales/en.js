@@ -280,14 +280,19 @@ export default {
     backToSite: 'Back to the public site',
   },
   securityGate: {
-    eyebrow: 'Security access',
+    eyebrow: 'Gate staff',
+    areaLabel: 'Security area',
     title: 'Security check-in',
     titleWithEvent: 'Security check-in — {{event}}',
     subtitle: 'Sign in with the account the event admin created for you.',
+    subtitleWithEvent:
+      'You are entering the access control for {{event}}. Use the security account assigned to this event.',
+    submit: 'Enter security',
     errorInvalid: 'Wrong email, password, or event.',
     errorEventMismatch: 'This account does not have access to this event.',
     tokenLoadingTitle: 'Validating your credential',
     tokenLoadingLead: 'We are verifying your gate access…',
+    tokenLoadingLeadWithEvent: 'Verifying your gate access for {{event}}…',
     tokenError: 'This credential is invalid or expired. Sign in with your email and password.',
   },
   account: {
