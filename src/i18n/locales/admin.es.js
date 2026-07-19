@@ -107,7 +107,15 @@ export default {
     registration: 'Buscar atleta, DNI o categoría',
     event: 'Buscar meet, sede o slug',
     dashboard: 'Buscar atleta, DNI o evento',
+    submit: 'Buscar en inscripciones',
     users: 'Buscar por nombre o email',
+  },
+  table: {
+    sortLabel: 'Ordenar',
+    defaultOrder: 'Orden original',
+    sortAscending: 'Ordenar ascendente',
+    sortDescending: 'Ordenar descendente',
+    listAria: 'Lista de registros',
   },
   shop: {
     eyebrow: 'Ecommerce',
@@ -203,7 +211,8 @@ export default {
       title: 'Convenio PLU USA',
       subtitle: 'Reportes y exportaciones de Argentina: afiliaciones, resultados y récords',
       readonlyTag: 'Solo lectura',
-      recordsNote: 'Los récords oficiales de Argentina se integrarán a esta vista cuando PLU USA publique el estándar global. Por ahora, el padrón de abajo cubre afiliaciones y resultados.',
+      recordsNote:
+        'Los récords oficiales de Argentina se integrarán a esta vista cuando PLU USA publique el estándar global. Por ahora, el padrón de abajo cubre afiliaciones y resultados.',
       statAthletes: 'Atletas',
       statActive: 'Afiliaciones activas',
       statExpiring: 'Vencen pronto',
@@ -287,7 +296,8 @@ export default {
       lastSynced: 'sync {{time}}',
       neverDownloaded: 'Sin lista offline — hace falta para operar sin red.',
       conflictsTitle: 'Conflictos resueltos al sincronizar',
-      conflictsHint: 'Estos ingresos offline no se contaron porque otro dispositivo escaneó primero.',
+      conflictsHint:
+        'Estos ingresos offline no se contaron porque otro dispositivo escaneó primero.',
     },
     history: {
       title: 'Últimos escaneos',
@@ -313,7 +323,8 @@ export default {
     namePlaceholder: 'Nombre y apellido',
     formTitle: 'Nuevo usuario',
     formLead: 'Creá una cuenta del panel y asignale un rol.',
-    securityHint: 'Seguridad queda atada a un evento y recibe una contraseña temporal para compartir con el staff.',
+    securityHint:
+      'Seguridad queda atada a un evento y recibe una contraseña temporal para compartir con el staff.',
     addUser: 'Crear cuenta',
     creating: 'Creando...',
     errorName: 'Ingresá nombre y apellido.',
@@ -326,7 +337,8 @@ export default {
     tempPasswordTitle: 'Cuenta de seguridad creada',
     tempPasswordLabel: 'Contraseña temporal',
     tempPasswordWarn: 'Comunicásela al personal ahora: no se puede volver a mostrar.',
-    tempPasswordNote: 'Cuenta creada para {{email}} — contraseña temporal: {{password}} (comunicásela al personal de seguridad, no va a poder verse de nuevo).',
+    tempPasswordNote:
+      'Cuenta creada para {{email}} — contraseña temporal: {{password}} (comunicásela al personal de seguridad, no va a poder verse de nuevo).',
   },
   placeholders: {
     moduleDev: 'Módulo en desarrollo',
@@ -382,6 +394,12 @@ export default {
     alertsCountMany: '{{count}} alertas operativas',
     moreMetrics: 'Más métricas',
     swipeHint: 'Deslizá para ver más',
+    quickEyebrow: 'Accesos directos',
+    quickTitle: 'Operación frecuente',
+    quickRegistrations: 'Validar estados y pagos',
+    quickAthletes: 'Consultar legajos',
+    quickEvents: 'Gestionar calendario',
+    quickCheckin: 'Abrir control de puerta',
   },
   metrics: {
     athletes: 'Atletas',
@@ -431,7 +449,8 @@ export default {
   },
   paymentOperations: {
     title: 'Operación y conciliación de pagos',
-    subtitle: 'Webhooks, reintentos, suscripciones y conciliaciones de Mercado Pago en un solo lugar.',
+    subtitle:
+      'Webhooks, reintentos, suscripciones y conciliaciones de Mercado Pago en un solo lugar.',
     workerActive: 'Recuperación automática activa',
     workerInactive: 'Recuperación automática desactivada',
     refresh: 'Actualizar',
@@ -495,7 +514,8 @@ export default {
     locationPlaceholder: 'Ej.: Buenos Aires',
     publicStatus: 'Estado público',
     featuredTitle: 'Evento destacado',
-    featuredHint: 'Se muestra en home, calendario, tienda y bloques spotlight. Solo puede haber un evento destacado a la vez: al activarlo acá se desactiva en los demás.',
+    featuredHint:
+      'Se muestra en home, calendario, tienda y bloques spotlight. Solo puede haber un evento destacado a la vez: al activarlo acá se desactiva en los demás.',
     saveChanges: 'Guardar cambios',
     createEvent: 'Crear evento',
     publish: 'Publicar evento',
@@ -548,6 +568,34 @@ export default {
       deactivate: 'Dar de baja',
       errorLoad: 'No se pudieron cargar las cuentas de seguridad.',
       errorStatus: 'No se pudo actualizar el estado de la cuenta.',
+      modeSingle: 'Una cuenta',
+      modeBulk: 'Varias cuentas',
+      sendEmail: 'Enviar credenciales por email',
+      emailSent: 'Credenciales enviadas por email.',
+      bulkLabel: 'Cuentas a crear',
+      bulkPlaceholder: 'Juan Portero, juan@pluarg.com.ar\nmaria@pluarg.com.ar\n...',
+      bulkHint: 'Una por línea, formato "Nombre, email" o solo el email. Máximo 50.',
+      bulkSubmit: 'Crear accesos',
+      bulkEmpty: 'Agregá al menos una cuenta válida.',
+      bulkInvalidLines: 'Revisá estas líneas (email inválido): {{lines}}',
+      bulkResultTitle: '{{created}} creadas · {{skipped}} omitidas',
+      bulkCopyAll: 'Copiar credenciales',
+      skipReason: {
+        exists: 'ya existía',
+        error: 'no se pudo crear',
+      },
+      deactivateAll: 'Dar de baja a todas',
+      deactivateAllConfirm: '¿Dar de baja las {{count}} cuentas activas?',
+      deactivateAllYes: 'Sí, dar de baja',
+      credential: 'Credencial',
+      credentialTitle: 'Credencial de acceso',
+      credentialLead: 'Escaneá el QR o abrí el link: entra a la puerta sin contraseña.',
+      credentialLoading: 'Generando la credencial…',
+      credentialError: 'No se pudo generar la credencial.',
+      credentialQrAlt: 'Código QR de acceso a la puerta',
+      credentialExpiry: 'Vence el {{date}}.',
+      credentialEmail: 'Enviar por email',
+      credentialEmailError: 'No se pudo enviar el email.',
     },
     ticketsEnabledTitle: 'Venta de entradas habilitada',
     ticketsEnabledHint: 'Muestra la sección de espectadores en la página del evento.',
@@ -560,7 +608,8 @@ export default {
     ticketBreakdownAria: 'Desglose por tipo de pase',
     supabase: {
       sectionTitle: 'Calendario, directo y cupos (Supabase)',
-      sectionLead: 'Estos campos viven en Supabase y alimentan el botón "agregar a calendario", el directo y el enforcement real de cupo/fechas.',
+      sectionLead:
+        'Estos campos viven en Supabase y alimentan el botón "agregar a calendario", el directo y el enforcement real de cupo/fechas.',
       startsAt: 'Inicio (fecha y hora)',
       endsAt: 'Fin (fecha y hora)',
       registrationWindowTitle: 'Ventana de inscripción (atletas)',
@@ -624,4 +673,3 @@ export default {
     listToggle: 'Allowlist del evento',
   },
 }
-

@@ -54,6 +54,8 @@ export default function AdminFilterBar({
 
   return (
     <div className={rootClassName}>
+      <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+
       {filters.length > 0 && (
         <div className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}>
           {filters.map((filter) =>
@@ -76,8 +78,6 @@ export default function AdminFilterBar({
           )}
         </div>
       )}
-
-      <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
 
       {activeCount > 0 && (
         <button type="button" className="admin-filters__clear" onClick={clearAll}>

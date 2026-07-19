@@ -85,8 +85,24 @@ export function loginRequest(credentials) {
   return apiPost('/api/auth/login', credentials)
 }
 
-export function createSecurityUserRequest({ name, email, eventId }) {
-  return apiPost('/api/auth/security-users', { name, email, eventId })
+export function createSecurityUserRequest({ name, email, eventId, sendEmail = false }) {
+  return apiPost('/api/auth/security-users', { name, email, eventId, sendEmail })
+}
+
+export function createSecurityUsersBulkRequest({ eventId, users, sendEmail = false }) {
+  return apiPost('/api/auth/security-users/bulk', { eventId, users, sendEmail })
+}
+
+export function deactivateAllSecurityUsersRequest(eventId) {
+  return apiPost('/api/auth/security-users/deactivate-all', { eventId })
+}
+
+export function createSecurityAccessLinkRequest(userId, sendEmail = false) {
+  return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, { sendEmail })
+}
+
+export function securityGateRequest(token) {
+  return apiPost('/api/auth/security-gate', { token })
 }
 
 export function listSecurityUsersRequest(eventId) {

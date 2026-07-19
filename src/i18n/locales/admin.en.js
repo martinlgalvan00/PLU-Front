@@ -107,7 +107,15 @@ export default {
     registration: 'Search athlete, ID or category',
     event: 'Search meet, venue or slug',
     dashboard: 'Search athlete, ID or event',
+    submit: 'Search registrations',
     users: 'Search by name or email',
+  },
+  table: {
+    sortLabel: 'Sort',
+    defaultOrder: 'Default order',
+    sortAscending: 'Sort ascending',
+    sortDescending: 'Sort descending',
+    listAria: 'Records list',
   },
   shop: {
     eyebrow: 'Ecommerce',
@@ -128,7 +136,8 @@ export default {
     save: 'Save product',
     create: 'Create product',
     hintTitle: 'Manageable catalog',
-    hintText: 'Create products, publish them and they will appear automatically in the public shop.',
+    hintText:
+      'Create products, publish them and they will appear automatically in the public shop.',
     validationTitle: 'Enter the product name.',
     validationPrice: 'Enter a price greater than zero.',
     fields: {
@@ -203,7 +212,8 @@ export default {
       title: 'PLU USA partnership',
       subtitle: 'Argentina reports and exports: memberships, results and records',
       readonlyTag: 'Read-only',
-      recordsNote: 'Official Argentina records will be added to this view once PLU USA publishes the global standard. For now, the roster below covers memberships and results.',
+      recordsNote:
+        'Official Argentina records will be added to this view once PLU USA publishes the global standard. For now, the roster below covers memberships and results.',
       statAthletes: 'Athletes',
       statActive: 'Active memberships',
       statExpiring: 'Expiring soon',
@@ -287,7 +297,8 @@ export default {
       lastSynced: 'sync {{time}}',
       neverDownloaded: 'No offline list yet — needed to work without network.',
       conflictsTitle: 'Conflicts resolved during sync',
-      conflictsHint: "These offline check-ins weren't counted because another device scanned first.",
+      conflictsHint:
+        "These offline check-ins weren't counted because another device scanned first.",
     },
     history: {
       title: 'Recent scans',
@@ -313,7 +324,8 @@ export default {
     namePlaceholder: 'Full name',
     formTitle: 'New user',
     formLead: 'Create a panel account and assign a role.',
-    securityHint: 'Security accounts are tied to one event and get a temporary password to share with staff.',
+    securityHint:
+      'Security accounts are tied to one event and get a temporary password to share with staff.',
     addUser: 'Create account',
     creating: 'Creating...',
     errorName: 'Enter a full name.',
@@ -326,7 +338,8 @@ export default {
     tempPasswordTitle: 'Security account created',
     tempPasswordLabel: 'Temporary password',
     tempPasswordWarn: 'Share it with staff now — it cannot be shown again.',
-    tempPasswordNote: 'Account created for {{email}} — temporary password: {{password}} (share it with the security staff, it cannot be shown again).',
+    tempPasswordNote:
+      'Account created for {{email}} — temporary password: {{password}} (share it with the security staff, it cannot be shown again).',
   },
   placeholders: {
     moduleDev: 'Module in development',
@@ -382,6 +395,12 @@ export default {
     alertsCountMany: '{{count}} operational alerts',
     moreMetrics: 'More metrics',
     swipeHint: 'Swipe for more',
+    quickEyebrow: 'Shortcuts',
+    quickTitle: 'Frequent operations',
+    quickRegistrations: 'Validate statuses and payments',
+    quickAthletes: 'Review athlete records',
+    quickEvents: 'Manage the calendar',
+    quickCheckin: 'Open door control',
   },
   metrics: {
     athletes: 'Athletes',
@@ -495,7 +514,8 @@ export default {
     locationPlaceholder: 'E.g.: Buenos Aires',
     publicStatus: 'Public status',
     featuredTitle: 'Featured event',
-    featuredHint: 'Shown on home, calendar, shop and spotlight blocks. Only one event can be featured at a time: turning it on here turns it off for the others.',
+    featuredHint:
+      'Shown on home, calendar, shop and spotlight blocks. Only one event can be featured at a time: turning it on here turns it off for the others.',
     saveChanges: 'Save changes',
     createEvent: 'Create event',
     publish: 'Publish event',
@@ -548,6 +568,34 @@ export default {
       deactivate: 'Deactivate',
       errorLoad: 'Could not load the security accounts.',
       errorStatus: 'Could not update the account status.',
+      modeSingle: 'One account',
+      modeBulk: 'Multiple accounts',
+      sendEmail: 'Email the credentials',
+      emailSent: 'Credentials sent by email.',
+      bulkLabel: 'Accounts to create',
+      bulkPlaceholder: 'Juan Portero, juan@pluarg.com.ar\nmaria@pluarg.com.ar\n...',
+      bulkHint: 'One per line, "Name, email" or just the email. Up to 50.',
+      bulkSubmit: 'Create access',
+      bulkEmpty: 'Add at least one valid account.',
+      bulkInvalidLines: 'Check these lines (invalid email): {{lines}}',
+      bulkResultTitle: '{{created}} created · {{skipped}} skipped',
+      bulkCopyAll: 'Copy credentials',
+      skipReason: {
+        exists: 'already existed',
+        error: 'could not be created',
+      },
+      deactivateAll: 'Deactivate all',
+      deactivateAllConfirm: 'Deactivate the {{count}} active accounts?',
+      deactivateAllYes: 'Yes, deactivate',
+      credential: 'Credential',
+      credentialTitle: 'Access credential',
+      credentialLead: 'Scan the QR or open the link: it enters the gate with no password.',
+      credentialLoading: 'Generating the credential…',
+      credentialError: 'Could not generate the credential.',
+      credentialQrAlt: 'Gate access QR code',
+      credentialExpiry: 'Expires on {{date}}.',
+      credentialEmail: 'Send by email',
+      credentialEmailError: 'Could not send the email.',
     },
     ticketsEnabledTitle: 'Ticket sales enabled',
     ticketsEnabledHint: 'Shows the spectator section on the event page.',
@@ -560,7 +608,8 @@ export default {
     ticketBreakdownAria: 'Breakdown by pass type',
     supabase: {
       sectionTitle: 'Calendar, live stream and capacity (Supabase)',
-      sectionLead: 'These fields live in Supabase and power the "add to calendar" button, the live stream and the real capacity/date enforcement.',
+      sectionLead:
+        'These fields live in Supabase and power the "add to calendar" button, the live stream and the real capacity/date enforcement.',
       startsAt: 'Starts (date and time)',
       endsAt: 'Ends (date and time)',
       registrationWindowTitle: 'Registration window (athletes)',
@@ -624,4 +673,3 @@ export default {
     listToggle: 'Event allowlist',
   },
 }
-

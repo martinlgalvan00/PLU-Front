@@ -12,16 +12,67 @@ import { hashPassword } from '../../../server/services/passwordService.js'
  * pasado como `deps.prisma` a `createApp()` mientras `deps.supabaseAdmin`
  * es el cliente real de Supabase local.
  */
-export function createPrismaDouble(users) {
+export function createPrismaDouble(users, { events = [] } = {}) {
   const sessions = []
+  let userSeq = users.length
 
   return {
+    event: {
+      findUnique: async ({ where }) => events.find((event) => event.id === where.id) ?? null,
+    },
     user: {
-      findUnique: async ({ where }) => users.find((user) => user.email === where.email) ?? null,
+      findUnique: async ({ where }) => {
+        if (where.email) return users.find((user) => user.email === where.email) ?? null
+        return users.find((user) => user.id === where.id) ?? null
+      },
+      findMany: async ({ where }) => {
+        const emailFilter = where?.email?.in
+        return users.filter((user) => {
+          if (where?.role && user.role !== where.role) return false
+          if (where?.eventId && user.eventId !== where.eventId) return false
+          if (emailFilter && !emailFilter.includes(user.email)) return false
+          return true
+        })
+      },
+      create: async ({ data }) => {
+        if (users.some((user) => user.email === data.email)) {
+          // Emula la unique-violation de Prisma (P2002) para ejercitar el
+          // camino de "skip por email tomado" en el alta masiva.
+          const error = new Error('Unique constraint failed')
+          error.code = 'P2002'
+          throw error
+        }
+        userSeq += 1
+        const event = events.find((item) => item.id === data.eventId) ?? null
+        const created = {
+          id: `usr-bulk-${userSeq}`,
+          email: data.email,
+          passwordHash: data.passwordHash,
+          role: data.role,
+          status: data.status,
+          eventId: data.eventId ?? null,
+          profile: data.profile?.create
+            ? { firstName: data.profile.create.firstName, lastName: data.profile.create.lastName }
+            : null,
+          event,
+        }
+        users.push(created)
+        return created
+      },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
         Object.assign(user, data)
         return user
+      },
+      updateMany: async ({ where, data }) => {
+        const matches = users.filter((user) => {
+          if (where.role && user.role !== where.role) return false
+          if (where.eventId && user.eventId !== where.eventId) return false
+          if (where.status && user.status !== where.status) return false
+          return true
+        })
+        matches.forEach((user) => Object.assign(user, data))
+        return { count: matches.length }
       },
     },
     session: {

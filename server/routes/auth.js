@@ -1,7 +1,18 @@
 import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
-import { createSecurityUserSchema, loginSchema, updateSecurityUserStatusSchema } from '../../src/lib/schemas/auth.js'
+import {
+  createSecurityAccessLinkSchema,
+  createSecurityUserSchema,
+  createSecurityUsersBulkSchema,
+  deactivateAllSecurityUsersSchema,
+  loginSchema,
+  securityGateSchema,
+  updateSecurityUserStatusSchema,
+} from '../../src/lib/schemas/auth.js'
+import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
 import { HttpError } from '../lib/errors.js'
+import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
+import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
 import { validateBody } from '../lib/validate.js'
 import { requireRole } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
@@ -20,7 +31,21 @@ import {
 
 const MANAGE_USERS_ROLES = ['admin_maximal', 'admin_plu_arg']
 
+// Vigencia de una credencial de acceso de puerta. Si el evento tiene fin
+// conocido, la credencial dura hasta 7 días después (margen operativo);
+// si no, un default de 30 días.
+const ACCESS_LINK_POST_EVENT_MS = 1000 * 60 * 60 * 24 * 7
+const ACCESS_LINK_DEFAULT_TTL_MS = 1000 * 60 * 60 * 24 * 30
+
 const invalidCredentials = () => new HttpError(401, 'Credenciales invalidas.')
+
+function resolveAccessLinkExpiry(event, now = new Date()) {
+  const eventEnd = event?.endsAt ? new Date(event.endsAt) : null
+  if (eventEnd && !Number.isNaN(eventEnd.getTime()) && eventEnd > now) {
+    return new Date(eventEnd.getTime() + ACCESS_LINK_POST_EVENT_MS)
+  }
+  return new Date(now.getTime() + ACCESS_LINK_DEFAULT_TTL_MS)
+}
 
 function generateTempPassword() {
   return randomBytes(9).toString('base64url')
@@ -31,9 +56,49 @@ function splitName(name) {
   return { firstName, lastName: rest.join(' ') || firstName }
 }
 
-export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
+export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notificationRepository, env } = {}) {
   const router = Router()
   const manageUsersGuard = requireRole(MANAGE_USERS_ROLES, { prisma: getPrisma() })
+  const notifySecurityAccess = createSecurityAccessNotificationService({
+    repository: notificationRepository,
+    brevo,
+    env,
+  })
+
+  // Crea una cuenta seguridad_plu_arg con password temporal. Compartido por
+  // el alta individual y la masiva -- el caller ya validó que el evento
+  // existe y (para el alta individual) que el email no está tomado.
+  async function provisionSecurityUser(prisma, { name, email, eventId }) {
+    const tempPassword = generateTempPassword()
+    const passwordHash = await hashPassword(tempPassword)
+    const { firstName, lastName } = splitName(name)
+
+    const created = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role: 'seguridad_plu_arg',
+        status: 'active',
+        eventId,
+        profile: { create: { firstName, lastName } },
+      },
+      include: { profile: true, event: true },
+    })
+
+    return { user: serializeUser(created), tempPassword, event: created.event }
+  }
+
+  // Envío best-effort de credenciales: nunca corta el flujo de alta. Devuelve
+  // true solo si Brevo confirmó el envío (status 'sent'); si no está
+  // configurado o falla, el caller igual muestra las credenciales en pantalla.
+  async function dispatchAccessEmail(payload) {
+    try {
+      const result = await notifySecurityAccess(payload)
+      return result?.emailLog?.status === 'sent'
+    } catch {
+      return false
+    }
+  }
 
   router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
     try {
@@ -136,7 +201,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
     async (req, res, next) => {
       try {
         const prisma = getPrisma()
-        const { name, email, eventId } = req.validatedBody
+        const { name, email, eventId, sendEmail } = req.validatedBody
 
         const event = await prisma.event.findUnique({ where: { id: eventId } })
         if (!event) throw new HttpError(400, 'El evento no existe.')
@@ -144,23 +209,95 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
         const existing = await prisma.user.findUnique({ where: { email } })
         if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
 
-        const tempPassword = generateTempPassword()
-        const passwordHash = await hashPassword(tempPassword)
-        const { firstName, lastName } = splitName(name)
+        const { user, tempPassword } = await provisionSecurityUser(prisma, { name, email, eventId })
+        const emailed = sendEmail ? await dispatchAccessEmail({ user, tempPassword, event }) : false
 
-        const created = await prisma.user.create({
-          data: {
-            email,
-            passwordHash,
-            role: 'seguridad_plu_arg',
-            status: 'active',
-            eventId,
-            profile: { create: { firstName, lastName } },
-          },
-          include: { profile: true, event: true },
+        res.status(201).json({ user, tempPassword, emailed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Alta masiva -- pensada para cargar de una la lista de personal de puerta.
+  // Partial success: los emails ya existentes (o los que choquen en una
+  // carrera) se reportan en `skipped` sin frenar el resto del lote.
+  router.post(
+    '/security-users/bulk',
+    ...manageUsersGuard,
+    staffLimiter,
+    validateBody(createSecurityUsersBulkSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { eventId, users, sendEmail } = req.validatedBody
+
+        const event = await prisma.event.findUnique({ where: { id: eventId } })
+        if (!event) throw new HttpError(400, 'El evento no existe.')
+
+        // Una sola consulta para detectar emails ya tomados, en vez de un
+        // findUnique por cada entrada del lote.
+        const existingRows = await prisma.user.findMany({
+          where: { email: { in: users.map((entry) => entry.email) } },
+          select: { email: true },
+        })
+        const existingEmails = new Set(existingRows.map((row) => row.email))
+
+        const toCreate = users.filter((entry) => !existingEmails.has(entry.email))
+        const skipped = users
+          .filter((entry) => existingEmails.has(entry.email))
+          .map((entry) => ({ email: entry.email, reason: 'exists' }))
+
+        // Altas en paralelo, cada una independiente (partial success).
+        const settled = await Promise.allSettled(
+          toCreate.map((entry) => provisionSecurityUser(prisma, { ...entry, eventId })),
+        )
+
+        const created = []
+        settled.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            created.push({ user: result.value.user, tempPassword: result.value.tempPassword, emailed: false })
+            return
+          }
+          const reason = result.reason?.code === 'P2002' ? 'exists' : 'error'
+          skipped.push({ email: toCreate[index].email, reason })
         })
 
-        res.status(201).json({ user: serializeUser(created), tempPassword })
+        // Envío de credenciales best-effort, en paralelo, recién después de
+        // crear todas las cuentas.
+        if (sendEmail && created.length) {
+          const emailResults = await Promise.allSettled(
+            created.map((item) => dispatchAccessEmail({ user: item.user, tempPassword: item.tempPassword, event })),
+          )
+          emailResults.forEach((result, index) => {
+            created[index].emailed = result.status === 'fulfilled' && result.value === true
+          })
+        }
+
+        res.status(201).json({ created, skipped })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Baja masiva -- al terminar el evento, corta el acceso de todas las
+  // cuentas de seguridad de ese evento en una sola query. Al pasar a
+  // 'disabled', readSession corta la sesión activa en el próximo request.
+  router.post(
+    '/security-users/deactivate-all',
+    ...manageUsersGuard,
+    staffLimiter,
+    validateBody(deactivateAllSecurityUsersSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const result = await prisma.user.updateMany({
+          where: { role: 'seguridad_plu_arg', eventId: req.validatedBody.eventId, status: 'active' },
+          data: { status: 'disabled' },
+        })
+
+        res.json({ deactivated: result.count })
       } catch (error) {
         next(error)
       }
@@ -217,6 +354,95 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck }) {
       }
     },
   )
+
+  const accessLinkAppUrl = (env?.APP_URL ?? process.env.APP_URL ?? '').replace(/\/$/, '')
+  const accessLinkSecret = env?.AUTH_SECRET
+
+  // Genera una credencial de acceso: un link (con token firmado) que deja
+  // entrar a la puerta sin contraseña. Se puede copiar/QR o mandar por mail.
+  router.post(
+    '/security-users/:userId/access-link',
+    ...manageUsersGuard,
+    staffLimiter,
+    validateBody(createSecurityAccessLinkSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const user = await prisma.user.findUnique({
+          where: { id: req.params.userId },
+          include: { profile: true, event: true },
+        })
+        if (!user || user.role !== 'seguridad_plu_arg') {
+          throw new HttpError(404, 'Usuario de seguridad no encontrado.')
+        }
+        if (!user.eventId || !user.event?.slug) {
+          throw new HttpError(400, 'La cuenta no tiene un evento asignado.')
+        }
+
+        const expiresAt = resolveAccessLinkExpiry(user.event)
+        const token = createAccessToken({
+          userId: user.id,
+          eventId: user.eventId,
+          expiresAt,
+          secret: accessLinkSecret,
+        })
+        const url = `${accessLinkAppUrl}${buildSecurityGatePath(user.event.slug)}?acceso=${token}`
+
+        const emailed = req.validatedBody.sendEmail
+          ? await dispatchAccessEmail({
+              user: serializeUser(user),
+              event: user.event,
+              accessUrl: url,
+              idempotencyKey: `email:security-access-link:${user.id}:${token.slice(-16)}`,
+            })
+          : false
+
+        res.json({ url, token, expiresAt: expiresAt.toISOString(), emailed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Login por credencial de acceso (passwordless). El token firmado prueba
+  // la identidad; igual revalidamos contra la DB (status activo + evento
+  // asignado) para que dar de baja la cuenta invalide la credencial al toque.
+  router.post('/security-gate', authLimiter, validateBody(securityGateSchema), async (req, res, next) => {
+    try {
+      const prisma = getPrisma()
+      const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
+      if (!payload) {
+        next(new HttpError(401, 'Credencial inválida o vencida.'))
+        return
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.uid },
+        include: { profile: true, event: true },
+      })
+      if (
+        !user ||
+        user.role !== 'seguridad_plu_arg' ||
+        user.status !== 'active' ||
+        user.eventId !== payload.eid
+      ) {
+        next(new HttpError(401, 'Credencial inválida o vencida.'))
+        return
+      }
+
+      const session = await createSession({ prisma, userId: user.id, req })
+      await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+
+      const serialized = serializeUser(user)
+      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+
+      res
+        .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+        .json({ user: serialized, supabaseAuth })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   return router
 }

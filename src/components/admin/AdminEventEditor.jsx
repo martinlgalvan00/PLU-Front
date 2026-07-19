@@ -111,6 +111,9 @@ export default function AdminEventEditor({
   onCancel,
   onChange,
   onCreateSecurityUser,
+  onCreateSecurityUsersBulk,
+  onCreateSecurityAccessLink,
+  onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onSubmit,
   onUpdateSecurityUserStatus,
@@ -334,6 +337,9 @@ export default function AdminEventEditor({
             eventId={draft.id}
             eventSlug={sourceEvent?.slug}
             onCreateSecurityUser={onCreateSecurityUser}
+            onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+            onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+            onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
             onListSecurityUsers={onListSecurityUsers}
             onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           />

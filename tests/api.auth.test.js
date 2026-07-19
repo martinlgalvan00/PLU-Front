@@ -91,8 +91,10 @@ describe('auth api', () => {
       email: 'admin@pluarg.com',
       name: 'Admin PLU',
       role: 'admin_plu_arg',
+      status: 'active',
       eventId: null,
       eventSlug: null,
+      lastLoginAt: expect.any(String),
     })
 
     const me = await fetch(`${target.url}/api/auth/me`, { headers: { Cookie: cookie } })

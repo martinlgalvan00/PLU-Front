@@ -282,6 +282,9 @@ export default {
     subtitle: 'Iniciá sesión con la cuenta que te asignó el administrador del evento.',
     errorInvalid: 'Email, contraseña o evento incorrectos.',
     errorEventMismatch: 'Esta cuenta no tiene acceso a este evento.',
+    tokenLoadingTitle: 'Validando tu credencial',
+    tokenLoadingLead: 'Estamos verificando tu acceso a la puerta…',
+    tokenError: 'La credencial no es válida o venció. Ingresá con tu email y contraseña.',
   },
   account: {
     eyebrow: 'Mi cuenta',

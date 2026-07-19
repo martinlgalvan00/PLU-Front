@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronsUpDown, Inbox } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronsUpDown, Inbox, SlidersHorizontal } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import StatusBadge from './StatusBadge.jsx'
 
 function cellValue(col, row) {
@@ -49,6 +50,7 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
           <div className="data-table-card__badges">
             {badges.map((col) => (
               <div key={col.key} className="data-table-card__badge">
+                <span className="data-table-card__badge-label">{col.mobileLabel ?? col.label}</span>
                 {cellValue(col, row)}
               </div>
             ))}
@@ -90,9 +92,12 @@ export default function DataTable({
   rowClassName = '',
   variant = 'default',
 }) {
+  const { t } = useI18n()
   const tableClass = `data-table ${variant === 'admin' ? 'data-table--admin' : ''}`.trim()
-  const cardsClass = `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
+  const cardsClass =
+    `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
   const useCompactCards = variant === 'admin' && hasMobileLayout(columns)
+  const sortableColumns = columns.filter((column) => column.sortable)
 
   const [sort, setSort] = useState(null)
 
@@ -113,13 +118,22 @@ export default function DataTable({
     })
   }
 
+  function handleMobileSortChange(event) {
+    const key = event.target.value
+    setSort(key ? { key, direction: 'asc' } : null)
+  }
+
   if (!rows.length) {
     return (
-      <div className={`data-table__empty-wrap ${variant === 'admin' ? 'data-table__empty-wrap--admin' : ''}`.trim()}>
+      <div
+        className={`data-table__empty-wrap ${variant === 'admin' ? 'data-table__empty-wrap--admin' : ''}`.trim()}
+      >
         <span className="data-table__empty-icon" aria-hidden>
           <EmptyIcon size={20} strokeWidth={1.5} />
         </span>
-        <p className={`data-table__empty ${variant === 'admin' ? 'data-table__empty--admin' : ''}`.trim()}>
+        <p
+          className={`data-table__empty ${variant === 'admin' ? 'data-table__empty--admin' : ''}`.trim()}
+        >
           {emptyMessage}
         </p>
       </div>
@@ -161,9 +175,15 @@ export default function DataTable({
                   <th
                     key={col.key}
                     scope="col"
-                    aria-sort={isSorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    aria-sort={
+                      isSorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
+                    }
                   >
-                    <button type="button" className="data-table__sort-btn" onClick={() => toggleSort(col)}>
+                    <button
+                      type="button"
+                      className="data-table__sort-btn"
+                      onClick={() => toggleSort(col)}
+                    >
                       {col.label}
                       {isSorted ? (
                         sort.direction === 'asc' ? (
@@ -172,7 +192,11 @@ export default function DataTable({
                           <ArrowDown size={11} aria-hidden className="data-table__sort-icon" />
                         )
                       ) : (
-                        <ChevronsUpDown size={11} aria-hidden className="data-table__sort-icon data-table__sort-icon--idle" />
+                        <ChevronsUpDown
+                          size={11}
+                          aria-hidden
+                          className="data-table__sort-icon data-table__sort-icon--idle"
+                        />
                       )}
                     </button>
                   </th>
@@ -198,7 +222,49 @@ export default function DataTable({
         </table>
       </div>
 
-      <div className={cardsClass} aria-label="Lista de registros">
+      {useCompactCards && sortableColumns.length > 0 && (
+        <div className="data-table-mobile-toolbar">
+          <label className="data-table-mobile-toolbar__select">
+            <SlidersHorizontal size={14} aria-hidden />
+            <span>{t('admin.table.sortLabel')}</span>
+            <select value={sort?.key ?? ''} onChange={handleMobileSortChange}>
+              <option value="">{t('admin.table.defaultOrder')}</option>
+              {sortableColumns.map((column) => (
+                <option key={column.key} value={column.key}>
+                  {column.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="data-table-mobile-toolbar__direction"
+            aria-label={
+              sort?.direction === 'desc'
+                ? t('admin.table.sortAscending')
+                : t('admin.table.sortDescending')
+            }
+            disabled={!sort}
+            onClick={() =>
+              setSort(
+                (current) =>
+                  current && {
+                    ...current,
+                    direction: current.direction === 'asc' ? 'desc' : 'asc',
+                  },
+              )
+            }
+          >
+            {sort?.direction === 'desc' ? (
+              <ArrowDown size={15} aria-hidden />
+            ) : (
+              <ArrowUp size={15} aria-hidden />
+            )}
+          </button>
+        </div>
+      )}
+
+      <div className={cardsClass} aria-label={t('admin.table.listAria')}>
         {sortedRows.map((row) => {
           const articleClass = [
             'data-table-card',

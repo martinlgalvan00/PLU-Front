@@ -2441,20 +2441,20 @@
 
 .events-page--plu-ref .events-page__body {
   display: grid;
-  gap: clamp(16px, 2.5vw, 24px);
+  gap: clamp(20px, 3vw, 32px);
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: 0 clamp(20px, 5vw, 64px) clamp(40px, 5vw, 56px);
+  padding: 0 clamp(20px, 5vw, 64px) clamp(48px, 7vw, 72px);
 }
 
 .events-page--plu-ref .events-page__toolbar {
   align-items: end;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 24px;
+  gap: 12px 28px;
   justify-content: space-between;
-  padding-bottom: 14px;
+  padding-bottom: 16px;
 }
 
 .events-page--plu-ref .events-page__filters-shell {
@@ -2465,7 +2465,7 @@
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: 10px 20px;
+  gap: 10px 22px;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -2481,11 +2481,11 @@
 .events-page--plu-ref .events-page__filters-label {
   color: var(--color-text-muted);
   flex: none;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   line-height: 1;
-  padding-bottom: 12px;
+  padding-bottom: 14px;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -2495,7 +2495,7 @@
   border: none;
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px 2px;
+  gap: 2px;
   margin: 0;
   min-width: 0;
   padding: 0;
@@ -2505,17 +2505,17 @@
 .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item {
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 1.5px solid transparent;
   border-radius: 0;
   box-shadow: none;
   color: var(--color-text-muted);
   flex: none;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: clamp(13.5px, 1.2vw, 15px);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  min-height: 40px;
-  padding: 8px 12px 10px;
+  letter-spacing: -0.015em;
+  min-height: 42px;
+  padding: 8px 14px 12px;
   position: relative;
   transition:
     color var(--transition-fast),
@@ -2530,7 +2530,7 @@
 
 .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item.is-active {
   background: transparent;
-  border-bottom-color: var(--color-brand-gold, #f2b705);
+  border-bottom-color: var(--color-brand-gold, var(--plu-gold-500));
   box-shadow: none;
   color: var(--color-text-primary);
   font-weight: 700;
@@ -2548,50 +2548,173 @@
   color: var(--color-text-muted);
   flex-shrink: 0;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   line-height: 1;
   min-height: 0;
-  padding: 0 0 12px;
+  padding: 0 0 14px;
   text-transform: uppercase;
 }
 
 [data-theme='light'] .events-page--plu-ref .events-page__toolbar {
-  border-bottom-color: rgba(15, 17, 23, 0.1);
+  border-bottom-color: rgba(15, 17, 23, 0.09);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item.is-active {
   background: transparent;
-  border-bottom-color: #8a6d28;
+  border-bottom-color: var(--plu-gold-600, #8a6d28);
   box-shadow: none;
   color: var(--plu-ink-900);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-page__filters-label,
 [data-theme='light'] .events-page--plu-ref .events-page__count {
-  color: rgba(15, 17, 23, 0.5);
+  color: rgba(15, 17, 23, 0.48);
 }
 
 .events-page--plu-ref .events-layout-v2 {
-  gap: clamp(16px, 2.5vw, 24px);
+  align-items: start;
+  gap: clamp(20px, 3vw, 36px);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  max-width: none;
   padding: 0;
 }
 
 .events-page--plu-ref .events-main-column {
   display: grid;
-  gap: clamp(14px, 2vw, 20px);
+  gap: clamp(16px, 2.2vw, 24px);
   min-width: 0;
 }
 
 .events-page--plu-ref .events-list--design {
-  gap: 8px;
+  gap: 6px;
+}
+
+/* Event cards — listado editorial */
+.events-page--plu-ref .events-list--design .event-card {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  gap: 0 16px;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  padding: 4px 0;
+  transform: none;
+}
+
+.events-page--plu-ref .events-list--design .event-card::before {
+  background: var(--events-editorial-rule, var(--plu-gold-500));
+  border-radius: 99px;
+  opacity: 0;
+  top: 18%;
+  bottom: 18%;
+  transition: opacity var(--transition-fast);
+  width: 2px;
+}
+
+.events-page--plu-ref .events-list--design .event-card:hover {
+  background: color-mix(in oklab, var(--color-text-primary) 2.5%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.events-page--plu-ref .events-list--design .event-card:hover::before,
+.events-page--plu-ref .events-list--design .event-card--selected::before {
+  opacity: 1;
+  width: 2px;
+}
+
+.events-page--plu-ref .events-list--design .event-card--selected {
+  background: color-mix(in oklab, var(--plu-gold-500) 5%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  box-shadow: none;
+}
+
+.events-page--plu-ref .events-list--design .event-card--selected::before {
+  background: var(--events-editorial-rule, var(--plu-gold-500));
+}
+
+.events-page--plu-ref .event-card__date-block {
+  border-right: none;
+  min-height: 64px;
+  padding: 10px 4px 10px 10px;
+}
+
+.events-page--plu-ref .event-card__day {
+  font-size: clamp(1.25rem, 1.8vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.events-page--plu-ref .event-card__month {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  opacity: 0.72;
+}
+
+.events-page--plu-ref .event-card__body {
+  padding: 12px 8px 12px 0;
+}
+
+.events-page--plu-ref .event-card__title {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.35vw, 17px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.events-page--plu-ref .event-card__meta {
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+.events-page--plu-ref .event-card__action {
+  margin-right: 4px;
+}
+
+.events-page--plu-ref .event-card__action--live,
+.events-page--plu-ref .event-card__action--quiet {
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.events-page--plu-ref .event-card__action--live {
+  background: color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 32%, transparent);
+  color: var(--color-text-primary);
+}
+
+.events-page--plu-ref .event-card__action--live:hover {
+  background: color-mix(in oklab, var(--plu-gold-500) 18%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+}
+
+[data-theme='light'] .events-page--plu-ref .events-list--design .event-card {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .events-page--plu-ref .events-list--design .event-card:hover {
+  background: rgba(15, 17, 23, 0.02);
+}
+
+[data-theme='light'] .events-page--plu-ref .events-list--design .event-card--selected {
+  background: color-mix(in oklab, var(--plu-gold-500) 7%, #fff);
 }
 
 /* Featured event card — compacto */
 .events-featured-stack {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: calc(var(--border-radius-lg) + 2px);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  border-radius: calc(var(--border-radius-xl) + 2px);
   display: grid;
   gap: 0;
   overflow: hidden;
@@ -3000,60 +3123,102 @@
 
 .events-page--plu-ref .events-sidebar-card {
   background:
-    linear-gradient(160deg, color-mix(in oklab, #fff 3.5%, transparent) 0%, transparent 42%),
+    linear-gradient(165deg, color-mix(in oklab, #fff 4%, transparent) 0%, transparent 38%),
     var(--color-bg-surface);
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
-  border-radius: calc(var(--border-radius-xl) + 2px);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  border-radius: calc(var(--border-radius-xl) + 4px);
   box-shadow: none;
+  display: grid;
+  gap: 0;
   overflow: hidden;
-  position: relative;
+  padding: 0;
+  position: sticky;
+  top: calc(var(--header-height-scrolled, var(--header-height)) + 16px);
 }
 
 .events-page--plu-ref .events-sidebar-card::before {
-  background: linear-gradient(
-    90deg,
-    var(--plu-celeste-500) 0%,
-    rgba(255, 255, 255, 0.55) 48%,
-    var(--plu-gold-500) 100%
+  background: var(
+    --events-editorial-rule,
+    linear-gradient(
+      90deg,
+      var(--plu-celeste-500) 0%,
+      rgba(255, 255, 255, 0.55) 48%,
+      var(--plu-gold-500) 100%
+    )
   );
   content: '';
-  height: 2px;
+  height: 1.5px;
   left: 0;
-  opacity: 0.9;
+  opacity: 0.88;
   position: absolute;
   right: 0;
   top: 0;
 }
 
+.events-page--plu-ref .events-sidebar-card__calendar,
+.events-page--plu-ref .events-sidebar-card__detail {
+  min-width: 0;
+}
+
 .events-page--plu-ref .events-sidebar-card .events-countdown-chip {
-  border-bottom-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  padding: clamp(16px, 2vw, 20px) clamp(18px, 2.2vw, 22px);
+  align-items: center;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  gap: 16px;
+  padding: clamp(18px, 2.2vw, 24px) clamp(18px, 2.4vw, 24px);
+}
+
+.events-page--plu-ref .events-countdown-chip__metric {
+  align-items: baseline;
+  display: flex;
+  flex: none;
+  line-height: 1;
 }
 
 .events-page--plu-ref .events-sidebar-card .events-countdown-chip__value {
-  background: linear-gradient(135deg, var(--plu-gold-500), var(--plu-celeste-500));
+  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-celeste-400));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  font-size: clamp(2.4rem, 3.2vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+
+.events-page--plu-ref .events-countdown-chip__copy {
+  gap: 4px;
+}
+
+.events-page--plu-ref .events-countdown-chip__label {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.events-page--plu-ref .events-countdown-chip__title {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.4vw, 17px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium {
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  padding: clamp(18px, 2.2vw, 22px);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  padding: clamp(16px, 2vw, 22px) clamp(16px, 2.2vw, 22px) clamp(14px, 1.8vw, 18px);
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__header {
   background: transparent;
   border: none;
   border-radius: 0;
-  margin-bottom: 14px;
-  padding: 2px 0 12px;
+  margin-bottom: 12px;
+  padding: 2px 0 10px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   text-transform: capitalize;
@@ -3061,16 +3226,16 @@
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__title span {
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: 550;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__nav {
   background: transparent;
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
-  border-radius: 3px;
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 2px;
   color: var(--color-text-muted);
-  height: 34px;
-  width: 34px;
+  height: 32px;
+  width: 32px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__nav:hover {
@@ -3081,27 +3246,27 @@
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__weekdays {
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  margin-bottom: 8px;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
   text-transform: uppercase;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__grid {
-  gap: 3px;
+  gap: 2px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
-  border-radius: 3px;
+  border-radius: 2px;
   font-size: 12px;
   font-weight: 500;
-  min-height: 40px;
+  min-height: 36px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled) {
-  background: color-mix(in oklab, var(--plu-gold-500) 10%, transparent);
-  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 28%, transparent);
+  background: color-mix(in oklab, var(--plu-gold-500) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 26%, transparent);
   box-shadow: none;
   color: var(--color-text-primary);
   font-weight: 700;
@@ -3109,8 +3274,8 @@
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled):hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+  background: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 46%, transparent);
   box-shadow: none;
   transform: none;
 }
@@ -3133,15 +3298,15 @@
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__footer {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  margin-top: 14px;
-  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  margin-top: 12px;
+  padding-top: 10px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__jump {
   background: transparent;
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
-  border-radius: 3px;
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 2px;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__jump:hover {
@@ -3163,29 +3328,29 @@
 
 .events-page--plu-ref .events-sidebar-card .events-detail {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: clamp(18px, 2.2vw, 24px);
 }
 
 .events-page--plu-ref .events-detail__title {
   font-family: var(--font-display);
-  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem);
   font-weight: 700;
-  letter-spacing: -0.032em;
+  letter-spacing: -0.035em;
   line-height: 1.15;
   text-transform: none;
 }
 
 .events-page--plu-ref .events-detail__meta-line {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.5;
   margin: 0;
 }
 
 .events-page--plu-ref .events-detail__meta-sep {
   margin: 0 6px;
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .events-page--plu-ref .events-detail__status-copy {
@@ -3193,27 +3358,27 @@
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  max-width: 36ch;
+  max-width: 34ch;
 }
 
 .events-page--plu-ref .events-detail .events-status-badge {
   border-radius: 99px;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   padding: 5px 10px;
 }
 
 .events-page--plu-ref .events-detail__actions {
   display: grid;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 4px;
   width: 100%;
 }
 
 .events-page--plu-ref .events-detail__cta {
   align-items: center;
-  border-radius: 3px;
+  border-radius: 2px;
   font-size: 13px;
   justify-content: center;
   min-height: 44px;
@@ -3277,7 +3442,149 @@
   transform: none;
 }
 
-@media (min-width: 641px) and (max-width: 1199px) {
+@media (min-width: 960px) {
+  .events-page--plu-ref.events-page--design .events-layout-v2,
+  .events-page--plu-ref .events-layout-v2 {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(292px, 328px);
+  }
+
+  .events-page--plu-ref .events-sidebar-card {
+    position: sticky;
+    top: calc(var(--header-height-scrolled, var(--header-height)) + 16px);
+  }
+}
+
+/* Desktop grande: rebalancear para que no se “estire” el main */
+@media (min-width: 1440px) {
+  .events-page--plu-ref .events-page__body {
+    gap: clamp(28px, 2vw, 40px);
+    max-width: min(1520px, var(--max-width-content));
+    padding-inline: clamp(40px, 4.5vw, 88px);
+    padding-bottom: clamp(56px, 5.5vw, 88px);
+  }
+
+  .events-page--plu-ref.events-page--design .events-layout-v2,
+  .events-page--plu-ref .events-layout-v2 {
+    gap: clamp(32px, 2.6vw, 48px);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 400px);
+  }
+
+  .events-page--plu-ref .events-main-column {
+    gap: clamp(20px, 1.8vw, 28px);
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
+    font-size: 12.5px;
+    min-height: 42px;
+  }
+
+  .events-page--plu-ref .events-countdown-chip__value {
+    font-size: clamp(2.6rem, 2vw, 3.1rem);
+  }
+
+  .events-page--plu-ref .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-media-img {
+    min-height: clamp(260px, 26vh, 340px);
+  }
+}
+
+/* Full HD+ / TV: más presencia, sidebar más ancho, menos vacío visual */
+@media (min-width: 1920px) {
+  .events-page--plu-ref .events-page__body {
+    gap: clamp(32px, 1.8vw, 44px);
+    max-width: min(1680px, var(--max-width-content));
+    padding-inline: clamp(56px, 5vw, 112px);
+    padding-bottom: clamp(72px, 6vw, 104px);
+  }
+
+  .events-page--plu-ref.events-page--design .events-layout-v2,
+  .events-page--plu-ref .events-layout-v2 {
+    gap: clamp(40px, 2.8vw, 64px);
+    grid-template-columns: minmax(0, 1.35fr) minmax(400px, 460px);
+  }
+
+  .events-page--plu-ref .events-page__toolbar {
+    padding-bottom: 20px;
+  }
+
+  .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item {
+    font-size: 16px;
+    min-height: 46px;
+    padding: 10px 16px 14px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card {
+    border-radius: calc(var(--border-radius-xl) + 6px);
+  }
+
+  .events-page--plu-ref .events-sidebar-card .events-countdown-chip {
+    padding: 24px 26px;
+  }
+
+  .events-page--plu-ref .events-countdown-chip__value {
+    font-size: clamp(3rem, 2.1vw, 3.5rem);
+  }
+
+  .events-page--plu-ref .events-countdown-chip__title {
+    font-size: 18px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium {
+    padding: 22px 24px 18px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__title {
+    font-size: 1.4rem;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
+    font-size: 13px;
+    min-height: 46px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .events-detail {
+    gap: 14px;
+    padding: 24px 26px;
+  }
+
+  .events-page--plu-ref .events-detail__title {
+    font-size: clamp(1.4rem, 1.2vw, 1.65rem);
+  }
+
+  .events-page--plu-ref .event-card__title {
+    font-size: 17px;
+  }
+
+  .events-page--plu-ref .event-card__day {
+    font-size: 1.5rem;
+  }
+
+  .events-page--plu-ref .events-featured-stack {
+    border-radius: calc(var(--border-radius-xl) + 4px);
+  }
+
+  .events-page--plu-ref .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-layout {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .events-page--plu-ref .pitbull-spotlight:not(.pitbull-spotlight--events-text) .pitbull-spotlight__events-media-img {
+    min-height: clamp(300px, 30vh, 400px);
+  }
+}
+
+@media (min-width: 2560px) {
+  .events-page--plu-ref .events-page__body {
+    max-width: min(1760px, 70vw);
+  }
+
+  .events-page--plu-ref.events-page--design .events-layout-v2,
+  .events-page--plu-ref .events-layout-v2 {
+    grid-template-columns: minmax(0, 1.3fr) minmax(440px, 500px);
+  }
+}
+
+@media (min-width: 720px) and (max-width: 959px) {
+  .events-page--plu-ref.events-page--design .events-layout-v2,
   .events-page--plu-ref .events-layout-v2 {
     grid-template-columns: 1fr;
   }
@@ -3285,7 +3592,7 @@
   .events-page--plu-ref .events-sidebar-card {
     display: grid;
     gap: 0;
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
     position: static;
     top: auto;
   }
@@ -3294,9 +3601,24 @@
     grid-column: 1 / -1;
   }
 
+  .events-page--plu-ref .events-sidebar-card__calendar {
+    border-bottom: none;
+    border-right: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  }
+
   .events-page--plu-ref .events-sidebar-card .event-calendar {
     border-bottom: none;
-    border-right: 1px solid var(--color-border-subtle);
+    border-right: none;
+  }
+
+  .events-page--plu-ref .events-sidebar-card__detail {
+    align-self: stretch;
+    display: flex;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .events-detail {
+    flex: 1;
+    padding: clamp(16px, 2vw, 22px);
   }
 }
 
@@ -3318,7 +3640,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 719px) {
   .pitbull-spotlight__events-layout {
     grid-template-columns: 1fr;
   }
@@ -3374,6 +3696,20 @@
     padding-bottom: 2px;
   }
 
+  .events-page--plu-ref .events-sidebar-card {
+    grid-template-columns: 1fr;
+    position: static;
+  }
+
+  .events-page--plu-ref .events-sidebar-card__calendar {
+    border-right: none;
+  }
+
+  .events-page--plu-ref .events-list--design .event-card {
+    gap: 0 10px;
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
   .events-public-tickets {
     align-items: stretch;
     grid-template-columns: 1fr;
@@ -3401,6 +3737,10 @@
 
   .events-page--plu-ref .events-sidebar-card .event-calendar {
     border-right: none;
+  }
+
+  .events-page--plu-ref .events-countdown-chip__value {
+    font-size: 2.15rem;
   }
 }
 
@@ -3463,11 +3803,13 @@
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card {
   background: #fff;
   border-color: rgba(15, 17, 23, 0.08);
-  box-shadow: none;
+  box-shadow:
+    0 1px 2px rgba(15, 17, 23, 0.03),
+    0 12px 40px rgba(15, 17, 23, 0.04);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .events-countdown-chip {
-  border-bottom-color: rgba(15, 17, 23, 0.08);
+  border-bottom-color: rgba(15, 17, 23, 0.07);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .events-countdown-chip__label {
@@ -3476,6 +3818,12 @@
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .events-countdown-chip__title {
   color: var(--plu-ink-900, var(--color-text-primary));
+}
+
+[data-theme='light'] .events-page--plu-ref .events-sidebar-card .events-countdown-chip__value {
+  background: linear-gradient(135deg, var(--plu-gold-600), var(--plu-celeste-600));
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled) {

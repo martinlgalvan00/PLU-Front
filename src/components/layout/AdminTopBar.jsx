@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Search } from 'lucide-react'
+import { ArrowRight, Bell, CalendarDays, Search } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function AdminTopBar({
@@ -7,6 +7,7 @@ export default function AdminTopBar({
   eyebrow,
   searchValue,
   onSearchChange,
+  onSearchSubmit,
   showSearch = true,
   alertCount = 0,
   alertsOpen = false,
@@ -30,6 +31,11 @@ export default function AdminTopBar({
         : t('admin.dashboard.alertsCountMany', { count: alertCount })
       : t('admin.dashboard.alertsNone')
 
+  function handleSearchSubmit(event) {
+    event.preventDefault()
+    onSearchSubmit?.(searchValue)
+  }
+
   return (
     <header className="admin-page-toolbar admin-page-toolbar--dashboard">
       <div className="admin-page-toolbar__headline">
@@ -49,15 +55,29 @@ export default function AdminTopBar({
       {(showSearch || showAlerts) && (
         <div className="admin-page-toolbar__tools">
           {showSearch && (
-            <label className="admin-page-toolbar__search">
+            <form
+              className="admin-page-toolbar__search"
+              role="search"
+              onSubmit={handleSearchSubmit}
+            >
               <Search size={17} aria-hidden />
               <input
                 type="search"
+                aria-label={placeholder}
+                autoComplete="off"
                 placeholder={placeholder}
                 value={searchValue}
                 onChange={(event) => onSearchChange?.(event.target.value)}
               />
-            </label>
+              <button
+                type="submit"
+                className="admin-page-toolbar__search-submit"
+                aria-label={t('admin.search.submit')}
+                disabled={!searchValue?.trim()}
+              >
+                <ArrowRight size={15} aria-hidden />
+              </button>
+            </form>
           )}
           {showAlerts && (
             <button

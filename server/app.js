@@ -33,6 +33,9 @@ export function createApp(deps = {}) {
     createAuthRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
       auth0JwtCheck: deps.auth0JwtCheck ?? createOptionalAuth0JwtCheck(),
+      brevo: deps.brevo,
+      notificationRepository: deps.notificationRepository,
+      env: deps.env,
     }),
   )
   app.use(

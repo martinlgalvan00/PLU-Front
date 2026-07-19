@@ -1,12 +1,16 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
+  createSecurityAccessLinkRequest,
   createSecurityUserRequest,
+  createSecurityUsersBulkRequest,
+  deactivateAllSecurityUsersRequest,
   listSecurityUsersRequest,
   loginRequest,
   logoutRequest,
   meRequest,
   oauthSessionRequest,
+  securityGateRequest,
   updateSecurityUserStatusRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
@@ -35,10 +39,12 @@ import {
   demoRegistrations,
   isDemoSession,
 } from '../services/demoAthleteSeed.js'
-import { notifyAffiliationStarted, notifyPaymentApproved, notifyRegistrationConfirmed } from '../services/emailService.js'
 import {
-  createPreference as createPreferenceRequest,
-} from '../services/paymentService.js'
+  notifyAffiliationStarted,
+  notifyPaymentApproved,
+  notifyRegistrationConfirmed,
+} from '../services/emailService.js'
+import { createPreference as createPreferenceRequest } from '../services/paymentService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
   approveTicketOrder as approveTicketOrderRequest,
@@ -99,7 +105,15 @@ async function establishSupabaseSession(supabaseAuth) {
 }
 
 function buildAuditLog(action, entityType, entityId, actor, metadata) {
-  return { id: `audit-${Date.now()}`, action, entityType, entityId, actor, createdAt: new Date().toISOString(), metadata }
+  return {
+    id: `audit-${Date.now()}`,
+    action,
+    entityType,
+    entityId,
+    actor,
+    createdAt: new Date().toISOString(),
+    metadata,
+  }
 }
 
 export function useAppData() {
@@ -130,8 +144,12 @@ export function useAppData() {
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
   const [auditLogs, setAuditLogs] = useState(() => storedData?.auditLogs ?? [])
-  const [adminEvents, setAdminEvents] = useState(() => getInitialAdminEvents(storedData?.adminEvents))
-  const [shopProducts, setShopProducts] = useState(() => getInitialShopProducts(storedData?.shopProducts))
+  const [adminEvents, setAdminEvents] = useState(() =>
+    getInitialAdminEvents(storedData?.adminEvents),
+  )
+  const [shopProducts, setShopProducts] = useState(() =>
+    getInitialShopProducts(storedData?.shopProducts),
+  )
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
@@ -154,13 +172,17 @@ export function useAppData() {
     fetchPublishedEvents()
       .then((remoteEvents) => {
         if (!active || remoteEvents.length === 0) return
-        setAdminEvents((current) => remoteEvents.map((event) => ({
-          ...current.find((item) => item.slug === event.slug),
-          ...event,
-        })))
+        setAdminEvents((current) =>
+          remoteEvents.map((event) => ({
+            ...current.find((item) => item.slug === event.slug),
+            ...event,
+          })),
+        )
       })
       .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [])
 
   const refreshAthleteData = useCallback(async () => {
@@ -174,7 +196,10 @@ export function useAppData() {
         setRegistrations(snapshot.registrations)
         setPayments(snapshot.payments)
       } else {
-        const [data, remoteEvents] = await Promise.all([fetchAdminAthleteData(), fetchAdminEvents()])
+        const [data, remoteEvents] = await Promise.all([
+          fetchAdminAthleteData(),
+          fetchAdminEvents(),
+        ])
         setAthletes(data.athletes)
         setMemberships(data.memberships)
         setRegistrations(data.registrations)
@@ -191,7 +216,9 @@ export function useAppData() {
   }, [refreshAthleteData])
 
   useEffect(() => {
-    const refreshAfterPayment = () => { void refreshAthleteData() }
+    const refreshAfterPayment = () => {
+      void refreshAthleteData()
+    }
     window.addEventListener('plu:payment-updated', refreshAfterPayment)
     return () => window.removeEventListener('plu:payment-updated', refreshAfterPayment)
   }, [refreshAthleteData])
@@ -229,7 +256,8 @@ export function useAppData() {
           setPayments(athleteSession.payments)
           return
         } catch (athleteError) {
-          if (athleteError?.status !== 401) console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
+          if (athleteError?.status !== 401)
+            console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
         }
 
         if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
@@ -280,7 +308,8 @@ export function useAppData() {
   )
 
   const pendingActions = useMemo(
-    () => buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders }),
+    () =>
+      buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders }),
     [payments, athletes, memberships, registrations, pendingTicketOrders],
   )
 
@@ -291,7 +320,14 @@ export function useAppData() {
 
   const recentActivity = useMemo(
     () =>
-      buildRecentActivity({ auditLogs, athletes, memberships, registrations, payments, events: adminEvents }),
+      buildRecentActivity({
+        auditLogs,
+        athletes,
+        memberships,
+        registrations,
+        payments,
+        events: adminEvents,
+      }),
     [auditLogs, athletes, memberships, registrations, payments, adminEvents],
   )
 
@@ -321,9 +357,12 @@ export function useAppData() {
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
         !query ||
-        registration.athlete?.fullName.toLowerCase().includes(query) ||
-        registration.athlete?.documentId.includes(query) ||
-        registration.category.toLowerCase().includes(query)
+        registration.athlete?.fullName?.toLowerCase().includes(query) ||
+        registration.athlete?.documentId?.toLowerCase().includes(query) ||
+        registration.athlete?.email?.toLowerCase().includes(query) ||
+        registration.event?.toLowerCase().includes(query) ||
+        registration.category?.toLowerCase().includes(query) ||
+        registration.division?.toLowerCase().includes(query)
       return statusMatch && eventMatch && queryMatch
     })
   }, [enrichedRegistrations, filters])
@@ -342,9 +381,16 @@ export function useAppData() {
         setMemberships([])
         setRegistrations([])
         setPayments([])
-        const confirmation = { type: 'profile', athleteName: athlete.fullName, status: 'registrado' }
+        const confirmation = {
+          type: 'profile',
+          athleteName: athlete.fullName,
+          status: 'registrado',
+        }
         setCreatedOrder(confirmation)
-        setAuditLogs((c) => [buildAuditLog('athlete.registered', 'athlete', athlete.id, 'public'), ...c])
+        setAuditLogs((c) => [
+          buildAuditLog('athlete.registered', 'athlete', athlete.id, 'public'),
+          ...c,
+        ])
         setForm({ ...DEFAULT_FORM })
         setSession({
           role: 'athlete_plu',
@@ -370,7 +416,10 @@ export function useAppData() {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
         const attemptFingerprint = `${athlete.id}:${planCode}:${normalizedMethod}`
         if (membershipAttemptRef.current?.fingerprint !== attemptFingerprint) {
-          membershipAttemptRef.current = { fingerprint: attemptFingerprint, idempotencyKey: crypto.randomUUID() }
+          membershipAttemptRef.current = {
+            fingerprint: attemptFingerprint,
+            idempotencyKey: crypto.randomUUID(),
+          }
         }
         const { order, membership, plan } = await createMembershipOrderRequest(
           athlete.id,
@@ -378,12 +427,15 @@ export function useAppData() {
           planCode,
           membershipAttemptRef.current.idempotencyKey,
         )
-        const checkout = order.method === 'mercado_pago' && plan?.collectionMode !== 'recurring'
-          ? await createPreferenceRequest({ paymentId: order.id })
-          : null
+        const checkout =
+          order.method === 'mercado_pago' && plan?.collectionMode !== 'recurring'
+            ? await createPreferenceRequest({ paymentId: order.id })
+            : null
         setMemberships((current) => [
           membership,
-          ...current.filter((item) => item.athleteId !== athlete.id || item.year !== membership.year),
+          ...current.filter(
+            (item) => item.athleteId !== athlete.id || item.year !== membership.year,
+          ),
         ])
         const payment = {
           id: order.id,
@@ -410,7 +462,10 @@ export function useAppData() {
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        setAuditLogs((current) => [buildAuditLog('membership.created', 'membership', membership.id, athlete.id), ...current])
+        setAuditLogs((current) => [
+          buildAuditLog('membership.created', 'membership', membership.id, athlete.id),
+          ...current,
+        ])
         return { membership, payment, plan, createdOrder }
       } catch (error) {
         if (error instanceof ApiError) return { error: error.message }
@@ -436,24 +491,39 @@ export function useAppData() {
 
       try {
         const attemptFingerprint = JSON.stringify([
-          athlete.id, selectedEvent.slug, form.division, form.category, form.estimatedWeight, form.paymentMethod,
+          athlete.id,
+          selectedEvent.slug,
+          form.division,
+          form.category,
+          form.estimatedWeight,
+          form.paymentMethod,
         ])
         if (registrationAttemptRef.current?.fingerprint !== attemptFingerprint) {
-          registrationAttemptRef.current = { fingerprint: attemptFingerprint, idempotencyKey: crypto.randomUUID() }
+          registrationAttemptRef.current = {
+            fingerprint: attemptFingerprint,
+            idempotencyKey: crypto.randomUUID(),
+          }
         }
         const { order, registration } = await createCompetitionRegistrationRequest({
           athleteId: athlete.id,
           eventSlug: selectedEvent.slug,
           division: form.division,
           category: form.category,
-          bodyweightKg: form.estimatedWeight ? Number(String(form.estimatedWeight).replace(',', '.')) : null,
+          bodyweightKg: form.estimatedWeight
+            ? Number(String(form.estimatedWeight).replace(',', '.'))
+            : null,
           paymentMethod: form.paymentMethod,
           idempotencyKey: registrationAttemptRef.current.idempotencyKey,
         })
-        const checkout = order.method === 'mercado_pago'
-          ? await createPreferenceRequest({ paymentId: order.id })
-          : null
-        const enrichedRegistration = { ...registration, event: selectedEvent.title, eventSlug: selectedEvent.slug }
+        const checkout =
+          order.method === 'mercado_pago'
+            ? await createPreferenceRequest({ paymentId: order.id })
+            : null
+        const enrichedRegistration = {
+          ...registration,
+          event: selectedEvent.title,
+          eventSlug: selectedEvent.slug,
+        }
         setRegistrations((current) => [enrichedRegistration, ...current])
         const payment = {
           id: order.id,
@@ -479,7 +549,10 @@ export function useAppData() {
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        setAuditLogs((current) => [buildAuditLog('registration.created', 'registration', registration.id, athlete.id), ...current])
+        setAuditLogs((current) => [
+          buildAuditLog('registration.created', 'registration', registration.id, athlete.id),
+          ...current,
+        ])
         return { registration: enrichedRegistration, payment, createdOrder }
       } catch (error) {
         // El servidor es la autoridad para el gate de membresía activa
@@ -502,7 +575,9 @@ export function useAppData() {
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
       const provider =
-        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' ? 'manual' : paymentMethod
+        paymentMethod === 'transferencia' || paymentMethod === 'manual_link'
+          ? 'manual'
+          : paymentMethod
       try {
         const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
@@ -512,7 +587,11 @@ export function useAppData() {
             accessToken: `${crypto.randomUUID()}${crypto.randomUUID()}`,
           }
         }
-        const { order, tickets: createdTickets, orderAccessToken } = await createTicketOrderRequest({
+        const {
+          order,
+          tickets: createdTickets,
+          orderAccessToken,
+        } = await createTicketOrderRequest({
           eventSlug: purchaseEvent.slug,
           attendees: attendees.map((attendee) => ({
             fullName: attendee.fullName,
@@ -563,9 +642,13 @@ export function useAppData() {
       const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
       setTickets((current) => {
         const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
-        return current.map((item) => (byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item))
+        return current.map((item) =>
+          byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+        )
       })
-      setCreatedOrder((current) => (current?.orderId === orderId ? { ...current, status: order.status } : current))
+      setCreatedOrder((current) =>
+        current?.orderId === orderId ? { ...current, status: order.status } : current,
+      )
       setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
     } catch (error) {
       console.error('approveTicketPurchase:', error)
@@ -573,38 +656,41 @@ export function useAppData() {
     }
   }, [])
 
-  const uploadTicketPaymentProofAction = useCallback(async (orderId, file) => {
-    try {
-      const accessToken = createdOrder?.orderId === orderId ? createdOrder.orderAccessToken : null
-      const { storagePath } = await uploadTicketPaymentProof(orderId, accessToken, file)
-      const { order } = await registerTicketPaymentProofRequest(orderId, accessToken, storagePath)
-      setCreatedOrder((current) =>
-        current?.orderId === orderId
-          ? {
-              ...current,
-              status: order.status,
-              paymentProofPath: order.paymentProofPath,
-              paymentProofUploadedAt: order.paymentProofUploadedAt,
-            }
-          : current,
-      )
-      setPendingTicketOrders((current) =>
-        current.map((item) =>
-          item.orderId === orderId
+  const uploadTicketPaymentProofAction = useCallback(
+    async (orderId, file) => {
+      try {
+        const accessToken = createdOrder?.orderId === orderId ? createdOrder.orderAccessToken : null
+        const { storagePath } = await uploadTicketPaymentProof(orderId, accessToken, file)
+        const { order } = await registerTicketPaymentProofRequest(orderId, accessToken, storagePath)
+        setCreatedOrder((current) =>
+          current?.orderId === orderId
             ? {
-                ...item,
+                ...current,
                 status: order.status,
                 paymentProofPath: order.paymentProofPath,
                 paymentProofUploadedAt: order.paymentProofUploadedAt,
               }
-            : item,
-        ),
-      )
-      return { order }
-    } catch (error) {
-      return { error: error.message ?? 'No se pudo enviar el comprobante.' }
-    }
-  }, [createdOrder])
+            : current,
+        )
+        setPendingTicketOrders((current) =>
+          current.map((item) =>
+            item.orderId === orderId
+              ? {
+                  ...item,
+                  status: order.status,
+                  paymentProofPath: order.paymentProofPath,
+                  paymentProofUploadedAt: order.paymentProofUploadedAt,
+                }
+              : item,
+          ),
+        )
+        return { order }
+      } catch (error) {
+        return { error: error.message ?? 'No se pudo enviar el comprobante.' }
+      }
+    },
+    [createdOrder],
+  )
 
   const refreshPendingTicketOrders = useCallback(async () => {
     if (!userCanEdit) return
@@ -683,7 +769,9 @@ export function useAppData() {
     try {
       const { registration } = await checkInRegistrationRequest(registrationId, gate)
       setRegistrations((current) =>
-        current.map((item) => (item.id === registration.id ? { ...item, checkedInAt: registration.checkedInAt } : item)),
+        current.map((item) =>
+          item.id === registration.id ? { ...item, checkedInAt: registration.checkedInAt } : item,
+        ),
       )
       return { outcome: 'ok', registration }
     } catch (error) {
@@ -703,17 +791,38 @@ export function useAppData() {
     setUsers((current) => updateUserRole(current, userId, nextRole))
   }, [])
 
-  const createUserAction = useCallback(
-    (draft) => {
-      setUsers((current) => createUser(current, draft))
-    },
-    [],
-  )
+  const createUserAction = useCallback((draft) => {
+    setUsers((current) => createUser(current, draft))
+  }, [])
 
   const createSecurityUserAction = useCallback(async (draft) => {
-    const { user, tempPassword } = await createSecurityUserRequest(draft)
-    setUsers((current) => [{ id: user.id, name: user.name, email: user.email, role: user.role }, ...current])
-    return { user, tempPassword }
+    const { user, tempPassword, emailed } = await createSecurityUserRequest(draft)
+    setUsers((current) => [
+      { id: user.id, name: user.name, email: user.email, role: user.role },
+      ...current,
+    ])
+    return { user, tempPassword, emailed }
+  }, [])
+
+  const createSecurityUsersBulkAction = useCallback(async (draft) => {
+    const { created, skipped } = await createSecurityUsersBulkRequest(draft)
+    if (created.length) {
+      setUsers((current) => [
+        ...created.map(({ user }) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        })),
+        ...current,
+      ])
+    }
+    return { created, skipped }
+  }, [])
+
+  const deactivateAllSecurityUsersAction = useCallback(async (eventId) => {
+    const { deactivated } = await deactivateAllSecurityUsersRequest(eventId)
+    return deactivated
   }, [])
 
   // Listado real (Prisma) de cuentas seguridad_plu_arg de un evento puntual
@@ -731,35 +840,37 @@ export function useAppData() {
     return user
   }, [])
 
-  const login = useCallback(async (credentialsOrAccountType) => {
-    if (credentialsOrAccountType === 'athlete') {
-      const demoAthleteSession = {
-        role: 'athlete_plu',
-        athleteId: 'ath-001',
-        name: 'Martina Rivas',
-        email: 'martina.rivas@example.com',
+  const createSecurityAccessLinkAction = useCallback(
+    (userId, sendEmail = false) => createSecurityAccessLinkRequest(userId, sendEmail),
+    [],
+  )
+
+  // Login passwordless de puerta: la credencial (token firmado) crea una
+  // sesión real igual que loginRequest, incluyendo el puente de Supabase Auth.
+  const loginWithGateToken = useCallback(
+    async (token) => {
+      const { user, supabaseAuth } = await securityGateRequest(token)
+      setSession(user)
+      await establishSupabaseSession(supabaseAuth)
+      return user
+    },
+    [setSession],
+  )
+
+  const login = useCallback(
+    async (credentialsOrAccountType) => {
+      if (credentialsOrAccountType === 'athlete') {
+        const demoAthleteSession = {
+          role: 'athlete_plu',
+          athleteId: 'ath-001',
+          name: 'Martina Rivas',
+          email: 'martina.rivas@example.com',
+        }
+        setSession(demoAthleteSession)
+        return demoAthleteSession
       }
-      setSession(demoAthleteSession)
-      return demoAthleteSession
-    }
 
-    if (credentialsOrAccountType === 'admin') {
-      const demoAdminSession = {
-        id: 'demo-admin',
-        role: 'admin_plu_arg',
-        name: 'Admin Demo',
-        email: 'demo@pluarg.com.ar',
-      }
-      setSession(demoAdminSession)
-      return demoAdminSession
-    }
-
-    if (typeof credentialsOrAccountType === 'object') {
-      const emailRaw = String(credentialsOrAccountType.email ?? '').trim().toLowerCase()
-      const email = emailRaw === 'demo' ? 'demo@pluarg.com.ar' : emailRaw
-      const password = String(credentialsOrAccountType.password ?? '')
-
-      if (email === 'demo@pluarg.com.ar' && password === '123') {
+      if (credentialsOrAccountType === 'admin') {
         const demoAdminSession = {
           id: 'demo-admin',
           role: 'admin_plu_arg',
@@ -770,57 +881,84 @@ export function useAppData() {
         return demoAdminSession
       }
 
-      if ((emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') && password === '123') {
-        setMemberships((current) =>
-          current.map((membership) =>
-            membership.athleteId === 'ath-001' && membership.year === '2026'
-              ? { ...membership, status: 'pendiente_pago', paymentStatus: 'pendiente_pago', mercadoPagoRef: '' }
-              : membership,
-          ),
-        )
-        setAthletes((current) =>
-          current.map((athlete) => (athlete.id === 'ath-001' ? { ...athlete, status: 'registrado' } : athlete)),
-        )
-        const demoAthleteSession = {
-          id: 'demo-athlete',
-          role: 'athlete_plu',
-          athleteId: 'ath-001',
-          demoUnAffiliated: true,
-          name: 'Martina Rivas',
-          email: 'martina.rivas@example.com',
+      if (typeof credentialsOrAccountType === 'object') {
+        const emailRaw = String(credentialsOrAccountType.email ?? '')
+          .trim()
+          .toLowerCase()
+        const email = emailRaw === 'demo' ? 'demo@pluarg.com.ar' : emailRaw
+        const password = String(credentialsOrAccountType.password ?? '')
+
+        if (email === 'demo@pluarg.com.ar' && password === '123') {
+          const demoAdminSession = {
+            id: 'demo-admin',
+            role: 'admin_plu_arg',
+            name: 'Admin Demo',
+            email: 'demo@pluarg.com.ar',
+          }
+          setSession(demoAdminSession)
+          return demoAdminSession
         }
-        setSession(demoAthleteSession)
-        return demoAthleteSession
+
+        if ((emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') && password === '123') {
+          setMemberships((current) =>
+            current.map((membership) =>
+              membership.athleteId === 'ath-001' && membership.year === '2026'
+                ? {
+                    ...membership,
+                    status: 'pendiente_pago',
+                    paymentStatus: 'pendiente_pago',
+                    mercadoPagoRef: '',
+                  }
+                : membership,
+            ),
+          )
+          setAthletes((current) =>
+            current.map((athlete) =>
+              athlete.id === 'ath-001' ? { ...athlete, status: 'registrado' } : athlete,
+            ),
+          )
+          const demoAthleteSession = {
+            id: 'demo-athlete',
+            role: 'athlete_plu',
+            athleteId: 'ath-001',
+            demoUnAffiliated: true,
+            name: 'Martina Rivas',
+            email: 'martina.rivas@example.com',
+          }
+          setSession(demoAthleteSession)
+          return demoAthleteSession
+        }
+
+        if ((emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') && password === '123') {
+          const demoPluUsaSession = {
+            id: 'demo-plu-usa',
+            role: 'viewer_plu_usa',
+            name: 'PLU USA',
+            email: 'demo3@pluarg.com.ar',
+          }
+          setSession(demoPluUsaSession)
+          return demoPluUsaSession
+        }
+
+        // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
+        // necesita una sesiÃ³n de verdad porque el check-in muta datos reales en Postgres,
+        // a diferencia del resto de la demo que vive en localStorage.
       }
 
-      if ((emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') && password === '123') {
-        const demoPluUsaSession = {
-          id: 'demo-plu-usa',
-          role: 'viewer_plu_usa',
-          name: 'PLU USA',
-          email: 'demo3@pluarg.com.ar',
-        }
-        setSession(demoPluUsaSession)
-        return demoPluUsaSession
+      try {
+        const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
+        setSession(user)
+        await establishSupabaseSession(supabaseAuth)
+        return user
+      } catch (error) {
+        if (error?.status !== 401) throw error
+        const { user } = await loginAthleteSession(credentialsOrAccountType)
+        setSession(user)
+        return user
       }
-
-      // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
-      // necesita una sesiÃ³n de verdad porque el check-in muta datos reales en Postgres,
-      // a diferencia del resto de la demo que vive en localStorage.
-    }
-
-    try {
-      const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
-      setSession(user)
-      await establishSupabaseSession(supabaseAuth)
-      return user
-    } catch (error) {
-      if (error?.status !== 401) throw error
-      const { user } = await loginAthleteSession(credentialsOrAccountType)
-      setSession(user)
-      return user
-    }
-  }, [setSession])
+    },
+    [setSession],
+  )
 
   const logout = useCallback(async () => {
     const currentSession = session
@@ -852,27 +990,52 @@ export function useAppData() {
   const handleApprovePayment = useCallback(
     async (paymentId) => {
       try {
-        const { order, membership, registration } = await approveAthletePaymentOrderRequest(paymentId)
-        setPayments((c) => c.map((p) => (p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p)))
+        const { order, membership, registration } =
+          await approveAthletePaymentOrderRequest(paymentId)
+        setPayments((c) =>
+          c.map((p) =>
+            p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,
+          ),
+        )
 
         const athlete = athletes.find((a) => a.id === order.athleteId)
 
         if (membership) {
           setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
-          setAthletes((c) => c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)))
-          if (athlete) await notifyPaymentApproved(athlete, { amount: order.amount, concept: 'Afiliación anual' })
-          if (athlete) await notifyAffiliationStarted({ ...athlete, memberCode: membership.memberCode })
+          setAthletes((c) =>
+            c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)),
+          )
+          if (athlete)
+            await notifyPaymentApproved(athlete, {
+              amount: order.amount,
+              concept: 'Afiliación anual',
+            })
+          if (athlete)
+            await notifyAffiliationStarted({ ...athlete, memberCode: membership.memberCode })
         }
 
         if (registration) {
           const eventTitle = registrations.find((r) => r.id === registration.id)?.event
-          setRegistrations((c) => c.map((r) => (r.id === registration.id ? { ...r, status: registration.status, paymentStatus: order.status } : r)))
-          if (athlete) await notifyPaymentApproved(athlete, { amount: order.amount, concept: `Inscripción ${eventTitle}` })
+          setRegistrations((c) =>
+            c.map((r) =>
+              r.id === registration.id
+                ? { ...r, status: registration.status, paymentStatus: order.status }
+                : r,
+            ),
+          )
+          if (athlete)
+            await notifyPaymentApproved(athlete, {
+              amount: order.amount,
+              concept: `Inscripción ${eventTitle}`,
+            })
           if (athlete) await notifyRegistrationConfirmed(athlete, eventTitle)
         }
 
         setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
-        setAuditLogs((c) => [buildAuditLog('payment.approved', 'payment', paymentId, 'admin'), ...c])
+        setAuditLogs((c) => [
+          buildAuditLog('payment.approved', 'payment', paymentId, 'admin'),
+          ...c,
+        ])
       } catch (error) {
         console.error('handleApprovePayment:', error)
       }
@@ -880,49 +1043,61 @@ export function useAppData() {
     [athletes, registrations],
   )
 
-  const activateDemoMembership = useCallback((athleteId) => {
-    const athlete = athletes.find((item) => item.id === athleteId)
-    if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
+  const activateDemoMembership = useCallback(
+    (athleteId) => {
+      const athlete = athletes.find((item) => item.id === athleteId)
+      if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
 
-    const memberCode = `PLU-ARG-2026-${athlete.id.replace('ath-', '')}`
-    const membershipPatch = {
-      athleteId,
-      year: '2026',
-      status: 'activa',
-      startDate: new Date().toISOString().slice(0, 10),
-      expirationDate: '2027-01-31',
-      memberCode,
-      paymentStatus: 'aprobado',
-      mercadoPagoRef: `DEMO-AFIL-${Date.now()}`,
-    }
-
-    setMemberships((current) => {
-      const existing = current.find((membership) => membership.athleteId === athleteId && membership.year === '2026')
-      if (existing) {
-        return current.map((membership) =>
-          membership.id === existing.id ? { ...membership, ...membershipPatch } : membership,
-        )
+      const memberCode = `PLU-ARG-2026-${athlete.id.replace('ath-', '')}`
+      const membershipPatch = {
+        athleteId,
+        year: '2026',
+        status: 'activa',
+        startDate: new Date().toISOString().slice(0, 10),
+        expirationDate: '2027-01-31',
+        memberCode,
+        paymentStatus: 'aprobado',
+        mercadoPagoRef: `DEMO-AFIL-${Date.now()}`,
       }
 
-      return [
-        {
-          id: `mem-demo-${athleteId}`,
-          ...membershipPatch,
-        },
-        ...current,
-      ]
-    })
-    setAthletes((current) =>
-      current.map((item) => (item.id === athleteId ? { ...item, status: 'afiliado_activo' } : item)),
-    )
-    return { success: true }
-  }, [athletes])
+      setMemberships((current) => {
+        const existing = current.find(
+          (membership) => membership.athleteId === athleteId && membership.year === '2026',
+        )
+        if (existing) {
+          return current.map((membership) =>
+            membership.id === existing.id ? { ...membership, ...membershipPatch } : membership,
+          )
+        }
+
+        return [
+          {
+            id: `mem-demo-${athleteId}`,
+            ...membershipPatch,
+          },
+          ...current,
+        ]
+      })
+      setAthletes((current) =>
+        current.map((item) =>
+          item.id === athleteId ? { ...item, status: 'afiliado_activo' } : item,
+        ),
+      )
+      return { success: true }
+    },
+    [athletes],
+  )
 
   const cancelDemoMembership = useCallback((athleteId) => {
     setMemberships((current) =>
       current.map((membership) =>
         membership.athleteId === athleteId && membership.year === '2026'
-          ? { ...membership, status: 'pendiente_pago', paymentStatus: 'pendiente_pago', mercadoPagoRef: '' }
+          ? {
+              ...membership,
+              status: 'pendiente_pago',
+              paymentStatus: 'pendiente_pago',
+              mercadoPagoRef: '',
+            }
           : membership,
       ),
     )
@@ -1010,7 +1185,12 @@ export function useAppData() {
         : nextProducts[0]
       setShopProducts(nextProducts)
       setAuditLogs((current) => [
-        buildAuditLog(draft.id ? 'shop.product.updated' : 'shop.product.created', 'shop_product', savedProduct?.id ?? draft.id, 'admin'),
+        buildAuditLog(
+          draft.id ? 'shop.product.updated' : 'shop.product.created',
+          'shop_product',
+          savedProduct?.id ?? draft.id,
+          'admin',
+        ),
         ...current,
       ])
       return { product: savedProduct }
@@ -1086,8 +1266,12 @@ export function useAppData() {
     updateUserRoleAction,
     createUserAction,
     createSecurityUserAction,
+    createSecurityUsersBulkAction,
+    createSecurityAccessLinkAction,
+    deactivateAllSecurityUsersAction,
     listSecurityUsersForEventAction,
     updateSecurityUserStatusAction,
+    loginWithGateToken,
     handleApprovePayment,
     exportAdminCsv,
     exportPluUsaCsv,

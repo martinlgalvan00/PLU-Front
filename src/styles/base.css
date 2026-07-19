@@ -12,7 +12,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1,
+    'calt' 1;
 }
 
 /* ── Text selection — gold tint ── */
@@ -29,7 +32,8 @@
 /* ── Scrollbar premium — tokens por tema ── */
 html {
   scroll-behavior: smooth;
-  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.14)) var(--scrollbar-track, transparent);
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.14))
+    var(--scrollbar-track, transparent);
   scrollbar-width: thin;
 }
 
@@ -154,11 +158,13 @@ button:disabled {
 .admin-metric,
 .admin-shell__sidebar,
 .admin-page-toolbar,
+.admin-quick-dock,
 .admin-kpi-board,
 .admin-command-center__pane,
 .admin-list-shell,
 .admin-action-drawer,
 .data-table--admin,
+.data-table-mobile-toolbar,
 .admin-payment-ops,
 .admin-payment-ops__metric,
 .mp-embedded-checkout,
@@ -189,13 +195,21 @@ button:disabled {
    clip-path fuerza re-paint full-page en cada frame — con cross-fade
    solo cambia opacity de dos capas, lo que el compositor maneja en GPU. */
 @keyframes theme-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes theme-fade-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 ::view-transition-old(root) {
@@ -216,7 +230,9 @@ button:disabled {
 }
 
 .pref-toggle svg {
-  transition: transform 0.4s var(--ease-spring), opacity 0.25s;
+  transition:
+    transform 0.4s var(--ease-spring),
+    opacity 0.25s;
 }
 
 .pref-toggle:active svg {
@@ -226,10 +242,22 @@ button:disabled {
 
 /* ── Efecto visual de "cambio" en el ícono del toggle ── */
 @keyframes theme-icon-swap {
-  0%   { transform: rotate(0deg) scale(1); opacity: 1; }
-  30%  { transform: rotate(90deg) scale(0.7); opacity: 0; }
-  60%  { transform: rotate(-30deg) scale(1.15); opacity: 0; }
-  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: rotate(90deg) scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-30deg) scale(1.15);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
 }
 
 .pref-toggle--switching svg {
