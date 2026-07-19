@@ -71,3 +71,13 @@ export const ReadOnly = {
 export const Empty = {
   args: { onListSecurityUsers: async () => [] },
 }
+
+export const ApiUnavailable = {
+  args: {
+    onListSecurityUsers: async () => {
+      const error = new Error('El servicio no está disponible en este momento.')
+      error.status = 0
+      throw error
+    },
+  },
+}

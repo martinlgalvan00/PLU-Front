@@ -1,3 +1,5 @@
+import { ChevronDown } from 'lucide-react'
+
 /** Fallback select — usar solo si hay demasiadas opciones para chips. */
 export default function AdminFilterSelect({ id, label, value, onChange, options = [] }) {
   return (
@@ -10,6 +12,7 @@ export default function AdminFilterSelect({ id, label, value, onChange, options 
           </option>
         ))}
       </select>
+      <ChevronDown className="admin-filters__select-icon" size={14} aria-hidden />
     </label>
   )
 }

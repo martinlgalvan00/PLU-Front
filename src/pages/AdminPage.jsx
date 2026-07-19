@@ -2,7 +2,6 @@ import { useState } from 'react'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
 import AthletesSection from './admin/AthletesSection.jsx'
-import CheckInSection from './admin/CheckInSection.jsx'
 import DashboardSection from './admin/DashboardSection.jsx'
 import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
@@ -15,7 +14,6 @@ import UsersSection from './admin/UsersSection.jsx'
 
 export default function AdminPage({
   adminEvents,
-  canCheckIn,
   canEdit,
   canManageUsers,
   dashboardOverview,
@@ -28,10 +26,6 @@ export default function AdminPage({
   getAthleteDetail,
   onApprovePayment,
   onApproveTicketPurchase,
-  onCheckInRegistration,
-  onCheckInTicket,
-  onRedeemTicketAddon,
-  onRefreshTickets,
   onRefreshPendingTicketOrders,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
@@ -169,22 +163,6 @@ export default function AdminPage({
           onListSecurityUsers={onListSecurityUsers}
           onSaveEvent={onSaveEvent}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-          tickets={tickets}
-        />
-      )
-    }
-
-    if (section === 'checkin') {
-      return (
-        <CheckInSection
-          athletes={athletes}
-          canCheckIn={canCheckIn}
-          memberships={enrichedMemberships}
-          onCheckInRegistration={onCheckInRegistration}
-          onCheckInTicket={onCheckInTicket}
-          onRedeemTicketAddon={onRedeemTicketAddon}
-          onRefreshTickets={onRefreshTickets}
-          registrations={registrations}
           tickets={tickets}
         />
       )

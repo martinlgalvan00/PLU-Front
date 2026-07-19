@@ -6,7 +6,7 @@ import AdminOfflineSyncStatus from '../../components/admin/AdminOfflineSyncStatu
 import AdminQrScanner from '../../components/admin/AdminQrScanner.jsx'
 import CheckInScanResult from '../../components/admin/CheckInScanResult.jsx'
 import { AdminIdentityCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 
@@ -141,7 +141,7 @@ export default function CheckInSection({
       ]}
       onQueryChange={workspace.setQuery}
     >
-      <DataTable
+      <AdminDataTable
         variant="admin"
         getRowClassName={(row) => (row.id === workspace.highlightRowId ? 'data-table__row--selected' : '')}
         columns={[

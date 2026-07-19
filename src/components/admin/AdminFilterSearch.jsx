@@ -1,8 +1,11 @@
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function AdminFilterSearch({ placeholder = 'Buscar…', query, onQueryChange }) {
+  const { t } = useI18n()
+
   return (
-    <label className="admin-filters__search">
+    <div className="admin-filters__search" role="search">
       <Search size={16} aria-hidden />
       <input
         type="search"
@@ -18,6 +21,16 @@ export default function AdminFilterSearch({ placeholder = 'Buscar…', query, on
           }
         }}
       />
-    </label>
+      {query ? (
+        <button
+          type="button"
+          className="admin-filters__search-clear"
+          aria-label={t('admin.filters.clearSearch')}
+          onClick={() => onQueryChange('')}
+        >
+          <X size={13} aria-hidden />
+        </button>
+      ) : null}
+    </div>
   )
 }

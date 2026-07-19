@@ -4,7 +4,7 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AuditTimeline from '../../components/ui/AuditTimeline.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
@@ -78,13 +78,14 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
       )}
 
       {activeTab === 'memberships' && (
-        <DataTable
+        <AdminDataTable
           columns={[
-            { key: 'year', label: t('admin.columns.year') },
+            { key: 'year', label: t('admin.columns.year'), mobile: 'primary', desktop: 'numeric', align: 'end' },
             { key: 'memberCode', label: t('admin.columns.code') },
             {
               key: 'status',
               label: t('admin.columns.status'),
+              mobile: 'badge',
               render: (row) => <StatusBadge value={row.status} />,
             },
             { key: 'startDate', label: t('admin.columns.start') },
@@ -96,14 +97,15 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
       )}
 
       {activeTab === 'registrations' && (
-        <DataTable
+        <AdminDataTable
           columns={[
-            { key: 'event', label: t('admin.columns.event') },
+            { key: 'event', label: t('admin.columns.event'), mobile: 'primary' },
             { key: 'category', label: t('admin.columns.category') },
             { key: 'division', label: t('admin.columns.division') },
             {
               key: 'status',
               label: t('admin.columns.status'),
+              mobile: 'badge',
               render: (row) => <StatusBadge value={row.status} />,
             },
           ]}
@@ -113,23 +115,28 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
       )}
 
       {activeTab === 'payments' && (
-        <DataTable
+        <AdminDataTable
           columns={[
-            { key: 'concept', label: t('admin.columns.concept') },
+            { key: 'concept', label: t('admin.columns.concept'), mobile: 'primary' },
             {
               key: 'amount',
               label: t('admin.columns.amount'),
+              mobile: 'default',
+              desktop: 'numeric',
+              align: 'end',
               render: (row) => money(row.amount),
             },
             {
               key: 'status',
               label: t('admin.columns.status'),
+              mobile: 'badge',
               render: (row) => <StatusBadge value={row.status} />,
             },
             { key: 'method', label: t('admin.columns.method') },
             {
               key: 'action',
               label: t('admin.columns.action'),
+              mobile: 'action',
               render: (row) => (
                 <AdminTableActions>
                   <AdminIconButton

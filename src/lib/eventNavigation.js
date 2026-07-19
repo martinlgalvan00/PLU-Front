@@ -40,7 +40,11 @@ export function getNextUpcomingEvent(events = [], now = new Date()) {
 }
 
 export function getFeaturedEvent(events = []) {
-  return events.find((event) => event.featured) ?? events[0] ?? null
+  // El destacado explícito manda (staff_upsert_event garantiza que hay a lo
+  // sumo uno). Si no hay ninguno marcado, se cae al próximo por fecha en vez
+  // de events[0], que dependía del orden arbitrario del fetch y podía promover
+  // como "Pitbull" un evento cualquiera (incluso uno ya finalizado).
+  return events.find((event) => event.featured) ?? getNextUpcomingEvent(events)
 }
 
 export function getDaysUntilEvent(event, now = new Date()) {

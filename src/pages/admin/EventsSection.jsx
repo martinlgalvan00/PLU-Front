@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CalendarDays, MapPin, Pencil, Plus, Star, Users } from 'lucide-react'
+import { CalendarDays, MapPin, Pencil, Plus, ShieldCheck, Star, Users } from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
 import AdminEventEditor, { AdminEventLivePreview } from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
@@ -39,6 +39,7 @@ export default function EventsSection({
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
   const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState(ADMIN_EVENT_FORM_DEFAULT)
+  const [editorFocus, setEditorFocus] = useState('details')
 
   const statusOptions = useMemo(
     () => translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t),
@@ -56,12 +57,14 @@ export default function EventsSection({
 
   function openCreateForm() {
     setDraft(ADMIN_EVENT_FORM_DEFAULT)
+    setEditorFocus('details')
     setFormOpen(true)
   }
 
-  function openEditForm(event) {
+  function openEditForm(event, focus = 'details') {
     if (!event) return
     setSelectedId(event.id)
+    setEditorFocus(focus)
     setDraft({
       ...ADMIN_EVENT_FORM_DEFAULT,
       id: event.id,
@@ -171,7 +174,9 @@ export default function EventsSection({
           ) : (
             <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
               {rows.map((row) => {
-                const fill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
+                const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
+                const fill = Math.min(rawFill, 100)
+                const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
                 const { tone } = getStatusMeta(row.status)
                 const isSelected = row.id === selectedEvent?.id
                 return (
@@ -186,6 +191,7 @@ export default function EventsSection({
                       .join(' ')}
                     role="button"
                     tabIndex={0}
+                    aria-current={isSelected ? 'true' : undefined}
                     onClick={() => setSelectedId(row.id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -222,8 +228,15 @@ export default function EventsSection({
                       </div>
                     </div>
 
-                    <div className="admin-event-row__capacity">
-                      <div className="admin-event-row__capacity-bar">
+                    <div className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
+                      <div
+                        className="admin-event-row__capacity-bar"
+                        role="progressbar"
+                        aria-label={t('admin.dashboard.slots')}
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow={fill}
+                      >
                         <div
                           className="admin-event-row__capacity-fill"
                           style={{ width: `${fill}%` }}
@@ -244,6 +257,13 @@ export default function EventsSection({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <AdminCopyLinkMenu links={buildEventLinks(row)} />
+                      <AdminIconButton
+                        disabled={!canEdit}
+                        icon={ShieldCheck}
+                        label={t('admin.eventEditor.security.title')}
+                        onClick={() => openEditForm(row, 'security')}
+                        variant="ghost"
+                      />
                       <AdminIconButton
                         disabled={!canEdit}
                         icon={Pencil}
@@ -269,12 +289,20 @@ export default function EventsSection({
               <div className="admin-event-preview__head-actions">
                 <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
                 {canEdit && (
-                  <AdminIconButton
-                    icon={Pencil}
-                    label={t('admin.sections.events.customize')}
-                    onClick={() => openEditForm(selectedEvent)}
-                    variant="ghost"
-                  />
+                  <>
+                    <AdminIconButton
+                      icon={ShieldCheck}
+                      label={t('admin.eventEditor.security.title')}
+                      onClick={() => openEditForm(selectedEvent, 'security')}
+                      variant="celeste"
+                    />
+                    <AdminIconButton
+                      icon={Pencil}
+                      label={t('admin.sections.events.customize')}
+                      onClick={() => openEditForm(selectedEvent)}
+                      variant="ghost"
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -290,6 +318,7 @@ export default function EventsSection({
           canEdit={canEdit}
           canManageUsers={canManageUsers}
           draft={draft}
+          initialFocus={editorFocus}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}

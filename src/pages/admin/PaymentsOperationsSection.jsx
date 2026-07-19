@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
-import AdminFilterSelect from '../../components/admin/AdminFilterSelect.jsx'
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -155,19 +155,25 @@ export default function PaymentsOperationsSection({
         </details>
 
         <div className="admin-payment-ops__filter">
-          <AdminFilterSelect
+          <AdminFilterChipGroup
             id="payment-ops-status"
             label={t('admin.filters.status')}
             value={status}
             onChange={setStatus}
+            compact
+            inline
             options={[
               ['', t('admin.paymentOperations.allEvents')],
-              ['failed', t('admin.paymentOperations.failed')],
-              ['processing', t('admin.paymentOperations.processing')],
-              ['processed', t('admin.paymentOperations.processed')],
+              ['failed', t('admin.paymentOperations.failed'), summary.events?.failed],
+              ['processing', t('admin.paymentOperations.processing'), summary.events?.processing],
+              ['processed', t('admin.paymentOperations.processed'), summary.events?.processed],
             ]}
           />
-          {summary.updatedAt && <small>{t('admin.paymentOperations.updatedAt', { date: formatDate(summary.updatedAt, locale) })}</small>}
+          {summary.updatedAt ? (
+            <small className="admin-payment-ops__filter-meta">
+              {t('admin.paymentOperations.updatedAt', { date: formatDate(summary.updatedAt, locale) })}
+            </small>
+          ) : null}
         </div>
 
         {error ? (
@@ -175,7 +181,7 @@ export default function PaymentsOperationsSection({
         ) : loading && !data ? (
           <LoadingState label={t('admin.paymentOperations.loading')} />
         ) : (
-          <DataTable
+          <AdminDataTable
             variant="admin"
             emptyMessage={t('admin.paymentOperations.empty')}
             rows={operationRows}
@@ -183,7 +189,7 @@ export default function PaymentsOperationsSection({
               { key: 'event_type', label: t('admin.paymentOperations.type'), mobile: 'primary', sortable: true },
               { key: 'resource_id', label: t('admin.paymentOperations.resource'), mobile: 'default', sortable: true },
               { key: 'status', label: t('admin.columns.status'), mobile: 'badge', sortable: true, render: (row) => <StatusBadge value={row.status} /> },
-              { key: 'attempts_count', label: t('admin.paymentOperations.attempts'), mobile: 'default', sortable: true, render: (row) => `${row.attempts_count}/${row.max_attempts}` },
+              { key: 'attempts_count', label: t('admin.paymentOperations.attempts'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true, render: (row) => `${row.attempts_count}/${row.max_attempts}` },
               { key: 'last_attempt_at', label: t('admin.paymentOperations.lastAttempt'), mobile: 'default', sortable: true, render: (row) => formatDate(row.last_attempt_at, locale) },
               { key: 'error', label: t('admin.paymentOperations.detail'), mobile: 'hidden', render: (row) => row.error || '—' },
               {

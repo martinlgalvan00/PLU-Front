@@ -356,7 +356,12 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   personId     String?    @unique
+  // eventId/eventSlug referencian public.events de Supabase (uuid), la
+  // fuente de verdad de eventos. No hay FK: la tabla Prisma Event es legacy
+  // y no se puebla. eventSlug se guarda desnormalizado para el scoping de
+  // login de seguridad y la generacion de credenciales de puerta.
   eventId      String?
+  eventSlug    String?
 
   profile                 UserProfile?
   identities              UserIdentity[]
@@ -372,7 +377,6 @@ model User {
   checkIns                CheckIn[]
   outboxEvents            OutboxEvent[]
   person                  Person?                      @relation(fields: [personId], references: [id], onDelete: SetNull)
-  event                   Event?                       @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([role, status])
   @@index([eventId])
@@ -760,7 +764,6 @@ model Event {
   ticketOrders        TicketOrder[]
   tickets             Ticket[]
   checkIns            CheckIn[]
-  securityUsers       User[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, visibilityStatus, startsAt])

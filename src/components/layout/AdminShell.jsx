@@ -42,7 +42,7 @@ const ICONS = {
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
-const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'audit'])
+const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'audit', 'checkin'])
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 
 function readStoredCollapsed() {
@@ -138,7 +138,11 @@ export default function AdminShell({
         <div className="admin-shell__brand">
           <div className="admin-shell__brand-inner">
             <div className="admin-shell__brand-mark">
-              <BrandLogo imgClassName="admin-shell__brand-logo" height={28} />
+              <BrandLogo
+                variant="argentina"
+                imgClassName="admin-shell__brand-logo"
+                height={28}
+              />
             </div>
             <div className="admin-shell__brand-copy">
               <span className="admin-shell__brand-name">{t('brand.name')}</span>
@@ -210,10 +214,10 @@ export default function AdminShell({
                 <span className="admin-shell__session-role">{roleLabel}</span>
               </span>
             </span>
-            <div className="admin-shell__prefs">
-              <ThemeToggle compact />
-              <LanguageToggle compact />
-            </div>
+          </div>
+          <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
+            <ThemeToggle compact />
+            <LanguageToggle compact />
           </div>
           <button type="button" className="admin-shell__exit" onClick={onExit} title={collapsed ? t('admin.shell.exit') : undefined}>
             <ArrowLeft size={14} strokeWidth={2} aria-hidden />

@@ -8043,6 +8043,11 @@
    ============================================= */
 
 .pitbull-hero-masthead {
+  --px: 0;
+  --py: 0;
+  --active: 0;
+  --glow-x: 50%;
+  --glow-y: 50%;
   margin-top: calc(-1 * var(--header-height));
   padding:
     calc(var(--header-height) + clamp(20px, 3vw, 36px))
@@ -8083,13 +8088,46 @@
   z-index: 0;
 }
 
+/* Capa profunda — parallax en contra del cursor */
+.pitbull-hero-masthead__backdrop-plate {
+  inset: -6%;
+  position: absolute;
+  transform: translate3d(calc(var(--px) * -22px), calc(var(--py) * -18px), 0) scale(1.06);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
 .pitbull-hero-masthead__backdrop-img {
   display: block;
   height: 100%;
   object-fit: cover;
   object-position: center 38%;
-  transform: scale(1.04);
   width: 100%;
+}
+
+/* Luz dorada reactiva que sigue al cursor */
+.pitbull-hero-masthead__reactive {
+  background: radial-gradient(
+    440px 380px at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(242, 183, 5, 0.18),
+    rgba(242, 183, 5, 0.06) 32%,
+    transparent 64%
+  );
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: calc(0.12 + var(--active, 0) * 0.7);
+  position: absolute;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+}
+
+[data-theme='light'] .pitbull-hero-masthead__reactive {
+  mix-blend-mode: multiply;
+  background: radial-gradient(
+    440px 380px at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(242, 183, 5, 0.16),
+    transparent 64%
+  );
 }
 
 .pitbull-hero-masthead__backdrop-scrim {
@@ -8245,7 +8283,18 @@
   padding: 0;
   padding-left: clamp(16px, 2.2vw, 24px);
   position: relative;
+  transform: translate3d(calc(var(--px) * 8px), calc(var(--py) * 6px), 0);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-hero-masthead__backdrop-plate,
+  .pitbull-hero-masthead__reactive,
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__panel {
+    transform: none;
+    transition: none;
+  }
 }
 
 .pitbull-hero-masthead--text .pitbull-hero-masthead__panel::before {
@@ -9400,6 +9449,48 @@
   background: linear-gradient(180deg, transparent 58%, rgba(247, 246, 243, 0.22) 100%);
 }
 
+/* Showcase 3D — la foto de atletas como producto interactivo */
+.pitbull-athletes-showcase {
+  box-shadow: 0 30px 70px -50px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pitbull-athletes-showcase.tilt-card--interactive:hover {
+  box-shadow:
+    0 40px 90px -50px rgba(0, 0, 0, 0.7),
+    0 18px 40px -34px rgba(242, 183, 5, 0.5);
+}
+
+.pitbull-athletes-showcase__inner {
+  height: 100%;
+  position: relative;
+}
+
+.pitbull-athletes-showcase__inner .pitbull-athletes-layout__img {
+  height: 100%;
+}
+
+/* Luz dorada reactiva que sigue al cursor sobre la placa */
+.pitbull-athletes-showcase__glare {
+  background: radial-gradient(
+    280px 280px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 50%),
+    rgba(242, 183, 5, 0.24),
+    rgba(242, 183, 5, 0.06) 34%,
+    transparent 62%
+  );
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: calc(0.15 + var(--tilt-active, 0) * 0.7);
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 2;
+}
+
+[data-theme='light'] .pitbull-athletes-showcase__glare {
+  mix-blend-mode: multiply;
+}
+
 .pitbull-athletes-journey {
   display: grid;
   gap: clamp(18px, 2.8vw, 28px);
@@ -10389,6 +10480,735 @@
     justify-content: center;
     max-width: 100%;
     width: 100%;
+  }
+}
+
+/* =============================================
+   PITBULL — capa reactiva: luz que sigue el cursor,
+   profundidad y microinteracciones (mismo lenguaje
+   que la página de afiliaciones).
+   ============================================= */
+
+/* ── Feature flow (cómo se compite) — luz reactiva por paso ── */
+.pitbull-feature-flow__step {
+  border-radius: 12px;
+  transition:
+    background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pitbull-feature-flow__step::after {
+  background: radial-gradient(
+    260px 180px at var(--mx, 18%) var(--my, 50%),
+    color-mix(in oklab, var(--plu-gold-500) 12%, transparent),
+    transparent 60%
+  );
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+.pitbull-feature-flow__num,
+.pitbull-feature-flow__copy {
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-feature-flow__num {
+  transition:
+    color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-feature-flow__step:hover::after {
+    opacity: 1;
+  }
+
+  .pitbull-feature-flow__step:hover .pitbull-feature-flow__num {
+    color: color-mix(in oklab, var(--plu-gold-500) 88%, transparent);
+    transform: translateX(2px);
+  }
+}
+
+/* ── Categorías — chips con luz reactiva y microlift ── */
+.pitbull-categories-chips__item {
+  cursor: default;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pitbull-categories-chips__item::before {
+  background: radial-gradient(
+    70px 70px at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--plu-gold-500) 24%, transparent),
+    transparent 70%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+
+.pitbull-categories-chips__item--modality::before {
+  background: radial-gradient(
+    70px 70px at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--color-brand-celeste) 26%, transparent),
+    transparent 70%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-categories-chips__item:hover {
+    transform: translateY(-2px);
+  }
+
+  .pitbull-categories-chips__item:hover::before {
+    opacity: 1;
+  }
+
+  .pitbull-categories-chips__item--modality:hover {
+    border-color: color-mix(in oklab, var(--color-brand-celeste) 48%, transparent);
+    box-shadow: 0 10px 22px -16px color-mix(in oklab, var(--color-brand-celeste) 65%, transparent);
+  }
+
+  .pitbull-categories-chips__item--division:hover {
+    border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+    box-shadow: 0 10px 22px -16px color-mix(in oklab, var(--plu-gold-500) 65%, transparent);
+  }
+}
+
+/* ── Mapa — marco reactivo con anillo dorado y barrido de luz al hover ── */
+.pitbull-location--editorial .pitbull-location__map-shell {
+  transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pitbull-location__map-shell::before {
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 3;
+}
+
+.pitbull-location__map-shell::after {
+  background: linear-gradient(120deg, transparent 40%, rgba(242, 183, 5, 0.14) 50%, transparent 60%);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 3;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-location--editorial .pitbull-location__map-shell:hover {
+    box-shadow:
+      0 26px 56px -34px rgba(0, 0, 0, 0.4),
+      0 14px 34px -28px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  }
+
+  .pitbull-location__map-shell:hover::before,
+  .pitbull-location__map-shell:hover::after {
+    opacity: 1;
+  }
+}
+
+/* ── Inscripción — panel premium con luz reactiva ── */
+.pitbull-inscription-shell--compact {
+  background:
+    radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, var(--plu-gold-500) 8%, transparent), transparent 52%),
+    linear-gradient(160deg, color-mix(in oklab, var(--color-text-primary) 3%, transparent), transparent 62%);
+  box-shadow: 0 30px 70px -54px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  isolation: isolate;
+}
+
+.pitbull-inscription-shell--compact::before {
+  background: radial-gradient(
+    340px 280px at var(--mx, 50%) var(--my, 0%),
+    color-mix(in oklab, var(--plu-gold-500) 12%, transparent),
+    transparent 62%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: -1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-inscription-shell--compact:hover::before {
+    opacity: 1;
+  }
+}
+
+[data-theme='light'] .pitbull-inscription-shell--compact {
+  background:
+    radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, var(--plu-gold-500) 9%, transparent), transparent 52%),
+    linear-gradient(160deg, #fff, rgba(15, 17, 23, 0.012) 100%);
+  box-shadow: 0 26px 60px -50px rgba(15, 17, 23, 0.2);
+}
+
+/* ── Athletes journey — glow del índice al hover ── */
+.pitbull-athletes-journey__index {
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.24s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-athletes-journey__step:hover .pitbull-athletes-journey__index {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-celeste-500) 14%, transparent);
+    transform: scale(1.1);
+  }
+
+  .pitbull-athletes-journey__phase--meet .pitbull-athletes-journey__step:hover .pitbull-athletes-journey__index {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-feature-flow__step,
+  .pitbull-feature-flow__step::after,
+  .pitbull-feature-flow__num,
+  .pitbull-categories-chips__item,
+  .pitbull-categories-chips__item::before,
+  .pitbull-location--editorial .pitbull-location__map-shell,
+  .pitbull-location__map-shell::before,
+  .pitbull-location__map-shell::after,
+  .pitbull-inscription-shell--compact::before,
+  .pitbull-athletes-journey__index {
+    transition: none;
+  }
+}
+
+/* =============================================
+   PITBULL — sistema de tarjetas de valor
+   (beneficios de competir + facts del programa)
+   Numeral fantasma, ícono circular y luz reactiva.
+   ============================================= */
+
+.pitbull-value-block {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: clamp(20px, 3vw, 28px);
+  margin-top: clamp(28px, 4vw, 40px);
+  padding-top: clamp(24px, 3.5vw, 36px);
+}
+
+.pitbull-value-block__head {
+  display: grid;
+  gap: 8px;
+  max-width: 46ch;
+  padding-left: clamp(14px, 2vw, 18px);
+  position: relative;
+}
+
+.pitbull-value-block__head::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-brand-gold) 88%, transparent) 0%,
+    color-mix(in srgb, var(--color-text-primary) 18%, transparent) 100%
+  );
+  border-radius: 99px;
+  bottom: 12%;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 12%;
+  width: 2px;
+}
+
+.pitbull-value-block__eyebrow {
+  color: color-mix(in srgb, var(--color-brand-gold) 78%, transparent);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.pitbull-value-block__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.036em;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.pitbull-value-block__lead {
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 48ch;
+}
+
+[data-theme='light'] .pitbull-value-block__eyebrow {
+  color: #8a6d28;
+}
+
+.pitbull-value-grid {
+  display: grid;
+  gap: clamp(10px, 1.6vw, 14px);
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: 0;
+  max-width: 1240px;
+  padding: 0;
+}
+
+@media (min-width: 560px) {
+  .pitbull-value-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .pitbull-value-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .pitbull-value-grid--facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* El StaggerGroup envuelve cada card en un div — que estire la card */
+.pitbull-value-grid > div {
+  display: grid;
+}
+
+.pitbull-value-card {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-text-primary) 3.5%, transparent), transparent 64%),
+    color-mix(in oklab, var(--color-text-primary) 1.2%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  height: 100%;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(20px, 2.6vw, 28px) clamp(18px, 2.2vw, 24px);
+  position: relative;
+  transition:
+    border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pitbull-value-card::after {
+  background: radial-gradient(
+    240px 200px at var(--mx, 50%) var(--my, 0%),
+    color-mix(in oklab, var(--plu-gold-500) 14%, transparent),
+    transparent 60%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+.pitbull-value-card__ghost {
+  color: transparent;
+  font-family: var(--font-display);
+  font-size: clamp(3.2rem, 5vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.78;
+  pointer-events: none;
+  position: absolute;
+  right: clamp(10px, 1.6vw, 16px);
+  top: clamp(6px, 1.2vw, 12px);
+  -webkit-text-stroke: 1.2px color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
+  text-stroke: 1.2px color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
+  transition: -webkit-text-stroke-color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  user-select: none;
+  z-index: 0;
+}
+
+.pitbull-value-card__icon {
+  align-items: center;
+  background: color-mix(in oklab, var(--plu-gold-500) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 26%, transparent);
+  border-radius: 50%;
+  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-muted));
+  display: inline-flex;
+  flex: none;
+  height: 44px;
+  justify-content: center;
+  position: relative;
+  transition:
+    background-color 0.24s ease,
+    border-color 0.24s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  width: 44px;
+  z-index: 1;
+}
+
+.pitbull-value-card__body {
+  align-content: end;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.pitbull-value-card__label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.7vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.pitbull-value-card__text {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 34ch;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-value-card:hover {
+    border-color: color-mix(in oklab, var(--plu-gold-500) 26%, transparent);
+    box-shadow: 0 22px 52px -38px color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  }
+
+  .pitbull-value-card:hover::after {
+    opacity: 1;
+  }
+
+  .pitbull-value-card:hover .pitbull-value-card__icon {
+    background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+    border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+    transform: scale(1.06);
+  }
+
+  .pitbull-value-card:hover .pitbull-value-card__ghost {
+    -webkit-text-stroke-color: color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
+    text-stroke-color: color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
+  }
+}
+
+[data-theme='light'] .pitbull-value-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.9), transparent 64%),
+    rgba(15, 17, 23, 0.015);
+  border-color: rgba(15, 17, 23, 0.09);
+}
+
+[data-theme='light'] .pitbull-value-card__icon {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
+  color: color-mix(in oklab, var(--plu-gold-600) 70%, #1a2230);
+}
+
+[data-theme='light'] .pitbull-value-card__ghost {
+  -webkit-text-stroke-color: color-mix(in oklab, var(--plu-gold-600) 26%, transparent);
+  text-stroke-color: color-mix(in oklab, var(--plu-gold-600) 26%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-value-card,
+  .pitbull-value-card::after,
+  .pitbull-value-card__icon,
+  .pitbull-value-card__ghost {
+    transition: none;
+  }
+}
+
+/* =============================================
+   PITBULL — hero showcase 3D (tarjeta de evento)
+   Segunda columna del hero en pantallas grandes.
+   ============================================= */
+
+.pitbull-hero-masthead__showcase {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__layout--text {
+    align-items: center;
+    column-gap: clamp(32px, 4.5vw, 72px);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  }
+
+  .pitbull-hero-masthead__showcase {
+    display: block;
+    justify-self: end;
+    width: 100%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__layout--text {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  }
+}
+
+.pitbull-hero-card-tilt {
+  border-radius: 18px;
+}
+
+.pitbull-hero-card-tilt.tilt-card--interactive::after {
+  border-radius: inherit;
+  z-index: 6;
+}
+
+.pitbull-hero-card {
+  background:
+    radial-gradient(120% 90% at 12% 0%, color-mix(in oklab, var(--plu-gold-500) 14%, transparent) 0%, transparent 46%),
+    linear-gradient(158deg, rgba(24, 27, 36, 0.98) 0%, rgba(12, 14, 20, 0.99) 62%, rgba(9, 10, 15, 1) 100%);
+  border: 1px solid color-mix(in oklab, #fff 12%, transparent);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 40px 80px -48px rgba(0, 0, 0, 0.7),
+    0 12px 32px -28px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  display: grid;
+  isolation: isolate;
+  min-height: 300px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+.pitbull-hero-card__stack {
+  display: block;
+  height: 100%;
+  min-height: inherit;
+  position: relative;
+}
+
+.pitbull-hero-card__glow {
+  background: radial-gradient(
+    260px 220px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
+    color-mix(in oklab, var(--plu-gold-400) 32%, transparent) 0%,
+    color-mix(in oklab, var(--plu-gold-500) 12%, transparent) 30%,
+    transparent 66%
+  );
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: calc(0.35 + var(--tilt-active, 0) * 0.55);
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 3;
+}
+
+.pitbull-hero-card__watermark {
+  color: color-mix(in oklab, #fff 6%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 12vw, 9rem);
+  font-weight: 800;
+  left: -0.05em;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  pointer-events: none;
+  position: absolute;
+  top: 40%;
+  transform: translate3d(calc(var(--tilt-px, 0) * -28px), calc(var(--tilt-py, 0) * -20px), 0);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  user-select: none;
+  z-index: 1;
+}
+
+.pitbull-hero-card__stripe {
+  background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), #fff, var(--plu-gold-500)));
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 4;
+}
+
+.pitbull-hero-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.8vw, 16px);
+  height: 100%;
+  min-height: inherit;
+  padding: clamp(22px, 2.6vw, 28px);
+  position: relative;
+  transform: translate3d(calc(var(--tilt-px, 0) * 12px), calc(var(--tilt-py, 0) * 9px), 0);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 5;
+}
+
+.pitbull-hero-card__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pitbull-hero-card__badge {
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+  color: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.pitbull-hero-card__badge-dot {
+  background: currentColor;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.pitbull-hero-card__badge--success {
+  border-color: rgba(110, 207, 152, 0.32);
+  color: #7dd99f;
+}
+
+.pitbull-hero-card__badge--warning {
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fbbf24;
+}
+
+.pitbull-hero-card__badge--danger {
+  border-color: rgba(248, 113, 113, 0.32);
+  color: #f87171;
+}
+
+.pitbull-hero-card__badge--info {
+  border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-hero-card__season {
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.pitbull-hero-card__title {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.pitbull-hero-card__rows {
+  display: grid;
+  gap: 0;
+  margin: clamp(6px, 1.5vw, 10px) 0 0;
+  margin-top: auto;
+}
+
+.pitbull-hero-card__row {
+  align-items: baseline;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 11px 0;
+}
+
+.pitbull-hero-card__row:last-child {
+  padding-bottom: 0;
+}
+
+.pitbull-hero-card__row dt {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-hero-card__row dd {
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pitbull-hero-card__body > * {
+    animation: pitbull-hero-card-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .pitbull-hero-card__head {
+    animation-delay: 0.08s;
+  }
+
+  .pitbull-hero-card__title {
+    animation-delay: 0.16s;
+  }
+
+  .pitbull-hero-card__rows {
+    animation-delay: 0.24s;
+  }
+}
+
+@keyframes pitbull-hero-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-hero-card__watermark,
+  .pitbull-hero-card__body,
+  .pitbull-hero-card__glow {
+    transform: none;
+    transition: none;
   }
 }
 

@@ -56,19 +56,59 @@ function splitName(name) {
   return { firstName, lastName: rest.join(' ') || firstName }
 }
 
-export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notificationRepository, env } = {}) {
+export function createAuthRoutes({
+  getPrisma,
+  getSupabaseAdmin,
+  auth0JwtCheck,
+  brevo,
+  notificationRepository,
+  env,
+} = {}) {
   const router = Router()
   const manageUsersGuard = requireRole(MANAGE_USERS_ROLES, { prisma: getPrisma() })
+
+  // Los eventos viven en Supabase (public.events, id uuid). El panel entrega
+  // ese uuid como eventId al dar de alta seguridad, asi que la validacion y
+  // los datos del evento (slug/title/endsAt para credenciales y scoping)
+  // salen de Supabase, no de la tabla Prisma Event (legacy, sin poblar).
+  // Devuelve la forma normalizada que consumen resolveAccessLinkExpiry y la
+  // notificacion, o null si el evento no existe / Supabase no esta listo.
+  async function fetchSupabaseEvent(eventId) {
+    const admin = getSupabaseAdmin?.()
+    if (!admin) return null
+    const { data, error } = await admin
+      .from('events')
+      .select('id, slug, title, ends_at')
+      .eq('id', eventId)
+      .maybeSingle()
+    if (error || !data) return null
+    return { id: data.id, slug: data.slug, title: data.title, endsAt: data.ends_at }
+  }
   const notifySecurityAccess = createSecurityAccessNotificationService({
     repository: notificationRepository,
     brevo,
     env,
   })
+  const accessLinkAppUrl = (env?.APP_URL ?? process.env.APP_URL ?? '').replace(/\/$/, '')
+  const accessLinkSecret = env?.AUTH_SECRET ?? process.env.AUTH_SECRET
+
+  function createPersonalAccess(user, event) {
+    const expiresAt = resolveAccessLinkExpiry(event)
+    const token = createAccessToken({
+      userId: user.id,
+      eventId: user.eventId,
+      expiresAt,
+      secret: accessLinkSecret,
+    })
+    const url = `${accessLinkAppUrl}${buildSecurityGatePath(user.eventSlug)}?acceso=${token}`
+
+    return { url, token, expiresAt }
+  }
 
   // Crea una cuenta seguridad_plu_arg con password temporal. Compartido por
   // el alta individual y la masiva -- el caller ya validó que el evento
   // existe y (para el alta individual) que el email no está tomado.
-  async function provisionSecurityUser(prisma, { name, email, eventId }) {
+  async function provisionSecurityUser(prisma, { name, email, event }) {
     const tempPassword = generateTempPassword()
     const passwordHash = await hashPassword(tempPassword)
     const { firstName, lastName } = splitName(name)
@@ -79,13 +119,14 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         passwordHash,
         role: 'seguridad_plu_arg',
         status: 'active',
-        eventId,
+        eventId: event.id,
+        eventSlug: event.slug,
         profile: { create: { firstName, lastName } },
       },
-      include: { profile: true, event: true },
+      include: { profile: true },
     })
 
-    return { user: serializeUser(created), tempPassword, event: created.event }
+    return { user: serializeUser(created), tempPassword, event }
   }
 
   // Envío best-effort de credenciales: nunca corta el flujo de alta. Devuelve
@@ -106,7 +147,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
       const { email, password, eventSlug } = req.validatedBody
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { profile: true, event: true },
+        include: { profile: true },
       })
 
       if (
@@ -122,7 +163,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
       // creadas via POST /security-users) exigen eventSlug matching -- las
       // cuentas de seguridad sin evento asignado siguen entrando por el login
       // general, igual que antes de este scoping.
-      if (user.role === 'seguridad_plu_arg' && user.eventId && user.event?.slug !== eventSlug) {
+      if (user.role === 'seguridad_plu_arg' && user.eventId && user.eventSlug !== eventSlug) {
         next(invalidCredentials())
         return
       }
@@ -203,16 +244,25 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         const prisma = getPrisma()
         const { name, email, eventId, sendEmail } = req.validatedBody
 
-        const event = await prisma.event.findUnique({ where: { id: eventId } })
+        const event = await fetchSupabaseEvent(eventId)
         if (!event) throw new HttpError(400, 'El evento no existe.')
 
         const existing = await prisma.user.findUnique({ where: { email } })
         if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
 
-        const { user, tempPassword } = await provisionSecurityUser(prisma, { name, email, eventId })
-        const emailed = sendEmail ? await dispatchAccessEmail({ user, tempPassword, event }) : false
+        const { user, tempPassword } = await provisionSecurityUser(prisma, { name, email, event })
+        const access = createPersonalAccess(user, event)
+        const emailed = sendEmail
+          ? await dispatchAccessEmail({ user, event, accessUrl: access.url })
+          : false
 
-        res.status(201).json({ user, tempPassword, emailed })
+        res.status(201).json({
+          user,
+          tempPassword,
+          emailed,
+          accessUrl: access.url,
+          expiresAt: access.expiresAt.toISOString(),
+        })
       } catch (error) {
         next(error)
       }
@@ -232,7 +282,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         const prisma = getPrisma()
         const { eventId, users, sendEmail } = req.validatedBody
 
-        const event = await prisma.event.findUnique({ where: { id: eventId } })
+        const event = await fetchSupabaseEvent(eventId)
         if (!event) throw new HttpError(400, 'El evento no existe.')
 
         // Una sola consulta para detectar emails ya tomados, en vez de un
@@ -250,13 +300,20 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
 
         // Altas en paralelo, cada una independiente (partial success).
         const settled = await Promise.allSettled(
-          toCreate.map((entry) => provisionSecurityUser(prisma, { ...entry, eventId })),
+          toCreate.map((entry) => provisionSecurityUser(prisma, { ...entry, event })),
         )
 
         const created = []
         settled.forEach((result, index) => {
           if (result.status === 'fulfilled') {
-            created.push({ user: result.value.user, tempPassword: result.value.tempPassword, emailed: false })
+            const access = createPersonalAccess(result.value.user, event)
+            created.push({
+              user: result.value.user,
+              tempPassword: result.value.tempPassword,
+              accessUrl: access.url,
+              expiresAt: access.expiresAt.toISOString(),
+              emailed: false,
+            })
             return
           }
           const reason = result.reason?.code === 'P2002' ? 'exists' : 'error'
@@ -267,7 +324,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         // crear todas las cuentas.
         if (sendEmail && created.length) {
           const emailResults = await Promise.allSettled(
-            created.map((item) => dispatchAccessEmail({ user: item.user, tempPassword: item.tempPassword, event })),
+            created.map((item) => dispatchAccessEmail({ user: item.user, event, accessUrl: item.accessUrl })),
           )
           emailResults.forEach((result, index) => {
             created[index].emailed = result.status === 'fulfilled' && result.value === true
@@ -316,7 +373,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
 
       const users = await prisma.user.findMany({
         where: { role: 'seguridad_plu_arg', eventId },
-        include: { profile: true, event: true },
+        include: { profile: true },
         orderBy: { createdAt: 'desc' },
       })
 
@@ -345,7 +402,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         const updated = await prisma.user.update({
           where: { id: target.id },
           data: { status: req.validatedBody.status },
-          include: { profile: true, event: true },
+          include: { profile: true },
         })
 
         res.json({ user: serializeUser(updated) })
@@ -354,9 +411,6 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
       }
     },
   )
-
-  const accessLinkAppUrl = (env?.APP_URL ?? process.env.APP_URL ?? '').replace(/\/$/, '')
-  const accessLinkSecret = env?.AUTH_SECRET
 
   // Genera una credencial de acceso: un link (con token firmado) que deja
   // entrar a la puerta sin contraseña. Se puede copiar/QR o mandar por mail.
@@ -370,34 +424,36 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
         const prisma = getPrisma()
         const user = await prisma.user.findUnique({
           where: { id: req.params.userId },
-          include: { profile: true, event: true },
+          include: { profile: true },
         })
         if (!user || user.role !== 'seguridad_plu_arg') {
           throw new HttpError(404, 'Usuario de seguridad no encontrado.')
         }
-        if (!user.eventId || !user.event?.slug) {
+        if (!user.eventId || !user.eventSlug) {
           throw new HttpError(400, 'La cuenta no tiene un evento asignado.')
         }
 
-        const expiresAt = resolveAccessLinkExpiry(user.event)
-        const token = createAccessToken({
-          userId: user.id,
-          eventId: user.eventId,
-          expiresAt,
-          secret: accessLinkSecret,
-        })
-        const url = `${accessLinkAppUrl}${buildSecurityGatePath(user.event.slug)}?acceso=${token}`
+        // El slug ya lo tenemos desnormalizado en la cuenta; endsAt (para la
+        // vigencia de la credencial) sale de Supabase. Si el evento ya no
+        // existe alla, se cae al TTL default de resolveAccessLinkExpiry.
+        const event = (await fetchSupabaseEvent(user.eventId)) ?? { slug: user.eventSlug }
+        const access = createPersonalAccess(serializeUser(user), event)
 
         const emailed = req.validatedBody.sendEmail
           ? await dispatchAccessEmail({
               user: serializeUser(user),
-              event: user.event,
-              accessUrl: url,
-              idempotencyKey: `email:security-access-link:${user.id}:${token.slice(-16)}`,
+              event,
+              accessUrl: access.url,
+              idempotencyKey: `email:security-access-link:${user.id}:${access.token.slice(-16)}`,
             })
           : false
 
-        res.json({ url, token, expiresAt: expiresAt.toISOString(), emailed })
+        res.json({
+          url: access.url,
+          token: access.token,
+          expiresAt: access.expiresAt.toISOString(),
+          emailed,
+        })
       } catch (error) {
         next(error)
       }
@@ -418,7 +474,7 @@ export function createAuthRoutes({ getPrisma, auth0JwtCheck, brevo, notification
 
       const user = await prisma.user.findUnique({
         where: { id: payload.uid },
-        include: { profile: true, event: true },
+        include: { profile: true },
       })
       if (
         !user ||

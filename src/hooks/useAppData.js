@@ -4,8 +4,10 @@ import {
   createSecurityAccessLinkRequest,
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
+  createStaffUserRequest,
   deactivateAllSecurityUsersRequest,
   listSecurityUsersRequest,
+  listStaffUsersRequest,
   loginRequest,
   logoutRequest,
   meRequest,
@@ -57,7 +59,7 @@ import {
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
-import { createUser, getInitialUsers, updateUserRole } from '../services/userService.js'
+import { getInitialUsers, updateUserRole } from '../services/userService.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -205,6 +207,17 @@ export function useAppData() {
         setRegistrations(data.registrations)
         setPayments(data.payments)
         setAdminEvents(remoteEvents)
+
+        // Listado de staff real (solo lo permiten admin_maximal/admin_plu_arg;
+        // para el resto queda el fallback local sin cortar el resto del load).
+        try {
+          const { users: staffUsers } = await listStaffUsersRequest()
+          setUsers(staffUsers)
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 403)) {
+            console.warn('No se pudo cargar el listado de staff.', error)
+          }
+        }
       }
     } catch (error) {
       console.error('refreshAthleteData:', error)
@@ -214,6 +227,14 @@ export function useAppData() {
   useEffect(() => {
     refreshAthleteData()
   }, [refreshAthleteData])
+
+  useEffect(() => {
+    if (!session?.athleteId || session.role !== 'athlete_plu') return
+    const athlete = athletes.find((item) => item.id === session.athleteId)
+    const nextPhoto = athlete?.photoUrl ?? null
+    if ((session.photoUrl ?? null) === nextPhoto) return
+    setSession({ ...session, photoUrl: nextPhoto })
+  }, [athletes, session, setSession])
 
   useEffect(() => {
     const refreshAfterPayment = () => {
@@ -791,17 +812,23 @@ export function useAppData() {
     setUsers((current) => updateUserRole(current, userId, nextRole))
   }, [])
 
-  const createUserAction = useCallback((draft) => {
-    setUsers((current) => createUser(current, draft))
+  // Alta real de staff (admin/operador/viewer): pega al backend, que crea la
+  // cuenta sin contraseña para que entre por Auth0. Devuelve el usuario creado
+  // y lo suma al listado. seguridad_plu_arg no pasa por acá (tiene su propio
+  // flujo por evento en UsersSection/AdminEventEditor).
+  const createUserAction = useCallback(async (draft) => {
+    const { user } = await createStaffUserRequest(draft)
+    setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
+    return user
   }, [])
 
   const createSecurityUserAction = useCallback(async (draft) => {
-    const { user, tempPassword, emailed } = await createSecurityUserRequest(draft)
+    const { user, tempPassword, emailed, accessUrl, expiresAt } = await createSecurityUserRequest(draft)
     setUsers((current) => [
       { id: user.id, name: user.name, email: user.email, role: user.role },
       ...current,
     ])
-    return { user, tempPassword, emailed }
+    return { user, tempPassword, emailed, accessUrl, expiresAt }
   }, [])
 
   const createSecurityUsersBulkAction = useCallback(async (draft) => {

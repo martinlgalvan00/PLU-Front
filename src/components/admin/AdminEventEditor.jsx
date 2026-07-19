@@ -108,6 +108,7 @@ export default function AdminEventEditor({
   canEdit,
   canManageUsers,
   draft,
+  initialFocus = 'details',
   onCancel,
   onChange,
   onCreateSecurityUser,
@@ -124,6 +125,7 @@ export default function AdminEventEditor({
   const [syncing, setSyncing] = useState(false)
   const dialogTitle = draft.id ? t('admin.eventEditor.editTitle') : t('admin.eventEditor.createTitle')
   const onCancelRef = useRef(onCancel)
+  const securitySectionRef = useRef(null)
   onCancelRef.current = onCancel
 
   const statusOptions = useMemo(
@@ -149,6 +151,14 @@ export default function AdminEventEditor({
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
+
+  useEffect(() => {
+    if (initialFocus !== 'security' || !draft.id) return
+    const frame = requestAnimationFrame(() => {
+      securitySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [draft.id, initialFocus])
 
   // Supabase es la fuente de verdad. El cache local se actualiza solamente
   // después de que el upsert atómico del backend fue confirmado.
@@ -332,17 +342,19 @@ export default function AdminEventEditor({
         />
 
         {draft.id && (
-          <AdminEventSecuritySection
-            canManageUsers={canManageUsers}
-            eventId={draft.id}
-            eventSlug={sourceEvent?.slug}
-            onCreateSecurityUser={onCreateSecurityUser}
-            onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-            onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-            onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-            onListSecurityUsers={onListSecurityUsers}
-            onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-          />
+          <div ref={securitySectionRef} className="admin-event-form__security-anchor">
+            <AdminEventSecuritySection
+              canManageUsers={canManageUsers}
+              eventId={draft.id}
+              eventSlug={sourceEvent?.slug}
+              onCreateSecurityUser={onCreateSecurityUser}
+              onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+              onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+              onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+              onListSecurityUsers={onListSecurityUsers}
+              onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+            />
+          </div>
         )}
 
         <AdminFilterChipGroup

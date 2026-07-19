@@ -6,6 +6,7 @@ import { createHealthRoutes } from './routes/health.js'
 import { createPaymentRoutes } from './routes/payments.js'
 import { createEmailRoutes } from './routes/emails.js'
 import { createAuthRoutes } from './routes/auth.js'
+import { createUserRoutes } from './routes/users.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
 import { createEventRoutes } from './routes/events.js'
@@ -32,10 +33,17 @@ export function createApp(deps = {}) {
     '/api/auth',
     createAuthRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
       auth0JwtCheck: deps.auth0JwtCheck ?? createOptionalAuth0JwtCheck(),
       brevo: deps.brevo,
       notificationRepository: deps.notificationRepository,
       env: deps.env,
+    }),
+  )
+  app.use(
+    '/api/users',
+    createUserRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
     }),
   )
   app.use(

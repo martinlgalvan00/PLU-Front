@@ -23,6 +23,28 @@ function hasMobileLayout(columns) {
   return columns.some((col) => col.mobile)
 }
 
+function columnClassName(column, index) {
+  const role =
+    column.desktop ??
+    (column.mobile === 'primary'
+      ? 'primary'
+      : column.mobile === 'badge'
+        ? 'status'
+        : column.mobile === 'action' || column.key === 'action'
+          ? 'action'
+          : 'standard')
+
+  return [
+    'data-table__column',
+    `data-table__column--${role}`,
+    column.align ? `data-table__column--${column.align}` : '',
+    index === 0 ? 'data-table__column--first' : '',
+    column.className ?? '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function AdminCompactCard({ columns, row, className, interactionProps }) {
   const primary = columns.filter((col) => col.mobile === 'primary')
   const badges = columns.filter((col) => col.mobile === 'badge')
@@ -83,17 +105,30 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
 }
 
 export default function DataTable({
+  ariaLabel,
+  className = '',
   columns,
+  density = 'comfortable',
   rows,
   emptyIcon: EmptyIcon = Inbox,
   emptyMessage = 'Sin registros',
   getRowClassName,
   onRowClick,
   rowClassName = '',
+  stickyPrimary = false,
   variant = 'default',
 }) {
   const { t } = useI18n()
-  const tableClass = `data-table ${variant === 'admin' ? 'data-table--admin' : ''}`.trim()
+  const tableClass = [
+    'data-table',
+    variant === 'admin' ? 'data-table--admin' : '',
+    `data-table--density-${density}`,
+    `data-table--columns-${Math.min(columns.length, 8)}`,
+    stickyPrimary ? 'data-table--sticky-primary' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
   const cardsClass =
     `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
   const useCompactCards = variant === 'admin' && hasMobileLayout(columns)
@@ -159,15 +194,15 @@ export default function DataTable({
   return (
     <>
       <div className={tableClass}>
-        <table>
+        <table aria-label={ariaLabel}>
           <thead>
             <tr>
-              {columns.map((col) => {
+              {columns.map((col, index) => {
                 const isSorted = sort?.key === col.key
                 if (!col.sortable) {
                   return (
-                    <th key={col.key} scope="col">
-                      {col.label}
+                    <th key={col.key} scope="col" className={columnClassName(col, index)}>
+                      <span className="data-table__column-label">{col.label}</span>
                     </th>
                   )
                 }
@@ -175,6 +210,7 @@ export default function DataTable({
                   <th
                     key={col.key}
                     scope="col"
+                    className={columnClassName(col, index)}
                     aria-sort={
                       isSorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
                     }
@@ -211,9 +247,13 @@ export default function DataTable({
                 className={[rowClassName, getRowClassName?.(row)].filter(Boolean).join(' ')}
                 {...getRowInteractionProps(row)}
               >
-                {columns.map((col) => (
-                  <td key={col.key} data-label={col.label}>
-                    {cellValue(col, row)}
+                {columns.map((col, index) => (
+                  <td
+                    key={col.key}
+                    data-label={col.mobileLabel ?? col.label}
+                    className={columnClassName(col, index)}
+                  >
+                    <div className="data-table__cell-content">{cellValue(col, row)}</div>
                   </td>
                 ))}
               </tr>

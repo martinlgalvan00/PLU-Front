@@ -11,6 +11,11 @@
   --tilt-y: 0deg;
   --tilt-shift-x: 0px;
   --tilt-shift-y: 0px;
+  --tilt-px: 0;
+  --tilt-py: 0;
+  --tilt-glare-x: 50%;
+  --tilt-glare-y: 0%;
+  --tilt-active: 0;
   perspective: 1200px;
   transform-style: preserve-3d;
 }

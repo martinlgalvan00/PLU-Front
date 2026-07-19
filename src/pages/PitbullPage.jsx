@@ -7,10 +7,13 @@ import {
   IdCard,
   MapPin,
   MapPinned,
+  Medal,
   Megaphone,
   Scale,
+  ShieldCheck,
   Tags,
   Trophy,
+  Users,
 } from 'lucide-react'
 import { m } from 'motion/react'
 import photoMeetFloor from '../assets/DSC00346.jpg'
@@ -25,6 +28,7 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
+import TiltCard from '../motion/TiltCard.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
@@ -42,10 +46,48 @@ const FEATURE_FACT_ICONS = {
   Pesaje: Scale,
   Briefing: Megaphone,
   Plataforma: Dumbbell,
+  'Weigh-in': Scale,
+  Platform: Dumbbell,
+}
+
+const BENEFIT_ICONS = {
+  record: Trophy,
+  standard: ShieldCheck,
+  ranking: Medal,
+  community: Users,
+}
+
+/** Tarjeta premium reactiva compartida — numeral fantasma, ícono y luz que sigue el cursor */
+function PitbullValueCard({ index, Icon, label, text }) {
+  const num = String(index + 1).padStart(2, '0')
+  return (
+    <li className="pitbull-value-card" onPointerMove={handleReactivePointer}>
+      <span className="pitbull-value-card__ghost" aria-hidden>
+        {num}
+      </span>
+      {Icon ? (
+        <span className="pitbull-value-card__icon" aria-hidden>
+          <Icon size={19} strokeWidth={1.5} />
+        </span>
+      ) : null}
+      <div className="pitbull-value-card__body">
+        <h4 className="pitbull-value-card__label">{label}</h4>
+        <p className="pitbull-value-card__text">{text}</p>
+      </div>
+    </li>
+  )
 }
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+/** Luz reactiva compartida — setea la posición del cursor como % sobre el elemento */
+function handleReactivePointer(event) {
+  const el = event.currentTarget
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`)
+  el.style.setProperty('--my', `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`)
 }
 
 function scrollToInscription() {
@@ -132,7 +174,7 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
 }
 
 
-function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
+function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
   const numberedGroups = (() => {
     let cursor = 0
@@ -262,7 +304,11 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
           </div>
         </div>
 
-        <figure className="pitbull-athletes-layout__visual">
+        <TiltCard
+          className="pitbull-athletes-layout__visual pitbull-athletes-showcase"
+          innerClassName="tilt-card__inner pitbull-athletes-showcase__inner"
+          maxTilt={4}
+        >
           <img
             className="pitbull-athletes-layout__img"
             src={photoMeetFloor}
@@ -272,11 +318,38 @@ function PitbullAthletesSection({ athleteGroups, onNavigate, t }) {
             loading="lazy"
             decoding="async"
           />
-          <figcaption className="pitbull-athletes-layout__caption">
+          <span className="pitbull-athletes-showcase__glare" aria-hidden />
+          <span className="pitbull-athletes-layout__caption">
             {t('pages.pitbull.athletesVisualAlt')}
-          </figcaption>
-        </figure>
+          </span>
+        </TiltCard>
       </div>
+
+      {benefits.length > 0 ? (
+        <div className="pitbull-value-block">
+          <header className="pitbull-value-block__head">
+            <p className="pitbull-value-block__eyebrow">{t('pages.pitbull.benefitsEyebrow')}</p>
+            <h3 className="pitbull-value-block__title">{t('pages.pitbull.benefitsTitle')}</h3>
+            <p className="pitbull-value-block__lead">{t('pages.pitbull.benefitsLead')}</p>
+          </header>
+          <StaggerGroup
+            as="ol"
+            className="pitbull-value-grid"
+            stagger={70}
+            aria-label={t('pages.pitbull.benefitsAria')}
+          >
+            {benefits.map((benefit, index) => (
+              <PitbullValueCard
+                key={benefit.id}
+                index={index}
+                Icon={BENEFIT_ICONS[benefit.id]}
+                label={benefit.title}
+                text={benefit.text}
+              />
+            ))}
+          </StaggerGroup>
+        </div>
+      ) : null}
     </PitbullDossierSection>
   )
 }
@@ -421,7 +494,10 @@ function PitbullInscriptionSection({
       title={t('pages.pitbull.inscriptionTitle')}
       tone="ops"
     >
-      <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
+      <div
+        className="pitbull-inscription-shell pitbull-inscription-shell--compact"
+        onPointerMove={handleReactivePointer}
+      >
         <PitbullInscriptionCounter
           registered={pitbullClassic.registered}
           slots={pitbullClassic.slots}
@@ -506,30 +582,19 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
     >
       <StaggerGroup
         as="ol"
-        className="pitbull-feature-flow"
+        className="pitbull-value-grid pitbull-value-grid--facts"
         stagger={70}
         aria-label={t('pages.pitbull.featureFactsAria')}
       >
-        {featureFacts.map((fact, index) => {
-          const FactIcon = FEATURE_FACT_ICONS[fact.label]
-          const num = String(index + 1).padStart(2, '0')
-          return (
-            <li key={fact.label} className="pitbull-feature-flow__step">
-              <span className="pitbull-feature-flow__num" aria-hidden>
-                {num}
-              </span>
-              <div className="pitbull-feature-flow__copy">
-                <span className="pitbull-feature-flow__label">
-                  {FactIcon ? (
-                    <FactIcon size={14} aria-hidden className="pitbull-feature-flow__icon" />
-                  ) : null}
-                  {fact.label}
-                </span>
-                <p className="pitbull-feature-flow__detail">{fact.value}</p>
-              </div>
-            </li>
-          )
-        })}
+        {featureFacts.map((fact, index) => (
+          <PitbullValueCard
+            key={fact.label}
+            index={index}
+            Icon={FEATURE_FACT_ICONS[fact.label]}
+            label={fact.label}
+            text={fact.value}
+          />
+        ))}
       </StaggerGroup>
 
       {schedule?.length > 0 ? (
@@ -607,6 +672,7 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
               <li
                 key={chip}
                 className={`pitbull-categories-chips__item pitbull-categories-chips__item--${chipModifier}`}
+                onPointerMove={handleReactivePointer}
               >
                 {chip}
               </li>
@@ -651,6 +717,7 @@ export default function PitbullPage({
   } = useContent()
   const { locale, messages, t } = useI18n()
   const featureFacts = messages.pages.pitbull.featureFacts ?? []
+  const benefits = messages.pages.pitbull.benefits ?? []
 
   const pitbullEvent = events.find((event) => event.featured)
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
@@ -694,6 +761,7 @@ export default function PitbullPage({
         <div className="pitbull-dossier pitbull-dossier--minimal">
           <PitbullAthletesSection
             athleteGroups={PITBULL_ATHLETE_GROUPS ?? []}
+            benefits={benefits}
             onNavigate={onNavigate}
             t={t}
           />

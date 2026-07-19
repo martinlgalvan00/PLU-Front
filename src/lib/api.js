@@ -41,10 +41,14 @@ export async function apiRequest(path, options = {}) {
     })
   } catch (error) {
     throw new ApiError(
-      `No se pudo conectar con la API (${env.apiUrl}). Corré "npm run dev:api" o "npm run dev:all".`,
+      'El servicio no está disponible en este momento. Reintentá en unos segundos.',
       {
         status: 0,
-        body: { cause: error instanceof Error ? error.message : String(error) },
+        body: {
+          apiUrl: env.apiUrl,
+          cause: error instanceof Error ? error.message : String(error),
+          developmentCommand: 'npm run dev',
+        },
       },
     )
   }
@@ -111,6 +115,16 @@ export function listSecurityUsersRequest(eventId) {
 
 export function updateSecurityUserStatusRequest(userId, status) {
   return apiPatch(`/api/auth/security-users/${encodeURIComponent(userId)}/status`, { status })
+}
+
+// Cuentas de staff del panel (admin/operador/viewer). Alta por invitación
+// Auth0 -- se crean sin contraseña y entran por OAuth (ver server/routes/users.js).
+export function listStaffUsersRequest() {
+  return apiGet('/api/users')
+}
+
+export function createStaffUserRequest({ name, email, role }) {
+  return apiPost('/api/users', { name, email, role })
 }
 
 export function meRequest() {

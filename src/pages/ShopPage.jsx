@@ -73,34 +73,37 @@ function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
 }
 
 const SHOP_CATEGORIES = [
-  { id: 'tickets', labelKey: 'pages.shop.categoryTickets' },
-  { id: 'merch', labelKey: 'pages.shop.categoryMerch' },
-  { id: 'registrations', labelKey: 'pages.shop.categoryRegistrations' },
+  { id: 'tickets', labelKey: 'pages.shop.categoryTickets', icon: Ticket },
+  { id: 'merch', labelKey: 'pages.shop.categoryMerch', icon: ShoppingBag },
+  { id: 'registrations', labelKey: 'pages.shop.categoryRegistrations', icon: ClipboardCheck },
 ]
 
 /**
- * Vidriera de un solo "producto" cuando la categoría todavía no tiene
- * catálogo propio (merch, inscripciones). Evita simular una grilla con
- * productos que no existen todavía.
+ * Panel full-width cuando el departamento no tiene catálogo propio
+ * (merch vacío / inscripciones). Llena el canvas en lugar de una card chica.
  */
-function ShopDepartmentCard({ icon: Icon, badge, title, titleId, text, action }) {
+function ShopDepartmentPanel({ icon: Icon, badge, title, titleId, text, action }) {
   return (
-    <SpotlightCard as="article" className="shop-department__card">
-      <span className="shop-department__icon" aria-hidden>
-        <Icon size={20} aria-hidden />
-      </span>
-      {badge ? <span className="shop-department__badge">{badge}</span> : null}
-      <h2 id={titleId} className="shop-department__title">
-        {title}
-      </h2>
-      <p className="shop-department__text">{text}</p>
+    <article className="shop-department-panel">
+      <div className="shop-department-panel__main">
+        <span className="shop-department-panel__icon" aria-hidden>
+          <Icon size={22} aria-hidden />
+        </span>
+        <div className="shop-department-panel__copy">
+          {badge ? <span className="shop-department-panel__badge">{badge}</span> : null}
+          <h2 id={titleId} className="shop-department-panel__title">
+            {title}
+          </h2>
+          <p className="shop-department-panel__text">{text}</p>
+        </div>
+      </div>
       {action ? (
-        <button type="button" className="btn btn--outline shop-department__action" onClick={action.onClick}>
+        <button type="button" className="btn shop-department-panel__action" onClick={action.onClick}>
           {action.label}
-          <ArrowRight size={14} aria-hidden />
+          <ArrowRight size={15} aria-hidden />
         </button>
       ) : null}
-    </SpotlightCard>
+    </article>
   )
 }
 
@@ -151,7 +154,9 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t }) {
         {items.map(({ product, quantity }) => (
           <li key={product.id}>
             <span>{product.title}</span>
-            <em>{quantity} x {money(product.price, locale)}</em>
+            <em>
+              {quantity} x {money(product.price, locale)}
+            </em>
             <button type="button" onClick={() => onRemove(product.id)}>
               {t('pages.shop.cartRemove')}
             </button>
@@ -253,6 +258,8 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
   const shopEvents = getUpcomingEventsByDate(events).filter(
     (event) => (event.slug ?? event.id) !== (featuredEvent?.slug ?? featuredEvent?.id),
   )
+  const ticketsCount = shopEvents.length + (featuredEvent ? 1 : 0)
+  const merchCount = publishedProducts.length
 
   function handleBuyTickets(event) {
     setDetailEvent(null)
@@ -293,6 +300,12 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
     setCart({})
   }
 
+  function categoryCount(id) {
+    if (id === 'tickets' && ticketsCount > 0) return ticketsCount
+    if (id === 'merch' && merchCount > 0) return merchCount
+    return null
+  }
+
   return (
     <main className="content-page shop-page">
       <header className="shop-masthead">
@@ -301,117 +314,139 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
           <h1 className="shop-masthead__title">{t('pages.shop.title')}</h1>
           <p className="shop-masthead__lead">{t('pages.shop.lead')}</p>
         </div>
-
-        <nav className="shop-masthead__nav" aria-label={t('pages.shop.categoriesAria')}>
-          {SHOP_CATEGORIES.map(({ id, labelKey }) => (
-            <button
-              key={id}
-              type="button"
-              className={`shop-masthead__tab${activeCategory === id ? ' is-active' : ''}`}
-              aria-pressed={activeCategory === id}
-              onClick={() => setActiveCategory(id)}
-            >
-              {t(labelKey)}
-            </button>
-          ))}
-        </nav>
       </header>
 
-      {activeCategory === 'tickets' ? (
-        <>
-          {featuredEvent ? (
-            <ShopFeaturedHero
-              event={featuredEvent}
-              locale={locale}
-              onBuyTickets={() => handleBuyTickets(featuredEvent)}
-              onViewDetail={() => handleViewEventDetail(featuredEvent)}
-              t={t}
-            />
-          ) : null}
+      <nav className="shop-dock" aria-label={t('pages.shop.categoriesAria')}>
+        <div className="shop-dock__shell">
+          {SHOP_CATEGORIES.map(({ id, labelKey, icon: Icon }) => {
+            const count = categoryCount(id)
+            const active = activeCategory === id
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`shop-dock__tab${active ? ' is-active' : ''}`}
+                aria-pressed={active}
+                onClick={() => setActiveCategory(id)}
+              >
+                <Icon size={15} aria-hidden className="shop-dock__icon" />
+                <span className="shop-dock__label">{t(labelKey)}</span>
+                {count != null ? (
+                  <span className="shop-dock__count" aria-label={t('pages.shop.dockCount', { count })}>
+                    {count}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
 
-          <section className="shop-section" aria-labelledby="shop-tickets-title">
-            <div className="shop-section__header">
-              <h2 id="shop-tickets-title" className="shop-section__title">
-                {t('pages.shop.ticketsHeading')}
-              </h2>
-              <p className="shop-section__lead">{t('pages.shop.ticketsLead')}</p>
-            </div>
-            {shopEvents.length > 0 ? (
-              <div className="shop-events-grid">
-                {shopEvents.map((event, index) => (
-                  <ShopEventCard
-                    key={event.slug ?? event.id ?? event.title}
-                    event={event}
-                    index={index}
-                    locale={locale}
-                    onOpenDetail={setDetailEvent}
-                    t={t}
-                  />
-                ))}
+      <div className="shop-catalog">
+        {activeCategory === 'tickets' ? (
+          <div className="shop-catalog__panel" key="tickets">
+            {featuredEvent ? (
+              <ShopFeaturedHero
+                event={featuredEvent}
+                locale={locale}
+                onBuyTickets={() => handleBuyTickets(featuredEvent)}
+                onViewDetail={() => handleViewEventDetail(featuredEvent)}
+                t={t}
+              />
+            ) : null}
+
+            <section className="shop-section" aria-labelledby="shop-tickets-title">
+              <div className="shop-section__header">
+                <h2 id="shop-tickets-title" className="shop-section__title">
+                  {t('pages.shop.ticketsHeading')}
+                </h2>
+                <p className="shop-section__lead">{t('pages.shop.ticketsLead')}</p>
+              </div>
+              {shopEvents.length > 0 ? (
+                <div className="shop-events-grid">
+                  {shopEvents.map((event, index) => (
+                    <ShopEventCard
+                      key={event.slug ?? event.id ?? event.title}
+                      event={event}
+                      index={index}
+                      locale={locale}
+                      onOpenDetail={setDetailEvent}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="shop-empty">
+                  <Ticket size={22} aria-hidden />
+                  <p className="shop-empty__text">{t('pages.shop.noEvents')}</p>
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
+
+        {activeCategory === 'merch' ? (
+          <section
+            className="shop-section shop-department"
+            aria-labelledby={
+              publishedProducts.length > 0 || hasLoadedProducts ? 'shop-merch-title' : 'shop-merch-panel-title'
+            }
+            key="merch"
+          >
+            {publishedProducts.length > 0 || hasLoadedProducts ? (
+              <div className="shop-section__header">
+                <h2 id="shop-merch-title" className="shop-section__title">
+                  {t('pages.shop.merchTitle')}
+                </h2>
+                <p className="shop-section__lead">{t('pages.shop.merchText')}</p>
+              </div>
+            ) : null}
+
+            {publishedProducts.length > 0 ? (
+              <div className="shop-merch-layout">
+                <div className="shop-products-grid">
+                  {publishedProducts.map((product) => (
+                    <ShopProductCard
+                      key={product.id}
+                      locale={locale}
+                      product={product}
+                      t={t}
+                      onAddToCart={addToCart}
+                    />
+                  ))}
+                </div>
+                <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} />
+                {checkoutDone ? <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p> : null}
+              </div>
+            ) : hasLoadedProducts ? (
+              <div className="shop-empty shop-empty--products-pending">
+                <ShoppingBag size={22} aria-hidden />
+                <p className="shop-empty__text">{t('pages.shop.productsNotPublished')}</p>
               </div>
             ) : (
-              <div className="shop-empty">
-                <Ticket size={22} aria-hidden />
-                <p className="shop-empty__text">{t('pages.shop.noEvents')}</p>
-              </div>
+              <ShopDepartmentPanel
+                icon={ShoppingBag}
+                badge={t('pages.shop.merchSoon')}
+                title={t('pages.shop.merchTitle')}
+                titleId="shop-merch-panel-title"
+                text={t('pages.shop.merchText')}
+              />
             )}
           </section>
-        </>
-      ) : null}
+        ) : null}
 
-      {activeCategory === 'merch' ? (
-        <section className="shop-section shop-department" aria-labelledby="shop-merch-title">
-          <div className="shop-section__header">
-            <h2 id="shop-merch-title" className="shop-section__title">
-              {t('pages.shop.merchTitle')}
-            </h2>
-            <p className="shop-section__lead">{t('pages.shop.merchText')}</p>
-          </div>
-
-          {publishedProducts.length > 0 ? (
-            <>
-              <div className="shop-products-grid">
-                {publishedProducts.map((product) => (
-                  <ShopProductCard
-                    key={product.id}
-                    locale={locale}
-                    product={product}
-                    t={t}
-                    onAddToCart={addToCart}
-                  />
-                ))}
-              </div>
-              <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} />
-              {checkoutDone ? <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p> : null}
-            </>
-          ) : hasLoadedProducts ? (
-            <div className="shop-empty shop-empty--products-pending">
-              <ShoppingBag size={22} aria-hidden />
-              <p className="shop-empty__text">{t('pages.shop.productsNotPublished')}</p>
-            </div>
-          ) : (
-            <ShopDepartmentCard
-              icon={ShoppingBag}
-              badge={t('pages.shop.merchSoon')}
-              title={t('pages.shop.merchTitle')}
-              titleId="shop-merch-title"
-              text={t('pages.shop.merchText')}
+        {activeCategory === 'registrations' ? (
+          <section className="shop-section shop-department" aria-labelledby="shop-registrations-title" key="registrations">
+            <ShopDepartmentPanel
+              icon={ClipboardCheck}
+              title={t('pages.shop.registrationsTitle')}
+              titleId="shop-registrations-title"
+              text={t('pages.shop.registrationsText')}
+              action={{ label: t('pages.shop.registrationsAction'), onClick: () => onNavigate('events') }}
             />
-          )}
-        </section>
-      ) : null}
-
-      {activeCategory === 'registrations' ? (
-        <section className="shop-section shop-department" aria-labelledby="shop-registrations-title">
-          <ShopDepartmentCard
-            icon={ClipboardCheck}
-            title={t('pages.shop.registrationsTitle')}
-            titleId="shop-registrations-title"
-            text={t('pages.shop.registrationsText')}
-            action={{ label: t('pages.shop.registrationsAction'), onClick: () => onNavigate('events') }}
-          />
-        </section>
-      ) : null}
+          </section>
+        ) : null}
+      </div>
 
       <ShopEventDrawer
         open={Boolean(detailEvent)}

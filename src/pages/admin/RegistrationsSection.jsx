@@ -8,7 +8,7 @@ import AdminListSection from '../../components/admin/AdminListSection.jsx'
 
 import { AdminIdentityCell, AdminPaymentCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 
-import DataTable, { StatusBadge } from '../../components/ui/DataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 
 import ExportButton from '../../components/ui/ExportButton.jsx'
 
@@ -274,7 +274,7 @@ export default function RegistrationsSection({
 
     >
 
-      <DataTable
+      <AdminDataTable
 
         variant="admin"
 
