@@ -215,8 +215,7 @@
 
 .admin-shell .admin-shell__main {
   background:
-    linear-gradient(180deg, var(--admin-focus-soft) 0, transparent 180px),
-    var(--admin-canvas);
+    linear-gradient(180deg, var(--admin-focus-soft) 0, transparent 180px), var(--admin-canvas);
   min-width: 0;
 }
 
@@ -318,6 +317,43 @@
 .admin-shell .admin-page-toolbar__search input {
   color: var(--admin-ink);
   font-size: 12px;
+}
+
+.admin-page-toolbar__search-submit {
+  align-items: center;
+  background: var(--admin-focus-soft);
+  border: 1px solid color-mix(in srgb, var(--admin-focus) 16%, transparent);
+  border-radius: 7px;
+  color: var(--admin-focus);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 27px;
+  justify-content: center;
+  margin-right: -6px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+  width: 27px;
+}
+
+.admin-page-toolbar__search-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-focus) 16%, transparent);
+  border-color: color-mix(in srgb, var(--admin-focus) 30%, transparent);
+}
+
+.admin-page-toolbar__search-submit:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-page-toolbar__search-submit:disabled {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  opacity: 0.3;
 }
 
 .admin-shell .admin-page-toolbar__alert {
@@ -509,6 +545,135 @@
   font-size: 10px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.admin-quick-dock {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  box-shadow: var(--admin-shadow-soft);
+  display: grid;
+  grid-template-columns: minmax(170px, 0.27fr) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.admin-quick-dock__intro {
+  align-content: center;
+  border-right: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 5px;
+  padding: 17px 20px;
+  position: relative;
+}
+
+.admin-quick-dock__intro::before {
+  background: var(--plu-gradient-brand-bar);
+  bottom: 17px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 17px;
+  width: 2px;
+}
+
+.admin-quick-dock__eyebrow {
+  color: var(--admin-accent);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-quick-dock__intro h2 {
+  color: var(--admin-ink);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.admin-quick-dock__track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-quick-dock__action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 72px;
+  padding: 12px 15px;
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-quick-dock__action:not(:last-child) {
+  border-right: 1px solid var(--admin-hairline);
+}
+
+.admin-quick-dock__action:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-quick-dock__action:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-quick-dock__icon {
+  align-items: center;
+  background: var(--admin-focus-soft);
+  border: 1px solid color-mix(in srgb, var(--admin-focus) 15%, transparent);
+  border-radius: 8px;
+  color: var(--admin-focus);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.admin-quick-dock__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-quick-dock__copy strong {
+  color: var(--admin-ink);
+  font-size: 10.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-quick-dock__copy small {
+  color: var(--admin-muted);
+  font-size: 8.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-quick-dock__arrow {
+  color: var(--admin-muted);
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.admin-quick-dock__action:hover .admin-quick-dock__arrow {
+  color: var(--admin-focus);
+  transform: translateX(2px);
 }
 
 .admin-dashboard--executive .admin-command-center {
@@ -895,6 +1060,26 @@
   min-height: 240px;
 }
 
+.admin-shell .data-table-mobile-toolbar {
+  background: var(--admin-surface-muted);
+  border-bottom-color: var(--admin-hairline);
+}
+
+.admin-shell .data-table-mobile-toolbar__select,
+.admin-shell .data-table-mobile-toolbar__direction {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-hairline);
+  color: var(--admin-muted);
+}
+
+.admin-shell .data-table-mobile-toolbar__select select {
+  color: var(--admin-ink);
+}
+
+.admin-shell .data-table-card__badge-label {
+  color: var(--admin-muted);
+}
+
 /* ---- Paneles de dominio y drawer ---- */
 
 .admin-shell .admin-users__add-form,
@@ -1056,6 +1241,16 @@
   .admin-dashboard--executive .admin-command-center {
     grid-template-columns: 1fr;
   }
+
+  .admin-quick-dock {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-quick-dock__intro {
+    border-bottom: 1px solid var(--admin-hairline);
+    border-right: 0;
+    padding-block: 13px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1114,6 +1309,39 @@
 
   .admin-dashboard--executive .admin-attention-bar__action {
     display: none;
+  }
+
+  .admin-quick-dock__intro {
+    padding: 12px 16px;
+  }
+
+  .admin-quick-dock__intro::before {
+    bottom: 12px;
+    top: 12px;
+  }
+
+  .admin-quick-dock__track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-quick-dock__action {
+    min-height: 76px;
+    padding: 10px 12px;
+  }
+
+  .admin-quick-dock__copy small {
+    line-height: 1.25;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .admin-quick-dock__action:nth-child(2) {
+    border-right: 0;
+  }
+
+  .admin-quick-dock__action:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--admin-hairline);
   }
 
   .admin-shell .admin-list-shell {

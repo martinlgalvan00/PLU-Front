@@ -20,6 +20,8 @@ export const ABOUT_INTRO = {
   titleAccent: 'and publish.',
   description:
     'PLU Argentina connects athletes, gyms and referees with annual membership, an official calendar and PLU USA-aligned results.',
+  descriptionLead: 'PLU Argentina connects athletes, gyms and referees.',
+  descriptionMeta: 'Annual membership, an official calendar and PLU USA-aligned results.',
 }
 
 export const HOME_MEMBERSHIP = {

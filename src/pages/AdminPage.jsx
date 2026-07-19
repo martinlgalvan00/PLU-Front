@@ -34,6 +34,9 @@ export default function AdminPage({
   onRefreshTickets,
   onRefreshPendingTicketOrders,
   onCreateSecurityUser,
+  onCreateSecurityUsersBulk,
+  onCreateSecurityAccessLink,
+  onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onUpdateSecurityUserStatus,
   onCreateUser,
@@ -58,7 +61,9 @@ export default function AdminPage({
   isCheckinOnly = false,
   onExit,
 }) {
-  const [section, setSection] = useState(isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard')
+  const [section, setSection] = useState(
+    isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard',
+  )
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
 
@@ -78,6 +83,19 @@ export default function AdminPage({
     setSection('athletes')
   }
 
+  function handleDashboardSearchSubmit(query) {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) return
+
+    onSetFilters((current) => ({
+      ...current,
+      event: 'all',
+      query: normalizedQuery,
+      status: 'all',
+    }))
+    setSection('registrations')
+  }
+
   function renderSection() {
     if (section === 'dashboard') {
       return (
@@ -92,6 +110,7 @@ export default function AdminPage({
           canEdit={canEdit}
           globalSearch={globalSearch}
           onGlobalSearchChange={setGlobalSearch}
+          onGlobalSearchSubmit={handleDashboardSearchSubmit}
         />
       )
     }
@@ -113,7 +132,10 @@ export default function AdminPage({
 
     if (section === 'memberships') {
       return (
-        <MembershipsSection memberships={enrichedMemberships} onSelectAthlete={handleSelectAthlete} />
+        <MembershipsSection
+          memberships={enrichedMemberships}
+          onSelectAthlete={handleSelectAthlete}
+        />
       )
     }
 
@@ -141,6 +163,9 @@ export default function AdminPage({
           canEdit={canEdit}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
+          onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+          onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+          onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
           onSaveEvent={onSaveEvent}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
@@ -229,7 +254,10 @@ export default function AdminPage({
       roleLabel={roleLabel}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
     >
-      <div className="admin-page admin-section-enter" key={`${section}-${selectedAthleteId ?? 'list'}`}>
+      <div
+        className="admin-page admin-section-enter"
+        key={`${section}-${selectedAthleteId ?? 'list'}`}
+      >
         {renderSection()}
       </div>
     </AdminShell>

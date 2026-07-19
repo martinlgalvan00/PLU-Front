@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BadgeCheck, CalendarDays, ChevronRight, ClipboardList, MapPin, Shield, Users } from 'lucide-react'
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  MapPin,
+  ScanLine,
+  Shield,
+  Users,
+} from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import RecentActivity from '../../components/admin/RecentActivity.jsx'
@@ -25,6 +35,33 @@ const METRIC_ICONS = {
   clipboard: ClipboardList,
   shield: Shield,
 }
+
+const QUICK_ACTIONS = [
+  {
+    section: 'registrations',
+    icon: ClipboardList,
+    labelKey: 'admin.nav.registrations',
+    hintKey: 'admin.dashboard.quickRegistrations',
+  },
+  {
+    section: 'athletes',
+    icon: Users,
+    labelKey: 'admin.nav.athletes',
+    hintKey: 'admin.dashboard.quickAthletes',
+  },
+  {
+    section: 'events',
+    icon: CalendarDays,
+    labelKey: 'admin.nav.events',
+    hintKey: 'admin.dashboard.quickEvents',
+  },
+  {
+    section: 'checkin',
+    icon: ScanLine,
+    labelKey: 'admin.nav.checkin',
+    hintKey: 'admin.dashboard.quickCheckin',
+  },
+]
 
 function DashboardKpiTile({ icon, label, value, tone, onClick, index }) {
   const Icon = METRIC_ICONS[icon] ?? Users
@@ -73,12 +110,49 @@ function CommandCenterPaneHead({ eyebrow, subtitle, hideSubtitle = false }) {
   )
 }
 
+function DashboardQuickActions({ onNavigate, t }) {
+  return (
+    <section
+      className="admin-quick-dock admin-dashboard__block"
+      aria-labelledby="admin-quick-dock-title"
+    >
+      <header className="admin-quick-dock__intro">
+        <span className="admin-quick-dock__eyebrow">{t('admin.dashboard.quickEyebrow')}</span>
+        <h2 id="admin-quick-dock-title">{t('admin.dashboard.quickTitle')}</h2>
+      </header>
+      <div className="admin-quick-dock__track">
+        {QUICK_ACTIONS.map(({ section, icon: Icon, labelKey, hintKey }) => (
+          <button
+            key={section}
+            type="button"
+            className="admin-quick-dock__action"
+            onClick={() => onNavigate?.(section)}
+          >
+            <span className="admin-quick-dock__icon" aria-hidden>
+              <Icon size={17} strokeWidth={1.7} />
+            </span>
+            <span className="admin-quick-dock__copy">
+              <strong>{t(labelKey)}</strong>
+              <small>{t(hintKey)}</small>
+            </span>
+            <ArrowRight size={14} className="admin-quick-dock__arrow" aria-hidden />
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function DashboardSpotlightEvent({ event, onNavigate, t }) {
   if (!event) {
     return (
       <div className="admin-spotlight admin-spotlight--empty admin-spotlight--flat">
         <p>{t('admin.dashboard.spotlightEmpty')}</p>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('events')}>
+        <button
+          type="button"
+          className="admin-dashboard-link"
+          onClick={() => onNavigate?.('events')}
+        >
           {t('admin.actions.configureEvents')}
           <ChevronRight size={14} aria-hidden />
         </button>
@@ -94,7 +168,9 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
       <div className="admin-spotlight__main">
         <div className="admin-spotlight__title-row">
           <h3 className="admin-spotlight__title">{event.title}</h3>
-          <span className={`admin-spotlight__status admin-spotlight__status--${tone}`}>{statusLabel}</span>
+          <span className={`admin-spotlight__status admin-spotlight__status--${tone}`}>
+            {statusLabel}
+          </span>
         </div>
         <ul className="admin-spotlight__meta admin-spotlight__meta--inline">
           <li>
@@ -117,7 +193,11 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
           <span className="admin-spotlight__fill-percent">{fillPercent}%</span>
         </div>
       </div>
-      <button type="button" className="admin-dashboard-link admin-spotlight__link" onClick={() => onNavigate?.('events')}>
+      <button
+        type="button"
+        className="admin-dashboard-link admin-spotlight__link"
+        onClick={() => onNavigate?.('events')}
+      >
         {t('admin.actions.manage')}
         <ArrowRight size={13} aria-hidden />
       </button>
@@ -126,7 +206,14 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
 }
 
 function DashboardFinancePanel({ canEdit, finance, onApprovePayment, onNavigate, t }) {
-  const { collectionRate, collectedAmount, pendingAmount, pendingCount, pendingItems, totalAmount } = finance
+  const {
+    collectionRate,
+    collectedAmount,
+    pendingAmount,
+    pendingCount,
+    pendingItems,
+    totalAmount,
+  } = finance
   const topPending = pendingItems[0]
 
   return (
@@ -166,12 +253,20 @@ function DashboardFinancePanel({ canEdit, finance, onApprovePayment, onNavigate,
           </div>
           <div className="admin-finance__pending-actions">
             {canEdit && (
-              <button type="button" className="admin-finance__pending-action" onClick={() => onApprovePayment?.(topPending.id)}>
+              <button
+                type="button"
+                className="admin-finance__pending-action"
+                onClick={() => onApprovePayment?.(topPending.id)}
+              >
                 {t('admin.actions.validate')}
                 <ChevronRight size={14} aria-hidden />
               </button>
             )}
-            <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+            <button
+              type="button"
+              className="admin-dashboard-link"
+              onClick={() => onNavigate?.('registrations')}
+            >
               {t('admin.actions.payments')}
             </button>
           </div>
@@ -180,7 +275,11 @@ function DashboardFinancePanel({ canEdit, finance, onApprovePayment, onNavigate,
 
       {!topPending && (
         <div className="admin-finance__footer">
-          <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+          <button
+            type="button"
+            className="admin-dashboard-link"
+            onClick={() => onNavigate?.('registrations')}
+          >
             {t('admin.actions.payments')}
             <ArrowRight size={13} aria-hidden />
           </button>
@@ -201,6 +300,7 @@ export default function DashboardSection({
   canEdit,
   globalSearch,
   onGlobalSearchChange,
+  onGlobalSearchSubmit,
 }) {
   const { t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
@@ -223,6 +323,7 @@ export default function DashboardSection({
         subtitle={t('admin.dashboard.subtitle')}
         searchValue={globalSearch}
         onSearchChange={onGlobalSearchChange}
+        onSearchSubmit={onGlobalSearchSubmit}
         alertCount={pendingActions.length > 0 ? pendingActions.length : pendingPayments}
         alertsOpen={alertsOpen}
         onAlertClick={() => setAlertsOpen(true)}
@@ -238,7 +339,10 @@ export default function DashboardSection({
         canEdit={canEdit}
       />
 
-      <section className="admin-dashboard-snapshot admin-dashboard__block" aria-label={t('admin.dashboard.metricsAria')}>
+      <section
+        className="admin-dashboard-snapshot admin-dashboard__block"
+        aria-label={t('admin.dashboard.metricsAria')}
+      >
         <div className="admin-kpi-board">
           <div className="admin-kpi-strip" role="list" aria-label={t('admin.dashboard.swipeHint')}>
             {primaryMetrics.map((item, index) => (
@@ -294,6 +398,8 @@ export default function DashboardSection({
           </span>
         </button>
       )}
+
+      <DashboardQuickActions onNavigate={onNavigate} t={t} />
 
       <section className="admin-command-center admin-dashboard__block">
         <article className="admin-command-center__pane admin-command-center__pane--spotlight">

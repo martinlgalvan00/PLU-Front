@@ -161,6 +161,7 @@ export default function App() {
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
           onLogin={app.login}
+          onLoginWithToken={app.loginWithGateToken}
           onLogout={app.logout}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
@@ -230,6 +231,9 @@ export default function App() {
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
           onCreateSecurityUser={app.createSecurityUserAction}
+          onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
+          onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
+          onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}

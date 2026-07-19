@@ -286,6 +286,9 @@ export default {
     subtitle: 'Sign in with the account the event admin created for you.',
     errorInvalid: 'Wrong email, password, or event.',
     errorEventMismatch: 'This account does not have access to this event.',
+    tokenLoadingTitle: 'Validating your credential',
+    tokenLoadingLead: 'We are verifying your gate access…',
+    tokenError: 'This credential is invalid or expired. Sign in with your email and password.',
   },
   account: {
     eyebrow: 'My account',

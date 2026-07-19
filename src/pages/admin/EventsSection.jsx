@@ -25,6 +25,9 @@ export default function EventsSection({
   canEdit,
   canManageUsers,
   onCreateSecurityUser,
+  onCreateSecurityUsersBulk,
+  onCreateSecurityAccessLink,
+  onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onSaveEvent,
   onUpdateSecurityUserStatus,
@@ -191,8 +194,6 @@ export default function EventsSection({
                       }
                     }}
                   >
-                    <div className="admin-event-row__accent" aria-hidden />
-
                     <div className="admin-event-row__body">
                       <div className="admin-event-row__title-wrap">
                         {row.featured ? (
@@ -290,6 +291,9 @@ export default function EventsSection({
           canManageUsers={canManageUsers}
           draft={draft}
           onCreateSecurityUser={onCreateSecurityUser}
+          onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+          onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+          onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           sourceEvent={editingSource}

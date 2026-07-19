@@ -21,6 +21,30 @@ async function mockUpdateStatus(userId, status) {
   return { ...found, status }
 }
 
+async function mockCreateBulk({ users }) {
+  return {
+    created: users.map((entry, index) => ({
+      user: { id: `usr-bulk-${index}`, name: entry.name, email: entry.email, role: 'seguridad_plu_arg', status: 'active' },
+      tempPassword: `Tmp-${index}abcd`,
+      emailed: false,
+    })),
+    skipped: [],
+  }
+}
+
+async function mockDeactivateAll() {
+  return MOCK_USERS.filter((user) => user.status === 'active').length
+}
+
+async function mockCreateAccessLink(userId, sendEmail) {
+  return {
+    url: `https://plu-arg.com/evento/pitbull-classic-2026/seguridad?acceso=demo-token-${userId}`,
+    token: `demo-token-${userId}`,
+    expiresAt: '2026-12-20T00:00:00.000Z',
+    emailed: Boolean(sendEmail),
+  }
+}
+
 export default {
   title: 'Admin/AdminEventSecuritySection',
   component: AdminEventSecuritySection,
@@ -30,6 +54,9 @@ export default {
     eventId: 'evt-1',
     eventSlug: 'pitbull-classic-2026',
     onCreateSecurityUser: mockCreate,
+    onCreateSecurityUsersBulk: mockCreateBulk,
+    onCreateSecurityAccessLink: mockCreateAccessLink,
+    onDeactivateAllSecurityUsers: mockDeactivateAll,
     onListSecurityUsers: mockList,
     onUpdateSecurityUserStatus: mockUpdateStatus,
   },

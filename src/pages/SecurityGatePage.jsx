@@ -1,9 +1,27 @@
-import { useState } from 'react'
-import { ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import CheckInAppPage from './CheckInAppPage.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
+
+/**
+ * Lee el token de credencial de acceso del query param (?acceso=...) y lo
+ * limpia de la URL, para que quede en el historial/barra de direcciones.
+ */
+function readAccessToken() {
+  if (typeof window === 'undefined') return ''
+  const token = new URLSearchParams(window.location.search).get('acceso')
+  return token ?? ''
+}
+
+function stripAccessTokenFromUrl() {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('acceso')) return
+  url.searchParams.delete('acceso')
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+}
 
 /**
  * SecurityGatePage — puerta de entrada dedicada por evento (/evento/:eventoSlug/seguridad).
@@ -19,6 +37,7 @@ export default function SecurityGatePage({
   onCheckInRegistration,
   onCheckInTicket,
   onLogin,
+  onLoginWithToken,
   onLogout,
   onRedeemTicketAddon,
   onRefreshTickets,
@@ -29,6 +48,27 @@ export default function SecurityGatePage({
   const { t } = useI18n()
   const event = adminEvents.find((item) => item.slug === eventSlug)
   const isAuthorized = session?.role === 'seguridad_plu_arg' && session?.eventSlug === eventSlug
+
+  // Credencial de acceso: si la URL trae ?acceso=<token>, intentamos entrar
+  // sin contraseña. 'idle' | 'loading' | 'error'.
+  const [tokenPhase, setTokenPhase] = useState(() => (readAccessToken() ? 'loading' : 'idle'))
+  const attemptedRef = useRef(false)
+
+  useEffect(() => {
+    if (attemptedRef.current || isAuthorized) return
+    const token = readAccessToken()
+    if (!token || !onLoginWithToken) {
+      setTokenPhase('idle')
+      return
+    }
+    attemptedRef.current = true
+    stripAccessTokenFromUrl()
+    onLoginWithToken(token)
+      .then(() => {
+        // El éxito re-renderiza con session activa (isAuthorized) y monta el scanner.
+      })
+      .catch(() => setTokenPhase('error'))
+  }, [isAuthorized, onLoginWithToken])
 
   if (isAuthorized) {
     return (
@@ -48,18 +88,36 @@ export default function SecurityGatePage({
     )
   }
 
+  if (tokenPhase === 'loading') {
+    return (
+      <main className="page login-page--design">
+        <div className="login-shell">
+          <section className="login-card security-gate-loading" aria-live="polite">
+            <span className="security-gate-loading__icon" aria-hidden>
+              <ShieldCheck size={26} />
+            </span>
+            <h1>{t('securityGate.tokenLoadingTitle')}</h1>
+            <p className="login-card__lead">{t('securityGate.tokenLoadingLead')}</p>
+            <span className="security-gate-loading__spinner" aria-hidden />
+          </section>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <SecurityGateLogin
       event={event}
       eventSlug={eventSlug}
       hadSession={Boolean(session)}
       onLogin={onLogin}
+      tokenError={tokenPhase === 'error'}
       t={t}
     />
   )
 }
 
-function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, t }) {
+function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError = false, t }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -140,9 +198,10 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, t }) {
               {isSubmitting ? t('login.submitting') : t('login.submit')}
               {!isSubmitting && <ArrowRight size={16} aria-hidden />}
             </button>
-            {(submitError || hadSession) && (
+            {(submitError || tokenError || hadSession) && (
               <p className="form-submit-error" role="alert">
-                {submitError || t('securityGate.errorEventMismatch')}
+                {submitError ||
+                  (tokenError ? t('securityGate.tokenError') : t('securityGate.errorEventMismatch'))}
               </p>
             )}
           </form>

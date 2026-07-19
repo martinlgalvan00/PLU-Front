@@ -21,6 +21,8 @@ export const ABOUT_INTRO = {
   titleAccent: 'y publicar.',
   description:
     'PLU Argentina conecta atletas, gimnasios y jueces con afiliación anual, calendario oficial y resultados alineados a PLU USA.',
+  descriptionLead: 'PLU Argentina conecta atletas, gimnasios y jueces.',
+  descriptionMeta: 'Afiliación anual, calendario oficial y resultados alineados a PLU USA.',
 }
 
 export const HOME_MEMBERSHIP = {

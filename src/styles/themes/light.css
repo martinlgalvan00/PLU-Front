@@ -93,13 +93,13 @@
   --admin-muted: var(--plu-ink-500);
   --admin-hairline: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
   --admin-hairline-strong: color-mix(in srgb, var(--plu-ink-900) 18%, transparent);
-  --admin-accent: var(--plu-gold-600);
-  --admin-accent-soft: color-mix(in srgb, var(--plu-gold-500) 12%, transparent);
-  --admin-focus: var(--plu-celeste-600);
-  --admin-focus-soft: color-mix(in srgb, var(--plu-celeste-600) 10%, transparent);
-  --admin-row-hover: color-mix(in srgb, var(--plu-celeste-600) 5%, transparent);
-  --admin-shadow-soft: 0 10px 30px rgba(26, 28, 34, 0.055);
-  --admin-shadow-panel: 0 24px 64px rgba(26, 28, 34, 0.08);
+  --admin-accent: var(--plu-ink-900);
+  --admin-accent-soft: color-mix(in srgb, var(--plu-ink-900) 7%, transparent);
+  --admin-focus: var(--plu-ink-900);
+  --admin-focus-soft: color-mix(in srgb, var(--plu-ink-900) 8%, transparent);
+  --admin-row-hover: color-mix(in srgb, var(--plu-ink-900) 4%, transparent);
+  --admin-shadow-soft: 0 4px 16px rgba(26, 28, 34, 0.045);
+  --admin-shadow-panel: 0 18px 48px rgba(26, 28, 34, 0.09);
   --admin-attention-bg: var(--plu-cool-900);
   --admin-attention-text: var(--plu-ink-inverse);
 }

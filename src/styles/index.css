@@ -45,3 +45,4 @@
 @import url('/src/styles/components/ticket-pass-preview.css');
 @import url('/src/styles/components/home-membership-artifacts.css');
 @import url('/src/styles/pages/admin-institutional.css');
+@import './pages/admin-minimal.css';

@@ -30,7 +30,9 @@ function EventsCountdownChip({ event, days, t }) {
 
   return (
     <div className="events-countdown-chip">
-      <span className="events-countdown-chip__value">{days}</span>
+      <div className="events-countdown-chip__metric">
+        <span className="events-countdown-chip__value">{days}</span>
+      </div>
       <span className="events-countdown-chip__copy">
         <span className="events-countdown-chip__label">
           {days === 1 ? t('pages.events.countdownDay_one') : t('pages.events.countdownDay_other')}
@@ -390,20 +392,24 @@ export default function EventsPage({
 
           <Reveal variant="from-right" as="aside" className="events-sidebar-card">
             <EventsCountdownChip event={nextEvent} days={daysUntilNext} t={t} />
-            <EventCalendar
-              events={events}
-              initialDate="2026-12-01"
-              focusDateISO={calendarFocus}
-              selectedEventSlug={selected?.slug}
-              onEventSelect={focusEvent}
-            />
-            <EventsDetailPanel
-              event={selected}
-              onRegister={selected ? () => handleRegister(selected) : undefined}
-              onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
-              registerLabel={registerLabel}
-              t={t}
-            />
+            <div className="events-sidebar-card__calendar">
+              <EventCalendar
+                events={events}
+                initialDate="2026-12-01"
+                focusDateISO={calendarFocus}
+                selectedEventSlug={selected?.slug}
+                onEventSelect={focusEvent}
+              />
+            </div>
+            <div className="events-sidebar-card__detail">
+              <EventsDetailPanel
+                event={selected}
+                onRegister={selected ? () => handleRegister(selected) : undefined}
+                onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
+                registerLabel={registerLabel}
+                t={t}
+              />
+            </div>
           </Reveal>
         </div>
       </div>
