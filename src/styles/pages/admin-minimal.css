@@ -1691,6 +1691,15 @@
   padding: 12px;
 }
 
+.admin-event-security__lifecycle-note {
+  align-items: center;
+  color: var(--admin-text-muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 6px;
+  margin: 0;
+}
+
 .admin-event-security__command-copy,
 .admin-event-security__command-actions,
 .admin-event-security__section-head,

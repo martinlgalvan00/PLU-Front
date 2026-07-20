@@ -113,14 +113,21 @@
   --home-teaser-link-hover-bg: rgba(255, 255, 255, 0.07);
   --home-teaser-link-hover-border: rgba(255, 255, 255, 0.16);
   --home-mid-stack-divider: rgba(255, 255, 255, 0.08);
-  --home-membership-card-bg: rgba(255, 255, 255, 0.025);
-  --home-membership-card-border: rgba(255, 255, 255, 0.07);
-  --home-membership-card-border-hover: rgba(242, 183, 5, 0.24);
-  --home-membership-card-shadow: none;
-  --home-membership-card-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --home-membership-card-bg: color-mix(in oklab, var(--plu-cool-900) 72%, transparent);
+  --home-membership-card-border: rgba(255, 255, 255, 0.09);
+  --home-membership-card-border-hover: rgba(242, 183, 5, 0.28);
+  --home-membership-card-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px rgba(0, 0, 0, 0.22);
+  --home-membership-card-shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 22px 48px rgba(0, 0, 0, 0.28);
   --home-membership-check-bg: rgba(116, 172, 223, 0.12);
   --home-membership-check-border: rgba(116, 172, 223, 0.22);
   --home-membership-check-fg: var(--color-brand-celeste);
+  --home-membership-spotlight: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  --home-membership-pedestal: rgba(0, 0, 0, 0.38);
+  --home-membership-sheen: color-mix(in oklab, #fff 42%, transparent);
   /* Fondo institucional + atmósfera suave (marca, sin textura) */
   --home-hero-bg: var(--plu-cool-950);
   --home-hero-atmosphere:
@@ -582,12 +589,15 @@
   --home-mid-stack-divider: rgba(15, 17, 23, 0.08);
   --home-membership-card-bg: #fff;
   --home-membership-card-border: oklch(90% 0.004 260);
-  --home-membership-card-border-hover: rgba(242, 183, 5, 0.45);
-  --home-membership-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px rgba(15, 17, 23, 0.06);
-  --home-membership-card-shadow-hover: 0 14px 36px rgba(15, 17, 23, 0.1);
+  --home-membership-card-border-hover: rgba(242, 183, 5, 0.4);
+  --home-membership-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(15, 17, 23, 0.06);
+  --home-membership-card-shadow-hover: 0 1px 2px rgba(0, 0, 0, 0.04), 0 16px 40px rgba(15, 17, 23, 0.09);
   --home-membership-check-bg: rgba(116, 172, 223, 0.1);
   --home-membership-check-border: rgba(116, 172, 223, 0.18);
   --home-membership-check-fg: oklch(52% 0.12 230);
+  --home-membership-spotlight: color-mix(in oklab, var(--plu-gold-500) 10%, transparent);
+  --home-membership-pedestal: rgba(15, 17, 23, 0.16);
+  --home-membership-sheen: color-mix(in oklab, #fff 55%, transparent);
   --home-hero-bg: var(--plu-warm-50);
   --home-hero-atmosphere:
     radial-gradient(ellipse 70% 55% at 10% 36%, color-mix(in oklab, var(--plu-celeste-500) 10%, transparent), transparent 70%),
@@ -1083,6 +1093,10 @@
 
 [data-theme='light'] .security-gate-card__meta {
   color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .security-gate-card__demo-hint {
+  color: rgba(15, 17, 23, 0.45);
 }
 
 [data-theme='light'] .login-card__lead {

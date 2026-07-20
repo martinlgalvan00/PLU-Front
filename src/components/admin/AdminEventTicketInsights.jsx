@@ -38,11 +38,7 @@ export default function AdminEventTicketInsights({ event, tickets }) {
     },
   ]
 
-  const breakdown = [
-    { label: t('pages.tickets.day1'), value: stats.byPass.day1 },
-    { label: t('pages.tickets.day2'), value: stats.byPass.day2 },
-    { label: t('pages.tickets.bothDays'), value: stats.byPass.both },
-  ]
+  const breakdown = stats.byTicketType.map((row) => ({ label: row.name, value: row.count }))
 
   return (
     <div className="admin-event-ticket-insights">

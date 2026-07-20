@@ -8,9 +8,13 @@ export default function AdminCheckinScanHistory({ items = [], onClear, onSelect 
     return (
       <section className="admin-checkin-history admin-checkin-history--empty" aria-label={t('admin.checkin.history.title')}>
         <span className="admin-checkin-history__empty-icon" aria-hidden>
-          <History size={18} strokeWidth={1.5} />
+          <History size={20} strokeWidth={1.5} />
         </span>
-        <p className="admin-checkin-history__empty">{t('admin.checkin.history.empty')}</p>
+        <div className="admin-checkin-history__empty-copy">
+          <h3 className="admin-checkin-history__title">{t('admin.checkin.history.title')}</h3>
+          <p className="admin-checkin-history__empty">{t('admin.checkin.history.empty')}</p>
+          <p className="admin-checkin-history__hint">{t('admin.checkin.history.emptyHint')}</p>
+        </div>
       </section>
     )
   }

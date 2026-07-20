@@ -27,31 +27,32 @@ function buildTicketCode(sequence) {
 }
 
 /**
- * Precio de un asistente según el/los día(s) elegidos.
- * @param {'day1'|'day2'|'both'} dayPass
- * @param {{ day: number, bothDays: number }} pricing
+ * Precio base de un asistente según el tipo de entrada elegido.
+ * @param {{ ticketTypeId: string }} attendee
+ * @param {{ ticketTypes: {id:string, price:number}[] }} pricing
  */
-export function priceForDayPass(dayPass, pricing) {
-  return dayPass === 'both' ? pricing.bothDays : pricing.day
+export function priceForTicketType(attendee, pricing) {
+  const type = (pricing?.ticketTypes ?? []).find((item) => item.id === attendee.ticketTypeId)
+  return type?.price ?? 0
 }
 
 export function priceForAttendee(attendee, pricing, catalog = pricing?.addons ?? []) {
-  return attendeeTicketTotal(attendee, pricing, catalog, priceForDayPass)
+  return attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType)
 }
 
 export function priceForOrder(attendees, pricing, catalog = pricing?.addons ?? []) {
-  return orderTicketTotal(attendees, pricing, catalog, priceForDayPass)
+  return orderTicketTotal(attendees, pricing, catalog, priceForTicketType)
 }
 
 /**
  * Crea una orden de entradas: un ticket individual por asistente. Cada
- * asistente elige su propio día (día 1, día 2 o ambos) — no es un valor
- * único por compra, porque un grupo puede mezclar pases distintos.
+ * asistente elige su propio tipo de entrada — no es un valor único por
+ * compra, porque un grupo puede mezclar tipos distintos.
  * @param {{
  *   event: object,
- *   attendees: {fullName:string, dni:string, dayPass:'day1'|'day2'|'both'}[],
+ *   attendees: {fullName:string, dni:string, ticketTypeId:string}[],
  *   paymentMethod: string,
- *   pricing: { day: number, bothDays: number },
+ *   pricing: { ticketTypes: {id:string, name:string, price:number}[] },
  *   tickets: object[],
  * }} params
  */
@@ -65,9 +66,9 @@ export function createTicketOrder({ event, attendees, paymentMethod, pricing, ti
 
   const startIndex = tickets.length
   const newTickets = attendees.map((attendee, index) => {
-    const passPrice = priceForDayPass(attendee.dayPass, pricing)
+    const basePrice = priceForTicketType(attendee, pricing)
     const addons = buildTicketAddonSnapshot(catalog, attendee.addonIds)
-    const unitPrice = passPrice + ticketAddonsTotal(catalog, attendee.addonIds)
+    const unitPrice = basePrice + ticketAddonsTotal(catalog, attendee.addonIds)
     return {
       id: generateId('tkt', startIndex + index + 1),
       orderId,
@@ -79,7 +80,7 @@ export function createTicketOrder({ event, attendees, paymentMethod, pricing, ti
       ticketCode: buildTicketCode(startIndex + index + 1),
       attendeeName: attendee.fullName.trim(),
       attendeeDni: attendee.dni.trim(),
-      dayPass: attendee.dayPass,
+      ticketTypeId: attendee.ticketTypeId,
       paymentMethod,
       reference,
       unitPrice,

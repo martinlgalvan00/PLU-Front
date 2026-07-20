@@ -69,14 +69,14 @@ export function ticketAddonsTotal(catalog, addonIds = []) {
   return buildTicketAddonSnapshot(catalog, addonIds).reduce((sum, addon) => sum + addon.price, 0)
 }
 
-export function attendeeTicketTotal(attendee, pricing, catalog, priceForDayPass) {
-  const passPrice = priceForDayPass(attendee.dayPass, pricing)
+export function attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType) {
+  const basePrice = priceForTicketType(attendee, pricing)
   const extras = ticketAddonsTotal(catalog, attendee.addonIds)
-  return passPrice + extras
+  return basePrice + extras
 }
 
-export function orderTicketTotal(attendees, pricing, catalog, priceForDayPass) {
-  return attendees.reduce((sum, attendee) => sum + attendeeTicketTotal(attendee, pricing, catalog, priceForDayPass), 0)
+export function orderTicketTotal(attendees, pricing, catalog, priceForTicketType) {
+  return attendees.reduce((sum, attendee) => sum + attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType), 0)
 }
 
 export function toggleAttendeeAddon(attendee, addonId) {

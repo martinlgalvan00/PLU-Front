@@ -28,6 +28,26 @@ const pricingSchema = z.object({
   ticketAddons: z.array(ticketAddonSchema).optional(),
 }).passthrough()
 
+// Un día del evento (event_days): reemplaza el supuesto fijo de "2 días".
+const eventDaySchema = z.object({
+  dayIndex: z.number().int().min(0),
+  label: z.string().trim().min(1),
+  date: z.string().trim().optional(),
+})
+// Un tipo de entrada (ticket_types): precio propio, cupo propio, qué día(s)
+// cubre (por dayIndex) y qué addons del catálogo vienen incluidos sin cargo
+// (el "pack", ej. Día 1 + choripán).
+const ticketTypeSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(1),
+  price: z.number().min(0),
+  quota: z.number().int().min(0).nullable().optional(),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+  dayIndexes: z.array(z.number().int().min(0)).optional(),
+  includedAddonIds: z.array(z.string()).optional(),
+})
+
 const eventSchema = z.object({
   slug: z.string().trim().min(2), title: z.string().trim().min(3), venue: z.string().trim().min(2),
   location: z.string().trim().min(2), startsAt: z.string().trim().min(8), endsAt: z.string().trim().min(8),
@@ -36,8 +56,9 @@ const eventSchema = z.object({
   featured: z.boolean().optional(),
   registrationOpensAt: z.string().optional(), registrationClosesAt: z.string().optional(),
   ticketSalesOpensAt: z.string().optional(), ticketSalesClosesAt: z.string().optional(),
-  capacityDay1: z.union([z.string(), z.number()]).optional(), capacityDay2: z.union([z.string(), z.number()]).optional(),
-  capacityBoth: z.union([z.string(), z.number()]).optional(), liveStreamUrl: z.string().optional(),
+  eventDays: z.array(eventDaySchema).optional(),
+  ticketTypes: z.array(ticketTypeSchema).optional(),
+  liveStreamUrl: z.string().optional(),
   liveStreamProvider: z.enum(['youtube', 'instagram', 'twitch']).optional(), liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
 })
 
@@ -50,7 +71,19 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())
       const events = assertSupabaseResult(
-        await client.from('events').select('*, capacityRules:event_capacity_rules(*)').order('starts_at'),
+        await client
+          .from('events')
+          .select(`
+            *,
+            capacityRules:event_capacity_rules(*),
+            eventDays:event_days(*),
+            ticketTypes:ticket_types(
+              *,
+              ticketTypeDays:ticket_type_days(event_day_id),
+              includedAddons:ticket_type_included_addons(addon_id)
+            )
+          `)
+          .order('starts_at'),
         'No se pudieron leer los eventos.',
       )
       res.json({ events })

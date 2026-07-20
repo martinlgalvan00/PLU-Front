@@ -32,6 +32,7 @@ export default function AdminEventSecuritySection({
   canManageUsers,
   eventId,
   eventSlug,
+  eventEndsAt,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
@@ -62,6 +63,7 @@ export default function AdminEventSecuritySection({
   const gatePath = eventSlug ? buildSecurityGatePath(eventSlug) : ''
   const gateUrl = gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
   const activeCount = users.filter((user) => user.status === 'active').length
+  const eventEnded = Boolean(eventEndsAt) && new Date(eventEndsAt).getTime() < Date.now()
 
   function nextMember(values = {}) {
     memberIdRef.current += 1
@@ -277,6 +279,13 @@ export default function AdminEventSecuritySection({
             </a>
           </div>
         </div>
+      )}
+
+      {eventEnded && (
+        <p className="admin-event-security__lifecycle-note" role="note">
+          <ShieldOff size={13} aria-hidden />
+          {t('admin.eventEditor.security.eventEndedNote')}
+        </p>
       )}
 
       {loadError && (

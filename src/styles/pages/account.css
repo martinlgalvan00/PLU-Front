@@ -5,6 +5,8 @@
  */
 
 .account-page--design.page {
+  min-width: 0;
+  overflow-x: clip;
   padding: 0;
 }
 
@@ -15,15 +17,11 @@
   border-top: none;
   margin-top: 0;
   max-width: none;
-  padding:
-    clamp(36px, 5.5vw, 64px)
-    clamp(20px, 5vw, 72px)
-    clamp(40px, 5vw, 72px);
+  padding: clamp(36px, 5.5vw, 64px) clamp(20px, 5vw, 72px) clamp(40px, 5vw, 72px);
 }
 
 .account-hero {
-  background:
-    linear-gradient(165deg, #16181d 0%, #101115 48%, #0c0d11 100%);
+  background: linear-gradient(165deg, #16181d 0%, #101115 48%, #0c0d11 100%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   margin: 34px auto 0;
   max-width: 1200px;
@@ -59,6 +57,7 @@
   grid-template-columns: minmax(280px, 1fr) minmax(340px, 400px);
   margin: 0 auto;
   max-width: 1080px;
+  min-width: 0;
   position: relative;
 }
 
@@ -264,11 +263,10 @@
 
 .account-credential {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   justify-items: end;
   margin: 0 auto;
   max-width: 620px;
-  perspective: 1200px;
   width: 100%;
 }
 
@@ -277,7 +275,9 @@
 }
 
 .account-hero .account-credential__face {
-  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(242, 183, 5, 0.1);
+  box-shadow:
+    0 32px 70px color-mix(in srgb, var(--plu-cool-950) 52%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 11%, transparent);
   padding: 22px 26px 24px;
 }
 
@@ -291,11 +291,51 @@
   font-weight: 550;
 }
 
+.account-credential__tilt {
+  --credential-glow-x: 50%;
+  --credential-glow-y: 50%;
+  --credential-tilt-x: 0deg;
+  --credential-tilt-y: 0deg;
+  perspective: 1200px;
+  position: relative;
+  transform: rotateX(var(--credential-tilt-x)) rotateY(var(--credential-tilt-y));
+  transform-style: preserve-3d;
+  transition: transform 520ms var(--ease-out);
+  width: 100%;
+  will-change: transform;
+}
+
+.account-credential__tilt::after {
+  background: radial-gradient(
+    circle at var(--credential-glow-x) var(--credential-glow-y),
+    color-mix(in srgb, var(--plu-ink-inverse) 22%, transparent),
+    transparent 34%
+  );
+  border-radius: 14px;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateZ(28px);
+  transition: opacity var(--transition-base);
+  z-index: 4;
+}
+
+.account-credential__tilt.is-tilting {
+  transition-duration: 90ms;
+  transition-timing-function: linear;
+}
+
+.account-credential__tilt.is-tilting::after {
+  opacity: 0.42;
+}
+
 .account-credential__card {
   aspect-ratio: 1.586;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 450ms var(--ease-design);
+  transition: transform 520ms var(--ease-design);
   width: 100%;
 }
 
@@ -309,12 +349,32 @@
     radial-gradient(circle at 90% 8%, rgba(116, 172, 223, 0.12), transparent 32%),
     linear-gradient(150deg, #171922 0%, #0c0d11 78%);
   border: 1px solid rgba(242, 183, 5, 0.42);
-  border-radius: 10px;
+  border-radius: 14px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
   color: #f7f7f5;
   inset: 0;
   overflow: hidden;
   padding: clamp(22px, 5vw, 34px);
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.account-credential__face::before {
+  background:
+    linear-gradient(
+      115deg,
+      transparent 22%,
+      color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent) 50%,
+      transparent 72%
+    ),
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--plu-ink-inverse) 2.5%, transparent) 0 1px,
+      transparent 1px 9px
+    );
+  content: '';
+  inset: 0;
+  pointer-events: none;
   position: absolute;
 }
 
@@ -341,6 +401,8 @@
   align-items: center;
   display: flex;
   gap: 12px;
+  position: relative;
+  transform: translateZ(22px);
 }
 
 .account-credential__brand > div:last-child {
@@ -380,6 +442,9 @@
   align-items: end;
   display: flex;
   gap: 16px;
+  min-width: 0;
+  position: relative;
+  transform: translateZ(30px);
 }
 
 .account-credential__avatar {
@@ -392,6 +457,18 @@
   font-weight: 650;
   height: 58px;
   justify-content: center;
+  overflow: hidden;
+}
+
+.account-credential__avatar.has-photo {
+  background: var(--plu-cool-800);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+}
+
+.account-credential__avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .account-credential__identity h2 {
@@ -400,6 +477,7 @@
   font-weight: 550;
   letter-spacing: -0.02em;
   margin: 4px 0;
+  overflow-wrap: anywhere;
 }
 
 .account-credential__identity p {
@@ -420,6 +498,8 @@
   justify-self: end;
   letter-spacing: 0.04em;
   padding: 5px 10px;
+  position: relative;
+  transform: translateZ(24px);
 }
 
 .account-credential__status.is-inactive {
@@ -441,8 +521,15 @@
 }
 
 @keyframes account-status-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.7); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
 }
 
 /* Reverso tipo documento: filas label|valor con aire, no grilla densa. */
@@ -451,7 +538,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding-block: 20px 22px;
-  transform: rotateY(180deg);
+  transform: rotateY(180deg) translateZ(1px);
 }
 
 .account-credential__fields {
@@ -461,6 +548,8 @@
   gap: 0;
   justify-content: center;
   margin: 0;
+  position: relative;
+  transform: translateZ(20px);
 }
 
 .account-credential__row {
@@ -504,27 +593,69 @@
   letter-spacing: 0.04em;
   margin: 10px 0 0;
   padding-top: 12px;
+  position: relative;
   text-align: center;
+  transform: translateZ(18px);
 }
 
 .account-credential__flip {
+  align-items: center;
   background: transparent;
   border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-primary);
+  display: inline-flex;
   font-size: 12px;
   font-weight: 500;
+  justify-content: center;
   padding: 9px 14px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .account-credential__flip:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
   border-color: var(--color-brand-celeste);
   color: var(--color-brand-celeste);
+  transform: translateY(-1px);
+}
+
+.account-credential__flip:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .account-credential__tilt,
+  .account-credential__card,
+  .account-credential__flip {
+    transition: none;
+  }
+
+  .account-credential__tilt {
+    transform: none;
+  }
+
+  .account-credential__tilt::after {
+    display: none;
+  }
+
   .account-credential__status-dot {
     animation: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .account-credential__tilt {
+    transform: none;
+    will-change: auto;
+  }
+
+  .account-credential__tilt::after {
+    display: none;
   }
 }
 
@@ -583,12 +714,13 @@
 
 @media (max-width: 540px) {
   .account-credential__card {
-    aspect-ratio: auto;
-    min-height: 310px;
+    aspect-ratio: 1.45;
+    min-height: 220px;
   }
 
   .account-credential__row {
-    padding: 8px 0;
+    gap: 8px;
+    padding: 6px 0;
   }
 
   .account-credential__row dt {
@@ -611,6 +743,7 @@
   }
 
   .account-hero__inner {
+    gap: clamp(28px, 6vw, 44px);
     grid-template-columns: 1fr;
   }
 
@@ -621,6 +754,64 @@
 }
 
 @media (max-width: 520px) {
+  .account-page--design .account-hero {
+    padding-block: 28px 34px;
+  }
+
+  .account-hero__identity {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .account-hero__avatar {
+    font-size: 17px;
+    height: 56px;
+    width: 56px;
+  }
+
+  .account-hero__copy {
+    min-width: 0;
+  }
+
+  .account-hero__name,
+  .account-hero h1 {
+    font-size: clamp(25px, 8vw, 32px);
+    overflow-wrap: anywhere;
+  }
+
+  .account-hero .account-credential__face {
+    padding: 18px 20px 20px;
+  }
+
+  .account-hero .account-credential__identity h2 {
+    font-size: clamp(16px, 5vw, 19px);
+  }
+
+  .account-credential {
+    justify-items: stretch;
+  }
+
+  .account-credential__brand {
+    gap: 9px;
+  }
+
+  .account-credential__monogram {
+    height: 32px;
+    width: 32px;
+  }
+
+  .account-credential__identity {
+    gap: 11px;
+  }
+
+  .account-credential__status {
+    justify-self: start;
+  }
+
+  .account-credential__flip {
+    width: 100%;
+  }
+
   .account-hero__stats {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -736,7 +927,9 @@
   font-weight: 650;
   gap: 7px;
   padding: 9px 16px;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -789,7 +982,9 @@
   border-top: 3px solid var(--color-brand-celeste);
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.08);
   padding: clamp(24px, 4vw, 36px);
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
 }
 
 .account-section:hover {
@@ -1672,7 +1867,9 @@
   gap: 8px;
   justify-self: start;
   padding: 10px 14px;
-  transition: border-color var(--transition-base), color var(--transition-base);
+  transition:
+    border-color var(--transition-base),
+    color var(--transition-base);
 }
 
 .account-qr__share:hover {
@@ -1829,5 +2026,41 @@
   .account-qr--locked {
     justify-items: center;
     text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .account-nav {
+    margin-top: 16px;
+    padding-inline: 12px;
+    top: calc(var(--header-height) + 6px);
+  }
+
+  .account-nav__item {
+    min-height: 40px;
+    padding-inline: 13px;
+  }
+
+  .account-sections {
+    padding: 22px 12px 48px;
+  }
+
+  .account-section {
+    border-radius: 12px;
+    padding: 20px 16px;
+  }
+
+  .account-photo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-photo__actions,
+  .account-photo__buttons {
+    width: 100%;
+  }
+
+  .account-photo__buttons {
+    flex-direction: column;
   }
 }

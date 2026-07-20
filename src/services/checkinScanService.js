@@ -9,7 +9,7 @@ export function registrationCheckinStatus(registration) {
   return registration.status
 }
 
-function buildAthleteRow(registration, athlete) {
+function buildAthleteRow(registration, athlete, membership) {
   return {
     id: `reg-${registration.id}`,
     registrationId: registration.id,
@@ -20,6 +20,20 @@ function buildAthleteRow(registration, athlete) {
     day: 'both',
     status: registrationCheckinStatus(registration),
     checkedInAt: registration.checkedInAt,
+    membershipStatus: membership?.status ?? null,
+  }
+}
+
+function buildMembershipOnlyRow(athlete, membership) {
+  return {
+    id: `mem-${membership.id}`,
+    type: 'atleta',
+    name: athlete?.fullName,
+    document: athlete?.documentId,
+    meta: '',
+    day: 'both',
+    status: null,
+    membershipStatus: membership?.status ?? null,
   }
 }
 
@@ -31,8 +45,8 @@ export function buildTicketRow(ticket) {
     type: 'espectador',
     name: ticket.attendeeName,
     document: ticket.attendeeDni,
-    meta: ticket.ticketCode,
-    day: ticket.dayPass,
+    meta: ticket.ticketTypeName ?? ticket.ticketCode,
+    ticketTypeName: ticket.ticketTypeName,
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
     addons: ticket.addons ?? [],
@@ -54,7 +68,13 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
     if (!membership || !athlete) return { kind: 'registration', outcome: 'not_found' }
 
     if (!registration) {
-      return { kind: 'registration', outcome: 'no_registration', athlete, membership }
+      return {
+        kind: 'registration',
+        outcome: 'no_registration',
+        athlete,
+        membership,
+        row: buildMembershipOnlyRow(athlete, membership),
+      }
     }
 
     const status = registrationCheckinStatus(registration)
@@ -69,7 +89,7 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
       registration,
       registrationId: registration.id,
       status,
-      row: buildAthleteRow(registration, athlete),
+      row: buildAthleteRow(registration, athlete, membership),
     }
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {

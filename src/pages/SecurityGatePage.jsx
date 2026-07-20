@@ -82,6 +82,7 @@ export default function SecurityGatePage({
       <CheckInAppPage
         athletes={athletes}
         canCheckIn={canCheckIn(session.role)}
+        eventDays={event?.eventDays ?? []}
         eventSlug={eventSlug}
         eventTitle={event?.title}
         onCheckInRegistration={onCheckInRegistration}
@@ -91,6 +92,7 @@ export default function SecurityGatePage({
         onRefreshTickets={onRefreshTickets}
         registrations={registrations}
         roleLabel={getRoleLabel(session.role)}
+        ticketTypes={event?.ticketTypes ?? []}
         tickets={tickets}
       />
     )
@@ -224,6 +226,7 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
               {isSubmitting ? t('login.submitting') : t('securityGate.submit')}
               {!isSubmitting && <ArrowRight size={16} aria-hidden />}
             </button>
+            <p className="security-gate-card__demo-hint">{t('securityGate.demoHint')}</p>
             {(submitError || tokenError || hadSession) && (
               <p className="form-submit-error" role="alert">
                 {submitError ||

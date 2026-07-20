@@ -4,7 +4,7 @@
 
 - **Frontend:** Vite 8 + React 19 + CSS modular
 - **API:** Express 5 (scaffold en `server/`)
-- **DB:** PostgreSQL 16: Prisma para identidad staff y Supabase para dominios transaccionales
+- **DB:** Supabase PostgreSQL: `plu_prisma` para identidad staff y `public` para dominios transaccionales
 - **Pagos:** Mercado Pago Checkout Bricks (`Payment Brick` y `Card Payment Brick`) + Suscripciones
 - **Emails:** Brevo API (adaptador en `src/services/emailService.js`)
 - **Tests:** Vitest
@@ -51,7 +51,8 @@ RLS y auditoría.
 
 El navegador no escribe tablas ni RPC sensibles. Express valida la sesión y el
 rol, y usa `service_role` para ejecutar RPCs atómicas en Supabase. Prisma queda
-acotado a usuarios, roles y sesiones del staff. Las verificaciones QR públicas
+acotado a usuarios, roles y sesiones del staff dentro del schema `plu_prisma`
+de la misma base alojada. Las verificaciones QR públicas
 exponen una proyección mínima sin DNI ni datos de pago.
 
 ## Integraciones

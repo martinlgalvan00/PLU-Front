@@ -26,13 +26,6 @@ export const TYPE_FILTERS = [
   ['espectador', 'admin.checkin.spectator'],
 ]
 
-export const DAY_FILTERS = [
-  ['all', 'admin.checkin.filterAllDays'],
-  ['day1', 'admin.checkin.day1'],
-  ['day2', 'admin.checkin.day2'],
-  ['both', 'admin.checkin.bothDays'],
-]
-
 export const STATUS_FILTERS = [
   ['all', 'admin.checkin.filterAllStatuses'],
   ['ready', 'admin.checkin.filterReady'],
@@ -77,8 +70,8 @@ function buildOfflineScanResult(found) {
         type: 'espectador',
         name: entry.attendeeName,
         document: entry.attendeeDni,
-        meta: entry.ticketCode,
-        day: entry.dayPass,
+        meta: entry.ticketTypeName ?? entry.ticketCode,
+        ticketTypeName: entry.ticketTypeName,
         status: alreadyUsed ? 'usada' : entry.status,
       },
     }
@@ -100,7 +93,7 @@ function buildOfflineScanResult(found) {
       name: entry.athleteName,
       document: entry.athleteDocument,
       meta: [entry.category, entry.division].filter(Boolean).join(' · '),
-      day: 'both',
+      dayIndexes: 'all',
       status,
     },
   }
@@ -143,12 +136,14 @@ function buildHistoryEntry(resolved, raw) {
 export function useCheckInWorkspace({
   athletes,
   canCheckIn,
+  eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   onCheckInRegistration,
   onCheckInTicket,
   onRedeemTicketAddon,
   onRefreshTickets,
   registrations,
+  ticketTypes = [],
   tickets,
 }) {
   const { t } = useI18n()
@@ -193,11 +188,11 @@ export function useCheckInWorkspace({
   }, [eventSlug, onRefreshTickets])
 
   const allRows = useMemo(
-    () => buildCheckinRows({ athletes, registrations, tickets, eventSlug }),
-    [athletes, eventSlug, registrations, tickets],
+    () => buildCheckinRows({ athletes, registrations, tickets, eventSlug, ticketTypes }),
+    [athletes, eventSlug, registrations, ticketTypes, tickets],
   )
 
-  const statusCounts = useMemo(() => summarizeCheckinRows(allRows), [allRows])
+  const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
 
   const addonReport = useMemo(
     () => buildEventTicketAddonReport(tickets, eventSlug),
@@ -205,10 +200,16 @@ export function useCheckInWorkspace({
   )
 
   const typeOptions = useMemo(() => TYPE_FILTERS.map(([value, key]) => [value, t(key)]), [t])
-  const dayOptions = useMemo(() => DAY_FILTERS.map(([value, key]) => [value, t(key)]), [t])
+  const dayOptions = useMemo(
+    () => [
+      ['all', t('admin.checkin.filterAllDays')],
+      ...eventDays.map((eventDay) => [eventDay.dayIndex, eventDay.label]),
+    ],
+    [eventDays, t],
+  )
   const filteredScopeCounts = useMemo(
-    () => summarizeCheckinRows(filterCheckinRows(allRows, { type, day })),
-    [allRows, day, type],
+    () => summarizeCheckinRows(filterCheckinRows(allRows, { type, day }), eventDays),
+    [allRows, day, eventDays, type],
   )
   const statusOptions = useMemo(
     () =>

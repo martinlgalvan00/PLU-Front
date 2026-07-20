@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 const KIND_BY_BENEFIT = {
-  events: 'medal',
+  events: 'podium',
   credential: 'card',
   discounts: 'seal',
-  results: 'podium',
+  results: 'medal',
   access: 'device',
   network: 'constellation',
 }
@@ -34,12 +34,11 @@ function QrGlyph() {
   )
 }
 
-/** Meets oficiales — medalla circular con barra. */
+/** Resultados — medalla quieta, mark mínimo. */
 function MedalBody() {
   return (
     <>
       <div className="hm-artifact__face hm-artifact__face--front hm-artifact__face--disc">
-        <span className="hm-artifact__medal-ring hm-artifact__medal-ring--outer" />
         <span className="hm-artifact__medal-ring" />
         <span className="hm-artifact__medal-core">
           <svg viewBox="0 0 48 48" aria-hidden className="hm-artifact__glyph">
@@ -47,119 +46,120 @@ function MedalBody() {
               d="M8 24h6M34 24h6M14 20v8M34 20v8M14 24h20"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.6"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            <circle cx="24" cy="24" r="3.2" fill="currentColor" />
+            <circle cx="24" cy="24" r="2.6" fill="currentColor" />
           </svg>
         </span>
       </div>
       <div className="hm-artifact__face hm-artifact__face--back hm-artifact__face--disc">
-        <span className="hm-artifact__medal-ring" />
-        <span className="hm-artifact__mark">PLU</span>
+        <span className="hm-artifact__medal-mark" />
       </div>
       <span className="hm-artifact__edge hm-artifact__edge--disc" />
     </>
   )
 }
 
-/** Credencial digital — card vertical con QR. */
+/** Credencial digital — pase editorial con QR. */
 function CardBody() {
   return (
     <>
       <div className="hm-artifact__face hm-artifact__face--front hm-artifact__face--card">
-        <span className="hm-artifact__card-accent" />
-        <span className="hm-artifact__card-brand">PLU ARG</span>
+        <span className="hm-artifact__card-top">
+          <span className="hm-artifact__card-brand">PLU</span>
+          <span className="hm-artifact__card-year">26</span>
+        </span>
         <span className="hm-artifact__qr">
           <QrGlyph />
         </span>
-        <span className="hm-artifact__card-label">ID</span>
+        <span className="hm-artifact__card-footer">
+          <span className="hm-artifact__card-name" />
+          <span className="hm-artifact__card-meta" />
+        </span>
       </div>
       <div className="hm-artifact__face hm-artifact__face--back hm-artifact__face--card">
         <span className="hm-artifact__card-chip" />
-        <span className="hm-artifact__mark hm-artifact__mark--gold">QR</span>
-        <span className="hm-artifact__card-stripe" />
+        <span className="hm-artifact__card-magstripe" />
+        <span className="hm-artifact__card-back-mark" />
       </div>
       <span className="hm-artifact__edge hm-artifact__edge--card" />
     </>
   )
 }
 
-/** Ahorro en inscripciones — sello de descuento (silueta de sticker, no de tag colgante). */
+/** Ahorro — sello cera circular (no sticker dentado). */
 function SealBody() {
   return (
     <>
       <div className="hm-artifact__face hm-artifact__face--front hm-artifact__face--seal">
+        <span className="hm-artifact__seal-ring hm-artifact__seal-ring--outer" />
+        <span className="hm-artifact__seal-ring" />
         <span className="hm-artifact__seal-copy">
           <span className="hm-artifact__seal-pct">%</span>
-          <span className="hm-artifact__seal-hint">AHORRO</span>
         </span>
       </div>
       <div className="hm-artifact__face hm-artifact__face--back hm-artifact__face--seal">
-        <span className="hm-artifact__mark">PLU</span>
+        <span className="hm-artifact__seal-ring" />
+        <span className="hm-artifact__medal-mark" />
       </div>
       <span className="hm-artifact__edge hm-artifact__edge--seal" />
     </>
   )
 }
 
-/** Resultados PLU — podio 3D real (tres barras). */
+/** Subite a la tarima — escenario lujoso, bajo y ancho. */
 function PodiumBody() {
   return (
     <div className="hm-artifact__podium">
-      <span className="hm-artifact__podium-bar hm-artifact__podium-bar--2">
-        <span className="hm-artifact__podium-rank">2</span>
-      </span>
+      <span className="hm-artifact__podium-bar hm-artifact__podium-bar--2" />
       <span className="hm-artifact__podium-bar hm-artifact__podium-bar--1">
-        <span className="hm-artifact__podium-rank">1</span>
+        <span className="hm-artifact__podium-crest" />
       </span>
-      <span className="hm-artifact__podium-bar hm-artifact__podium-bar--3">
-        <span className="hm-artifact__podium-rank">3</span>
-      </span>
-      <span className="hm-artifact__podium-base" />
+      <span className="hm-artifact__podium-bar hm-artifact__podium-bar--3" />
+      <span className="hm-artifact__podium-deck" />
     </div>
   )
 }
 
-/**
- * Panel del atleta — afiliación, eventos e historial como app-icons
- * propios (grilla tipo home screen), no filas finitas ilegibles a
- * este tamaño ni un % inventado.
- */
+/** Todo en un panel — teléfono editorial con Dynamic Island. */
 function DeviceBody() {
   return (
     <>
       <div className="hm-artifact__face hm-artifact__face--front hm-artifact__face--device">
-        <span className="hm-artifact__device-bezel">
-          <span className="hm-artifact__device-grid">
-            <span className="hm-artifact__device-tile hm-artifact__device-tile--gold">
-              <span className="hm-artifact__device-tile-glyph hm-artifact__device-tile-glyph--card" />
+        <span className="hm-artifact__device-frame">
+          <span className="hm-artifact__device-screen">
+            <span className="hm-artifact__device-island" />
+            <span className="hm-artifact__device-status">
+              <span className="hm-artifact__device-time">9:41</span>
+              <span className="hm-artifact__device-signal" />
             </span>
-            <span className="hm-artifact__device-tile hm-artifact__device-tile--celeste">
-              <span className="hm-artifact__device-tile-glyph hm-artifact__device-tile-glyph--dot" />
-            </span>
-            <span className="hm-artifact__device-tile hm-artifact__device-tile--muted">
-              <span className="hm-artifact__device-tile-glyph hm-artifact__device-tile-glyph--dot" />
-            </span>
-            <span className="hm-artifact__device-tile hm-artifact__device-tile--ghost">
-              <span className="hm-artifact__device-tile-plus" aria-hidden>
-                +
+            <span className="hm-artifact__device-ui">
+              <span className="hm-artifact__device-brand">PLU</span>
+              <span className="hm-artifact__device-row" />
+              <span className="hm-artifact__device-row hm-artifact__device-row--short" />
+              <span className="hm-artifact__device-card">
+                <span className="hm-artifact__device-card-line" />
+                <span className="hm-artifact__device-card-line hm-artifact__device-card-line--dim" />
               </span>
             </span>
+            <span className="hm-artifact__device-home" />
           </span>
         </span>
       </div>
       <div className="hm-artifact__face hm-artifact__face--back hm-artifact__face--device">
-        <span className="hm-artifact__device-cam" />
-        <span className="hm-artifact__mark hm-artifact__mark--muted">APP</span>
+        <span className="hm-artifact__device-camera">
+          <span className="hm-artifact__device-lens" />
+          <span className="hm-artifact__device-lens hm-artifact__device-lens--sm" />
+        </span>
       </div>
       <span className="hm-artifact__edge hm-artifact__edge--device" />
     </>
   )
 }
 
-/** Red oficial — nodos conectados (no tile). */
+/** Red oficial — nodos conectados. */
 function ConstellationBody() {
   return (
     <div className="hm-artifact__constellation">
@@ -190,66 +190,49 @@ function ArtifactBody({ kind }) {
  * CSS 3D benefit artifact — una silueta distinta por beneficio.
  * Sin WebGL.
  */
+// Tilt de reposo (vista 3/4). El seguimiento del cursor lo maneja el panel
+// vía --reel-mx/my → --hm-tilt-x/y en CSS (cascada); acá solo intervenimos
+// para el drag directo sobre la pieza.
+const RESTING_TILT = { x: 8, y: -12 }
+
 export default function HomeMembershipArtifact({ benefitId, paused = false, reducedMotion = false }) {
   const kind = KIND_BY_BENEFIT[benefitId] ?? 'medal'
   const stageRef = useRef(null)
-  const [tilt, setTilt] = useState({ x: 8, y: -18 })
-  const dragRef = useRef({ active: false, startX: 0, startY: 0, baseX: 8, baseY: -18 })
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setTilt({ x: 6, y: -12 })
-    }
-  }, [reducedMotion])
+  // null = sin arrastre (el tilt lo dicta la cascada del panel). Un objeto
+  // {x,y} congela el tilt mientras se arrastra la pieza.
+  const [dragTilt, setDragTilt] = useState(null)
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, baseX: RESTING_TILT.x, baseY: RESTING_TILT.y })
 
   function onPointerDown(event) {
     if (reducedMotion) return
     const target = stageRef.current
     if (!target) return
     target.setPointerCapture?.(event.pointerId)
+    const base = dragTilt ?? RESTING_TILT
     dragRef.current = {
       active: true,
       startX: event.clientX,
       startY: event.clientY,
-      baseX: tilt.x,
-      baseY: tilt.y,
+      baseX: base.x,
+      baseY: base.y,
     }
+    setDragTilt(base)
   }
 
   function onPointerMove(event) {
-    if (reducedMotion) return
-    const stage = stageRef.current
-    if (!stage) return
-
-    if (dragRef.current.active) {
-      const dx = event.clientX - dragRef.current.startX
-      const dy = event.clientY - dragRef.current.startY
-      setTilt({
-        x: Math.max(-22, Math.min(22, dragRef.current.baseX - dy * 0.18)),
-        y: Math.max(-48, Math.min(48, dragRef.current.baseY + dx * 0.28)),
-      })
-      return
-    }
-
-    if (!paused) return
-    const rect = stage.getBoundingClientRect()
-    const nx = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    const ny = ((event.clientY - rect.top) / rect.height) * 2 - 1
-    setTilt({
-      x: Math.max(-16, Math.min(16, -ny * 14)),
-      y: Math.max(-28, Math.min(28, nx * 22)),
+    if (reducedMotion || !dragRef.current.active) return
+    const dx = event.clientX - dragRef.current.startX
+    const dy = event.clientY - dragRef.current.startY
+    setDragTilt({
+      x: Math.max(-20, Math.min(20, dragRef.current.baseX - dy * 0.18)),
+      y: Math.max(-40, Math.min(40, dragRef.current.baseY + dx * 0.26)),
     })
   }
 
   function onPointerUp(event) {
     dragRef.current.active = false
     stageRef.current?.releasePointerCapture?.(event.pointerId)
-  }
-
-  function onPointerLeave() {
-    if (dragRef.current.active) return
-    if (!paused && !reducedMotion) return
-    setTilt({ x: 8, y: -18 })
+    setDragTilt(null)
   }
 
   const className = [
@@ -257,28 +240,32 @@ export default function HomeMembershipArtifact({ benefitId, paused = false, redu
     `hm-artifact--${kind}`,
     paused ? 'is-paused' : '',
     reducedMotion ? 'is-static' : '',
+    dragTilt ? 'is-dragging' : '',
   ]
     .filter(Boolean)
     .join(' ')
+
+  // Solo forzamos las vars durante el drag; en reposo las hereda del panel.
+  const dragStyle = dragTilt
+    ? { '--hm-tilt-x': `${dragTilt.x}deg`, '--hm-tilt-y': `${dragTilt.y}deg` }
+    : undefined
 
   return (
     <div
       ref={stageRef}
       className={className}
       aria-hidden
-      style={{
-        '--hm-tilt-x': `${tilt.x}deg`,
-        '--hm-tilt-y': `${tilt.y}deg`,
-      }}
+      style={dragStyle}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onPointerLeave={onPointerLeave}
     >
       <div className="hm-artifact__orbit">
         <div className="hm-artifact__model">
+          <span className="hm-artifact__sheen" />
           <ArtifactBody kind={kind} />
+          <span className="hm-artifact__glow" />
         </div>
       </div>
       <span className="hm-artifact__shadow" />

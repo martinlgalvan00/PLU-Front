@@ -12,6 +12,7 @@ declare
   v_event_id uuid := gen_random_uuid();
   v_ticket_order_id uuid := gen_random_uuid();
   v_ticket_id uuid := gen_random_uuid();
+  v_ticket_type_id uuid := gen_random_uuid();
   v_event_retry_id uuid := gen_random_uuid();
   v_event_stale_id uuid := gen_random_uuid();
   v_status text;
@@ -147,12 +148,15 @@ begin
     v_ticket_order_id, v_event_id, 'Smoke', 'smoke@example.invalid',
     1000, 'ARS', 'mercado_pago', 'pendiente', 'SMOKE-TICKET-' || v_ticket_order_id
   );
+  insert into public.ticket_types (id, event_id, name, price) values (
+    v_ticket_type_id, v_event_id, 'Smoke', 1000
+  );
   insert into public.tickets (
     id, ticket_code, order_id, event_id, attendee_name, attendee_dni,
-    day_pass, unit_price, status
+    ticket_type_id, unit_price, status
   ) values (
     v_ticket_id, 'SMOKE-' || v_ticket_id, v_ticket_order_id, v_event_id,
-    'Smoke', 'SMOKE', 'day1', 1000, 'pendiente_pago'
+    'Smoke', 'SMOKE', v_ticket_type_id, 1000, 'pendiente_pago'
   );
 
   perform public.apply_ticket_mercado_pago_payment(

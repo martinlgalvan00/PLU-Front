@@ -617,7 +617,7 @@ export function useAppData() {
           attendees: attendees.map((attendee) => ({
             fullName: attendee.fullName,
             dni: attendee.dni,
-            dayPass: attendee.dayPass,
+            ticketTypeId: attendee.ticketTypeId,
             addonIds: attendee.addonIds ?? [],
           })),
           provider,
@@ -916,6 +916,22 @@ export function useAppData() {
         const password = String(credentialsOrAccountType.password ?? '')
 
         if (email === 'demo@pluarg.com.ar' && password === '123') {
+          // Desde /evento/:slug/seguridad, demo entra como personal de puerta
+          // del evento (no como admin del panel).
+          const eventSlug = String(credentialsOrAccountType.eventSlug ?? '').trim()
+          if (eventSlug) {
+            const demoSecuritySession = {
+              id: 'demo-security',
+              role: 'seguridad_plu_arg',
+              name: 'Seguridad Demo',
+              email: 'demo@pluarg.com.ar',
+              eventId: `demo-event-${eventSlug}`,
+              eventSlug,
+            }
+            setSession(demoSecuritySession)
+            return demoSecuritySession
+          }
+
           const demoAdminSession = {
             id: 'demo-admin',
             role: 'admin_plu_arg',

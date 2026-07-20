@@ -1,10 +1,12 @@
 import { loadEnvFile } from 'node:process'
 import { createApp } from './app.js'
 import { applyServerRuntimeDefaults } from './lib/runtime.js'
+import { getPrisma } from './lib/prisma.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startPaymentRecoveryJob } from './jobs/paymentRecoveryJob.js'
 import { startDomainMaintenanceJob } from './jobs/domainMaintenanceJob.js'
+import { startSecurityUserLifecycleJob } from './jobs/securityUserLifecycleJob.js'
 
 try {
   loadEnvFile()
@@ -23,3 +25,4 @@ applyServerRuntimeDefaults(server)
 startMembershipRenewalJob({ client: getSupabaseAdmin() })
 startPaymentRecoveryJob({ client: getSupabaseAdmin() })
 startDomainMaintenanceJob({ client: getSupabaseAdmin() })
+startSecurityUserLifecycleJob({ prisma: getPrisma(), client: getSupabaseAdmin() })

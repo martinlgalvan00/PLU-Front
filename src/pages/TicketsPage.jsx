@@ -8,19 +8,11 @@ import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
-import { ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../motion/variants.ts'
 import '../styles/pages/tickets.css'
-
-function buildTicketDayLabels(event, t) {
-  const label = event?.date || t('pages.ticketsPage.dateFallback')
-  return {
-    day1: label,
-    day2: label,
-  }
-}
 
 function resolveInitialEventId(initialEventSlug, ticketEvents, fallbackEvent) {
   if (initialEventSlug) {
@@ -57,12 +49,9 @@ export default function TicketsPage({
   const pricing = ticketPricingFromEvent(selectedEvent)
   const ticketSalesOpen = selectedEvent?.pricing?.ticketsEnabled !== false
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
-  const dayLabels = buildTicketDayLabels(selectedEvent, t)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title ? createdOrder : null
 
-  const saveDay = Math.max(0, (pricing.dayPresencial ?? 0) - (pricing.day ?? 0))
-  const saveBoth = Math.max(0, (pricing.bothDaysPresencial ?? 0) - (pricing.bothDays ?? 0))
   const heroMark =
     String(selectedEvent?.title ?? '')
       .trim()
@@ -239,7 +228,7 @@ export default function TicketsPage({
                     {item.date ?? t('pages.ticketsPage.dateFallback')} · {item.venue ?? t('pages.ticketsPage.venueFallback')}
                   </small>
                   <em>
-                    {money(itemPricing.day, locale)} {t('pages.ticketsPage.fromPerDay')}
+                    {money(cheapestTicketTypePrice(itemPricing), locale)} {t('pages.ticketsPage.fromPerDay')}
                   </em>
                 </button>
               )
@@ -253,49 +242,24 @@ export default function TicketsPage({
           <span className="tickets-page__eyebrow">{t('pages.ticketsPage.offersEyebrow')}</span>
           <h2 id="tickets-offers-title">{t('pages.ticketsPage.offersTitle')}</h2>
           <p>{t('pages.ticketsPage.offersLead')}</p>
-          {saveDay > 0 || saveBoth > 0 ? (
-            <p className="tickets-page__offers-save">
-              {saveDay > 0
-                ? t('pages.ticketsPage.saveDay', { amount: money(saveDay, locale) })
-                : null}
-              {saveDay > 0 && saveBoth > 0 ? ' · ' : null}
-              {saveBoth > 0
-                ? t('pages.ticketsPage.saveBoth', { amount: money(saveBoth, locale) })
-                : null}
-            </p>
-          ) : null}
         </header>
 
         <div className="tickets-page__offers-grid" aria-label={t('pages.ticketsPage.offersAria')}>
-          <article className="tickets-page__offer tickets-page__offer--online">
-            <span>{t('pages.ticketsPage.onlineBadge')}</span>
-            <div className="tickets-page__offer-prices">
-              <div>
-                <small>{t('pages.ticketsPage.perDay')}</small>
-                <strong>{money(pricing.day, locale)}</strong>
+          {pricing.ticketTypes.map((type) => (
+            <article key={type.id} className="tickets-page__offer">
+              <span>{type.name}</span>
+              <div className="tickets-page__offer-prices">
+                <div>
+                  <strong>{money(type.price, locale)}</strong>
+                </div>
               </div>
-              <div>
-                <small>{t('pages.ticketsPage.bothDays')}</small>
-                <strong>{money(pricing.bothDays, locale)}</strong>
-              </div>
-            </div>
-            <p>{t('pages.ticketsPage.onlineHint')}</p>
-          </article>
-
-          <article className="tickets-page__offer tickets-page__offer--door">
-            <span>{t('pages.ticketsPage.doorBadge')}</span>
-            <div className="tickets-page__offer-prices">
-              <div>
-                <small>{t('pages.ticketsPage.perDay')}</small>
-                <strong>{money(pricing.dayPresencial, locale)}</strong>
-              </div>
-              <div>
-                <small>{t('pages.ticketsPage.bothDays')}</small>
-                <strong>{money(pricing.bothDaysPresencial, locale)}</strong>
-              </div>
-            </div>
-            <p>{t('pages.ticketsPage.doorHint')}</p>
-          </article>
+              {type.includedAddons.length ? (
+                <p>
+                  {t('pages.ticketsPage.includesBadge')}: {type.includedAddons.map((addon) => addon.label).join(' · ')}
+                </p>
+              ) : null}
+            </article>
+          ))}
         </div>
       </section>
 
@@ -323,7 +287,6 @@ export default function TicketsPage({
                 editorial
                 showPassPreview={false}
                 event={selectedEvent}
-                dayLabels={dayLabels}
                 pricing={pricing}
                 tickets={tickets}
                 createdOrder={visibleCreatedOrder}

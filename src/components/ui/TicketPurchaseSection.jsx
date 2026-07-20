@@ -9,7 +9,6 @@ import TicketPassPreview from './TicketPassPreview.jsx'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
-import { PRICING } from '../../lib/constants.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
@@ -18,57 +17,62 @@ import { priceForAttendee, priceForOrder } from '../../services/ticketService.js
 
 const MAX_TICKETS = 8
 
-function emptyAttendee() {
-  return { fullName: '', dni: '', dayPass: 'day1', addonIds: [] }
+function emptyAttendee(pricing) {
+  return { fullName: '', dni: '', ticketTypeId: pricing?.ticketTypes?.[0]?.id ?? '', addonIds: [] }
 }
 
-function DayPassPicker({ compact = false, dayOptions, name, onChange, value }) {
+function TicketTypePicker({ compact = false, name, onChange, ticketTypes, value }) {
   return (
     <div
       className={`ticket-purchase__day-picker${compact ? ' ticket-purchase__day-picker--compact' : ''}`}
       role="group"
       aria-label={name}
     >
-      {dayOptions.map(([pass, label]) => (
+      {ticketTypes.map((type) => (
         <button
-          key={pass}
+          key={type.id}
           type="button"
           className="ticket-purchase__day-chip"
-          aria-pressed={value === pass}
-          onClick={() => onChange(pass)}
+          aria-pressed={value === type.id}
+          onClick={() => onChange(type.id)}
         >
-          {label}
+          {type.name}
         </button>
       ))}
     </div>
   )
 }
 
-function TicketAddonPicker({ addons, attendee, locale, onToggle, t }) {
+function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes }) {
   if (!addons?.length) return null
 
   const selected = Array.isArray(attendee.addonIds) ? attendee.addonIds : []
+  const includedAddonIds = ticketTypes.find((type) => type.id === attendee.ticketTypeId)?.includedAddonIds ?? []
 
   return (
     <div className="ticket-purchase__addons" role="group" aria-label={t('pages.tickets.addonsTitle')}>
       <span className="ticket-purchase__addons-label">{t('pages.tickets.addonsTitle')}</span>
       <div className="ticket-purchase__addons-list">
         {addons.map((addon) => {
-          const isSelected = selected.includes(addon.id)
+          const included = includedAddonIds.includes(addon.id)
+          const isSelected = included || selected.includes(addon.id)
           return (
             <label
               key={addon.id}
-              className={`ticket-purchase__addon${isSelected ? ' is-selected' : ''}`}
+              className={`ticket-purchase__addon${isSelected ? ' is-selected' : ''}${included ? ' is-included' : ''}`}
             >
               <input
                 checked={isSelected}
+                disabled={included}
                 type="checkbox"
                 onChange={() => onToggle(addon.id)}
               />
               <span className="ticket-purchase__addon-copy">
                 <strong>
                   {addon.label}
-                  <span className="ticket-purchase__addon-price">+{money(addon.price, locale)}</span>
+                  <span className="ticket-purchase__addon-price">
+                    {included ? t('pages.tickets.addonIncluded') : `+${money(addon.price, locale)}`}
+                  </span>
                 </strong>
                 {addon.description ? <small>{addon.description}</small> : null}
                 {addon.redeemLabel ? (
@@ -87,7 +91,7 @@ function attendeeRowHasError(errors, index) {
   return Boolean(
     errors[`attendee-${index}-fullName`] ||
       errors[`attendee-${index}-dni`] ||
-      errors[`attendee-${index}-dayPass`],
+      errors[`attendee-${index}-ticketTypeId`],
   )
 }
 
@@ -102,7 +106,6 @@ function countAttendeeRowsWithErrors(errors, total) {
 function EditorialAttendeesBatch({
   addons,
   attendees,
-  dayOptions,
   errors,
   locale,
   onAddonToggle,
@@ -183,15 +186,17 @@ function EditorialAttendeesBatch({
                 />
 
                 <div className="ticket-purchase__attendees-batch-day">
-                  <DayPassPicker
+                  <TicketTypePicker
                     compact
-                    dayOptions={dayOptions}
-                    name={`attendee-${index}-dayPass`}
-                    value={attendee.dayPass}
-                    onChange={(pass) => onChange(index, 'dayPass', pass)}
+                    name={`attendee-${index}-ticketTypeId`}
+                    ticketTypes={pricing.ticketTypes}
+                    value={attendee.ticketTypeId}
+                    onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
                   />
-                  {errors[`attendee-${index}-dayPass`] ? (
-                    <span className="ticket-purchase__batch-field-error">{errors[`attendee-${index}-dayPass`]}</span>
+                  {errors[`attendee-${index}-ticketTypeId`] ? (
+                    <span className="ticket-purchase__batch-field-error">
+                      {errors[`attendee-${index}-ticketTypeId`]}
+                    </span>
                   ) : null}
                 </div>
 
@@ -215,6 +220,7 @@ function EditorialAttendeesBatch({
                 locale={locale}
                 onToggle={(addonId) => onAddonToggle(index, addonId)}
                 t={t}
+                ticketTypes={pricing.ticketTypes}
               />
             </div>
           ))}
@@ -227,7 +233,6 @@ function EditorialAttendeesBatch({
 function EditorialAttendeeFields({
   addons,
   attendee,
-  dayOptions,
   errors,
   index,
   locale,
@@ -284,11 +289,11 @@ function EditorialAttendeeFields({
         />
         <div className="ticket-purchase__field-day">
           <span className="ticket-purchase__field-day-label">{t('pages.tickets.day')}</span>
-          <DayPassPicker
-            dayOptions={dayOptions}
-            name={`attendee-${index}-dayPass`}
-            value={attendee.dayPass}
-            onChange={(pass) => onChange(index, 'dayPass', pass)}
+          <TicketTypePicker
+            name={`attendee-${index}-ticketTypeId`}
+            ticketTypes={pricing.ticketTypes}
+            value={attendee.ticketTypeId}
+            onChange={(ticketTypeId) => onChange(index, 'ticketTypeId', ticketTypeId)}
           />
         </div>
       </div>
@@ -299,6 +304,7 @@ function EditorialAttendeeFields({
         locale={locale}
         onToggle={(addonId) => onAddonToggle(index, addonId)}
         t={t}
+        ticketTypes={pricing.ticketTypes}
       />
     </div>
   )
@@ -348,8 +354,7 @@ export default function TicketPurchaseSection({
   editorial = false,
   showPassPreview = true,
   event,
-  dayLabels = { day1: 'día 1', day2: 'día 2' },
-  pricing = { day: PRICING.ticket, bothDays: PRICING.ticketBothDays },
+  pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
   onSubmit,
@@ -358,7 +363,7 @@ export default function TicketPurchaseSection({
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
   const [quantity, setQuantity] = useState(1)
-  const [attendees, setAttendees] = useState([emptyAttendee()])
+  const [attendees, setAttendees] = useState([emptyAttendee(pricing)])
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
@@ -370,34 +375,15 @@ export default function TicketPurchaseSection({
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
 
-  const dayPassLabels = useMemo(
-    () => ({
-      day1: t('pages.tickets.day1'),
-      day2: t('pages.tickets.day2'),
-      both: t('pages.tickets.bothDays'),
-    }),
-    [t],
-  )
-
-  const dayOptions = useMemo(
-    () => [
-      ['day1', t('pages.tickets.dayOption', { n: 1, label: dayLabels.day1 })],
-      ['day2', t('pages.tickets.dayOption', { n: 2, label: dayLabels.day2 })],
-      ['both', t('pages.tickets.bothDays')],
-    ],
-    [dayLabels.day1, dayLabels.day2, t],
-  )
-
-  const dayChipOptions = useMemo(
-    () => [
-      ['day1', dayLabels.day1],
-      ['day2', dayLabels.day2],
-      ['both', t('pages.tickets.bothDays')],
-    ],
-    [dayLabels.day1, dayLabels.day2, t],
-  )
-
   const ticketAddons = pricing?.addons ?? []
+  const ticketTypeNames = useMemo(
+    () => Object.fromEntries((pricing.ticketTypes ?? []).map((type) => [type.id, type.name])),
+    [pricing.ticketTypes],
+  )
+  const ticketTypeSelectOptions = useMemo(
+    () => (pricing.ticketTypes ?? []).map((type) => [type.id, type.name]),
+    [pricing.ticketTypes],
+  )
   const visibleOrder = createdOrder?.type === 'tickets' ? createdOrder : null
   const orderTickets = visibleOrder ? tickets.filter((item) => item.orderId === visibleOrder.orderId) : []
   const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
@@ -408,7 +394,10 @@ export default function TicketPurchaseSection({
     setQuantity(clamped)
     setAttendees((current) => {
       if (clamped > current.length) {
-        return [...current, ...Array.from({ length: clamped - current.length }, emptyAttendee)]
+        return [
+          ...current,
+          ...Array.from({ length: clamped - current.length }, () => emptyAttendee(pricing)),
+        ]
       }
       return current.slice(0, clamped)
     })
@@ -434,7 +423,11 @@ export default function TicketPurchaseSection({
 
   async function handleSubmit(domEvent) {
     domEvent.preventDefault()
-    const validation = validateTicketAttendees(attendees, t)
+    const validation = validateTicketAttendees(
+      attendees,
+      t,
+      (pricing.ticketTypes ?? []).map((type) => type.id),
+    )
     if (!validation.success) {
       setErrors(validation.errors)
       requestAnimationFrame(() => {
@@ -565,7 +558,7 @@ export default function TicketPurchaseSection({
                 interactive={false}
                 attendeeName={ticket.attendeeName}
                 date={ticket.eventDate || event?.date}
-                dayPassLabel={dayPassLabels[ticket.dayPass] ?? ticket.dayPass}
+                dayPassLabel={ticket.ticketTypeName ?? ticketTypeNames[ticket.ticketTypeId] ?? ''}
                 eventSlug={ticket.eventSlug || event?.slug || ''}
                 eventTitle={ticket.eventTitle || visibleOrder.eventTitle}
                 qrCode={ticket.qrToken || ticket.ticketCode || ''}
@@ -608,7 +601,7 @@ export default function TicketPurchaseSection({
                   eventVenue: activeTicket.eventVenue,
                   eventLocation: activeTicket.eventLocation,
                   eventSlug: activeTicket.eventSlug,
-                  dayPassLabel: dayPassLabels[activeTicket.dayPass] ?? activeTicket.dayPass,
+                  dayPassLabel: activeTicket.ticketTypeName ?? ticketTypeNames[activeTicket.ticketTypeId] ?? '',
                   variant: 'ticket',
                 }
               : {}
@@ -663,12 +656,7 @@ export default function TicketPurchaseSection({
             <strong>{money(total, locale)}</strong>
           </div>
         ) : (
-          <span className="ticket-purchase__unit-price">
-            {t('pages.tickets.unitPrice', {
-              day: money(pricing.day, locale),
-              both: money(pricing.bothDays, locale),
-            })}
-          </span>
+          <span className="ticket-purchase__unit-price">{money(total, locale)}</span>
         )}
       </div>
 
@@ -693,7 +681,6 @@ export default function TicketPurchaseSection({
           <EditorialAttendeesBatch
             addons={ticketAddons}
             attendees={attendees}
-            dayOptions={dayChipOptions}
             errors={errors}
             locale={locale}
             onAddonToggle={handleAddonToggle}
@@ -708,7 +695,6 @@ export default function TicketPurchaseSection({
                 key={index}
                 addons={ticketAddons}
                 attendee={attendee}
-                dayOptions={dayChipOptions}
                 errors={errors}
                 index={index}
                 locale={locale}
@@ -749,10 +735,10 @@ export default function TicketPurchaseSection({
                   />
                   <Select
                     label={t('pages.tickets.day')}
-                    name={`attendee-${index}-dayPass`}
-                    value={attendee.dayPass}
-                    onChange={(e) => changeAttendee(index, 'dayPass', e.target.value)}
-                    options={dayOptions}
+                    name={`attendee-${index}-ticketTypeId`}
+                    value={attendee.ticketTypeId}
+                    onChange={(e) => changeAttendee(index, 'ticketTypeId', e.target.value)}
+                    options={ticketTypeSelectOptions}
                   />
                 </div>
                 <TicketAddonPicker
@@ -761,6 +747,7 @@ export default function TicketPurchaseSection({
                   locale={locale}
                   onToggle={(addonId) => handleAddonToggle(index, addonId)}
                   t={t}
+                  ticketTypes={pricing.ticketTypes}
                 />
               </div>
             ),
@@ -834,8 +821,7 @@ export default function TicketPurchaseSection({
     </>
   )
 
-  const previewDayLabel =
-    dayPassLabels[attendees[0]?.dayPass] ?? dayChipOptions.find(([pass]) => pass === attendees[0]?.dayPass)?.[1] ?? ''
+  const previewDayLabel = ticketTypeNames[attendees[0]?.ticketTypeId] ?? ''
 
   return (
     <form className={formClass} onSubmit={handleSubmit}>

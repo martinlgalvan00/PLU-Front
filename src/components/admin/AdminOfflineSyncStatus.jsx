@@ -61,17 +61,24 @@ export default function AdminOfflineSyncStatus({
     <div className={statusClass}>
       <div className="admin-offline-sync-status__main">
         <div className="admin-offline-sync-status__identity">
-          <span className="admin-offline-sync-status__badge">
-            {isOnline ? <Wifi size={14} aria-hidden /> : <CloudOff size={14} aria-hidden />}
-            {isOnline ? t('admin.checkin.offline.online') : t('admin.checkin.offline.offline')}
-          </span>
-
-          {hasPending && (
-            <span className="admin-offline-sync-status__pending">
-              {t('admin.checkin.offline.pending', { count: pendingCount })}
+          <div className="admin-offline-sync-status__status-row">
+            <span className="admin-offline-sync-status__badge">
+              {isOnline ? <Wifi size={14} aria-hidden /> : <CloudOff size={14} aria-hidden />}
+              {isOnline ? t('admin.checkin.offline.online') : t('admin.checkin.offline.offline')}
             </span>
-          )}
 
+            {hasPending && (
+              <span className="admin-offline-sync-status__pending">
+                {t('admin.checkin.offline.pending', { count: pendingCount })}
+              </span>
+            )}
+          </div>
+
+          <p className="admin-offline-sync-status__title">
+            {needsDownload
+              ? t('admin.checkin.offline.setupTitle')
+              : t('admin.checkin.offline.readyTitle')}
+          </p>
           <p className="admin-offline-sync-status__meta">{metaText}</p>
         </div>
 

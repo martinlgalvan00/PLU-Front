@@ -14,6 +14,7 @@ import {
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
+import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
 import AdminEventSecuritySection from './AdminEventSecuritySection.jsx'
 
 function updatePricingField(draft, field, value) {
@@ -308,30 +309,6 @@ export default function AdminEventEditor({
                 disabled={!canEdit}
               />
             </label>
-            <label className="admin-event-form__field">
-              <span>{t('admin.eventEditor.priceTicketDay')}</span>
-              <input
-                min={0}
-                required
-                type="number"
-                value={draft.pricing?.ticketDay ?? DEFAULT_EVENT_PRICING.ticketDay}
-                onChange={(event) => onChange(updatePricingField(draft, 'ticketDay', event.target.value))}
-                disabled={!canEdit}
-              />
-            </label>
-            <label className="admin-event-form__field">
-              <span>{t('admin.eventEditor.priceTicketBoth')}</span>
-              <input
-                min={0}
-                required
-                type="number"
-                value={draft.pricing?.ticketBothDays ?? DEFAULT_EVENT_PRICING.ticketBothDays}
-                onChange={(event) =>
-                  onChange(updatePricingField(draft, 'ticketBothDays', event.target.value))
-                }
-                disabled={!canEdit}
-              />
-            </label>
           </div>
         </fieldset>
 
@@ -347,6 +324,7 @@ export default function AdminEventEditor({
               canManageUsers={canManageUsers}
               eventId={draft.id}
               eventSlug={sourceEvent?.slug}
+              eventEndsAt={draft.endsAt}
               onCreateSecurityUser={onCreateSecurityUser}
               onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
               onCreateSecurityAccessLink={onCreateSecurityAccessLink}
@@ -472,41 +450,14 @@ export default function AdminEventEditor({
             </label>
           </div>
 
-          <p className="admin-event-form__pricing-lead">
-            {t('admin.eventEditor.supabase.capacityTitle')}. {t('admin.eventEditor.supabase.capacityHint')}
-          </p>
-          <div className="admin-event-form__grid admin-event-form__grid--pricing">
-            <label className="admin-event-form__field">
-              <span>{t('admin.eventEditor.supabase.capacityDay1')}</span>
-              <input
-                min={0}
-                type="number"
-                value={draft.capacityDay1 ?? ''}
-                onChange={(event) => onChange({ ...draft, capacityDay1: event.target.value })}
-                disabled={!canEdit}
-              />
-            </label>
-            <label className="admin-event-form__field">
-              <span>{t('admin.eventEditor.supabase.capacityDay2')}</span>
-              <input
-                min={0}
-                type="number"
-                value={draft.capacityDay2 ?? ''}
-                onChange={(event) => onChange({ ...draft, capacityDay2: event.target.value })}
-                disabled={!canEdit}
-              />
-            </label>
-            <label className="admin-event-form__field">
-              <span>{t('admin.eventEditor.supabase.capacityBoth')}</span>
-              <input
-                min={0}
-                type="number"
-                value={draft.capacityBoth ?? ''}
-                onChange={(event) => onChange({ ...draft, capacityBoth: event.target.value })}
-                disabled={!canEdit}
-              />
-            </label>
-          </div>
+          <AdminTicketTypesEditor
+            addonsCatalog={draft.pricing?.ticketAddons ?? []}
+            canEdit={canEdit}
+            eventDays={draft.eventDays ?? []}
+            onChangeEventDays={(eventDays) => onChange({ ...draft, eventDays })}
+            onChangeTicketTypes={(ticketTypes) => onChange({ ...draft, ticketTypes })}
+            ticketTypes={draft.ticketTypes ?? []}
+          />
 
           <p className="admin-event-form__pricing-lead">
             <Radio size={13} aria-hidden /> {t('admin.eventEditor.supabase.liveTitle')}

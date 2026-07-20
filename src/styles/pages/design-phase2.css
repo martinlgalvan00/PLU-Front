@@ -1235,6 +1235,14 @@
   margin: 10px 0 0;
 }
 
+.security-gate-card__demo-hint {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 14px 0 0;
+  text-align: center;
+}
+
 @media (min-width: 841px) {
   .login-shell {
     align-items: center;

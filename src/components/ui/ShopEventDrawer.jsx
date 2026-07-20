@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, MapPin, ShoppingBag, Ticket, X } from 'lucide
 import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
-import { ticketPricingFromEvent } from '../../lib/eventPricing.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
 import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -18,9 +18,9 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTickets, onViewEvent, t }) {
   const { reducedMotion } = useMotionConfig()
   const pricing = ticketPricingFromEvent(event)
-  const ticketsOpen = pricing.day > 0 || pricing.bothDays > 0
+  const fromPrice = cheapestTicketTypePrice(pricing)
+  const ticketsOpen = fromPrice != null
   const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
-  const fromPrice = pricing.bothDays || pricing.day
   const remaining = useTicketAvailability(open && salesOpen ? event?.slug : null)
   const soldOut = remaining === 0
 
