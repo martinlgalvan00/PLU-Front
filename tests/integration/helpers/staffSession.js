@@ -51,6 +51,7 @@ export function createPrismaDouble(users, { events = [] } = {}) {
           role: data.role,
           status: data.status,
           eventId: data.eventId ?? null,
+          eventSlug: data.eventSlug ?? event?.slug ?? null,
           profile: data.profile?.create
             ? { firstName: data.profile.create.firstName, lastName: data.profile.create.lastName }
             : null,
@@ -126,14 +127,20 @@ export async function buildStaffUser({
   eventId = null,
   eventSlug = null,
 } = {}) {
+  const userKey = email
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
   return {
-    id: `usr-${role}`,
+    id: `usr-${role}-${userKey}`,
     email,
     passwordHash: await hashPassword(STAFF_TEST_PASSWORD),
     role,
     status: 'active',
     profile: null,
     eventId,
+    eventSlug,
     event: eventId ? { id: eventId, slug: eventSlug } : null,
   }
 }
@@ -147,7 +154,9 @@ export async function loginStaff(baseUrl, { email, eventSlug } = {}) {
   })
 
   if (!response.ok) {
-    throw new Error(`No se pudo loguear el staff de prueba: ${response.status} ${await response.text()}`)
+    throw new Error(
+      `No se pudo loguear el staff de prueba: ${response.status} ${await response.text()}`,
+    )
   }
 
   return { cookie: sessionCookie(response) }
