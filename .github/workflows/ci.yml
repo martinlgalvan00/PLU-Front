@@ -20,7 +20,11 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - run: npx prisma validate
+      - name: Validate Prisma schema
+        env:
+          # `prisma validate` parses the datasource URL but does not connect.
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: npx prisma validate
 
   supabase-integration:
     runs-on: ubuntu-latest
