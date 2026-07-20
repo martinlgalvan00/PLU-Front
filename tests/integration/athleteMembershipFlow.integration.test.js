@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
@@ -20,7 +20,7 @@ function authHeaders(cookie) {
 function buildAthletePayload(suffix) {
   return {
     fullName: `Test Athlete ${suffix}`,
-    documentId: String(20000000 + suffix).slice(0, 8),
+    documentId: String(10_000_000 + (randomBytes(4).readUInt32BE(0) % 90_000_000)),
     email: `test+athlete-${suffix}-${randomUUID()}@pluarg.test`,
     birthDate: '1995-01-01',
     phone: '1122334455',
@@ -44,7 +44,9 @@ async function registerAthlete(baseUrl, suffix) {
   })
   const body = await response.json()
   if (response.status !== 201) {
-    throw new Error(`No se pudo registrar el atleta de prueba: ${response.status} ${JSON.stringify(body)}`)
+    throw new Error(
+      `No se pudo registrar el atleta de prueba: ${response.status} ${JSON.stringify(body)}`,
+    )
   }
   return { athlete: body.athlete, cookie: sessionCookie(response) }
 }
@@ -55,12 +57,20 @@ describe('flujo de atleta: idempotencia de orden y aislamiento entre atletas', (
 
   afterAll(async () => {
     if (createdAthleteIds.length === 0) return
-    await supabaseAdmin.from('membership_order_targets').delete().in(
-      'payment_order_id',
-      (await supabaseAdmin.from('athlete_payment_orders').select('id').in('athlete_id', createdAthleteIds)).data?.map((row) => row.id) ?? [],
-    )
-    await supabaseAdmin.from('athlete_payment_orders').delete().in('athlete_id', createdAthleteIds)
+    await supabaseAdmin
+      .from('membership_order_targets')
+      .delete()
+      .in(
+        'payment_order_id',
+        (
+          await supabaseAdmin
+            .from('athlete_payment_orders')
+            .select('id')
+            .in('athlete_id', createdAthleteIds)
+        ).data?.map((row) => row.id) ?? [],
+      )
     await supabaseAdmin.from('memberships').delete().in('athlete_id', createdAthleteIds)
+    await supabaseAdmin.from('athlete_payment_orders').delete().in('athlete_id', createdAthleteIds)
     await supabaseAdmin.from('athlete_sessions').delete().in('athlete_id', createdAthleteIds)
     await supabaseAdmin.from('athletes').delete().in('id', createdAthleteIds)
   })

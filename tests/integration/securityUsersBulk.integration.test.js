@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
-import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
+import {
+  authHeaders,
+  buildStaffUser,
+  createPrismaDouble,
+  loginStaff,
+} from './helpers/staffSession.js'
+import { createSupabaseTestClient } from './helpers/supabaseTestClient.js'
 
-const EVENT = { id: 'evt-pitbull-2026', slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' }
+const EVENT_SLUG = 'pitbull-classic-2026'
+const supabaseAdmin = createSupabaseTestClient()
 
 function listen(app) {
   const server = app.listen(0)
@@ -14,24 +21,31 @@ function listen(app) {
 }
 
 async function bootAdmin() {
+  const { data: event, error } = await supabaseAdmin
+    .from('events')
+    .select('id, slug, title')
+    .eq('slug', EVENT_SLUG)
+    .single()
+  if (error) throw new Error(`No se pudo preparar el evento de seguridad: ${error.message}`)
+
   const admin = await buildStaffUser({ role: 'admin_maximal', email: 'admin-bulk@pluarg.test' })
   const users = [admin]
-  const prisma = createPrismaDouble(users, { events: [EVENT] })
-  const target = listen(createApp({ prisma }))
+  const prisma = createPrismaDouble(users, { events: [event] })
+  const target = listen(createApp({ prisma, supabaseAdmin }))
   const { cookie } = await loginStaff(target.url, { email: admin.email })
-  return { target, cookie, users }
+  return { target, cookie, users, event }
 }
 
 describe('alta masiva de cuentas de seguridad', () => {
   it('crea las cuentas nuevas y omite las que ya existen (partial success)', async () => {
-    const { target, cookie, users } = await bootAdmin()
+    const { target, cookie, users, event } = await bootAdmin()
 
     try {
       const response = await fetch(`${target.url}/api/auth/security-users/bulk`, {
         method: 'POST',
         headers: authHeaders(cookie),
         body: JSON.stringify({
-          eventId: EVENT.id,
+          eventId: event.id,
           users: [
             { name: 'Juan Portero', email: 'juan@pluarg.test' },
             { name: 'Maria Puerta', email: 'maria@pluarg.test' },
@@ -55,21 +69,23 @@ describe('alta masiva de cuentas de seguridad', () => {
       // Las cuentas creadas quedan como seguridad_plu_arg atadas al evento.
       const created = users.filter((user) => user.role === 'seguridad_plu_arg')
       expect(created).toHaveLength(2)
-      expect(created.every((user) => user.eventId === EVENT.id && user.status === 'active')).toBe(true)
+      expect(created.every((user) => user.eventId === event.id && user.status === 'active')).toBe(
+        true,
+      )
     } finally {
       await target.close()
     }
   })
 
   it('rechaza (400) emails duplicados dentro del mismo lote', async () => {
-    const { target, cookie } = await bootAdmin()
+    const { target, cookie, event } = await bootAdmin()
 
     try {
       const response = await fetch(`${target.url}/api/auth/security-users/bulk`, {
         method: 'POST',
         headers: authHeaders(cookie),
         body: JSON.stringify({
-          eventId: EVENT.id,
+          eventId: event.id,
           users: [
             { name: 'Repetido Uno', email: 'dup@pluarg.test' },
             { name: 'Repetido Dos', email: 'dup@pluarg.test' },
@@ -84,14 +100,14 @@ describe('alta masiva de cuentas de seguridad', () => {
   })
 
   it('da de baja todas las cuentas activas del evento en una sola operación', async () => {
-    const { target, cookie, users } = await bootAdmin()
+    const { target, cookie, users, event } = await bootAdmin()
 
     try {
       await fetch(`${target.url}/api/auth/security-users/bulk`, {
         method: 'POST',
         headers: authHeaders(cookie),
         body: JSON.stringify({
-          eventId: EVENT.id,
+          eventId: event.id,
           users: [
             { name: 'Guardia Uno', email: 'g1@pluarg.test' },
             { name: 'Guardia Dos', email: 'g2@pluarg.test' },
@@ -102,7 +118,7 @@ describe('alta masiva de cuentas de seguridad', () => {
       const response = await fetch(`${target.url}/api/auth/security-users/deactivate-all`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ eventId: EVENT.id }),
+        body: JSON.stringify({ eventId: event.id }),
       })
       const body = await response.json()
 
@@ -116,8 +132,11 @@ describe('alta masiva de cuentas de seguridad', () => {
   })
 
   it('bloquea el alta masiva sin permiso de gestión de usuarios', async () => {
-    const staff = await buildStaffUser({ role: 'operador_plu_arg', email: 'operador-bulk@pluarg.test' })
-    const prisma = createPrismaDouble([staff], { events: [EVENT] })
+    const staff = await buildStaffUser({
+      role: 'operador_plu_arg',
+      email: 'operador-bulk@pluarg.test',
+    })
+    const prisma = createPrismaDouble([staff])
     const target = listen(createApp({ prisma }))
 
     try {
@@ -126,7 +145,7 @@ describe('alta masiva de cuentas de seguridad', () => {
         method: 'POST',
         headers: authHeaders(cookie),
         body: JSON.stringify({
-          eventId: EVENT.id,
+          eventId: 'evt-pitbull-2026',
           users: [{ name: 'Guardia', email: 'guardia@pluarg.test' }],
         }),
       })

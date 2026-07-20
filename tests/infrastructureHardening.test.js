@@ -6,17 +6,25 @@ const migration = fs.readFileSync(
   path.resolve('supabase/migrations/20260716000000_infrastructure_hardening.sql'),
   'utf8',
 )
+const serviceRoleMigration = fs.readFileSync(
+  path.resolve('supabase/migrations/20260720000000_service_role_data_access.sql'),
+  'utf8',
+)
 const ticketApi = fs.readFileSync(path.resolve('src/services/ticketApi.js'), 'utf8')
 const athleteApi = fs.readFileSync(path.resolve('src/services/athleteApi.js'), 'utf8')
 
 describe('infraestructura transaccional endurecida', () => {
   it('usa sesiones opacas y revoca mutaciones publicas por UUID', () => {
     expect(migration).toContain('create table if not exists public.athlete_sessions')
-    expect(migration).toContain('revoke all on function public.get_athlete_snapshot(uuid) from public, anon, authenticated')
+    expect(migration).toContain(
+      'revoke all on function public.get_athlete_snapshot(uuid) from public, anon, authenticated',
+    )
     expect(migration).toContain('revoke all on function public.update_athlete_profile')
     expect(migration).toContain('revoke all on function public.staff_check_in_ticket')
     expect(migration).toContain('revoke all on function public.create_ticket_order_v2')
-    expect(migration).toContain("update storage.buckets set public = false where id = 'athlete-photos'")
+    expect(migration).toContain(
+      "update storage.buckets set public = false where id = 'athlete-photos'",
+    )
     expect(migration).toContain('drop policy if exists ticket_proofs_insert_buyer')
   })
 
@@ -40,5 +48,19 @@ describe('infraestructura transaccional endurecida', () => {
     expect(athleteApi).not.toContain("callRpc('get_athlete_snapshot'")
     expect(athleteApi).not.toContain("callRpc('create_membership_order'")
     expect(athleteApi).toContain("apiPost('/api/athletes/me/membership-orders'")
+  })
+
+  it('otorga a service_role los privilegios SQL requeridos por Express', () => {
+    expect(serviceRoleMigration).toMatch(/grant usage on schema public to service_role/i)
+    expect(serviceRoleMigration).toMatch(
+      /grant select, insert, update, delete\s+on all tables in schema public\s+to service_role/i,
+    )
+    expect(serviceRoleMigration).toMatch(
+      /grant usage, select, update\s+on all sequences in schema public\s+to service_role/i,
+    )
+    expect(serviceRoleMigration).toMatch(
+      /alter default privileges in schema public\s+grant select, insert, update, delete on tables to service_role/i,
+    )
+    expect(serviceRoleMigration).not.toMatch(/grant execute on all (functions|routines)/i)
   })
 })
