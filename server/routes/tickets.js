@@ -12,7 +12,7 @@ const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3), dni: z.string().trim().regex(/^\d{7,8}$/),
-  dayPass: z.enum(['day1', 'day2', 'both']), addonIds: z.array(z.string().trim().min(1)).optional().default([]),
+  ticketTypeId: z.string().uuid(), addonIds: z.array(z.string().trim().min(1)).optional().default([]),
 })
 const createOrderSchema = z.object({
   eventSlug: z.string().trim().min(1), attendees: z.array(attendeeSchema).min(1).max(8),

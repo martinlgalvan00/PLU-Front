@@ -18,12 +18,28 @@ insert into public.events (
   null, null
 );
 
--- Cupos de ejemplo para probar el enforcement de create_ticket_order.
-insert into public.event_capacity_rules (event_id, scope, key, limit_count)
-select id, 'day', 'day1', 8 from public.events where slug = 'pitbull-classic-2026';
+-- Días y tipos de entrada de ejemplo para probar el enforcement de
+-- create_ticket_order_v2. day1/day2 tienen cupo propio de 8 (tests de
+-- capacidad); el pase de ambos días no tiene límite propio.
+insert into public.event_days (event_id, day_index, label, date)
+select id, 0, 'Día 1', '2026-12-12' from public.events where slug = 'pitbull-classic-2026';
 
-insert into public.event_capacity_rules (event_id, scope, key, limit_count)
-select id, 'day', 'day2', 8 from public.events where slug = 'pitbull-classic-2026';
+insert into public.event_days (event_id, day_index, label, date)
+select id, 1, 'Día 2', '2026-12-13' from public.events where slug = 'pitbull-classic-2026';
 
-insert into public.event_capacity_rules (event_id, scope, key, limit_count)
-select id, 'day', 'both', 20 from public.events where slug = 'pitbull-classic-2026';
+insert into public.ticket_types (event_id, name, price, quota, sort_order)
+select id, 'Día 1', 12000, 8, 0 from public.events where slug = 'pitbull-classic-2026';
+
+insert into public.ticket_types (event_id, name, price, quota, sort_order)
+select id, 'Día 2', 12000, 8, 1 from public.events where slug = 'pitbull-classic-2026';
+
+insert into public.ticket_types (event_id, name, price, quota, sort_order)
+select id, 'Ambos días', 20000, null, 2 from public.events where slug = 'pitbull-classic-2026';
+
+insert into public.ticket_type_days (ticket_type_id, event_day_id)
+select tt.id, ed.id from public.ticket_types tt
+join public.events e on e.id = tt.event_id and e.slug = 'pitbull-classic-2026'
+join public.event_days ed on ed.event_id = e.id
+where (tt.name = 'Día 1' and ed.day_index = 0)
+   or (tt.name = 'Día 2' and ed.day_index = 1)
+   or (tt.name = 'Ambos días');

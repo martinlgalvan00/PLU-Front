@@ -35,9 +35,12 @@ function CheckinMetric({ icon: Icon, label, tone = 'neutral', value }) {
   )
 }
 
+const DAY_TAB_PREFIX = 'day-'
+
 export default function CheckInAppPage({
   athletes,
   canCheckIn,
+  eventDays = [],
   eventSlug = 'pitbull-classic-2026',
   eventTitle,
   onCheckInRegistration,
@@ -47,6 +50,7 @@ export default function CheckInAppPage({
   onRefreshTickets,
   registrations,
   roleLabel,
+  ticketTypes = [],
   tickets,
 }) {
   const { locale, t } = useI18n()
@@ -54,12 +58,14 @@ export default function CheckInAppPage({
   const workspace = useCheckInWorkspace({
     athletes,
     canCheckIn,
+    eventDays,
     eventSlug,
     onCheckInRegistration,
     onCheckInTicket,
     onRedeemTicketAddon,
     onRefreshTickets,
     registrations,
+    ticketTypes,
     tickets,
   })
   const { setDay, setType } = workspace
@@ -72,8 +78,12 @@ export default function CheckInAppPage({
   const tabs = useMemo(
     () => [
       { id: 'scan', Icon: ScanLine, label: t('admin.checkinApp.scanTab') },
-      { id: 'day1', Icon: CalendarDays, label: t('admin.checkin.day1'), count: workspace.statusCounts.day1 },
-      { id: 'day2', Icon: CalendarDays, label: t('admin.checkin.day2'), count: workspace.statusCounts.day2 },
+      ...eventDays.map((eventDay) => ({
+        id: `${DAY_TAB_PREFIX}${eventDay.dayIndex}`,
+        Icon: CalendarDays,
+        label: eventDay.label,
+        count: workspace.statusCounts.byDay?.[eventDay.dayIndex],
+      })),
       {
         id: 'tickets',
         Icon: TicketCheck,
@@ -81,26 +91,26 @@ export default function CheckInAppPage({
         count: workspace.statusCounts.spectators,
       },
     ],
-    [t, workspace.statusCounts.day1, workspace.statusCounts.day2, workspace.statusCounts.spectators],
+    [eventDays, t, workspace.statusCounts.byDay, workspace.statusCounts.spectators],
   )
 
   useEffect(() => {
-    if (tab === 'day1') {
+    if (tab.startsWith(DAY_TAB_PREFIX)) {
       setType('all')
-      setDay('day1')
-    } else if (tab === 'day2') {
-      setType('all')
-      setDay('day2')
+      setDay(Number(tab.slice(DAY_TAB_PREFIX.length)))
     } else if (tab === 'tickets') {
       setType('espectador')
       setDay('all')
     }
   }, [setDay, setType, tab])
 
+  const activeDayLabel = tab.startsWith(DAY_TAB_PREFIX)
+    ? tabs.find((item) => item.id === tab)?.label
+    : null
   const listTitle =
     tab === 'tickets'
       ? t('admin.checkinApp.ticketsTitle')
-      : t('admin.checkinApp.dayTitle', { day: tab === 'day2' ? t('admin.checkin.day2') : t('admin.checkin.day1') })
+      : t('admin.checkinApp.dayTitle', { day: activeDayLabel ?? '' })
 
   function handleTabChange(event, nextTab) {
     setTab(nextTab)
@@ -147,21 +157,23 @@ export default function CheckInAppPage({
         </div>
       </section>
 
-      <nav className="checkin-app__tabs" aria-label={t('admin.checkinApp.title')}>
-        {tabs.map(({ id, Icon, label, count }) => (
-          <button
-            key={id}
-            type="button"
-            className={`checkin-app__tab${tab === id ? ' is-active' : ''}`}
-            aria-current={tab === id ? 'page' : undefined}
-            onClick={(event) => handleTabChange(event, id)}
-          >
-            <Icon size={15} aria-hidden />
-            <span>{label}</span>
-            {Number.isFinite(count) && <span className="checkin-app__tab-count">{count}</span>}
-          </button>
-        ))}
-      </nav>
+      <div className="checkin-app__tabs-shell">
+        <nav className="checkin-app__tabs" aria-label={t('admin.checkinApp.title')}>
+          {tabs.map(({ id, Icon, label, count }) => (
+            <button
+              key={id}
+              type="button"
+              className={`checkin-app__tab${tab === id ? ' is-active' : ''}`}
+              aria-current={tab === id ? 'page' : undefined}
+              onClick={(event) => handleTabChange(event, id)}
+            >
+              <Icon size={15} aria-hidden />
+              <span>{label}</span>
+              {Number.isFinite(count) && <span className="checkin-app__tab-count">{count}</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <main className="checkin-app__main">
         {tab === 'scan' ? (
@@ -272,17 +284,19 @@ export default function CheckInAppPage({
                   key: 'day',
                   label: t('admin.checkin.dayLabel'),
                   mobile: 'default',
-                  render: (row) =>
-                    row.day === 'both'
-                      ? t('admin.checkin.bothDays')
-                      : row.day === 'day1'
-                        ? t('admin.checkin.day1')
-                        : t('admin.checkin.day2'),
+                  render: (row) => {
+                    if (row.dayIndexes === 'all' || !eventDays.length) return t('admin.checkin.bothDays')
+                    const labels = row.dayIndexes
+                      .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)
+                      .filter(Boolean)
+                    return labels.length ? labels.join(' · ') : '—'
+                  },
                 },
                 {
                   key: 'status',
                   label: t('admin.columns.status'),
                   mobile: 'badge',
+                  mobileLabel: '',
                   render: (row) => <StatusBadge value={row.status} />,
                 },
                 {

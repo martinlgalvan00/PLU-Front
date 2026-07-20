@@ -4,8 +4,6 @@ import { createApp } from '../../server/app.js'
 import { buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
-const EVENT_SLUG = 'pitbull-classic-2026'
-
 const mutationHeaders = {
   Origin: 'http://localhost:5173',
   'Content-Type': 'application/json',
@@ -18,16 +16,24 @@ function authHeaders(cookie) {
 
 describe('check-in de tickets rechaza un segundo escaneo (unique constraint real)', () => {
   const supabaseAdmin = createSupabaseTestClient()
+  // Evento y tipo de entrada propios del test (no dependen de supabase/seed.sql,
+  // que solo se corre en dev local).
+  const eventSlug = `checkin-smoke-${randomUUID()}`
   const createdOrderIds = []
   const createdTicketIds = []
+  let eventId
+  let ticketTypeId
 
   afterAll(async () => {
-    if (createdOrderIds.length === 0) return
     if (createdTicketIds.length > 0) {
       await supabaseAdmin.from('check_ins').delete().in('ticket_id', createdTicketIds)
     }
-    await supabaseAdmin.from('tickets').delete().in('order_id', createdOrderIds)
-    await supabaseAdmin.from('ticket_orders').delete().in('id', createdOrderIds)
+    if (createdOrderIds.length > 0) {
+      await supabaseAdmin.from('tickets').delete().in('order_id', createdOrderIds)
+      await supabaseAdmin.from('ticket_orders').delete().in('id', createdOrderIds)
+    }
+    if (ticketTypeId) await supabaseAdmin.from('ticket_types').delete().eq('id', ticketTypeId)
+    if (eventId) await supabaseAdmin.from('events').delete().eq('id', eventId)
   })
 
   it('primer check-in ok (200), segundo rechazado con 409/PLU06', async () => {
@@ -40,15 +46,42 @@ describe('check-in de tickets rechaza un segundo escaneo (unique constraint real
     try {
       const { cookie } = await loginStaff(target.url, { email: staffUser.email })
 
+      const { data: event, error: eventError } = await supabaseAdmin
+        .from('events')
+        .insert({
+          slug: eventSlug,
+          title: 'Checkin Smoke Event',
+          venue: 'Test',
+          location: 'Test',
+          starts_at: new Date(Date.now() + 86400000).toISOString(),
+          ends_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+          published: true,
+          status: 'cupos_limitados',
+        })
+        .select('id')
+        .single()
+      expect(eventError).toBeNull()
+      eventId = event.id
+
+      const { data: ticketType, error: ticketTypeError } = await supabaseAdmin
+        .from('ticket_types')
+        .insert({ event_id: eventId, name: 'Día 2', price: 12000 })
+        .select('id')
+        .single()
+      expect(ticketTypeError).toBeNull()
+      ticketTypeId = ticketType.id
+
       const order = await fetch(`${target.url}/api/tickets/orders`, {
         method: 'POST',
         headers: mutationHeaders,
         body: JSON.stringify({
-          eventSlug: EVENT_SLUG,
+          eventSlug,
           provider: 'manual',
           idempotencyKey: randomUUID(),
           accessToken: randomBytes(32).toString('base64url'),
-          attendees: [{ fullName: 'Test Checkin Duplicado', dni: '30999888', dayPass: 'day2', addonIds: [] }],
+          attendees: [
+            { fullName: 'Test Checkin Duplicado', dni: '30999888', ticketTypeId, addonIds: [] },
+          ],
         }),
       })
       const orderBody = await order.json()

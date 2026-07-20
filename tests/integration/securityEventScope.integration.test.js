@@ -75,6 +75,14 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
         eventSlug: 'otro-evento-2027',
       })
 
+      const { data: event } = await supabaseAdmin.from('events').select('id').eq('slug', EVENT_SLUG).single()
+      const { data: ticketType } = await supabaseAdmin
+        .from('ticket_types')
+        .select('id')
+        .eq('event_id', event.id)
+        .eq('name', 'Día 1')
+        .single()
+
       const order = await fetch(`${target.url}/api/tickets/orders`, {
         method: 'POST',
         headers: authHeaders(),
@@ -83,7 +91,9 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
           provider: 'manual',
           idempotencyKey: randomUUID(),
           accessToken: randomBytes(32).toString('base64url'),
-          attendees: [{ fullName: 'Test Scope Evento', dni: '30999777', dayPass: 'day1', addonIds: [] }],
+          attendees: [
+            { fullName: 'Test Scope Evento', dni: '30999777', ticketTypeId: ticketType.id, addonIds: [] },
+          ],
         }),
       })
       const orderBody = await order.json()

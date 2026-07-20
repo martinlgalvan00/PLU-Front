@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { TICKET_DAY_PASSES } from './constants.js'
 
 function buildAthleteProfileSchema(t) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
@@ -115,9 +114,10 @@ export function validateMembershipForm(form, t) {
 
 /**
  * Valida la lista de asistentes de una compra de entradas.
- * @param {{fullName: string, dni: string, dayPass: string}[]} attendees
+ * @param {{fullName: string, dni: string, ticketTypeId: string}[]} attendees
+ * @param {string[]} validTicketTypeIds ids de ticket_types activos del evento
  */
-export function validateTicketAttendees(attendees, t) {
+export function validateTicketAttendees(attendees, t, validTicketTypeIds = []) {
   const errors = {}
   const msg = (key, fallback) => (t ? t(`validation.${key}`) : fallback)
 
@@ -128,8 +128,8 @@ export function validateTicketAttendees(attendees, t) {
     if (!/^\d{7,8}$/.test(String(attendee.dni ?? '').trim())) {
       errors[`attendee-${index}-dni`] = msg('attendeeDni', 'DNI inválido (7 u 8 dígitos, sin puntos).')
     }
-    if (!TICKET_DAY_PASSES.includes(attendee.dayPass)) {
-      errors[`attendee-${index}-dayPass`] = msg('attendeeDay', 'Seleccioná un día válido.')
+    if (!attendee.ticketTypeId || !validTicketTypeIds.includes(attendee.ticketTypeId)) {
+      errors[`attendee-${index}-ticketTypeId`] = msg('attendeeDay', 'Seleccioná un tipo de entrada válido.')
     }
   })
 

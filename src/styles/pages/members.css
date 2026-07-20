@@ -3432,6 +3432,14 @@
   }
 }
 
+/* Monitores grandes: la credencial gana presencia en vez de quedar chica
+   contra una columna de texto que se estira con --max-width-content. */
+@media (min-width: 1440px) {
+  .members-plu-hero__grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 400px);
+  }
+}
+
 [data-theme='light'] .members-plu-hero__chapter {
   background: rgba(15, 17, 23, 0.03);
   border-color: rgba(15, 17, 23, 0.1);
@@ -3826,7 +3834,7 @@
   margin-top: clamp(8px, 1.5vw, 12px);
 }
 
-@media (min-width: 720px) {
+@media (min-width: 860px) {
   .membership-grid--plu {
     align-items: stretch;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4667,6 +4675,16 @@
   }
 }
 
+/* Monitores ultra-anchos: techo de ancho en vez de dejar que las tarjetas
+   se estiren al 100% de --max-width-content (hasta ~1880px). Mantiene la
+   misma composición sidebar + grilla 2×2, sólo evita el exceso de aire. */
+@container members-page-body (min-width: 1600px) {
+  .members-benefits {
+    margin-inline: auto;
+    max-width: 1560px;
+  }
+}
+
 [data-theme='light'] .members-benefits__icon {
   border-color: color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
   color: color-mix(in oklab, var(--plu-gold-600) 70%, #1a2230);
@@ -5215,7 +5233,7 @@
   }
 }
 
-@media (min-width: 800px) {
+@media (min-width: 860px) {
   .members-plu-stepper__rail {
     grid-template-columns: repeat(var(--step-count, 4), minmax(0, 1fr));
   }
@@ -5646,6 +5664,15 @@
 
   .members-req-validity {
     margin-top: clamp(52px, 7vw, 72px);
+  }
+}
+
+/* Monitores ultra-anchos: mismo techo que .members-benefits, para que el
+   listado de requisitos + vigencia no se estire de más. */
+@container members-page-body (min-width: 1600px) {
+  .members-plu-requirements {
+    margin-inline: auto;
+    max-width: 1560px;
   }
 }
 

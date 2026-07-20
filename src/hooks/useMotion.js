@@ -108,6 +108,76 @@ export function useParallaxShift(ref, { strength = 22 } = {}) {
 }
 
 /**
+ * Parallax por cursor para un panel: mientras el puntero se mueve sobre el
+ * nodo, escribe su posición normalizada en CSS vars (sin re-render, vía rAF)
+ * para que el CSS mueva capas (spotlight, pieza 3D, copy) en profundidad:
+ *   --reel-mx / --reel-my : [-1..1] (centro = 0)
+ *   --reel-mpx / --reel-mpy : 0%..100% (posición cruda, útil para gradientes)
+ * Al salir vuelve a 0 (la suavidad la da la transición CSS). No hace nada si
+ * `prefers-reduced-motion: reduce` o el puntero es coarse (touch), para no
+ * molestar en mobile.
+ */
+export function usePointerParallax(ref) {
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return undefined
+
+    if (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
+      return undefined
+    }
+
+    let rafId = null
+    let pending = null
+
+    function tick() {
+      rafId = null
+      if (!pending) return
+      const rect = node.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+      const px = Math.min(1, Math.max(0, (pending.x - rect.left) / rect.width))
+      const py = Math.min(1, Math.max(0, (pending.y - rect.top) / rect.height))
+      node.style.setProperty('--reel-mx', (px * 2 - 1).toFixed(3))
+      node.style.setProperty('--reel-my', (py * 2 - 1).toFixed(3))
+      node.style.setProperty('--reel-mpx', `${(px * 100).toFixed(2)}%`)
+      node.style.setProperty('--reel-mpy', `${(py * 100).toFixed(2)}%`)
+    }
+
+    function onMove(event) {
+      pending = { x: event.clientX, y: event.clientY }
+      if (rafId == null) rafId = requestAnimationFrame(tick)
+    }
+
+    function reset() {
+      pending = null
+      if (rafId != null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+      node.style.setProperty('--reel-mx', '0')
+      node.style.setProperty('--reel-my', '0')
+      node.style.setProperty('--reel-mpx', '50%')
+      node.style.setProperty('--reel-mpy', '50%')
+    }
+
+    reset()
+    node.addEventListener('pointermove', onMove)
+    node.addEventListener('pointerleave', reset)
+    return () => {
+      node.removeEventListener('pointermove', onMove)
+      node.removeEventListener('pointerleave', reset)
+      if (rafId != null) cancelAnimationFrame(rafId)
+      node.style.removeProperty('--reel-mx')
+      node.style.removeProperty('--reel-my')
+      node.style.removeProperty('--reel-mpx')
+      node.style.removeProperty('--reel-mpy')
+    }
+  }, [ref])
+}
+
+/**
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
  */

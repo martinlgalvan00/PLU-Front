@@ -1,27 +1,57 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import HomeMembershipArtifact from './HomeMembershipArtifact.jsx'
 import { useContent } from '../../hooks/useContent.js'
+import { usePointerParallax } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 
 const REEL_INTERVAL_MS = 4200
 
 const slideVariants = {
   enter: (direction) => ({
     opacity: 0,
-    y: direction > 0 ? 14 : -14,
+    y: direction > 0 ? 10 : -10,
+    scale: 0.94,
+    z: -48,
+    filter: 'blur(2px)',
   }),
   center: {
     opacity: 1,
     y: 0,
+    scale: 1,
+    z: 0,
+    filter: 'blur(0px)',
   },
   exit: (direction) => ({
     opacity: 0,
-    y: direction > 0 ? -10 : 10,
+    y: direction > 0 ? -8 : 8,
+    scale: 1.04,
+    z: 36,
+    filter: 'blur(1.5px)',
   }),
+}
+
+const reelCopyContainer = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: MOTION_STAGGER.stepFast,
+      delayChildren: 0.04,
+    },
+  },
+}
+
+const reelCopyItem = {
+  hidden: { opacity: 0, y: 12, filter: 'blur(2px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
 }
 
 const copyContainer = {
@@ -43,6 +73,17 @@ const copyItem = {
   },
 }
 
+const artifactEnter = {
+  initial: { opacity: 0, scale: 0.88, z: -56, y: 12 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    z: 0,
+    y: 0,
+    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out, delay: 0.06 },
+  },
+}
+
 export default function HomeMembershipBand({ onNavigate }) {
   const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_BENEFITS } = useContent()
   const { t } = useI18n()
@@ -51,6 +92,12 @@ export default function HomeMembershipBand({ onNavigate }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [paused, setPaused] = useState(false)
+  const reelRef = useRef(null)
+
+  // Parallax por cursor: escribe --reel-mx/my en el reel (sin re-render). El
+  // CSS mueve el spotlight, la pieza 3D y el copy en profundidad. No-op en
+  // touch / reduced-motion.
+  usePointerParallax(reelRef)
 
   useEffect(() => {
     if (reducedMotion || paused || benefits.length < 2) return undefined
@@ -125,6 +172,7 @@ export default function HomeMembershipBand({ onNavigate }) {
       </CopyShell>
 
       <aside
+        ref={reelRef}
         className={`home-membership-reel${paused ? ' is-paused' : ''}`.trim()}
         aria-roledescription="carousel"
         aria-label={t('pages.membershipCard.benefitsReelAria')}
@@ -135,34 +183,7 @@ export default function HomeMembershipBand({ onNavigate }) {
           if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false)
         }}
       >
-        <div className="home-membership-reel__meta">
-          <span className="home-membership-reel__counter" aria-live="polite">
-            {reducedMotion ? (
-              <>
-                {indexLabel}
-                <span aria-hidden> / </span>
-                {totalLabel}
-              </>
-            ) : (
-              <>
-                <span className="home-membership-reel__counter-current">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <m.span
-                      key={indexLabel}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
-                    >
-                      {indexLabel}
-                    </m.span>
-                  </AnimatePresence>
-                </span>
-                <span aria-hidden> / </span>
-                {totalLabel}
-              </>
-            )}
-          </span>
+        <div className="home-membership-reel__toolbar">
           <div className="home-membership-reel__progress" aria-hidden>
             <span
               key={activeIndex}
@@ -177,7 +198,7 @@ export default function HomeMembershipBand({ onNavigate }) {
               aria-label={t('pages.membershipCard.benefitsPrev')}
               onClick={() => stepBenefit(-1)}
             >
-              <ChevronLeft size={16} strokeWidth={2} aria-hidden />
+              <ChevronLeft size={16} strokeWidth={1.75} aria-hidden />
             </button>
             <button
               type="button"
@@ -185,22 +206,24 @@ export default function HomeMembershipBand({ onNavigate }) {
               aria-label={t('pages.membershipCard.benefitsNext')}
               onClick={() => stepBenefit(1)}
             >
-              <ChevronRight size={16} strokeWidth={2} aria-hidden />
+              <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
             </button>
           </div>
         </div>
 
         {reducedMotion ? (
           <div className="home-membership-reel__stage">
-            <span className="home-membership-reel__glow" aria-hidden />
             <div className="home-membership-reel__copy">
+              <p className="home-membership-reel__index" aria-live="polite">
+                {indexLabel}
+                <span aria-hidden> — </span>
+                {totalLabel}
+              </p>
               <h3 className="home-membership-reel__title">{active?.title}</h3>
               <p className="home-membership-reel__text">{active?.text}</p>
             </div>
             <div className="home-membership-reel__artifact-stage">
-              <span className="home-membership-reel__halo" aria-hidden />
               <HomeMembershipArtifact benefitId={active?.id} paused reducedMotion />
-              <span className="home-membership-reel__plinth" aria-hidden />
             </div>
           </div>
         ) : (
@@ -214,30 +237,47 @@ export default function HomeMembershipBand({ onNavigate }) {
               animate="center"
               exit="exit"
               transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
+              style={{ transformStyle: 'preserve-3d' }}
             >
-              <span className="home-membership-reel__glow" aria-hidden />
-              <div className="home-membership-reel__copy">
-                <m.h3
-                  className="home-membership-reel__title"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.04 }}
-                >
+              <m.div
+                className="home-membership-reel__copy"
+                variants={reelCopyContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <m.p className="home-membership-reel__index" aria-live="polite" variants={reelCopyItem}>
+                  <span className="home-membership-reel__index-current">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <m.span
+                        key={indexLabel}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+                      >
+                        {indexLabel}
+                      </m.span>
+                    </AnimatePresence>
+                  </span>
+                  <span aria-hidden> — </span>
+                  {totalLabel}
+                </m.p>
+                <m.h3 className="home-membership-reel__title" variants={reelCopyItem}>
                   {active?.title}
                 </m.h3>
-                <m.p
-                  className="home-membership-reel__text"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.1 }}
-                >
+                <m.p className="home-membership-reel__text" variants={reelCopyItem}>
                   {active?.text}
                 </m.p>
-              </div>
+              </m.div>
               <div className="home-membership-reel__artifact-stage">
-                <span className="home-membership-reel__halo" aria-hidden />
-                <HomeMembershipArtifact benefitId={active?.id} paused={paused} reducedMotion={false} />
-                <span className="home-membership-reel__plinth" aria-hidden />
+                <m.div
+                  className="home-membership-reel__artifact-enter"
+                  initial={artifactEnter.initial}
+                  animate={artifactEnter.animate}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <HomeMembershipArtifact benefitId={active?.id} paused={paused} reducedMotion={false} />
+                </m.div>
               </div>
             </m.div>
           </AnimatePresence>

@@ -37,6 +37,16 @@ const registrations = [
   },
 ]
 
+const eventDays = [
+  { dayIndex: 0, label: 'Día 1' },
+  { dayIndex: 1, label: 'Día 2' },
+]
+
+const ticketTypes = [
+  { id: 'type-day1', name: 'Día 1', price: 12000, dayIndexes: [0], includedAddonIds: [] },
+  { id: 'type-both', name: 'Ambos días', price: 20000, dayIndexes: [0, 1], includedAddonIds: [] },
+]
+
 const tickets = [
   {
     id: 'tkt-1',
@@ -45,7 +55,8 @@ const tickets = [
     attendeeDni: '39111444',
     ticketCode: 'PLU-D1-001',
     qrToken: 'ticket-1',
-    dayPass: 'day1',
+    ticketTypeId: 'type-day1',
+    ticketTypeName: 'Día 1',
     status: 'pagada',
   },
   {
@@ -55,7 +66,8 @@ const tickets = [
     attendeeDni: '35222888',
     ticketCode: 'PLU-2D-002',
     qrToken: 'ticket-2',
-    dayPass: 'both',
+    ticketTypeId: 'type-both',
+    ticketTypeName: 'Ambos días',
     status: 'usada',
     checkedInAt: '2026-08-15T10:20:00.000Z',
   },
@@ -69,10 +81,12 @@ export default {
   args: {
     athletes,
     canCheckIn: true,
+    eventDays,
     eventSlug: 'pitbull-classic-2026',
     eventTitle: 'Pitbull Classic 2026',
     registrations,
     roleLabel: 'Seguridad',
+    ticketTypes,
     tickets,
     onCheckInRegistration: async () => ({ outcome: 'ok' }),
     onCheckInTicket: async () => ({ outcome: 'ok' }),

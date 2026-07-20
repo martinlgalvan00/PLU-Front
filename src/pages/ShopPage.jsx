@@ -8,7 +8,7 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getFeaturedEvent, getUpcomingEventsByDate } from '../lib/eventNavigation.js'
-import { ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
 import '../styles/pages/shop.css'
@@ -21,9 +21,9 @@ import '../styles/pages/shop.css'
  */
 function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
-  const ticketsOpen = pricing.day > 0 || pricing.bothDays > 0
+  const fromPrice = cheapestTicketTypePrice(pricing)
+  const ticketsOpen = fromPrice != null
   const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
-  const fromPrice = pricing.bothDays || pricing.day
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
 
   return (
@@ -176,9 +176,9 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t }) {
 
 function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
-  const ticketsOpen = pricing.day > 0 || pricing.bothDays > 0
+  const fromPrice = cheapestTicketTypePrice(pricing)
+  const ticketsOpen = fromPrice != null
   const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
-  const fromPrice = pricing.bothDays || pricing.day
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const soldOut = remaining === 0
 

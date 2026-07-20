@@ -6,12 +6,6 @@ import { getStatusMeta } from '../lib/status.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 
-const DAY_PASS_LABELS = {
-  day1: 'Día 1',
-  day2: 'Día 2',
-  both: 'Ambos días',
-}
-
 const VERDICT_META = {
   valid: { Icon: CheckCircle2, label: 'Credencial válida', className: 'credential-page__verdict--valid' },
   warning: { Icon: HelpCircle, label: 'Revisar antes de ingresar', className: 'credential-page__verdict--warning' },
@@ -304,11 +298,9 @@ function TicketCredential({ code, onCheckIn }) {
           </div>
 
           <div className="credential-page__row">
-            <dt>Día habilitado</dt>
+            <dt>Tipo de entrada</dt>
             <dd>
-              <span className="credential-page__row-meta">
-                {DAY_PASS_LABELS[ticket.dayPass] ?? ticket.dayPass}
-              </span>
+              <span className="credential-page__row-meta">{ticket.ticketTypeName ?? '—'}</span>
             </dd>
           </div>
 

@@ -6021,12 +6021,29 @@
 }
 
 .admin-offline-sync-status__identity {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   flex: 1 1 220px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-offline-sync-status__status-row {
+  align-items: center;
+  display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
-  min-width: 0;
+}
+
+.admin-offline-sync-status__title {
+  color: var(--admin-ink, var(--color-text));
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
 }
 
 .admin-offline-sync-status__actions {
@@ -6210,10 +6227,26 @@
 }
 
 .admin-checkin-history--empty {
-  align-items: center;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  border-top-style: dashed;
   display: flex;
-  gap: 10px;
-  padding-block: 8px;
+  gap: 12px;
+  margin-top: 0;
+  padding: 14px;
+}
+
+[data-theme='light'] .admin-checkin-history--empty {
+  background: rgba(15, 17, 23, 0.03);
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+.admin-checkin-history__empty-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .admin-checkin-history__empty-icon {
@@ -6223,10 +6256,10 @@
   color: var(--color-text-muted);
   display: inline-flex;
   flex: none;
-  height: 32px;
+  height: 40px;
   justify-content: center;
-  opacity: 0.85;
-  width: 32px;
+  opacity: 0.9;
+  width: 40px;
 }
 
 [data-theme='light'] .admin-checkin-history__empty-icon {
@@ -6234,8 +6267,14 @@
 }
 
 .admin-checkin-history__empty {
-  color: var(--color-text-muted);
-  font-size: 12px;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.admin-checkin-history--empty .admin-checkin-history__hint {
   margin: 0;
 }
 
@@ -7957,6 +7996,115 @@
 
 .admin-ticket-addons__add {
   margin-top: 12px;
+}
+
+.admin-ticket-types__day-list,
+.admin-ticket-types__list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.admin-ticket-types__day-item {
+  align-items: end;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr auto;
+  padding: 12px;
+}
+
+.admin-ticket-types__item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-ticket-types__item-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.admin-ticket-types__toggle {
+  flex: 1;
+  margin: 0;
+}
+
+.admin-ticket-types__remove {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.admin-ticket-types__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-ticket-types__days,
+.admin-ticket-types__addons {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-ticket-types__days-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.admin-ticket-types__days-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-ticket-types__day-chip {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.admin-ticket-types__empty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+
+.admin-ticket-types__add {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .admin-ticket-types__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-ticket-types__day-item {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-event-security__link {

@@ -20,14 +20,13 @@ Plataforma web de gestión para **Powerlifting United Argentina**, integrada con
 ```bash
 cp .env.example .env
 npm install
-npm run dev          # solo frontend → http://localhost:5173
-npm run dev:all      # frontend + API → http://localhost:3001
+npm run dev          # migra Supabase y levanta frontend + API
 ```
 
-Base de datos local (opcional, requerida para tickets y auth real):
+La base es el PostgreSQL remoto de Supabase. No hace falta Docker. El dominio
+transaccional usa `public` y Prisma usa el schema aislado `plu_prisma`:
 
 ```bash
-npm run db:up
 npm run db:migrate
 npm run db:seed
 ```
@@ -258,17 +257,16 @@ tests/          Tests unitarios e integración API
 
 | Comando | Descripción |
 |---------|-------------|
-| `npm run dev` | Frontend dev (Vite) |
+| `npm run dev` | Migra/verifica Supabase y levanta frontend + API |
 | `npm run dev:api` | Solo API Express |
-| `npm run dev:all` | Frontend + API en paralelo |
+| `npm run dev:all` | Alias de `npm run dev` |
 | `npm run build` | Build de producción |
 | `npm run preview` | Preview del build |
 | `npm run test` | Tests (Vitest) |
 | `npm run test:watch` | Tests en modo watch |
 | `npm run lint` | Oxlint |
 | `npm run format` | Prettier |
-| `npm run db:up` | PostgreSQL en Docker |
-| `npm run db:migrate` | Migraciones Prisma |
+| `npm run db:migrate` | Migraciones Prisma + Supabase remotas |
 | `npm run db:seed` | Seed de datos |
 | `npm run db:studio` | Prisma Studio |
 | `npm run storybook` | Catálogo de componentes |

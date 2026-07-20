@@ -25,7 +25,9 @@ describe('APIs de dominio unificadas', () => {
       method: 'POST', headers: mutationHeaders,
       body: JSON.stringify({
         eventSlug: 'pitbull-2026', provider: 'mercado_pago', idempotencyKey: crypto.randomUUID(),
-        attendees: [{ fullName: 'Ana Perez', dni: '30111222', dayPass: 'both', addonIds: [] }],
+        attendees: [
+          { fullName: 'Ana Perez', dni: '30111222', ticketTypeId: crypto.randomUUID(), addonIds: [] },
+        ],
       }),
     })
     expect(response.status).toBe(201)

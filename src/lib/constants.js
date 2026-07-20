@@ -5,10 +5,6 @@ export const PRICING = {
   membershipJunior: 28000,
   event: 45000,
   combo: 78000,
-  ticket: 12000,
-  ticketBothDays: 20000,
-  ticketPresencial: 15000,
-  ticketBothDaysPresencial: 25000,
 }
 
 export const PROCEDURE_TYPES = {
@@ -78,9 +74,6 @@ export const ROLES = {
 }
 
 export const ROLE_OPTIONS = Object.entries(ROLES).map(([value, { label }]) => [value, label])
-
-/** Pases de entrada por día — ver TicketPurchaseSection para las etiquetas con fecha. */
-export const TICKET_DAY_PASSES = ['day1', 'day2', 'both']
 
 export const NAV_PRIMARY = ['home', 'members', 'pitbull', 'events', 'results']
 

@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: plu_dev
       POSTGRES_DB: plu_arg
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - plu_pg_data:/var/lib/postgresql/data
     healthcheck:

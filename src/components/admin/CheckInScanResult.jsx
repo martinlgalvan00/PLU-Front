@@ -60,6 +60,14 @@ export default function CheckInScanResult({
               </dd>
             </div>
           )}
+          {scanResult.kind === 'registration' && scanResult.row?.membershipStatus && (
+            <div>
+              <dt>{t('admin.checkin.membershipLabel')}</dt>
+              <dd>
+                <StatusBadge value={scanResult.row.membershipStatus} />
+              </dd>
+            </div>
+          )}
         </dl>
       )}
 

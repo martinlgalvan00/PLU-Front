@@ -5,14 +5,17 @@ function belongsToEvent(record, eventSlug) {
   return record.eventSlug === eventSlug
 }
 
-function registrationDay(registration) {
-  return registration.competitionDay ?? registration.eventDay ?? registration.day ?? 'both'
+/** Días a los que da acceso un ticket, resueltos vía su tipo de entrada.
+ * 'all' = la inscripción de un atleta cubre el evento completo (todos los días). */
+function ticketDayIndexes(ticket, ticketTypes) {
+  const type = ticketTypes.find((item) => item.id === ticket.ticketTypeId)
+  return type?.dayIndexes ?? []
 }
 
-function matchesDay(row, day) {
-  if (day === 'all') return true
-  if (day === 'day1' || day === 'day2') return row.day === day || row.day === 'both'
-  return row.day === day
+function matchesDay(row, dayIndex) {
+  if (dayIndex === 'all') return true
+  if (row.dayIndexes === 'all') return true
+  return (row.dayIndexes ?? []).includes(dayIndex)
 }
 
 function matchesStatus(row, status) {
@@ -24,7 +27,7 @@ function matchesStatus(row, status) {
 
 const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1, usada: 2 }
 
-export function buildCheckinRows({ athletes = [], registrations = [], tickets = [], eventSlug }) {
+export function buildCheckinRows({ athletes = [], registrations = [], tickets = [], eventSlug, ticketTypes = [] }) {
   const athleteRows = registrations
     .filter((registration) => registration.status !== 'cancelada' && belongsToEvent(registration, eventSlug))
     .map((registration) => {
@@ -36,7 +39,7 @@ export function buildCheckinRows({ athletes = [], registrations = [], tickets = 
         name: athlete?.fullName,
         document: athlete?.documentId,
         meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-        day: registrationDay(registration),
+        dayIndexes: 'all',
         status: registrationCheckinStatus(registration),
         checkedInAt: registration.checkedInAt,
       }
@@ -51,8 +54,8 @@ export function buildCheckinRows({ athletes = [], registrations = [], tickets = 
       type: 'espectador',
       name: ticket.attendeeName,
       document: ticket.attendeeDni,
-      meta: ticket.ticketCode,
-      day: ticket.dayPass,
+      meta: ticket.ticketTypeName ?? ticket.ticketCode,
+      dayIndexes: ticketDayIndexes(ticket, ticketTypes),
       status: ticket.status,
       checkedInAt: ticket.checkedInAt,
       addons: ticket.addons ?? [],
@@ -65,7 +68,7 @@ export function buildCheckinRows({ athletes = [], registrations = [], tickets = 
   })
 }
 
-export function summarizeCheckinRows(rows = []) {
+export function summarizeCheckinRows(rows = [], eventDays = []) {
   const count = (predicate) => rows.filter(predicate).length
 
   return {
@@ -75,8 +78,9 @@ export function summarizeCheckinRows(rows = []) {
     pending: count((row) => row.status !== 'usada' && row.status !== 'pagada'),
     athletes: count((row) => row.type === 'atleta'),
     spectators: count((row) => row.type === 'espectador'),
-    day1: count((row) => row.day === 'day1' || row.day === 'both'),
-    day2: count((row) => row.day === 'day2' || row.day === 'both'),
+    byDay: Object.fromEntries(
+      eventDays.map((day) => [day.dayIndex, count((row) => matchesDay(row, day.dayIndex))]),
+    ),
   }
 }
 

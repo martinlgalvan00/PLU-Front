@@ -3,8 +3,10 @@ import TicketPurchaseSection from './TicketPurchaseSection.jsx'
 const event = { title: 'Apertura Nacional 2026', slug: 'apertura-nacional-2026' }
 
 const pricing = {
-  day: 15000,
-  bothDays: 25000,
+  ticketTypes: [
+    { id: 'day1', name: 'Día 1', price: 15000, quota: null, includedAddonIds: [] },
+    { id: 'both', name: 'Ambos días', price: 25000, quota: null, includedAddonIds: [] },
+  ],
   addons: [
     { id: 'meet-greet', label: 'Meet & Greet', price: 5000, description: 'Encuentro con atletas destacados.' },
   ],
@@ -49,7 +51,8 @@ export const Confirmation = {
         attendeeName: 'Juan Pérez',
         attendeeDni: '30111222',
         ticketCode: 'TCK-0001',
-        dayPass: 'both',
+        ticketTypeId: 'both',
+        ticketTypeName: 'Ambos días',
         status: 'pagada',
         eventTitle: event.title,
       },

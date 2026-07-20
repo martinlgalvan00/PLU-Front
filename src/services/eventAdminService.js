@@ -129,9 +129,8 @@ export function createAdminEvent(events, payload) {
     registrationClosesAt: payload.registrationClosesAt ?? '',
     ticketSalesOpensAt: payload.ticketSalesOpensAt ?? '',
     ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
-    capacityDay1: payload.capacityDay1 ?? '',
-    capacityDay2: payload.capacityDay2 ?? '',
-    capacityBoth: payload.capacityBoth ?? '',
+    eventDays: payload.eventDays ?? [],
+    ticketTypes: payload.ticketTypes ?? [],
     liveStreamUrl: payload.liveStreamUrl ?? '',
     liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
     liveStatus: payload.liveStatus ?? 'offline',
@@ -182,9 +181,8 @@ export function updateAdminEvent(events, eventId, payload) {
       registrationClosesAt: payload.registrationClosesAt ?? event.registrationClosesAt ?? '',
       ticketSalesOpensAt: payload.ticketSalesOpensAt ?? event.ticketSalesOpensAt ?? '',
       ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
-      capacityDay1: payload.capacityDay1 ?? event.capacityDay1 ?? '',
-      capacityDay2: payload.capacityDay2 ?? event.capacityDay2 ?? '',
-      capacityBoth: payload.capacityBoth ?? event.capacityBoth ?? '',
+      eventDays: payload.eventDays ?? event.eventDays ?? [],
+      ticketTypes: payload.ticketTypes ?? event.ticketTypes ?? [],
       liveStreamUrl: payload.liveStreamUrl ?? event.liveStreamUrl ?? '',
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
@@ -234,9 +232,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   registrationClosesAt: '',
   ticketSalesOpensAt: '',
   ticketSalesClosesAt: '',
-  capacityDay1: '',
-  capacityDay2: '',
-  capacityBoth: '',
+  eventDays: [],
+  ticketTypes: [],
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -252,10 +249,14 @@ export function buildEventTicketStats(tickets, eventSlug) {
   const pending = eventTickets.filter((ticket) => ticket.status === 'pendiente_pago')
   const checkedIn = eventTickets.filter((ticket) => Boolean(ticket.checkedInAt))
   const revenue = paid.reduce((sum, ticket) => sum + (ticket.unitPrice ?? 0), 0)
-  const byPass = { day1: 0, day2: 0, both: 0 }
+  const byTicketType = {}
 
   for (const ticket of paid) {
-    if (byPass[ticket.dayPass] !== undefined) byPass[ticket.dayPass] += 1
+    const key = ticket.ticketTypeId ?? 'sin-tipo'
+    if (!byTicketType[key]) {
+      byTicketType[key] = { ticketTypeId: ticket.ticketTypeId, name: ticket.ticketTypeName ?? key, count: 0 }
+    }
+    byTicketType[key].count += 1
   }
 
   return {
@@ -264,8 +265,34 @@ export function buildEventTicketStats(tickets, eventSlug) {
     pending: pending.length,
     checkedIn: checkedIn.length,
     revenue,
-    byPass,
+    byTicketType: Object.values(byTicketType),
   }
+}
+
+/** Reconstruye eventDays/ticketTypes desde las filas joineadas de Supabase. */
+function mapSupabaseTicketCatalog(row) {
+  const eventDays = (row.eventDays ?? [])
+    .map((day) => ({ id: day.id, dayIndex: day.day_index, label: day.label, date: day.date }))
+    .sort((a, b) => a.dayIndex - b.dayIndex)
+
+  const dayIndexById = Object.fromEntries(eventDays.map((day) => [day.id, day.dayIndex]))
+
+  const ticketTypes = (row.ticketTypes ?? [])
+    .map((type) => ({
+      id: type.id,
+      name: type.name,
+      price: type.price,
+      quota: type.quota,
+      sortOrder: type.sort_order,
+      active: type.active,
+      dayIndexes: (type.ticketTypeDays ?? [])
+        .map((link) => dayIndexById[link.event_day_id])
+        .filter((value) => value !== undefined),
+      includedAddonIds: (type.includedAddons ?? []).map((link) => link.addon_id),
+    }))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+  return { eventDays, ticketTypes }
 }
 
 /**
@@ -276,6 +303,7 @@ export function buildEventTicketStats(tickets, eventSlug) {
  */
 export function mapSupabaseEventRow(row) {
   const rules = row.rules ?? {}
+  const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
   return {
     slug: row.slug,
     title: row.title,
@@ -300,24 +328,34 @@ export function mapSupabaseEventRow(row) {
     dateISO: row.starts_at?.slice(0, 10) ?? '',
     slots: row.capacity ?? DEFAULT_SLOTS,
     featured: Boolean(rules.featured),
+    eventDays,
+    ticketTypes,
     pricing: normalizeEventPricingInput({
       registration: row.price,
       membership: rules.membershipPrice,
       combo: rules.comboPrice,
-      ticketDay: rules.ticketPricing?.day,
-      ticketBothDays: rules.ticketPricing?.bothDays,
       ticketsEnabled: rules.ticketsEnabled,
       ticketAddons: rules.ticketAddons,
     }),
   }
 }
 
+const PUBLISHED_EVENTS_SELECT = `
+  *,
+  eventDays:event_days(*),
+  ticketTypes:ticket_types(
+    *,
+    ticketTypeDays:ticket_type_days(event_day_id),
+    includedAddons:ticket_type_included_addons(addon_id)
+  )
+`
+
 /** Eventos visibles al público — usado por EventsPage para enriquecer los
  * eventos mock con startsAt/endsAt/live antes de renderizarlos. */
 export async function fetchPublishedEvents() {
   if (!isSupabaseConfigured || !supabase) return []
 
-  const { data, error } = await supabase.from('events').select('*').eq('published', true)
+  const { data, error } = await supabase.from('events').select(PUBLISHED_EVENTS_SELECT).eq('published', true)
   if (error) throw error
   return (data ?? []).map(mapSupabaseEventRow)
 }
@@ -349,16 +387,6 @@ export async function upsertEventCalendarLiveFields(draft) {
 export async function fetchAdminEvents() {
   const { events } = await apiGet('/api/events')
   return events.map((row) => {
-    const rules = row.rules ?? {}
-    const pricing = normalizeEventPricingInput({
-      registration: row.price,
-      membership: rules.membershipPrice,
-      combo: rules.comboPrice,
-      ticketDay: rules.ticketPricing?.day,
-      ticketBothDays: rules.ticketPricing?.bothDays,
-      ticketsEnabled: rules.ticketsEnabled,
-      ticketAddons: rules.ticketAddons,
-    })
     const capacity = Object.fromEntries((row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]))
     return {
       id: row.id,
@@ -366,10 +394,6 @@ export async function fetchAdminEvents() {
       dateISO: row.starts_at?.slice(0, 10) ?? '',
       date: row.starts_at ? formatEventDate(row.starts_at.slice(0, 10)) : '—',
       slots: row.capacity ?? capacity.event ?? DEFAULT_SLOTS,
-      capacityDay1: capacity.day1 ?? '',
-      capacityDay2: capacity.day2 ?? '',
-      capacityBoth: capacity.both ?? '',
-      pricing,
       registered: 0,
       createdAt: row.created_at,
     }

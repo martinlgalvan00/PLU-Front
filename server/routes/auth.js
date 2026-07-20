@@ -13,6 +13,7 @@ import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
 import { HttpError } from '../lib/errors.js'
 import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
+import { fetchSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
 import { requireRole } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
@@ -70,19 +71,17 @@ export function createAuthRoutes({
   // Los eventos viven en Supabase (public.events, id uuid). El panel entrega
   // ese uuid como eventId al dar de alta seguridad, asi que la validacion y
   // los datos del evento (slug/title/endsAt para credenciales y scoping)
-  // salen de Supabase, no de la tabla Prisma Event (legacy, sin poblar).
-  // Devuelve la forma normalizada que consumen resolveAccessLinkExpiry y la
-  // notificacion, o null si el evento no existe / Supabase no esta listo.
-  async function fetchSupabaseEvent(eventId) {
-    const admin = getSupabaseAdmin?.()
-    if (!admin) return null
-    const { data, error } = await admin
-      .from('events')
-      .select('id, slug, title, ends_at')
-      .eq('id', eventId)
-      .maybeSingle()
-    if (error || !data) return null
-    return { id: data.id, slug: data.slug, title: data.title, endsAt: data.ends_at }
+  // salen de Supabase, no de la tabla Prisma Event (legacy, sin poblar). La
+  // resolucion vive en securityEventService (compartida con el job de ciclo
+  // de vida); aca solo inyectamos el cliente admin.
+  const resolveEvent = (eventId) => fetchSupabaseEvent(getSupabaseAdmin?.(), eventId)
+
+  // Rechaza dar de alta seguridad para un evento que ya termino: esas cuentas
+  // no podrian operar y el job de ciclo de vida las purgaria de inmediato.
+  function assertEventOpen(event) {
+    if (event.endsAt && new Date(event.endsAt).getTime() < Date.now()) {
+      throw new HttpError(400, 'El evento ya finalizo.')
+    }
   }
   const notifySecurityAccess = createSecurityAccessNotificationService({
     repository: notificationRepository,
@@ -244,8 +243,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { name, email, eventId, sendEmail } = req.validatedBody
 
-        const event = await fetchSupabaseEvent(eventId)
+        const event = await resolveEvent(eventId)
         if (!event) throw new HttpError(400, 'El evento no existe.')
+        assertEventOpen(event)
 
         const existing = await prisma.user.findUnique({ where: { email } })
         if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
@@ -282,8 +282,9 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const { eventId, users, sendEmail } = req.validatedBody
 
-        const event = await fetchSupabaseEvent(eventId)
+        const event = await resolveEvent(eventId)
         if (!event) throw new HttpError(400, 'El evento no existe.')
+        assertEventOpen(event)
 
         // Una sola consulta para detectar emails ya tomados, en vez de un
         // findUnique por cada entrada del lote.
@@ -436,7 +437,7 @@ export function createAuthRoutes({
         // El slug ya lo tenemos desnormalizado en la cuenta; endsAt (para la
         // vigencia de la credencial) sale de Supabase. Si el evento ya no
         // existe alla, se cae al TTL default de resolveAccessLinkExpiry.
-        const event = (await fetchSupabaseEvent(user.eventId)) ?? { slug: user.eventSlug }
+        const event = (await resolveEvent(user.eventId)) ?? { slug: user.eventSlug }
         const access = createPersonalAccess(serializeUser(user), event)
 
         const emailed = req.validatedBody.sendEmail

@@ -1139,6 +1139,15 @@
   border-color: rgba(31, 95, 158, 0.28);
 }
 
+.ticket-purchase__addon.is-included {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.ticket-purchase__addon.is-included .ticket-purchase__addon-price {
+  color: rgba(31, 158, 95, 0.92);
+}
+
 .ticket-purchase__addon-copy {
   display: grid;
   gap: 3px;

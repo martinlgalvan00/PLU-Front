@@ -111,12 +111,13 @@ export const demoPayments = [
   },
 ]
 
-const DEMO_SESSION_IDS = new Set(['demo-admin', 'demo-athlete', 'demo-plu-usa'])
+const DEMO_SESSION_IDS = new Set(['demo-admin', 'demo-athlete', 'demo-plu-usa', 'demo-security'])
 const DEMO_ATHLETE_IDS = new Set(['ath-001', 'ath-002'])
 
 /**
- * true para las 4 cuentas de acceso rápido de la pantalla de login (admin,
- * athlete, demo2, demo3) -- ninguna pasa por el backend real.
+ * true para las cuentas de acceso rápido de la pantalla de login (admin,
+ * athlete, demo2, demo3, seguridad desde la puerta) -- ninguna pasa por el
+ * backend real.
  */
 export function isDemoSession(session) {
   if (!session) return false

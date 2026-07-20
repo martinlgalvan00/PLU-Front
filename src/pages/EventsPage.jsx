@@ -16,7 +16,7 @@ import { getStatusMeta } from '../lib/status.js'
 import { getDaysUntilEvent, getFeaturedEvent, getNextUpcomingEvent } from '../lib/eventNavigation.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
-import { resolveEventPricing } from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 
@@ -109,9 +109,9 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
 }
 
 function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
-  const pricing = resolveEventPricing(event)
-  const ticketPrice = pricing.ticketBothDays || pricing.ticketDay
-  const ticketsEnabled = pricing.ticketsEnabled !== false
+  const pricing = ticketPricingFromEvent(event)
+  const ticketPrice = cheapestTicketTypePrice(pricing)
+  const ticketsEnabled = event?.pricing?.ticketsEnabled !== false
 
   return (
     <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">

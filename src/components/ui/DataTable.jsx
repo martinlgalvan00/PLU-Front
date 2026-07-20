@@ -70,12 +70,17 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
         </div>
         {badges.length > 0 && (
           <div className="data-table-card__badges">
-            {badges.map((col) => (
-              <div key={col.key} className="data-table-card__badge">
-                <span className="data-table-card__badge-label">{col.mobileLabel ?? col.label}</span>
-                {cellValue(col, row)}
-              </div>
-            ))}
+            {badges.map((col) => {
+              const badgeLabel = col.mobileLabel ?? col.label
+              return (
+                <div key={col.key} className="data-table-card__badge">
+                  {badgeLabel ? (
+                    <span className="data-table-card__badge-label">{badgeLabel}</span>
+                  ) : null}
+                  {cellValue(col, row)}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
