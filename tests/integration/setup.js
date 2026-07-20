@@ -13,6 +13,11 @@ try {
   // La variable también puede venir ya seteada en el entorno (CI).
 }
 
+// Las credenciales personales generadas por los endpoints de seguridad se
+// firman durante la suite. En CI no hay secretos de produccion, por lo que
+// usamos una clave exclusiva de tests y respetamos cualquier valor provisto.
+process.env.AUTH_SECRET ||= 'plu-arg-integration-tests-only-secret'
+
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']
 const missing = required.filter((key) => !process.env[key]?.trim())
 
