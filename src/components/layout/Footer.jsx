@@ -1,71 +1,59 @@
+import { ArrowRight, Mail } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 
-const FOOTER_PLATFORM = ['members', 'pitbull', 'events', 'shop', 'results', 'records', 'rulebook']
-const FOOTER_COMMUNITY = ['community', 'faq', 'contact']
+const FOOTER_GROUPS = [
+  { labelKey: 'navCompetition', items: ['members', 'events', 'pitbull', 'results', 'records'] },
+  { labelKey: 'navResources', items: ['resources', 'rulebook', 'faq', 'community'] },
+  { labelKey: 'navInstitution', items: ['contact', 'login'] },
+]
 
 export default function Footer({ onNavigate }) {
   const { t } = useI18n()
   const year = new Date().getFullYear()
 
   return (
-    <footer className="site-footer site-footer--design site-footer--premium">
-      <div className="site-footer__wrap">
-        <div className="site-footer__shell">
-          <div className="site-footer__brand">
-            <button type="button" className="site-footer__logo" onClick={() => onNavigate('home')}>
-              <BrandLogo variant="letterhead" imgClassName="site-footer__logo-img" height={32} />
+    <footer className="site-footer site-footer--institutional">
+      <div className="institutional-footer__rule" aria-hidden><span /><span /><span /></div>
+      <div className="institutional-footer__inner">
+        <div className="institutional-footer__lead">
+          <div className="institutional-footer__brand">
+            <button type="button" aria-label={t('nav.home')} onClick={() => onNavigate?.('home')}>
+              <BrandLogo variant="letterhead" letterheadBlend imgClassName="institutional-footer__logo" height={32} />
             </button>
-            <p className="site-footer__brand-desc site-footer__brand-desc--full">{t('footer.brandDesc')}</p>
-            <p className="site-footer__brand-desc site-footer__brand-desc--short">{t('footer.brandDescShort')}</p>
+            <p>{t('footer.brandDesc')}</p>
+            <span>{t('footer.chapterLine')}</span>
           </div>
 
-          <div className="site-footer__contact-bar" aria-label={t('footer.directContact')}>
-            <a href="mailto:hola@pluarg.com.ar" className="site-footer__contact-link site-footer__email">
-              hola@pluarg.com.ar
-            </a>
-            <span className="site-footer__contact-sep" aria-hidden>
-              ·
-            </span>
-            <span className="site-footer__contact-text">{t('footer.locationShort')}</span>
-            <button type="button" className="site-footer__contact-login" onClick={() => onNavigate('login')}>
-              {t('footer.loginLinkShort')}
-            </button>
-          </div>
-
-          <div className="site-footer__nav-rail">
-            <nav className="site-footer__nav-group" aria-label={t('footer.navPlatform')}>
-              <h4>{t('footer.navPlatform')}</h4>
-              <ul>
-                {FOOTER_PLATFORM.map((key) => (
-                  <li key={key}>
-                    <button type="button" onClick={() => onNavigate(key)}>
-                      {t(`nav.${key}`)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <nav className="site-footer__nav-group" aria-label={t('footer.navCommunity')}>
-              <h4>{t('footer.navCommunity')}</h4>
-              <ul>
-                {FOOTER_COMMUNITY.map((key) => (
-                  <li key={key}>
-                    <button type="button" onClick={() => onNavigate(key)}>
-                      {t(`nav.${key}`)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+          <div className="institutional-footer__cta">
+            <p className="institutional-kicker">{t('footer.actionEyebrow')}</p>
+            <h2>{t('footer.actionTitle')}</h2>
+            <div>
+              <button type="button" className="institutional-button institutional-button--primary" onClick={() => onNavigate?.('members')}>
+                {t('nav.affiliate')}<ArrowRight size={16} aria-hidden />
+              </button>
+              <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail"><Mail size={16} aria-hidden />hola@pluarg.com.ar</a>
+            </div>
           </div>
         </div>
 
-        <div className="site-footer__bottom-bar">
-          <span>
-            © {year} {t('brand.name')} · {t('footer.copyright')}
-          </span>
+        <div className="institutional-footer__directory">
+          {FOOTER_GROUPS.map((group) => (
+            <nav key={group.labelKey} aria-label={t(`footer.${group.labelKey}`)}>
+              <h3>{t(`footer.${group.labelKey}`)}</h3>
+              <ul>
+                {group.items.map((key) => (
+                  <li key={key}>
+                    <button type="button" onClick={() => onNavigate?.(key)}>{key === 'login' ? t('nav.login') : t(`nav.${key}`)}</button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+
+        <div className="institutional-footer__bottom">
+          <span>© {year} {t('brand.name')} · {t('footer.copyright')}</span>
           <span>{t('footer.poweredBy')}</span>
         </div>
       </div>

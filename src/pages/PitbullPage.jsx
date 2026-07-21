@@ -359,6 +359,11 @@ function PitbullScheduleStrip({ schedule, t }) {
 
   return (
     <Reveal as="div" direction="up" delay={80} className="pitbull-program" aria-label={t('pages.pitbull.programAria')}>
+      <header className="pitbull-program__intro">
+        <span className="pitbull-program__eyebrow">{t('pages.pitbull.programScheduleEyebrow')}</span>
+        <h3 className="pitbull-program__title">{t('pages.pitbull.programScheduleTitle')}</h3>
+      </header>
+
       <div className="pitbull-program__matrix">
         <div className="pitbull-program__head" aria-hidden>
           <span className="pitbull-program__corner" />
@@ -580,26 +585,39 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
       title={t('pages.pitbull.featureTitle')}
       titleId="pitbull-feature-title"
     >
-      <StaggerGroup
-        as="ol"
-        className="pitbull-value-grid pitbull-value-grid--facts"
-        stagger={70}
-        aria-label={t('pages.pitbull.featureFactsAria')}
-      >
-        {featureFacts.map((fact, index) => (
-          <PitbullValueCard
-            key={fact.label}
-            index={index}
-            Icon={FEATURE_FACT_ICONS[fact.label]}
-            label={fact.label}
-            text={fact.value}
-          />
-        ))}
-      </StaggerGroup>
+      <div className="pitbull-feature-stage">
+        <StaggerGroup
+          as="ol"
+          className="pitbull-feature-flow"
+          stagger={70}
+          aria-label={t('pages.pitbull.featureFactsAria')}
+        >
+          {featureFacts.map((fact, index) => {
+            const Icon = FEATURE_FACT_ICONS[fact.label]
+            const num = String(index + 1).padStart(2, '0')
+            return (
+              <li key={fact.label} className="pitbull-feature-flow__step">
+                <span className="pitbull-feature-flow__num" aria-hidden>
+                  {num}
+                </span>
+                <div className="pitbull-feature-flow__copy">
+                  <span className="pitbull-feature-flow__label">
+                    {Icon ? (
+                      <Icon size={16} strokeWidth={1.6} className="pitbull-feature-flow__icon" aria-hidden />
+                    ) : null}
+                    {fact.label}
+                  </span>
+                  <p className="pitbull-feature-flow__detail">{fact.value}</p>
+                </div>
+              </li>
+            )
+          })}
+        </StaggerGroup>
 
-      {schedule?.length > 0 ? (
-        <PitbullScheduleStrip schedule={schedule} t={t} />
-      ) : null}
+        {schedule?.length > 0 ? (
+          <PitbullScheduleStrip schedule={schedule} t={t} />
+        ) : null}
+      </div>
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--feature">
         <button

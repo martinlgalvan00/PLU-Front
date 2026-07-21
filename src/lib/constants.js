@@ -75,22 +75,23 @@ export const ROLES = {
 
 export const ROLE_OPTIONS = Object.entries(ROLES).map(([value, { label }]) => [value, label])
 
-export const NAV_PRIMARY = ['home', 'members', 'pitbull', 'events', 'results']
+export const NAV_PRIMARY = ['home', 'members', 'events', 'results', 'records', 'resources']
 
-export const NAV_SECONDARY = ['rulebook', 'community', 'faq', 'contact']
+export const NAV_SECONDARY = ['pitbull', 'shop', 'rulebook', 'community', 'faq', 'contact']
 
 /** Nav agrupada como en design-reference (Claude Design) */
 export const NAV_EVENTOS = [
+  { key: 'pitbull', featured: true },
   { key: 'events' },
   { key: 'shop' },
-  { key: 'results' },
-  { key: 'records' },
 ]
 
 export const NAV_RECURSOS = [
+  { key: 'resources' },
   { key: 'rulebook' },
-  { key: 'community' },
   { key: 'faq' },
+  { key: 'community' },
+  { key: 'contact' },
 ]
 
 export const NAV_EVENTOS_VIEWS = NAV_EVENTOS.map(({ key }) => key)

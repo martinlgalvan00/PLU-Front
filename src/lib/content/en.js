@@ -529,7 +529,7 @@ export const FAQ_GROUPS = [
     items: [
       {
         q: 'How long does membership last?',
-        a: 'It is valid for the calendar year, from payment confirmation until December 31 of the same year (example scheme).',
+        a: 'It is valid for the calendar year, from payment confirmation until December 31 of the same year.',
       },
       {
         q: 'Can I join without prior competition experience?',

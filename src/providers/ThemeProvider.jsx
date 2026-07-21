@@ -30,8 +30,9 @@ export function ThemeProvider({ children }) {
       },
       toggleTheme() {
         const next = theme === 'dark' ? 'light' : 'dark'
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         // View Transition API — cross-fade premium (Chrome 111+)
-        if (typeof document.startViewTransition === 'function') {
+        if (!reduceMotion && typeof document.startViewTransition === 'function') {
           document.startViewTransition(() => {
             persistTheme(next)
             setThemeState(next)

@@ -533,7 +533,7 @@ export const FAQ_GROUPS = [
     items: [
       {
         q: '¿Cuánto dura la afiliación?',
-        a: 'Es válida por año calendario, desde el pago acreditado hasta el 31 de diciembre del mismo año (esquema de ejemplo).',
+        a: 'Es válida por año calendario, desde el pago acreditado hasta el 31 de diciembre del mismo año.',
       },
       {
         q: '¿Puedo afiliarme sin haber competido antes?',

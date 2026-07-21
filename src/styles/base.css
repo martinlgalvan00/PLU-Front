@@ -196,7 +196,31 @@ button:disabled {
 .pitbull-spotlight,
 .design-page-hero,
 .site-footer__main,
-.site-footer__bottom {
+.site-footer__bottom,
+:where(
+  .institutional-page,
+  .institutional-hero,
+  .site-header--institutional,
+  .plu-nav-menu,
+  .resource-feature,
+  .resource-support__note,
+  .community-manifesto,
+  .community-venue-note,
+  .community-honest-state,
+  .faq-search,
+  .faq-categories button,
+  .faq-empty-state,
+  .rulebook-doc-panel,
+  .rulebook-summary__card,
+  .rulebook-lift-card,
+  .rulebook-index-mobile select,
+  .contact-form,
+  .contact-sidebar,
+  .contact-form__motive,
+  .contact-form__field input,
+  .contact-form__field textarea,
+  .contact-success
+) {
   transition:
     background var(--transition-theme),
     background-color var(--transition-theme),
@@ -281,4 +305,28 @@ button:disabled {
 
 .pref-toggle--switching svg {
   animation: theme-icon-swap 0.5s var(--ease-spring) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  .pref-toggle--switching svg {
+    animation: none;
+  }
+
+  body,
+  .site-header,
+  .app-shell,
+  :where(
+    .institutional-page,
+    .institutional-hero,
+    .plu-nav-menu,
+    .contact-form,
+    .contact-sidebar,
+    .contact-form__motive,
+    .contact-form__field input,
+    .contact-form__field textarea
+  ) {
+    transition-duration: 0.01ms;
+  }
 }

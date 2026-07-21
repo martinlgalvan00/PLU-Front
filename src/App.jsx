@@ -34,6 +34,7 @@ const MembersPage = lazy(() => import('./pages/MembersPage.jsx'))
 const PitbullPage = lazy(() => import('./pages/PitbullPage.jsx'))
 const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
+const ResourcesPage = lazy(() => import('./pages/ResourcesPage.jsx'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
@@ -46,6 +47,7 @@ const PUBLIC_VIEWS = {
   events: EventsPage,
   results: ResultsPage,
   records: RecordsPage,
+  resources: ResourcesPage,
   rulebook: RulebookPage,
   community: CommunityPage,
   faq: FAQPage,
@@ -371,7 +373,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <NavbarPublic activeView={view} latestEvent={nextEvent} onLogout={app.logout} onNavigate={navigate} session={app.session} />
-      <PageTransition viewKey={view} direction={transitionDirection}>
+      <PageTransition viewKey={view} direction={transitionDirection} id="main-content" tabIndex={-1}>
         <Suspense fallback={<PageLoadFallback />}>
           <Page {...pageProps} />
         </Suspense>
@@ -394,7 +396,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         onNavigate={navigate}
         session={app.session}
       />
-      <PageTransition viewKey={view} direction={transitionDirection}>
+      <PageTransition viewKey={view} direction={transitionDirection} id="main-content" tabIndex={-1}>
         <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
       </PageTransition>
       <Footer onNavigate={navigate} />

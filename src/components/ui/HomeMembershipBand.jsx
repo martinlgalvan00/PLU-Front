@@ -1,64 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, m } from 'motion/react'
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import HomeMembershipArtifact from './HomeMembershipArtifact.jsx'
+import { ArrowRight, Check } from 'lucide-react'
+import { m } from 'motion/react'
+import Button from './Button.jsx'
+import HomeMembershipCredential from './HomeMembershipCredential.jsx'
 import { useContent } from '../../hooks/useContent.js'
-import { usePointerParallax } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
-
-const REEL_INTERVAL_MS = 4200
-
-const slideVariants = {
-  enter: (direction) => ({
-    opacity: 0,
-    y: direction > 0 ? 10 : -10,
-    scale: 0.94,
-    z: -48,
-    filter: 'blur(2px)',
-  }),
-  center: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    z: 0,
-    filter: 'blur(0px)',
-  },
-  exit: (direction) => ({
-    opacity: 0,
-    y: direction > 0 ? -8 : 8,
-    scale: 1.04,
-    z: 36,
-    filter: 'blur(1.5px)',
-  }),
-}
-
-const reelCopyContainer = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: MOTION_STAGGER.stepFast,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const reelCopyItem = {
-  hidden: { opacity: 0, y: 12, filter: 'blur(2px)' },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
-  },
-}
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
 const copyContainer = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.08,
+      staggerChildren: 0.07,
       delayChildren: 0.05,
     },
   },
@@ -73,58 +26,21 @@ const copyItem = {
   },
 }
 
-const artifactEnter = {
-  initial: { opacity: 0, scale: 0.88, z: -56, y: 12 },
-  animate: {
+/** Metadata de temporada — entrada más sutil que el resto: es información
+ * secundaria, no debe competir con el título ni el CTA. */
+const copyItemSubtle = {
+  hidden: { opacity: 0, y: 6 },
+  visible: {
     opacity: 1,
-    scale: 1,
-    z: 0,
     y: 0,
-    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out, delay: 0.06 },
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
   },
 }
 
 export default function HomeMembershipBand({ onNavigate }) {
-  const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_BENEFITS } = useContent()
+  const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const benefits = HOME_MEMBERSHIP_BENEFITS ?? []
-  const [activeIndex, setActiveIndex] = useState(0)
-  const [direction, setDirection] = useState(1)
-  const [paused, setPaused] = useState(false)
-  const reelRef = useRef(null)
-
-  // Parallax por cursor: escribe --reel-mx/my en el reel (sin re-render). El
-  // CSS mueve el spotlight, la pieza 3D y el copy en profundidad. No-op en
-  // touch / reduced-motion.
-  usePointerParallax(reelRef)
-
-  useEffect(() => {
-    if (reducedMotion || paused || benefits.length < 2) return undefined
-
-    const timer = window.setInterval(() => {
-      setDirection(1)
-      setActiveIndex((current) => (current + 1) % benefits.length)
-    }, REEL_INTERVAL_MS)
-
-    return () => window.clearInterval(timer)
-  }, [benefits.length, paused, reducedMotion])
-
-  function selectBenefit(index) {
-    if (index === activeIndex) return
-    setDirection(index > activeIndex ? 1 : -1)
-    setActiveIndex(index)
-  }
-
-  function stepBenefit(delta) {
-    if (benefits.length < 2) return
-    setDirection(delta > 0 ? 1 : -1)
-    setActiveIndex((current) => (current + delta + benefits.length) % benefits.length)
-  }
-
-  const active = benefits[activeIndex] ?? benefits[0]
-  const indexLabel = String(activeIndex + 1).padStart(2, '0')
-  const totalLabel = String(benefits.length).padStart(2, '0')
 
   const CopyShell = reducedMotion ? 'div' : m.div
   const copyProps = reducedMotion
@@ -139,18 +55,57 @@ export default function HomeMembershipBand({ onNavigate }) {
 
   const CopyItem = reducedMotion ? 'div' : m.div
   const itemProps = reducedMotion ? {} : { variants: copyItem }
+  const subtleItemProps = reducedMotion ? {} : { variants: copyItemSubtle }
 
   return (
     <div className="home-membership-band">
+      <span className="home-membership-band__spine" aria-hidden />
+
       <CopyShell {...copyProps}>
-        <CopyItem {...itemProps} className="home-membership-band__intro">
-          <p className="home-membership-band__eyebrow">{HOME_MEMBERSHIP.eyebrow}</p>
+        <CopyItem {...itemProps} className="home-membership-band__eyebrow">
+          {HOME_MEMBERSHIP.eyebrow}
+        </CopyItem>
+
+        <CopyItem {...itemProps}>
           <h2 className="home-membership-band__title">
             <span className="home-membership-band__title-lead">{HOME_MEMBERSHIP.titleLead}</span>
             <span className="home-membership-band__title-accent">{HOME_MEMBERSHIP.titleAccent}</span>
           </h2>
-          <p className="home-membership-band__desc">{HOME_MEMBERSHIP.description}</p>
-          <p className="home-membership-band__meta">
+        </CopyItem>
+
+        <CopyItem {...itemProps} className="home-membership-band__desc">
+          {HOME_MEMBERSHIP.description}
+        </CopyItem>
+
+        {HOME_MEMBERSHIP_FEATURES?.length ? (
+          <CopyItem {...itemProps}>
+            <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
+              {HOME_MEMBERSHIP_FEATURES.map((feature) => (
+                <li key={feature} className="home-membership-band__benefit">
+                  <Check size={14} strokeWidth={2.5} aria-hidden className="home-membership-band__benefit-icon" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </CopyItem>
+        ) : null}
+
+        <CopyItem {...itemProps} className="home-membership-band__actions">
+          <Button variant="gold" className="home-membership-band__cta" onClick={() => onNavigate('members')}>
+            {HOME_MEMBERSHIP.cta}
+            <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
+          </Button>
+          <button
+            type="button"
+            className="home-membership-band__cta-secondary"
+            onClick={() => onNavigate('events')}
+          >
+            {t('pages.home.viewCalendar')}
+          </button>
+        </CopyItem>
+
+        <CopyItem {...subtleItemProps}>
+          <p className="home-membership-band__meta" aria-label={t('pages.home.membershipMetaAria')}>
             <span>{HOME_MEMBERSHIP.seasonNote}</span>
             <span aria-hidden className="home-membership-band__meta-sep">
               ·
@@ -158,149 +113,9 @@ export default function HomeMembershipBand({ onNavigate }) {
             <span>{HOME_MEMBERSHIP.planLabel}</span>
           </p>
         </CopyItem>
-
-        <CopyItem {...itemProps} className="home-membership-band__actions">
-          <button
-            type="button"
-            className="home-membership-band__cta"
-            onClick={() => onNavigate('members')}
-          >
-            {HOME_MEMBERSHIP.cta}
-            <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
-          </button>
-        </CopyItem>
       </CopyShell>
 
-      <aside
-        ref={reelRef}
-        className={`home-membership-reel${paused ? ' is-paused' : ''}`.trim()}
-        aria-roledescription="carousel"
-        aria-label={t('pages.membershipCard.benefitsReelAria')}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocusCapture={() => setPaused(true)}
-        onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false)
-        }}
-      >
-        <div className="home-membership-reel__toolbar">
-          <div className="home-membership-reel__progress" aria-hidden>
-            <span
-              key={activeIndex}
-              className={`home-membership-reel__progress-bar${paused || reducedMotion ? ' is-paused' : ''}`}
-              style={{ '--reel-duration': `${REEL_INTERVAL_MS}ms` }}
-            />
-          </div>
-          <div className="home-membership-reel__controls">
-            <button
-              type="button"
-              className="home-membership-reel__control"
-              aria-label={t('pages.membershipCard.benefitsPrev')}
-              onClick={() => stepBenefit(-1)}
-            >
-              <ChevronLeft size={16} strokeWidth={1.75} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="home-membership-reel__control"
-              aria-label={t('pages.membershipCard.benefitsNext')}
-              onClick={() => stepBenefit(1)}
-            >
-              <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
-            </button>
-          </div>
-        </div>
-
-        {reducedMotion ? (
-          <div className="home-membership-reel__stage">
-            <div className="home-membership-reel__copy">
-              <p className="home-membership-reel__index" aria-live="polite">
-                {indexLabel}
-                <span aria-hidden> — </span>
-                {totalLabel}
-              </p>
-              <h3 className="home-membership-reel__title">{active?.title}</h3>
-              <p className="home-membership-reel__text">{active?.text}</p>
-            </div>
-            <div className="home-membership-reel__artifact-stage">
-              <HomeMembershipArtifact benefitId={active?.id} paused reducedMotion />
-            </div>
-          </div>
-        ) : (
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <m.div
-              key={active?.id ?? activeIndex}
-              className="home-membership-reel__stage"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              <m.div
-                className="home-membership-reel__copy"
-                variants={reelCopyContainer}
-                initial="hidden"
-                animate="visible"
-              >
-                <m.p className="home-membership-reel__index" aria-live="polite" variants={reelCopyItem}>
-                  <span className="home-membership-reel__index-current">
-                    <AnimatePresence mode="wait" initial={false}>
-                      <m.span
-                        key={indexLabel}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
-                      >
-                        {indexLabel}
-                      </m.span>
-                    </AnimatePresence>
-                  </span>
-                  <span aria-hidden> — </span>
-                  {totalLabel}
-                </m.p>
-                <m.h3 className="home-membership-reel__title" variants={reelCopyItem}>
-                  {active?.title}
-                </m.h3>
-                <m.p className="home-membership-reel__text" variants={reelCopyItem}>
-                  {active?.text}
-                </m.p>
-              </m.div>
-              <div className="home-membership-reel__artifact-stage">
-                <m.div
-                  className="home-membership-reel__artifact-enter"
-                  initial={artifactEnter.initial}
-                  animate={artifactEnter.animate}
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <HomeMembershipArtifact benefitId={active?.id} paused={paused} reducedMotion={false} />
-                </m.div>
-              </div>
-            </m.div>
-          </AnimatePresence>
-        )}
-
-        <div
-          className="home-membership-reel__dots"
-          role="tablist"
-          aria-label={t('pages.membershipCard.benefitsNavAria')}
-        >
-          {benefits.map((benefit, index) => (
-            <button
-              key={benefit.id}
-              type="button"
-              role="tab"
-              aria-selected={index === activeIndex}
-              aria-label={benefit.title}
-              className={`home-membership-reel__dot${index === activeIndex ? ' is-active' : ''}`}
-              onClick={() => selectBenefit(index)}
-            />
-          ))}
-        </div>
-      </aside>
+      <HomeMembershipCredential onNavigate={onNavigate} />
     </div>
   )
 }

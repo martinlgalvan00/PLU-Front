@@ -1,4 +1,5 @@
 import { m } from 'motion/react'
+import type { TargetAndTransition, Variants } from 'motion/react'
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { MOTION_VIEWPORT, MOTION_DURATION } from './tokens'
 import { getRevealVariant, type RevealDirection } from './variants'
@@ -69,8 +70,8 @@ export default function Reveal<T extends ElementType = 'div'>({
     )
   }
 
-  const hidden = { ...variants.hidden } as Record<string, unknown>
-  const visible = { ...variants.visible } as Record<string, unknown>
+  const hidden = { ...(variants.hidden as TargetAndTransition) }
+  const visible = { ...(variants.visible as TargetAndTransition) }
 
   if (typeof distance === 'number') {
     if (hidden.y != null) hidden.y = distance
@@ -79,7 +80,7 @@ export default function Reveal<T extends ElementType = 'div'>({
     if (visible.x != null) visible.x = 0
   }
 
-  const motionVariants = { hidden, visible }
+  const motionVariants: Variants = { hidden, visible }
 
   return (
     <MotionTag

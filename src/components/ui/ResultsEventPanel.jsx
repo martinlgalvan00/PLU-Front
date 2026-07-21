@@ -1,7 +1,10 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { MapPin, X } from 'lucide-react'
 import Podium from './Podium.jsx'
+import Reveal from './Reveal.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatShortDate } from '../../lib/format.js'
+import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 import {
   buildDivisionNav,
   filterDivisionNav,
@@ -45,16 +48,28 @@ export default function ResultsEventPanel({ entry, onClose }) {
   if (!results) return null
 
   const showNav = Boolean(sexOptions || groupOptions)
+  const filterKey = `${sexFilter}|${groupFilter}`
+  const eventDate = entry.dateISO ? formatShortDate(entry.dateISO, locale) : null
 
   return (
-    <div className="results-event-panel" role="region" aria-label={t('pages.results.detailAria', { event: entry.title })}>
-      <header className="results-event-panel__head">
+    <div
+      className="results-event-panel results-event-panel--editorial"
+      role="region"
+      aria-label={t('pages.results.detailAria', { event: entry.title })}
+    >
+      <Reveal as="header" className="results-event-panel__head" delay={90} distance={12}>
         <div className="results-event-panel__intro">
-          <span className="results-event-panel__eyebrow">{t('pages.results.detailEyebrow')}</span>
+          <p className="results-event-panel__kicker">
+            <span className="results-event-panel__eyebrow">{t('pages.results.detailEyebrow')}</span>
+            {eventDate ? <span className="results-event-panel__date">{eventDate}</span> : null}
+          </p>
           <h3 className="results-event-panel__title">{entry.title}</h3>
           <p className="results-event-panel__meta">
             <MapPin size={12} aria-hidden />
-            {entry.venue} · {entry.location}
+            <span>
+              {entry.venue}
+              {entry.location ? ` · ${entry.location}` : ''}
+            </span>
           </p>
         </div>
         <button
@@ -65,18 +80,18 @@ export default function ResultsEventPanel({ entry, onClose }) {
         >
           <X size={16} aria-hidden />
         </button>
-      </header>
+      </Reveal>
 
-      <div className="results-podium results-podium--embedded">
-        <header className="results-podium__header">
+      <Reveal className="results-podium results-podium--embedded" delay={160} distance={16}>
+        <header className="results-podium__header results-podium__header--editorial">
           <span className="results-podium__eyebrow">{t('pages.results.podiumEyebrow')}</span>
           <h4 className="results-podium__title">{t('pages.results.podiumTitle')}</h4>
         </header>
         <Podium results={results.podium} />
-      </div>
+      </Reveal>
 
       {showNav ? (
-        <div className="results-event-panel__nav">
+        <Reveal className="results-event-panel__nav" delay={220} distance={10}>
           <div className="results-event-panel__nav-top">
             <div className="results-event-panel__nav-copy">
               <span className="results-event-panel__nav-label">{t('pages.results.divisionsNavLabel')}</span>
@@ -122,19 +137,23 @@ export default function ResultsEventPanel({ entry, onClose }) {
               ))}
             </div>
           ) : null}
-        </div>
+        </Reveal>
       ) : null}
 
-      <div className="results-event-panel__divisions">
+      <MotionContentSwap swapKey={filterKey} className="results-event-panel__divisions">
         {visibleItems.length === 0 ? (
           <p className="results-event-panel__empty">{t('pages.results.divisionsEmpty')}</p>
         ) : (
-          visibleItems.map((item) => (
-            <section
+          visibleItems.map((item, index) => (
+            <Reveal
               key={item.id}
+              as="section"
               id={`${baseId}-${item.id}`}
               className="results-division"
               aria-labelledby={`${baseId}-${item.id}-title`}
+              delay={Math.min(index, 5) * 45}
+              distance={14}
+              amount={0.12}
             >
               <div className="results-division__head">
                 <h4 id={`${baseId}-${item.id}-title`} className="results-division__title">
@@ -172,16 +191,16 @@ export default function ResultsEventPanel({ entry, onClose }) {
                         <td>{formatWeight(lifter.bench, locale)}</td>
                         <td>{formatWeight(lifter.deadlift, locale)}</td>
                         <td className="results-lifters-table__total">{formatWeight(lifter.total, locale)}</td>
-                        <td>{lifter.dots?.toFixed(1) ?? '—'}</td>
+                        <td className="results-lifters-table__dots">{lifter.dots?.toFixed(1) ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </section>
+            </Reveal>
           ))
         )}
-      </div>
+      </MotionContentSwap>
     </div>
   )
 }

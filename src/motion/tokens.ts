@@ -22,6 +22,28 @@ export const MOTION_EASE = {
   out: [0.22, 1, 0.36, 1] as const,
   inOut: [0.76, 0, 0.24, 1] as const,
   emphasized: [0.2, 0.8, 0.2, 1] as const,
+  /** Entradas editoriales largas (hero, credencial, showcase). */
+  cinematic: [0.16, 1, 0.3, 1] as const,
+  /** Overshoot suave — espejo de --ease-spring en variables.css. Solo para
+   * micro-interacciones puntuales (confirmación, indicador activo), nunca
+   * para entradas de sección completas. */
+  spring: [0.34, 1.4, 0.64, 1] as const,
+} as const
+
+/** Blur máximo por paso — nunca se combina con blur permanente. */
+export const MOTION_BLUR = {
+  sm: 2,
+  md: 4,
+  lg: 6,
+} as const
+
+/** translateZ por nivel de profundidad (credencial, showcases). Máximo
+ * 4 niveles visuales activos a la vez — ver docs de HomeMembershipCredential. */
+export const MOTION_DEPTH = {
+  back: -24,
+  mid: -8,
+  content: 0,
+  front: 16,
 } as const
 
 export const MOTION_DEFAULT_TRANSITION = {

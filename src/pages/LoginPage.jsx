@@ -48,8 +48,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
   }
 
   return (
-    <main className="page login-page--design">
-      <div className="login-shell">
+    <main className="page login-page--design login-page--editorial">
+      <div className="login-shell login-shell--editorial">
         <aside className="login-brand" aria-label={t('login.brandAria')}>
           <div className="login-brand__logos">
             <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={64} />
@@ -80,7 +80,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
           <p className="login-brand__secure">{t('login.secureNote')}</p>
         </aside>
 
-        <section className="login-card" aria-labelledby="login-heading">
+        <section className="login-card login-card--editorial" aria-labelledby="login-heading">
+          <span className="login-card__stripe" aria-hidden />
           <header className="login-card__header">
             <div className="login-card__logos">
               <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />

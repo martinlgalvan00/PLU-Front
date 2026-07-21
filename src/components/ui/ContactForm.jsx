@@ -23,7 +23,7 @@ export default function ContactForm() {
 
   if (sent) {
     return (
-      <div className="contact-success">
+      <div className="contact-success" role="status" aria-live="polite">
         <div className="contact-success__icon" aria-hidden>
           <Check size={18} strokeWidth={2.5} />
         </div>
@@ -34,7 +34,16 @@ export default function ContactForm() {
   }
 
   return (
-    <form className="contact-form" onSubmit={handleSubmit}>
+    <form className="contact-form" aria-labelledby="contact-form-title" onSubmit={handleSubmit}>
+      <header className="contact-form__intro">
+        <div className="contact-form__intro-topline">
+          <span className="contact-form__intro-eyebrow">{t('contact.formEyebrow')}</span>
+          <span className="contact-form__intro-rule" aria-hidden />
+        </div>
+        <h2 id="contact-form-title">{t('contact.formTitle')}</h2>
+        <p>{t('contact.formDesc')}</p>
+      </header>
+
       <section className="contact-form__section" aria-labelledby="contact-motive-label">
         <header className="contact-form__section-head">
           <span className="contact-form__index" aria-hidden>
@@ -84,11 +93,23 @@ export default function ContactForm() {
           <div className="contact-form__fields-row">
             <label className="contact-form__field">
               <span>{t('contact.name')}</span>
-              <input type="text" name="name" required placeholder={t('contact.namePlaceholder')} />
+              <input
+                autoComplete="name"
+                type="text"
+                name="name"
+                required
+                placeholder={t('contact.namePlaceholder')}
+              />
             </label>
             <label className="contact-form__field">
               <span>{t('contact.email')}</span>
-              <input type="email" name="email" required placeholder="nombre@pluarg.com.ar" />
+              <input
+                autoComplete="email"
+                type="email"
+                name="email"
+                required
+                placeholder="nombre@pluarg.com.ar"
+              />
             </label>
           </div>
           <label className="contact-form__field">
