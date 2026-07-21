@@ -355,10 +355,18 @@
     max-width: none;
   }
 
-  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead,
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead {
+    font-size: clamp(13.5px, 1.85vw, 15px);
+    justify-self: start;
+    max-width: min(100%, 36ch);
+    text-align: left;
+  }
+
   .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__lead {
     font-size: clamp(13.5px, 1.85vw, 15px);
+    justify-self: start;
     max-width: min(100%, 46ch);
+    text-align: left;
   }
 
   .pitbull-benefits-hero__title {
@@ -767,9 +775,22 @@
     margin-top: 0;
   }
 
-  /* ── Pitbull: feature y categories en 2-col eficiente ─────── */
-  /* Anula el display:block de pitbull.css max-width:1199px       */
-  .pitbull-dossier--minimal .pitbull-dossier__section--feature,
+  /* ── Pitbull: feature siempre apilada (flujo a ancho completo) ─ */
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    margin-top: clamp(16px, 2.4vw, 22px);
+  }
+
+  /* Categories: 2-col eficiente en notebook ancho */
   .pitbull-dossier--minimal .pitbull-dossier__section--categories {
     align-items: start;
     column-gap: clamp(20px, 2.8vw, 32px);
@@ -777,13 +798,11 @@
     grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
   }
 
-  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head,
   .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
     grid-column: 1;
     grid-row: 1;
   }
 
-  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body,
   .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
     grid-column: 2;
     grid-row: 1;
@@ -903,24 +922,18 @@
   }
 }
 
-/* ── Pitbull dossier: notebook estrecho (1200–1399px) ──────────────
-   El CSS base de pitbull.css usa 1.08fr/0.92fr (head > body) lo que
-   aprieta los facts y el schedule en el 46% derecho.
-   Aquí invertimos para dar más espacio al cuerpo del contenido.
-   ─────────────────────────────────────────────────────────────────── */
+/* ── Pitbull dossier: notebook estrecho (1200–1399px) ────────────── */
 @media (min-width: 1200px) and (max-width: 1399px) {
-  /* Feature: head compacta (~36%), body con espacio para facts + schedule */
+  /* Feature: apilada; título sin techo de ch */
   .pitbull-dossier--minimal .pitbull-dossier__section--feature {
-    column-gap: clamp(24px, 3.2vw, 40px);
-    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+    display: block;
   }
 
-  /* Título sin restricción de ancho: ocupa toda la columna estrecha */
   .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__title {
     max-width: none;
   }
 
-  /* Categories: proporción análoga */
+  /* Categories: proporción head/body más equilibrada */
   .pitbull-dossier--minimal .pitbull-dossier__section--categories {
     column-gap: clamp(24px, 3.2vw, 40px);
     grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);

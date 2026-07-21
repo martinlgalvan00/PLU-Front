@@ -1588,6 +1588,185 @@
   color: rgba(255, 255, 255, 0.72);
 }
 
+/* ── Login editorial ─────────────────────────── */
+
+.login-page--editorial {
+  background: var(--login-page-atmosphere, var(--color-page-canvas));
+}
+
+.login-shell--editorial {
+  gap: clamp(40px, 5.5vw, 72px);
+  max-width: 1120px;
+}
+
+.login-page--editorial .login-brand {
+  gap: clamp(30px, 4vw, 40px);
+}
+
+.login-page--editorial .login-brand__intro {
+  gap: 14px;
+  padding-left: clamp(16px, 2.2vw, 22px);
+}
+
+.login-page--editorial .login-brand__intro::before {
+  background: var(--login-brand-rule);
+  border-radius: 99px;
+  bottom: 6%;
+  opacity: 0.92;
+  top: 8%;
+  width: 2px;
+}
+
+.login-page--editorial .login-brand__eyebrow {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.login-page--editorial .login-brand__title {
+  font-size: clamp(2.15rem, 5vw, 3rem);
+  letter-spacing: -0.048em;
+  line-height: 0.96;
+  max-width: 9ch;
+}
+
+.login-page--editorial .login-brand__desc {
+  font-size: clamp(14px, 1.8vw, 15.5px);
+  line-height: 1.55;
+  max-width: 32ch;
+}
+
+.login-page--editorial .login-brand__features {
+  border-top-color: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  max-width: 36ch;
+}
+
+.login-page--editorial .login-brand__feature {
+  border-bottom-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  gap: 16px;
+  padding: 15px 0;
+}
+
+.login-page--editorial .login-brand__feature-index {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.login-page--editorial .login-brand__feature-text {
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.login-page--editorial .login-brand__secure {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  max-width: 34ch;
+}
+
+.login-card--editorial {
+  backdrop-filter: blur(16px);
+  background: var(--login-card-bg, rgba(18, 20, 26, 0.88));
+  border: 1px solid var(--login-card-border, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 4px);
+  box-shadow: var(--login-card-shadow, 0 24px 48px rgba(0, 0, 0, 0.28));
+  padding: clamp(32px, 4.2vw, 42px);
+}
+
+.login-card--editorial::before {
+  display: none;
+}
+
+.login-card__stripe {
+  background: var(--login-card-stripe);
+  display: none;
+  height: 2px;
+  left: 0;
+  opacity: 0.9;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.login-card--editorial .login-card__stripe {
+  display: block;
+}
+
+.login-card--editorial .login-card__header {
+  margin-bottom: clamp(18px, 2.4vw, 24px);
+  padding-bottom: 0;
+}
+
+.login-card--editorial .login-card__header::after {
+  display: none;
+}
+
+.login-card--editorial .login-card__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 14px;
+  text-transform: uppercase;
+}
+
+.login-card--editorial .login-card__header h1 {
+  font-size: clamp(1.55rem, 4vw, 1.85rem);
+  letter-spacing: -0.04em;
+  margin-top: 8px;
+}
+
+.login-card--editorial .login-form {
+  gap: 20px;
+}
+
+.login-card--editorial .login-field__control {
+  border-bottom-width: 1.5px;
+}
+
+.login-card--editorial .login-submit {
+  border-radius: calc(var(--border-radius-md) + 2px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+  min-height: 50px;
+}
+
+.login-card--editorial .login-join {
+  margin-top: 22px;
+  text-align: center;
+}
+
+@media (min-width: 841px) {
+  .login-shell--editorial {
+    align-items: center;
+    grid-template-columns: minmax(0, 1.05fr) minmax(380px, 460px);
+  }
+
+  .login-card--editorial {
+    max-width: 460px;
+  }
+}
+
+@media (max-width: 840px) {
+  .login-page--editorial .login-card--editorial {
+    border-radius: calc(var(--border-radius-lg) + 2px);
+  }
+
+  .login-card--editorial .login-card__header {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page--editorial .login-brand,
+  .login-page--editorial .login-card {
+    animation: none;
+  }
+}
+
 @keyframes login-fade-in {
   from {
     opacity: 0;

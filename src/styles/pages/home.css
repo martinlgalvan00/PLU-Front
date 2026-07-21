@@ -2055,21 +2055,38 @@
   padding-block: var(--section-pad-md);
 }
 
+/* Una sola superficie compartida para afiliación + resultados + reglamento
+   — evita que la sección se lea como tres rectángulos independientes. */
 .home-mid-stack {
+  background: var(--home-canvas-card-bg);
+  border: 1px solid var(--home-canvas-card-border);
+  border-radius: calc(var(--border-radius-lg) + 6px);
   display: grid;
-  gap: clamp(28px, 4vw, 36px);
+  gap: clamp(28px, 4vw, 40px);
+  padding: clamp(28px, 4vw, 48px);
+  position: relative;
 }
 
+/* Borde de "plataforma" — separa afiliación de los accesos operativos sin
+   partir la superficie en dos cajas. */
 .home-mid-stack__divider {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--home-mid-stack-divider) 18%,
-    var(--home-mid-stack-divider) 82%,
+    var(--home-mid-stack-divider) 12%,
+    color-mix(in oklab, var(--plu-gold-500) 30%, var(--home-mid-stack-divider)) 50%,
+    var(--home-mid-stack-divider) 88%,
     transparent 100%
   );
   height: 1px;
   width: 100%;
+}
+
+@media (max-width: 640px) {
+  .home-mid-stack {
+    border-radius: var(--border-radius-lg);
+    padding: 24px 18px;
+  }
 }
 
 .home-section--faq {
@@ -2926,11 +2943,15 @@
   color: inherit;
 }
 
-/* ── Teasers duo (resultados + reglamento) ─────── */
+/* ── Teasers duo (resultados + reglamento) ─────────────────────
+   Viven sobre la misma superficie que la afiliación (.home-mid-stack) —
+   ya no son cards independientes, se distinguen por proporción (60/40),
+   recurso visual propio y un divisor interno, no por ser dos cajas
+   idénticas con distinto color de borde. ── */
 .home-teaser-duo {
   display: grid;
-  gap: clamp(12px, 2vw, 18px);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 44px);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
 }
 
 @media (max-width: 720px) {
@@ -2942,33 +2963,43 @@
 }
 
 .home-teaser-card {
-  background: var(--home-teaser-bg, var(--home-canvas-card-bg));
-  border: 1px solid var(--home-teaser-border, var(--home-canvas-card-border));
-  border-radius: calc(var(--border-radius-lg) + 2px);
+  background: transparent;
+  border: none;
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 2.2vw, 22px);
+  gap: clamp(14px, 2vw, 18px);
   min-height: 100%;
-  overflow: hidden;
-  padding: clamp(20px, 2.8vw, 28px) clamp(20px, 2.6vw, 26px);
-  padding-left: clamp(22px, 2.8vw, 30px);
+  padding: 0 0 0 clamp(18px, 2.4vw, 26px);
   position: relative;
-  transition:
-    border-color var(--transition-base),
-    background var(--transition-base);
 }
 
 .home-teaser-card::before {
   background: var(--home-hero-editorial-rule, var(--plu-celeste-500));
   border-radius: 99px;
-  bottom: 18px;
+  bottom: 4px;
   content: '';
   left: 0;
   opacity: 0.88;
   position: absolute;
-  top: 18px;
+  top: 4px;
+  transition: opacity var(--motion-base, 0.24s) var(--ease-out);
   width: 2px;
+}
+
+/* Hover del bloque entero — nunca eleva la columna como una card: solo
+   acentúa el rasgo propio (línea, podio) y adelanta la flecha del CTA. */
+.home-teaser-card:hover::before {
+  opacity: 1;
+}
+
+.home-teaser-card--results:hover .home-teaser-card__podium-bar {
+  filter: saturate(1.2) brightness(1.06);
+}
+
+.home-teaser-card:hover .home-teaser-card__link-icon {
+  opacity: 1;
+  transform: translateX(2px);
 }
 
 .home-teaser-card--results::before {
@@ -2987,20 +3018,101 @@
   );
 }
 
-.home-teaser-card:hover {
-  border-color: var(--home-teaser-border-hover, var(--home-canvas-border));
-  box-shadow: none;
-  transform: none;
+.home-teaser-card--rulebook {
+  border-left: 1px solid var(--home-canvas-border);
+  padding-left: clamp(28px, 3.4vw, 40px);
 }
 
-.home-teaser-card__head {
-  display: none;
+@media (max-width: 720px) {
+  .home-teaser-card--rulebook {
+    border-left: none;
+    border-top: 1px solid var(--home-canvas-border);
+    padding-left: clamp(18px, 2.4vw, 26px);
+    padding-top: clamp(20px, 4vw, 28px);
+  }
 }
 
-.home-teaser-card__icon,
-.home-teaser-card__icon--celeste,
-.home-teaser-card__icon--red {
-  display: none;
+/* Recurso visual de resultados — ranking/podio, sin simular datos. */
+.home-teaser-card__podium {
+  align-items: flex-end;
+  display: flex;
+  gap: 3px;
+  height: 22px;
+  margin-bottom: 3px;
+  position: relative;
+}
+
+.home-teaser-card__podium-bar {
+  border-radius: 1.5px 1.5px 0 0;
+  transform-origin: bottom center;
+  transition: filter var(--motion-base, 0.24s) var(--ease-out);
+  width: 7px;
+}
+
+.home-teaser-card__podium-bar--1 {
+  background: linear-gradient(180deg, var(--plu-gold-300, #f6d56a), var(--plu-gold-600, #a9790f));
+  height: 100%;
+}
+
+.home-teaser-card__podium-bar--2 {
+  background: linear-gradient(180deg, #c8cdd8, #8a90a0);
+  height: 66%;
+}
+
+.home-teaser-card__podium-bar--3 {
+  background: linear-gradient(180deg, #c99a6a, #8a6040);
+  height: 48%;
+}
+
+.home-teaser-card__podium-base {
+  background: color-mix(in srgb, var(--home-canvas-fg) 22%, transparent);
+  bottom: -3px;
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  transform-origin: left center;
+}
+
+/* Recurso visual de reglamento — documental, no un ícono decorativo suelto.
+   El glifo + tres líneas internas (se dibujan al entrar) leen como un
+   documento, no como un ícono genérico. */
+.home-teaser-card__doc-icon {
+  align-items: center;
+  align-self: flex-start;
+  background: color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 26%, transparent);
+  border-radius: 8px;
+  color: color-mix(in oklab, var(--plu-gold-500) 85%, var(--home-canvas-fg));
+  display: grid;
+  gap: 5px;
+  grid-template-columns: auto 30px;
+  height: 32px;
+  padding: 0 9px;
+  width: max-content;
+}
+
+.home-teaser-card__doc-icon svg {
+  align-self: center;
+}
+
+.home-teaser-card__doc-lines {
+  align-content: center;
+  display: grid;
+  gap: 4px;
+  width: 30px;
+}
+
+.home-teaser-card__doc-lines span {
+  background: color-mix(in oklab, var(--plu-gold-500) 55%, var(--home-canvas-fg));
+  border-radius: 999px;
+  height: 1.5px;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.home-teaser-card__doc-lines span:last-child {
+  width: 65%;
 }
 
 .home-teaser-card__eyebrow {
@@ -3082,11 +3194,6 @@
   transform: translateX(2px);
 }
 
-.home-teaser-card--results,
-.home-teaser-card--rulebook {
-  border-top: none;
-}
-
 /* Teaser de Reglamento — legacy */
 .rulebook-teaser {
   align-items: center;
@@ -3153,50 +3260,44 @@
 
 /* ── Membership band (home) ─────────────────── */
 .home-membership-band {
-  align-items: center;
+  align-items: stretch;
   display: grid;
-  gap: clamp(28px, 4.5vw, 56px);
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 480px);
+  gap: clamp(28px, 4.2vw, 48px);
+  grid-template-columns: minmax(0, 1.15fr) auto minmax(300px, 0.95fr);
   min-width: 0;
+  position: relative;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .home-membership-band {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
+
+  .home-membership-band__spine {
+    display: none;
+  }
 }
 
-.home-membership-band__copy,
-.home-membership-reel {
-  min-width: 0;
+/* Guía estructural entre columnas — conecta contenido y credencial en vez
+   de dejarlas como dos bloques sueltos. */
+.home-membership-band__spine {
+  align-self: stretch;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--plu-gold-500) 55%, transparent) 14%,
+    color-mix(in oklab, var(--color-brand-celeste) 40%, transparent) 86%,
+    transparent 100%
+  );
+  width: 1px;
 }
 
 .home-membership-band__copy {
   display: grid;
-  gap: 22px;
-  padding-left: clamp(14px, 2vw, 18px);
-  position: relative;
-}
-
-.home-membership-band__copy::before {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-brand-gold) 90%, transparent) 0%,
-    color-mix(in srgb, var(--home-canvas-fg) 16%, transparent) 100%
-  );
-  bottom: 10%;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 6%;
-  width: 2px;
-}
-
-.home-membership-band__intro {
-  display: grid;
-  gap: 12px;
+  gap: 18px;
   min-width: 0;
+  position: relative;
 }
 
 .home-membership-band__eyebrow {
@@ -3205,7 +3306,6 @@
   font-weight: 500;
   letter-spacing: 0.01em;
   margin: 0;
-  text-transform: none;
 }
 
 .home-membership-band__title {
@@ -3213,13 +3313,13 @@
   display: flex;
   flex-direction: column;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4.2vw, 3.15rem);
+  font-size: clamp(2rem, 4vw, 3.05rem);
   font-weight: 700;
   gap: 0.02em;
   letter-spacing: -0.038em;
   line-height: 1.02;
   margin: 0;
-  max-width: 11ch;
+  max-width: 12ch;
   text-wrap: balance;
 }
 
@@ -3229,491 +3329,497 @@
 }
 
 .home-membership-band__desc {
-  color: color-mix(in srgb, var(--home-canvas-fg) 60%, transparent);
+  color: color-mix(in srgb, var(--home-canvas-fg) 62%, transparent);
   font-size: clamp(14.5px, 1.25vw, 16px);
   font-weight: 400;
   line-height: 1.6;
-  margin: 0;
-  max-width: 38ch;
+  margin: 4px 0 0;
+  max-width: 40ch;
+}
+
+/* Lista compacta de beneficios verificables — escaneable, no otro párrafo. */
+.home-membership-band__benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.home-membership-band__benefit {
+  align-items: center;
+  color: color-mix(in srgb, var(--home-canvas-fg) 82%, transparent);
+  display: inline-flex;
+  font-size: 13.5px;
+  font-weight: 500;
+  gap: 7px;
+}
+
+.home-membership-band__benefit-icon {
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--home-canvas-fg));
+  flex: none;
+  transition: transform var(--motion-fast, 0.16s) var(--ease-out);
+}
+
+.home-membership-band__benefit:hover .home-membership-band__benefit-icon {
+  transform: translateX(3px);
+}
+
+.home-membership-band__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 6px;
+}
+
+.home-membership-band__cta-icon {
+  transition: transform 0.18s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.home-membership-band__cta:hover .home-membership-band__cta-icon {
+  transform: translateX(4px);
+}
+
+.home-membership-band__cta:active {
+  transform: scale(0.98);
+}
+
+/* CTA secundario — una línea que se expande desde la izquierda, no un
+ * segundo botón compitiendo con "Ver planes". */
+.home-membership-band__cta-secondary {
+  background: transparent;
+  border: none;
+  color: color-mix(in srgb, var(--home-canvas-fg) 78%, transparent);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 2px;
+  position: relative;
+}
+
+.home-membership-band__cta-secondary::after {
+  background: var(--color-brand-celeste);
+  bottom: 12px;
+  content: '';
+  height: 1.5px;
+  left: 2px;
+  position: absolute;
+  right: 2px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.home-membership-band__cta-secondary:hover {
+  color: var(--home-canvas-fg);
+}
+
+.home-membership-band__cta-secondary:hover::after,
+.home-membership-band__cta-secondary:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.home-membership-band__cta-secondary:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
 }
 
 .home-membership-band__meta {
   align-items: baseline;
-  color: color-mix(in srgb, var(--home-canvas-fg) 46%, transparent);
-  display: flex;
+  color: color-mix(in srgb, var(--home-canvas-fg) 56%, transparent);
+  display: inline-flex;
   flex-wrap: wrap;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   gap: 6px 8px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.03em;
   margin: 4px 0 0;
+  padding: 7px 14px;
+  border: 1px solid var(--home-canvas-outline-border);
+  border-radius: var(--border-radius-pill);
+  text-transform: uppercase;
+  width: fit-content;
 }
 
 .home-membership-band__meta-sep {
   opacity: 0.55;
 }
 
-.home-membership-band__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.home-membership-band__cta {
-  align-items: center;
-  background: var(--plu-gold-500);
-  border: 1px solid transparent;
-  border-radius: 2px;
-  box-shadow: none;
-  color: #14181f;
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 14px;
-  font-weight: 600;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 20px;
-  transition:
-    background var(--transition-fast),
-    gap var(--transition-fast);
-}
-
-.home-membership-band__cta-icon {
-  transition: transform 0.28s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
-}
-
-.home-membership-band__cta:hover {
-  background: var(--plu-gold-400);
-  gap: 12px;
-}
-
-.home-membership-band__cta:hover .home-membership-band__cta-icon {
-  transform: translateX(3px);
-}
-
-.home-membership-band__cta:active {
-  transform: none;
-}
-
-.home-membership-reel {
-  /* Tilt product-like de la pieza 3D vía cursor (cascada a .hm-artifact). */
-  --hm-tilt-x: calc(10deg + var(--reel-my, 0) * -14deg);
-  --hm-tilt-y: calc(-14deg + var(--reel-mx, 0) * 18deg);
-  background: var(--home-membership-card-bg);
-  border: 1px solid var(--home-membership-card-border);
-  border-radius: 4px;
-  box-shadow: var(--home-membership-card-shadow);
-  display: grid;
-  gap: clamp(18px, 2.4vw, 24px);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  isolation: isolate;
-  min-height: 0;
-  overflow: hidden;
-  padding: clamp(20px, 2.5vw, 28px) clamp(18px, 2.3vw, 26px);
-  position: relative;
-  transition:
-    border-color 0.35s ease,
-    box-shadow 0.35s ease;
-}
-
-.home-membership-reel::before {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--plu-gold-500) 78%, transparent) 0%,
-    color-mix(in oklab, var(--home-canvas-fg) 12%, transparent) 100%
-  );
-  bottom: 18%;
-  content: '';
-  left: 0;
-  opacity: 0.85;
-  position: absolute;
-  top: 18%;
-  width: 2px;
-  z-index: 0;
-}
-
-/* Spotlight reactivo al cursor — atmósfera del showcase. */
-.home-membership-reel::after {
-  background: radial-gradient(
-    ellipse 55% 48% at var(--reel-mpx, 72%) var(--reel-mpy, 42%),
-    var(--home-membership-spotlight),
-    transparent 68%
-  );
-  content: '';
-  inset: 0;
-  opacity: 0.55;
-  pointer-events: none;
-  position: absolute;
-  transition: opacity 0.45s ease;
-  z-index: 0;
-}
-
-.home-membership-reel.is-paused {
-  border-color: color-mix(in oklab, var(--plu-gold-500) 28%, var(--home-membership-card-border));
-  box-shadow: var(--home-membership-card-shadow-hover, var(--home-membership-card-shadow));
-}
-
-.home-membership-reel.is-paused::after {
-  opacity: 0.9;
-}
-
-.home-membership-reel__toolbar {
-  align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-width: 0;
-  padding-left: 10px;
-}
-
-.home-membership-reel__progress {
-  background: color-mix(in srgb, var(--home-canvas-fg) 8%, transparent);
-  border-radius: 99px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.home-membership-reel__progress-bar {
-  background: color-mix(in oklab, var(--plu-gold-500) 88%, transparent);
-  display: block;
-  height: 100%;
-  transform-origin: left center;
-  width: 100%;
-  animation: home-membership-reel-progress var(--reel-duration, 4200ms) linear both;
-}
-
-.home-membership-reel__progress-bar.is-paused {
-  animation-play-state: paused;
-}
-
-@keyframes home-membership-reel-progress {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-.home-membership-reel__controls {
-  display: inline-flex;
-  gap: 2px;
-}
-
-.home-membership-reel__control {
-  align-items: center;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--home-canvas-fg) 10%, transparent);
-  border-radius: 2px;
-  color: color-mix(in srgb, var(--home-canvas-fg) 52%, transparent);
-  cursor: pointer;
-  display: inline-flex;
-  height: 34px;
-  justify-content: center;
-  padding: 0;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-  width: 34px;
-}
-
-.home-membership-reel__control:hover {
-  background: color-mix(in srgb, var(--home-canvas-fg) 4%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 35%, transparent);
-  color: var(--home-canvas-fg);
-}
-
-.home-membership-reel__stage {
-  align-content: center;
-  align-items: center;
-  display: grid;
-  gap: clamp(20px, 3vw, 36px);
-  grid-template-columns: minmax(0, 1.15fr) minmax(120px, 0.85fr);
-  min-height: clamp(140px, 18vw, 180px);
-  overflow: visible;
-  padding: 4px 0 4px 10px;
-  perspective: 1200px;
-  position: relative;
-  text-align: left;
-  transform-style: preserve-3d;
-  z-index: 1;
-}
-
-.home-membership-reel__artifact-stage {
-  align-content: center;
-  display: grid;
-  justify-items: center;
-  justify-self: end;
-  min-height: clamp(140px, 16vw, 188px);
-  min-width: 0;
-  perspective: 1100px;
-  place-items: center;
-  position: relative;
-  transform: translate3d(calc(var(--reel-mx, 0) * 14px), calc(var(--reel-my, 0) * 10px), 0);
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 1;
-}
-
-/* Pedestal elíptico bajo la pieza — se abre con el tilt. */
-.home-membership-reel__artifact-stage::after {
-  background: radial-gradient(
-    ellipse at center,
-    var(--home-membership-pedestal) 0%,
-    transparent 72%
-  );
-  bottom: 6%;
-  content: '';
-  filter: blur(2px);
-  height: 18%;
-  left: 18%;
-  opacity: 0.55;
-  pointer-events: none;
-  position: absolute;
-  right: 18%;
-  transform: translate3d(calc(var(--reel-mx, 0) * -10px), calc(var(--reel-my, 0) * 4px), 0) scale(0.94);
-  transition:
-    opacity 0.4s ease,
-    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 0;
-}
-
-.home-membership-reel.is-paused .home-membership-reel__artifact-stage {
-  transform: translate3d(calc(var(--reel-mx, 0) * 16px), calc(var(--reel-my, 0) * 12px), 0) scale(1.03);
-}
-
-.home-membership-reel.is-paused .home-membership-reel__artifact-stage::after {
-  opacity: 0.78;
-  transform: translate3d(calc(var(--reel-mx, 0) * -12px), calc(var(--reel-my, 0) * 5px), 0) scale(0.88);
-}
-
-.home-membership-reel__artifact-enter {
-  display: grid;
-  place-items: center;
-  position: relative;
-  transform-style: preserve-3d;
-  z-index: 1;
-}
-
-.home-membership-reel__artifact-stage .hm-artifact {
-  --hm-size: clamp(120px, 13vw, 168px);
-  position: relative;
-  z-index: 1;
-}
-
-.home-membership-reel__artifact-stage .hm-artifact--device {
-  --hm-size: clamp(132px, 14vw, 176px);
-}
-
-.home-membership-reel__copy {
-  display: grid;
-  gap: 10px;
-  justify-items: start;
-  max-width: 28ch;
-  min-width: 0;
-  position: relative;
-  transform: translate3d(calc(var(--reel-mx, 0) * -4px), calc(var(--reel-my, 0) * -3px), 0);
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 1;
-}
-
-.home-membership-reel__index {
-  align-items: baseline;
-  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--home-canvas-fg));
-  display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 600;
-  gap: 0.15em;
-  letter-spacing: 0.16em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.home-membership-reel__index-current {
-  display: inline-grid;
-  min-width: 1.4em;
-  overflow: hidden;
-}
-
-.home-membership-reel__index-current > span {
-  display: inline-block;
-}
-
-.home-membership-reel__title {
-  color: var(--home-canvas-fg);
-  font-family: var(--font-display);
-  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
-  font-weight: 700;
-  letter-spacing: -0.038em;
-  line-height: 1.08;
-  margin: 0;
-  text-wrap: balance;
-}
-
-.home-membership-reel__text {
-  color: color-mix(in srgb, var(--home-canvas-fg) 52%, transparent);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 32ch;
-}
-
-.home-membership-reel__dots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  justify-content: flex-start;
-  padding-left: 10px;
-  position: relative;
-  z-index: 1;
-}
-
-.home-membership-reel__dot {
-  background: color-mix(in srgb, var(--home-canvas-fg) 14%, transparent);
-  border: none;
-  border-radius: 99px;
-  cursor: pointer;
-  height: 3px;
-  min-height: 3px;
-  min-width: 3px;
-  padding: 0;
-  position: relative;
-  transition:
-    background 0.3s ease,
-    width 0.35s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
-  width: 12px;
-}
-
-.home-membership-reel__dot::before {
-  content: '';
-  inset: -14px -8px;
-  position: absolute;
-}
-
-.home-membership-reel__dot:hover {
-  background: color-mix(in srgb, var(--home-canvas-fg) 30%, transparent);
-}
-
-.home-membership-reel__dot.is-active {
-  background: var(--color-brand-gold);
-  width: 28px;
-}
-
-.home-membership-reel__dot:focus-visible {
-  outline: 2px solid var(--color-brand-gold);
-  outline-offset: 3px;
-}
-
-[data-theme='light'] .home-membership-band__cta {
-  color: #14181f;
-}
-
-[data-theme='light'] .home-membership-band__cta:hover {
-  background: var(--plu-gold-400);
-  color: #14181f;
-}
-
-[data-theme='light'] .home-membership-reel {
-  border-color: var(--home-membership-card-border);
-}
-
 [data-theme='light'] .home-membership-band__title-accent {
   color: #8a6d28;
 }
 
-[data-theme='light'] .home-membership-reel__control {
-  border-color: rgba(15, 17, 23, 0.1);
+/* ── Credencial de afiliación (showcase) ──────────────────────
+   Objeto "producto" siempre oscuro/grafito, protagonista y vertical —
+   se mantiene igual en dark y light theme (solo cambia la sombra
+   ambiental), igual que la credencial de MembersPage. ── */
+
+.home-credential {
+  min-width: 0;
+  width: 100%;
+}
+
+.home-credential__tilt {
+  border-radius: clamp(18px, 1.6vw, 24px);
+  height: 100%;
+  width: 100%;
+}
+
+.home-credential__card {
+  background:
+    radial-gradient(120% 90% at 14% 0%, color-mix(in oklab, var(--plu-gold-500) 13%, transparent) 0%, transparent 46%),
+    radial-gradient(100% 70% at 102% 100%, color-mix(in oklab, var(--color-brand-celeste) 12%, transparent) 0%, transparent 55%),
+    linear-gradient(165deg, #1b1e26 0%, #101218 58%, #0a0b0e 100%);
+  border: 1px solid color-mix(in oklab, #fff 12%, transparent);
+  border-radius: clamp(18px, 1.6vw, 24px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 44px 90px -50px rgba(0, 0, 0, 0.75),
+    0 14px 34px -26px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  display: grid;
+  height: 100%;
+  isolation: isolate;
+  min-height: clamp(420px, 38vw, 500px);
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.home-credential__stack {
+  display: block;
+  height: 100%;
+  min-height: inherit;
+  position: relative;
+}
+
+.home-credential__glow {
+  background: radial-gradient(
+    280px 220px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
+    color-mix(in oklab, var(--plu-gold-400) 30%, transparent) 0%,
+    color-mix(in oklab, var(--plu-gold-500) 12%, transparent) 30%,
+    transparent 66%
+  );
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: calc(0.32 + var(--tilt-active, 0) * 0.5);
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.4s var(--ease-out);
+  z-index: 3;
+}
+
+.home-credential__grain {
+  background: linear-gradient(122deg, transparent 34%, rgba(255, 255, 255, 0.055) 47%, transparent 60%);
+  inset: 0;
+  opacity: 0.7;
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(calc(var(--tilt-px, 0) * 14px), calc(var(--tilt-py, 0) * 10px), 0);
+  transition: transform 0.2s var(--ease-out);
+  z-index: 2;
+}
+
+/* Marca de agua = dígitos de temporada. Cumple doble función: textura de
+   fondo y "número de temporada como elemento editorial", sin sumar otro
+   bloque aparte a la composición. Nivel "mid" (espejo de MOTION_DEPTH.mid).
+   Entra sola, más lenta que el resto — nunca en loop. */
+.home-credential__watermark {
+  color: color-mix(in oklab, #fff 6%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(8rem, 17vw, 12rem);
+  font-weight: 800;
+  left: -0.04em;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  pointer-events: none;
+  position: absolute;
+  top: 40%;
+  transform: translate3d(calc(var(--tilt-px, 0) * -26px), calc(var(--tilt-py, 0) * -18px), -8px);
+  transition: transform 0.24s var(--ease-out);
+  user-select: none;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-credential__watermark {
+    animation: home-credential-watermark-in 0.9s var(--ease-out) 0.32s both;
+  }
+}
+
+/* Solo opacity — el transform de este elemento ya está "vivo" (parallax por
+   cursor) y no debe congelarse al terminar la animación de entrada. */
+@keyframes home-credential-watermark-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Franja de identidad — nivel "front" (+16px), llega después del cuerpo
+   principal (delay > duración de cardEnter) como remate, no como apertura. */
+.home-credential__stripe {
+  background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), #fff, var(--plu-gold-500)));
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translateZ(16px);
+  transform-origin: left center;
+  z-index: 4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-credential__stripe {
+    animation: home-credential-stripe-in 0.5s var(--ease-out) 0.62s both;
+  }
+}
+
+@keyframes home-credential-stripe-in {
+  from { scale: 0 1; }
+  to { scale: 1 1; }
+}
+
+/* Geometría inspirada en discos de powerlifting — anillos concéntricos
+   abstractos, no una ilustración literal. Nivel de profundidad "back"
+   (espejo de MOTION_DEPTH.back en motion/tokens.ts). */
+.home-credential__plates {
+  background:
+    radial-gradient(circle at 84% 90%, transparent 0 14%, color-mix(in oklab, var(--plu-gold-500) 24%, transparent) 14% 15.5%, transparent 15.5%),
+    radial-gradient(circle at 84% 90%, transparent 0 23%, color-mix(in oklab, var(--color-brand-celeste) 18%, transparent) 23% 24.5%, transparent 24.5%),
+    radial-gradient(circle at 84% 90%, transparent 0 32%, color-mix(in oklab, #fff 9%, transparent) 32% 33%, transparent 33%);
+  inset: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(calc(var(--tilt-px, 0) * 8px), calc(var(--tilt-py, 0) * 6px), -24px);
+  transition: transform 0.3s var(--ease-out);
+  z-index: 1;
+}
+
+/* Nivel "content" (0) — los datos principales de la credencial. */
+.home-credential__layer {
+  display: grid;
+  gap: clamp(16px, 2vw, 22px);
+  grid-template-rows: auto 1fr auto auto auto;
+  height: 100%;
+  min-height: inherit;
+  padding: clamp(24px, 3vw, 32px);
+  position: relative;
+  transform: translate3d(calc(var(--tilt-px, 0) * 10px), calc(var(--tilt-py, 0) * 8px), 0);
+  transition: transform 0.2s var(--ease-out);
+  z-index: 5;
+}
+
+.home-credential__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.home-credential__brand {
+  color: color-mix(in oklab, var(--color-brand-celeste) 88%, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin: 0;
+}
+
+.home-credential__chip {
+  background: linear-gradient(135deg, #f6d879 0%, #c99a2e 42%, #f3e6b0 100%);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 4px 10px -4px rgba(0, 0, 0, 0.5);
+  height: 26px;
+  overflow: hidden;
+  position: relative;
+  width: 34px;
+}
+
+.home-credential__chip::before,
+.home-credential__chip::after {
+  border: 1px solid rgba(90, 66, 10, 0.5);
+  border-radius: 2px;
+  content: '';
+  inset: 5px 7px;
+  position: absolute;
+}
+
+.home-credential__chip::after {
+  border-width: 0 1px;
+  inset: 5px 15px;
+}
+
+.home-credential__chip-shine {
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.65) 50%, transparent 60%);
+  inset: 0;
+  position: absolute;
+  transform: translateX(calc(var(--tilt-px, 0) * 40px));
+  transition: transform 0.2s var(--ease-out);
+}
+
+.home-credential__identity {
+  align-self: end;
+  display: grid;
+  gap: 8px;
+}
+
+.home-credential__preview-label {
+  color: rgba(255, 255, 255, 0.44);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Marcador explícito de "acá va tu nombre" — sin inventar datos
+   personales, a diferencia de la credencial de ejemplo en MembersPage. */
+.home-credential__name-placeholder {
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.16) 0 6px,
+    transparent 6px 11px
+  );
+  border-radius: 2px;
+  display: block;
+  height: 3px;
+  width: 58%;
+}
+
+.home-credential__meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: clamp(16px, 3vw, 28px);
+  margin: 0;
+  padding-top: 14px;
+}
+
+.home-credential__meta-item {
+  display: grid;
+  gap: 4px;
+}
+
+.home-credential__meta-item dt {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.home-credential__meta-item dd {
+  align-items: center;
+  color: #fff;
+  display: flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 5px;
+  margin: 0;
+}
+
+/* Estado "Habilitado" — el dato con más jerarquía de la credencial, nivel
+   "front" (+16px, espejo de MOTION_DEPTH.front): un pelo más cerca que el
+   resto del contenido, sin despegarse de la tarjeta. */
+.home-credential__meta-item--status dd {
+  color: color-mix(in oklab, var(--plu-gold-300, #ffe8a3) 88%, #fff);
+  transform: translateZ(16px);
+}
+
+.home-credential__status-icon {
+  flex: none;
+}
+
+.home-credential__footer {
+  align-items: flex-start;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.home-credential__note-inline {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.home-credential__calendar-link {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--border-radius-pill);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 8px 14px;
+  transition:
+    background 0.16s var(--ease-out),
+    border-color 0.16s var(--ease-out),
+    transform 0.16s var(--ease-out);
+}
+
+.home-credential__calendar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: color-mix(in oklab, var(--color-brand-celeste) 55%, rgba(255, 255, 255, 0.16));
+  transform: translateY(-1px);
+}
+
+.home-credential__calendar-link:focus-visible {
+  outline: 2px solid var(--plu-gold-400);
+  outline-offset: 2px;
+}
+
+.home-credential__note {
+  color: rgba(255, 255, 255, 0.36);
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+[data-theme='light'] .home-credential__card {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 40px 80px -50px rgba(15, 17, 23, 0.45),
+    0 12px 32px -28px color-mix(in oklab, var(--plu-gold-500) 45%, transparent);
 }
 
 @media (max-width: 720px) {
-  .home-membership-reel {
-    padding: 18px 16px 16px;
+  .home-credential__card {
+    min-height: clamp(340px, 78vw, 420px);
   }
 
-  .home-membership-reel::before {
-    bottom: 14%;
-    top: 14%;
-  }
-
-  .home-membership-reel__toolbar {
-    padding-left: 8px;
-  }
-
-  .home-membership-reel__stage {
-    gap: 16px;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    min-height: 0;
-    padding-left: 8px;
-    text-align: center;
-  }
-
-  .home-membership-reel__artifact-stage {
-    justify-self: center;
-    min-height: 128px;
-    order: 1;
-  }
-
-  .home-membership-reel__artifact-stage::after {
-    bottom: 2%;
-    height: 16%;
-  }
-
-  .home-membership-reel__copy {
-    justify-items: center;
-    max-width: 34ch;
-    order: 2;
-    text-align: center;
-  }
-
-  .home-membership-reel__dots {
-    justify-content: center;
-    padding-left: 0;
-  }
-
-  .home-membership-reel__control {
-    height: 40px;
-    width: 40px;
-  }
-
-  .home-membership-reel__artifact-stage .hm-artifact {
-    --hm-size: clamp(112px, 28vw, 140px);
-  }
-
-  .home-membership-reel__artifact-stage .hm-artifact--device {
-    --hm-size: clamp(124px, 32vw, 152px);
+  .home-credential__watermark {
+    font-size: clamp(6.5rem, 30vw, 9rem);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-membership-reel__progress-bar {
-    animation: none;
-    transform: scaleX(1);
-  }
-
-  .home-membership-reel::after {
-    opacity: 0.35;
-    transition: none;
-  }
-
-  .home-membership-reel__artifact-stage,
-  .home-membership-reel.is-paused .home-membership-reel__artifact-stage,
-  .home-membership-reel__artifact-stage::after,
-  .home-membership-reel.is-paused .home-membership-reel__artifact-stage::after,
-  .home-membership-reel__copy {
+  .home-credential__glow,
+  .home-credential__grain,
+  .home-credential__watermark,
+  .home-credential__layer,
+  .home-credential__plates,
+  .home-credential__chip-shine,
+  .home-credential__calendar-link:hover {
     transform: none;
     transition: none;
-  }
-
-  .home-membership-band__cta:hover {
-    gap: 8px;
-  }
-
-  .home-membership-band__cta:hover .home-membership-band__cta-icon {
-    transform: none;
   }
 }
 
@@ -5452,27 +5558,11 @@
   }
 
   .home-membership-band {
-    gap: 14px;
+    gap: 20px;
   }
 
-  .home-membership-reel {
-    padding: 20px 16px;
-  }
-
-  .home-membership-reel__stage {
-    min-height: 0;
-  }
-
-  .home-membership-reel__artifact-stage .hm-artifact {
-    --hm-size: clamp(108px, 28vw, 136px);
-  }
-
-  .home-membership-reel__artifact-stage .hm-artifact--device {
-    --hm-size: clamp(120px, 32vw, 148px);
-  }
-
-  .home-membership-reel__title {
-    font-size: clamp(1.2rem, 5vw, 1.4rem);
+  .home-credential__card {
+    min-height: clamp(320px, 82vw, 380px);
   }
 
   .home-membership-band__title {
@@ -5485,9 +5575,18 @@
     line-height: 1.55;
   }
 
-  .home-membership-band__cta {
+  .home-membership-band__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .home-membership-band__actions .btn {
     justify-content: center;
     width: 100%;
+  }
+
+  .home-membership-band__cta-secondary {
+    align-self: flex-start;
   }
 }
 
@@ -5584,21 +5683,6 @@
 [data-theme='dark'] .home-faq__panel .faq-accordion--ref .faq-item--open {
   background: rgba(255, 255, 255, 0.035);
   border-color: rgba(242, 183, 5, 0.18);
-  box-shadow: none;
-}
-
-[data-theme='dark'] .home-teaser-card {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, transparent 46%),
-    var(--home-teaser-bg, var(--home-canvas-card-bg));
-}
-
-[data-theme='light'] .home-teaser-card {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, transparent 50%),
-    var(--home-teaser-bg, #fff);
   box-shadow: none;
 }
 

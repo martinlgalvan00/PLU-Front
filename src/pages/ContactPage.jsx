@@ -1,5 +1,5 @@
 import { Clock, Mail, MapPin } from 'lucide-react'
-import PluPageHero from '../components/layout/PluPageHero.jsx'
+import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import ContactForm from '../components/ui/ContactForm.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -8,12 +8,33 @@ export default function ContactPage({ onNavigate }) {
   const { t } = useI18n()
 
   return (
-    <main className="page page--design page--plu-ref contact-page contact-page--premium">
-      <PluPageHero
-        breadcrumbLabel={t('pages.contact.heroBreadcrumb')}
-        chapter={t('pages.contact.heroEyebrow')}
+    <main className="page institutional-page contact-page contact-page--premium contact-page--institutional">
+      <InstitutionalPageHero
+        aside={(
+          <dl className="institutional-hero__ledger">
+            <div>
+              <dt>{t('pages.contact.sidebarResponse')}</dt>
+              <dd>{t('contact.sidebarResponse')}</dd>
+            </div>
+            <div>
+              <dt>{t('pages.contact.sidebarEmail')}</dt>
+              <dd>
+                <a className="contact-hero__email" href={`mailto:${t('contact.sidebarEmail')}`}>
+                  {t('contact.sidebarEmail')}
+                </a>
+              </dd>
+            </div>
+            <div>
+              <dt>{t('pages.contact.sidebarLocation')}</dt>
+              <dd>{t('contact.sidebarLocation')}</dd>
+            </div>
+          </dl>
+        )}
+        breadcrumb={t('pages.contact.heroBreadcrumbShort')}
         description={t('pages.contact.heroDesc')}
-        onHome={() => onNavigate('home')}
+        eyebrow={t('pages.contact.heroEyebrow')}
+        index="CT / 01"
+        onHome={() => onNavigate?.('home')}
         title={t('pages.contact.heroTitle')}
       />
 

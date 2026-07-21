@@ -68,6 +68,38 @@
 
   --color-shadow-tint: rgba(0, 0, 0, 0.22);
 
+  /* Superficies semánticas del sistema institucional */
+  --institution-canvas: #0d0f12;
+  --institution-surface: #15181d;
+  --institution-surface-raised: #1b1f25;
+  --institution-surface-strong: #090b0e;
+  --institution-header: rgba(12, 14, 17, 0.96);
+  --institution-header-blend: rgba(10, 12, 15, 0.76);
+  --institution-border: rgba(255, 255, 255, 0.09);
+  --institution-border-strong: rgba(255, 255, 255, 0.17);
+  --institution-text: #f6f6f3;
+  --institution-text-secondary: #c8cbd1;
+  --institution-text-muted: #8e949f;
+  --institution-blue: var(--plu-celeste-400);
+  --institution-blue-soft: rgba(116, 172, 223, 0.1);
+  --institution-gold: var(--plu-gold-400);
+  --institution-gold-soft: rgba(242, 183, 5, 0.1);
+  --institution-grid-line: rgba(255, 255, 255, 0.045);
+  --institution-shadow: 0 22px 54px rgba(0, 0, 0, 0.32);
+  --institution-focus: #9ec5eb;
+  --institution-hero-bg: var(--institution-surface);
+  --institution-hero-wash: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--institution-blue) 22%, transparent),
+    transparent 35%,
+    transparent 72%,
+    color-mix(in srgb, var(--institution-gold) 16%, transparent)
+  );
+  --institution-on-strong: #f6f6f3;
+  --institution-on-strong-muted: rgba(255, 255, 255, 0.58);
+  --institution-on-strong-faint: rgba(255, 255, 255, 0.4);
+  --institution-on-strong-border: rgba(255, 255, 255, 0.12);
+
   --color-hero-gradient: var(--plu-gradient-hero-dark);
 
   /* ── Status chips — dark-safe (los de :root en variables.css

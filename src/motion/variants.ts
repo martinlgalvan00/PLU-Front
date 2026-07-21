@@ -7,7 +7,7 @@ import {
   MOTION_STAGGER,
 } from './tokens'
 
-const revealTransition = (duration = MOTION_DURATION.reveal, delay = 0): Transition => ({
+const revealTransition = (duration: number = MOTION_DURATION.reveal, delay: number = 0): Transition => ({
   duration,
   ease: MOTION_EASE.out,
   delay,
@@ -41,6 +41,19 @@ export const fadeRight: Variants = {
 export const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.96 },
   visible: { opacity: 1, scale: 1, transition: revealTransition() },
+}
+
+/** Entrada editorial de sección — opacity + translateY + scale sutil.
+ * Usada por bloques compuestos (varias columnas/tarjetas) que deben
+ * aparecer como una sola composición, no como cards sueltas. */
+export const editorialRise: Variants = {
+  hidden: { opacity: 0, y: 24, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.55, ease: MOTION_EASE.out },
+  },
 }
 
 export const staggerContainer: Variants = {
@@ -209,6 +222,7 @@ export type RevealDirection =
   | 'from-left'
   | 'from-right'
   | 'zoom'
+  | 'rise'
 
 const REVEAL_VARIANT_MAP: Record<RevealDirection, Variants> = {
   up: fadeUp,
@@ -220,6 +234,7 @@ const REVEAL_VARIANT_MAP: Record<RevealDirection, Variants> = {
   'from-left': fadeLeft,
   'from-right': fadeRight,
   zoom: scaleIn,
+  rise: editorialRise,
 }
 
 export function getRevealVariant(direction: RevealDirection = 'up'): Variants {

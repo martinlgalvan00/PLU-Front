@@ -34,10 +34,12 @@ function QrGlyph() {
   )
 }
 
-/** Resultados — medalla quieta, mark mínimo. */
+/** Resultados — medalla quieta, mark mínimo. Cinta arriba: silueta de
+ * medalla inconfundible, distinta del sello (que no lleva cinta). */
 function MedalBody() {
   return (
     <>
+      <span className="hm-artifact__medal-ribbon" />
       <div className="hm-artifact__face hm-artifact__face--front hm-artifact__face--disc">
         <span className="hm-artifact__medal-ring" />
         <span className="hm-artifact__medal-core">
@@ -89,7 +91,8 @@ function CardBody() {
   )
 }
 
-/** Ahorro — sello cera circular (no sticker dentado). */
+/** Ahorro — sello de cera: borde orgánico (no un círculo perfecto) y una
+ * gota inferior. Sin cinta — así no compite con la silueta de la medalla. */
 function SealBody() {
   return (
     <>
@@ -99,6 +102,7 @@ function SealBody() {
         <span className="hm-artifact__seal-copy">
           <span className="hm-artifact__seal-pct">%</span>
         </span>
+        <span className="hm-artifact__seal-drip" />
       </div>
       <div className="hm-artifact__face hm-artifact__face--back hm-artifact__face--seal">
         <span className="hm-artifact__seal-ring" />
@@ -159,7 +163,9 @@ function DeviceBody() {
   )
 }
 
-/** Red oficial — nodos conectados. */
+/** Red oficial — nodos conectados. El nodo superior es un chip de
+ * calendario (no una esfera más): la pieza lee "red" y "calendario" a la
+ * vez, como dice su propio copy ("Una red, un calendario"). */
 function ConstellationBody() {
   return (
     <div className="hm-artifact__constellation">
@@ -169,7 +175,7 @@ function ConstellationBody() {
       <span className="hm-artifact__link hm-artifact__link--c" />
       <span className="hm-artifact__link hm-artifact__link--d" />
       <span className="hm-artifact__node hm-artifact__node--hub" />
-      <span className="hm-artifact__node hm-artifact__node--n1" />
+      <span className="hm-artifact__node hm-artifact__node--n1 hm-artifact__node--calendar" />
       <span className="hm-artifact__node hm-artifact__node--n2" />
       <span className="hm-artifact__node hm-artifact__node--n3" />
       <span className="hm-artifact__node hm-artifact__node--n4" />

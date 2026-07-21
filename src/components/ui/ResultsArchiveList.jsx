@@ -122,13 +122,13 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
           <m.div
             ref={panelRef}
             className="results-archive-item__panel"
-            initial={reducedMotion ? false : { opacity: 0, height: 0, y: -12 }}
+            initial={reducedMotion ? false : { opacity: 0, height: 0, y: -8 }}
             animate={{ opacity: 1, height: 'auto', y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -8 }}
+            exit={{ opacity: 0, height: 0, y: -6 }}
             transition={{
               duration: reducedMotion ? 0 : MOTION_DURATION.slow,
               ease: [0.22, 1, 0.36, 1],
-              opacity: { duration: reducedMotion ? 0 : MOTION_DURATION.base },
+              opacity: { duration: reducedMotion ? 0 : MOTION_DURATION.base, delay: reducedMotion ? 0 : 0.04 },
             }}
           >
             <ResultsEventPanel entry={entry} onClose={() => onSelect(entry.slug)} />

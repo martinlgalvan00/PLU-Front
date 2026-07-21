@@ -308,6 +308,21 @@
   --results-filter-hover-fg: rgba(255, 255, 255, 0.88);
   --results-filter-shell-bg: rgba(255, 255, 255, 0.03);
   --results-filter-shell-border: rgba(255, 255, 255, 0.06);
+  --results-event-panel-bg: color-mix(in oklab, var(--color-bg-surface) 88%, transparent);
+  --results-event-panel-border: rgba(255, 255, 255, 0.07);
+  --results-event-panel-rule: linear-gradient(
+    180deg,
+    var(--plu-celeste-500),
+    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
+  );
+  --results-event-panel-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0 28%,
+    color-mix(in oklab, var(--color-text-primary) 70%, transparent) 28% 58%,
+    var(--color-brand-celeste) 58% 100%
+  );
+  --results-table-planilla-border: rgba(255, 255, 255, 0.07);
+  --results-table-planilla-head: rgba(255, 255, 255, 0.03);
   --results-toolbar-count-bg: rgba(255, 255, 255, 0.04);
   --results-toolbar-count-border: rgba(255, 255, 255, 0.08);
   --results-toolbar-count-fg: rgba(255, 255, 255, 0.72);
@@ -475,6 +490,24 @@
   --register-section-border: rgba(255, 255, 255, 0.06);
   --register-node-hover: rgba(255, 255, 255, 0.03);
   --register-footer-bg: rgba(0, 0, 0, 0.14);
+  --site-header-lux-track-bg: rgba(255, 255, 255, 0.035);
+  --site-header-lux-track-border: rgba(255, 255, 255, 0.08);
+  --site-header-lux-link: rgba(255, 255, 255, 0.62);
+  --site-header-lux-link-hover: rgba(255, 255, 255, 0.92);
+  --site-header-lux-link-active: #fff;
+  --site-header-lux-indicator: color-mix(in oklab, var(--plu-gold-500) 88%, transparent);
+  --site-header-lux-sep: rgba(255, 255, 255, 0.1);
+  --site-header-lux-cta-bg: color-mix(in oklab, var(--plu-gold-500) 90%, #fff);
+  --site-header-lux-cta-border: color-mix(in oklab, var(--plu-gold-500) 50%, transparent);
+  --site-header-lux-cta-fg: #12151a;
+  --site-header-lux-cta-hover-bg: var(--plu-gold-400);
+  --site-header-lux-ghost: rgba(255, 255, 255, 0.72);
+  --site-header-lux-ghost-hover: #fff;
+  --site-header-lux-dropdown-bg: rgba(12, 13, 16, 0.96);
+  --site-header-lux-dropdown-border: rgba(255, 255, 255, 0.08);
+  --site-header-lux-dropdown-label: rgba(255, 255, 255, 0.38);
+  --site-header-lux-dropdown-hint: rgba(255, 255, 255, 0.42);
+  --site-header-lux-bar-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 [data-theme='light'] {
@@ -769,6 +802,22 @@
   --results-filter-hover-fg: rgba(15, 17, 23, 0.88);
   --results-filter-shell-bg: rgba(15, 17, 23, 0.03);
   --results-filter-shell-border: rgba(15, 17, 23, 0.08);
+  --results-event-panel-bg: #fff;
+  --results-event-panel-border: rgba(15, 17, 23, 0.08);
+  --results-event-panel-rule: linear-gradient(
+    180deg,
+    var(--plu-gold-500) 0%,
+    rgba(15, 17, 23, 0.55) 50%,
+    #1a6bb0 100%
+  );
+  --results-event-panel-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0 28%,
+    rgba(15, 17, 23, 0.55) 28% 58%,
+    #1a6bb0 58% 100%
+  );
+  --results-table-planilla-border: rgba(15, 17, 23, 0.08);
+  --results-table-planilla-head: rgba(15, 17, 23, 0.03);
   --results-toolbar-count-bg: rgba(15, 17, 23, 0.04);
   --results-toolbar-count-border: rgba(15, 17, 23, 0.08);
   --results-toolbar-count-fg: rgba(15, 17, 23, 0.62);
@@ -927,6 +976,24 @@
   --register-section-border: rgba(15, 17, 23, 0.06);
   --register-node-hover: rgba(15, 17, 23, 0.03);
   --register-footer-bg: rgba(15, 17, 23, 0.03);
+  --site-header-lux-track-bg: rgba(15, 17, 23, 0.04);
+  --site-header-lux-track-border: rgba(15, 17, 23, 0.1);
+  --site-header-lux-link: rgba(15, 17, 23, 0.58);
+  --site-header-lux-link-hover: rgba(15, 17, 23, 0.9);
+  --site-header-lux-link-active: var(--plu-ink-900);
+  --site-header-lux-indicator: color-mix(in oklab, var(--plu-gold-500) 92%, transparent);
+  --site-header-lux-sep: rgba(15, 17, 23, 0.12);
+  --site-header-lux-cta-bg: color-mix(in oklab, var(--plu-gold-500) 88%, #fff);
+  --site-header-lux-cta-border: color-mix(in oklab, var(--plu-gold-500) 45%, transparent);
+  --site-header-lux-cta-fg: #12151a;
+  --site-header-lux-cta-hover-bg: var(--plu-gold-400);
+  --site-header-lux-ghost: rgba(15, 17, 23, 0.68);
+  --site-header-lux-ghost-hover: var(--plu-ink-900);
+  --site-header-lux-dropdown-bg: rgba(255, 255, 255, 0.98);
+  --site-header-lux-dropdown-border: rgba(15, 17, 23, 0.1);
+  --site-header-lux-dropdown-label: rgba(15, 17, 23, 0.42);
+  --site-header-lux-dropdown-hint: rgba(15, 17, 23, 0.48);
+  --site-header-lux-bar-shadow: 0 8px 24px rgba(15, 17, 23, 0.08);
 }
 
 [data-theme='light'] .events-status-badge--neutral {
@@ -1024,10 +1091,49 @@
 
 [data-theme='dark'] .login-page--design {
   background: var(--color-page-canvas);
+  --login-page-atmosphere:
+    radial-gradient(ellipse 80% 55% at 12% 18%, rgba(116, 172, 223, 0.09), transparent 58%),
+    radial-gradient(ellipse 60% 45% at 88% 72%, rgba(242, 183, 5, 0.05), transparent 55%),
+    var(--color-page-canvas);
+  --login-card-bg: color-mix(in oklab, var(--color-bg-surface) 92%, transparent);
+  --login-card-border: rgba(255, 255, 255, 0.09);
+  --login-card-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 28px 56px rgba(0, 0, 0, 0.34);
+  --login-card-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0 28%,
+    color-mix(in oklab, var(--color-text-primary) 75%, transparent) 28% 58%,
+    var(--color-brand-celeste) 58% 100%
+  );
+  --login-brand-rule: linear-gradient(
+    180deg,
+    var(--plu-celeste-500),
+    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
+  );
 }
 
 [data-theme='light'] .login-page--design {
   background: var(--color-page-canvas);
+  --login-page-atmosphere:
+    radial-gradient(ellipse 75% 50% at 10% 12%, rgba(26, 107, 176, 0.06), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 92% 78%, rgba(169, 121, 15, 0.05), transparent 52%),
+    var(--color-page-canvas);
+  --login-card-bg: rgba(255, 255, 255, 0.96);
+  --login-card-border: rgba(15, 17, 23, 0.1);
+  --login-card-shadow: 0 22px 48px rgba(15, 17, 23, 0.08);
+  --login-card-stripe: linear-gradient(
+    90deg,
+    var(--color-brand-red) 0 28%,
+    rgba(15, 17, 23, 0.55) 28% 58%,
+    #1a6bb0 58% 100%
+  );
+  --login-brand-rule: linear-gradient(
+    180deg,
+    var(--plu-gold-500) 0%,
+    rgba(15, 17, 23, 0.45) 50%,
+    #1a6bb0 100%
+  );
 }
 
 [data-theme='light'] .login-brand__intro::before {
@@ -1038,8 +1144,16 @@
   );
 }
 
+[data-theme='light'] .login-page--editorial .login-brand__intro::before {
+  background: var(--login-brand-rule);
+}
+
 [data-theme='light'] .login-brand__eyebrow {
   color: rgba(15, 17, 23, 0.55);
+}
+
+[data-theme='light'] .login-page--editorial .login-brand__eyebrow {
+  color: color-mix(in oklab, var(--plu-gold-500) 55%, rgba(15, 17, 23, 0.5));
 }
 
 [data-theme='light'] .login-brand h1,
@@ -1139,6 +1253,12 @@
   background: rgba(255, 255, 255, 0.94);
   border-color: rgba(15, 17, 23, 0.1);
   box-shadow: 0 18px 40px rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .login-card--editorial {
+  background: var(--login-card-bg);
+  border-color: var(--login-card-border);
+  box-shadow: var(--login-card-shadow);
 }
 
 [data-theme='light'] .login-card::before {

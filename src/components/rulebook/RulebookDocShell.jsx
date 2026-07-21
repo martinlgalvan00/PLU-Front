@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Download, ExternalLink, FileDown, X } from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -7,6 +7,9 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
   const { t } = useI18n()
   const [pdfLocale, setPdfLocale] = useState(locale)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const closeRef = useRef(null)
+  const dialogRef = useRef(null)
+  const openerRef = useRef(null)
 
   useEffect(() => {
     setPdfLocale(locale)
@@ -18,14 +21,37 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
+    const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus())
+
     function onKeyDown(event) {
-      if (event.key === 'Escape') setViewerOpen(false)
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setViewerOpen(false)
+        return
+      }
+
+      if (event.key !== 'Tab') return
+      const focusable = dialogRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable?.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
 
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
+      window.cancelAnimationFrame(focusFrame)
       document.removeEventListener('keydown', onKeyDown)
+      openerRef.current?.focus()
     }
   }, [viewerOpen])
 
@@ -82,7 +108,10 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
               type="button"
               className="rulebook-doc-panel__view-btn"
               aria-label={t('pages.rulebook.viewDocument')}
-              onClick={() => setViewerOpen(true)}
+              onClick={(event) => {
+                openerRef.current = event.currentTarget
+                setViewerOpen(true)
+              }}
             >
               <BookOpen size={16} aria-hidden />
               <span>{t('pages.rulebook.viewDocument')}</span>
@@ -119,19 +148,19 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
           className="rulebook-pdf-modal-overlay"
           role="dialog"
           aria-modal="true"
-          aria-label={t('pages.rulebook.viewerTitle')}
+          aria-labelledby="rulebook-pdf-viewer-title"
           onClick={(event) => {
             if (event.target === event.currentTarget) setViewerOpen(false)
           }}
         >
-          <div className="rulebook-pdf-modal">
+          <div className="rulebook-pdf-modal" ref={dialogRef}>
             <header className="rulebook-pdf-modal__header">
               <div className="rulebook-pdf-modal__intro">
                 <span className="rulebook-pdf-modal__eyebrow">{t('pages.rulebook.viewerEyebrow')}</span>
-                <p className="rulebook-pdf-modal__title">
+                <h2 className="rulebook-pdf-modal__title" id="rulebook-pdf-viewer-title">
                   {activeDoc.download.title}
                   <span className="rulebook-pdf-modal__title-lang">· {activeLanguageLabel}</span>
-                </p>
+                </h2>
               </div>
 
               <div className="rulebook-pdf-modal__controls">
@@ -145,6 +174,7 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
                 <button
                   type="button"
                   className="rulebook-pdf-modal__close"
+                  ref={closeRef}
                   aria-label={t('pages.rulebook.closeViewer')}
                   onClick={() => setViewerOpen(false)}
                 >

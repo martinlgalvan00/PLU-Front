@@ -178,6 +178,38 @@ export function usePointerParallax(ref) {
 }
 
 /**
+ * Indicador compartido que se desliza entre elementos activos (nav, tabs) en
+ * vez de aparecer/desaparecer en cada uno. Mide el hijo `.is-active` dentro
+ * de containerRef y escribe --indicator-x/--indicator-scale/--indicator-opacity
+ * sin re-render; el CSS solo anima `transform` (nunca width/left) leyendo esas
+ * vars. Se re-mide cuando cambian `deps` (ej. la vista activa) o al resize.
+ */
+export function useSlidingIndicator(containerRef, deps = [], selector = '.is-active') {
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return undefined
+
+    function measure() {
+      const active = container.querySelector(selector)
+      if (!active) {
+        container.style.setProperty('--indicator-opacity', '0')
+        return
+      }
+      const containerRect = container.getBoundingClientRect()
+      const activeRect = active.getBoundingClientRect()
+      container.style.setProperty('--indicator-x', `${(activeRect.left - containerRect.left).toFixed(1)}px`)
+      container.style.setProperty('--indicator-scale', activeRect.width.toFixed(1))
+      container.style.setProperty('--indicator-opacity', '1')
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+}
+
+/**
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
  */

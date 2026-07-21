@@ -121,4 +121,18 @@
   --border-radius-xl: 18px;
   --border-radius-2xl: 24px;
   --border-radius-pill: 999px;
+
+  /* ── Capa institucional compartida ─────────────── */
+  --institution-content-max: 1180px;
+  --institution-reading-max: 760px;
+  --institution-gutter: clamp(18px, 4.6vw, 64px);
+  --institution-control-height: 44px;
+  --institution-focus-width: 3px;
+  --institution-focus-offset: 3px;
+  --institution-radius-control: 8px;
+  --institution-radius-surface: 14px;
+  --z-header: 200;
+  --z-dropdown: 230;
+  --z-drawer-backdrop: 280;
+  --z-drawer: 290;
 }

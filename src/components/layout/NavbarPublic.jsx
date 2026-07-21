@@ -1,25 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, ChevronDown, LogOut, User, X } from 'lucide-react'
 import {
-  NAV_EVENTOS,
-  NAV_EVENTOS_VIEWS,
-  NAV_RECURSOS,
-  NAV_RECURSOS_VIEWS,
-} from '../../lib/constants.js'
-import { canViewAdmin } from '../../lib/roles.js'
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  CircleHelp,
+  ContactRound,
+  IdCard,
+  ListChecks,
+  LogOut,
+  Mail,
+  Scale,
+  ShoppingBag,
+  Trophy,
+  User,
+  UsersRound,
+  X,
+} from 'lucide-react'
+import { NAV_EVENTOS, NAV_EVENTOS_VIEWS, NAV_RECURSOS, NAV_RECURSOS_VIEWS } from '../../lib/constants.js'
 import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
+import { canViewAdmin } from '../../lib/roles.js'
+import { useHeaderScroll, useSlidingIndicator } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { useHeaderScroll } from '../../hooks/useMotion.js'
-import Button from '../ui/Button.jsx'
+import BrandLogo from '../ui/BrandLogo.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
-import BrandLogo from '../ui/BrandLogo.jsx'
 
-function NavLink({ active, onClick, children, className = '' }) {
+function NavLink({ active, children, onClick }) {
   return (
     <button
       type="button"
-      className={`site-header__link ${active ? 'is-active' : ''} ${className}`.trim()}
+      className={`plu-global-nav__link${active ? ' is-active' : ''}`}
+      aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
       {children}
@@ -27,522 +39,418 @@ function NavLink({ active, onClick, children, className = '' }) {
   )
 }
 
-function NavDropdownItem({ featured, hint, onClick, title }) {
+function NavDropdownItem({ active = false, description, icon: Icon, label, onClick, tone = 'default' }) {
   return (
     <button
       type="button"
       role="menuitem"
-      className={`site-header__dropdown-item ${featured ? 'is-featured' : ''}`}
+      className={`plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`}
+      aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
-      <span className="site-header__dropdown-item-bar" aria-hidden />
-      <span>
-        <strong>{title}</strong>
-        {hint && <small>{hint}</small>}
-      </span>
+      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
+      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
+      <ArrowRight size={14} aria-hidden />
     </button>
   )
 }
 
-function NavDropdown({ active, children, footerAction, label, menuLabel, open, onToggle, triggerRef }) {
+function NavDropdown({ active, children, label, menuId, open, onClose, onToggle, variant = 'compact' }) {
+  const rootRef = useRef(null)
+  const menuRef = useRef(null)
+  const triggerRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    function handlePointerDown(event) {
+      if (!rootRef.current?.contains(event.target)) onClose()
+    }
+    function handleFocus(event) {
+      if (!rootRef.current?.contains(event.target)) onClose()
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('focusin', handleFocus)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('focusin', handleFocus)
+    }
+  }, [onClose, open])
+
+  function menuItems() {
+    return Array.from(menuRef.current?.querySelectorAll('[role="menuitem"]') ?? [])
+  }
+
+  function focusItem(index) {
+    const items = menuItems()
+    if (!items.length) return
+    items[(index + items.length) % items.length]?.focus()
+  }
+
+  function handleTriggerKeyDown(event) {
+    if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return
+    event.preventDefault()
+    if (!open) onToggle()
+    window.requestAnimationFrame(() => focusItem(event.key === 'ArrowDown' ? 0 : -1))
+  }
+
+  function handleMenuKeyDown(event) {
+    const items = menuItems()
+    const currentIndex = items.indexOf(document.activeElement)
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onClose()
+      triggerRef.current?.focus()
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      focusItem(currentIndex + 1)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      focusItem(currentIndex - 1)
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      focusItem(0)
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      focusItem(-1)
+    } else if (event.key === 'Tab') {
+      onClose()
+    }
+  }
+
   return (
-    <div className="site-header__dropdown" ref={triggerRef}>
+    <div className="plu-global-nav__dropdown" data-open={open || undefined} ref={rootRef}>
       <button
         type="button"
-        className={`site-header__link site-header__dropdown-trigger ${active ? 'is-active' : ''}`}
+        className={`plu-global-nav__link plu-global-nav__trigger${active ? ' is-active' : ''}`}
+        aria-controls={menuId}
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-haspopup="menu"
+        ref={triggerRef}
         onClick={onToggle}
+        onKeyDown={handleTriggerKeyDown}
       >
-        {label}
-        <ChevronDown size={13} aria-hidden className={open ? 'is-rotated' : ''} />
+        {label}<ChevronDown size={13} aria-hidden />
       </button>
-
-      {open && (
-        <div className="site-header__dropdown-menu" role="menu" aria-label={menuLabel}>
-          <p className="site-header__dropdown-label">{menuLabel}</p>
+      {open ? (
+        <div
+          className={`plu-nav-menu plu-nav-menu--${variant}`}
+          id={menuId}
+          ref={menuRef}
+          role="menu"
+          aria-label={label}
+          onKeyDown={handleMenuKeyDown}
+        >
           {children}
-          {footerAction}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
 
-function DrawerSection({ accent = 'neutral', children, label }) {
-  return (
-    <div className={`site-header__drawer-section site-header__drawer-section--${accent}`}>
-      <p className="site-header__drawer-section-label">
-        <span>{label}</span>
-      </p>
-      <div className="site-header__drawer-section-items">{children}</div>
-    </div>
-  )
-}
-
-function DrawerItem({ active, children, className = '', featured = false, hint, onClick }) {
+function DrawerItem({ active = false, children, description, icon: Icon, onClick, priority = false }) {
   return (
     <button
       type="button"
-      className={`site-header__drawer-item ${active ? 'is-active' : ''} ${featured ? 'is-featured' : ''} ${className}`.trim()}
+      className={`plu-drawer__item${active ? ' is-active' : ''}${priority ? ' plu-drawer__item--priority' : ''}`}
+      aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
-      {featured && (
-        <span
-          className={`site-header__drawer-item-bar ${active ? 'is-active' : ''}`.trim()}
-          aria-hidden
-        />
-      )}
-      <span className="site-header__drawer-item-main">
-        <span className="site-header__drawer-item-label">{children}</span>
-        {hint && <span className="site-header__drawer-item-hint">{hint}</span>}
-      </span>
-      <ArrowRight size={14} aria-hidden className="site-header__drawer-item-chevron" />
+      {Icon ? <span className="plu-drawer__item-icon"><Icon size={18} aria-hidden /></span> : null}
+      <span><strong>{children}</strong>{description ? <small>{description}</small> : null}</span>
+      <ArrowRight size={15} aria-hidden />
     </button>
   )
 }
 
 export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session }) {
-  const [open, setOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
-  const eventosRef = useRef(null)
-  const recursosRef = useRef(null)
-  const navRef = useRef(null)
-  const navTrackRef = useRef(null)
+  const [resourcesExpanded, setResourcesExpanded] = useState(false)
   const shellRef = useRef(null)
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, visible: false })
+  const drawerRef = useRef(null)
+  const closeRef = useRef(null)
+  const menuButtonRef = useRef(null)
+  const navDesktopRef = useRef(null)
+  const restoreDrawerFocusRef = useRef(true)
   const scrolled = useHeaderScroll(shellRef)
   const { t } = useI18n()
+
   const adminSession = canViewAdmin(session?.role)
-  const sessionShortName = session ? sessionDisplayName(session, { short: true }) : ''
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
-
   const eventosActive = NAV_EVENTOS_VIEWS.includes(activeView)
   const recursosActive = NAV_RECURSOS_VIEWS.includes(activeView)
+
+  useSlidingIndicator(navDesktopRef, [activeView, eventosActive, recursosActive], '.plu-global-nav__link.is-active')
   const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
   const latestEventView = latestEvent?.featured || latestEvent?.slug === 'pitbull-classic-2026' ? 'pitbull' : 'events'
   const latestEventActive = activeView === latestEventView
 
+  const resourceGroups = [
+    {
+      label: t('nav.resourcesCompetition'),
+      items: [
+        { key: 'rulebook', icon: BookOpen, label: t('nav.rulebook'), hint: t('nav.rulebookHint') },
+        { key: 'rulebook', icon: Scale, label: t('nav.categories'), hint: t('nav.categoriesHint') },
+        { key: 'members', icon: IdCard, label: t('nav.athleteInfo'), hint: t('nav.athleteInfoHint') },
+      ],
+    },
+    {
+      label: t('nav.resourcesHelp'),
+      items: [
+        { key: 'faq', icon: CircleHelp, label: t('nav.faq'), hint: t('nav.faqHint') },
+        { key: 'contact', icon: Mail, label: t('nav.contact'), hint: t('nav.contactHint') },
+      ],
+    },
+    {
+      label: t('nav.resourcesCommunity'),
+      items: [
+        { key: 'community', icon: UsersRound, label: t('nav.community'), hint: t('nav.communityHintNew') },
+      ],
+    },
+  ]
+
   function go(view) {
-    onNavigate(view)
-    setOpen(false)
+    restoreDrawerFocusRef.current = false
+    onNavigate?.(view)
+    setDrawerOpen(false)
     setDropdown(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function toggleDropdown(name) {
-    setDropdown((current) => (current === name ? null : name))
+  function closeDrawer(restoreFocus = true) {
+    restoreDrawerFocusRef.current = restoreFocus
+    setDrawerOpen(false)
+  }
+
+  function openDrawer() {
+    restoreDrawerFocusRef.current = true
+    setDropdown(null)
+    setResourcesExpanded(recursosActive)
+    setDrawerOpen(true)
   }
 
   useEffect(() => {
-    function updateIndicator() {
-      const track = navTrackRef.current
-      if (!track) return
-      const activeEl = track.querySelector('.site-header__link.is-active, .site-header__dropdown-trigger.is-active')
-      if (!activeEl) {
-        setIndicator((prev) => ({ ...prev, visible: false }))
+    if (!drawerOpen) return undefined
+    const previousOverflow = document.body.style.overflow
+    const menuButton = menuButtonRef.current
+    document.body.style.overflow = 'hidden'
+    const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus())
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeDrawer(true)
         return
       }
-      const trackRect = track.getBoundingClientRect()
-      const rect = activeEl.getBoundingClientRect()
-      setIndicator({
-        left: rect.left - trackRect.left,
-        width: rect.width,
-        visible: true,
-      })
-    }
-
-    updateIndicator()
-    window.addEventListener('resize', updateIndicator)
-    return () => window.removeEventListener('resize', updateIndicator)
-  }, [activeView, dropdown, eventosActive, recursosActive])
-
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        setOpen(false)
-        setDropdown(null)
+      if (event.key !== 'Tab') return
+      const focusable = drawerRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable?.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.cancelAnimationFrame(focusFrame)
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      if (restoreDrawerFocusRef.current) window.requestAnimationFrame(() => menuButton?.focus())
+    }
+  }, [drawerOpen])
 
   useEffect(() => {
-    function onClickOutside(e) {
-      const inEventos = eventosRef.current?.contains(e.target)
-      const inRecursos = recursosRef.current?.contains(e.target)
-      if (!inEventos && !inRecursos) setDropdown(null)
+    function onEscape(event) {
+      if (event.key === 'Escape') setDropdown(null)
     }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onEscape)
+    return () => document.removeEventListener('keydown', onEscape)
   }, [])
 
-  const navHint = (key) => t(`nav.${key}Hint`)
-
-  const heroBlendViews = ['home', 'events', 'results', 'rulebook', 'pitbull', 'community', 'members', 'tickets']
-  const isOverHero = heroBlendViews.includes(activeView) && !open
+  const overHero = ['home', 'pitbull', 'tickets'].includes(activeView) && !drawerOpen
 
   return (
-    <div ref={shellRef} className={`site-header-shell${open ? ' site-header-shell--menu-open' : ''}`}>
-      <div className="site-header__stripe" aria-hidden />
-      <div className="site-header__ambient" aria-hidden />
-
-      <header
-        className={`site-header ${scrolled ? 'site-header--scrolled' : ''} ${open ? 'site-header--menu-open' : ''} ${isOverHero ? 'site-header--over-hero' : ''}`}
-      >
-        <div className="site-header__inner">
-          <button className="site-header__logo site-header__logo--design" type="button" onClick={() => go('home')}>
-            <BrandLogo
-              variant="argentina"
-              imgClassName="site-header__logo-emblem"
-              height={36}
-            />
-            <span className="site-header__brand-stack">
-              <BrandLogo
-                variant="letterhead"
-                letterheadBlend
-                imgClassName="site-header__logo-letterhead"
-                height={26}
-              />
-              <span className="site-header__brand-eyebrow">{t('brand.federationLine')}</span>
+    <div ref={shellRef} className={`site-header-shell site-header-shell--institutional${drawerOpen ? ' site-header-shell--menu-open' : ''}`}>
+      <a className="skip-link" href="#main-content">{t('nav.skipContent')}</a>
+      <header className={`site-header site-header--lux site-header--institutional${scrolled ? ' site-header--scrolled' : ''}${overHero ? ' site-header--over-hero' : ''}`}>
+        <div className="plu-global-nav">
+          <button type="button" className="plu-global-nav__brand" aria-label={t('nav.home')} onClick={() => go('home')}>
+            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={34} />
+            <span>
+              <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={24} />
+              <small>{t('brand.federationLine')}</small>
             </span>
           </button>
 
-          <nav ref={navRef} className="site-header__nav site-header__nav--design" aria-label={t('nav.mainAria')}>
-            <div className="site-header__nav-track" ref={navTrackRef}>
-            <NavLink active={activeView === 'members'} onClick={() => go('members')}>
-              {t('nav.members')}
-            </NavLink>
-
+          <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')} ref={navDesktopRef}>
+            <span className="plu-global-nav__indicator" aria-hidden />
+            <NavLink active={activeView === 'members'} onClick={() => go('members')}>{t('nav.members')}</NavLink>
             <NavDropdown
               active={eventosActive}
               label={t('nav.groupEventos')}
-              menuLabel={t('nav.groupEventos')}
-              open={dropdown === 'eventos'}
-              onToggle={() => toggleDropdown('eventos')}
-              triggerRef={eventosRef}
-              footerAction={(
-                <button type="button" className="site-header__dropdown-footer" onClick={() => go('events')}>
-                  {t('nav.viewAllEvents')} <span aria-hidden>→</span>
-                </button>
-              )}
+              menuId="plu-events-menu"
+              open={dropdown === 'events'}
+              onClose={() => setDropdown(null)}
+              onToggle={() => setDropdown((current) => current === 'events' ? null : 'events')}
             >
-              {NAV_EVENTOS.map(({ key, featured }) => (
-                <NavDropdownItem
-                  key={key}
-                  featured={featured}
-                  title={t(`nav.${key}`)}
-                  hint={navHint(key)}
-                  onClick={() => go(key)}
-                />
-              ))}
+              <p className="plu-nav-menu__label">{t('nav.competitionMenuLabel')}</p>
+              {NAV_EVENTOS.map(({ key, featured }) => {
+                const isFeaturedEvent = key === 'pitbull'
+                const Icon = isFeaturedEvent ? Trophy : key === 'shop' ? ShoppingBag : CalendarDays
+                return (
+                  <NavDropdownItem
+                    key={key}
+                    active={isFeaturedEvent ? latestEventActive : activeView === key}
+                    description={isFeaturedEvent && latestEvent?.date ? `${latestEvent.date} · ${latestEvent.venue}` : t(`nav.${key}Hint`)}
+                    icon={Icon}
+                    label={isFeaturedEvent ? latestEventTitle : t(`nav.${key}`)}
+                    onClick={() => go(isFeaturedEvent ? latestEventView : key)}
+                    tone={featured ? 'featured' : 'default'}
+                  />
+                )
+              })}
+              <button type="button" role="menuitem" className="plu-nav-menu__footer" onClick={() => go('events')}>
+                {t('nav.viewAllEvents')}<ArrowRight size={14} aria-hidden />
+              </button>
             </NavDropdown>
-
+            <NavLink active={activeView === 'results'} onClick={() => go('results')}>{t('nav.results')}</NavLink>
+            <NavLink active={activeView === 'records'} onClick={() => go('records')}>{t('nav.records')}</NavLink>
             <NavDropdown
               active={recursosActive}
               label={t('nav.groupRecursos')}
-              menuLabel={t('nav.groupRecursos')}
-              open={dropdown === 'recursos'}
-              onToggle={() => toggleDropdown('recursos')}
-              triggerRef={recursosRef}
+              menuId="plu-resources-menu"
+              open={dropdown === 'resources'}
+              onClose={() => setDropdown(null)}
+              onToggle={() => setDropdown((current) => current === 'resources' ? null : 'resources')}
+              variant="resources"
             >
-              {NAV_RECURSOS.map(({ key }) => (
-                <NavDropdownItem
-                  key={key}
-                  title={t(`nav.${key}`)}
-                  hint={navHint(key)}
-                  onClick={() => go(key)}
-                />
-              ))}
+              <div className="plu-resources-menu__head" role="presentation">
+                <div><p>{t('nav.resourcesMenuLabel')}</p><span>{t('nav.resourcesMenuIntro')}</span></div>
+                <button type="button" role="menuitem" onClick={() => go('resources')}>
+                  {t('nav.viewResources')}<ArrowRight size={14} aria-hidden />
+                </button>
+              </div>
+              <div className="plu-resources-menu__groups" role="presentation">
+                {resourceGroups.map((group) => (
+                  <div key={group.label} className="plu-resources-menu__group" role="presentation">
+                    <p>{group.label}</p>
+                    {group.items.map((item, index) => (
+                      <NavDropdownItem
+                        key={`${group.label}-${item.key}-${index}`}
+                        active={activeView === item.key}
+                        description={item.hint}
+                        icon={item.icon}
+                        label={item.label}
+                        onClick={() => go(item.key)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </NavDropdown>
-
-            <NavLink active={latestEventActive} className="site-header__link--event" onClick={() => go(latestEventView)}>
-              {latestEventTitle}
-            </NavLink>
-
-            <span
-              className={`site-header__nav-indicator ${indicator.visible ? 'is-visible' : ''}`}
-              style={{ left: indicator.left, width: indicator.width }}
-              aria-hidden
-            />
-            </div>
           </nav>
 
-          <div className="site-header__actions">
-            <div className="site-header__actions-cluster">
-            <div className="site-header__prefs-rail">
-              <div className="site-header__prefs">
-                <ThemeToggle compact />
-                <LanguageToggle compact />
-              </div>
-            </div>
-
-            <span className="site-header__actions-sep" aria-hidden />
-
-            <div className="site-header__actions-main">
-            <Button
-              className="site-header__cta site-header__cta--affiliate btn--small"
-              onClick={() => go('members')}
-            >
-              {t('hero.ctaAffiliate')}
-            </Button>
+          <div className="plu-global-nav__actions">
+            <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
+            <button type="button" className="plu-global-nav__affiliate" onClick={() => go('members')}>{t('nav.affiliate')}</button>
             {session ? (
-              <div className="site-header__account-actions">
-                <button
-                  type="button"
-                  className="site-header__profile-action"
-                  onClick={() => go(adminSession ? 'admin' : 'profile')}
-                  title={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
-                  aria-label={sessionFullName || (adminSession ? t('nav.admin') : t('nav.myProfile'))}
-                >
-                  <span className={`site-header__profile-avatar${sessionPhoto ? ' site-header__profile-avatar--photo' : ''}`} aria-hidden>
-                    {sessionPhoto ? (
-                      <img src={sessionPhoto} alt="" />
-                    ) : (
-                      sessionInitialLetter
-                    )}
-                  </span>
+              <div className="plu-global-nav__account">
+                <button type="button" className="plu-global-nav__profile" aria-label={sessionFullName} title={sessionFullName} onClick={() => go(adminSession ? 'admin' : 'profile')}>
+                  <span aria-hidden>{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</span>
                 </button>
-                <button
-                  type="button"
-                  className="site-header__icon-action site-header__logout-action"
-                  onClick={onLogout}
-                  title={t('nav.logout')}
-                  aria-label={t('nav.logout')}
-                >
-                  <LogOut size={15} strokeWidth={2} aria-hidden />
-                </button>
+                <button type="button" className="plu-global-nav__logout" aria-label={t('nav.logout')} title={t('nav.logout')} onClick={onLogout}><LogOut size={15} aria-hidden /></button>
               </div>
             ) : (
-              <Button
-                className="site-header__cta site-header__cta--lux site-header__cta--ghost btn--small"
-                onClick={() => go('login')}
-              >
-                {t('nav.login')}
-              </Button>
+              <button type="button" className="plu-global-nav__login" onClick={() => go('login')}>{t('nav.login')}</button>
             )}
-            </div>
-            </div>
           </div>
 
-          <div className="site-header__mobile-actions">
-            <div className={`site-header__mobile-cluster${open ? ' is-menu-open' : ''}`}>
-              <button
-                type="button"
-                className="site-header__mobile-chip site-header__mobile-chip--affiliate"
-                onClick={() => go('members')}
-              >
-                <span className="site-header__mobile-chip-text">{t('hero.ctaAffiliate')}</span>
-              </button>
-
-              {session ? (
-                <>
-                  <button
-                    type="button"
-                    className="site-header__mobile-chip site-header__mobile-chip--account"
-                    onClick={() => go(adminSession ? 'admin' : 'profile')}
-                    title={sessionFullName}
-                  >
-                    <span className={`site-header__mobile-chip-avatar${sessionPhoto ? ' site-header__mobile-chip-avatar--photo' : ''}`} aria-hidden>
-                      {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
-                    </span>
-                    <span className="site-header__mobile-chip-text">{sessionShortName}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="site-header__mobile-chip site-header__mobile-chip--ghost site-header__logout-action"
-                    onClick={onLogout}
-                    aria-label={t('nav.logout')}
-                  >
-                    <LogOut size={15} aria-hidden />
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="site-header__mobile-chip site-header__mobile-chip--cta"
-                  onClick={() => go('login')}
-                  aria-label={t('nav.login')}
-                >
-                  <User size={17} strokeWidth={2.25} aria-hidden />
-                  <span className="site-header__mobile-chip-text">{t('nav.login')}</span>
-                </button>
-              )}
-
-              <span className="site-header__mobile-pref">
-                <ThemeToggle compact />
-              </span>
-
-              <span className="site-header__mobile-cluster-divider" aria-hidden />
-
-              <button
-                type="button"
-                className={`site-header__mobile-chip site-header__mobile-chip--menu${open ? ' is-open' : ''}`}
-                aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
-                aria-expanded={open}
-                onClick={() => setOpen(!open)}
-              >
-                <span className="site-header__menu-bars" aria-hidden>
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </button>
-            </div>
+          <div className="plu-global-nav__mobile-actions">
+            <button type="button" className="plu-global-nav__mobile-affiliate" onClick={() => go('members')}>{t('nav.affiliate')}</button>
+            <button
+              type="button"
+              className="plu-global-nav__menu-button"
+              aria-controls="plu-mobile-drawer"
+              aria-expanded={drawerOpen}
+              aria-label={drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+              ref={menuButtonRef}
+              onClick={drawerOpen ? () => closeDrawer(true) : openDrawer}
+            >
+              <span aria-hidden><i /><i /><i /></span>
+            </button>
           </div>
         </div>
       </header>
 
-      <button
-        type="button"
-        className={`site-header__backdrop ${open ? 'is-visible' : ''}`}
-        aria-label={t('nav.closeMenu')}
-        aria-hidden={!open}
-        tabIndex={open ? 0 : -1}
-        onClick={() => setOpen(false)}
-      />
-
-      <aside
-        className={`site-header__drawer ${open ? 'is-open' : ''}`}
-        aria-hidden={!open}
-        aria-label={t('nav.menu')}
-      >
-          <div className="site-header__drawer-head">
-            <div className="site-header__drawer-head-brand">
-              <button type="button" className="site-header__drawer-brand" onClick={() => go('home')}>
-                <BrandLogo
-                  variant="letterhead"
-                  imgClassName="site-header__drawer-logo site-header__logo-letterhead"
-                  height={24}
-                />
+      {drawerOpen ? (
+        <>
+          <div className="plu-drawer-backdrop" aria-hidden onClick={() => closeDrawer(true)} />
+          <aside className="plu-drawer" id="plu-mobile-drawer" ref={drawerRef} role="dialog" aria-modal="true" aria-label={t('nav.mobileMenu')}>
+            <header className="plu-drawer__head">
+              <button type="button" className="plu-drawer__brand" aria-label={t('nav.home')} onClick={() => go('home')}>
+                <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={25} />
               </button>
-              <span className="site-header__drawer-head-tag">
-                <span className="site-header__drawer-flag" aria-hidden />
-                {t('nav.drawerTag')}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="site-header__drawer-close"
-              aria-label={t('nav.closeMenu')}
-              onClick={() => setOpen(false)}
-            >
-              <X size={18} />
-            </button>
-          </div>
+              <span>{t('nav.drawerTag')}</span>
+              <button type="button" className="plu-drawer__close" aria-label={t('nav.closeMenu')} ref={closeRef} onClick={() => closeDrawer(true)}><X size={19} aria-hidden /></button>
+            </header>
 
-          <div className="site-header__drawer-body">
-            <nav className="site-header__drawer-nav" aria-label={t('nav.mobileMenu')}>
-              <DrawerItem
-                active={activeView === 'members'}
-                className="site-header__drawer-item--hero"
-                hint={t('nav.membersHint')}
-                onClick={() => go('members')}
-              >
-                {t('nav.members')}
-              </DrawerItem>
+            <div className="plu-drawer__scroll">
+              <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
+                <DrawerItem active={activeView === 'members'} description={t('nav.membersHint')} icon={IdCard} priority onClick={() => go('members')}>{t('nav.members')}</DrawerItem>
 
-              <DrawerSection accent="celeste" label={t('nav.groupEventos')}>
-                {NAV_EVENTOS.map(({ key, featured }) => (
-                  <DrawerItem
-                    key={key}
-                    active={activeView === key}
-                    featured={featured}
-                    hint={navHint(key)}
-                    onClick={() => go(key)}
+                <div className="plu-drawer__section">
+                  <p>{t('nav.groupEventos')}</p>
+                  <DrawerItem active={activeView === 'events'} description={t('nav.eventsHint')} icon={CalendarDays} onClick={() => go('events')}>{t('nav.events')}</DrawerItem>
+                  <DrawerItem active={latestEventActive} description={latestEvent?.date ? `${latestEvent.date} · ${latestEvent.venue}` : t('nav.pitbullHint')} icon={Trophy} onClick={() => go(latestEventView)}>{latestEventTitle}</DrawerItem>
+                  <DrawerItem active={activeView === 'results'} description={t('nav.resultsHint')} icon={ListChecks} onClick={() => go('results')}>{t('nav.results')}</DrawerItem>
+                  <DrawerItem active={activeView === 'records'} description={t('nav.recordsHint')} icon={Scale} onClick={() => go('records')}>{t('nav.records')}</DrawerItem>
+                </div>
+
+                <div className="plu-drawer__section plu-drawer__section--resources">
+                  <button
+                    type="button"
+                    className="plu-drawer__section-toggle"
+                    aria-controls="plu-drawer-resources"
+                    aria-expanded={resourcesExpanded}
+                    onClick={() => setResourcesExpanded((current) => !current)}
                   >
-                    {t(`nav.${key}`)}
-                  </DrawerItem>
-                ))}
-                <button type="button" className="site-header__drawer-more" onClick={() => go('events')}>
-                  {t('nav.viewAllEvents')}
-                  <ArrowRight size={14} aria-hidden />
-                </button>
-              </DrawerSection>
-
-              <DrawerSection accent="gold" label={t('nav.highlightedEvent')}>
-                <DrawerItem
-                  active={latestEventActive}
-                  featured
-                  hint={latestEvent?.date ? `${latestEvent.date} · ${latestEvent.venue}` : navHint('pitbull')}
-                  onClick={() => go(latestEventView)}
-                >
-                  {latestEventTitle}
-                </DrawerItem>
-              </DrawerSection>
-
-              <DrawerSection accent="celeste" label={t('nav.groupRecursos')}>
-                {NAV_RECURSOS.map(({ key }) => (
-                  <DrawerItem key={key} active={activeView === key} hint={navHint(key)} onClick={() => go(key)}>
-                    {t(`nav.${key}`)}
-                  </DrawerItem>
-                ))}
-                <DrawerItem
-                  active={activeView === 'contact'}
-                  hint={t('nav.contactHint')}
-                  onClick={() => go('contact')}
-                >
-                  {t('nav.contact')}
-                </DrawerItem>
-              </DrawerSection>
-            </nav>
-          </div>
-
-          <div className="site-header__drawer-foot">
-            <div className="site-header__drawer-prefs">
-              <ThemeToggle compact />
-              <LanguageToggle compact />
+                    <span>{t('nav.groupRecursos')}</span><ChevronDown size={16} aria-hidden />
+                  </button>
+                  <div id="plu-drawer-resources" hidden={!resourcesExpanded}>
+                    {NAV_RECURSOS.map(({ key }) => {
+                      const icons = { resources: ContactRound, rulebook: BookOpen, faq: CircleHelp, community: UsersRound, contact: Mail }
+                      const Icon = icons[key]
+                      return <DrawerItem key={key} active={activeView === key} description={t(`nav.${key}Hint`)} icon={Icon} onClick={() => go(key)}>{t(`nav.${key}`)}</DrawerItem>
+                    })}
+                  </div>
+                </div>
+              </nav>
             </div>
 
-            {session ? (
-              <div className="site-header__drawer-actions">
-                <button
-                  type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--outline"
-                  onClick={() => go(adminSession ? 'admin' : 'profile')}
-                >
-                  <User size={16} aria-hidden />
-                  {sessionFullName || (adminSession ? t('nav.adminMobile') : t('nav.myProfile'))}
-                </button>
-                <button
-                  type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--ghost site-header__logout-action"
-                  onClick={onLogout}
-                >
-                  <LogOut size={16} aria-hidden />
-                  {t('nav.logout')}
-                </button>
-              </div>
-            ) : (
-              <div className="site-header__drawer-actions">
-                <button
-                  type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--primary"
-                  onClick={() => go('members')}
-                >
-                  {t('hero.ctaAffiliate')}
-                  <ArrowRight size={16} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="site-header__drawer-foot-btn site-header__drawer-foot-btn--outline"
-                  onClick={() => go('login')}
-                >
-                  <User size={16} aria-hidden />
-                  {t('nav.login')}
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
+            <footer className="plu-drawer__foot">
+              <div className="plu-drawer__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
+              {session ? (
+                <div className="plu-drawer__account-actions">
+                  <button type="button" onClick={() => go(adminSession ? 'admin' : 'profile')}><User size={17} aria-hidden />{sessionFullName || t('nav.myProfile')}</button>
+                  <button type="button" onClick={() => { closeDrawer(false); onLogout?.() }}><LogOut size={17} aria-hidden />{t('nav.logout')}</button>
+                </div>
+              ) : (
+                <button type="button" className="plu-drawer__login" onClick={() => go('login')}><User size={17} aria-hidden />{t('nav.login')}</button>
+              )}
+            </footer>
+          </aside>
+        </>
+      ) : null}
     </div>
   )
 }

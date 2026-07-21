@@ -108,6 +108,17 @@
   z-index: 0;
 }
 
+/* Red y credencial ya son piezas celestes (nodos, borde, QR) — el halo
+ * ambiental las acompaña en vez de imponer el dorado por defecto. */
+.hm-artifact--constellation .hm-artifact__glow,
+.hm-artifact--card .hm-artifact__glow {
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 58%,
+    color-mix(in oklab, var(--color-brand-celeste) 26%, transparent),
+    transparent 70%
+  );
+}
+
 .hm-artifact.is-paused .hm-artifact__sheen {
   opacity: 0.62;
 }
@@ -202,6 +213,24 @@
 
 .hm-artifact--medal {
   --hm-depth: 6px;
+}
+
+/* Cinta — único elemento que hace que la pieza se lea como "medalla" y no
+ * como el mismo disco dorado del sello. Se ancla apenas detrás del disco
+ * (translateZ menor) para que parezca sostenerlo desde arriba. */
+.hm-artifact--medal .hm-artifact__medal-ribbon {
+  background: linear-gradient(180deg, var(--plu-celeste-300), var(--plu-celeste-600));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, #fff 35%, transparent),
+    0 6px 12px rgba(0, 0, 0, 0.24);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 78%, 50% 58%, 0% 78%);
+  height: 28%;
+  left: 33%;
+  position: absolute;
+  top: -5%;
+  transform: translateZ(calc(var(--hm-depth) - 3px));
+  width: 34%;
+  z-index: 0;
 }
 
 .hm-artifact--medal .hm-artifact__face--disc {
@@ -477,12 +506,19 @@
   --hm-depth: 6px;
 }
 
+/* Borde orgánico, no un círculo perfecto — un sello de cera se estampa a
+ * mano, no se acuña. Esto es lo que lo distingue de la medalla (disco
+ * perfecto + cinta) sin tocar la paleta dorada que comparten. */
 .hm-artifact--seal .hm-artifact__face--seal {
-  border-radius: 50%;
+  border-radius: 47% 53% 51% 49% / 52% 48% 55% 45%;
   height: 76%;
   left: 12%;
   top: 10%;
   width: 76%;
+}
+
+.hm-artifact--seal .hm-artifact__edge--seal {
+  border-radius: 47% 53% 51% 49% / 52% 48% 55% 45%;
 }
 
 .hm-artifact--seal .hm-artifact__face--front {
@@ -559,6 +595,19 @@
   letter-spacing: -0.04em;
   line-height: 1;
   text-shadow: 0 1px 0 color-mix(in oklab, #fff 28%, transparent);
+}
+
+/* Gota de cera — remata la silueta de sello (nunca aparece en la medalla). */
+.hm-artifact__seal-drip {
+  background: linear-gradient(180deg, var(--plu-gold-500, #c49214), var(--plu-gold-600, #9a7110));
+  border-radius: 0 0 60% 60% / 0 0 100% 100%;
+  bottom: -9%;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.22);
+  height: 11%;
+  left: 43%;
+  position: absolute;
+  transform: translateZ(calc(var(--hm-depth) - 1px));
+  width: 14%;
 }
 
 /* ── 4. Subite a la tarima — escenario lujoso ── */
@@ -913,6 +962,40 @@
   transform: translate3d(calc(var(--reel-mx, 0) * 1px), calc(var(--reel-my, 0) * -3px), 8px);
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   width: 12%;
+}
+
+/* Nodo superior de la red = chip de calendario, no una esfera más. Dos
+ * "anillos" de agenda arriba + dos marcas de fecha adentro — la pieza pasa
+ * a leerse como "red + calendario", igual que su propio copy. */
+.hm-artifact__node--calendar {
+  background:
+    radial-gradient(circle 16% at 33% 62%, color-mix(in oklab, var(--color-brand-celeste) 75%, transparent) 98%, transparent 100%),
+    radial-gradient(circle 14% at 63% 42%, color-mix(in oklab, var(--color-brand-celeste) 42%, transparent) 98%, transparent 100%),
+    linear-gradient(165deg, #fff 0%, color-mix(in oklab, var(--color-brand-celeste) 18%, #fff) 100%);
+  border-radius: 22%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+  height: 15%;
+  left: 41.5%;
+  top: 6%;
+}
+
+.hm-artifact__node--calendar::before,
+.hm-artifact__node--calendar::after {
+  background: color-mix(in oklab, var(--color-brand-celeste) 65%, #fff);
+  border-radius: 999px;
+  content: '';
+  height: 22%;
+  position: absolute;
+  top: -14%;
+  width: 12%;
+}
+
+.hm-artifact__node--calendar::before {
+  left: 20%;
+}
+
+.hm-artifact__node--calendar::after {
+  right: 20%;
 }
 
 .hm-artifact__node--n2 {

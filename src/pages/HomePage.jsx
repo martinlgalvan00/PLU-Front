@@ -30,7 +30,7 @@ export default function HomePage({ onNavigate }) {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--canvas-light home-section--mid-stack" variant="fade">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--mid-stack" variant="rise">
         <div className="home-section__inner home-mid-stack">
           <HomeMembershipBand onNavigate={onNavigate} />
 
