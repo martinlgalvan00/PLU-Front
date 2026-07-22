@@ -23,7 +23,7 @@ export default function ThemeToggle({ compact = false }) {
       aria-label={`${t('theme.label')}: ${isDark ? t('theme.light') : t('theme.dark')}`}
       title={`${t('theme.label')}: ${isDark ? t('theme.light') : t('theme.dark')}`}
     >
-      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      {isDark ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
       {!compact && <span>{isDark ? t('theme.light') : t('theme.dark')}</span>}
     </button>
   )

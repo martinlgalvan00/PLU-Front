@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays } from 'lucide-react'
+import { ArrowRight, BadgeCheck, CalendarDays } from 'lucide-react'
 import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useContent } from '../../hooks/useContent.js'
@@ -97,7 +97,8 @@ export default function HomeMembershipCredential({ onNavigate }) {
                 onClick={() => onNavigate('events')}
               >
                 <CalendarDays size={13} aria-hidden />
-                {t('pages.home.credentialCalendarLabel')}
+                <span>{t('pages.home.credentialCalendarLabel')}</span>
+                <ArrowRight className="home-credential__calendar-arrow" size={13} aria-hidden />
               </button>
             </div>
 

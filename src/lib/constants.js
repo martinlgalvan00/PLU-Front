@@ -79,23 +79,69 @@ export const NAV_PRIMARY = ['home', 'members', 'events', 'results', 'records', '
 
 export const NAV_SECONDARY = ['pitbull', 'shop', 'rulebook', 'community', 'faq', 'contact']
 
-/** Nav agrupada como en design-reference (Claude Design) */
-export const NAV_EVENTOS = [
-  { key: 'pitbull', featured: true },
-  { key: 'events' },
-  { key: 'shop' },
-]
+/**
+ * Fuente única para la navegación pública. Los destinos son vistas reales de
+ * App.jsx; desktop y mobile cambian la presentación, no la arquitectura.
+ * `icon` es una clave presentacional que NavbarPublic resuelve con lucide.
+ */
+export const PUBLIC_NAVIGATION = {
+  primary: [
+    { key: 'members', labelKey: 'nav.members' },
+    { key: 'events', labelKey: 'nav.calendarOfficial', icon: 'calendar' },
+    {
+      key: 'competitions',
+      labelKey: 'nav.competitions',
+      type: 'menu',
+      views: ['pitbull', 'shop', 'tickets'],
+      items: [
+        { key: 'pitbull', featured: true, icon: 'trophy' },
+        { key: 'shop', icon: 'shop' },
+      ],
+    },
+    { key: 'results', labelKey: 'nav.results' },
+    { key: 'records', labelKey: 'nav.records' },
+    {
+      key: 'resources',
+      labelKey: 'nav.groupRecursos',
+      type: 'menu',
+      views: ['resources', 'rulebook', 'faq', 'community', 'contact'],
+      groups: [
+        {
+          labelKey: 'nav.resourcesCompetition',
+          items: [
+            { key: 'rulebook', labelKey: 'nav.rulebook', hintKey: 'nav.rulebookHint', icon: 'book' },
+            { key: 'members', labelKey: 'nav.athleteInfo', hintKey: 'nav.athleteInfoHint', icon: 'member' },
+          ],
+        },
+        {
+          labelKey: 'nav.resourcesHelp',
+          items: [
+            { key: 'faq', labelKey: 'nav.faq', hintKey: 'nav.faqHint', icon: 'help' },
+            { key: 'contact', labelKey: 'nav.contact', hintKey: 'nav.contactHint', icon: 'mail' },
+          ],
+        },
+        {
+          labelKey: 'nav.resourcesCommunity',
+          items: [
+            { key: 'community', labelKey: 'nav.community', hintKey: 'nav.communityHintNew', icon: 'community' },
+          ],
+        },
+      ],
+    },
+  ],
+}
 
+const competitionsNavigation = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
+const resourcesNavigation = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
+
+/** Alias de compatibilidad para consumidores existentes. */
+export const NAV_EVENTOS = competitionsNavigation.items
 export const NAV_RECURSOS = [
   { key: 'resources' },
-  { key: 'rulebook' },
-  { key: 'faq' },
-  { key: 'community' },
-  { key: 'contact' },
+  ...resourcesNavigation.groups.flatMap(({ items }) => items),
 ]
-
-export const NAV_EVENTOS_VIEWS = NAV_EVENTOS.map(({ key }) => key)
-export const NAV_RECURSOS_VIEWS = NAV_RECURSOS.map(({ key }) => key)
+export const NAV_EVENTOS_VIEWS = competitionsNavigation.views
+export const NAV_RECURSOS_VIEWS = resourcesNavigation.views
 
 export const NAV_ITEMS = [...NAV_PRIMARY, ...NAV_SECONDARY].map((key) => [key, key])
 
