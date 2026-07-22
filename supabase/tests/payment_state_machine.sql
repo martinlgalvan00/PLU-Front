@@ -1,5 +1,5 @@
 -- Smoke transaccional del sistema de pagos. Requiere las migraciones hasta
--- 20260715000500 y no deja datos: cualquier falla aborta y el final hace rollback.
+-- 20260722150000 y no deja datos: cualquier falla aborta y el final hace rollback.
 
 begin;
 
@@ -13,6 +13,10 @@ declare
   v_ticket_order_id uuid := gen_random_uuid();
   v_ticket_id uuid := gen_random_uuid();
   v_ticket_type_id uuid := gen_random_uuid();
+  v_subscription_order_id uuid := gen_random_uuid();
+  v_subscription_membership_id uuid := gen_random_uuid();
+  v_subscription_id uuid := gen_random_uuid();
+  v_subscription_plan_id uuid;
   v_event_retry_id uuid := gen_random_uuid();
   v_event_stale_id uuid := gen_random_uuid();
   v_status text;
@@ -176,6 +180,97 @@ begin
     raise exception 'Smoke: la entrada no quedo pagada; estado %.', v_status;
   end if;
 
+  -- La unicidad del payment ID es global, incluso entre los dos ledgers.
+  begin
+    perform public.apply_ticket_mercado_pago_payment(
+      v_ticket_order_id, 'smoke-approved-' || v_order_id,
+      'aprobado', 1000, 'ARS', null, null, '{}'::jsonb
+    );
+    raise exception 'Smoke: se reutilizo un payment id entre dominios.';
+  exception when sqlstate 'PLU13' then
+    null;
+  end;
+
+  -- El primer cobro recurrente consume la orden/ciclo reservados. No crea
+  -- una segunda orden ni duplica un ano de vigencia.
+  select id into v_subscription_plan_id
+  from public.membership_plans where code = 'plu-annual-auto';
+
+  insert into public.athlete_payment_orders(
+    id, athlete_id, concept, plan_id, amount, currency, method, status,
+    reference, idempotency_key
+  ) values (
+    v_subscription_order_id, v_athlete_id, 'membership', v_subscription_plan_id,
+    38000, 'ARS', 'mercado_pago', 'pendiente',
+    'SMOKE-SUB-ORDER-' || v_subscription_order_id,
+    'SMOKE-SUB-IDEM-' || v_subscription_order_id
+  );
+  insert into public.memberships(
+    id, athlete_id, year, status, start_date, expiration_date, member_code,
+    payment_order_id, plan_id
+  ) values (
+    v_subscription_membership_id, v_athlete_id,
+    'sub-' || v_subscription_order_id, 'pendiente_pago', current_date,
+    current_date + 365, 'SMOKE-SUB-' || v_subscription_membership_id,
+    v_subscription_order_id, v_subscription_plan_id
+  );
+  insert into public.membership_order_targets(
+    order_id, membership_id, plan_id, starts_at, ends_at
+  ) values (
+    v_subscription_order_id, v_subscription_membership_id,
+    v_subscription_plan_id, current_date, current_date + 365
+  );
+  insert into public.billing_subscriptions(
+    id, athlete_id, membership_id, plan_id, initial_order_id,
+    provider_subscription_id, external_reference, status,
+    amount, currency, billing_frequency, interval_count
+  ) values (
+    v_subscription_id, v_athlete_id, v_subscription_membership_id,
+    v_subscription_plan_id, v_subscription_order_id,
+    'smoke-preapproval-' || v_subscription_id,
+    'SUB-' || v_subscription_order_id, 'authorized',
+    38000, 'ARS', 'annual', 1
+  );
+
+  perform public.apply_subscription_payment(
+    'smoke-preapproval-' || v_subscription_id,
+    'smoke-sub-rejected-' || v_subscription_id,
+    'rechazado', 38000, 'ARS', 'smoke@example.invalid', 'cc_rejected_other_reason', '{}'::jsonb
+  );
+  perform public.apply_subscription_payment(
+    'smoke-preapproval-' || v_subscription_id,
+    'smoke-sub-payment-' || v_subscription_id,
+    'aprobado', 38000, 'ARS', 'smoke@example.invalid', 'accredited', '{}'::jsonb
+  );
+  perform public.apply_subscription_payment(
+    'smoke-preapproval-' || v_subscription_id,
+    'smoke-sub-rejected-' || v_subscription_id,
+    'rechazado', 38000, 'ARS', 'smoke@example.invalid', 'cc_rejected_other_reason', '{}'::jsonb
+  );
+  select count(*) into v_count from public.athlete_payment_orders
+  where id = v_subscription_order_id
+     or reference like 'SUB-' || v_subscription_id || '-%';
+  if v_count <> 1 then
+    raise exception 'Smoke: el primer cobro recurrente creo % ordenes.', v_count;
+  end if;
+  select count(*) into v_count from public.membership_cycles
+  where membership_id = v_subscription_membership_id
+    and order_id = v_subscription_order_id
+    and starts_at = current_date
+    and ends_at = current_date + 365;
+  if v_count <> 1 then
+    raise exception 'Smoke: el primer ciclo recurrente no respeto el periodo reservado.';
+  end if;
+  if exists (
+    select 1 from public.billing_subscriptions
+    where id = v_subscription_id and status <> 'authorized'
+  ) or exists (
+    select 1 from public.athlete_payment_orders
+    where id = v_subscription_order_id and status <> 'aprobado'
+  ) then
+    raise exception 'Smoke: un rechazo tardio degrado una suscripcion aprobada.';
+  end if;
+
   -- Backoff, lock vencido y override operativo de eventos durables.
   insert into public.payment_integration_events (
     id, notification_id, resource_id, event_type, signature_valid,
@@ -226,7 +321,7 @@ begin
   -- los slugs de migracion son YYYYMMDDHHMMSS..., asi que la comparacion
   -- lexicografica funciona como comparacion temporal. Con "=" este smoke
   -- test se rompia con cada migracion nueva no relacionada al pago.
-  if public.get_payment_system_health() ->> 'schemaVersion' < '20260715000500' then
+  if public.get_payment_schema_version() < '20260722150000' then
     raise exception 'Smoke: version de health check inesperada (desactualizada).';
   end if;
 end;

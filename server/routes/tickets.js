@@ -216,13 +216,14 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
     staffLimiter,
     async (req, res, next) => {
       try {
-        const registration = await prisma.eventRegistration.findUnique({
-          where: { id: req.params.registrationId },
-          select: { eventId: true },
-        })
-        assertEventScope(req, registration?.eventId)
+        // Las inscripciones operativas viven en Supabase. Consultar Prisma aca
+        // mezclaba dos fuentes de verdad y bloqueaba a los guardias acotados a
+        // un evento porque la tabla Prisma de eventos es solamente legacy.
+        const ticketRepository = repo()
+        const eventId = await ticketRepository.getRegistrationEventId(req.params.registrationId)
+        assertEventScope(req, eventId)
         res.json(
-          await repo().checkInRegistration(req.params.registrationId, req.body?.gate, actor(req)),
+          await ticketRepository.checkInRegistration(req.params.registrationId, req.body?.gate, actor(req)),
         )
       } catch (error) {
         next(error)

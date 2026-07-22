@@ -28,11 +28,19 @@ export default function Footer({ onNavigate }) {
           <div className="institutional-footer__cta">
             <p className="institutional-kicker">{t('footer.actionEyebrow')}</p>
             <h2>{t('footer.actionTitle')}</h2>
-            <div>
-              <button type="button" className="institutional-button institutional-button--primary" onClick={() => onNavigate?.('members')}>
-                {t('nav.affiliate')}<ArrowRight size={16} aria-hidden />
+            <div className="institutional-footer__cta-row">
+              <button
+                type="button"
+                className="institutional-footer__action motion-icon-shift"
+                onClick={() => onNavigate?.('members')}
+              >
+                <span>{t('footer.actionCta')}</span>
+                <ArrowRight size={16} aria-hidden className="motion-icon-shift__target" />
               </button>
-              <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail"><Mail size={16} aria-hidden />hola@pluarg.com.ar</a>
+              <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail">
+                <Mail size={16} aria-hidden />
+                hola@pluarg.com.ar
+              </a>
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@
     "test": "vitest run --project default --project storybook",
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
+    "visual-check": "node scripts/visual-check.mjs",
     "db:studio": "node scripts/prisma-supabase.mjs studio",
     "db:generate": "node scripts/prisma-supabase.mjs generate",
     "db:migrate": "npm run setup:all",

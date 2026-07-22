@@ -16,6 +16,7 @@ export const UPCOMING_EVENTS = [
     slug: 'pitbull-classic-2026',
     status: 'proximamente',
     featured: true,
+    requiresMembership: true,
     startsAt: '2026-12-12T09:00:00-03:00',
     endsAt: '2026-12-13T20:00:00-03:00',
     description: 'Pitbull Classic · meet oficial PLU Argentina. Maximal Strength Club, Buenos Aires.',
@@ -28,5 +29,6 @@ export const UPCOMING_EVENTS = [
     location: 'Buenos Aires',
     slug: 'spring-classic-2025',
     status: 'finalizado',
+    requiresMembership: false,
   },
 ]

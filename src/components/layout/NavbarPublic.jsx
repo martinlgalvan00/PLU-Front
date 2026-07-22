@@ -58,11 +58,11 @@ function SharedActiveIndicator() {
   )
 }
 
-function NavLink({ active, children, icon: Icon, onClick }) {
+function NavLink({ active, children, icon: Icon, onClick, tone = 'default' }) {
   return (
     <button
       type="button"
-      className={`plu-global-nav__link${active ? ' is-active' : ''}`}
+      className={`plu-global-nav__link${tone !== 'default' ? ` plu-global-nav__link--${tone}` : ''}${active ? ' is-active' : ''}`}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
@@ -392,7 +392,9 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
           <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')}>
             <LayoutGroup id={`plu-public-navigation-${locale}`}>
-              <NavLink active={activeView === 'members'} onClick={() => go('members')}>{t('nav.members')}</NavLink>
+              <NavLink active={activeView === 'members'} icon={IdCard} tone="affiliate" onClick={() => go('members')}>
+                {t('nav.members')}
+              </NavLink>
               <NavLink active={activeView === 'events'} onClick={() => go('events')}>
                 {t('nav.calendarOfficial')}
               </NavLink>
@@ -464,7 +466,6 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
           <div className="plu-global-nav__actions">
             <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
-            <button type="button" className="plu-global-nav__affiliate" onClick={() => go('members')}>{t('nav.affiliate')}</button>
             {session ? (
               <div className="plu-global-nav__account">
                 <button type="button" className="plu-global-nav__profile" aria-label={sessionFullName} title={sessionFullName} onClick={() => go(adminSession ? 'admin' : 'profile')}>
@@ -486,7 +487,10 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
           <div className="plu-global-nav__mobile-actions">
             <div className={`plu-global-nav__mobile-cluster${drawerOpen ? ' is-menu-open' : ''}`}>
-              <button type="button" className="plu-global-nav__mobile-affiliate" onClick={() => go('members')}>{t('nav.affiliate')}</button>
+              <button type="button" className="plu-global-nav__mobile-affiliate" onClick={() => go('members')}>
+                <IdCard size={14} aria-hidden />
+                <span>{t('nav.members')}</span>
+              </button>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
                 type="button"

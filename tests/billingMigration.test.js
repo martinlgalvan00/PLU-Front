@@ -18,6 +18,13 @@ const phase6 = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260715000500_phase6_payment_recovery_operations.sql'),
   'utf8',
 )
+const hardening = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260722130000_domain_integrity_payment_hardening.sql',
+  ),
+  'utf8',
+)
 
 describe('billing migrations security contract', () => {
   it('reserva las acreditaciones automáticas al service role', () => {
@@ -67,5 +74,15 @@ describe('billing migrations security contract', () => {
     expect(phase6).toContain("'reembolsada'")
     expect(phase6).toContain('get_payment_system_health')
     expect(phase6.trimEnd()).toMatch(/commit;$/)
+  })
+
+  it('cierra la integridad global y conserva el contrato recurrente', () => {
+    expect(hardening).toContain('create table if not exists public.payment_provider_registry')
+    expect(hardening).toContain('before insert or update of external_payment_id')
+    expect(hardening).toContain('prepare_mercado_pago_subscription')
+    expect(hardening).toContain('v_start := v_target.starts_at')
+    expect(hardening).toContain('p_amount <> v_subscription.amount')
+    expect(hardening).toContain('create_membership_order_v3')
+    expect(hardening).not.toContain('card_token text')
   })
 })

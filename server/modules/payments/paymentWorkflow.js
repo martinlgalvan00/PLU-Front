@@ -144,10 +144,16 @@ export async function processPaymentWebhook(input, options = {}) {
   const body = input.body ?? {}
   const queryDataId = input.query?.['data.id'] ?? input.query?.data_id
   const bodyDataId = body.data?.id
+  // Mercado Pago firma el data.id de la URL, no el valor del body. Aceptar el
+  // fallback del body hace ambiguo el manifiesto HMAC y se aparta del contrato
+  // documentado del proveedor.
+  if (!queryDataId) {
+    throw new HttpError(400, 'Webhook sin data.id en la URL.')
+  }
   if (queryDataId && bodyDataId && String(queryDataId) !== String(bodyDataId)) {
     throw new HttpError(400, 'El identificador del webhook no coincide.')
   }
-  const resourceId = queryDataId ?? bodyDataId
+  const resourceId = queryDataId
 
   verifyMercadoPagoWebhook({
     xSignature: input.headers?.['x-signature'],

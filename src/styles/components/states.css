@@ -428,6 +428,14 @@
   padding: 0;
 }
 
+.audit-timeline__empty {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--space-md) 0;
+}
+
 .audit-timeline__item {
   display: grid;
   gap: var(--space-md);

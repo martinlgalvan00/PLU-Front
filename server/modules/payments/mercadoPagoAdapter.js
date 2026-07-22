@@ -8,12 +8,14 @@ import {
 import { HttpError } from '../../lib/errors.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
+const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
 
 function requireAccessToken(env) {
   const accessToken = env.MERCADO_PAGO_ACCESS_TOKEN?.trim()
-  if (!accessToken) {
+  if (!accessToken || PLACEHOLDER_PATTERN.test(accessToken)) {
     throw new HttpError(503, 'Mercado Pago no esta configurado en el servidor.')
   }
+  if (accessToken.length > 256) throw new HttpError(503, 'Access Token de Mercado Pago invalido.')
   return accessToken
 }
 
@@ -26,6 +28,33 @@ function normalizeProviderError(error) {
 function safeUrl(base, path) {
   const url = new URL(path, base.endsWith('/') ? base : `${base}/`)
   return url.toString()
+}
+
+function requireIntegrationUrl(value, label, env) {
+  if (!value) throw new HttpError(503, `Falta ${label} para crear el checkout.`)
+  let url
+  try {
+    url = new URL(value)
+  } catch {
+    throw new HttpError(503, `${label} no es una URL valida.`)
+  }
+  const isLocal = ['localhost', '127.0.0.1'].includes(url.hostname)
+  if (url.protocol !== 'https:' && !(env.MERCADO_PAGO_ENV !== 'production' && isLocal)) {
+    throw new HttpError(503, `${label} debe usar HTTPS.`)
+  }
+  return url.toString()
+}
+
+function assertProviderRequest(order, idempotencyKey) {
+  if (!Number.isInteger(order.amount) || order.amount <= 0) {
+    throw new HttpError(409, 'La orden tiene un monto invalido.')
+  }
+  if (!/^[A-Z]{3}$/.test(String(order.currency))) {
+    throw new HttpError(409, 'La orden tiene una moneda invalida.')
+  }
+  if (!idempotencyKey || idempotencyKey.length > 64) {
+    throw new HttpError(503, 'Clave de idempotencia de Mercado Pago invalida.')
+  }
 }
 
 export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_TIMEOUT_MS } = {}) {
@@ -59,11 +88,13 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
-      const returnBase = appUrl ?? env.APP_URL ?? env.VITE_APP_URL
-      const webhookBase = apiUrl ?? env.API_URL
-      if (!returnBase || !webhookBase) {
-        throw new HttpError(503, 'Faltan APP_URL o API_URL para crear el checkout.')
-      }
+      assertProviderRequest(order, idempotencyKey)
+      const returnBase = requireIntegrationUrl(
+        appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        'APP_URL',
+        env,
+      )
+      const webhookBase = requireIntegrationUrl(apiUrl ?? env.API_URL, 'API_URL', env)
 
       const returnPath = order.kind === 'ticket' ? '/eventos' : '/registro'
       const body = {
@@ -118,9 +149,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async createPayment({ order, formData, idempotencyKey }) {
-      if (!env.API_URL) {
-        throw new HttpError(503, 'Falta API_URL para recibir notificaciones de Mercado Pago.')
-      }
+      assertProviderRequest(order, idempotencyKey)
+      const webhookBase = requireIntegrationUrl(env.API_URL, 'API_URL', env)
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
         ...(formData.payer?.identification ? { identification: formData.payer.identification } : {}),
@@ -140,7 +170,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             issuer_id: formData.issuer_id ? String(formData.issuer_id) : undefined,
             payer,
             external_reference: order.id,
-            notification_url: safeUrl(env.API_URL, '/api/payments/webhook'),
+            notification_url: safeUrl(webhookBase, '/api/payments/webhook'),
             metadata: {
               payment_order_id: order.id,
               order_kind: order.kind,
@@ -155,12 +185,18 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async createSubscriptionPlan({ plan, appUrl, idempotencyKey }) {
+      assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      const backUrl = requireIntegrationUrl(
+        appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        'APP_URL',
+        env,
+      )
       try {
         const result = await subscriptionPlanClient.create({
           body: {
             reason: plan.name,
             external_reference: plan.code,
-            back_url: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+            back_url: backUrl,
             auto_recurring: {
               frequency: plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
               frequency_type: 'months',
@@ -177,6 +213,12 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async createSubscription({ plan, payerEmail, externalReference, appUrl, idempotencyKey, cardToken }) {
+      assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      const backUrl = requireIntegrationUrl(
+        appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        'APP_URL',
+        env,
+      )
       try {
         return await subscriptionClient.create({
           body: {
@@ -185,7 +227,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             external_reference: externalReference,
             payer_email: payerEmail,
             card_token_id: cardToken || undefined,
-            back_url: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+            back_url: backUrl,
             status: cardToken ? 'authorized' : 'pending',
             auto_recurring: plan.providerPlanId
               ? undefined

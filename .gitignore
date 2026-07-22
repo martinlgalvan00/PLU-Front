@@ -34,3 +34,6 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/.cache/
 .design-sync/node_modules
+
+# visual QA script output (scripts/visual-check.mjs)
+scripts/.visual-check-output/

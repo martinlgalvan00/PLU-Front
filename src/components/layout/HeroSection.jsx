@@ -42,6 +42,16 @@ export default function HeroSection({ onNavigate }) {
     </>
   )
 
+  const rule = reducedMotion ? (
+    <span className="hero__rule motif-rule" aria-hidden />
+  ) : (
+    <m.span
+      className="hero__rule motif-rule"
+      aria-hidden
+      variants={{ hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
+    />
+  )
+
   const lead = (
     <>
       <span className="hero__lead-text">{t('hero.description')}</span>
@@ -97,6 +107,7 @@ export default function HeroSection({ onNavigate }) {
 
       <div className="hero__copy">
         <div className="hero__shell">
+          <span className="hero__plate motif-plate" aria-hidden />
           <p className="hero__brand-mark" aria-hidden>
             PLU
           </p>
@@ -105,6 +116,7 @@ export default function HeroSection({ onNavigate }) {
               <div className="hero__main">
                 <div className="hero__editorial">
                   <p className="hero__kicker">{kicker}</p>
+                  {rule}
                   <h1 className="hero__title hero__title--design">{titleLines}</h1>
                   <p className="hero__lead">{lead}</p>
                 </div>
@@ -126,6 +138,7 @@ export default function HeroSection({ onNavigate }) {
                   <m.p className="hero__kicker" variants={heroSequenceItem}>
                     {kicker}
                   </m.p>
+                  {rule}
                   <m.h1 className="hero__title hero__title--design" variants={heroStaggerContainer}>
                     {animatedTitle}
                   </m.h1>

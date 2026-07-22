@@ -53,6 +53,7 @@ function PitbullHeroShowcase({ eventStatus, pitbullClassic, t, title }) {
 }
 
 function PitbullHeroPanel({
+  canRegister,
   eventStatus,
   onHome,
   onRegister,
@@ -64,7 +65,7 @@ function PitbullHeroPanel({
   motion = false,
 }) {
   const { label: statusLabel } = getStatusMeta(eventStatus, t)
-  const primaryLabel = t('pages.pitbull.register')
+  const primaryLabel = canRegister ? t('pages.pitbull.register') : t('pages.pitbull.joinNow')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.ticketsTitle') : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
@@ -83,7 +84,14 @@ function PitbullHeroPanel({
 
       <header className="pitbull-hero-masthead__head">
         <Item {...itemProps}>
-          <p className="pitbull-hero-masthead__status">{statusLabel}</p>
+          <p className="pitbull-hero-masthead__status">
+            <span className="motif-lights motif-lights--sequence" aria-hidden>
+              <span className="motif-lights__dot motif-lights__dot--on" />
+              <span className="motif-lights__dot motif-lights__dot--on" />
+              <span className="motif-lights__dot motif-lights__dot--on" />
+            </span>
+            {statusLabel}
+          </p>
         </Item>
 
         <Item {...itemProps}>
@@ -153,6 +161,7 @@ function PitbullHeroBackdrop() {
 }
 
 export default function PitbullHero({
+  canRegister,
   eventStatus,
   onHome,
   onRegister,
@@ -211,6 +220,7 @@ export default function PitbullHero({
 
   const panel = (
     <PitbullHeroPanel
+      canRegister={canRegister}
       eventStatus={eventStatus}
       onHome={onHome}
       onRegister={onRegister}
@@ -265,6 +275,7 @@ export default function PitbullHero({
         <m.div className="pitbull-hero-masthead__stripe" aria-hidden variants={heroSequenceItem} />
         <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
           {panel}
+          {showcase}
         </div>
       </div>
     </m.header>

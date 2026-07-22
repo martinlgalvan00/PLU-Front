@@ -359,7 +359,7 @@
 .hero__cta--primary:hover .hero__cta-icon,
 .motion-icon-shift:hover svg,
 .motion-icon-shift:hover .motion-icon-shift__target {
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 
 .btn svg:last-child,

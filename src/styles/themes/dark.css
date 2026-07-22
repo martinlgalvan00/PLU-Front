@@ -145,6 +145,9 @@
   --admin-sidebar-surface: var(--plu-cool-900);
   --admin-sidebar-text: var(--plu-ink-inverse);
   --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-inverse) 50%, transparent);
+  --admin-sidebar-hover: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
+  --admin-sidebar-border: color-mix(in srgb, var(--plu-ink-inverse) 9%, transparent);
+  --admin-sidebar-shadow: 18px 0 54px color-mix(in srgb, var(--plu-cool-950) 18%, transparent);
   --admin-ink: var(--plu-ink-inverse);
   --admin-text-secondary: var(--color-text-secondary);
   --admin-muted: var(--color-text-muted);

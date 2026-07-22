@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import { HttpError } from '../server/lib/errors.js'
 import { hashPassword } from '../server/services/passwordService.js'
+import { createSupabaseTicketRepository } from '../server/modules/ticketing/supabaseTicketRepository.js'
 
 function listen(app) {
   const server = app.listen(0)
@@ -95,5 +96,24 @@ describe('APIs de dominio unificadas', () => {
     expect(response.headers.get('set-cookie')).toContain('HttpOnly')
     expect((await response.json()).user.role).toBe('athlete_plu')
     await target.close()
+  })
+})
+
+describe('routing de dominio Supabase', () => {
+  it('resuelve el evento de una inscripcion desde Supabase y no desde Prisma', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { event_id: '22222222-2222-4222-8222-222222222222' },
+      error: null,
+    })
+    const eqId = vi.fn(() => ({ maybeSingle }))
+    const select = vi.fn(() => ({ eq: eqId }))
+    const client = { from: vi.fn(() => ({ select })) }
+
+    const repository = createSupabaseTicketRepository(client)
+    await expect(repository.getRegistrationEventId(
+      '11111111-1111-4111-8111-111111111111',
+    )).resolves.toBe('22222222-2222-4222-8222-222222222222')
+    expect(client.from).toHaveBeenCalledWith('event_registrations')
+    expect(select).toHaveBeenCalledWith('event_id')
   })
 })
