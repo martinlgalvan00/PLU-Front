@@ -53,6 +53,15 @@ export function cheapestTicketTypePrice(pricing) {
   return prices.length ? Math.min(...prices) : null
 }
 
+/**
+ * Si la venta de entradas del evento está habilitada.
+ * No depende de que el catálogo (días/tipos) ya tenga precio publicado:
+ * la navegación a checkout se permite; el formulario decide si hay qué vender.
+ */
+export function isTicketSalesEnabled(event) {
+  return resolveEventPricing(event).ticketsEnabled !== false
+}
+
 export function normalizeEventPricingInput(pricing = {}) {
   return {
     membership: Number(pricing.membership) || DEFAULT_EVENT_PRICING.membership,

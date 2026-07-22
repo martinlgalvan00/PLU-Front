@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Edit3, PackagePlus, Plus, Trash2 } from 'lucide-react'
+import { Edit3, ImagePlus, PackagePlus, Plus, Shirt, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
@@ -86,16 +86,21 @@ export default function ShopSection({
     if (draft.id === productId) closeForm()
   }
 
+  const catalogCountLabel =
+    products.length === 1
+      ? t('admin.shop.catalogCountOne')
+      : t('admin.shop.catalogCount', { count: products.length })
+
   return (
     <section className="admin-shop">
       <header className="admin-shop__head">
-        <div>
+        <div className="admin-shop__head-copy">
           <span className="admin-shop__eyebrow">{t('admin.shop.eyebrow')}</span>
           <h2>{t('admin.shop.title')}</h2>
           <p>{t('admin.shop.lead')}</p>
         </div>
         {canEdit ? (
-          <Button className="btn--small" onClick={openCreate}>
+          <Button className="btn--small admin-shop__cta" onClick={openCreate}>
             <Plus size={15} aria-hidden />
             {t('admin.shop.newProduct')}
           </Button>
@@ -104,21 +109,24 @@ export default function ShopSection({
 
       <div className="admin-shop__layout">
         <div className="admin-shop__catalog">
-          <label className="admin-shop__search">
-            <span>{t('admin.shop.search')}</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('admin.shop.searchPlaceholder')}
-            />
-          </label>
+          <div className="admin-shop__catalog-toolbar">
+            <label className="admin-shop__search">
+              <span>{t('admin.shop.search')}</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t('admin.shop.searchPlaceholder')}
+              />
+            </label>
+            <p className="admin-shop__catalog-count">{catalogCountLabel}</p>
+          </div>
 
           {filteredProducts.length > 0 ? (
             <ul className="admin-shop__list">
               {filteredProducts.map((product) => (
-                <li key={product.id} className="admin-shop-product">
+                <li key={product.id} className={`admin-shop-product${product.featured ? ' is-featured' : ''}`}>
                   <div className="admin-shop-product__media" aria-hidden>
-                    {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <PackagePlus size={22} />}
+                    {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <Shirt size={22} />}
                   </div>
                   <div className="admin-shop-product__body">
                     <div className="admin-shop-product__title-row">
@@ -126,12 +134,17 @@ export default function ShopSection({
                       <span className={`admin-shop-product__status admin-shop-product__status--${product.status}`}>
                         {t(`admin.shop.status.${product.status}`)}
                       </span>
+                      {product.featured ? (
+                        <span className="admin-shop-product__featured">{t('admin.shop.featuredBadge')}</span>
+                      ) : null}
                     </div>
                     <p>{product.description || t('admin.shop.noDescription')}</p>
                     <div className="admin-shop-product__meta">
-                      <span>{money(product.price, locale)}</span>
+                      <span className="admin-shop-product__price">{money(product.price, locale)}</span>
                       <span>{t('admin.shop.stockValue', { stock: product.stock })}</span>
-                      <span>{t(`admin.shop.categories.${product.category}`)}</span>
+                      <span className="admin-shop-product__category">
+                        {t(`admin.shop.categories.${product.category}`)}
+                      </span>
                     </div>
                   </div>
                   <div className="admin-shop-product__actions">
@@ -149,8 +162,15 @@ export default function ShopSection({
             </ul>
           ) : (
             <div className="admin-shop__empty">
-              <PackagePlus size={24} aria-hidden />
+              <Shirt size={28} aria-hidden />
               <p>{t('admin.shop.empty')}</p>
+              <small>{t('admin.shop.emptyHint')}</small>
+              {canEdit ? (
+                <Button className="btn--small" onClick={openCreate}>
+                  <Plus size={14} aria-hidden />
+                  {t('admin.shop.newProduct')}
+                </Button>
+              ) : null}
             </div>
           )}
         </div>
@@ -160,6 +180,17 @@ export default function ShopSection({
             <div className="admin-shop-form__head">
               <span>{draft.id ? t('admin.shop.editMode') : t('admin.shop.createMode')}</span>
               <h3>{draft.id ? t('admin.shop.editTitle') : t('admin.shop.createTitle')}</h3>
+            </div>
+
+            <div className="admin-shop-form__preview" aria-label={t('admin.shop.previewLabel')}>
+              {draft.imageUrl ? (
+                <img src={draft.imageUrl} alt="" />
+              ) : (
+                <div className="admin-shop-form__preview-empty">
+                  <ImagePlus size={22} aria-hidden />
+                  <span>{t('admin.shop.previewEmpty')}</span>
+                </div>
+              )}
             </div>
 
             <label>
@@ -270,9 +301,15 @@ export default function ShopSection({
           </form>
         ) : (
           <aside className="admin-shop__hint">
-            <PackagePlus size={24} aria-hidden />
+            <PackagePlus size={26} aria-hidden />
             <h3>{t('admin.shop.hintTitle')}</h3>
             <p>{t('admin.shop.hintText')}</p>
+            {canEdit ? (
+              <Button className="btn--small" onClick={openCreate}>
+                <Plus size={14} aria-hidden />
+                {t('admin.shop.newProduct')}
+              </Button>
+            ) : null}
           </aside>
         )}
       </div>

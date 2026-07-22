@@ -35,7 +35,11 @@ export default function HeroStatusCard({ onSelect }) {
         </p>
       </div>
       <p className="hero-meta__status">
-        <span className="hero-meta__status-dot" aria-hidden />
+        <span className="motif-lights motif-lights--sequence" aria-hidden>
+          <span className="motif-lights__dot motif-lights__dot--on" />
+          <span className="motif-lights__dot motif-lights__dot--on" />
+          <span className="motif-lights__dot" />
+        </span>
         {t('pages.pitbull.spotlight.registrationSoon')}
       </p>
     </Tag>

@@ -20,7 +20,7 @@ npx supabase db push --include-all
 
 `--include-all` incorpora el puente de compatibilidad anterior a v3 en proyectos que ya tengan versiones posteriores registradas. En una instalacion nueva, CI ejecuta toda la cadena con `supabase db reset`.
 
-La migracion `20260716000000_infrastructure_hardening.sql` es el cambio operativo integral: sesiones de atleta, idempotencia, reservas, codigos concurrentes, ciclos de afiliacion, cupos, expiracion, auditoria, operaciones de staff y reduccion de PII publica.
+La migracion `20260716000000_infrastructure_hardening.sql` instala la base operativa. `20260722130000_domain_integrity_payment_hardening.sql` completa el aislamiento por organizacion, los indices de consulta/FK, la identidad global de pagos y la atomicidad del ciclo de suscripciones.
 
 Los atletas nuevos crean una contraseña de al menos 12 caracteres. Para cuentas anteriores a esta migracion, un administrador debe acordar una contraseña inicial por canal seguro usando `POST /api/athletes/admin/:athleteId/credential`; el hash vive en `athlete_credentials`, nunca en la tabla publica de perfiles.
 
@@ -45,7 +45,7 @@ En produccion usar `SESSION_COOKIE_SECURE=true`. Nunca exponer `SUPABASE_SERVICE
 
 ## Webhook Mercado Pago
 
-Configurar la URL publica `POST /api/payments/webhook`. El endpoint valida firma y tolerancia temporal, guarda cada notificacion de forma idempotente y responde sin acreditar desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
+Configurar la URL publica HTTPS `POST /api/payments/webhook`. El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y tolerancia temporal, guarda cada notificacion de forma idempotente y no acredita desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
 
 ## Readiness y workers
 

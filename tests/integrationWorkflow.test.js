@@ -94,6 +94,22 @@ describe('integration workflows', () => {
     expect(mercadoPago.getPayment).not.toHaveBeenCalled()
   })
 
+  it('rechaza webhooks cuyo data.id no viene firmado en la URL', async () => {
+    await expect(processPaymentWebhook({
+      body: {
+        id: 'notification-without-query-id',
+        type: 'payment',
+        data: { id: 'payment-only-in-body' },
+      },
+      query: { type: 'payment' },
+      headers: {},
+    }, {
+      repository: {},
+      mercadoPago: {},
+      webhookSecret: 'webhook-secret-for-tests',
+    })).rejects.toThrow('Webhook sin data.id en la URL.')
+  })
+
   it('encola emails transaccionales sin duplicarlos ante retries', async () => {
     const eventStore = createMemoryIntegrationEventStore()
     const input = {

@@ -37,6 +37,18 @@ export function createSupabaseTicketRepository(client) {
     listForEvent: (eventSlug) => rpc('staff_list_tickets_for_event', { p_event_slug: eventSlug }, 'No se pudieron listar las entradas.'),
     allowlist: (eventSlug) => rpc('staff_get_event_checkin_allowlist', { p_event_slug: eventSlug }, 'No se pudo descargar la lista de ingreso.'),
     checkIn: (qrToken, gate, actor) => rpc('staff_check_in_ticket', { p_qr_token: qrToken, p_gate: gate, p_actor: actor }, 'No se pudo registrar el ingreso.'),
+    async getRegistrationEventId(registrationId) {
+      const registration = assertSupabaseResult(
+        await client
+          .from('event_registrations')
+          .select('event_id')
+          .eq('id', registrationId)
+          .maybeSingle(),
+        'No se pudo validar la inscripcion.',
+      )
+      if (!registration) throw new HttpError(404, 'Inscripcion no encontrada.')
+      return registration.event_id
+    },
     checkInRegistration: (registrationId, gate, actor) => rpc('staff_check_in_registration', { p_registration_id: registrationId, p_gate: gate, p_actor: actor }, 'No se pudo registrar el ingreso.'),
     redeemAddon: (qrToken, addonId, actor) => rpc('staff_redeem_ticket_addon', { p_qr_token: qrToken, p_addon_id: addonId, p_actor: actor }, 'No se pudo canjear el beneficio.'),
     async listPending() {

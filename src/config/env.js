@@ -5,6 +5,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
 const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN ?? ''
 const auth0ClientId = import.meta.env.VITE_AUTH0_CLIENT_ID ?? ''
 const auth0Audience = import.meta.env.VITE_AUTH0_AUDIENCE ?? ''
+const mercadoPagoPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? ''
+const isConfiguredValue = (value) => Boolean(
+  value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value),
+)
 
 const brevoTemplates = {
   affiliationStarted: import.meta.env.VITE_BREVO_TEMPLATE_AFFILIATION_STARTED ?? '',
@@ -24,8 +28,8 @@ export const env = {
     configured: Boolean(supabaseUrl && supabaseAnonKey),
   },
   mercadoPago: {
-    publicKey: import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY ?? '',
-    configured: Boolean(import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY),
+    publicKey: mercadoPagoPublicKey,
+    configured: isConfiguredValue(mercadoPagoPublicKey),
   },
   payments: {
     transferAlias: import.meta.env.VITE_PAYMENT_TRANSFER_ALIAS ?? '',

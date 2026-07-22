@@ -8,7 +8,7 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getFeaturedEvent, getUpcomingEventsByDate } from '../lib/eventNavigation.js'
-import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
 import '../styles/pages/shop.css'
@@ -19,11 +19,16 @@ import '../styles/pages/shop.css'
  * aparece solo en esta grilla apenas se publica, sin tocar código.
  * Tocarla abre el detalle rápido (entradas + merch) en un panel lateral.
  */
+function shopTicketPriceLabel(salesOpen, fromPrice, locale, t) {
+  if (!salesOpen) return t('pages.shop.salesClosed')
+  if (fromPrice == null) return t('pages.shop.ticketsAvailable')
+  return t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
+}
+
 function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketsOpen = fromPrice != null
-  const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
+  const salesOpen = isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
 
   return (
@@ -58,11 +63,7 @@ function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
       </p>
       <TicketAvailabilityBadge remaining={remaining} />
       <div className="shop-event-card__foot">
-        <p className="shop-event-card__price">
-          {salesOpen
-            ? t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
-            : t('pages.shop.salesClosed')}
-        </p>
+        <p className="shop-event-card__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
         <span className="shop-event-card__hint">
           {t('pages.shop.cardHint')}
           <ChevronRight size={15} aria-hidden />
@@ -177,8 +178,7 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t }) {
 function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketsOpen = fromPrice != null
-  const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
+  const salesOpen = isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const soldOut = remaining === 0
 
@@ -219,11 +219,7 @@ function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
 
           <div className="shop-hero__buy">
             <TicketAvailabilityBadge remaining={remaining} />
-            <p className="shop-hero__price">
-              {salesOpen
-                ? t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
-                : t('pages.shop.salesClosed')}
-            </p>
+            <p className="shop-hero__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
             <div className="shop-hero__actions">
               <button
                 type="button"

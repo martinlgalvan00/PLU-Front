@@ -81,12 +81,14 @@ export default function AdminTicketTypesEditor({
 
   return (
     <>
-      <fieldset className="admin-event-form__pricing admin-ticket-types">
-        <legend>
-          <CalendarDays size={14} aria-hidden />
-          {t('admin.eventEditor.supabase.ticketDaysTitle')}
-        </legend>
-        <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.supabase.ticketDaysHint')}</p>
+      <section className="admin-event-form__block admin-ticket-types">
+        <header className="admin-event-form__block-head">
+          <h3 className="admin-event-form__block-title">
+            <CalendarDays size={13} aria-hidden />
+            {t('admin.eventEditor.supabase.ticketDaysTitle')}
+          </h3>
+          <p className="admin-event-form__block-lead">{t('admin.eventEditor.supabase.ticketDaysHint')}</p>
+        </header>
 
         {eventDays.length === 0 ? (
           <p className="admin-ticket-types__empty">{t('admin.eventEditor.supabase.ticketDaysEmpty')}</p>
@@ -134,14 +136,16 @@ export default function AdminTicketTypesEditor({
             {t('admin.eventEditor.supabase.ticketDayAdd')}
           </Button>
         ) : null}
-      </fieldset>
+      </section>
 
-      <fieldset className="admin-event-form__pricing admin-ticket-types">
-        <legend>
-          <Tag size={14} aria-hidden />
-          {t('admin.eventEditor.supabase.ticketTypesTitle')}
-        </legend>
-        <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.supabase.ticketTypesHint')}</p>
+      <section className="admin-event-form__block admin-ticket-types">
+        <header className="admin-event-form__block-head">
+          <h3 className="admin-event-form__block-title">
+            <Tag size={13} aria-hidden />
+            {t('admin.eventEditor.supabase.ticketTypesTitle')}
+          </h3>
+          <p className="admin-event-form__block-lead">{t('admin.eventEditor.supabase.ticketTypesHint')}</p>
+        </header>
 
         {ticketTypes.length === 0 ? (
           <p className="admin-ticket-types__empty">{t('admin.eventEditor.supabase.ticketTypesEmpty')}</p>
@@ -270,7 +274,7 @@ export default function AdminTicketTypesEditor({
             {t('admin.eventEditor.supabase.ticketTypeAdd')}
           </Button>
         ) : null}
-      </fieldset>
+      </section>
     </>
   )
 }

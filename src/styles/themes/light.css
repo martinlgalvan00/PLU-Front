@@ -111,15 +111,18 @@
   --filter-pill-text: rgba(15, 17, 23, 0.55);
   --filter-pill-active-text: #14181f;
 
-  /* Admin institucional — superficies cálidas + sidebar tinta */
+  /* Admin institucional — superficies cálidas; sidebar acoplada al tema */
   --admin-canvas: var(--plu-warm-50);
   --admin-surface: color-mix(in srgb, white 92%, var(--plu-warm-100));
   --admin-surface-raised: white;
   --admin-surface-muted: color-mix(in srgb, var(--plu-warm-100) 72%, white);
-  --admin-sidebar: var(--plu-cool-950);
-  --admin-sidebar-surface: var(--plu-cool-900);
-  --admin-sidebar-text: var(--plu-ink-inverse);
-  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-inverse) 52%, transparent);
+  --admin-sidebar: color-mix(in srgb, white 96%, var(--plu-warm-100));
+  --admin-sidebar-surface: color-mix(in srgb, var(--plu-warm-100) 62%, white);
+  --admin-sidebar-text: var(--plu-ink-900);
+  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-900) 48%, transparent);
+  --admin-sidebar-hover: color-mix(in srgb, var(--plu-ink-900) 4.5%, transparent);
+  --admin-sidebar-border: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
+  --admin-sidebar-shadow: 10px 0 32px rgba(26, 28, 34, 0.06);
   --admin-ink: var(--plu-ink-900);
   --admin-text-secondary: var(--plu-ink-700);
   --admin-muted: var(--plu-ink-500);

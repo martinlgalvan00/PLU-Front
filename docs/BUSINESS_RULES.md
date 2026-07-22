@@ -52,3 +52,10 @@ ventana abierta, cupo disponible y afiliación activa durante la fecha válida.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
+
+Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
+sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al
+plan de la orden, conserva un snapshot inmutable de monto, moneda y frecuencia,
+y su primer cobro usa exactamente el ciclo reservado al crear la orden. Un plan
+ya asociado a Mercado Pago no se edita económicamente: se publica una versión
+nueva.

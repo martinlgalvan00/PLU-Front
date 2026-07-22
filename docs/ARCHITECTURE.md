@@ -84,7 +84,7 @@ Componentes actuales:
 | Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
 | Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` + `supabase/migrations/20260715000200_*` a `20260715000500_*` |
+| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260722150000_*` |
 
 El checkout crea la orden primero. El navegador tokeniza el medio de pago con
 MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia
@@ -116,3 +116,10 @@ El estado de una orden se deriva del ledger completo de intentos y no del orden
 de llegada de los webhooks. Las RPC de aplicación bloquean la orden, validan
 monto, moneda y referencia, rechazan la reutilización cross-order del payment ID
 y aplican en la misma transacción el pago y el derecho asociado.
+
+La identidad externa de un pago se registra además en
+`payment_provider_registry`, única para ambos ledgers (`athlete_payments` y
+`ticket_payments`). Las suscripciones guardan un snapshot económico inmutable
+del plan y se preparan con una RPC atómica que bloquea orden, plan, afiliación y
+suscripción. El primer cobro recurrente consume la orden y el ciclo reservados;
+los siguientes crean una orden por ciclo, sin duplicar vigencia.

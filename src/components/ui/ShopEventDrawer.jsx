@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, MapPin, ShoppingBag, Ticket, X } from 'lucide
 import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
-import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../../lib/eventPricing.js'
+import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
 import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -19,8 +19,7 @@ export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTic
   const { reducedMotion } = useMotionConfig()
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const ticketsOpen = fromPrice != null
-  const salesOpen = event?.pricing?.ticketsEnabled !== false && ticketsOpen
+  const salesOpen = isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(open && salesOpen ? event?.slug : null)
   const soldOut = remaining === 0
 
@@ -92,9 +91,11 @@ export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTic
                 </h3>
                 <TicketAvailabilityBadge remaining={remaining} />
                 <p className="shop-event-drawer__price">
-                  {salesOpen
-                    ? t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
-                    : t('pages.shop.salesClosed')}
+                  {!salesOpen
+                    ? t('pages.shop.salesClosed')
+                    : fromPrice == null
+                      ? t('pages.shop.ticketsAvailable')
+                      : t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })}
                 </p>
                 <button
                   type="button"

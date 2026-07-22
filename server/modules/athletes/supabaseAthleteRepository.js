@@ -1,9 +1,13 @@
 import { HttpError } from '../../lib/errors.js'
+import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 
-export function createSupabaseAthleteRepository(client) {
+export function createSupabaseAthleteRepository(
+  client,
+  { organizationId = PRIMARY_ORGANIZATION_ID } = {},
+) {
   requireSupabaseClient(client)
   const rpc = async (name, args, fallback) =>
     assertSupabaseResult(await client.rpc(name, args), fallback)
@@ -32,7 +36,12 @@ export function createSupabaseAthleteRepository(client) {
     },
     async findLogin(email) {
       const athlete = assertSupabaseResult(
-        await client.from('athletes').select('id,full_name,email,status').eq('email', email.toLowerCase()).maybeSingle(),
+        await client
+          .from('athletes')
+          .select('id,full_name,email,status')
+          .eq('organization_id', organizationId)
+          .eq('email', email.toLowerCase())
+          .maybeSingle(),
         'No se pudo validar la cuenta.',
       )
       if (!athlete) return null
@@ -69,7 +78,7 @@ export function createSupabaseAthleteRepository(client) {
       delete row.password_hash
       return row
     },
-    createMembershipOrder: (athleteId, data) => rpc('create_membership_order_v2', {
+    createMembershipOrder: (athleteId, data) => rpc('create_membership_order_v3', {
       p_athlete_id: athleteId,
       p_payment_method: data.paymentMethod,
       p_plan_code: data.planCode,
@@ -122,10 +131,10 @@ export function createSupabaseAthleteRepository(client) {
     },
     async adminData() {
       const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
-        client.from('athletes').select('*').order('created_at', { ascending: false }),
-        client.from('memberships').select('*').order('created_at', { ascending: false }),
-        client.from('event_registrations').select('*, event:events(*), checkIn:check_ins(*)').order('created_at', { ascending: false }),
-        client.from('athlete_payment_orders').select('*').order('created_at', { ascending: false }),
+        client.from('athletes').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+        client.from('memberships').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+        client.from('event_registrations').select('*, event:events(*), checkIn:check_ins(*)').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+        client.from('athlete_payment_orders').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
       ])
       const payload = {
         athletes: assertSupabaseResult(athletes, 'No se pudieron leer los atletas.'),

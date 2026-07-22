@@ -40,7 +40,9 @@ el derecho solamente cuando ya no queda otro pago aprobado para esa orden.
 
 ## Idempotencia
 
-Cada webhook debe usar `idempotencyKey` para evitar doble procesamiento.
+Cada creación o envío de pago usa una `X-Idempotency-Key` estable y acotada al
+recurso. Los webhooks se deduplican por proveedor + notification ID, y cada
+`external_payment_id` queda reservado globalmente a una sola orden.
 
 ## Tolerancia a fallos
 
@@ -52,18 +54,16 @@ Cada webhook debe usar `idempotencyKey` para evitar doble procesamiento.
 - Panel de operación protegido para observar y reintentar.
 - Polling corto desde el Brick para dar feedback sin reemplazar al webhook.
 
-## Migración única de operación
+## Migraciones de operación
 
-Para una base que ya tiene las fases 1 a 5, la única migración nueva a ejecutar
-es `20260715000500_phase6_payment_recovery_operations.sql`. El archivo abre una
-transacción, valida todas sus dependencias, instala locks, backoff, conciliación,
-máquina de estados y health check, y hace `commit` sólo si la verificación
-estructural termina correctamente.
+Las migraciones se aplican completas, en orden y mediante Supabase CLI; nunca se
+pega solamente una función desde SQL Editor porque eso deja el historial y el
+contrato de aplicación fuera de sincronía. La versión de integridad vigente es
+`20260722130000_domain_integrity_payment_hardening.sql`: agrega aislamiento por
+organización, registro global de IDs externos, asociación orden-plan, snapshot
+económico de suscripciones y preparación/cobro recurrente atómicos.
 
-No se debe pegar una parte del archivo ni aplicarla desde SQL Editor: eso evita
-que Supabase registre correctamente su historial. Primero se comprueba que las
-fases 1 a 5 figuren aplicadas y que `00500` sea la migración de pagos pendiente;
-después se hace un dry run y un único push coordinado:
+Antes del despliegue se revisa el historial y se hace un dry run:
 
 ```bash
 supabase migration list
@@ -77,9 +77,10 @@ Luego se verifica:
 select public.get_payment_system_health();
 ```
 
-La respuesta debe informar `schemaVersion = 20260715000500`, sin drift ni locks
-vencidos. Después se define `SUPABASE_DATABASE_URL` con la conexión de esa base
-y se corre el smoke transaccional, que hace rollback de todos sus fixtures:
+La respuesta de health debe quedar sin drift ni locks vencidos. Además,
+`select public.get_payment_schema_version();` debe devolver `20260722150000`.
+Después se define `SUPABASE_DATABASE_URL` con la conexión de esa base y se corre
+el smoke transaccional, que hace rollback de todos sus fixtures:
 
 ```bash
 npm run db:verify:payments
@@ -105,4 +106,4 @@ npm run db:verify:payments
 ## Referencias
 
 - [Checkout Bricks](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/overview)
-- [Webhooks](https://www.mercadopago.com.ar/developers/en/docs/your-integrations/notifications/webhooks)
+- [Webhooks](https://www.mercadopago.com.ar/developers/es/docs/checkout-bricks/additional-content/your-integrations/notifications/webhooks)

@@ -16,12 +16,12 @@
 
 .admin-shell .admin-shell__sidebar {
   background: var(--admin-sidebar);
-  border-right: 1px solid color-mix(in srgb, var(--plu-gold-500) 14%, transparent);
-  box-shadow: 18px 0 54px color-mix(in srgb, var(--plu-cool-950) 18%, transparent);
+  border-right: 1px solid var(--admin-sidebar-border);
+  box-shadow: var(--admin-sidebar-shadow);
 }
 
 .admin-shell .admin-shell__brand {
-  border-bottom-color: color-mix(in srgb, var(--plu-ink-inverse) 8%, transparent);
+  border-bottom-color: var(--admin-sidebar-border);
   padding: 18px 16px 16px;
 }
 
@@ -39,8 +39,8 @@
 
 .admin-shell .admin-shell__brand-mark {
   align-items: center;
-  background: color-mix(in srgb, var(--plu-ink-inverse) 4%, transparent);
-  border: 1px solid color-mix(in srgb, var(--plu-ink-inverse) 10%, transparent);
+  background: var(--admin-sidebar-hover);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 10px;
   display: inline-flex;
   flex-shrink: 0;
@@ -72,7 +72,7 @@
 }
 
 .admin-shell .admin-shell__brand-subtitle {
-  color: color-mix(in srgb, var(--admin-sidebar-muted) 92%, var(--plu-gold-400));
+  color: color-mix(in srgb, var(--admin-sidebar-muted) 88%, var(--admin-premium));
   font-size: 9.5px;
   font-weight: 650;
   letter-spacing: 0.14em;
@@ -123,14 +123,14 @@
 }
 
 .admin-shell .admin-shell__nav button:hover {
-  background: color-mix(in srgb, var(--plu-ink-inverse) 4%, transparent);
-  border-color: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
+  background: var(--admin-sidebar-hover);
+  border-color: var(--admin-sidebar-border);
   color: var(--admin-sidebar-text);
 }
 
 .admin-shell .admin-shell__nav button.active {
-  background: color-mix(in srgb, var(--plu-ink-inverse) 6%, transparent);
-  border-color: color-mix(in srgb, var(--plu-gold-500) 13%, transparent);
+  background: var(--admin-sidebar-hover);
+  border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-sidebar-border));
   color: var(--admin-sidebar-text);
   font-weight: 600;
 }
@@ -153,12 +153,12 @@
 }
 
 .admin-shell .admin-shell__badge--alert {
-  color: var(--plu-red-300);
+  color: var(--admin-status-danger);
 }
 
 .admin-shell .admin-shell__footer {
   background: color-mix(in srgb, var(--admin-sidebar-surface) 74%, transparent);
-  border-top-color: color-mix(in srgb, var(--plu-ink-inverse) 8%, transparent);
+  border-top-color: var(--admin-sidebar-border);
   gap: 8px;
   padding: 12px 12px max(16px, env(safe-area-inset-bottom, 0px));
 }
@@ -196,8 +196,8 @@
 }
 
 .admin-shell .admin-shell__session-bar {
-  background: color-mix(in srgb, var(--plu-ink-inverse) 4%, transparent);
-  border-color: color-mix(in srgb, var(--plu-ink-inverse) 8%, transparent);
+  background: var(--admin-sidebar-hover);
+  border-color: var(--admin-sidebar-border);
   padding: 9px 11px;
 }
 
@@ -207,7 +207,7 @@
   font-weight: 650;
 }
 
-/* Prefs: el sidebar es siempre oscuro; no heredar tokens light del header. */
+/* Prefs: siguen tokens del sidebar (light/dark) */
 .admin-shell .admin-shell__prefs {
   align-items: center;
   display: flex;
@@ -218,8 +218,8 @@
 .admin-shell .admin-shell__prefs .pref-toggle,
 .admin-shell .admin-shell__prefs .pref-toggle--compact {
   align-items: center;
-  background: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--plu-ink-inverse) 10%, transparent);
+  background: var(--admin-sidebar-hover);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 8px;
   box-shadow: none;
   color: var(--admin-sidebar-muted);
@@ -248,24 +248,22 @@
 }
 
 .admin-shell .admin-shell__prefs .locale-switch,
-.admin-shell .admin-shell__prefs .locale-switch--compact,
-[data-theme='light'] .admin-shell .admin-shell__prefs .locale-switch,
-[data-theme='light'] .admin-shell .admin-shell__prefs .locale-switch--compact {
+.admin-shell .admin-shell__prefs .locale-switch--compact {
   --locale-pad: 3px;
   --locale-track-w: 132px;
   --locale-track-h: 34px;
   --locale-thumb-w: 60px;
   --locale-travel: calc(var(--locale-track-w) - (var(--locale-pad) * 2) - var(--locale-thumb-w));
-  --locale-track-bg: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
-  --locale-track-border: color-mix(in srgb, var(--plu-ink-inverse) 10%, transparent);
+  --locale-track-bg: var(--admin-sidebar-hover);
+  --locale-track-border: var(--admin-sidebar-border);
   --locale-track-shadow: none;
-  --locale-thumb-bg: color-mix(in srgb, var(--plu-gold-500) 18%, rgba(255, 255, 255, 0.08));
-  --locale-thumb-border: color-mix(in srgb, var(--plu-gold-500) 36%, transparent);
-  --locale-thumb-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --locale-thumb-bg: color-mix(in srgb, var(--admin-premium) 16%, var(--admin-sidebar-surface));
+  --locale-thumb-border: color-mix(in srgb, var(--admin-premium) 36%, transparent);
+  --locale-thumb-shadow: none;
   --locale-code: color-mix(in srgb, var(--admin-sidebar-text) 42%, transparent);
-  --locale-code-active: color-mix(in srgb, var(--plu-gold-400) 70%, #fff);
-  --locale-hover-border: color-mix(in srgb, var(--plu-gold-500) 34%, transparent);
-  --locale-focus-ring: color-mix(in srgb, var(--plu-gold-500) 36%, transparent);
+  --locale-code-active: color-mix(in srgb, var(--admin-premium) 72%, var(--admin-sidebar-text));
+  --locale-hover-border: color-mix(in srgb, var(--admin-premium) 34%, transparent);
+  --locale-focus-ring: color-mix(in srgb, var(--admin-premium) 36%, transparent);
   flex: 1 1 auto;
   justify-content: flex-end;
   margin-left: auto;
@@ -289,7 +287,7 @@
 }
 
 .admin-shell .admin-shell__exit {
-  border-color: color-mix(in srgb, var(--plu-ink-inverse) 8%, transparent);
+  border-color: var(--admin-sidebar-border);
   border-radius: 8px;
   color: var(--admin-sidebar-muted);
   min-height: 36px;
@@ -303,14 +301,14 @@
 
 .admin-shell .admin-shell__collapse-toggle {
   background: var(--admin-sidebar-surface);
-  border-color: color-mix(in srgb, var(--plu-ink-inverse) 12%, transparent);
+  border-color: var(--admin-sidebar-border);
   border-radius: 6px;
   color: var(--admin-sidebar-muted);
 }
 
 .admin-shell .admin-shell__collapse-toggle:hover {
   background: var(--admin-sidebar);
-  border-color: color-mix(in srgb, var(--plu-gold-500) 25%, transparent);
+  border-color: color-mix(in srgb, var(--admin-premium) 30%, var(--admin-sidebar-border));
   color: var(--admin-accent);
 }
 
@@ -972,6 +970,10 @@
 .admin-dashboard--executive .recent-activity__header p {
   color: var(--admin-muted);
   font-size: 10.5px;
+}
+
+.admin-dashboard--executive .recent-activity .audit-timeline__empty {
+  padding: 18px 20px 20px;
 }
 
 /* ---- Secciones, filtros y expedientes ---- */

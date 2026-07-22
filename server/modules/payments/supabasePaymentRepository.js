@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
+import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function assertResult(result, fallbackMessage) {
@@ -16,7 +17,10 @@ function displayConcept(concept) {
   return 'Pago PLU ARG'
 }
 
-export function createSupabasePaymentRepository(client) {
+export function createSupabasePaymentRepository(
+  client,
+  { organizationId = PRIMARY_ORGANIZATION_ID } = {},
+) {
   if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
 
   async function getOrder(orderId) {
@@ -24,6 +28,7 @@ export function createSupabasePaymentRepository(client) {
       .from('athlete_payment_orders')
       .select('*, athlete:athletes(id, full_name, email, document_id)')
       .eq('id', orderId)
+      .eq('organization_id', organizationId)
       .maybeSingle()
     if (athleteResult.error) throw new HttpError(503, athleteResult.error.message || 'No se pudo leer la orden.')
 
@@ -32,6 +37,7 @@ export function createSupabasePaymentRepository(client) {
       return {
         kind: 'athlete',
         id: data.id,
+        organizationId: data.organization_id,
         athleteId: data.athlete_id,
         amount: data.amount,
         currency: data.currency,
@@ -41,6 +47,7 @@ export function createSupabasePaymentRepository(client) {
         status: data.status,
         reference: data.reference,
         idempotencyKey: data.idempotency_key,
+        planId: data.plan_id ?? null,
         preferenceId: data.provider_preference_id,
         initPoint: data.provider_init_point,
         payerEmail: data.payer_email ?? data.athlete?.email ?? null,
@@ -53,6 +60,7 @@ export function createSupabasePaymentRepository(client) {
         .from('ticket_orders')
         .select('*, event:events(id, title, slug)')
         .eq('id', orderId)
+        .eq('organization_id', organizationId)
         .maybeSingle(),
       'No se pudo leer la orden.',
     )
@@ -60,6 +68,7 @@ export function createSupabasePaymentRepository(client) {
     return {
       kind: 'ticket',
       id: ticketData.id,
+      organizationId: ticketData.organization_id,
       athleteId: null,
       amount: ticketData.amount,
       currency: ticketData.currency,
@@ -86,6 +95,7 @@ export function createSupabasePaymentRepository(client) {
         .from('ticket_orders')
         .select('id')
         .eq('id', orderId)
+        .eq('organization_id', organizationId)
         .eq('access_token_hash', tokenHash)
         .maybeSingle()
       const order = assertResult(result, 'No se pudo validar la orden.')
@@ -156,6 +166,7 @@ export function createSupabasePaymentRepository(client) {
         await client
           .from('payment_integration_events')
           .insert({
+            organization_id: organizationId,
             provider: 'mercado_pago',
             notification_id: notificationId,
             resource_id: resourceId,
@@ -265,6 +276,7 @@ export function createSupabasePaymentRepository(client) {
       let query = client
         .from('payment_integration_events')
         .select('id, notification_id, resource_id, event_type, action, status, attempts_count, max_attempts, error, received_at, last_attempt_at, processed_at, next_retry_at')
+        .eq('organization_id', organizationId)
         .eq('provider', 'mercado_pago')
         .order('updated_at', { ascending: false })
         .limit(Math.max(1, Math.min(limit, 100)))
@@ -277,6 +289,7 @@ export function createSupabasePaymentRepository(client) {
         await client
           .from('embedded_payment_attempts')
           .select('id, order_kind, order_id, external_payment_id, status, reconciliation_status, reconciliation_attempts, next_reconcile_at, reconciled_at, error, created_at, updated_at')
+          .eq('organization_id', organizationId)
           .eq('operation_kind', 'payment')
           .not('external_payment_id', 'is', null)
           .neq('reconciliation_status', 'reconciled')
@@ -305,7 +318,12 @@ export function createSupabasePaymentRepository(client) {
 
     async listPlans() {
       return assertResult(
-        await client.from('membership_plans').select('*').eq('active', true).order('price'),
+        await client
+          .from('membership_plans')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .eq('active', true)
+          .order('price'),
         'No se pudieron leer los planes.',
       )
     },
@@ -313,61 +331,27 @@ export function createSupabasePaymentRepository(client) {
     async prepareSubscription({ paymentOrderId, planCode }) {
       const order = await getOrder(paymentOrderId)
       if (order.kind !== 'athlete') throw new HttpError(400, 'La orden no corresponde a una afiliacion.')
-      const plan = assertResult(
-        await client.from('membership_plans').select('*').eq('code', planCode).eq('active', true).maybeSingle(),
-        'No se pudo leer el plan.',
-      )
-      if (!plan) throw new HttpError(404, 'Plan no encontrado.')
-      if (plan.collection_mode !== 'recurring') {
-        throw new HttpError(400, 'El plan no admite cobro recurrente.')
+      if (order.concept !== 'membership') {
+        throw new HttpError(409, 'La orden no corresponde a una suscripcion de afiliacion.')
       }
-      if (Number(order.amount) !== Number(plan.price) || order.currency !== plan.currency) {
-        throw new HttpError(409, 'La orden no coincide con el plan de suscripcion.')
+      if (!['pendiente', 'creado'].includes(order.status)) {
+        throw new HttpError(409, 'La orden ya no admite una suscripcion.')
       }
-
-      const target = assertResult(
-        await client
-          .from('membership_order_targets')
-          .select('membership:memberships(*)')
-          .eq('order_id', paymentOrderId)
-          .maybeSingle(),
-        'No se pudo leer el ciclo de afiliacion.',
+      const prepared = assertResult(
+        await client.rpc('prepare_mercado_pago_subscription', {
+          p_order_id: paymentOrderId,
+          p_plan_code: planCode,
+        }),
+        'No se pudo preparar la suscripcion.',
       )
-      const membership = target?.membership ?? assertResult(
-        await client.from('memberships').select('*').eq('payment_order_id', paymentOrderId).maybeSingle(),
-        'No se pudo leer la afiliacion.',
-      )
-      if (!membership || membership.athlete_id !== order.athleteId) {
-        throw new HttpError(409, 'La orden no pertenece a la afiliacion.')
+      const { plan, membership, subscription, created } = prepared
+      if (!plan || !membership || !subscription) {
+        throw new HttpError(503, 'La preparacion de la suscripcion devolvio un contrato incompleto.')
       }
-
-      const externalReference = `SUB-${paymentOrderId}`
-      const existing = assertResult(
-        await client
-          .from('billing_subscriptions')
-          .select('*')
-          .eq('external_reference', externalReference)
-          .maybeSingle(),
-        'No se pudo consultar la suscripcion.',
-      )
-      if (existing) return { order, plan, membership, subscription: existing, created: false }
-
-      const subscription = assertResult(
-        await client
-          .from('billing_subscriptions')
-          .insert({
-            athlete_id: order.athleteId,
-            membership_id: membership.id,
-            plan_id: plan.id,
-            initial_order_id: order.id,
-            external_reference: externalReference,
-            status: 'pending',
-          })
-          .select()
-          .single(),
-        'No se pudo crear la suscripcion.',
-      )
-      return { order, plan, membership, subscription, created: true }
+      if (order.planId !== plan.id || membership.athlete_id !== order.athleteId) {
+        throw new HttpError(409, 'La orden no coincide con el contrato de suscripcion.')
+      }
+      return { order, plan, membership, subscription, created }
     },
 
     async attachSubscriptionProvider(subscriptionId, providerSubscription) {

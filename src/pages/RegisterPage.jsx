@@ -239,7 +239,7 @@ export default function RegisterPage({
   const activeMembership = memberships.find((item) => item.athleteId === visibleOrder?.athleteId)
   const memberCode = activeMembership?.memberCode
   const hasActiveMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
-  const competitionBlocked = flow === 'competition' && !hasActiveMembership
+  const competitionBlocked = flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&

@@ -1,0 +1,211 @@
+/* =============================================
+   PLU MOTIF — "Precisión de plataforma"
+   Sistema visual compartido entre landing y Pitbull Classic:
+   barra calibrada, numeración de intento, luces de jueces,
+   disco calibrado. No son dibujos literales — son la gramática
+   de composición/ritmo/motion que reemplaza al ícono genérico.
+   ============================================= */
+
+:root,
+[data-theme='dark'] {
+  --motif-line: color-mix(in oklab, var(--plu-gold-400) 62%, transparent);
+  --motif-line-strong: rgba(255, 255, 255, 0.86);
+  --motif-tick: rgba(255, 255, 255, 0.16);
+  --motif-plate-ring: rgba(255, 255, 255, 0.5);
+  --motif-light-off: rgba(255, 255, 255, 0.14);
+  --motif-light-on: var(--plu-gold-400);
+  --motif-light-on-glow: color-mix(in oklab, var(--plu-gold-400) 55%, transparent);
+  --motif-num-ink: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme='light'] {
+  --motif-line: color-mix(in oklab, var(--plu-celeste-600) 65%, transparent);
+  --motif-line-strong: var(--plu-ink-900);
+  --motif-tick: rgba(15, 17, 23, 0.16);
+  --motif-plate-ring: rgba(15, 17, 23, 0.38);
+  --motif-light-off: rgba(15, 17, 23, 0.14);
+  --motif-light-on: var(--plu-gold-600);
+  --motif-light-on-glow: color-mix(in oklab, var(--plu-gold-600) 45%, transparent);
+  --motif-num-ink: var(--plu-ink-900);
+}
+
+/* ── Barra calibrada — línea estructural con marcas de milimetraje.
+   Base del recorrido, separador de sección, subrayado de rótulo. ── */
+.motif-rule {
+  --motif-rule-h: 2px;
+  background: linear-gradient(90deg, var(--motif-line) 0%, var(--motif-line) 100%);
+  border-radius: 2px;
+  display: block;
+  height: var(--motif-rule-h);
+  position: relative;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.motif-rule::after {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--motif-tick) 0,
+    var(--motif-tick) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+  bottom: -4px;
+  content: '';
+  left: 0;
+  height: 3px;
+  opacity: 0.8;
+  position: absolute;
+  right: 0;
+}
+
+.motif-rule--heavy {
+  --motif-rule-h: 4px;
+}
+
+.motif-rule--heavy::after {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--motif-tick) 0,
+    var(--motif-tick) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+  bottom: -6px;
+  height: 4px;
+}
+
+.motif-rule--vertical {
+  height: 100%;
+  transform-origin: top center;
+  width: 2px;
+}
+
+.motif-rule--vertical::after {
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--motif-tick) 0,
+    var(--motif-tick) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+  bottom: 0;
+  height: auto;
+  left: -4px;
+  right: auto;
+  top: 0;
+  width: 3px;
+}
+
+/* ── Numeración de intento — numeral tabular, siempre con la misma
+   gramática (peso fantasma + trazo firme). Reemplaza al badge/ícono
+   genérico como sistema de jerarquía. ── */
+.motif-num {
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.motif-num--ghost {
+  -webkit-text-stroke: 1px var(--motif-line-strong);
+  color: transparent;
+  opacity: 0.4;
+}
+
+.motif-num--solid {
+  color: var(--motif-num-ink);
+}
+
+/* ── Luces de jueces — 3 marcadores circulares. Estado/progreso,
+   no decoración: cada luz representa una fase o lane activa. ── */
+.motif-lights {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.motif-lights__dot {
+  background: var(--motif-light-off);
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  transition: background var(--transition-base), box-shadow var(--transition-base);
+  width: 6px;
+}
+
+.motif-lights__dot--on {
+  background: var(--motif-light-on);
+  box-shadow: 0 0 0 3px var(--motif-light-on-glow);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motif-lights--sequence .motif-lights__dot--on {
+    animation: motif-light-settle 0.5s var(--ease-out) both;
+  }
+
+  .motif-lights--sequence .motif-lights__dot--on:nth-child(1) { animation-delay: 0s; }
+  .motif-lights--sequence .motif-lights__dot--on:nth-child(2) { animation-delay: 0.12s; }
+  .motif-lights--sequence .motif-lights__dot--on:nth-child(3) { animation-delay: 0.24s; }
+}
+
+@keyframes motif-light-settle {
+  from {
+    box-shadow: 0 0 0 0 var(--motif-light-on-glow);
+    opacity: 0.3;
+  }
+  to {
+    box-shadow: 0 0 0 3px var(--motif-light-on-glow);
+    opacity: 1;
+  }
+}
+
+/* ── Disco calibrado — anillo geométrico, marca de agua de sección.
+   Un único acento por momento protagonista, nunca repetido en bucle. ── */
+.motif-plate {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  position: absolute;
+}
+
+.motif-plate::before {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 36%,
+      var(--motif-plate-ring) 36% 37.4%,
+      transparent 37.4% 60%,
+      var(--motif-plate-ring) 60% 61.2%,
+      transparent 61.2% 100%
+    );
+  border-radius: 50%;
+  content: '';
+  inset: 0;
+  opacity: 0.16;
+  position: absolute;
+}
+
+@media (max-width: 640px) {
+  .motif-plate {
+    opacity: 0.7;
+  }
+}
+
+/* ── Target táctil invisible — expande el área clickeable a 44×44
+   sin agregar espacio visual al layout. Usar en links/botones chicos
+   que deben mantenerse compactos visualmente (WCAG 2.5.5/2.5.8). ── */
+.motif-tap-target {
+  position: relative;
+}
+
+.motif-tap-target::after {
+  content: '';
+  height: max(100%, 44px);
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px);
+}

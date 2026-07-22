@@ -5,6 +5,7 @@ export const SHOP_PRODUCT_STATUS = {
 }
 
 export const SHOP_PRODUCT_CATEGORIES = [
+  ['apparel', 'Prendas'],
   ['merch', 'Merch'],
   ['accessories', 'Accesorios'],
   ['equipment', 'Equipamiento'],
@@ -12,7 +13,7 @@ export const SHOP_PRODUCT_CATEGORIES = [
 
 export const SHOP_PRODUCT_DEFAULT = {
   title: '',
-  category: 'merch',
+  category: 'apparel',
   description: '',
   price: 0,
   stock: 0,
