@@ -6,7 +6,7 @@ export const MOTION_DURATION = {
   slow: 0.48,
   cinematic: 0.7,
   reveal: 0.4,
-  page: 0.28,
+  page: 0.34,
 } as const
 
 export const MOTION_DISTANCE = {

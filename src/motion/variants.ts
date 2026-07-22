@@ -111,7 +111,7 @@ export const drawerBackdropTransition: Variants = {
 }
 
 export const pageSectionTransition: Variants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,

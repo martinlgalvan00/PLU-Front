@@ -3768,17 +3768,44 @@
   font-size: 12px;
   font-weight: 600;
   gap: 6px;
+  min-height: 44px;
   padding: 8px 14px;
+  position: relative;
   transition:
     background 0.16s var(--ease-out),
     border-color 0.16s var(--ease-out),
     transform 0.16s var(--ease-out);
 }
 
+.home-credential__calendar-link::after {
+  background: var(--color-brand-celeste);
+  bottom: 5px;
+  content: '';
+  height: 1px;
+  left: 14px;
+  position: absolute;
+  right: 14px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.16s var(--ease-out);
+}
+
 .home-credential__calendar-link:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: color-mix(in oklab, var(--color-brand-celeste) 55%, rgba(255, 255, 255, 0.16));
   transform: translateY(-1px);
+}
+
+.home-credential__calendar-link:hover::after {
+  transform: scaleX(1);
+}
+
+.home-credential__calendar-arrow {
+  transition: transform 0.16s var(--ease-out);
+}
+
+.home-credential__calendar-link:hover .home-credential__calendar-arrow {
+  transform: translateX(3px);
 }
 
 .home-credential__calendar-link:focus-visible {
@@ -3820,6 +3847,15 @@
   .home-credential__calendar-link:hover {
     transform: none;
     transition: none;
+  }
+
+
+  .home-credential__calendar-link::after {
+    transition: none;
+  }
+
+  .home-credential__calendar-link:hover .home-credential__calendar-arrow {
+    transform: none;
   }
 }
 
@@ -4449,10 +4485,10 @@
 }
 
 .pitbull-spotlight__home-hero-img {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 5 / 6;
   display: block;
   height: auto;
-  max-height: min(420px, 68vw);
+  max-height: min(380px, 62vw);
   min-height: 0;
   object-fit: cover;
   object-position: center 42%;
@@ -4503,29 +4539,27 @@
 .pitbull-spotlight__home-panel {
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 2.2vw, 22px);
+  gap: clamp(18px, 2.4vw, 26px);
   justify-content: center;
   min-width: 0;
-  padding-left: clamp(14px, 2vw, 22px);
+  padding-left: clamp(16px, 2.2vw, 24px);
   position: relative;
 }
 
 .pitbull-spotlight__home-panel::before {
-  background: var(
-    --home-hero-editorial-rule,
-    linear-gradient(
-      180deg,
-      var(--plu-celeste-500),
-      color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
-    )
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 60%, transparent) 22%,
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 60%, transparent) 78%,
+    transparent 100%
   );
-  border-radius: 99px;
-  bottom: 8%;
+  bottom: 2%;
   content: '';
   left: 0;
   position: absolute;
-  top: 8%;
-  width: 2px;
+  top: 2%;
+  width: 1px;
 }
 
 /* Mobile: copy sobre la foto (una sola composición, sin vacío negro) */
@@ -4541,18 +4575,14 @@
     grid-area: stack;
   }
 
-  .pitbull-spotlight__home-strip {
-    display: none;
-  }
-
   .pitbull-spotlight__home-hero-frame {
     border-radius: calc(var(--border-radius-lg) + 4px);
   }
 
   .pitbull-spotlight__home-hero-img {
-    aspect-ratio: 3 / 4;
-    max-height: none;
-    min-height: min(62vh, 520px);
+    aspect-ratio: 4 / 5;
+    max-height: min(480px, 58vh);
+    min-height: min(48vh, 400px);
     object-position: center 38%;
   }
 
@@ -4614,13 +4644,10 @@
   }
 
   .pitbull-spotlight__home-tags li {
-    background: linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 18%, rgba(255, 255, 255, 0.12)),
-      rgba(255, 255, 255, 0.06)
-    );
-    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 36%, rgba(255, 255, 255, 0.2));
-    color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(6px);
+    background: rgba(8, 9, 12, 0.34);
+    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 46%, rgba(255, 255, 255, 0.22));
+    color: rgba(255, 255, 255, 0.92);
   }
 
   .pitbull-spotlight__home-cta {
@@ -4644,18 +4671,28 @@
   }
 
   [data-theme='light'] .pitbull-spotlight__home-tags li {
-    background: linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 18%, rgba(255, 255, 255, 0.12)),
-      rgba(255, 255, 255, 0.06)
-    );
-    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 36%, rgba(255, 255, 255, 0.2));
-    color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(6px);
+    background: rgba(8, 9, 12, 0.34);
+    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 46%, rgba(255, 255, 255, 0.22));
+    color: rgba(255, 255, 255, 0.92);
   }
 
   [data-theme='light'] .pitbull-spotlight__home-cta {
     background: var(--plu-gold-500, var(--color-brand-gold));
     color: #14181f;
+  }
+}
+
+/* Tablet ancho (640-959): la foto de medallas es un retrato y no entra bien
+   en la caja apaisada que queda a este ancho — usamos la foto landscape
+   (photoLift, ya servida por el <picture>) con un ratio acorde en vez de
+   forzar el recorte del retrato. */
+@media (min-width: 640px) and (max-width: 959px) {
+  .pitbull-spotlight__home-hero-img {
+    aspect-ratio: 16 / 9;
+    max-height: min(540px, 58vh);
+    min-height: min(46vh, 340px);
+    object-position: center 28%;
   }
 }
 
@@ -4759,61 +4796,30 @@
 
 .pitbull-spotlight__home-tags li {
   align-items: center;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 16%, rgba(255, 255, 255, 0.1)),
-    rgba(255, 255, 255, 0.05)
-  );
-  border: 1px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 32%, rgba(255, 255, 255, 0.16));
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 34%, rgba(255, 255, 255, 0.14));
   border-radius: var(--border-radius-pill);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.94);
+  color: rgba(255, 255, 255, 0.78);
   display: inline-flex;
   font-size: 10.5px;
-  font-weight: 700;
-  gap: 7px;
-  letter-spacing: 0.11em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
   line-height: 1;
-  padding: 8px 14px 8px 11px;
+  padding: 7px 14px;
   text-transform: uppercase;
   transition:
-    background var(--transition-fast),
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.pitbull-spotlight__home-tags li::before {
-  background: var(--plu-gold-500, var(--color-brand-gold));
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 20%, transparent);
-  content: '';
-  flex-shrink: 0;
-  height: 5px;
-  width: 5px;
+    color var(--transition-fast);
 }
 
 .pitbull-spotlight__home-tags li:hover {
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 26%, rgba(255, 255, 255, 0.12)),
-    rgba(255, 255, 255, 0.07)
-  );
-  border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 48%, rgba(255, 255, 255, 0.22));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 6px 18px rgba(0, 0, 0, 0.22);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 60%, rgba(255, 255, 255, 0.2));
+  color: #fff;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pitbull-spotlight__home-tags li {
     transition: none;
-  }
-
-  .pitbull-spotlight__home-tags li:hover {
-    transform: none;
   }
 }
 
@@ -4827,17 +4833,18 @@
   align-items: center;
   background: var(--plu-gold-500, var(--color-brand-gold));
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: 1px;
   color: #14181f;
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-family);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  gap: 8px;
-  letter-spacing: 0.01em;
+  gap: 9px;
+  letter-spacing: 0.1em;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 20px;
+  text-transform: uppercase;
   transition:
     background var(--transition-fast),
     gap var(--transition-fast),
@@ -4865,6 +4872,15 @@
   position: relative;
   width: 100%;
   z-index: 1;
+}
+
+/* Debe declararse después de la regla base para ganarle en cascada
+   (misma especificidad, la última gana): mobile es una sola composición
+   foto + copy, sin filmstrip. */
+@media (max-width: 959px) {
+  .pitbull-spotlight__home-strip {
+    display: none;
+  }
 }
 
 .pitbull-spotlight__home-strip-tile {
@@ -5145,7 +5161,7 @@
   }
 
   .pitbull-spotlight__home-hero-frame {
-    height: clamp(360px, 48vh, 500px);
+    height: clamp(320px, 42vh, 440px);
   }
 
   .pitbull-spotlight__home-hero-img {
@@ -5298,14 +5314,6 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-[data-theme='light'] .pitbull-spotlight__home-panel::before {
-  background: linear-gradient(
-    180deg,
-    var(--plu-celeste-500),
-    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
-  );
-}
-
 [data-theme='light'] .pitbull-spotlight__home-kicker,
 [data-theme='light'] .pitbull-spotlight__home-lead,
 [data-theme='light'] .pitbull-spotlight__home-fact dt {
@@ -5324,13 +5332,9 @@
 }
 
 [data-theme='light'] .pitbull-spotlight__home-tags li {
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 16%, rgba(255, 255, 255, 0.1)),
-    rgba(255, 255, 255, 0.05)
-  );
-  border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 32%, rgba(255, 255, 255, 0.16));
-  color: rgba(255, 255, 255, 0.94);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 34%, rgba(255, 255, 255, 0.14));
+  color: rgba(255, 255, 255, 0.78);
 }
 
 [data-theme='light'] .pitbull-spotlight__home-cta {
