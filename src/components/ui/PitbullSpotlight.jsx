@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import { m } from 'motion/react'
 import photoBooth from '../../assets/DSC02270.jpg'
 import photoDesk from '../../assets/DSC02483.jpg'
 import photoLift from '../../assets/DSC00346.jpg'
@@ -6,22 +7,42 @@ import photoMedals from '../../assets/DSC01606.jpg'
 import photoSpotters from '../../assets/DSC00286.jpg'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { getStatusMeta } from '../../lib/status.js'
+import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
 import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
+import TiltCard from '../../motion/TiltCard.tsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
+
+/** Entrada del panel de copy — mismo lenguaje que HomeMembershipBand
+ * (stagger 45-70ms entre estado → título → metadata → tags → CTA), para que
+ * ambas cards del sistema "afiliación / Pitbull" se sientan de la misma
+ * familia sin ser idénticas. */
+const panelContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: MOTION_STAGGER.stepFast, delayChildren: 0.05 } },
+}
+
+const panelItem = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out } },
+}
 
 export default function PitbullSpotlight({
   variant = 'card',
   event,
   onDetail,
   onRegister,
+  onJoin,
+  onResults,
   registerLabel,
 }) {
   const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
+  const { reducedMotion } = useMotionConfig()
   const resolvedRegisterLabel = registerLabel ?? t('pages.events.register')
   const isHome = variant === 'home'
   const isEvents = variant === 'events'
@@ -99,13 +120,48 @@ export default function PitbullSpotlight({
       { src: photoBooth, key: 'booth' },
     ]
 
+    const eventStatus = event?.status ?? 'proximamente'
+    const { label: statusLabel } = getStatusMeta(eventStatus, t)
+    const registrationOpen = isRegistrationOpen(eventStatus)
+    const isFinished = eventStatus === 'finalizado'
+    const isClosed = eventStatus === 'cerrado'
+
+    /** El CTA principal nunca ofrece una acción que el usuario no puede
+     * realizar: sigue el estado real del evento en vez de un texto fijo. */
+    let primaryLabel = t('pages.pitbull.spotlight.viewCompetition')
+    let primaryAction = onDetail
+    if (registrationOpen) {
+      primaryLabel = resolvedRegisterLabel
+      primaryAction = onRegister ?? onDetail
+    } else if (isFinished) {
+      primaryLabel = t('pages.home.viewResults')
+      primaryAction = onResults ?? onDetail
+    } else if (isClosed) {
+      primaryLabel = t('pages.pitbull.joinNow')
+      primaryAction = onJoin ?? onDetail
+    }
+    const showSecondary = primaryAction !== onDetail
+
+    const Panel = reducedMotion ? 'div' : m.div
+    const panelProps = reducedMotion
+      ? { className: 'pitbull-spotlight__home-panel' }
+      : {
+          className: 'pitbull-spotlight__home-panel',
+          variants: panelContainer,
+          initial: 'hidden',
+          whileInView: 'visible',
+          viewport: { once: true, amount: 0.4 },
+        }
+    const PanelItem = reducedMotion ? 'div' : m.div
+    const panelItemProps = reducedMotion ? {} : { variants: panelItem }
+
     return (
       <article className="pitbull-spotlight pitbull-spotlight--home">
-        <p className="pitbull-spotlight__home-mark" aria-hidden>
-          PITBULL
-        </p>
-
-        <div className="pitbull-spotlight__home-stage">
+        <TiltCard
+          className="pitbull-spotlight__home-tilt"
+          innerClassName="tilt-card__inner pitbull-spotlight__home-stage"
+          maxTilt={3}
+        >
           <div className="pitbull-spotlight__home-media">
             <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
               <figure className="pitbull-spotlight__home-hero-frame">
@@ -157,55 +213,74 @@ export default function PitbullSpotlight({
             </div>
           </div>
 
-          <div className="pitbull-spotlight__home-panel">
-            <header className="pitbull-spotlight__home-head">
-              <p className="pitbull-spotlight__home-kicker">
-                <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
-                <span>{t('pages.pitbull.heroEyebrow')}</span>
-                <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
-                  ·
-                </span>
-                <span>{t('pages.pitbull.spotlight.registrationSoon')}</span>
-              </p>
-              <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
-              <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
-            </header>
+          <Panel {...panelProps}>
+            <span className="pitbull-spotlight__home-glow" aria-hidden />
 
-            <dl className="pitbull-spotlight__home-facts">
-              <div className="pitbull-spotlight__home-fact">
-                <dt>{t('pages.pitbull.quickFactsDate')}</dt>
-                <dd>
-                  <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
-                </dd>
-              </div>
-              <div className="pitbull-spotlight__home-fact">
-                <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
-                <dd>
-                  {PITBULL_CLASSIC.venue}
-                  <span aria-hidden> · </span>
-                  {PITBULL_CLASSIC.location}
-                </dd>
-              </div>
-            </dl>
+            <PanelItem {...panelItemProps}>
+              <header className="pitbull-spotlight__home-head">
+                <p className="pitbull-spotlight__home-kicker">
+                  <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
+                  <span>{t('pages.pitbull.heroEyebrow')}</span>
+                  <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
+                    ·
+                  </span>
+                  <span>{statusLabel}</span>
+                </p>
+                <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
+                <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
+              </header>
+            </PanelItem>
 
-            <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
-              {PITBULL_CLASSIC.categories.map((category) => (
-                <li key={category}>{category}</li>
-              ))}
-            </ul>
+            <PanelItem {...panelItemProps}>
+              <dl className="pitbull-spotlight__home-facts">
+                <div className="pitbull-spotlight__home-fact">
+                  <dt>{t('pages.pitbull.quickFactsDate')}</dt>
+                  <dd>
+                    <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
+                  </dd>
+                </div>
+                <div className="pitbull-spotlight__home-fact">
+                  <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
+                  <dd>
+                    {PITBULL_CLASSIC.venue}
+                    <span aria-hidden> · </span>
+                    {PITBULL_CLASSIC.location}
+                  </dd>
+                </div>
+              </dl>
+            </PanelItem>
 
-            <footer className="pitbull-spotlight__home-actions">
-              <button
-                type="button"
-                className="pitbull-spotlight__home-cta motion-icon-shift"
-                onClick={onDetail}
-              >
-                {t('pages.pitbull.spotlight.viewDetail')}
-                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-              </button>
-            </footer>
-          </div>
-        </div>
+            <PanelItem {...panelItemProps}>
+              <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
+                {PITBULL_CLASSIC.categories.map((category) => (
+                  <li key={category}>{category}</li>
+                ))}
+              </ul>
+            </PanelItem>
+
+            <PanelItem {...panelItemProps}>
+              <footer className="pitbull-spotlight__home-actions">
+                <button
+                  type="button"
+                  className="pitbull-spotlight__home-cta motion-icon-shift"
+                  onClick={primaryAction}
+                >
+                  {primaryLabel}
+                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                </button>
+                {showSecondary ? (
+                  <button
+                    type="button"
+                    className="pitbull-spotlight__home-cta-secondary"
+                    onClick={onDetail}
+                  >
+                    {t('pages.pitbull.spotlight.viewFullCard')}
+                  </button>
+                ) : null}
+              </footer>
+            </PanelItem>
+          </Panel>
+        </TiltCard>
       </article>
     )
   }

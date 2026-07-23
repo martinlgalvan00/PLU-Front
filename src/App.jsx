@@ -289,7 +289,13 @@ export default function App() {
               session: app.session,
             }
           : view === 'home'
-            ? { onNavigate: navigate, onSelectEvent: selectEvent }
+            ? {
+                onNavigate: navigate,
+                onSelectEvent: selectEvent,
+                events: publicEvents,
+                session: app.session,
+                memberships: app.memberships,
+              }
             : view === 'pitbull'
               ? {
                   onNavigate: navigate,

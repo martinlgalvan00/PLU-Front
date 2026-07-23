@@ -62,6 +62,13 @@ export function getStatusMeta(value, t) {
   return { label, tone }
 }
 
+/** Único punto de verdad para "¿se puede inscribir a este evento ahora?" —
+ * antes se repetía como `status === 'inscripcion_abierta' || status === 'cupos_limitados'`
+ * en EventCard, EventsPage y PitbullPage. */
+export function isRegistrationOpen(status) {
+  return status === 'inscripcion_abierta' || status === 'cupos_limitados'
+}
+
 const LEGACY_STATUS_MAP = {
   active: 'activa',
   expired: 'vencida',

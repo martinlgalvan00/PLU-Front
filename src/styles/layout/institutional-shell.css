@@ -887,6 +887,7 @@
 
 .plu-drawer__nav-primary {
   display: grid;
+  gap: 6px;
 }
 
 .plu-drawer__row {
@@ -973,12 +974,12 @@
 
 .plu-drawer__nav-primary .plu-drawer__row--flush {
   border-top: 0;
-  padding: 9px 0;
+  padding: 12px 0;
 }
 
 .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
@@ -1019,8 +1020,8 @@
 }
 
 .plu-drawer__nav-primary .plu-drawer__row-indicator {
-  bottom: 12px;
-  top: 12px;
+  bottom: 14px;
+  top: 14px;
 }
 
 /* Secundario — línea de utilidad, no una lista: texto corrido
@@ -1033,7 +1034,7 @@
   display: flex;
   flex-wrap: wrap;
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: 18px;
   row-gap: 2px;
 }
 
@@ -1431,104 +1432,134 @@
 
 .institutional-footer__rule {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  height: 3px;
+  grid-template-columns: 1fr 2.4fr 1fr;
+  height: 1px;
 }
 
 .institutional-footer__rule span:nth-child(1) { background: var(--institution-blue); }
 .institutional-footer__rule span:nth-child(2) {
-  background: color-mix(in srgb, var(--institution-text) 70%, transparent);
+  background: color-mix(in srgb, var(--institution-text) 42%, transparent);
 }
 .institutional-footer__rule span:nth-child(3) { background: var(--institution-gold); }
 
 .institutional-footer__inner {
   margin: 0 auto;
-  max-width: 1440px;
-  padding: clamp(44px, 6vw, 74px) var(--institution-gutter) 24px;
+  max-width: 1200px;
+  padding: clamp(40px, 5.5vw, 64px) var(--institution-gutter) 24px;
 }
 
 .institutional-footer__lead {
-  align-items: end;
+  align-items: center;
   display: grid;
-  gap: clamp(34px, 7vw, 110px);
-  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1.2fr);
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 0.7fr) minmax(260px, 1.3fr);
 }
 
 .institutional-footer__brand {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  max-width: 24ch;
 }
 
-.institutional-footer__brand button { justify-self: start; padding: 0; }
-.institutional-footer__logo { height: 33px; width: auto; }
-
-.institutional-footer__brand p {
-  color: var(--footer-text-muted, var(--institution-text-muted));
-  font-size: 12px;
-  line-height: 1.65;
-  margin: 0;
-  max-width: 46ch;
+.institutional-footer__brand button {
+  justify-self: start;
+  padding: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 
-.institutional-footer__brand > span {
+.institutional-footer__brand button:hover {
+  opacity: 0.72;
+}
+
+.institutional-footer__logo {
+  height: 30px;
+  width: auto;
+}
+
+.institutional-footer__chapter {
   color: var(--footer-heading, var(--institution-text-muted));
-  font-size: 8px;
+  font-size: 9.5px;
   font-weight: 650;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
 .institutional-footer__cta {
-  border-left: 1px solid var(--footer-border, var(--institution-border));
-  padding-left: clamp(28px, 5vw, 64px);
+  padding-left: clamp(16px, 3vw, 36px);
+  position: relative;
 }
 
-.institutional-footer__cta .institutional-kicker { color: var(--institution-blue); }
+.institutional-footer__cta::before {
+  background: linear-gradient(
+    180deg,
+    var(--institution-gold) 0%,
+    color-mix(in srgb, var(--institution-gold) 35%, var(--institution-blue)) 100%
+  );
+  border-radius: 99px;
+  bottom: 10%;
+  content: '';
+  left: 0;
+  opacity: 0.85;
+  position: absolute;
+  top: 8%;
+  width: 1.5px;
+}
+
+.institutional-footer__kicker {
+  color: color-mix(in srgb, var(--institution-gold) 82%, var(--institution-text-muted));
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
 
 .institutional-footer__cta h2 {
   color: var(--footer-text-hover, var(--institution-text));
-  font-size: clamp(25px, 3.5vw, 42px);
-  font-weight: 720;
-  letter-spacing: -0.045em;
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
   margin: 0;
-  max-width: 16ch;
+  max-width: 18ch;
+  text-wrap: balance;
 }
 
-.institutional-footer__cta-row,
-.institutional-footer__cta > div {
+.institutional-footer__cta-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
-  margin-top: 22px;
+  margin-top: 16px;
 }
 
 .institutional-footer__action {
   align-items: center;
-  background: var(--institution-text);
-  border: 1px solid var(--institution-text);
+  background: var(--institution-gold);
+  border: 1px solid var(--institution-gold);
   border-radius: 2px;
-  color: var(--institution-canvas);
+  color: #14161c;
   display: inline-flex;
-  font-family: var(--font-display, inherit);
-  font-size: 13px;
-  font-weight: 650;
-  gap: 10px;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 700;
+  gap: 8px;
   justify-content: center;
-  letter-spacing: -0.01em;
-  min-height: 48px;
-  padding: 0 22px;
+  letter-spacing: 0.02em;
+  min-height: 42px;
+  padding: 0 18px;
   text-decoration: none;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out),
     transform var(--motion-fast) var(--ease-out);
 }
 
 .institutional-footer__action:hover {
-  background: color-mix(in srgb, var(--institution-text) 88%, var(--institution-gold));
-  border-color: color-mix(in srgb, var(--institution-text) 88%, var(--institution-gold));
+  background: color-mix(in srgb, var(--institution-gold) 86%, white);
+  border-color: color-mix(in srgb, var(--institution-gold) 86%, white);
   transform: translateY(-1px);
 }
 
@@ -1538,11 +1569,10 @@
 }
 
 .institutional-footer__mail {
-  align-items: center;
-  color: var(--footer-text, var(--institution-text-secondary));
-  display: inline-flex;
-  font-size: 11.5px;
-  gap: 8px;
+  color: var(--footer-text-muted, var(--institution-text-muted));
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   min-height: 44px;
   text-decoration: none;
   transition: color var(--motion-fast) var(--ease-out);
@@ -1552,38 +1582,32 @@
   color: var(--footer-text-hover, var(--institution-text));
 }
 
-.institutional-footer__mail svg { color: var(--institution-blue); }
-
 .institutional-footer__directory {
-  border-bottom: 1px solid var(--footer-border-subtle, var(--institution-border));
   border-top: 1px solid var(--footer-border-subtle, var(--institution-border));
   display: grid;
-  gap: 0;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: clamp(36px, 5vw, 58px);
+  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(32px, 4.5vw, 48px);
+  padding-top: clamp(24px, 3vw, 32px);
 }
 
 .institutional-footer__directory nav {
-  border-right: 1px solid var(--footer-border-subtle, var(--institution-border));
-  padding: 22px clamp(18px, 3vw, 34px) 26px;
+  padding: 0;
 }
 
-.institutional-footer__directory nav:first-child { padding-left: 0; }
-.institutional-footer__directory nav:last-child { border-right: 0; }
-
 .institutional-footer__directory h3 {
-  color: var(--institution-gold);
-  font-size: 9px;
+  color: var(--footer-heading, var(--institution-text-muted));
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.13em;
-  margin: 0 0 14px;
+  letter-spacing: 0.16em;
+  margin: 0 0 18px;
   text-transform: uppercase;
 }
 
 .institutional-footer__directory ul {
   display: grid;
-  gap: 8px 20px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1591,8 +1615,10 @@
 
 .institutional-footer__directory button {
   color: var(--footer-text-muted, var(--institution-text-muted));
-  font-size: 11.5px;
-  min-height: 28px;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  min-height: 26px;
   padding: 0;
   text-align: left;
   transition: color var(--motion-fast) var(--ease-out);
@@ -1603,13 +1629,16 @@
 }
 
 .institutional-footer__bottom {
+  border-top: 1px solid var(--footer-border-subtle, var(--institution-border));
   color: var(--footer-heading, var(--institution-text-muted));
   display: flex;
   flex-wrap: wrap;
-  font-size: 8.5px;
-  gap: 10px 20px;
+  font-size: 11px;
+  gap: 10px 28px;
   justify-content: space-between;
-  padding-top: 20px;
+  letter-spacing: 0.03em;
+  margin-top: clamp(28px, 4vw, 40px);
+  padding-top: 22px;
 }
 
 /* ── Responsive shell ───────────────────────────── */
@@ -1905,17 +1934,29 @@
 
   .institutional-footer__inner { padding-inline: 18px; }
   .institutional-footer__lead { grid-template-columns: 1fr; }
-  .institutional-footer__cta {
-    border-left: 0;
-    border-top: 1px solid var(--footer-border, var(--institution-border));
-    padding: 28px 0 0;
+  .institutional-footer__brand {
+    max-width: none;
   }
-  .institutional-footer__directory { grid-template-columns: 1fr; }
+  .institutional-footer__cta {
+    border-top: 1px solid var(--footer-border, var(--institution-border));
+    margin-top: 4px;
+    padding: 22px 0 0;
+  }
+  .institutional-footer__cta::before {
+    display: none;
+  }
+  .institutional-footer__cta h2 {
+    max-width: 16ch;
+  }
+  .institutional-footer__directory {
+    gap: 0;
+    grid-template-columns: 1fr;
+  }
   .institutional-footer__directory nav,
   .institutional-footer__directory nav:first-child {
     border-bottom: 1px solid var(--footer-border-subtle, var(--institution-border));
     border-right: 0;
-    padding: 18px 0;
+    padding: 22px 0;
   }
   .institutional-footer__directory nav:last-child { border-bottom: 0; }
 }
@@ -1929,7 +1970,7 @@
     padding-inline: 6px;
   }
   .plu-drawer { max-width: 320px; width: min(92vw, 320px); }
-  .institutional-footer__directory ul { grid-template-columns: 1fr 1fr; }
+  .institutional-footer__directory ul { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

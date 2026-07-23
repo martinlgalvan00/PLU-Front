@@ -1,9 +1,9 @@
 /**
- * Letterhead PLU (PNG: texto blanco + fondo negro embebido).
+ * Letterhead PLU (PNG: texto blanco + barra dorada sobre fondo transparente).
  *
- * dark  → sin filtro; letras blancas sobre fondos oscuros sólidos.
- * light → silueta negra (brightness).
- * --blend (solo dark) → funde el negro del PNG en headers / superficies translúcidas.
+ * dark  → sin filtro; letras blancas sobre fondos oscuros.
+ * light → silueta negra (brightness(0)).
+ * --blend (solo dark) → funde el letterhead en headers / superficies translúcidas.
  */
 
 .brand-logo-letterhead {

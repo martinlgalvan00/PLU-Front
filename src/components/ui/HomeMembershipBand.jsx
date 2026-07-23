@@ -37,10 +37,21 @@ const copyItemSubtle = {
   },
 }
 
-export default function HomeMembershipBand({ onNavigate }) {
+export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = false, hasActiveMembership = false }) {
   const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+
+  /** El CTA principal responde al estado real de la sesión — nunca invita a
+   * "ver planes" a quien ya está afiliado, ni a "afiliarse" sin haber
+   * iniciado sesión (ahí primero necesita crear su perfil de atleta). */
+  const primaryCta = isLoggedInAthlete
+    ? hasActiveMembership
+      ? t('pages.members.ctaAlreadyAffiliated')
+      : t('pages.members.ctaAuthenticated')
+    : HOME_MEMBERSHIP.cta
+  const primaryTarget = isLoggedInAthlete ? (hasActiveMembership ? 'profile' : 'membership') : 'members'
+  const goToAffiliation = () => onNavigate(primaryTarget)
 
   const CopyShell = reducedMotion ? 'div' : m.div
   const copyProps = reducedMotion
@@ -91,8 +102,8 @@ export default function HomeMembershipBand({ onNavigate }) {
         ) : null}
 
         <CopyItem {...itemProps} className="home-membership-band__actions">
-          <Button variant="gold" className="home-membership-band__cta" onClick={() => onNavigate('members')}>
-            {HOME_MEMBERSHIP.cta}
+          <Button variant="gold" className="home-membership-band__cta" onClick={goToAffiliation}>
+            {primaryCta}
             <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
           </Button>
           <button
