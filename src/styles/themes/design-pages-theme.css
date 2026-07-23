@@ -1092,19 +1092,16 @@
 [data-theme='dark'] .login-page--design {
   background: var(--color-page-canvas);
   --login-page-atmosphere:
-    radial-gradient(ellipse 80% 55% at 12% 18%, rgba(116, 172, 223, 0.09), transparent 58%),
-    radial-gradient(ellipse 60% 45% at 88% 72%, rgba(242, 183, 5, 0.05), transparent 55%),
+    radial-gradient(ellipse 68% 48% at 16% 18%, rgba(242, 183, 5, 0.045), transparent 62%),
     var(--color-page-canvas);
-  --login-card-bg: color-mix(in oklab, var(--color-bg-surface) 92%, transparent);
-  --login-card-border: rgba(255, 255, 255, 0.09);
-  --login-card-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 28px 56px rgba(0, 0, 0, 0.34);
+  --login-card-bg: color-mix(in oklab, var(--color-bg-surface) 72%, transparent);
+  --login-card-border: rgba(255, 255, 255, 0.06);
+  --login-card-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
   --login-card-stripe: linear-gradient(
     90deg,
-    var(--color-brand-red) 0 28%,
-    color-mix(in oklab, var(--color-text-primary) 75%, transparent) 28% 58%,
-    var(--color-brand-celeste) 58% 100%
+    var(--color-brand-red) 0 26%,
+    color-mix(in oklab, var(--color-text-primary) 70%, transparent) 26% 56%,
+    var(--color-brand-celeste) 56% 100%
   );
   --login-brand-rule: linear-gradient(
     180deg,
@@ -1116,22 +1113,21 @@
 [data-theme='light'] .login-page--design {
   background: var(--color-page-canvas);
   --login-page-atmosphere:
-    radial-gradient(ellipse 75% 50% at 10% 12%, rgba(26, 107, 176, 0.06), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 92% 78%, rgba(169, 121, 15, 0.05), transparent 52%),
+    radial-gradient(ellipse 62% 44% at 14% 14%, rgba(169, 121, 15, 0.04), transparent 58%),
     var(--color-page-canvas);
-  --login-card-bg: rgba(255, 255, 255, 0.96);
-  --login-card-border: rgba(15, 17, 23, 0.1);
-  --login-card-shadow: 0 22px 48px rgba(15, 17, 23, 0.08);
+  --login-card-bg: rgba(255, 255, 255, 0.9);
+  --login-card-border: rgba(15, 17, 23, 0.07);
+  --login-card-shadow: 0 14px 32px rgba(15, 17, 23, 0.05);
   --login-card-stripe: linear-gradient(
     90deg,
-    var(--color-brand-red) 0 28%,
-    rgba(15, 17, 23, 0.55) 28% 58%,
-    #1a6bb0 58% 100%
+    var(--color-brand-red) 0 26%,
+    rgba(15, 17, 23, 0.5) 26% 56%,
+    #1a6bb0 56% 100%
   );
   --login-brand-rule: linear-gradient(
     180deg,
     var(--plu-gold-500) 0%,
-    rgba(15, 17, 23, 0.45) 50%,
+    rgba(15, 17, 23, 0.4) 52%,
     #1a6bb0 100%
   );
 }
@@ -1221,12 +1217,7 @@
   background: rgba(15, 17, 23, 0.08);
 }
 
-/* El PNG del wordmark es texto blanco sobre fondo transparente — el
-   filter: brightness(0) genérico de light theme (brand-logo.css) lo
-   volvería negro sobre negro acá. Lo mostramos en su composición original
-   (texto blanco) dentro de una placa oscura, en vez de invertirlo.
-   Selector reforzado con .brand-logo-letterhead para ganarle en
-   especificidad a la regla genérica (brand-logo.css se importa después). */
+/* Letterhead: silueta negra vía brand-logo.css (brightness(0)). */
 [data-theme='light'] .login-brand__logos-rule {
   background: rgba(15, 17, 23, 0.14);
 }
@@ -1235,18 +1226,12 @@
   color: rgba(15, 17, 23, 0.5);
 }
 
-[data-theme='light'] .brand-logo-letterhead.login-brand__logo {
-  filter: none;
-  background: #14181f;
-  border-radius: 4px;
-  padding: 6px 10px;
-}
-
+[data-theme='light'] .brand-logo-letterhead.login-brand__logo,
 [data-theme='light'] .brand-logo-letterhead.login-card__logo {
-  filter: none;
-  background: #14181f;
-  border-radius: 4px;
-  padding: 4px 7px;
+  background: transparent;
+  filter: brightness(0);
+  opacity: 0.88;
+  padding: 0;
 }
 
 [data-theme='light'] .login-card {
@@ -1276,6 +1261,14 @@
   color: rgba(15, 17, 23, 0.58);
 }
 
+[data-theme='light'] .login-field:focus-within .login-field__label {
+  color: rgba(15, 17, 23, 0.88);
+}
+
+[data-theme='light'] .login-page--editorial .login-field:focus-within .login-field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 58%, rgba(15, 17, 23, 0.72));
+}
+
 [data-theme='light'] .login-field__forgot {
   color: rgba(15, 17, 23, 0.48);
   text-decoration-color: rgba(15, 17, 23, 0.2);
@@ -1290,13 +1283,26 @@
   border-bottom-color: rgba(15, 17, 23, 0.18);
 }
 
+[data-theme='light'] .login-field__control:hover:not(:focus-within) {
+  border-bottom-color: rgba(15, 17, 23, 0.32);
+}
+
 [data-theme='light'] .login-field__control:focus-within {
   background: transparent;
-  border-color: rgba(160, 128, 48, 0.7);
-  box-shadow: 0 1px 0 0 rgba(160, 128, 48, 0.4);
+  border-bottom-color: rgba(15, 17, 23, 0.22);
+  box-shadow: none;
+}
+
+[data-theme='light'] .login-field__control::after {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--plu-gold-500) 88%, transparent) 0%,
+    color-mix(in oklab, var(--plu-gold-500) 40%, transparent) 100%
+  );
 }
 
 [data-theme='light'] .login-field__control input {
+  caret-color: var(--plu-gold-500);
   color: var(--color-text-on-light);
 }
 
@@ -1305,11 +1311,16 @@
   color: rgba(15, 17, 23, 0.4);
 }
 
+[data-theme='light'] .login-field__control:focus-within .login-field__icon {
+  color: color-mix(in oklab, var(--plu-gold-500) 55%, rgba(15, 17, 23, 0.55));
+}
+
 [data-theme='light'] .login-field__toggle {
   color: rgba(15, 17, 23, 0.42);
 }
 
-[data-theme='light'] .login-field__toggle:hover {
+[data-theme='light'] .login-field__toggle:hover,
+[data-theme='light'] .login-field__control:focus-within .login-field__toggle {
   color: rgba(15, 17, 23, 0.8);
 }
 

@@ -10,9 +10,24 @@ import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
+import { getFeaturedEvent } from '../lib/eventNavigation.js'
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
   const { HOME_FAQ, HOME_FAQ_ITEMS } = useContent()
+
+  const pitbullEvent = getFeaturedEvent(events)
+  const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const hasActiveMembership = isLoggedInAthlete && memberships.some(
+    (membership) => membership.athleteId === session.athleteId && membership.status === 'activa',
+  )
+
+  function handlePitbullRegister() {
+    if (!isLoggedInAthlete) {
+      onNavigate('register')
+      return
+    }
+    onSelectEvent?.(pitbullEvent)
+  }
 
   return (
     <main className="home-page">
@@ -26,13 +41,24 @@ export default function HomePage({ onNavigate }) {
 
       <Reveal as="section" className="home-section home-section--immersive home-section--pitbull-home" variant="from-right">
         <div className="home-section__inner">
-          <PitbullSpotlight variant="home" onDetail={() => onNavigate('pitbull')} />
+          <PitbullSpotlight
+            variant="home"
+            event={pitbullEvent}
+            onDetail={() => onNavigate('pitbull')}
+            onRegister={handlePitbullRegister}
+            onJoin={() => onNavigate('members')}
+            onResults={() => onNavigate('results')}
+          />
         </div>
       </Reveal>
 
       <Reveal as="section" className="home-section home-section--canvas-light home-section--mid-stack" variant="rise">
         <div className="home-section__inner home-mid-stack">
-          <HomeMembershipBand onNavigate={onNavigate} />
+          <HomeMembershipBand
+            onNavigate={onNavigate}
+            isLoggedInAthlete={isLoggedInAthlete}
+            hasActiveMembership={hasActiveMembership}
+          />
 
           <div className="home-mid-stack__divider" aria-hidden />
 

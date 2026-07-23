@@ -11,6 +11,7 @@
     "dev:all": "npm run dev",
     "setup:all": "node scripts/bootstrap-all.mjs",
     "start:all": "npm run dev",
+    "postinstall": "prisma generate",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "oxlint src server",

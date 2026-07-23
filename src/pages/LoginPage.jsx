@@ -4,12 +4,6 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { usePluOAuth } from '../providers/oauthContext.js'
 
-const FEATURES = [
-  { key: 'login.featureProfile', index: '01' },
-  { key: 'login.featureMembership', index: '02' },
-  { key: 'login.featureEvents', index: '03' },
-]
-
 export default function LoginPage({ onLogin, onNavigate }) {
   const { t } = useI18n()
   const oauth = usePluOAuth()
@@ -65,17 +59,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
             <h1 className="login-brand__title">{t('login.title')}</h1>
             <p className="login-brand__desc">{t('login.subtitle')}</p>
           </div>
-
-          <ul className="login-brand__features" role="list">
-            {FEATURES.map(({ key, index }) => (
-              <li key={key} className="login-brand__feature">
-                <span className="login-brand__feature-index" aria-hidden>
-                  {index}
-                </span>
-                <span className="login-brand__feature-text">{t(key)}</span>
-              </li>
-            ))}
-          </ul>
 
           <p className="login-brand__secure">{t('login.secureNote')}</p>
         </aside>
