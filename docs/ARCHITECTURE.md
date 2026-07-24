@@ -3,7 +3,7 @@
 ## Stack
 
 - **Frontend:** Vite 8 + React 19 + CSS modular
-- **API:** Express 5 (scaffold en `server/`)
+- **API:** Express 5 en una única Vercel Function (`api/index.js`)
 - **DB:** Supabase PostgreSQL: `plu_prisma` para identidad staff y `public` para dominios transaccionales
 - **Pagos:** Mercado Pago Checkout Bricks (`Payment Brick` y `Card Payment Brick`) + Suscripciones
 - **Emails:** Brevo API (adaptador en `src/services/emailService.js`)
@@ -55,6 +55,26 @@ acotado a usuarios, roles y sesiones del staff dentro del schema `plu_prisma`
 de la misma base alojada. Las verificaciones QR públicas
 exponen una proyección mínima sin DNI ni datos de pago.
 
+## Runtime y entornos
+
+Vite y Express se publican juntos. El frontend consume rutas relativas `/api`,
+por lo que no necesita una URL de backend distinta ni CORS entre servicios.
+Vercel concentra todo Express en una sola Function y conserva una URL estable
+por rama:
+
+- `main`: Production, dominio oficial y Supabase PROD.
+- `dev`: Preview de rama, URL estable de aceptación y Supabase DEV.
+
+El código es el mismo en ambos entornos; los datos y secretos no se comparten.
+Las variables del sistema de Vercel resuelven automáticamente `APP_URL` y
+`API_URL`. `SUPABASE_DATABASE_URL` se transforma en el datasource Prisma del
+schema `plu_prisma` en runtime.
+
+Las tareas que sólo modifican PostgreSQL (vencimiento de afiliaciones, reservas
+y órdenes) corren con `pg_cron` dentro de Supabase. Las tareas que llaman
+servicios externos se exponen como endpoints internos protegidos por
+`CRON_SECRET`; no usan `setInterval` en la Function serverless.
+
 ## Integraciones
 
 Todas las integraciones externas usan adaptadores inyectables. En producción, si faltan
@@ -84,7 +104,7 @@ Componentes actuales:
 | Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
 | Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260722150000_*` |
+| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260724000000_*` |
 
 El checkout crea la orden primero. El navegador tokeniza el medio de pago con
 MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia

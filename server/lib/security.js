@@ -4,8 +4,36 @@ const TRUSTED_BROWSER_HEADER = 'x-plu-request'
 const TRUSTED_BROWSER_VALUE = 'browser'
 const SERVER_TO_SERVER_MUTATION_PATHS = new Set(['/api/payments/webhook'])
 
-export function getAllowedOrigins() {
-  return [process.env.APP_URL, process.env.VITE_APP_URL, 'http://localhost:5173'].filter(Boolean)
+function asOrigin(value) {
+  const candidate = String(value ?? '').trim()
+  if (!candidate) return null
+
+  try {
+    const url = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`
+    return new URL(url).origin
+  } catch {
+    return null
+  }
+}
+
+export function getAllowedOrigins(env = process.env) {
+  const configuredOrigins = String(env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+  return [
+    env.APP_URL,
+    env.VITE_APP_URL,
+    env.VERCEL_URL,
+    env.VERCEL_BRANCH_URL,
+    env.VERCEL_PROJECT_PRODUCTION_URL,
+    ...configuredOrigins,
+    'http://localhost:5173',
+  ]
+    .map(asOrigin)
+    .filter(Boolean)
+    .filter((origin, index, origins) => origins.indexOf(origin) === index)
 }
 
 export function corsOrigin(origin, callback) {

@@ -71,7 +71,16 @@ export function classifySecurityUsers({ users, eventsById, now, graceMs }) {
   return { disableEventIds, purgeEventIds }
 }
 
-async function runOnce({ prisma, client, graceMs, now = new Date() }) {
+export async function runSecurityUserLifecycleJob({
+  prisma,
+  client,
+  env = process.env,
+  now = new Date(),
+} = {}) {
+  if (!prisma || !client) {
+    throw new Error('Prisma y Supabase son obligatorios para el ciclo de vida de seguridad.')
+  }
+  const graceMs = Number(env.SECURITY_USER_PURGE_GRACE_MS) || DEFAULT_GRACE_MS
   const users = await prisma.user.findMany({
     where: { role: SECURITY_ROLE },
     select: { id: true, eventId: true, status: true },
@@ -82,7 +91,12 @@ async function runOnce({ prisma, client, graceMs, now = new Date() }) {
   // Si esta lectura falla, fetchSupabaseEventsByIds tira -> el caller aborta la
   // corrida y no se toca ninguna cuenta (nunca borrar sobre lectura fallida).
   const eventsById = await fetchSupabaseEventsByIds(client, eventIds)
-  const { disableEventIds, purgeEventIds } = classifySecurityUsers({ users, eventsById, now, graceMs })
+  const { disableEventIds, purgeEventIds } = classifySecurityUsers({
+    users,
+    eventsById,
+    now,
+    graceMs,
+  })
 
   let disabled = 0
   let purged = 0
@@ -108,13 +122,12 @@ async function runOnce({ prisma, client, graceMs, now = new Date() }) {
 export function startSecurityUserLifecycleJob({ prisma, client, env = process.env } = {}) {
   if (!prisma || !client || env.SECURITY_USER_LIFECYCLE_JOB_ENABLED === 'false') return null
 
-  const graceMs = Number(env.SECURITY_USER_PURGE_GRACE_MS) || DEFAULT_GRACE_MS
   let running = false
   const run = async () => {
     if (running) return
     running = true
     try {
-      const { disabled, purged } = await runOnce({ prisma, client, graceMs })
+      const { disabled, purged } = await runSecurityUserLifecycleJob({ prisma, client, env })
       if (disabled || purged) {
         console.info(`security-user-lifecycle-job: disabled=${disabled} purged=${purged}`)
       }

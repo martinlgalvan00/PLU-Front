@@ -7,5 +7,18 @@
       "*": false
     }
   },
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    { "path": "/api/internal/jobs/payment-recovery", "schedule": "15 2 * * *" },
+    { "path": "/api/internal/jobs/membership-renewal", "schedule": "30 2 * * *" },
+    { "path": "/api/internal/jobs/security-user-lifecycle", "schedule": "45 2 * * *" }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+  ]
 }

@@ -7,8 +7,8 @@ import { createSupabasePaymentRepository } from '../modules/payments/supabasePay
 
 const DEFAULT_INTERVAL_MS = 60_000
 
-export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
-  if (env.PAYMENT_RECOVERY_JOB_ENABLED !== 'true' || !client) return null
+export async function runPaymentRecoveryJob({ client, env = process.env } = {}) {
+  if (!client) throw new Error('Supabase no está configurado para recuperar pagos.')
 
   const repository = createSupabasePaymentRepository(client)
   const mercadoPago = createMercadoPagoAdapter({ env })
@@ -17,18 +17,25 @@ export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
     brevo: createBrevoAdapter({ env }),
     env,
   })
+
+  return recoverPaymentOperations({
+    repository,
+    mercadoPago,
+    notifyPaymentApplied,
+    eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+    reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+  })
+}
+
+export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
+  if (env.PAYMENT_RECOVERY_JOB_ENABLED !== 'true' || !client) return null
+
   let running = false
   const run = async () => {
     if (running) return
     running = true
     try {
-      const result = await recoverPaymentOperations({
-        repository,
-        mercadoPago,
-        notifyPaymentApplied,
-        eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
-        reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
-      })
+      const result = await runPaymentRecoveryJob({ client, env })
       if (result.claimErrors.length) {
         console.error('payment-recovery-job claims:', result.claimErrors)
       }

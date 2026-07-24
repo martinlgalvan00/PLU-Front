@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [dev, main]
   push:
-    branches: [main]
+    branches: [dev, main]
   workflow_dispatch:
 
 concurrency:
@@ -19,17 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Reject local API URLs in production assets
+        run: |
+          if grep -RE "https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]):(3001|5173)" dist; then
+            echo "El build contiene una URL local de la aplicación."
+            exit 1
+          fi
       - name: Validate Prisma schema
         env:
           # `prisma validate` parses the datasource URL but does not connect.
@@ -40,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
           version: 2.109.1
@@ -54,7 +62,7 @@ jobs:
             's/^API_URL="\(.*\)"$/SUPABASE_URL=\1/p;
              s/^SERVICE_ROLE_KEY="\(.*\)"$/SUPABASE_SERVICE_ROLE_KEY=\1/p;
              s/^DB_URL="\(.*\)"$/SUPABASE_DATABASE_URL=\1/p' >> "$GITHUB_ENV"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
