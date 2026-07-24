@@ -20,6 +20,7 @@ describe('flujo de despliegue', () => {
 
   it('ejecuta CI en PRs y pushes hacia dev/main y evita trabajos obsoletos', () => {
     expect(ciWorkflow.match(/branches: \[dev, main\]/g)).toHaveLength(2)
+    expect(ciWorkflow).toContain('github.event.pull_request.head.ref || github.ref_name')
     expect(ciWorkflow).toContain('cancel-in-progress: true')
   })
 
