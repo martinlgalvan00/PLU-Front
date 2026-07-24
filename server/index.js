@@ -1,5 +1,6 @@
 import { loadEnvFile } from 'node:process'
 import { createApp } from './app.js'
+import { applyDeploymentEnvironmentDefaults } from './lib/deploymentEnvironment.js'
 import { applyServerRuntimeDefaults } from './lib/runtime.js'
 import { getPrisma } from './lib/prisma.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
@@ -13,6 +14,8 @@ try {
 } catch {
   // Las variables también pueden venir del entorno del proceso o del CI.
 }
+
+applyDeploymentEnvironmentDefaults()
 
 const app = createApp()
 const port = Number(process.env.PORT) || 3001

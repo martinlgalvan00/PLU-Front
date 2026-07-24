@@ -2,6 +2,21 @@ import { assertSupabaseResult } from '../lib/supabaseRpc.js'
 
 const DEFAULT_INTERVAL_MS = 60_000
 
+export async function runDomainMaintenanceJob({ client } = {}) {
+  if (!client) throw new Error('Supabase no está configurado para mantenimiento de dominio.')
+
+  const [ticketReservations, domainOrders] = await Promise.all(
+    [
+      client.rpc('expire_ticket_reservations', { p_now: new Date().toISOString() }),
+      client.rpc('expire_domain_orders', { p_now: new Date().toISOString() }),
+    ].map(async (request) =>
+      assertSupabaseResult(await request, 'Falló el mantenimiento de órdenes.'),
+    ),
+  )
+
+  return { ticketReservations, domainOrders }
+}
+
 export function startDomainMaintenanceJob({ client, env = process.env } = {}) {
   if (!client || env.DOMAIN_MAINTENANCE_JOB_ENABLED === 'false') return null
   let running = false
@@ -9,10 +24,7 @@ export function startDomainMaintenanceJob({ client, env = process.env } = {}) {
     if (running) return
     running = true
     try {
-      await Promise.all([
-        client.rpc('expire_ticket_reservations', { p_now: new Date().toISOString() }),
-        client.rpc('expire_domain_orders', { p_now: new Date().toISOString() }),
-      ].map(async (request) => assertSupabaseResult(await request, 'Fallo el mantenimiento de ordenes.')))
+      await runDomainMaintenanceJob({ client })
     } catch (error) {
       console.error('domain-maintenance-job:', error)
     } finally {
@@ -20,7 +32,10 @@ export function startDomainMaintenanceJob({ client, env = process.env } = {}) {
     }
   }
   void run()
-  const intervalMs = Math.max(30_000, Number(env.DOMAIN_MAINTENANCE_JOB_INTERVAL_MS) || DEFAULT_INTERVAL_MS)
+  const intervalMs = Math.max(
+    30_000,
+    Number(env.DOMAIN_MAINTENANCE_JOB_INTERVAL_MS) || DEFAULT_INTERVAL_MS,
+  )
   const timer = setInterval(run, intervalMs)
   timer.unref()
   return timer

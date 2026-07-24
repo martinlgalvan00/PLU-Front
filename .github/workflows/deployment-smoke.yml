@@ -1,0 +1,23 @@
+name: Deployment smoke
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify deployed API liveness
+        env:
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        run: |
+          test -n "$DEPLOYMENT_URL"
+          curl --fail --show-error --silent \
+            --retry 5 --retry-all-errors --retry-delay 5 --max-time 20 \
+            "$DEPLOYMENT_URL/api/health" > health.json
+          node -e "const fs=require('fs'); const body=JSON.parse(fs.readFileSync('health.json')); if(body.status!=='ok') process.exit(1)"

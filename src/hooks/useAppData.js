@@ -16,6 +16,7 @@ import {
   updateSecurityUserStatusRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
+import { env } from '../config/env.js'
 import { canEdit } from '../lib/roles.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
@@ -823,7 +824,8 @@ export function useAppData() {
   }, [])
 
   const createSecurityUserAction = useCallback(async (draft) => {
-    const { user, tempPassword, emailed, accessUrl, expiresAt } = await createSecurityUserRequest(draft)
+    const { user, tempPassword, emailed, accessUrl, expiresAt } =
+      await createSecurityUserRequest(draft)
     setUsers((current) => [
       { id: user.id, name: user.name, email: user.email, role: user.role },
       ...current,
@@ -886,7 +888,7 @@ export function useAppData() {
 
   const login = useCallback(
     async (credentialsOrAccountType) => {
-      if (credentialsOrAccountType === 'athlete') {
+      if (env.demoMode && credentialsOrAccountType === 'athlete') {
         const demoAthleteSession = {
           role: 'athlete_plu',
           athleteId: 'ath-001',
@@ -897,7 +899,7 @@ export function useAppData() {
         return demoAthleteSession
       }
 
-      if (credentialsOrAccountType === 'admin') {
+      if (env.demoMode && credentialsOrAccountType === 'admin') {
         const demoAdminSession = {
           id: 'demo-admin',
           role: 'admin_plu_arg',
@@ -915,7 +917,7 @@ export function useAppData() {
         const email = emailRaw === 'demo' ? 'demo@pluarg.com.ar' : emailRaw
         const password = String(credentialsOrAccountType.password ?? '')
 
-        if (email === 'demo@pluarg.com.ar' && password === '123') {
+        if (env.demoMode && email === 'demo@pluarg.com.ar' && password === '123') {
           // Desde /evento/:slug/seguridad, demo entra como personal de puerta
           // del evento (no como admin del panel).
           const eventSlug = String(credentialsOrAccountType.eventSlug ?? '').trim()
@@ -942,7 +944,11 @@ export function useAppData() {
           return demoAdminSession
         }
 
-        if ((emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') && password === '123') {
+        if (
+          env.demoMode &&
+          (emailRaw === 'demo2' || email === 'demo2@pluarg.com.ar') &&
+          password === '123'
+        ) {
           setMemberships((current) =>
             current.map((membership) =>
               membership.athleteId === 'ath-001' && membership.year === '2026'
@@ -972,7 +978,11 @@ export function useAppData() {
           return demoAthleteSession
         }
 
-        if ((emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') && password === '123') {
+        if (
+          env.demoMode &&
+          (emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') &&
+          password === '123'
+        ) {
           const demoPluUsaSession = {
             id: 'demo-plu-usa',
             role: 'viewer_plu_usa',

@@ -13,14 +13,13 @@ describe('flujo de despliegue', () => {
       '*': false,
     })
     expect(vercelConfig.rewrites).toContainEqual({
-      source: '/((?!api/).*)',
+      source: '/((?!api(?:/|$)).*)',
       destination: '/index.html',
     })
   })
 
-  it('ejecuta CI en PRs hacia dev/main y evita trabajos obsoletos', () => {
-    expect(ciWorkflow).toContain('branches: [dev, main]')
-    expect(ciWorkflow).toContain('branches: [main]')
+  it('ejecuta CI en PRs y pushes hacia dev/main y evita trabajos obsoletos', () => {
+    expect(ciWorkflow.match(/branches: \[dev, main\]/g)).toHaveLength(2)
     expect(ciWorkflow).toContain('cancel-in-progress: true')
   })
 

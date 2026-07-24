@@ -99,6 +99,36 @@ después con un check específico si el equipo incorpora más ramas de release.
    - Production: Supabase, API, Auth0 y Mercado Pago productivos.
    - Preview con rama `dev`: credenciales de sandbox/staging.
 5. No reutilizar secretos productivos en DEV.
+6. Activar `Automatically expose System Environment Variables`; la API usa la
+   URL oficial en Production y la URL estable de rama en `dev`.
+
+### Matriz de variables
+
+Crear dos proyectos Supabase. En Vercel, cargar la siguiente matriz:
+
+| Variable | Production (`main`) | Preview, sólo rama `dev` |
+| --- | --- | --- |
+| `SUPABASE_URL` | proyecto PROD | proyecto DEV |
+| `SUPABASE_SERVICE_ROLE_KEY` | secreto PROD | secreto DEV |
+| `SUPABASE_DATABASE_URL` | pooler PROD | pooler DEV |
+| `VITE_SUPABASE_URL` | proyecto PROD | proyecto DEV |
+| `VITE_SUPABASE_ANON_KEY` | publishable PROD | publishable DEV |
+| `AUTH_SECRET` | aleatorio PROD | aleatorio DEV |
+| `CRON_SECRET` | aleatorio PROD | aleatorio DEV |
+| Mercado Pago/Brevo/Auth0 | productivos | sandbox/staging |
+| `SESSION_COOKIE_SECURE` | `true` | `true` |
+| `VITE_DEMO_MODE` | `false` | opcional `true` para QA |
+
+`VITE_API_URL` queda vacío en Vercel: frontend y API comparten origen. No cargar
+secretos sin prefijo `VITE_` en variables cliente. Aplicar todas las migraciones
+en ambos Supabase antes de considerar `/api/ready` aprobado.
+
+En Hobby, Vercel ejecuta una vez por día la recuperación de pagos, los avisos de
+renovación y el ciclo de vida de cuentas de seguridad. Es el máximo de frecuencia
+del plan gratuito y alcanza como fallback del webhook. Si la operación exige
+recuperación por minuto, se puede pasar a Pro sin cambiar endpoints. Las
+expiraciones que liberan cupos no esperan ese cron: corren cada minuto dentro de
+Supabase.
 
 `vercel.json` permite deployments automáticos solamente para `dev` y `main`.
 Los demás branches siguen teniendo CI mediante sus PRs, pero no crean previews.
@@ -112,7 +142,7 @@ Los demás branches siguen teniendo CI mediante sus PRs, pero no crean previews.
 3. Esperar ambos jobs de CI.
 4. Obtener la aprobación de release.
 5. Mergear el PR.
-6. Verificar la URL oficial y los endpoints `/health` y `/ready`.
+6. Verificar la URL oficial y los endpoints `/api/health` y `/api/ready`.
 
 ### Rollback
 

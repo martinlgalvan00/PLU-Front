@@ -10,6 +10,7 @@ import { createUserRoutes } from './routes/users.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
 import { createEventRoutes } from './routes/events.js'
+import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
 import { corsOrigin, requireTrustedMutation } from './lib/security.js'
@@ -25,10 +26,21 @@ export function createApp(deps = {}) {
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.use(requireTrustedMutation)
-  app.use(createHealthRoutes({
+  const healthRoutes = () => createHealthRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
     getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
-  }))
+  })
+  app.use(healthRoutes())
+  app.use('/api', healthRoutes())
+  app.use(
+    '/api/internal',
+    createInternalJobRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      env: deps.env ?? process.env,
+      runners: deps.jobRunners,
+    }),
+  )
   app.use(
     '/api/auth',
     createAuthRoutes({

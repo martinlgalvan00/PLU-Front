@@ -27,7 +27,7 @@ Los atletas nuevos crean una contraseña de al menos 12 caracteres. Para cuentas
 ## Variables obligatorias
 
 ```text
-DATABASE_URL
+SUPABASE_DATABASE_URL
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 VITE_SUPABASE_URL
@@ -39,9 +39,14 @@ APP_URL
 API_URL
 PAYMENT_RECOVERY_JOB_ENABLED=true
 DOMAIN_MAINTENANCE_JOB_ENABLED=true
+CRON_SECRET
 ```
 
-En produccion usar `SESSION_COOKIE_SECURE=true`. Nunca exponer `SUPABASE_SERVICE_ROLE_KEY`, `MERCADO_PAGO_ACCESS_TOKEN` ni el secreto del webhook al bundle Vite.
+`DATABASE_URL` puede configurarse explícitamente o derivarse de
+`SUPABASE_DATABASE_URL` con el schema `plu_prisma`. En producción usar
+`SESSION_COOKIE_SECURE=true`. Nunca exponer `SUPABASE_SERVICE_ROLE_KEY`,
+`MERCADO_PAGO_ACCESS_TOKEN`, `CRON_SECRET` ni el secreto del webhook al bundle
+Vite.
 
 ## Webhook Mercado Pago
 
@@ -49,13 +54,20 @@ Configurar la URL publica HTTPS `POST /api/payments/webhook`. El endpoint exige 
 
 ## Readiness y workers
 
-- `GET /health`: confirma que el proceso responde.
-- `GET /ready`: devuelve 200 solamente si Prisma y Supabase responden.
+- `GET /api/health`: confirma que la Function responde.
+- `GET /api/ready`: devuelve 200 solamente si Prisma y Supabase responden.
 - `PAYMENT_RECOVERY_JOB_ENABLED=true`: reprocesamiento de webhook y conciliacion.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 
-En despliegues con varias replicas conviene ejecutar los jobs en una unica instancia worker. Los RPC de claim y las actualizaciones atomicas hacen seguro el reintento, pero una replica dedicada reduce ruido y carga.
+En Vercel, un scheduler invoca por `GET` los endpoints
+`/api/internal/jobs/payment-recovery`,
+`/api/internal/jobs/membership-renewal` y
+`/api/internal/jobs/security-user-lifecycle` con
+`Authorization: Bearer <CRON_SECRET>`. El mantenimiento de reservas y órdenes
+corre cada minuto en Supabase mediante la migración
+`20260724000000_domain_maintenance_cron.sql`. Los RPC de claim y las
+actualizaciones atómicas mantienen los reintentos idempotentes.
 
 ## Pruebas de aceptacion
 

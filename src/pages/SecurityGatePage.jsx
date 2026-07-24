@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { env } from '../config/env.js'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import CheckInAppPage from './CheckInAppPage.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -102,7 +103,10 @@ export default function SecurityGatePage({
     return (
       <main className="page login-page--design login-page--gate">
         <div className="login-shell login-shell--gate">
-          <section className="login-card security-gate-card security-gate-loading" aria-live="polite">
+          <section
+            className="login-card security-gate-card security-gate-loading"
+            aria-live="polite"
+          >
             <span className="security-gate-loading__icon" aria-hidden>
               <ShieldCheck size={26} />
             </span>
@@ -171,9 +175,7 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
             </div>
 
             <p className="security-gate-card__kicker">{t('securityGate.areaLabel')}</p>
-            <h1 id="security-gate-heading">
-              {eventTitle ?? t('securityGate.title')}
-            </h1>
+            <h1 id="security-gate-heading">{eventTitle ?? t('securityGate.title')}</h1>
             <p className="login-card__lead">
               {eventTitle
                 ? t('securityGate.subtitleWithEvent', { event: eventTitle })
@@ -226,11 +228,15 @@ function SecurityGateLogin({ event, eventSlug, hadSession, onLogin, tokenError =
               {isSubmitting ? t('login.submitting') : t('securityGate.submit')}
               {!isSubmitting && <ArrowRight size={16} aria-hidden />}
             </button>
-            <p className="security-gate-card__demo-hint">{t('securityGate.demoHint')}</p>
+            {env.demoMode && (
+              <p className="security-gate-card__demo-hint">{t('securityGate.demoHint')}</p>
+            )}
             {(submitError || tokenError || hadSession) && (
               <p className="form-submit-error" role="alert">
                 {submitError ||
-                  (tokenError ? t('securityGate.tokenError') : t('securityGate.errorEventMismatch'))}
+                  (tokenError
+                    ? t('securityGate.tokenError')
+                    : t('securityGate.errorEventMismatch'))}
               </p>
             )}
           </form>
