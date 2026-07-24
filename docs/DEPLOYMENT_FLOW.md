@@ -1,0 +1,133 @@
+# Flujo de CI/CD — DEV y PROD
+
+## Objetivo
+
+El proyecto mantiene dos destinos públicos y estables:
+
+| Entorno | Rama fuente | Propósito                                         | Publicación                                                  |
+| ------- | ----------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| DEV     | `dev`       | Aceptación, QA y revisión de los próximos cambios | Automática después de integrar un PR aprobado                |
+| PROD    | `main`      | Sitio oficial                                     | Automática después de promover `dev` mediante un PR aprobado |
+
+Vercel conserva una versión inmutable por deployment para auditoría y rollback.
+Eso no significa que existan más entornos activos: las URLs estables de DEV y
+PROD siempre deben apuntar a la última versión aceptada de su rama.
+
+## Flujo obligatorio
+
+```text
+feature/<cambio>
+       │
+       └── PR hacia dev
+             ├── CI application
+             ├── CI supabase-integration
+             └── aprobación humana
+                    │
+                    └── merge squash
+                           └── Vercel actualiza DEV
+                                  │
+                                  ├── QA funcional
+                                  ├── QA visual
+                                  └── aceptación
+                                         │
+                                         └── PR dev hacia main
+                                                ├── CI completo
+                                                ├── aprobación de release
+                                                └── merge
+                                                       └── Vercel actualiza PROD
+```
+
+No se trabaja directamente sobre `dev` ni `main`. Los commits de trabajo viven
+en ramas `feature/*`, `fix/*` o `chore/*`. Esas ramas no generan deployments de
+Vercel porque `vercel.json` las deshabilita.
+
+## Compuertas de calidad
+
+Todo PR hacia `dev` o `main` debe aprobar:
+
+1. `application`
+   - instalación reproducible con `npm ci`;
+   - lint;
+   - tests unitarios y Storybook en Chromium;
+   - build de producción;
+   - validación del schema Prisma.
+2. `supabase-integration`
+   - Supabase local limpio;
+   - aplicación completa de migraciones y seed;
+   - lint de schemas;
+   - tests de integración contra la base real;
+   - smoke transaccional de pagos.
+3. Revisión humana y resolución de conversaciones.
+
+Las ejecuciones anteriores del mismo PR se cancelan cuando llega un commit
+nuevo. Esto evita gastar runners y evita revisar resultados obsoletos.
+
+## Configuración única en GitHub
+
+Un administrador del repositorio debe proteger ambas ramas desde
+`Settings > Rules > Rulesets` o `Settings > Branches`.
+
+### Regla para `dev`
+
+- Requerir pull request antes de mergear.
+- Requerir al menos una aprobación.
+- Descartar aprobaciones cuando cambia el PR.
+- Requerir conversaciones resueltas.
+- Requerir los checks `application` y `supabase-integration`.
+- Bloquear force-push y eliminación.
+- Usar squash merge para que cada cambio aceptado produzca una sola integración.
+
+### Regla para `main`
+
+- Aplicar todos los controles de `dev`.
+- Aceptar promociones solamente desde `dev`.
+- Requerir una aprobación de release distinta del autor cuando el equipo lo permita.
+- No permitir bypass de las reglas salvo recuperación operativa.
+
+GitHub no permite expresar “el PR debe venir exclusivamente desde `dev`” con la
+protección clásica. Esa condición se sostiene con revisión y puede automatizarse
+después con un check específico si el equipo incorpora más ramas de release.
+
+## Configuración única en Vercel
+
+1. En `Project Settings > Environments > Production > Branch Tracking`,
+   confirmar `main` como rama de producción.
+2. Asignar el dominio oficial al entorno Production.
+3. Asignar un dominio estable de aceptación a la rama `dev`, por ejemplo
+   `dev.<dominio-oficial>`.
+4. Separar variables:
+   - Production: Supabase, API, Auth0 y Mercado Pago productivos.
+   - Preview con rama `dev`: credenciales de sandbox/staging.
+5. No reutilizar secretos productivos en DEV.
+
+`vercel.json` permite deployments automáticos solamente para `dev` y `main`.
+Los demás branches siguen teniendo CI mediante sus PRs, pero no crean previews.
+
+## Promoción y rollback
+
+### Promover DEV a PROD
+
+1. Completar `docs/QA_CHECKLIST.md` sobre la URL estable de DEV.
+2. Actualizar el PR permanente `dev -> main`.
+3. Esperar ambos jobs de CI.
+4. Obtener la aprobación de release.
+5. Mergear el PR.
+6. Verificar la URL oficial y los endpoints `/health` y `/ready`.
+
+### Rollback
+
+- DEV: revertir el PR problemático en `dev`; Vercel publicará la reversión.
+- PROD: usar rollback instantáneo de Vercel para recuperar servicio y luego
+  crear el revert correspondiente en `main` y sincronizarlo hacia `dev`.
+
+El rollback de frontend no revierte migraciones de base de datos. Las
+migraciones deben ser compatibles hacia atrás y cualquier corrección se agrega
+como una migración nueva.
+
+## Limitaciones
+
+- Vercel seguirá guardando historial de versiones; el objetivo es tener sólo dos
+  destinos estables, no borrar el historial necesario para rollback.
+- La protección de ramas y los dominios se configuran una vez en GitHub/Vercel
+  y requieren permisos administrativos.
+- Un CI verde no reemplaza el QA manual en DEV ni el smoke posterior a PROD.

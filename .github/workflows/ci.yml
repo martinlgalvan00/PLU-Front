@@ -2,12 +2,22 @@ name: CI
 
 on:
   pull_request:
+    branches: [dev, main]
   push:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   application:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,13 +38,16 @@ jobs:
 
   supabase-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.109.1
       - run: supabase start
       - run: supabase db reset
+      - name: Lint Supabase schemas
+        run: supabase db lint --local --fail-on warning
       - name: Export Supabase local connection as env vars
         run: |
           supabase status -o env | sed -n \
