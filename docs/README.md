@@ -11,6 +11,7 @@
 | [EMAIL_FLOW.md](./EMAIL_FLOW.md) | Flujo de emails Brevo |
 | [EXPORTS.md](./EXPORTS.md) | Exportaciones CSV/XLSX |
 | [QA_CHECKLIST.md](./QA_CHECKLIST.md) | Checklist de QA manual |
+| [DEPLOYMENT_FLOW.md](./DEPLOYMENT_FLOW.md) | Flujo CI/CD con entornos estables DEV y PROD |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap de fases |
 
 ## Agent Skills

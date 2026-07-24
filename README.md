@@ -45,6 +45,16 @@ Prisma conserva identidad y sesiones del staff. Supabase es la fuente transaccio
 | Records | Página placeholder | Tabla de récords oficiales |
 | Admin: resultados/exports/audit | Placeholder | Secciones completas |
 
+## Flujo CI/CD
+
+Los cambios se desarrollan en ramas `feature/*`, pasan por PR hacia `dev` y se
+prueban en el entorno estable DEV. Solamente después de la aceptación se
+promueven mediante PR `dev -> main`, que actualiza el entorno oficial PROD.
+Vercel no despliega ramas distintas de `dev` y `main`.
+
+El procedimiento, las compuertas de CI, las protecciones de ramas y el rollback
+están documentados en [docs/DEPLOYMENT_FLOW.md](./docs/DEPLOYMENT_FLOW.md).
+
 ---
 
 ## Funcionalidades desarrolladas
