@@ -59,8 +59,10 @@ Todo PR hacia `dev` o `main` debe aprobar:
    - smoke transaccional de pagos.
 3. Revisión humana y resolución de conversaciones.
 
-Las ejecuciones anteriores del mismo PR se cancelan cuando llega un commit
-nuevo. Esto evita gastar runners y evita revisar resultados obsoletos.
+Las ejecuciones anteriores de la misma rama se cancelan cuando llega un commit
+nuevo. Si un push a `dev` también sincroniza el PR permanente `dev -> main`,
+ambos eventos comparten el mismo grupo y queda una sola corrida activa. Esto
+evita gastar runners y revisar resultados obsoletos.
 
 ## Configuración única en GitHub
 

@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Un push a dev también sincroniza el PR permanente dev -> main. Ambos
+  # eventos comparten head.ref/ref_name y se consolidan en una sola corrida.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
