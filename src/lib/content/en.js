@@ -39,9 +39,17 @@ export const HOME_MEMBERSHIP = {
 
 export const HOME_RESULTS = {
   eyebrow: 'Results',
-  title: 'No results published yet.',
+  status: 'Pending',
+  title: 'Official ranking, after each meet closes.',
   description:
-    'Pitbull Classic results will be posted here after the event, with export for PLU USA.',
+    'Categories, totals and season archive — with export ready for PLU USA.',
+  metaEvent: 'Pitbull Classic',
+  metaExport: 'PLU USA export',
+  classes: {
+    open83: 'Open · −83 kg',
+    open74: 'Open · −74 kg',
+    women63: 'Women · −63 kg',
+  },
 }
 
 export const HOME_RULEBOOK = {
@@ -63,18 +71,14 @@ export const HOME_COMMUNITY = {
 }
 
 export const HOME_FAQ = {
-  eyebrow: 'FAQ',
-  title: 'Membership, events and results.',
-  description:
-    'Direct answers about procedures, registrations and the rulebook.',
-  cta: 'View all questions',
-  quickLinks: [
-    { label: 'Membership', view: 'members' },
-    { label: 'Pitbull Classic', view: 'pitbull' },
-    { label: 'Contact', view: 'contact' },
-  ],
+  eyebrow: 'Help',
+  title: 'Got questions?',
+  description: 'Membership, entries and the rulebook: clear answers in one place.',
+  ctaFaq: 'View FAQ',
+  ctaContact: 'Contact',
 }
 
+/** FAQ copy reserve (full /faq page). No longer rendered on Home. */
 export const HOME_FAQ_ITEMS = [
   {
     q: 'How do I join PLU ARG?',
@@ -654,6 +658,7 @@ export const ADMIN_NAV_GROUPS = [
     labelKey: 'admin.nav.groups.system',
     items: [
       ['users', 'admin.nav.users', 'Shield'],
+      ['roles', 'admin.nav.roles', 'KeyRound'],
       ['audit', 'admin.nav.audit', 'ScrollText'],
     ],
   },

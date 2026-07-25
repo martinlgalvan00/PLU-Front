@@ -267,7 +267,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
 
-  const adminSession = canViewAdmin(session?.role)
+  const adminSession = canViewAdmin(session)
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
@@ -487,9 +487,19 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
           <div className="plu-global-nav__mobile-actions">
             <div className={`plu-global-nav__mobile-cluster${drawerOpen ? ' is-menu-open' : ''}`}>
-              <button type="button" className="plu-global-nav__mobile-affiliate" onClick={() => go('members')}>
+              <div className="plu-global-nav__mobile-prefs" aria-label={t('nav.preferences')}>
+                <ThemeToggle compact />
+                <LanguageToggle compact variant="segment" />
+              </div>
+              <span className="plu-global-nav__mobile-divider" aria-hidden />
+              <button
+                type="button"
+                className="plu-global-nav__mobile-affiliate"
+                aria-label={t('nav.members')}
+                onClick={() => go('members')}
+              >
                 <IdCard size={14} aria-hidden />
-                <span>{t('nav.members')}</span>
+                <span aria-hidden>{t('nav.members')}</span>
               </button>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
@@ -650,29 +660,38 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 <div className="plu-drawer__footer-account">
                   <button
                     type="button"
-                    className="plu-drawer__footer-link"
+                    className="plu-drawer__account-chip"
                     onClick={() => go(adminSession ? 'admin' : 'profile')}
                   >
-                    {sessionFullName || t('nav.myProfile')}
+                    <span className="plu-drawer__account-avatar" aria-hidden>
+                      {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                    </span>
+                    <span className="plu-drawer__account-meta">
+                      <span className="plu-drawer__account-name">
+                        {sessionFullName || t('nav.myProfile')}
+                      </span>
+                      <span className="plu-drawer__account-hint">
+                        {adminSession ? t('nav.admin') : t('nav.myProfile')}
+                      </span>
+                    </span>
                   </button>
-                  <span className="plu-drawer__utility-sep" aria-hidden>
-                    ·
-                  </span>
                   <button
                     type="button"
-                    className="plu-drawer__footer-link"
+                    className="plu-drawer__account-logout"
+                    aria-label={t('nav.logout')}
+                    title={t('nav.logout')}
                     onClick={() => {
                       closeDrawer(false)
                       onLogout?.()
                     }}
                   >
-                    {t('nav.logout')}
+                    <LogOut size={15} aria-hidden />
                   </button>
                 </div>
               ) : (
                 <button
                   type="button"
-                  className={`plu-drawer__footer-link plu-drawer__footer-link--strong${activeView === 'login' ? ' is-active' : ''}`}
+                  className={`plu-drawer__footer-login${activeView === 'login' ? ' is-active' : ''}`}
                   onClick={() => go('login')}
                 >
                   {t('nav.login')}

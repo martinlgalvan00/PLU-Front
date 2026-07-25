@@ -3451,6 +3451,12 @@
 
 /* ── Credencial — showcase 3D interactivo (producto) ── */
 
+.members-plu-hero__showcase {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
 .members-plu-hero__card-tilt {
   width: 100%;
 }
@@ -3466,17 +3472,16 @@
 
 .members-plu-hero__card.members-cred {
   background:
-    radial-gradient(120% 90% at 12% 0%, color-mix(in oklab, var(--plu-gold-500) 12%, transparent) 0%, transparent 46%),
-    linear-gradient(158deg, rgba(24, 27, 36, 0.98) 0%, rgba(12, 14, 20, 0.99) 62%, rgba(9, 10, 15, 1) 100%);
-  border: 1px solid color-mix(in oklab, #fff 12%, transparent);
+    radial-gradient(90% 70% at 8% 0%, color-mix(in oklab, var(--plu-gold-500) 10%, transparent) 0%, transparent 52%),
+    linear-gradient(165deg, rgba(18, 20, 28, 0.98) 0%, rgba(10, 11, 16, 1) 100%);
+  border: 1px solid color-mix(in oklab, #fff 10%, transparent);
   border-radius: clamp(16px, 1.4vw, 20px);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 40px 80px -48px rgba(0, 0, 0, 0.7),
-    0 12px 32px -28px color-mix(in oklab, var(--plu-gold-500) 60%, transparent);
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 36px 72px -44px rgba(0, 0, 0, 0.72);
   display: grid;
   isolation: isolate;
-  min-height: clamp(300px, 34vw, 360px);
+  min-height: clamp(268px, 30vw, 320px);
   overflow: hidden;
   padding: 0;
   position: relative;
@@ -3491,57 +3496,52 @@
   position: relative;
 }
 
-/* Luz reactiva que sigue al cursor */
 .members-cred__glow {
   background: radial-gradient(
-    280px 220px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
-    color-mix(in oklab, var(--plu-gold-400) 32%, transparent) 0%,
-    color-mix(in oklab, var(--plu-gold-500) 14%, transparent) 30%,
-    transparent 66%
+    240px 180px at var(--tilt-glare-x, 50%) var(--tilt-glare-y, 0%),
+    color-mix(in oklab, var(--plu-gold-400) 22%, transparent) 0%,
+    transparent 62%
   );
   inset: 0;
   mix-blend-mode: screen;
-  opacity: calc(0.35 + var(--tilt-active, 0) * 0.55);
+  opacity: calc(0.22 + var(--tilt-active, 0) * 0.4);
   pointer-events: none;
   position: absolute;
-  transition: opacity 0.4s var(--ease-out);
+  transition: opacity var(--motion-base, 240ms) var(--ease-out, ease);
   z-index: 3;
 }
 
-/* Textura/sheen diagonal sutil */
 .members-cred__grain {
-  background:
-    linear-gradient(122deg, transparent 34%, rgba(255, 255, 255, 0.06) 47%, transparent 60%);
+  background: linear-gradient(122deg, transparent 38%, rgba(255, 255, 255, 0.045) 50%, transparent 62%);
   inset: 0;
-  opacity: 0.7;
+  opacity: 0.55;
   pointer-events: none;
   position: absolute;
-  transform: translate3d(calc(var(--tilt-px, 0) * 16px), calc(var(--tilt-py, 0) * 12px), 0);
-  transition: transform 0.2s var(--ease-out);
+  transform: translate3d(calc(var(--tilt-px, 0) * 10px), calc(var(--tilt-py, 0) * 8px), 0);
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
   z-index: 2;
 }
 
-/* Marca de agua profunda — parallax en contra (sensación de fondo) */
 .members-cred__watermark {
-  color: color-mix(in oklab, #fff 6%, transparent);
+  color: color-mix(in oklab, #fff 4.5%, transparent);
   font-family: var(--font-display);
-  font-size: clamp(7rem, 16vw, 11rem);
+  font-size: clamp(5.5rem, 12vw, 8.5rem);
   font-weight: 800;
-  left: -0.06em;
-  letter-spacing: -0.06em;
+  left: -0.04em;
+  letter-spacing: -0.07em;
   line-height: 0.8;
   pointer-events: none;
   position: absolute;
-  top: 44%;
-  transform: translate3d(calc(var(--tilt-px, 0) * -30px), calc(var(--tilt-py, 0) * -22px), 0);
-  transition: transform 0.24s var(--ease-out);
+  top: 48%;
+  transform: translate3d(calc(var(--tilt-px, 0) * -18px), calc(var(--tilt-py, 0) * -14px), 0);
+  transition: transform var(--motion-base, 240ms) var(--ease-out, ease);
   user-select: none;
   z-index: 1;
 }
 
 .members-cred__stripe {
-  background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), #fff, var(--plu-gold-500)));
-  height: 3px;
+  background: var(--plu-gradient-stripe, var(--gradient-brand));
+  height: 1.5px;
   left: 0;
   position: absolute;
   right: 0;
@@ -3549,17 +3549,16 @@
   z-index: 4;
 }
 
-/* Capa de contenido — parallax adelante */
 .members-cred__layer--front {
   display: grid;
-  gap: clamp(16px, 2.2vw, 22px);
-  grid-template-rows: auto 1fr auto auto;
+  gap: clamp(18px, 2.4vw, 28px);
+  grid-template-rows: auto 1fr auto;
   height: 100%;
   min-height: inherit;
-  padding: clamp(22px, 2.8vw, 28px);
+  padding: clamp(22px, 2.6vw, 28px) clamp(22px, 2.6vw, 28px) clamp(18px, 2.2vw, 22px);
   position: relative;
-  transform: translate3d(calc(var(--tilt-px, 0) * 12px), calc(var(--tilt-py, 0) * 9px), 0);
-  transition: transform 0.2s var(--ease-out);
+  transform: translate3d(calc(var(--tilt-px, 0) * 8px), calc(var(--tilt-py, 0) * 6px), 0);
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
   z-index: 5;
 }
 
@@ -3569,159 +3568,144 @@
   justify-content: space-between;
 }
 
-.members-cred__brand {
-  color: color-mix(in oklab, var(--color-brand-celeste) 88%, #fff);
-  font-size: 10px;
+.members-cred__mark {
+  color: color-mix(in oklab, #fff 78%, transparent);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  margin: 0;
-  text-transform: uppercase;
+  letter-spacing: 0.22em;
 }
 
-/* Chip holográfico */
 .members-cred__chip {
-  background: linear-gradient(135deg, #f6d879 0%, #c99a2e 42%, #f3e6b0 100%);
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f6d879 0%, #c99a2e 48%, #f3e6b0 100%);
+  border-radius: 5px;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.4) inset,
-    0 4px 10px -4px rgba(0, 0, 0, 0.5);
-  height: 26px;
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 3px 8px -4px rgba(0, 0, 0, 0.45);
+  height: 22px;
   overflow: hidden;
   position: relative;
-  width: 34px;
+  width: 30px;
 }
 
 .members-cred__chip::before,
 .members-cred__chip::after {
-  border: 1px solid rgba(90, 66, 10, 0.5);
+  border: 1px solid rgba(90, 66, 10, 0.45);
   border-radius: 2px;
   content: '';
-  inset: 5px 7px;
+  inset: 4px 6px;
   position: absolute;
 }
 
 .members-cred__chip::after {
-  inset: 5px 15px;
   border-width: 0 1px;
+  inset: 4px 13px;
 }
 
 .members-cred__chip-shine {
-  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.65) 50%, transparent 60%);
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.55) 50%, transparent 60%);
   inset: 0;
   position: absolute;
-  transform: translateX(calc(var(--tilt-px, 0) * 40px));
-  transition: transform 0.2s var(--ease-out);
+  transform: translateX(calc(var(--tilt-px, 0) * 28px));
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
 .members-cred__identity {
+  align-content: end;
   align-self: end;
   display: grid;
-  gap: 6px;
-}
-
-.members-cred__code {
-  color: #fff;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  margin: 0;
-  text-shadow: 0 1px 24px color-mix(in oklab, var(--plu-gold-500) 40%, transparent);
+  gap: 10px;
 }
 
 .members-cred__name {
-  color: color-mix(in oklab, #fff 82%, transparent);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  color: #fff;
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   margin: 0;
 }
 
-.members-cred__meta {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: clamp(16px, 3vw, 28px);
+.members-cred__code {
+  color: color-mix(in oklab, var(--plu-gold-400, var(--color-brand-gold)) 82%, #fff);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
   margin: 0;
+}
+
+.members-cred__foot {
+  align-items: center;
+  border-top: 1px solid color-mix(in oklab, #fff 9%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: space-between;
   padding-top: 14px;
 }
 
-.members-cred__meta-item {
-  display: grid;
-  gap: 4px;
+.members-cred__season {
+  color: color-mix(in oklab, #fff 48%, transparent);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
-.members-cred__meta-item dt {
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.members-cred__meta-item dd {
+.members-cred__status {
   align-items: center;
-  color: #fff;
-  display: flex;
-  font-size: 12.5px;
+  color: color-mix(in oklab, #fff 78%, transparent);
+  display: inline-flex;
+  font-size: 11px;
   font-weight: 600;
-  gap: 6px;
-  margin: 0;
-}
-
-.members-cred__meta-item--status dd {
-  color: #7dd99f;
+  gap: 7px;
 }
 
 .members-cred__status-dot {
-  background: #7dd99f;
+  background: color-mix(in oklab, var(--plu-gold-400, var(--color-brand-gold)) 88%, #fff);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(125, 217, 159, 0.16);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
   flex: none;
   height: 6px;
   width: 6px;
 }
 
-.members-cred__note {
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 10.5px;
-  line-height: 1.5;
+.members-cred__caption {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
   margin: 0;
+  max-width: 42ch;
+  text-align: center;
+  justify-self: center;
 }
 
-/* Microinteracciones escalonadas al aparecer */
+/* Entrada: solo opacity (no pelear con tilt transform) */
 @media (prefers-reduced-motion: no-preference) {
   .members-cred__layer--front > * {
-    animation: members-cred-rise 0.7s var(--ease-out) both;
+    animation: members-cred-rise 0.48s var(--ease-out, ease) both;
   }
 
   .members-cred__head {
-    animation-delay: 0.08s;
+    animation-delay: 0.06s;
   }
 
   .members-cred__identity {
-    animation-delay: 0.16s;
+    animation-delay: 0.12s;
   }
 
-  .members-cred__meta {
-    animation-delay: 0.24s;
-  }
-
-  .members-cred__note {
-    animation-delay: 0.32s;
+  .members-cred__foot {
+    animation-delay: 0.18s;
   }
 }
 
 @keyframes members-cred-rise {
   from {
     opacity: 0;
-    transform: translateY(14px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -3729,8 +3713,11 @@
 [data-theme='light'] .members-plu-hero__card.members-cred {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.1) inset,
-    0 40px 80px -50px rgba(15, 17, 23, 0.5),
-    0 12px 32px -28px color-mix(in oklab, var(--plu-gold-500) 50%, transparent);
+    0 36px 72px -48px rgba(15, 17, 23, 0.45);
+}
+
+[data-theme='light'] .members-cred__caption {
+  color: var(--color-text-muted);
 }
 
 .members-plu-quicknav {

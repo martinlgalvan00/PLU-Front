@@ -1,4 +1,5 @@
 import { HttpError } from '../lib/errors.js'
+import { ACCESS_ROLE_INCLUDE } from './accessControlService.js'
 import { serializeUser } from './sessionService.js'
 
 const AUTH0_PROVIDER = 'auth0'
@@ -32,7 +33,10 @@ export async function resolveOAuthUser({ prisma, payload }) {
     },
     include: {
       user: {
-        include: { profile: true },
+        include: {
+          profile: true,
+          accessRole: { include: ACCESS_ROLE_INCLUDE },
+        },
       },
     },
   })
@@ -54,6 +58,7 @@ export async function resolveOAuthUser({ prisma, payload }) {
     include: {
       profile: true,
       identities: true,
+      accessRole: { include: ACCESS_ROLE_INCLUDE },
     },
   })
 

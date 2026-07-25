@@ -50,10 +50,45 @@ las entidades sensibles (`Event`, `Membership`, `TicketOrder`, `PaymentOrder`,
 RLS y auditoría.
 
 El navegador no escribe tablas ni RPC sensibles. Express valida la sesión y el
-rol, y usa `service_role` para ejecutar RPCs atómicas en Supabase. Prisma queda
-acotado a usuarios, roles y sesiones del staff dentro del schema `plu_prisma`
+permiso, y usa `service_role` para ejecutar RPCs atómicas en Supabase. Prisma queda
+acotado a usuarios, roles, permisos y sesiones del staff dentro del schema `plu_prisma`
 de la misma base alojada. Las verificaciones QR públicas
 exponen una proyección mínima sin DNI ni datos de pago.
+
+## Autorización del staff
+
+El RBAC jerárquico vive en Prisma. Conserva cuatro roles base oficiales:
+`Super Admin`, `Administrador`, `PLU` y `Seguridad`, en ese orden, y admite
+roles operativos personalizados sin crear nuevos niveles de autoridad.
+
+- `AccessRole` define el rol visible, su plantilla base y si un Administrador
+  puede asignarlo.
+- `AccessPermission` contiene capacidades atómicas por módulo y acción.
+- `AccessRolePermission` forma la matriz configurable.
+- `User.accessRoleId` asigna la matriz al usuario; `User.role` queda como rol
+  base compatible con integraciones existentes.
+
+La sesión se rehidrata desde la base en cada request y expone `roleKey`,
+`roleLabel` y `permissions`. Las rutas Express usan `requirePermission`; el
+filtrado del menú y los controles deshabilitados en React son sólo una
+representación de esa misma matriz, nunca la barrera de seguridad.
+
+Los cambios de rol y permisos se ejecutan server-side, validan la jerarquía del
+actor y generan auditoría. Super Admin y Administrador conservan matrices
+protegidas con acceso total. Ambos pueden crear roles operativos y configurar
+PLU, Seguridad y los roles personalizados; sólo Super Admin puede asignar
+Administrador y nadie puede asignar Super Admin desde el panel. Los permisos de
+gestión de usuarios y roles no se pueden delegar a niveles operativos.
+
+El portal `/evento/:slug/seguridad` no compara nombres de rol. Exige
+`admin.checkin.execute`: una cuenta sin evento asignado puede operar cualquier
+evento y una cuenta con `User.eventId/eventSlug` sólo puede operar el evento
+asignado. La API de tickets aplica la misma regla antes de leer listas,
+registrar ingresos o canjear adicionales.
+
+El token Supabase del staff sólo se emite cuando la matriz coincide exactamente
+con una plantilla base conocida; las matrices modificadas y los roles
+personalizados operan exclusivamente por la API Express.
 
 ## Runtime y entornos
 

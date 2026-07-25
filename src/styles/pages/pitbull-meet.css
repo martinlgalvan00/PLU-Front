@@ -1,140 +1,159 @@
 /* =============================================
-   PITBULL — CÓMO CORRE EL MEET (sistema operativo)
-   Lenguaje distinto al recorrido: no es un camino, es un tablero.
-   Dos niveles — barra de estado (jornada + fase activa + selector)
-   y tablero principal (3 etapas reales fusionadas con la planilla
-   del día + indicador que las recorre + luces de cierre).
+   PITBULL — PROGRAMA DEL MEET
+   Tabs tipográficos de jornada + agenda del día.
+   Sin switch pill, luces ni badges circulares con glow.
    ============================================= */
 
-/* Sin card contenedora: el tablero vive directamente sobre la superficie
-   del dossier. La unidad visual la dan la alineación compartida entre
-   encabezado y carriles, no una caja con borde. */
 .pitbull-meet {
   border-top: 2px solid var(--color-border-strong);
 }
 
-/* ── Nivel superior — jornada, fase activa, luces, selector ── */
 .pitbull-meet__top {
-  align-items: center;
+  align-items: flex-end;
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px 20px;
   justify-content: space-between;
-  padding-block: clamp(12px, 1.8vw, 16px);
+  padding-block: clamp(14px, 2vw, 18px);
 }
 
-.pitbull-meet__top-status {
-  align-items: center;
+.pitbull-meet__days {
   display: flex;
-  gap: 12px;
+  flex: 1 1 auto;
+  gap: 0;
+  min-width: 0;
 }
 
-/* Luces de jueces con más presencia — son el motivo oficial del tablero,
-   no un detalle decorativo, así que necesitan más peso que el genérico. */
-.pitbull-meet__top-status .motif-lights {
-  gap: 7px;
-}
-
-.pitbull-meet__top-status .motif-lights__dot {
-  height: 8px;
-  width: 8px;
-}
-
-.pitbull-meet__top-copy {
+.pitbull-meet__day {
+  align-items: flex-start;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-.pitbull-meet__top-day {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.pitbull-meet__top-day time {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  margin-left: 4px;
-  opacity: 0.62;
-}
-
-.pitbull-meet__top-phase {
-  color: var(--color-text-muted);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.pitbull-meet__switch {
-  --switch-pad: 3px;
-  flex: none;
-  max-width: 200px;
-}
-
-.pitbull-meet__switch .segmented-switch__option {
-  font-size: 10px;
-  letter-spacing: 0.06em;
   min-height: 44px;
-  padding: 4px 10px;
+  padding: 4px 16px 10px 0;
+  text-align: left;
+  transition:
+    color var(--duration-base) var(--ease-design),
+    border-color var(--duration-base) var(--ease-design);
 }
 
-/* La fecha ya se lee en el encabezado ("Día 1 · 12 Dic") — el selector
-   solo necesita distinguir la jornada, no repetir la fecha completa. */
-.pitbull-meet__switch .segmented-switch__label--full {
-  display: none;
+.pitbull-meet__day + .pitbull-meet__day {
+  margin-left: 8px;
+  padding-left: 16px;
 }
 
-.pitbull-meet__switch .segmented-switch__label--short {
-  display: inline;
+.pitbull-meet__day.is-active {
+  border-bottom-color: var(--color-text-primary);
+  color: var(--color-text-primary);
+}
+
+.pitbull-meet__day:hover:not(.is-active) {
+  color: var(--color-text-secondary);
+}
+
+.pitbull-meet__day:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.pitbull-meet__day-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.pitbull-meet__day-date {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+}
+
+.pitbull-meet__phase {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+.pitbull-meet__phase-label {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.pitbull-meet__phase-label::after {
+  content: '·';
+  margin-left: 6px;
+  opacity: 0.55;
+}
+
+.pitbull-meet__phase-value {
+  color: var(--color-text-primary);
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .pitbull-meet__pane {
   display: block;
 }
 
-/* ── Nivel principal — carriles fusionados con la planilla ── */
+.pitbull-meet__lanes-wrap {
+  position: relative;
+}
+
 .pitbull-meet__lanes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   list-style: none;
   margin: 0;
   padding: 0;
-  position: relative;
 }
 
 .pitbull-meet__lane {
-  border-top: 2px solid var(--color-border);
+  border-top: 1px solid var(--color-border-subtle);
   position: relative;
-  transition: border-color var(--transition-base), background var(--transition-base);
-}
-
-.pitbull-meet__lane + .pitbull-meet__lane {
-  border-left: 1px solid var(--color-border-subtle);
+  transition: background var(--duration-base) var(--ease-design);
 }
 
 .pitbull-meet__lane.is-active {
-  background: color-mix(in oklab, var(--color-brand-celeste) 6%, transparent);
-  border-top-color: var(--color-brand-celeste);
+  background: color-mix(in oklab, var(--color-text-primary) 3.5%, transparent);
 }
 
-.pitbull-meet__lane.is-active:nth-child(3) {
-  background: color-mix(in oklab, var(--plu-gold-500) 7%, transparent);
-  border-top-color: var(--plu-gold-500);
+.pitbull-meet__lane.is-active::before {
+  background: var(--color-brand-celeste);
+  bottom: 12px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 12px;
+  width: 2px;
+}
+
+.pitbull-meet__lane.is-active:nth-child(3)::before {
+  background: var(--plu-gold-500);
 }
 
 .pitbull-meet__lane-hit {
+  align-items: flex-start;
   background: none;
   border: none;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 20px);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  padding: clamp(14px, 1.8vw, 18px) clamp(8px, 1.5vw, 14px) clamp(14px, 1.8vw, 18px) 14px;
   text-align: left;
   width: 100%;
 }
@@ -144,84 +163,100 @@
   outline-offset: -2px;
 }
 
-.pitbull-meet__lane-num {
+.pitbull-meet__lane-index {
   color: var(--color-text-muted);
-  display: block;
-  font-size: clamp(20px, 2vw, 26px);
-  opacity: 0.5;
-  transition: color var(--transition-base), opacity var(--transition-base);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  opacity: 0.55;
+  padding-top: 2px;
+  transition: color var(--duration-base) var(--ease-design), opacity var(--duration-base) var(--ease-design);
 }
 
-.pitbull-meet__lane.is-active .pitbull-meet__lane-num {
-  color: var(--color-text-primary);
+.pitbull-meet__lane.is-active .pitbull-meet__lane-index {
+  color: var(--color-brand-celeste);
   opacity: 1;
+}
+
+.pitbull-meet__lane.is-active:nth-child(3) .pitbull-meet__lane-index {
+  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--plu-gold-500));
+}
+
+[data-theme='dark'] .pitbull-meet__lane.is-active:nth-child(3) .pitbull-meet__lane-index {
+  color: var(--plu-gold-400);
+}
+
+.pitbull-meet__lane-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pitbull-meet__lane-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pitbull-meet__lane-time {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pitbull-meet__lane.is-active .pitbull-meet__lane-time {
+  color: var(--color-brand-celeste);
+}
+
+.pitbull-meet__lane.is-active:nth-child(3) .pitbull-meet__lane-time {
+  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--plu-gold-500));
+}
+
+[data-theme='dark'] .pitbull-meet__lane.is-active:nth-child(3) .pitbull-meet__lane-time {
+  color: var(--plu-gold-400);
 }
 
 .pitbull-meet__lane-label {
   align-items: center;
   color: var(--color-text-primary);
-  display: flex;
-  font-size: 12px;
+  display: inline-flex;
+  font-size: 13px;
   font-weight: 700;
   gap: 6px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-.pitbull-meet__lane-icon {
-  color: var(--color-text-muted);
+.pitbull-meet__lane-label svg {
   flex: none;
+  opacity: 0.7;
 }
 
 .pitbull-meet__lane-value {
   color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pitbull-meet__lane-desc {
+  color: var(--color-text-secondary);
   font-size: 12.5px;
   line-height: 1.4;
 }
 
-.pitbull-meet__lane-row {
-  align-items: baseline;
-  color: var(--color-text-secondary);
-  display: flex;
-  font-size: 13px;
-  gap: 8px;
-  line-height: 1.4;
-  margin-top: 2px;
-}
-
-.pitbull-meet__lane-time {
-  color: var(--color-brand-celeste);
-  flex: none;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.pitbull-meet__lane.is-active:nth-child(3) .pitbull-meet__lane-time {
-  color: var(--plu-gold-500);
-}
-
-/* Indicador compartido que recorre las 3 etapas */
-.pitbull-meet__indicator {
-  background: linear-gradient(90deg, var(--color-brand-celeste), var(--plu-gold-500));
-  border-radius: 2px;
-  height: 2px;
-  pointer-events: none;
-  position: absolute;
-  top: -1px;
-  transform: translateX(-50%);
-  width: 33.33%;
-}
-
-/* ── Salida hacia resultados — aparece al cerrar la secuencia. Sin borde
-   propio: las líneas superiores de los carriles ya cierran el tablero,
-   así que la separación acá la da el espaciado, no otra costura. ── */
 .pitbull-meet__exit {
   display: flex;
   justify-content: flex-end;
   opacity: 0;
-  padding: clamp(10px, 1.6vw, 14px) clamp(16px, 2.4vw, 22px) 0;
+  padding: clamp(10px, 1.6vw, 14px) clamp(8px, 1.5vw, 14px) 0;
   transform: translateY(4px);
   transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
 }
@@ -258,18 +293,30 @@
   .pitbull-meet__top {
     align-items: stretch;
     flex-direction: column;
+    gap: 8px;
   }
 
-  .pitbull-meet__lanes {
-    grid-template-columns: 1fr;
+  .pitbull-meet__days {
+    width: 100%;
   }
 
-  .pitbull-meet__lane + .pitbull-meet__lane {
-    border-left: none;
+  .pitbull-meet__day {
+    flex: 1;
+    padding-right: 8px;
   }
 
-  .pitbull-meet__indicator {
-    display: none;
+  .pitbull-meet__day + .pitbull-meet__day {
+    margin-left: 0;
+  }
+
+  .pitbull-meet__phase {
+    padding-bottom: 4px;
+  }
+
+  .pitbull-meet__lane-hit {
+    gap: 12px;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    padding-left: 12px;
   }
 }
 
@@ -280,4 +327,3 @@
     transition: none;
   }
 }
-

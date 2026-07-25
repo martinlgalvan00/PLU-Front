@@ -127,6 +127,24 @@ export function createStaffUserRequest({ name, email, role }) {
   return apiPost('/api/users', { name, email, role })
 }
 
+export function updateStaffUserRoleRequest(userId, roleKey) {
+  return apiPatch(`/api/users/${encodeURIComponent(userId)}/role`, { roleKey })
+}
+
+export function listAccessRolesRequest() {
+  return apiGet('/api/access-control/roles')
+}
+
+export function createAccessRoleRequest({ name, description, permissionKeys = [] }) {
+  return apiPost('/api/access-control/roles', { name, description, permissionKeys })
+}
+
+export function updateAccessRolePermissionsRequest(roleId, permissionKeys) {
+  return apiPatch(`/api/access-control/roles/${encodeURIComponent(roleId)}/permissions`, {
+    permissionKeys,
+  })
+}
+
 export function meRequest() {
   return apiRequest('/api/auth/me')
 }

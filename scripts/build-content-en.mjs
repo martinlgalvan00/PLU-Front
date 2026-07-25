@@ -65,18 +65,14 @@ export const HOME_COMMUNITY = {
 }
 
 export const HOME_FAQ = {
-  eyebrow: 'FAQ',
-  title: 'What every athlete asks before getting started.',
-  description:
-    'Clear answers about membership, events and results — no runaround or fine print.',
-  cta: 'View all questions',
-  quickLinks: [
-    { label: 'Membership', view: 'members' },
-    { label: 'Pitbull Classic', view: 'pitbull' },
-    { label: 'Contact', view: 'contact' },
-  ],
+  eyebrow: 'Help',
+  title: 'Got questions?',
+  description: 'Membership, entries and the rulebook: clear answers in one place.',
+  ctaFaq: 'View FAQ',
+  ctaContact: 'Contact',
 }
 
+/** FAQ copy reserve (full /faq page). No longer rendered on Home. */
 export const HOME_FAQ_ITEMS = [
   {
     q: 'How do I join PLU ARG?',

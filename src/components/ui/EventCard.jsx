@@ -1,4 +1,5 @@
-import { MapPin, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import SpotlightCard from './SpotlightCard.jsx'
 
@@ -16,10 +17,12 @@ export default function EventCard({
   onSelect,
   actionLabel = 'Inscribirme',
 }) {
+  const { t } = useI18n()
   const closed = status === 'cerrado' || status === 'finalizado'
   const [day, month] = date.split(' ')
-  const { label: statusLabel, tone } = getStatusMeta(status)
+  const { label: statusLabel, tone } = getStatusMeta(status, t)
   const isLive = LIVE_STATUSES.has(status)
+  const secondaryLabel = t('pages.events.listViewEvent')
 
   return (
     <SpotlightCard
@@ -49,34 +52,47 @@ export default function EventCard({
         <span className="event-card__day">{day}</span>
         <span className="event-card__month">{month}</span>
       </div>
+
       <div className="event-card__body">
-        {status && (
-          <div className="event-card__status" data-tone={tone}>
+        {status ? (
+          <p className="event-card__status" data-tone={tone}>
             <span className="event-card__status-dot" aria-hidden />
             {statusLabel}
-          </div>
-        )}
+          </p>
+        ) : null}
+
         <h3 className="event-card__title">{title}</h3>
+
         <p className="event-card__meta">
-          {venue}
-          <span className="event-card__meta-sep" aria-hidden>·</span>
-          <MapPin size={12} />
-          {location}
+          <span>{venue}</span>
+          {location ? (
+            <>
+              <span className="event-card__meta-sep" aria-hidden>
+                ·
+              </span>
+              <span>{location}</span>
+            </>
+          ) : null}
         </p>
-        {onAction && !closed && (
-          <button
-            type="button"
-            className={isLive ? 'event-card__action event-card__action--live' : 'event-card__action event-card__action--quiet'}
-            onClick={(event) => {
-              event.stopPropagation()
-              onAction?.()
-            }}
-          >
-            {isLive ? actionLabel : 'Ver evento'}
-            {isLive && <ArrowRight size={13} />}
-          </button>
-        )}
       </div>
+
+      {onAction && !closed ? (
+        <button
+          type="button"
+          className={
+            isLive
+              ? 'event-card__action event-card__action--live motion-icon-shift'
+              : 'event-card__action event-card__action--quiet motion-icon-shift'
+          }
+          onClick={(event) => {
+            event.stopPropagation()
+            onAction?.()
+          }}
+        >
+          <span>{isLive ? actionLabel : secondaryLabel}</span>
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+        </button>
+      ) : null}
     </SpotlightCard>
   )
 }

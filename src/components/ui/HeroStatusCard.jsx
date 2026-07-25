@@ -1,6 +1,11 @@
+import { ArrowRight } from 'lucide-react'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
+/**
+ * Proof del hero — franja tipo invitación al próximo meet.
+ * Fecha tipográfica + copy; superficie suave, sin glass agresivo.
+ */
 export default function HeroStatusCard({ onSelect }) {
   const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
@@ -14,34 +19,31 @@ export default function HeroStatusCard({ onSelect }) {
       type={isButton ? 'button' : undefined}
       onClick={isButton ? onSelect : undefined}
     >
-      <p className="hero-meta__label">{t('hero.statusNextMeet')}</p>
-      <p className="hero-meta__meet">{t('hero.statusNextMeetValue')}</p>
-      <div className="hero-meta__body">
-        <p className="hero-meta__when">
-          <time className="hero-meta__when-full" dateTime="2026-12-12">
-            {PITBULL_CLASSIC.date}
-          </time>
-          <time className="hero-meta__when-short" dateTime="2026-12-12">
-            {PITBULL_CLASSIC.dateShort}
-          </time>
-        </p>
-        <p className="hero-meta__where">
-          <span className="hero-meta__venue">{PITBULL_CLASSIC.venue}</span>
-          <span className="hero-meta__sep" aria-hidden>
-            {' '}
-            ·{' '}
-          </span>
-          <span className="hero-meta__city">{PITBULL_CLASSIC.location}</span>
-        </p>
-      </div>
-      <p className="hero-meta__status">
-        <span className="motif-lights motif-lights--sequence" aria-hidden>
-          <span className="motif-lights__dot motif-lights__dot--on" />
-          <span className="motif-lights__dot motif-lights__dot--on" />
-          <span className="motif-lights__dot" />
+      <span className="hero-meta__date" aria-hidden>
+        <span className="hero-meta__date-day">{PITBULL_CLASSIC.dateDay}</span>
+        <span className="hero-meta__date-month">{PITBULL_CLASSIC.dateMonth}</span>
+        <span className="hero-meta__date-year">2026</span>
+      </span>
+
+      <span className="hero-meta__copy">
+        <span className="hero-meta__eyebrow">{t('hero.statusNextMeet')}</span>
+        <span className="hero-meta__meet">{t('hero.statusNextMeetValue')}</span>
+        <span className="hero-meta__line">
+          <span>{PITBULL_CLASSIC.location}</span>
+          <span className="hero-meta__dot" aria-hidden />
+          <span className="hero-meta__status">{t('pages.pitbull.spotlight.registrationSoon')}</span>
         </span>
-        {t('pages.pitbull.spotlight.registrationSoon')}
-      </p>
+      </span>
+
+      {isButton ? (
+        <span className="hero-meta__go" aria-hidden>
+          <ArrowRight size={16} className="hero-meta__arrow" />
+        </span>
+      ) : null}
+
+      <time className="hero-meta__sr-date" dateTime="2026-12-12">
+        {PITBULL_CLASSIC.dateShort}
+      </time>
     </Tag>
   )
 }

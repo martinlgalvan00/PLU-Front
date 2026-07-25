@@ -6,6 +6,7 @@ import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import { clearEventPageRoute, matchEventPageRoute, pushEventPageRoute } from './lib/eventPageRoute.js'
+import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
   clearTicketsRoute,
@@ -17,7 +18,15 @@ import { PRICING } from './lib/constants.js'
 import { getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
-import { canCheckIn, canManageUsers, canViewAdmin, getRoleLabel, isCheckinOnly, isPluUsaPartner } from './lib/roles.js'
+import {
+  canCheckIn,
+  canManageUsers,
+  canViewAdmin,
+  getRoleLabel,
+  isCheckinOnly,
+  isPluUsaPartner,
+} from './lib/roles.js'
+import { getAllowedAdminSections } from './lib/permissions.js'
 import HomePage from './pages/HomePage.jsx'
 
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
@@ -60,6 +69,7 @@ const PUBLIC_VIEWS = {
 
 export default function App() {
   const [view, setView] = useState(() => {
+    if (readPasswordResetToken()) return 'login'
     if (matchTicketsRoute()) return 'tickets'
     if (matchEventPageRoute()) return 'events'
     return 'home'
@@ -109,11 +119,12 @@ export default function App() {
 
   const navigate = useCallback(
     (nextView, options = {}) => {
-      const currentRole = app.getSession()?.role
+      const currentSession = app.getSession()
+      const currentRole = currentSession?.role
       const adminRequired = nextView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
       const blocked =
-        (adminRequired && !canViewAdmin(currentRole)) ||
+        (adminRequired && !canViewAdmin(currentSession)) ||
         (athleteRequired && currentRole !== 'athlete_plu')
       const resolvedView = blocked ? 'login' : nextView
 
@@ -152,6 +163,18 @@ export default function App() {
     navigate('competition')
   }
 
+  async function exitSecurityRoute() {
+    window.history.pushState({}, '', '/')
+
+    if (app.session?.eventId || app.session?.eventSlug) {
+      await app.logout()
+      setView('home')
+      return
+    }
+
+    setView(canViewAdmin(app.session) ? 'admin' : 'home')
+  }
+
   const securityRoute = matchSecurityGateRoute()
   if (securityRoute) {
     return (
@@ -162,9 +185,9 @@ export default function App() {
           eventSlug={securityRoute.eventSlug}
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
+          onExit={exitSecurityRoute}
           onLogin={app.login}
           onLoginWithToken={app.loginWithGateToken}
-          onLogout={app.logout}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
           registrations={app.registrations}
@@ -190,20 +213,20 @@ export default function App() {
     )
   }
 
-  if (view === 'admin' && canViewAdmin(app.session?.role)) {
-    if (isCheckinOnly(app.session?.role)) {
+  if (view === 'admin' && canViewAdmin(app.session)) {
+    if (isCheckinOnly(app.session)) {
       return (
         <Suspense fallback={<PageLoadFallback />}>
           <CheckInAppPage
             athletes={app.athletes}
-            canCheckIn={canCheckIn(app.session?.role)}
+            canCheckIn={canCheckIn(app.session)}
             onCheckInRegistration={app.checkInRegistrationAction}
             onCheckInTicket={app.checkInTicketAction}
             onExit={() => navigate('home')}
             onRedeemTicketAddon={app.redeemTicketAddonAction}
             onRefreshTickets={app.refreshTickets}
             registrations={app.registrations}
-            roleLabel={getRoleLabel(app.session?.role)}
+            roleLabel={getRoleLabel(app.session)}
             tickets={app.tickets}
           />
         </Suspense>
@@ -213,9 +236,10 @@ export default function App() {
     return (
       <Suspense fallback={<PageLoadFallback />}>
         <AdminPage
-          canCheckIn={canCheckIn(app.session?.role)}
-          canEdit={app.userCanEdit}
-          canManageUsers={canManageUsers(app.session?.role)}
+          canCheckIn={canCheckIn(app.session)}
+          authorization={app.session}
+          allowedSections={getAllowedAdminSections(app.session)}
+          canManageUsers={canManageUsers(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
           filters={app.filters}
@@ -239,6 +263,7 @@ export default function App() {
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}
+          onCreateRole={app.createAccessRoleAction}
           onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
@@ -246,6 +271,7 @@ export default function App() {
           onSaveShopProduct={app.saveShopProduct}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
+          onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           payments={app.payments}
           pendingTicketOrders={app.pendingTicketOrders}
           pendingTicketOrdersLoading={app.pendingTicketOrdersLoading}
@@ -255,8 +281,10 @@ export default function App() {
           shopProducts={app.shopProducts}
           tickets={app.tickets}
           users={app.users}
-          roleLabel={getRoleLabel(app.session?.role)}
-          isPluUsaPartner={isPluUsaPartner(app.session?.role)}
+          accessRoles={app.accessRoles}
+          permissionCatalog={app.permissionCatalog}
+          roleLabel={getRoleLabel(app.session)}
+          isPluUsaPartner={isPluUsaPartner(app.session)}
           isCheckinOnly={false}
           onExit={() => navigate('home')}
         />

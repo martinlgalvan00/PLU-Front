@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from '../lib/supabaseAdmin.js'
+import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
 
 // Roles de staff que necesitan poder ejecutar RPCs protegidas por
 // is_admin()/can_check_in() (supabase/migrations/20260706021905_bootstrap_auth_profiles.sql,
@@ -9,8 +10,6 @@ import { getSupabaseAdmin, isSupabaseAdminConfigured } from '../lib/supabaseAdmi
 const BRIDGED_ROLES = new Set([
   'admin_maximal',
   'admin_plu_arg',
-  'operador_plu_arg',
-  'viewer_plu_usa',
   'seguridad_plu_arg',
 ])
 
@@ -56,8 +55,25 @@ async function ensureSupabaseUser(admin, email) {
  * esta configurado o algo falla, se devuelve null y el login normal sigue
  * funcionando igual (la sesion de la app no depende de esto).
  */
-export async function ensureSupabaseSessionToken({ email, role }) {
-  if (!email || !BRIDGED_ROLES.has(role) || !isSupabaseAdminConfigured()) return null
+function usesDefaultPermissionSet(role, permissions) {
+  const defaults = getDefaultPermissionsForRole(role)
+  if (defaults.length === 0 || !Array.isArray(permissions)) return false
+  return (
+    defaults.length === permissions.length &&
+    defaults.every((permissionKey) => permissions.includes(permissionKey))
+  )
+}
+
+export async function ensureSupabaseSessionToken({ email, permissions, role }) {
+  // public.profiles todavía expresa el RBAC histórico. Sólo se entrega una
+  // sesión Supabase cuando el rol conserva exactamente esa matriz; un rol
+  // configurable o restringido opera exclusivamente a través de Express.
+  if (
+    !email ||
+    !BRIDGED_ROLES.has(role) ||
+    !usesDefaultPermissionSet(role, permissions) ||
+    !isSupabaseAdminConfigured()
+  ) return null
 
   const normalizedEmail = email.trim().toLowerCase()
   const admin = getSupabaseAdmin()

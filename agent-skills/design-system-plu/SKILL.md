@@ -1,8 +1,18 @@
 # Design System PLU ARG
 
+> **Autoridad de marca:** ver [`.claude/skills/plu-frontend-design`](../../.claude/skills/plu-frontend-design/SKILL.md)
+> primero — es la fuente operativa vigente. Esta skill sigue siendo útil para el inventario de
+> componentes y la arquitectura CSS, pero su tabla de paleta original quedaba desactualizada
+> (describía rojo como acento/CTA); se corrigió abajo para reflejar el ground truth real de
+> `src/styles/tokens/palette.css` (paleta confirmada por PLU USA en jul. 2026: negro, azul,
+> blanco, amarillo — rojo exclusivo de error).
+
 ## Objetivo
 
-Mantener una identidad visual **propia de PLU ARG / Maximal** — oscura, atlética, con acentos rojo, dorado y celeste — usando tokens CSS centralizados y componentes reutilizables. **No copiar literalmente** el sitio de PLU USA; tomar inspiración en jerarquía y claridad, no en assets, copy ni layout idéntico.
+Mantener una identidad visual **propia de PLU ARG / Maximal** — oscura, atlética, con acentos
+azul y dorado, negro/grafito de base — usando tokens CSS centralizados y componentes
+reutilizables. **No copiar literalmente** el sitio de PLU USA; tomar inspiración en jerarquía y
+claridad, no en assets, copy ni layout idéntico.
 
 Para el **proceso de mejora visual por pantalla** (auditoría, UX, responsive, QA), usar también [`design-upgrade`](../design-upgrade/SKILL.md).
 
@@ -44,12 +54,13 @@ Archivo: `src/styles/variables.css`
 
 | Token | Uso |
 |-------|-----|
-| `--color-bg-primary` (#111115) | Fondo principal |
-| `--color-brand-red` (#ff1515) | Acentos, CTAs primarios, focus |
-| `--color-brand-gold` (#b9a56b) | Títulos secundarios, botones gold |
+| `--color-bg-primary` | Fondo principal (dark, `--plu-cool-950`) |
+| `--color-brand-action` (oro, `--plu-gold-500`) | CTA primario, botones de acción |
+| `--color-brand-celeste` | Identidad/navegación, focus, links |
+| `--color-brand-gold` | Momentos premium: membresía, medallas, resultados |
+| `--color-brand-red` | **Solo error/peligro** — nunca CTA ni acento decorativo |
 | `--color-text-primary` | Texto principal sobre fondo oscuro |
 | `--color-text-muted` | Texto de apoyo |
-| `--color-hero-gradient` | Glow sutil en hero |
 
 **Regla:** si necesitás un color nuevo, agregalo como variable en `:root` antes de usarlo en cualquier `.css`.
 
@@ -102,8 +113,8 @@ Import chain: `main.jsx` → `styles/index.css` → partials.
 
 | Hacer | No hacer |
 |-------|----------|
-| Paleta rojo/dorado sobre negro | Copiar azul/blanco de PLU USA |
-| Copy en español rioplatense | Traducir textos USA literalmente |
+| Paleta azul/dorado sobre negro (confirmada por PLU USA, jul. 2026) | Usar rojo como acento de marca o CTA |
+| Copy institucional traducido/adaptado fielmente de PLU USA (decisión vigente desde jul. 2026, ver `PLU_BRAND_ALIGNMENT.md` §2) | Inventar datos de negocio propios (precios, fechas, cupos) que no tienen equivalente real del lado de EE.UU. |
 | Eventos argentinos (Pitbull Classic) | Nombres de meets USA |
 | Precios en ARS | USD |
 | Logo `public/PLU Argentina.jpg` | Assets de federación USA |

@@ -10,6 +10,7 @@ import {
   Download,
   Eye,
   LayoutDashboard,
+  KeyRound,
   Menu,
   ScanLine,
   ScrollText,
@@ -39,6 +40,7 @@ const ICONS = {
   ScanLine,
   Eye,
   ShoppingBag,
+  KeyRound,
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
@@ -59,6 +61,7 @@ export default function AdminShell({
   onSectionChange,
   onExit,
   navBadges = {},
+  allowedSections,
   roleLabel = 'Sin rol',
   restrictedNav = false,
   children,
@@ -68,21 +71,31 @@ export default function AdminShell({
   const { t } = useI18n()
 
   const navGroups = useMemo(() => {
+    let groups
     if (restrictedNav === 'pluUsa') {
-      return ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa')
-    }
-    if (restrictedNav === 'checkin') {
-      return ADMIN_NAV_GROUPS
+      groups = ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa')
+    } else if (restrictedNav === 'checkin') {
+      groups = ADMIN_NAV_GROUPS
         .map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'checkin') }))
         .filter((group) => group.items.length > 0)
+    } else {
+      groups = ADMIN_NAV_GROUPS
+        .map((group) => ({
+          ...group,
+          items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
+        }))
+        .filter((group) => group.items.length > 0)
     }
-    return ADMIN_NAV_GROUPS
+
+    if (!Array.isArray(allowedSections) || allowedSections.length === 0) return groups
+    const allowed = new Set(allowedSections)
+    return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
+        items: group.items.filter(([key]) => allowed.has(key)),
       }))
       .filter((group) => group.items.length > 0)
-  }, [restrictedNav])
+  }, [allowedSections, restrictedNav])
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)

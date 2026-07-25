@@ -82,6 +82,15 @@ describe('prisma schema normalization contract', () => {
     expect(schema).toContain('@@unique([userId, tableKey])')
   })
 
+  it('modela roles y permisos configurables sin romper el rol base de identidad', () => {
+    expectModel('AccessRole')
+    expectModel('AccessPermission')
+    expectModel('AccessRolePermission')
+    expect(schema).toContain('accessRoleId')
+    expect(schema).toContain('@@id([roleId, permissionKey])')
+    expect(schema).toContain('assignableByAdmin')
+  })
+
   it('declara indices para joins y auditoria', () => {
     expect(schema).toContain('@@index([personId, status])')
     expect(schema).toContain('@@index([eventId, status])')

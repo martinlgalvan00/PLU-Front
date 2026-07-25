@@ -130,6 +130,13 @@ describe('oauth auth api', () => {
       email: 'admin@pluarg.com',
       name: 'Admin PLU',
       role: 'admin_plu_arg',
+      roleKey: 'admin_plu_arg',
+      roleLabel: null,
+      permissions: expect.arrayContaining([
+        'admin.dashboard.read',
+        'admin.users.write',
+        'admin.roles.read',
+      ]),
       status: 'active',
       eventId: null,
       eventSlug: null,

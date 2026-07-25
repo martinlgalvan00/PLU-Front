@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
@@ -36,6 +36,8 @@ export default function AdminFilterBar({
   const { t } = useI18n()
   const panelId = useId()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const rootRef = useRef(null)
+  const hasMountedFilters = useRef(false)
   const rootClassName = [
     'admin-filters',
     'admin-filters--chips',
@@ -49,6 +51,24 @@ export default function AdminFilterBar({
   const activeFilters = filters.filter(isFilterActive)
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
+  const filterSignature = useMemo(
+    () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
+    [filters, query],
+  )
+
+  useEffect(() => {
+    if (!hasMountedFilters.current) {
+      hasMountedFilters.current = true
+      return
+    }
+    const root = rootRef.current
+    if (!root) return
+    root.classList.remove('is-filter-applied')
+    void root.offsetWidth
+    root.classList.add('is-filter-applied')
+    const timer = window.setTimeout(() => root.classList.remove('is-filter-applied'), 420)
+    return () => window.clearTimeout(timer)
+  }, [filterSignature])
 
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
@@ -56,7 +76,7 @@ export default function AdminFilterBar({
   }
 
   return (
-    <div className={rootClassName}>
+    <div ref={rootRef} className={rootClassName}>
       <div className="admin-filters__primary">
         <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
 
@@ -91,28 +111,33 @@ export default function AdminFilterBar({
       </div>
 
       {filters.length > 0 ? (
-        <div id={panelId} className={`admin-filters__panel${filtersOpen ? ' is-open' : ''}`}>
-          <div
-            className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}
-          >
-            {filters.map((filter) =>
-              filter.variant === 'select' ? (
-                <AdminFilterSelect key={filter.id} {...filter} />
-              ) : (
-                <AdminFilterChipGroup
-                  key={filter.id}
-                  compact={compact}
-                  inline={inline}
-                  ariaLabel={filter.ariaLabel}
-                  id={filter.id}
-                  label={filter.label}
-                  value={filter.value}
-                  onChange={filter.onChange}
-                  options={filter.options}
-                  disabled={filter.disabled}
-                />
-              ),
-            )}
+        <div
+          id={panelId}
+          className={`admin-filters__panel${filtersOpen ? ' is-open' : ''}`}
+        >
+          <div className="admin-filters__panel-inner">
+            <div
+              className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}
+            >
+              {filters.map((filter) =>
+                filter.variant === 'select' ? (
+                  <AdminFilterSelect key={filter.id} {...filter} />
+                ) : (
+                  <AdminFilterChipGroup
+                    key={filter.id}
+                    compact={compact}
+                    inline={inline}
+                    ariaLabel={filter.ariaLabel}
+                    id={filter.id}
+                    label={filter.label}
+                    value={filter.value}
+                    onChange={filter.onChange}
+                    options={filter.options}
+                    disabled={filter.disabled}
+                  />
+                ),
+              )}
+            </div>
           </div>
         </div>
       ) : null}

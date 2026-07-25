@@ -23,12 +23,12 @@
 /* ── Nivel superior — estado del documento + acceso al reglamento ── */
 .pitbull-doc__status {
   align-items: center;
-  border-block: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   flex-wrap: wrap;
   gap: 10px 16px;
   justify-content: space-between;
-  padding-block: 10px;
+  padding-bottom: 12px;
 }
 
 .pitbull-doc__status-copy {
@@ -164,40 +164,40 @@
   gap: clamp(16px, 2vw, 22px);
 }
 
-/* Lista técnica por filas — reemplaza los chips flotantes */
-.pitbull-doc__rows {
+/* Grid de chips — menú de opciones escaneable, no una lista de documento */
+.pitbull-doc__chips {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 10px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.pitbull-doc__row {
-  align-items: baseline;
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex;
-  gap: 14px;
-  padding-block: 10px;
-}
-
-.pitbull-doc__row:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-
-.pitbull-doc__row-num {
-  color: var(--color-text-muted);
-  flex: none;
-  font-size: 11px;
-  opacity: 0.55;
-  width: 20px;
-}
-
-.pitbull-doc__row-label {
+.pitbull-doc__chip {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-text-primary) 3.5%, transparent);
+  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 14%, transparent);
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-primary);
-  font-size: 14px;
+  display: inline-flex;
+  font-size: 13.5px;
   font-weight: 600;
+  gap: 8px;
+  padding: 9px 16px;
+  transition: border-color var(--duration-base) var(--ease-design), background var(--duration-base) var(--ease-design);
+}
+
+.pitbull-doc__chip svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-doc__chip:hover {
+    background: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+    border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
+  }
 }
 
 .pitbull-doc__note {

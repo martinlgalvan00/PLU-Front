@@ -688,68 +688,95 @@
 }
 
 .register-page--profile .register-card {
-  background: rgba(18, 20, 26, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+  background: color-mix(in oklab, var(--color-bg-surface, #12141a) 92%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 2px;
+  box-shadow: none;
   overflow: hidden;
-  padding: clamp(28px, 3.5vw, 40px);
+  padding: clamp(28px, 3.8vw, 44px) clamp(24px, 3.2vw, 40px);
   position: relative;
-  transition: box-shadow 280ms var(--ease-out), border-color 280ms var(--ease-out);
+  transition: border-color 280ms var(--ease-out);
 }
 
 .register-page--profile .register-card::before {
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--color-brand-gold) 95%, transparent) 0%,
-    color-mix(in srgb, var(--color-brand-gold) 35%, transparent) 55%,
+    color-mix(in srgb, var(--color-brand-gold) 90%, transparent) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 28%, transparent) 42%,
     transparent 100%
   );
   content: '';
   display: block;
-  height: 2px;
+  height: 1px;
   left: 0;
   position: absolute;
   right: 0;
   top: 0;
   transform-origin: left center;
-  transition: opacity 280ms var(--ease-out);
 }
 
 .register-page--profile .register-card .form-grid {
-  column-gap: 28px;
+  column-gap: clamp(20px, 2.8vw, 36px);
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  row-gap: 32px;
+  row-gap: clamp(22px, 2.8vw, 30px);
+}
+
+.register-page--profile .register-card .field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.register-page--profile .register-card .form-section-block {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.register-page--profile .register-card .form-section-block__header {
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-template-columns: none;
+  margin-bottom: clamp(22px, 3vw, 30px);
+  padding-bottom: clamp(16px, 2.2vw, 22px);
+}
+
+.register-page--profile .register-card .form-section-block__header > div {
+  display: grid;
+  gap: 6px;
 }
 
 .register-page--profile .register-card .form-section-block__step {
   background: transparent;
   border: none;
-  color: var(--color-brand-gold);
+  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--color-text-muted));
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.16em;
   min-width: 0;
   padding: 0;
+  text-transform: uppercase;
 }
 
 .register-page--profile .register-card .form-section-block__title {
   font-family: var(--font-display);
-  font-size: clamp(20px, 2.5vw, 24px);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.038em;
+  line-height: 1.12;
+  margin: 0;
 }
 
 .register-page--profile .register-card .form-section-block__desc {
   color: var(--color-text-muted);
-  font-size: 13.5px;
-  margin-top: 4px;
-}
-
-.register-page--profile .register-card .form-section-block__header {
-  gap: 10px;
-  margin-bottom: 22px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 44ch;
 }
 
 .register-page--profile .register-wizard .form-section-block__header,
@@ -778,24 +805,44 @@
 .register-page--profile .register-card .field {
   font-size: 13px;
   font-weight: 500;
-  gap: 8px;
+  gap: 7px;
+}
+
+.register-page--profile .register-card .field__label {
+  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
+  font-family: var(--font-family);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.register-page--profile .register-card .field:focus-within .field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
 }
 
 .register-page--profile .register-card .field input,
 .register-page--profile .register-card .field select {
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 0;
   box-shadow: none;
   font-size: 15px;
   font-weight: 400;
-  min-height: 48px;
-  padding: 10px 0;
+  letter-spacing: -0.01em;
+  min-height: 44px;
+  padding: 8px 0 10px;
   transition:
     border-color 180ms var(--ease-out),
     box-shadow 180ms var(--ease-out),
     color 180ms var(--ease-out);
+}
+
+.register-page--profile .register-card .field input::placeholder,
+.register-page--profile .register-card .field select:invalid {
+  color: rgba(255, 255, 255, 0.28);
 }
 
 .register-page--profile .register-card .field--select .field__select select {
@@ -815,20 +862,20 @@
 .register-page--profile .register-card .field--choice .field__choice {
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 0;
-  min-height: 48px;
-  padding: 10px 0;
+  min-height: 44px;
+  padding: 8px 0 10px;
 }
 
 .register-page--profile .register-card .field--choice .field__choice:hover {
-  border-bottom-color: rgba(255, 255, 255, 0.28);
+  border-bottom-color: rgba(255, 255, 255, 0.26);
 }
 
 .register-page--profile .register-card .field--choice .field__choice.is-active {
   background: transparent;
   border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 75%, transparent);
-  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
 }
 
 .register-page--profile .register-card .field--choice .field__choice.is-active .field__choice-text {
@@ -836,7 +883,7 @@
 }
 
 .register-page--profile .register-card .field--choice .field__choice:focus-within {
-  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
 }
 
 .register-page--profile .register-card .field--choice.is-invalid .field__choice {
@@ -854,14 +901,15 @@
 
 .register-page--profile .register-card .field input:hover:not(:focus),
 .register-page--profile .register-card .field select:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.26);
 }
 
 .register-page--profile .register-card .field input:focus,
 .register-page--profile .register-card .field select:focus {
   background: transparent;
-  border-color: color-mix(in srgb, var(--color-brand-gold) 75%, transparent);
-  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  outline: none;
 }
 
 .register-page--profile .register-card .field input[aria-invalid='true'],
@@ -871,25 +919,27 @@
 }
 
 .register-page--profile .register-card__footer {
-  border-top-color: rgba(255, 255, 255, 0.08);
-  margin-top: 8px;
-  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: clamp(8px, 1.5vw, 16px);
+  padding-top: clamp(18px, 2.4vw, 24px);
 }
 
 .register-page--profile .register-card__submit {
   background: var(--color-brand-gold);
   border: none;
-  border-radius: 2px;
+  border-radius: 0;
   box-shadow: none;
   color: #14161c;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  min-height: 52px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  min-height: 48px;
+  text-transform: uppercase;
   transform: none;
   transition:
     background 180ms var(--ease-out),
-    transform 180ms var(--ease-out),
-    box-shadow 180ms var(--ease-out);
+    color 180ms var(--ease-out);
 }
 
 .register-page--profile .register-card__submit-arrow {
@@ -897,10 +947,10 @@
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-brand-gold) 88%, white);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 90%, white);
+  box-shadow: none;
   filter: none;
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) .register-card__submit-arrow {
@@ -909,19 +959,23 @@
 
 .register-page--profile .register-card__submit:active:not(:disabled) {
   box-shadow: none;
-  transform: translateY(0);
+  transform: none;
 }
 
 .register-page--profile .register-card__submit--ready,
 .register-page--profile .register-card__submit--ready:hover:not(:disabled) {
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+  box-shadow: none;
 }
 
 .register-page--profile .register-card__back.btn--outline {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 2px;
-  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   transition:
     border-color 180ms var(--ease-out),
     background 180ms var(--ease-out),
@@ -929,7 +983,7 @@
 }
 
 .register-page--profile .register-card__back.btn--outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.28);
   color: #fff;
 }
@@ -1024,16 +1078,40 @@
 }
 
 [data-theme='light'] .register-page--profile .register-card {
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 18px 40px rgba(15, 17, 23, 0.08);
+  box-shadow: none;
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__header {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__step {
+  color: color-mix(in oklab, var(--plu-gold-600) 78%, #4a5568);
+}
+
+[data-theme='light'] .register-page--profile .register-card .form-section-block__title {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field__label {
+  color: rgba(15, 17, 23, 0.48);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field:focus-within .field__label {
+  color: color-mix(in oklab, var(--plu-gold-600) 70%, #4a5568);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field input,
 [data-theme='light'] .register-page--profile .register-card .field select {
   background: transparent;
-  border-bottom-color: rgba(15, 17, 23, 0.18);
+  border-bottom-color: rgba(15, 17, 23, 0.16);
   color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--profile .register-card .field input::placeholder {
+  color: rgba(15, 17, 23, 0.32);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field--select .field__select.is-empty select {
@@ -1247,18 +1325,18 @@
   }
 
   .register-page--profile .register-card {
-    padding: clamp(20px, 4vw, 28px);
+    padding: clamp(22px, 4vw, 32px) clamp(18px, 3.5vw, 28px);
     width: 100%;
   }
 
   .register-page--profile .register-card .form-grid {
     column-gap: 18px;
-    gap: 18px 18px;
-    row-gap: 22px;
+    row-gap: 20px;
   }
 
   .register-page--profile .register-card .form-section-block__header {
     margin-bottom: 18px;
+    padding-bottom: 14px;
   }
 
   .register-page--profile .register-card__footer--wizard,

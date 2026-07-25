@@ -23,11 +23,9 @@ import {
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { checkoutLimiter, publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
-
-const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const preferenceSchema = z.object({
   paymentOrderId: z.string().uuid(),
@@ -89,7 +87,8 @@ export function createPaymentRoutes(deps = {}) {
   const router = Router()
   const env = deps.env ?? process.env
   const prisma = deps.getPrisma?.() ?? getPrisma()
-  const financeGuard = requireRole(FINANCE_ROLES, { prisma })
+  const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
 
   function repository() {
     const client = deps.supabaseAdmin ?? getSupabaseAdmin()
@@ -186,7 +185,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.get('/operations', ...financeGuard, staffLimiter, async (req, res, next) => {
+  router.get('/operations', ...financeReadGuard, staffLimiter, async (req, res, next) => {
     try {
       const query = parseInput(operationsQuerySchema, req.query)
       const paymentRepository = repository()
@@ -209,7 +208,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/recover', ...financeGuard, staffLimiter, async (_req, res, next) => {
+  router.post('/operations/recover', ...financeWriteGuard, staffLimiter, async (_req, res, next) => {
     try {
       const result = await recoverPaymentOperations({
         ...services({ notifications: true }),
@@ -222,7 +221,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/events/:eventId/retry', ...financeGuard, staffLimiter, async (req, res, next) => {
+  router.post('/operations/events/:eventId/retry', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
     try {
       const eventId = parseInput(z.string().uuid(), req.params.eventId)
       const paymentServices = services({ notifications: true })
@@ -235,7 +234,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/operations/reconciliations/:attemptId/retry', ...financeGuard, staffLimiter, async (req, res, next) => {
+  router.post('/operations/reconciliations/:attemptId/retry', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
     try {
       const attemptId = parseInput(z.string().uuid(), req.params.attemptId)
       const paymentServices = services({ notifications: true })

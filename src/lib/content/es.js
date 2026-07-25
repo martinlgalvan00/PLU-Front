@@ -40,9 +40,17 @@ export const HOME_MEMBERSHIP = {
 
 export const HOME_RESULTS = {
   eyebrow: 'Resultados',
-  title: 'Todavía no hay resultados publicados.',
+  status: 'Pendiente',
+  title: 'Ranking oficial, al cierre de cada meet.',
   description:
-    'Los resultados de Pitbull Classic van a publicarse acá al finalizar el evento, con exportación para PLU USA.',
+    'Categorías, totales y archivo histórico del calendario — con exportación lista para PLU USA.',
+  metaEvent: 'Pitbull Classic',
+  metaExport: 'Export PLU USA',
+  classes: {
+    open83: 'Open · −83 kg',
+    open74: 'Open · −74 kg',
+    women63: 'Women · −63 kg',
+  },
 }
 
 export const HOME_RULEBOOK = {
@@ -64,19 +72,14 @@ export const HOME_COMMUNITY = {
 }
 
 export const HOME_FAQ = {
-  eyebrow: 'Preguntas frecuentes',
-  title: 'Afiliación, eventos y resultados.',
-  description:
-    'Respuestas directas sobre trámites, inscripciones y reglamento.',
-  cta: 'Ver todas las preguntas',
-  quickLinks: [
-    { label: 'Afiliación', view: 'members' },
-    { label: 'Pitbull Classic', view: 'pitbull' },
-    { label: 'Contacto', view: 'contact' },
-  ],
+  eyebrow: 'Ayuda',
+  title: '¿Tenés dudas?',
+  description: 'Afiliación, inscripciones y reglamento: respuestas claras en un solo lugar.',
+  ctaFaq: 'Ver FAQ',
+  ctaContact: 'Contacto',
 }
 
-/** FAQ home: copy exacto del design-reference */
+/** Reserva de copy FAQ (página /faq). Ya no se renderiza en Home. */
 export const HOME_FAQ_ITEMS = [
   {
     q: '¿Cómo me afilio a PLU ARG?',
@@ -742,6 +745,7 @@ export const ADMIN_NAV_GROUPS = [
     labelKey: 'admin.nav.groups.system',
     items: [
       ['users', 'admin.nav.users', 'Shield'],
+      ['roles', 'admin.nav.roles', 'KeyRound'],
       ['audit', 'admin.nav.audit', 'ScrollText'],
     ],
   },

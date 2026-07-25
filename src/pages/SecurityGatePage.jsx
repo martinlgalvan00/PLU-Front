@@ -6,6 +6,7 @@ import CheckInAppPage from './CheckInAppPage.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { canCheckIn, getRoleLabel } from '../lib/roles.js'
+import { canAccessSecurityEvent } from '../lib/permissions.js'
 
 function resolveGateEvent(adminEvents, eventSlug) {
   const fromAdmin = adminEvents?.find((item) => item.slug === eventSlug)
@@ -34,9 +35,8 @@ function stripAccessTokenFromUrl() {
 /**
  * SecurityGatePage — puerta de entrada dedicada por evento (/evento/:eventoSlug/seguridad).
  *
- * Login liviano scopeado a un evento puntual: una cuenta seguridad_plu_arg
- * solo entra si session.role + session.eventSlug matchean el slug de la URL
- * (el backend valida lo mismo en /api/auth/login, ver server/routes/auth.js).
+ * Login liviano scopeado a un evento puntual. La autorización depende del
+ * permiso de check-in y, cuando la cuenta tiene evento asignado, de su slug.
  */
 export default function SecurityGatePage({
   adminEvents,
@@ -44,9 +44,9 @@ export default function SecurityGatePage({
   eventSlug,
   onCheckInRegistration,
   onCheckInTicket,
+  onExit,
   onLogin,
   onLoginWithToken,
-  onLogout,
   onRedeemTicketAddon,
   onRefreshTickets,
   registrations,
@@ -55,7 +55,7 @@ export default function SecurityGatePage({
 }) {
   const { t } = useI18n()
   const event = resolveGateEvent(adminEvents, eventSlug)
-  const isAuthorized = session?.role === 'seguridad_plu_arg' && session?.eventSlug === eventSlug
+  const isAuthorized = canAccessSecurityEvent(session, eventSlug)
 
   // Credencial de acceso: si la URL trae ?acceso=<token>, intentamos entrar
   // sin contraseña. 'idle' | 'loading' | 'error'.
@@ -82,17 +82,17 @@ export default function SecurityGatePage({
     return (
       <CheckInAppPage
         athletes={athletes}
-        canCheckIn={canCheckIn(session.role)}
+        canCheckIn={canCheckIn(session)}
         eventDays={event?.eventDays ?? []}
         eventSlug={eventSlug}
         eventTitle={event?.title}
         onCheckInRegistration={onCheckInRegistration}
         onCheckInTicket={onCheckInTicket}
-        onExit={onLogout}
+        onExit={onExit}
         onRedeemTicketAddon={onRedeemTicketAddon}
         onRefreshTickets={onRefreshTickets}
         registrations={registrations}
-        roleLabel={getRoleLabel(session.role)}
+        roleLabel={getRoleLabel(session)}
         ticketTypes={event?.ticketTypes ?? []}
         tickets={tickets}
       />

@@ -6,12 +6,19 @@ import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { ROLE_OPTIONS } from '../../lib/constants.js'
 import { getRoleLabel } from '../../lib/roles.js'
 
-const EMPTY_DRAFT = { name: '', email: '', role: 'operador_plu_arg', eventId: '' }
+const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '' }
 
-export default function UsersSection({ adminEvents, canManageUsers, onCreateSecurityUser, onCreateUser, onUpdateRole, users }) {
+export default function UsersSection({
+  accessRoles,
+  adminEvents,
+  canManageUsers,
+  onCreateSecurityUser,
+  onCreateUser,
+  onUpdateRole,
+  users,
+}) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [draft, setDraft] = useState(EMPTY_DRAFT)
@@ -19,12 +26,20 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
   const [tempPassword, setTempPassword] = useState(null)
   const [inviteNotice, setInviteNotice] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [updatingUserId, setUpdatingUserId] = useState(null)
 
   const isSecurityRole = draft.role === 'seguridad_plu_arg'
 
   const eventOptions = useMemo(
     () => (adminEvents ?? []).map((event) => [event.id, event.title]),
     [adminEvents],
+  )
+  const roleOptions = useMemo(
+    () =>
+      (accessRoles ?? [])
+        .filter((role) => role.active !== false && role.canAssign)
+        .map((role) => [role.key, role.name]),
+    [accessRoles],
   )
 
   const rows = useMemo(() => {
@@ -76,6 +91,18 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
     }
   }
 
+  async function handleRoleChange(userId, roleKey) {
+    setFormError('')
+    setUpdatingUserId(userId)
+    try {
+      await onUpdateRole(userId, roleKey)
+    } catch (error) {
+      setFormError(error?.message ?? t('admin.users.errorRoleUpdate'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
   return (
     <AdminListSection
       variant="users"
@@ -123,7 +150,7 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
               name="role"
               value={draft.role}
               onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
-              options={ROLE_OPTIONS}
+              options={roleOptions}
             />
             {isSecurityRole && (
               <Select
@@ -195,17 +222,20 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
             mobile: 'badge',
             sortable: true,
             render: (row) =>
-              canManageUsers ? (
+              canManageUsers &&
+              row.role !== 'admin_maximal' &&
+              roleOptions.some(([roleKey]) => roleKey === (row.roleKey ?? row.role)) ? (
                 <label className="admin-users__role-select">
                   <span className="admin-users__role-select-label">{t('admin.columns.role')}</span>
                   <select
                     name={`role-${row.id}`}
-                    value={row.role}
+                    value={row.roleKey ?? row.role}
+                    disabled={updatingUserId === row.id}
                     aria-label={`${t('admin.columns.role')}: ${row.name}`}
-                    onChange={(e) => onUpdateRole(row.id, e.target.value)}
+                    onChange={(e) => handleRoleChange(row.id, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {ROLE_OPTIONS.map(([optionValue, optionLabel]) => (
+                    {roleOptions.map(([optionValue, optionLabel]) => (
                       <option key={optionValue} value={optionValue}>
                         {optionLabel}
                       </option>
@@ -213,7 +243,7 @@ export default function UsersSection({ adminEvents, canManageUsers, onCreateSecu
                   </select>
                 </label>
               ) : (
-                <span className="status-pill status-pill--neutral">{getRoleLabel(row.role)}</span>
+                <span className="status-pill status-pill--neutral">{getRoleLabel(row)}</span>
               ),
           },
         ]}

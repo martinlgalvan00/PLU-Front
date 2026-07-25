@@ -1,11 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
+import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { athleteWriteLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
+import {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+} from '../services/passwordResetToken.js'
+import { buildPasswordResetUrl } from '../../src/lib/passwordResetRoute.js'
 import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
@@ -18,10 +25,6 @@ import {
   requireAthleteSession,
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
-
-const ADMIN_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg', 'viewer_plu_usa', 'seguridad_plu_arg']
-const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
-const ACCOUNT_ROLES = ['admin_maximal', 'admin_plu_arg']
 
 const registerSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -40,6 +43,16 @@ const registerSchema = z.object({
   password: z.string().min(12).max(72),
 })
 const loginSchema = z.object({ email: z.string().trim().email(), password: z.string().min(1).max(72) })
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
+})
+const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20, 'El enlace de recuperación no es válido.'),
+  password: z
+    .string()
+    .min(12, 'La contraseña debe tener al menos 12 caracteres.')
+    .max(72, 'La contraseña es demasiado larga.'),
+})
 const updateSchema = z.object({
   email: z.string().trim().email(), phone: z.string().trim().min(6), city: z.string().trim().min(2),
   province: z.string().trim().min(2), gym: z.string().trim().optional().default(''),
@@ -60,15 +73,58 @@ const uploadSchema = z.object({
   size: z.number().int().positive().max(3 * 1024 * 1024),
 })
 
-export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env }) {
+const FORGOT_OK_MESSAGE =
+  'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
+
+async function dispatchPasswordResetEmail({ brevo, env, to, name, resetUrl }) {
+  const templateId = env.BREVO_TEMPLATE_PASSWORD_RESET
+  if (brevo.configured && templateId) {
+    await brevo.sendTemplate({
+      to,
+      templateId,
+      params: { name: name || '', resetUrl },
+    })
+    return 'sent'
+  }
+
+  if (brevo.configured) {
+    await brevo.sendHtml({
+      to,
+      subject: 'Restablecé tu contraseña · PLU ARG',
+      htmlContent: `
+        <p>Hola${name ? ` ${name}` : ''},</p>
+        <p>Recibimos un pedido para restablecer tu contraseña en PLU ARG.</p>
+        <p><a href="${resetUrl}">Crear nueva contraseña</a></p>
+        <p>El enlace vence en 30 minutos. Si no pediste esto, ignorá este correo.</p>
+      `,
+    })
+    return 'sent'
+  }
+
+  console.info('[password-reset mock]', { to, resetUrl })
+  return 'mocked'
+}
+
+export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env, brevo }) {
   const router = Router()
   const client = () => getSupabaseAdmin?.()
   const repo = () => repository ?? createSupabaseAthleteRepository(client())
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
-  const adminGuard = requireRole(ADMIN_ROLES, { prisma })
-  const financeGuard = requireRole(FINANCE_ROLES, { prisma })
-  const accountGuard = requireRole(ACCOUNT_ROLES, { prisma })
+  const adminGuard = requirePermission(
+    [
+      'admin.athletes.read',
+      'admin.memberships.read',
+      'admin.registrations.read',
+      'admin.payments.read',
+      'admin.dashboard.read',
+    ],
+    { prisma },
+    { mode: 'any' },
+  )
+  const financeGuard = requirePermission('admin.payments.approve', { prisma })
+  const accountGuard = requirePermission('admin.athletes.write', { prisma })
+  const mailer = brevo ?? createBrevoAdapter({ env })
 
   router.post('/register', publicWriteLimiter, validateBody(registerSchema), async (req, res, next) => {
     try {
@@ -90,6 +146,54 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
       res.json({ user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email } })
     } catch (error) { next(error) }
+  })
+
+  // Anti-enumeración: siempre 200 con el mismo mensaje, exista o no la cuenta.
+  router.post('/forgot-password', publicWriteLimiter, validateBody(forgotPasswordSchema), async (req, res, next) => {
+    try {
+      const { email } = req.validatedBody
+      const row = await repo().findLogin(email)
+
+      if (row && row.status !== 'bloqueado' && row.password_hash) {
+        const token = createPasswordResetToken({ athleteId: row.id })
+        const appUrl = env.APP_URL ?? env.VITE_APP_URL ?? ''
+        const resetUrl = buildPasswordResetUrl(appUrl, token)
+        try {
+          await dispatchPasswordResetEmail({
+            brevo: mailer,
+            env,
+            to: row.email,
+            name: row.full_name,
+            resetUrl,
+          })
+        } catch (mailError) {
+          console.warn('[password-reset] no se pudo enviar el email', mailError?.message ?? mailError)
+        }
+      }
+
+      res.json({ ok: true, message: FORGOT_OK_MESSAGE })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/reset-password', publicWriteLimiter, validateBody(resetPasswordSchema), async (req, res, next) => {
+    try {
+      const payload = verifyPasswordResetToken(req.validatedBody.token)
+      if (!payload) {
+        throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
+      }
+
+      const credential = await repo().credential(payload.aid)
+      if (!credential) {
+        throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
+      }
+
+      await repo().setPassword(payload.aid, await hashPassword(req.validatedBody.password))
+      res.json({ ok: true })
+    } catch (error) {
+      next(error)
+    }
   })
 
   router.get('/session', async (req, res, next) => {
@@ -155,8 +259,22 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     } catch (error) { next(error) }
   })
 
-  router.get('/admin', ...adminGuard, staffLimiter, async (_req, res, next) => {
-    try { res.json(await repo().adminData()) } catch (error) { next(error) }
+  router.get('/admin', ...adminGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const data = await repo().adminData()
+      const canReadAthletes = hasPermission(req.auth.user, 'admin.athletes.read')
+      const canReadMemberships = hasPermission(req.auth.user, 'admin.memberships.read')
+      const canReadRegistrations = hasPermission(req.auth.user, 'admin.registrations.read')
+      const canReadPayments = hasPermission(req.auth.user, 'admin.payments.read')
+
+      res.json({
+        ...data,
+        athletes: canReadAthletes ? data.athletes : [],
+        memberships: canReadMemberships ? data.memberships : [],
+        registrations: canReadRegistrations ? data.registrations : [],
+        payments: canReadPayments ? data.payments : [],
+      })
+    } catch (error) { next(error) }
   })
   router.post('/admin/payment-orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {

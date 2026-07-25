@@ -11,3 +11,7 @@ export const Default = {}
 export const Compact = {
   args: { compact: true },
 }
+
+export const Segment = {
+  args: { compact: true, variant: 'segment' },
+}

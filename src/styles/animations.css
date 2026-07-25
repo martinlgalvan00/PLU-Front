@@ -376,7 +376,9 @@
     transition: none !important;
   }
 
-  .hero--design.is-animate .hero-meta--note > *,
+  .hero--design.is-animate .hero-meta__date,
+  .hero--design.is-animate .hero-meta__copy,
+  .hero--design.is-animate .hero-meta__go,
   .site-header__drawer.is-open .site-header__drawer-foot,
   .motion-surface,
   .event-card,

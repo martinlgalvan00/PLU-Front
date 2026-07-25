@@ -1,4 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
+import {
+  ACCESS_ROLE_INCLUDE,
+  permissionKeysFromAccessRole,
+} from './accessControlService.js'
 
 export const SESSION_COOKIE_NAME = 'plu_session'
 
@@ -60,11 +65,18 @@ export function serializeUser(user) {
     user.profile?.displayName ??
     [user.profile?.firstName, user.profile?.lastName].filter(Boolean).join(' ').trim()
 
+  const roleKey = user.accessRole?.key ?? user.role
+  const permissions =
+    permissionKeysFromAccessRole(user.accessRole) ?? getDefaultPermissionsForRole(roleKey)
+
   return {
     id: user.id,
     email: user.email,
     name: profileName || user.email,
     role: user.role,
+    roleKey,
+    roleLabel: user.accessRole?.name ?? null,
+    permissions,
     status: user.status,
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
@@ -77,7 +89,14 @@ export async function readSession({ prisma, token, now = new Date() }) {
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { user: { include: { profile: true } } },
+    include: {
+      user: {
+        include: {
+          profile: true,
+          accessRole: { include: ACCESS_ROLE_INCLUDE },
+        },
+      },
+    },
   })
 
   if (

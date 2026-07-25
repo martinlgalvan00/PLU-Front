@@ -60,6 +60,7 @@ Consultar [css-patterns.md](./css-patterns.md). Elegir **uno dominante** por sec
 | Credibilidad / stats | **Panel glass** (`hero-status-card`) |
 | Conversión | **CTA primario + outline + barra de acciones** |
 | Listado compacto | **Pills scrollables** dentro de shell |
+| Showcase / credencial / tilt | **Motion premium** → skill [`motion-premium`](../motion-premium/SKILL.md) |
 
 **Regla:** premium = menos capas simultáneas, no más efectos (ver `design-upgrade` §9c).
 

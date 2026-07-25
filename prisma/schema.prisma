@@ -346,11 +346,57 @@ model OrganizationMember {
   @@index([userId, status])
 }
 
+model AccessRole {
+  id                String   @id
+  key               String   @unique
+  name              String
+  description       String?
+  baseRole          UserRole
+  isSystem          Boolean  @default(false)
+  isProtected       Boolean  @default(false)
+  assignableByAdmin Boolean  @default(true)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users       User[]
+  permissions AccessRolePermission[]
+
+  @@index([active, name])
+  @@index([baseRole])
+}
+
+model AccessPermission {
+  key         String @id
+  module      String
+  action      String
+  label       String
+  description String?
+  sortOrder   Int    @default(0)
+
+  roles AccessRolePermission[]
+
+  @@index([module, sortOrder])
+}
+
+model AccessRolePermission {
+  roleId        String
+  permissionKey String
+  createdAt     DateTime @default(now())
+
+  role       AccessRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission AccessPermission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+  @@index([permissionKey])
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
   passwordHash String?
   role         UserRole   @default(operador_plu_arg)
+  accessRoleId String?
   status       UserStatus @default(invited)
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
@@ -364,6 +410,7 @@ model User {
   eventSlug    String?
 
   profile                 UserProfile?
+  accessRole              AccessRole?                   @relation(fields: [accessRoleId], references: [id], onDelete: Restrict)
   identities              UserIdentity[]
   sessions                Session[]
   organizationMembers     OrganizationMember[]
@@ -379,6 +426,7 @@ model User {
   person                  Person?                      @relation(fields: [personId], references: [id], onDelete: SetNull)
 
   @@index([role, status])
+  @@index([accessRoleId, status])
   @@index([eventId])
 }
 

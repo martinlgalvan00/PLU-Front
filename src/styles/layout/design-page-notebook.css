@@ -303,8 +303,8 @@
   /* ── Pitbull dossier ── */
 
   .pitbull-dossier--minimal {
-    gap: clamp(28px, 4.5vw, 40px);
-    padding-top: clamp(18px, 2.8vw, 24px);
+    gap: clamp(22px, 3.5vw, 32px);
+    padding-top: clamp(16px, 2.4vw, 22px);
   }
 
   .pitbull-dossier--minimal > .pitbull-dossier__section,
@@ -787,7 +787,7 @@
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
-    margin-top: clamp(16px, 2.4vw, 22px);
+    margin-top: 0;
   }
 
   /* Categories: 2-col eficiente en notebook ancho */

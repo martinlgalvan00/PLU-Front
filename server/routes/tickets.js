@@ -1,18 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { z } from 'zod'
+import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import {
   publicReadLimiter,
   staffLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
-
-const CHECKIN_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg', 'seguridad_plu_arg']
-const FINANCE_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -46,26 +44,22 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
   const router = Router()
   const repo = () => repository ?? createSupabaseTicketRepository(getSupabaseAdmin?.())
   const prisma = getPrisma()
-  const guard = requireRole(CHECKIN_ROLES, { prisma })
-  const financeGuard = requireRole(FINANCE_ROLES, { prisma })
+  const guard = requirePermission('admin.checkin.execute', { prisma })
+  const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
 
-  // Solo una cuenta seguridad_plu_arg atada a un evento puntual (User.eventId,
-  // creadas via POST /api/auth/security-users) queda restringida a ese evento.
-  // Sin eventId asignado, un rol de check-in opera sobre cualquier evento
-  // (mismo comportamiento que antes de este scoping).
+  // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
+  // con eventId/eventSlug asignado queda limitado a ese evento; los roles
+  // globales con admin.checkin.execute pueden operar cualquier evento.
   function assertEventScope(req, targetEventId) {
-    const { role, eventId } = req.auth.user
-    if (role !== 'seguridad_plu_arg' || !eventId) return
-    if (targetEventId && targetEventId === eventId) return
+    if (hasEventScopeAccess(req.auth.user, { eventId: targetEventId })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
   }
 
   function assertEventSlugScope(req, targetEventSlug) {
-    const { role, eventSlug } = req.auth.user
-    if (role !== 'seguridad_plu_arg' || !eventSlug) return
-    if (targetEventSlug && targetEventSlug === eventSlug) return
+    if (hasEventScopeAccess(req.auth.user, { eventSlug: targetEventSlug })) return
     throw new HttpError(403, 'Esta cuenta no tiene acceso a este evento.')
   }
 
@@ -142,14 +136,14 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
     }
   })
 
-  router.get('/orders/pending-manual', ...financeGuard, staffLimiter, async (_req, res, next) => {
+  router.get('/orders/pending-manual', ...financeReadGuard, staffLimiter, async (_req, res, next) => {
     try {
       res.json({ orders: await repo().listPending() })
     } catch (error) {
       next(error)
     }
   })
-  router.post('/orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
+  router.post('/orders/:orderId/approve', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
     try {
       res.json(await repo().approve(req.params.orderId))
     } catch (error) {
@@ -158,7 +152,7 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
   })
   router.get(
     '/orders/:orderId/proof-url',
-    ...financeGuard,
+    ...financeReadGuard,
     staffLimiter,
     async (req, res, next) => {
       try {

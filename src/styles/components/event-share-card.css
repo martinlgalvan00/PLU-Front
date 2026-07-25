@@ -97,6 +97,19 @@
     linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
 }
 
+/* Formato historia: el lienzo es mucho más alto (9:16), así que el cuerpo
+   centrado deja aire de sobra arriba y abajo del bloque de texto. En vez
+   de forzar más contenido (rompería "minimalista"), se refuerza el glow
+   central ya existente para que ese aire se sienta deliberado — una
+   presencia ambiental detrás del nombre, no un vacío. */
+.share-card--story .share-card__bg {
+  background:
+    radial-gradient(ellipse 70% 32% at 80% 6%, rgba(242, 183, 5, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 30% at 8% 96%, rgba(116, 172, 223, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 34% at 50% 48%, rgba(255, 255, 255, 0.04) 0%, transparent 62%),
+    linear-gradient(180deg, #1a1b21 0%, #0e0f13 46%, #09090c 100%);
+}
+
 /* ─── Monograma personalizado ───────────────────────────────────────
    Iniciales del atleta como marca de agua — reemplaza el texto
    genérico de marca por un elemento único para cada card.

@@ -98,7 +98,7 @@ async function loginAdmin(url) {
 }
 
 describe('alta de staff (/api/users)', () => {
-  it('un admin crea una cuenta de operador sin contraseña (invitación Auth0)', async () => {
+  it('un admin crea una cuenta PLU sin contraseña (invitación Auth0)', async () => {
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV }))
 
@@ -107,12 +107,17 @@ describe('alta de staff (/api/users)', () => {
       const response = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ name: 'Nueva Operadora', email: 'op@pluarg.test', role: 'operador_plu_arg' }),
+        body: JSON.stringify({ name: 'Equipo PLU', email: 'plu@pluarg.test', role: 'plu_arg' }),
       })
       const body = await response.json()
 
       expect(response.status).toBe(201)
-      expect(body.user).toMatchObject({ email: 'op@pluarg.test', role: 'operador_plu_arg', status: 'active' })
+      expect(body.user).toMatchObject({
+        email: 'plu@pluarg.test',
+        role: 'operador_plu_arg',
+        roleKey: 'plu_arg',
+        status: 'active',
+      })
     } finally {
       await target.close()
     }
@@ -162,10 +167,48 @@ describe('alta de staff (/api/users)', () => {
       const response = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ name: 'Sin Sesion', email: 'nadie@pluarg.test', role: 'operador_plu_arg' }),
+        body: JSON.stringify({ name: 'Sin Sesion', email: 'nadie@pluarg.test', role: 'plu_arg' }),
       })
 
       expect(response.status).toBe(401)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('persiste la asignación de un rol configurable permitido', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin(),
+      {
+        id: 'usr-plu',
+        email: 'equipo@pluarg.test',
+        passwordHash: null,
+        role: 'operador_plu_arg',
+        status: 'active',
+        profile: { firstName: 'Equipo', lastName: 'PLU' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-plu/role`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ roleKey: 'plu_arg' }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.user).toMatchObject({
+        id: 'usr-plu',
+        role: 'operador_plu_arg',
+        roleKey: 'plu_arg',
+      })
+      expect(body.user.permissions).toContain('admin.events.read')
+      expect(body.user.permissions).not.toContain('admin.events.write')
     } finally {
       await target.close()
     }

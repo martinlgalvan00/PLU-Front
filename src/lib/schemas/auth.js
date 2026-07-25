@@ -18,12 +18,10 @@ export const loginSchema = z.object({
 // identidad por email en el primer login. seguridad_plu_arg queda afuera a
 // propósito -- esas cuentas van por createSecurityUserSchema (atadas a un
 // evento y con credencial de puerta).
-export const STAFF_ROLES = ['admin_plu_arg', 'operador_plu_arg', 'viewer_plu_usa']
-
 export const createStaffUserSchema = z.object({
   name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
-  role: z.enum(STAFF_ROLES),
+  role: z.string().trim().toLowerCase().regex(/^[a-z][a-z0-9_]{2,47}$/),
 })
 
 export const createSecurityUserSchema = z.object({

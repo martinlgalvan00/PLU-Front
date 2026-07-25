@@ -1,4 +1,4 @@
-import { useCallback, useRef, type ReactNode, type CSSProperties, type PointerEvent } from 'react'
+import { useCallback, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent } from 'react'
 import { TILT_MAX_DEG } from './tokens'
 import { hasFinePointer, useReducedMotion } from './useReducedMotion'
 
@@ -23,6 +23,7 @@ export default function TiltCard({
   const rootRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<number | null>(null)
   const leaveTimerRef = useRef<number | null>(null)
+  const [tiltActive, setTiltActive] = useState(false)
 
   const resetTilt = useCallback(() => {
     const node = rootRef.current
@@ -36,6 +37,7 @@ export default function TiltCard({
     node.style.setProperty('--tilt-glare-x', '50%')
     node.style.setProperty('--tilt-glare-y', '0%')
     node.style.setProperty('--tilt-active', '0')
+    setTiltActive(false)
   }, [])
 
   const handlePointerMove = useCallback(
@@ -60,13 +62,12 @@ export default function TiltCard({
         node.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`)
         node.style.setProperty('--tilt-shift-x', `${(px * 6).toFixed(1)}px`)
         node.style.setProperty('--tilt-shift-y', `${(py * 4).toFixed(1)}px`)
-        // Puntero normalizado (-0.5..0.5) para parallax por capas
         node.style.setProperty('--tilt-px', px.toFixed(3))
         node.style.setProperty('--tilt-py', py.toFixed(3))
-        // Posición del brillo reactivo que sigue al cursor
         node.style.setProperty('--tilt-glare-x', `${(nx * 100).toFixed(1)}%`)
         node.style.setProperty('--tilt-glare-y', `${(ny * 100).toFixed(1)}%`)
         node.style.setProperty('--tilt-active', '1')
+        setTiltActive(true)
       })
     },
     [canTilt, maxTilt],
@@ -75,7 +76,8 @@ export default function TiltCard({
   const handlePointerLeave = useCallback(() => {
     if (!canTilt) return
     if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
-    leaveTimerRef.current = window.setTimeout(resetTilt, 40)
+    // Settle un poco más largo que el tracking — se siente premium, no “snap”.
+    leaveTimerRef.current = window.setTimeout(resetTilt, 60)
   }, [canTilt, resetTilt])
 
   const rootClass = `tilt-card ${canTilt ? 'tilt-card--interactive' : ''} ${className}`.trim()
@@ -85,6 +87,7 @@ export default function TiltCard({
       ref={rootRef}
       className={rootClass}
       style={style}
+      data-tilt-active={tiltActive ? '1' : '0'}
       onPointerMove={canTilt ? handlePointerMove : undefined}
       onPointerLeave={canTilt ? handlePointerLeave : undefined}
     >

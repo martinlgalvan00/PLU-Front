@@ -1,111 +1,189 @@
-import { ArrowRight, BadgeCheck, CalendarDays } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Camera, QrCode } from 'lucide-react'
 import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_BLUR, MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 
-/** Entrada protagonista: la credencial es el momento visual principal de la
- * sección, así que usa la duración/ease "cinematográficos" (los mismos que
- * el hero) en vez del ritmo editorial más corto del resto del bloque. */
-const cardEnter = {
-  hidden: { opacity: 0, y: 24, rotate: -1.4, scale: 0.985, filter: 'blur(5px)' },
+/** Shell: ancla espacial liviana. El tilt 3D lleva la presencia. */
+const cardShell = {
+  hidden: { opacity: 0, y: 16, scale: 0.985, filter: `blur(${MOTION_BLUR.sm}px)` },
   visible: {
     opacity: 1,
     y: 0,
-    rotate: 0,
     scale: 1,
     filter: 'blur(0px)',
-    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic, delay: 0.1 },
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
   },
 }
 
+const layerStagger = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: MOTION_STAGGER.stepFast,
+      delayChildren: 0.14,
+    },
+  },
+}
+
+const layerItem = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+
+const PREVIEW_MEMBER_CODE = 'PREV-HOME-MEMBER'
+
 /**
- * Showcase de afiliación — credencial conceptual (sin datos personales
- * inventados), estado, temporada real y acceso al calendario oficial.
- * Reutiliza el lenguaje visual de la credencial de MembersPage
- * (TiltCard + capas glow/grain/watermark/stripe) adaptado a esta sección.
+ * Showcase de afiliación — frente de la credencial digital real
+ * (`DigitalCredential` + QR de cuenta), sin PII inventados:
+ * foto / nombre / temporada como placeholders y QR de vista previa.
  */
-export default function HomeMembershipCredential({ onNavigate }) {
-  const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
+export default function HomeMembershipCredential() {
+  const { HOME_MEMBERSHIP } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const [qrSrc, setQrSrc] = useState('')
 
   const seasonYear = HOME_MEMBERSHIP.seasonNote.match(/\d+/)?.[0] ?? ''
-  const resultsHighlight = HOME_MEMBERSHIP_FEATURES?.[2]
 
-  const Shell = reducedMotion ? 'div' : m.div
-  const shellProps = reducedMotion
-    ? { className: 'home-credential' }
-    : {
-        className: 'home-credential',
-        variants: cardEnter,
-        initial: 'hidden',
-        whileInView: 'visible',
-        viewport: { once: true, amount: 0.4 },
-      }
+  useEffect(() => {
+    let cancelled = false
+    const url = buildCredentialUrl({ code: PREVIEW_MEMBER_CODE })
+
+    generateCredentialQr(url)
+      .then((dataUrl) => {
+        if (!cancelled) setQrSrc(dataUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setQrSrc('')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const body = (
+    <div className="home-credential__stack" aria-label={t('pages.home.credentialAria')}>
+      <span className="home-credential__glow" aria-hidden />
+      <span className="home-credential__grain" aria-hidden />
+      <span className="home-credential__watermark" aria-hidden>
+        {seasonYear.slice(-2) || 'PL'}
+      </span>
+
+      {reducedMotion ? (
+        <div className="home-credential__face">
+          <CredentialFaceContent seasonYear={seasonYear} qrSrc={qrSrc} t={t} />
+        </div>
+      ) : (
+        <m.div className="home-credential__face" variants={layerStagger}>
+          <CredentialFaceContent seasonYear={seasonYear} qrSrc={qrSrc} t={t} motion />
+        </m.div>
+      )}
+    </div>
+  )
+
+  const tilt = (
+    <TiltCard
+      className="home-credential__tilt"
+      innerClassName="tilt-card__inner home-credential__card"
+      maxTilt={3}
+    >
+      {body}
+    </TiltCard>
+  )
+
+  const caption = (
+    <p className="home-credential__caption">{t('pages.home.credentialPreviewNote')}</p>
+  )
+
+  if (reducedMotion) {
+    return (
+      <div className="home-credential">
+        {tilt}
+        {caption}
+      </div>
+    )
+  }
 
   return (
-    <Shell {...shellProps}>
-      <TiltCard
-        className="home-credential__tilt"
-        innerClassName="tilt-card__inner home-credential__card"
-        maxTilt={3}
-      >
-        <div className="home-credential__stack" aria-label={t('pages.home.credentialAria')}>
-          <span className="home-credential__plates" aria-hidden />
-          <span className="home-credential__glow" aria-hidden />
-          <span className="home-credential__grain" aria-hidden />
-          <span className="home-credential__watermark" aria-hidden>
-            {seasonYear.slice(-2)}
+    <m.div
+      className="home-credential"
+      variants={cardShell}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.35 }}
+    >
+      {tilt}
+      {caption}
+    </m.div>
+  )
+}
+
+function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
+  const Item = motion ? m.div : 'div'
+  const itemProps = motion ? { variants: layerItem } : {}
+
+  return (
+    <>
+      <Item className="home-credential__brand" {...itemProps}>
+        <span className="home-credential__monogram" aria-hidden>
+          PLU
+        </span>
+        <div className="home-credential__brand-copy">
+          <strong>Powerlifting United</strong>
+          <span>{t('account.credential.brandLine')}</span>
+        </div>
+      </Item>
+
+      <Item className="home-credential__main" {...itemProps}>
+        <div className="home-credential__identity">
+          <span className="home-credential__photo" aria-hidden>
+            <Camera size={18} strokeWidth={1.6} />
+            <span className="home-credential__photo-label">{t('pages.home.credentialPhotoLabel')}</span>
           </span>
-          <span className="home-credential__stripe" aria-hidden />
-
-          <div className="home-credential__layer">
-            <header className="home-credential__head">
-              <p className="home-credential__brand">PLU</p>
-              <span className="home-credential__chip" aria-hidden>
-                <span className="home-credential__chip-shine" />
-              </span>
-            </header>
-
-            <div className="home-credential__identity">
-              <p className="home-credential__preview-label">{t('pages.home.credentialPreviewLabel')}</p>
-              <span className="home-credential__name-placeholder" aria-hidden />
-            </div>
-
-            <dl className="home-credential__meta">
-              <div className="home-credential__meta-item">
-                <dt>{t('pages.home.credentialSeasonLabel')}</dt>
-                <dd>{HOME_MEMBERSHIP.seasonNote}</dd>
-              </div>
-              <div className="home-credential__meta-item home-credential__meta-item--status">
-                <dt>{t('pages.home.credentialStatusLabel')}</dt>
-                <dd>
-                  <BadgeCheck size={13} aria-hidden className="home-credential__status-icon" />
-                  {t('pages.home.credentialStatusValue')}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="home-credential__footer">
-              {resultsHighlight ? <p className="home-credential__note-inline">{resultsHighlight}</p> : <span />}
-              <button
-                type="button"
-                className="home-credential__calendar-link"
-                onClick={() => onNavigate('events')}
-              >
-                <CalendarDays size={13} aria-hidden />
-                <span>{t('pages.home.credentialCalendarLabel')}</span>
-                <ArrowRight className="home-credential__calendar-arrow" size={13} aria-hidden />
-              </button>
-            </div>
-
-            <p className="home-credential__note">{t('pages.home.credentialPreviewNote')}</p>
+          <div className="home-credential__identity-copy">
+            <small>{t('account.credential.athlete')}</small>
+            <p className="home-credential__name">{t('pages.home.credentialSampleName')}</p>
+            <p className="home-credential__code">{t('pages.home.credentialSampleCode')}</p>
+            {seasonYear ? (
+              <p className="home-credential__season-inline">
+                <span>{t('pages.home.credentialSeasonLabel')}</span>
+                <strong>{seasonYear}</strong>
+              </p>
+            ) : null}
           </div>
         </div>
-      </TiltCard>
-    </Shell>
+
+        <div className="home-credential__qr" aria-hidden>
+          <div className="home-credential__qr-frame">
+            {qrSrc ? (
+              <img src={qrSrc} alt="" className="home-credential__qr-img" />
+            ) : (
+              <span className="home-credential__qr-fallback">
+                <QrCode size={36} strokeWidth={1.4} />
+              </span>
+            )}
+          </div>
+          <span className="home-credential__qr-label">{t('pages.home.credentialQrLabel')}</span>
+        </div>
+      </Item>
+
+      <Item className="home-credential__foot" {...itemProps}>
+        <p className="home-credential__scan-hint">{t('pages.home.credentialScanHint')}</p>
+        <span className="home-credential__status is-active">
+          <span className="home-credential__status-dot" aria-hidden />
+          {t('account.membershipActive')}
+        </span>
+      </Item>
+    </>
   )
 }

@@ -180,10 +180,27 @@ Overrides puntuales al final del CSS del componente si hace falta.
 
 ---
 
-## 10. Checklist rápido al copiar un patrón
+## 10. Showcase credential + tilt (motion premium)
+
+Objeto “producto” grafito con TiltCard, parallax por capas y entrada one-shot.
+
+**Skill:** [`motion-premium`](../motion-premium/SKILL.md)  
+**Referencia:** `HomeMembershipCredential.jsx`, `.home-credential*` en `home.css`, `TiltCard.tsx`
+
+Reglas cortas:
+
+- Shell enter: `y` 12–16 + `scale(0.985)` + `blur(sm)` — no rotación agresiva
+- Tilt ≤3–4° en home; settle CSS vía `data-tilt-active`
+- Nunca `translateY` hover en el mismo nodo que `rotateX/Y`
+- Stagger de contenido 50–70ms; stripe/chip one-shot; sin loops
+
+---
+
+## 11. Checklist rápido al copiar un patrón
 
 1. ¿Los tokens existen en **ambos** temas?
 2. ¿El JSX tiene wrappers mínimos (`__shell`, `__editorial`)?
 3. ¿Mobile probado con scroll?
 4. ¿Solo 1 animación loop en la sección?
 5. ¿Build OK?
+6. ¿Motion pasó el gate de `motion-premium` / review-animations?

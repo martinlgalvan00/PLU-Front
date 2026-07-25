@@ -13,7 +13,7 @@ function PitbullHeroShowcase({ eventStatus, pitbullClassic, t, title }) {
     <TiltCard
       className="pitbull-hero-masthead__showcase pitbull-hero-card-tilt"
       innerClassName="tilt-card__inner pitbull-hero-card"
-      maxTilt={7}
+      maxTilt={3}
     >
       <div className="pitbull-hero-card__stack">
         <span className="pitbull-hero-card__glow" aria-hidden />
@@ -65,7 +65,12 @@ function PitbullHeroPanel({
   motion = false,
 }) {
   const { label: statusLabel } = getStatusMeta(eventStatus, t)
-  const primaryLabel = canRegister ? t('pages.pitbull.register') : t('pages.pitbull.joinNow')
+  const isFinished = eventStatus === 'finalizado'
+  const primaryLabel = canRegister
+    ? t('pages.pitbull.register')
+    : isFinished
+      ? t('pages.home.viewResults')
+      : t('pages.pitbull.joinNow')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.ticketsTitle') : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}

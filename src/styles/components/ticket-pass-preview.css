@@ -128,8 +128,24 @@
 
 .ticket-pass-preview__stub-head {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
+}
+
+.ticket-pass-preview__brand-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ticket-pass-preview__logo {
+  display: block;
+  flex: 0 0 auto;
+  height: 18px;
+  object-fit: contain;
+  object-position: left center;
+  width: auto;
 }
 
 .ticket-pass-preview__brand {
