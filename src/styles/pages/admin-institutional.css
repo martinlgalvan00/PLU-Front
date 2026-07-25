@@ -1230,8 +1230,13 @@
 }
 
 .admin-shell .data-table-mobile-toolbar {
+  background: transparent;
+  border-bottom: 0;
+}
+
+.admin-shell .data-table-mobile-toolbar__summary {
   background: var(--admin-surface-muted);
-  border-bottom-color: var(--admin-hairline);
+  border-color: var(--admin-hairline);
 }
 
 .admin-shell .data-table-mobile-toolbar__select,
@@ -1282,6 +1287,14 @@
   padding-bottom: 22px;
 }
 
+@media (max-width: 1024px) {
+  .admin-shell .admin-payment-ops__header {
+    align-items: center;
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
 .admin-shell .admin-payment-ops__eyebrow {
   color: var(--admin-accent);
   font-size: 9.5px;
@@ -1318,8 +1331,14 @@
   min-height: 38px;
 }
 
+.admin-shell .admin-payment-ops__signal .admin-payment-ops__metric {
+  background: var(--admin-surface-muted);
+  border-color: var(--admin-hairline);
+}
+
 .admin-shell .admin-payment-ops__metrics-panel {
-  border-bottom: 1px solid var(--admin-hairline);
+  background: var(--admin-surface-muted);
+  border-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-payment-ops__filter {

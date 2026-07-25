@@ -70,28 +70,26 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
         </div>
         {badges.length > 0 && (
           <div className="data-table-card__badges">
-            {badges.map((col) => {
-              const badgeLabel = col.mobileLabel ?? col.label
-              return (
-                <div key={col.key} className="data-table-card__badge">
-                  {badgeLabel ? (
-                    <span className="data-table-card__badge-label">{badgeLabel}</span>
-                  ) : null}
-                  {cellValue(col, row)}
-                </div>
-              )
-            })}
+            {badges.map((col) => (
+              <div key={col.key} className="data-table-card__badge">
+                {cellValue(col, row)}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       {metaCols.length > 0 && (
-        <div className="data-table-card__meta">
-          {metaCols.map((col) => (
-            <div key={col.key} className="data-table-card__meta-item">
-              <span className="data-table-card__meta-label">{col.label}</span>
-              <span className="data-table-card__meta-value">{cellValue(col, row)}</span>
-            </div>
+        <div className="data-table-card__meta data-table-card__meta--inline">
+          {metaCols.map((col, index) => (
+            <span key={col.key} className="data-table-card__meta-value">
+              {index > 0 ? (
+                <span className="data-table-card__meta-sep" aria-hidden>
+                  ·
+                </span>
+              ) : null}
+              {cellValue(col, row)}
+            </span>
           ))}
         </div>
       )}
@@ -140,6 +138,7 @@ export default function DataTable({
   const sortableColumns = columns.filter((column) => column.sortable)
 
   const [sort, setSort] = useState(null)
+  const activeSortColumn = sort ? columns.find((item) => item.key === sort.key) : null
 
   const sortedRows = useMemo(() => {
     if (!sort) return rows
@@ -268,45 +267,55 @@ export default function DataTable({
       </div>
 
       {useCompactCards && sortableColumns.length > 0 && (
-        <div className="data-table-mobile-toolbar">
-          <label className="data-table-mobile-toolbar__select">
+        <details className={`data-table-mobile-toolbar${sort ? ' is-sorted' : ''}`}>
+          <summary className="data-table-mobile-toolbar__summary">
             <SlidersHorizontal size={14} aria-hidden />
-            <span>{t('admin.table.sortLabel')}</span>
-            <select value={sort?.key ?? ''} onChange={handleMobileSortChange}>
-              <option value="">{t('admin.table.defaultOrder')}</option>
-              {sortableColumns.map((column) => (
-                <option key={column.key} value={column.key}>
-                  {column.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="data-table-mobile-toolbar__direction"
-            aria-label={
-              sort?.direction === 'desc'
-                ? t('admin.table.sortAscending')
-                : t('admin.table.sortDescending')
-            }
-            disabled={!sort}
-            onClick={() =>
-              setSort(
-                (current) =>
-                  current && {
-                    ...current,
-                    direction: current.direction === 'asc' ? 'desc' : 'asc',
-                  },
-              )
-            }
-          >
-            {sort?.direction === 'desc' ? (
-              <ArrowDown size={15} aria-hidden />
-            ) : (
-              <ArrowUp size={15} aria-hidden />
-            )}
-          </button>
-        </div>
+            <span className="data-table-mobile-toolbar__summary-label">
+              {activeSortColumn
+                ? t('admin.table.sortedBy', { field: activeSortColumn.label })
+                : t('admin.table.sortLabel')}
+            </span>
+            <ChevronsUpDown size={14} aria-hidden className="data-table-mobile-toolbar__chevron" />
+          </summary>
+          <div className="data-table-mobile-toolbar__panel">
+            <label className="data-table-mobile-toolbar__select">
+              <span>{t('admin.table.sortField')}</span>
+              <select value={sort?.key ?? ''} onChange={handleMobileSortChange}>
+                <option value="">{t('admin.table.defaultOrder')}</option>
+                {sortableColumns.map((column) => (
+                  <option key={column.key} value={column.key}>
+                    {column.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="data-table-mobile-toolbar__direction"
+              aria-label={
+                sort?.direction === 'desc'
+                  ? t('admin.table.sortAscending')
+                  : t('admin.table.sortDescending')
+              }
+              disabled={!sort}
+              onClick={() =>
+                setSort(
+                  (current) =>
+                    current && {
+                      ...current,
+                      direction: current.direction === 'asc' ? 'desc' : 'asc',
+                    },
+                )
+              }
+            >
+              {sort?.direction === 'desc' ? (
+                <ArrowDown size={15} aria-hidden />
+              ) : (
+                <ArrowUp size={15} aria-hidden />
+              )}
+            </button>
+          </div>
+        </details>
       )}
 
       <div className={cardsClass} aria-label={t('admin.table.listAria')}>

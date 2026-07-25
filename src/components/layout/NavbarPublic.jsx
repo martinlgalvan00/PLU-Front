@@ -661,6 +661,11 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   <button
                     type="button"
                     className="plu-drawer__account-chip"
+                    aria-label={
+                      adminSession
+                        ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.admin')}`
+                        : `${sessionFullName || t('nav.myProfile')} · ${t('nav.myProfile')}`
+                    }
                     onClick={() => go(adminSession ? 'admin' : 'profile')}
                   >
                     <span className="plu-drawer__account-avatar" aria-hidden>

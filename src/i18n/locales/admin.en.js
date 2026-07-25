@@ -117,6 +117,8 @@ export default {
   },
   table: {
     sortLabel: 'Sort',
+    sortField: 'Field',
+    sortedBy: 'Sorted: {{field}}',
     defaultOrder: 'Default order',
     sortAscending: 'Sort ascending',
     sortDescending: 'Sort descending',
@@ -554,6 +556,9 @@ export default {
     processed: 'Processed',
     loading: 'Checking the integration…',
     empty: 'No events match this filter.',
+    emptyHealthyTitle: 'Ledger looks healthy',
+    emptyHealthyLead:
+      'No failed webhooks or pending reconciliations. Mercado Pago integration is in good shape.',
     type: 'Type',
     reconciliation: 'Payment reconciliation',
     resource: 'MP resource',
@@ -562,6 +567,8 @@ export default {
     detail: 'Detail',
     updatedAt: 'Updated {{date}}',
     metricsToggle: 'Ledger metrics',
+    metricsMore: 'More metrics',
+    signalAria: 'Key ledger signals',
     loadError: 'Could not load Mercado Pago operations.',
     recoverError: 'Could not run automatic recovery.',
     retryError: 'Could not retry the event.',

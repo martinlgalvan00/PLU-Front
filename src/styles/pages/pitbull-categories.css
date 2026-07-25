@@ -1,26 +1,20 @@
 /* =============================================
-   PITBULL — DIVISIONES Y REGLAMENTO (explorador documental)
-   No es un segmented control + chips flotando: es un documento
-   técnico de dos niveles — estado documental arriba, navegación
-   (tabla de contenidos) + panel de lectura abajo.
+   PITBULL — CATEGORÍAS (lookbook tipográfico)
+   Estado documental + dos líneas de catálogo.
    ============================================= */
 
 .pitbull-doc {
   display: flex;
   flex-direction: column;
-  gap: clamp(18px, 2.4vw, 26px);
+  gap: clamp(16px, 2.2vw, 22px);
 }
 
-/* En notebook/desktop ancho, la lista de filas no necesita todo el ancho
-   del contenedor: acotarla evita que el documento se sienta a la deriva
-   en una fila casi vacía y lo mantiene con carácter de ficha condensada. */
 @media (min-width: 1024px) {
   .pitbull-doc {
     max-width: 820px;
   }
 }
 
-/* ── Nivel superior — estado del documento + acceso al reglamento ── */
 .pitbull-doc__status {
   align-items: center;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -64,169 +58,67 @@
   outline-offset: 3px;
 }
 
-/* ── Nivel principal — navegación + panel de lectura ── */
-.pitbull-doc__body {
+.pitbull-doc__catalog {
   display: grid;
-  gap: clamp(20px, 3vw, 40px);
-  grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+  gap: clamp(18px, 2.4vw, 26px);
 }
 
-@media (max-width: 767px) {
-  .pitbull-doc__body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.pitbull-doc__nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-@media (max-width: 767px) {
-  .pitbull-doc__nav {
-    flex-direction: row;
-    gap: 4px;
-  }
-}
-
-.pitbull-doc__nav-item {
-  align-items: center;
-  background: none;
-  border: none;
-  border-left: 2px solid transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: flex;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 0 0 14px;
-  text-align: left;
-  transition: color var(--transition-base), border-color var(--transition-base);
-}
-
-.pitbull-doc__nav-num {
-  font-size: 11px;
-  opacity: 0.55;
-  transition: opacity var(--transition-base), color var(--transition-base);
-}
-
-.pitbull-doc__nav-item.is-active {
-  border-left-color: var(--color-brand-celeste);
-  color: var(--color-text-primary);
-}
-
-.pitbull-doc__nav-item.is-active .pitbull-doc__nav-num {
-  color: var(--color-brand-celeste);
-  opacity: 1;
-}
-
-.pitbull-doc__nav-item:hover {
-  color: var(--color-text-primary);
-}
-
-.pitbull-doc__nav-item:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
-}
-
-@media (max-width: 767px) {
-  .pitbull-doc__nav-item {
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    flex: 1;
-    justify-content: center;
-    padding: 10px 6px;
-  }
-
-  .pitbull-doc__nav-item.is-active {
-    border-bottom-color: var(--color-brand-celeste);
-  }
-}
-
-.pitbull-doc__panel-wrap {
-  border-left: 1px solid var(--color-border-subtle);
-  padding-left: clamp(20px, 3vw, 32px);
-}
-
-@media (max-width: 767px) {
-  .pitbull-doc__panel-wrap {
-    border-left: none;
-    padding-left: 0;
-  }
-}
-
-.pitbull-doc__panel {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(16px, 2vw, 22px);
-}
-
-/* Grid de chips — menú de opciones escaneable, no una lista de documento */
-.pitbull-doc__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.pitbull-doc__chip {
-  align-items: center;
-  background: color-mix(in oklab, var(--color-text-primary) 3.5%, transparent);
-  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 14%, transparent);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-primary);
-  display: inline-flex;
-  font-size: 13.5px;
-  font-weight: 600;
+.pitbull-doc__group {
+  display: grid;
   gap: 8px;
-  padding: 9px 16px;
-  transition: border-color var(--duration-base) var(--ease-design), background var(--duration-base) var(--ease-design);
 }
 
-.pitbull-doc__chip svg {
-  color: var(--color-brand-celeste);
-  flex: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pitbull-doc__chip:hover {
-    background: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
-    border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
-  }
-}
-
-.pitbull-doc__note {
-  border-top: 2px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 12px;
-}
-
-.pitbull-doc__note-label {
-  color: var(--color-brand-celeste);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+.pitbull-doc__group-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.pitbull-doc__note-text {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.5;
+.pitbull-doc__lookbook {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  list-style: none;
   margin: 0;
-  max-width: 48ch;
+  padding: 0;
+  row-gap: 8px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pitbull-doc__nav-item,
-  .pitbull-doc__nav-num {
-    transition: none;
+.pitbull-doc__lookbook-item {
+  align-items: baseline;
+  display: inline-flex;
+}
+
+.pitbull-doc__lookbook-item:not(:last-child)::after {
+  color: color-mix(in oklab, var(--color-text-muted) 70%, transparent);
+  content: '·';
+  font-family: var(--font-display);
+  font-size: 0.95em;
+  font-weight: 400;
+  margin: 0 0.65em;
+}
+
+.pitbull-doc__lookbook-label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .pitbull-doc__lookbook-label {
+    font-size: clamp(1.02rem, 4.4vw, 1.15rem);
+    white-space: normal;
+  }
+
+  .pitbull-doc__lookbook-item:not(:last-child)::after {
+    margin: 0 0.5em;
   }
 }
