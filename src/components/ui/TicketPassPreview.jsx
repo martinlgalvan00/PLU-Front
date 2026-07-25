@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { QrCode } from 'lucide-react'
+import BrandLogo from './BrandLogo.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 
@@ -125,7 +126,15 @@ export default function TicketPassPreview({
 
           <div className="ticket-pass-preview__stub">
             <header className="ticket-pass-preview__stub-head">
-              <span className="ticket-pass-preview__brand">{t('pages.ticketsPage.passBrand')}</span>
+              <div className="ticket-pass-preview__brand-row">
+                <BrandLogo
+                  variant="letterhead"
+                  letterheadBlend
+                  imgClassName="ticket-pass-preview__logo"
+                  height={18}
+                />
+                <span className="ticket-pass-preview__brand">{t('pages.ticketsPage.passBrand')}</span>
+              </div>
               <strong id={labelId} className="ticket-pass-preview__event">
                 {eventTitle || t('pages.ticketsPage.eventFallback')}
               </strong>

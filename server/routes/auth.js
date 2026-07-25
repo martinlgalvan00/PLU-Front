@@ -15,11 +15,14 @@ import { createSecurityAccessNotificationService } from '../modules/notification
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
 import { fetchSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
+import {
+  ACCESS_ROLE_INCLUDE,
+} from '../services/accessControlService.js'
 import {
   createSession,
   getClearSessionCookieOptions,
@@ -29,8 +32,6 @@ import {
   serializeUser,
   SESSION_COOKIE_NAME,
 } from '../services/sessionService.js'
-
-const MANAGE_USERS_ROLES = ['admin_maximal', 'admin_plu_arg']
 
 // Vigencia de una credencial de acceso de puerta. Si el evento tiene fin
 // conocido, la credencial dura hasta 7 días después (margen operativo);
@@ -66,7 +67,7 @@ export function createAuthRoutes({
   env,
 } = {}) {
   const router = Router()
-  const manageUsersGuard = requireRole(MANAGE_USERS_ROLES, { prisma: getPrisma() })
+  const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() })
 
   // Los eventos viven en Supabase (public.events, id uuid). El panel entrega
   // ese uuid como eventId al dar de alta seguridad, asi que la validacion y
@@ -117,6 +118,7 @@ export function createAuthRoutes({
         email,
         passwordHash,
         role: 'seguridad_plu_arg',
+        accessRole: { connect: { key: 'seguridad_plu_arg' } },
         status: 'active',
         eventId: event.id,
         eventSlug: event.slug,
@@ -146,7 +148,10 @@ export function createAuthRoutes({
       const { email, password, eventSlug } = req.validatedBody
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { profile: true },
+        include: {
+          profile: true,
+          accessRole: { include: ACCESS_ROLE_INCLUDE },
+        },
       })
 
       if (
@@ -158,11 +163,9 @@ export function createAuthRoutes({
         return
       }
 
-      // Solo las cuentas seguridad_plu_arg atadas a un evento (User.eventId,
-      // creadas via POST /security-users) exigen eventSlug matching -- las
-      // cuentas de seguridad sin evento asignado siguen entrando por el login
-      // general, igual que antes de este scoping.
-      if (user.role === 'seguridad_plu_arg' && user.eventId && user.eventSlug !== eventSlug) {
+      // El alcance por evento pertenece a la cuenta, no al nombre del rol.
+      // Esto también cubre futuros roles personalizados de operación.
+      if (user.eventId && user.eventSlug !== eventSlug) {
         next(invalidCredentials())
         return
       }
@@ -175,7 +178,11 @@ export function createAuthRoutes({
       })
 
       const serialized = serializeUser(user)
-      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+      const supabaseAuth = await ensureSupabaseSessionToken({
+        email: serialized.email,
+        permissions: serialized.permissions,
+        role: serialized.roleKey,
+      })
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -212,7 +219,11 @@ export function createAuthRoutes({
       })
 
       const serialized = serializeOAuthUser(user)
-      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+      const supabaseAuth = await ensureSupabaseSessionToken({
+        email: serialized.email,
+        permissions: serialized.permissions,
+        role: serialized.roleKey,
+      })
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -491,7 +502,11 @@ export function createAuthRoutes({
       await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
 
       const serialized = serializeUser(user)
-      const supabaseAuth = await ensureSupabaseSessionToken({ email: serialized.email, role: serialized.role })
+      const supabaseAuth = await ensureSupabaseSessionToken({
+        email: serialized.email,
+        permissions: serialized.permissions,
+        role: serialized.roleKey,
+      })
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())

@@ -21,13 +21,12 @@ import photoMeetFloor from '../assets/DSC00346.jpg'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { money } from '../lib/format.js'
-import { getStatusMeta } from '../lib/status.js'
+import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
@@ -174,305 +173,32 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
 }
 
 
-function getStepAction(id, { onNavigate, t }) {
-  switch (id) {
-    case 'membership':
-      return { label: t('pages.pitbull.viewMembershipPlans'), onClick: () => onNavigate('members') }
-    case 'category':
-      return { label: t('pages.pitbull.athletesRulebook'), onClick: () => onNavigate('rulebook') }
-    case 'confirmation':
-      return { label: t('pages.pitbull.athletesCta'), onClick: scrollToInscription }
-    case 'results':
-      return { label: t('pages.home.viewResults'), onClick: () => onNavigate('results') }
-    default:
-      return null
-  }
-}
-
-/** Escenario visual del paso activo — recurso real cuando existe (foto del
- * día de competencia), composición geométrica conceptual cuando no (credencial,
- * clasificación, confirmación). Nunca datos, marcas ni resultados inventados. */
-function PitbullStepStage({ step, t }) {
-  const { PITBULL_CLASSIC } = useContent()
-
-  if (step.id === 'weighin' || step.id === 'results') {
-    const StageIcon = step.id === 'weighin' ? Scale : Trophy
-    return (
-      <div className="pitbull-stepper__stage-photo">
-        <span className="pitbull-stepper__stage-plate motif-plate" aria-hidden />
-        <img
-          className="pitbull-stepper__stage-img"
-          src={photoMeetFloor}
-          alt=""
-          width={1600}
-          height={1067}
-          loading="lazy"
-          decoding="async"
-        />
-        <span className="pitbull-stepper__stage-glare" aria-hidden />
-        <span className="pitbull-stepper__stage-badge" aria-hidden>
-          <StageIcon size={15} strokeWidth={1.85} />
-        </span>
-        <span className="pitbull-stepper__stage-caption">{t('pages.pitbull.athletesVisualAlt')}</span>
-      </div>
-    )
-  }
-
-  if (step.id === 'category') {
-    return (
-      <div className="pitbull-stepper__stage-abstract">
-        <span className="pitbull-stepper__stage-rule motif-rule" aria-hidden />
-        <p className="pitbull-stepper__stage-hint">{t('pages.pitbull.quickFactsModalities')}</p>
-        <ol className="pitbull-stepper__stage-list">
-          {PITBULL_CLASSIC.categories.map((cat, i) => (
-            <li key={cat}>
-              <span className="pitbull-stepper__stage-list-num motif-num" aria-hidden>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              {cat}
-            </li>
-          ))}
-        </ol>
-      </div>
-    )
-  }
-
-  if (step.id === 'confirmation') {
-    return (
-      <div className="pitbull-stepper__stage-abstract pitbull-stepper__stage-abstract--confirm">
-        <span className="pitbull-stepper__stage-check" aria-hidden>
-          <CheckCircle2 size={28} strokeWidth={1.5} />
-        </span>
-        <p className="pitbull-stepper__stage-hint">{step.text}</p>
-      </div>
-    )
-  }
-
+/** Foto del piso — solo desktop ancho; ancla atmosférica sin badges flotantes. */
+function PitbullJourneyVisual({ t }) {
   return (
-    <div className="pitbull-stepper__stage-abstract">
-      <span className="pitbull-stepper__stage-rule motif-rule" aria-hidden />
-      <p className="pitbull-stepper__stage-hint">{t('pages.pitbull.athletesLead')}</p>
-      <dl className="pitbull-stepper__stage-facts">
-        <div>
-          <dt>{t('pages.pitbull.quickFactsDate')}</dt>
-          <dd>{PITBULL_CLASSIC.date}</dd>
-        </div>
-        <div>
-          <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
-          <dd>{PITBULL_CLASSIC.venue}</dd>
-        </div>
-      </dl>
-    </div>
+    <figure className="pitbull-journey-visual">
+      <img
+        className="pitbull-journey-visual__img"
+        src={photoMeetFloor}
+        alt=""
+        width={1600}
+        height={1067}
+        loading="lazy"
+        decoding="async"
+      />
+      <figcaption className="pitbull-journey-visual__caption">{t('pages.pitbull.athletesVisualAlt')}</figcaption>
+    </figure>
   )
 }
 
-/** Riel completo + panel activo — tablet/notebook/desktop (≥768px). El riel
- * siempre muestra los 5 pasos agrupados por fase y remata en "llegada a la
- * plataforma"; solo el panel de abajo (contenido + escenario) cambia con la
- * selección. Cruzar de "antes del meet" a "día de competencia" es el único
- * momento con una animación de transición dedicada (una vez por cruce). */
-function PitbullStepper({ flatSteps, onNavigate, t }) {
-  const { reducedMotion } = useMotionConfig()
-  const [activeIndex, setActiveIndex] = useState(0)
-  const [pulse, setPulse] = useState(false)
-  const prevPhaseRef = useRef(flatSteps[0]?.phase)
-  const total = flatSteps.length
-  const activeStep = flatSteps[activeIndex]
-  const activeAction = getStepAction(activeStep.id, { onNavigate, t })
-  const StepIcon = ATHLETE_STEP_ICONS[activeStep.id]
-  const progress = total > 1 ? activeIndex / (total - 1) : 0
-  const indicatorPct = ((activeIndex + 0.5) / total) * 100
-  const crossedToMeet = activeStep.phase === 'meet'
-
-  useEffect(() => {
-    if (prevPhaseRef.current === 'registration' && activeStep.phase === 'meet' && !reducedMotion) {
-      setPulse(true)
-      const timer = setTimeout(() => setPulse(false), 720)
-      prevPhaseRef.current = activeStep.phase
-      return () => clearTimeout(timer)
-    }
-    prevPhaseRef.current = activeStep.phase
-    return undefined
-  }, [activeStep.phase, reducedMotion])
-
-  function selectIndex(next) {
-    setActiveIndex(Math.max(0, Math.min(total - 1, next)))
-  }
-
-  function handleRailKeyDown(event) {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      event.preventDefault()
-      selectIndex(activeIndex + 1)
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      event.preventDefault()
-      selectIndex(activeIndex - 1)
-    } else if (event.key === 'Home') {
-      event.preventDefault()
-      selectIndex(0)
-    } else if (event.key === 'End') {
-      event.preventDefault()
-      selectIndex(total - 1)
-    }
-  }
-
-  const railNodeMotion = {
-    hidden: { opacity: 0, y: 6 },
-    show: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out } },
-  }
-  const railGroupMotion = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
-  }
-  const railTrackMotion = {
-    hidden: { scaleX: 0 },
-    show: { scaleX: 1, transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out } },
-  }
-
-  return (
-    <div className="pitbull-stepper">
-      <div className="pitbull-stepper__phases" aria-hidden>
-        <span className={`pitbull-stepper__phase-tag${crossedToMeet ? ' is-past' : ''}`}>
-          {flatSteps[0]?.phaseLabel}
-        </span>
-        <span
-          className={`pitbull-stepper__phase-tag pitbull-stepper__phase-tag--meet${crossedToMeet ? ' is-active' : ''}`}
-        >
-          {flatSteps[flatSteps.length - 1]?.phaseLabel}
-        </span>
-      </div>
-
-      <m.div
-        className="pitbull-stepper__rail"
-        role="group"
-        aria-label={t('pages.pitbull.athletesAria')}
-        onKeyDown={handleRailKeyDown}
-        variants={reducedMotion ? undefined : railGroupMotion}
-        initial={reducedMotion ? undefined : 'hidden'}
-        whileInView={reducedMotion ? undefined : 'show'}
-        viewport={MOTION_VIEWPORT}
-      >
-        <div className="pitbull-stepper__rail-track-wrap">
-          {reducedMotion ? (
-            <span className="pitbull-stepper__rail-track" aria-hidden />
-          ) : (
-            <m.span className="pitbull-stepper__rail-track" aria-hidden variants={railTrackMotion} />
-          )}
-          <span className={`pitbull-stepper__rail-ticks${crossedToMeet ? ' is-visible' : ''}`} aria-hidden />
-          <span className="pitbull-stepper__rail-fill" aria-hidden style={{ '--progress': progress }} />
-          <span
-            className={`pitbull-stepper__rail-gate${crossedToMeet ? ' pitbull-stepper__rail-gate--lit' : ''}`}
-            aria-hidden
-          />
-          {pulse ? <span className="pitbull-stepper__phase-pulse" aria-hidden /> : null}
-          <m.span
-            className="pitbull-stepper__rail-indicator"
-            aria-hidden
-            animate={{ left: `${indicatorPct}%` }}
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.32, ease: MOTION_EASE.out }}
-          />
-          {flatSteps.map((step, index) => {
-            const isActive = index === activeIndex
-            const isDone = index <= activeIndex
-            const node = (
-              <button
-                type="button"
-                className={`pitbull-stepper__node pitbull-stepper__node--${step.phase}${isActive ? ' pitbull-stepper__node--active' : ''}${isDone ? ' pitbull-stepper__node--done' : ''}${pulse ? ' pitbull-stepper__node--morph' : ''}`}
-                aria-current={isActive ? 'step' : undefined}
-                onClick={() => selectIndex(index)}
-              >
-                <span className="pitbull-stepper__node-ord motif-num" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="pitbull-stepper__node-dot" aria-hidden />
-                <span className="pitbull-stepper__node-label">{step.title}</span>
-              </button>
-            )
-            return reducedMotion ? (
-              <span key={step.id} className="pitbull-stepper__node-slot">
-                {node}
-              </span>
-            ) : (
-              <m.span key={step.id} className="pitbull-stepper__node-slot" variants={railNodeMotion}>
-                {node}
-              </m.span>
-            )
-          })}
-        </div>
-
-        {reducedMotion ? (
-          <span className="pitbull-stepper__arrival" aria-hidden>
-            <span className="pitbull-stepper__arrival-marker">
-              <Trophy size={14} strokeWidth={1.85} />
-            </span>
-            <span className="pitbull-stepper__arrival-label">{t('pages.pitbull.athletesArrival')}</span>
-          </span>
-        ) : (
-          <m.span className="pitbull-stepper__arrival" aria-hidden variants={railNodeMotion}>
-            <span className="pitbull-stepper__arrival-marker">
-              <Trophy size={14} strokeWidth={1.85} />
-            </span>
-            <span className="pitbull-stepper__arrival-label">{t('pages.pitbull.athletesArrival')}</span>
-          </m.span>
-        )}
-      </m.div>
-
-      <div className="pitbull-stepper__lower">
-        <div className="pitbull-stepper__detail" aria-live="polite">
-          <MotionContentSwap swapKey={activeStep.id} className="pitbull-stepper__detail-inner">
-            <span className={`pitbull-stepper__detail-phase pitbull-stepper__detail-phase--${activeStep.phase}`}>
-              {activeStep.phaseLabel}
-            </span>
-            <h3 className="pitbull-stepper__detail-title">
-              {StepIcon ? <StepIcon size={17} aria-hidden className="pitbull-stepper__detail-icon" /> : null}
-              {activeStep.title}
-            </h3>
-            <p className="pitbull-stepper__detail-text">{activeStep.text}</p>
-            <p className="pitbull-stepper__detail-meta">
-              {t('pages.pitbull.stepperStepOf', { current: activeIndex + 1, total })}
-            </p>
-            {activeAction ? (
-              <button
-                type="button"
-                className="pitbull-stepper__detail-action motion-icon-shift motif-tap-target"
-                onClick={activeAction.onClick}
-              >
-                {activeAction.label}
-                <ArrowRight size={13} aria-hidden className="motion-icon-shift__target" />
-              </button>
-            ) : null}
-          </MotionContentSwap>
-        </div>
-
-        <MotionContentSwap swapKey={activeStep.id} className="pitbull-stepper__stage">
-          <PitbullStepStage step={activeStep} t={t} />
-        </MotionContentSwap>
-      </div>
-    </div>
-  )
-}
-
-/** Timeline vertical compacta — mobile (<768px). Un solo recorrido continuo
- * (sin selección, sin escenario) que integra "llegada a la plataforma" como
- * cierre de la misma línea, no como bloque aparte. */
+/** Recorrido en fases tipográficas (antes / día) — sin timeline circular ni
+ * franja foto en mobile. En notebook las dos fases van en paralelo. */
 function PitbullJourneyTimeline({ numberedGroups, t }) {
   const { reducedMotion } = useMotionConfig()
-
-  const timelineEntries = []
-  numberedGroups.forEach((group) => {
-    timelineEntries.push({ type: 'divider', key: `divider-${group.id}`, label: group.label, phase: group.id })
-    group.items.forEach((item) => {
-      timelineEntries.push({ type: 'step', key: item.id, item, phase: group.id })
-    })
-  })
-  timelineEntries.push({ type: 'arrival', key: 'arrival' })
 
   const groupMotion = {
     hidden: {},
     show: { transition: { staggerChildren: MOTION_STAGGER.step, delayChildren: MOTION_STAGGER.delayChildren } },
-  }
-  const lineMotion = {
-    hidden: { scaleY: 0 },
-    show: { scaleY: 1, transition: { duration: 0.6, ease: MOTION_EASE.out } },
   }
   const entryMotion = {
     hidden: { opacity: 0, y: 8 },
@@ -488,76 +214,63 @@ function PitbullJourneyTimeline({ numberedGroups, t }) {
       whileInView={reducedMotion ? undefined : 'show'}
       viewport={MOTION_VIEWPORT}
     >
+      <div className="pitbull-journey__phases">
+        {numberedGroups.map((group) => (
+          <section
+            key={group.id}
+            className="pitbull-journey__phase"
+            data-phase={group.id}
+            aria-label={group.label}
+          >
+            <h3 className="pitbull-journey__phase-label">{group.label}</h3>
+            <ol className="pitbull-journey__steps">
+              {group.items.map((item) => {
+                const num = String(item.index + 1).padStart(2, '0')
+                const StepIcon = ATHLETE_STEP_ICONS[item.id]
+                const body = (
+                  <>
+                    <span className="pitbull-journey__num motif-num" aria-hidden>
+                      {num}
+                    </span>
+                    <div className="pitbull-journey__copy">
+                      <h4 className="pitbull-journey__title">
+                        {StepIcon ? (
+                          <StepIcon size={14} aria-hidden className="pitbull-journey__title-icon" />
+                        ) : null}
+                        {item.title}
+                      </h4>
+                      <p className="pitbull-journey__text">{item.text}</p>
+                    </div>
+                  </>
+                )
+
+                return reducedMotion ? (
+                  <li key={item.id} className="pitbull-journey__step" data-phase={group.id}>
+                    {body}
+                  </li>
+                ) : (
+                  <m.li
+                    key={item.id}
+                    className="pitbull-journey__step"
+                    data-phase={group.id}
+                    variants={entryMotion}
+                  >
+                    {body}
+                  </m.li>
+                )
+              })}
+            </ol>
+          </section>
+        ))}
+      </div>
+
       {reducedMotion ? (
-        <span className="pitbull-journey__line" aria-hidden />
+        <p className="pitbull-journey__arrival">{t('pages.pitbull.athletesArrival')}</p>
       ) : (
-        <m.span className="pitbull-journey__line" aria-hidden variants={lineMotion} />
+        <m.p className="pitbull-journey__arrival" variants={entryMotion}>
+          {t('pages.pitbull.athletesArrival')}
+        </m.p>
       )}
-      <ol className="pitbull-journey__steps">
-        {timelineEntries.map((entry) => {
-          if (entry.type === 'divider') {
-            return (
-              <li key={entry.key} className="pitbull-journey__divider" data-phase={entry.phase}>
-                <span className="pitbull-journey__divider-label">{entry.label}</span>
-              </li>
-            )
-          }
-
-          if (entry.type === 'arrival') {
-            const body = (
-              <>
-                <span className="pitbull-journey__marker pitbull-journey__marker--arrival" aria-hidden>
-                  <Trophy size={14} strokeWidth={1.85} />
-                </span>
-                <div className="pitbull-journey__copy">
-                  <h4 className="pitbull-journey__title">{t('pages.pitbull.athletesArrival')}</h4>
-                </div>
-              </>
-            )
-            return reducedMotion ? (
-              <li key={entry.key} className="pitbull-journey__step pitbull-journey__step--arrival">
-                {body}
-              </li>
-            ) : (
-              <m.li
-                key={entry.key}
-                className="pitbull-journey__step pitbull-journey__step--arrival"
-                variants={entryMotion}
-              >
-                {body}
-              </m.li>
-            )
-          }
-
-          const { item, phase } = entry
-          const num = String(item.index + 1).padStart(2, '0')
-          const StepIcon = ATHLETE_STEP_ICONS[item.id]
-          const body = (
-            <>
-              <span className="pitbull-journey__marker" aria-hidden>
-                <span className="pitbull-journey__marker-num motif-num motif-num--solid">{num}</span>
-              </span>
-              <div className="pitbull-journey__copy">
-                <h4 className="pitbull-journey__title">
-                  {StepIcon ? <StepIcon size={14} aria-hidden className="pitbull-journey__title-icon" /> : null}
-                  {item.title}
-                </h4>
-                <p className="pitbull-journey__text">{item.text}</p>
-              </div>
-            </>
-          )
-
-          return reducedMotion ? (
-            <li key={entry.key} className="pitbull-journey__step" data-phase={phase}>
-              {body}
-            </li>
-          ) : (
-            <m.li key={entry.key} className="pitbull-journey__step" data-phase={phase} variants={entryMotion}>
-              {body}
-            </m.li>
-          )
-        })}
-      </ol>
     </m.div>
   )
 }
@@ -575,10 +288,6 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
     }))
   })()
 
-  const flatSteps = numberedGroups.flatMap((group) =>
-    group.items.map((item) => ({ ...item, phase: group.id, phaseLabel: group.label })),
-  )
-
   return (
     <PitbullDossierSection
       id="atletas"
@@ -589,9 +298,9 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
       title={t('pages.pitbull.athletesTitle')}
       titleId="pitbull-athletes-title"
     >
-      <div className="pitbull-stepper-wrap">
-        <PitbullStepper flatSteps={flatSteps} onNavigate={onNavigate} t={t} />
+      <div className="pitbull-journey-layout">
         <PitbullJourneyTimeline numberedGroups={numberedGroups} t={t} />
+        <PitbullJourneyVisual t={t} />
       </div>
 
       <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
@@ -643,19 +352,16 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
 
 const MEET_SEQUENCE_STEP_MS = 550
 
-/** Sistema operativo del meet — dos niveles: barra de estado (jornada +
- * fase activa + selector) y tablero principal (3 etapas reales fusionadas
- * con la planilla del día, un indicador que las recorre una vez al entrar
- * o al cambiar de jornada, y luces de jueces que confirman el cierre). */
+/** Programa del meet — jornada por tabs tipográficos + agenda del día.
+ * La secuencia recorre las fases una vez; sin luces ni switch tipo control. */
 function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
   const [day, setDay] = useState(schedule?.[0]?.day)
   const [activeLane, setActiveLane] = useState(reducedMotion ? featureFacts.length - 1 : 0)
-  const [lightsOn, setLightsOn] = useState(reducedMotion)
+  const [sequenceDone, setSequenceDone] = useState(reducedMotion)
   const timersRef = useRef([])
 
   const activeDay = schedule.find((d) => d.day === day) ?? schedule[0]
-  const dayOptions = schedule.map((d) => [d.day, `${d.day} · ${d.date}`, d.day])
   const laneCount = featureFacts.length
 
   useEffect(() => {
@@ -664,17 +370,17 @@ function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
 
     if (reducedMotion) {
       setActiveLane(laneCount - 1)
-      setLightsOn(true)
+      setSequenceDone(true)
       return undefined
     }
 
-    setLightsOn(false)
+    setSequenceDone(false)
     setActiveLane(0)
     for (let lane = 1; lane < laneCount; lane += 1) {
       timersRef.current.push(setTimeout(() => setActiveLane(lane), lane * MEET_SEQUENCE_STEP_MS))
     }
     timersRef.current.push(
-      setTimeout(() => setLightsOn(true), laneCount * MEET_SEQUENCE_STEP_MS + 200),
+      setTimeout(() => setSequenceDone(true), laneCount * MEET_SEQUENCE_STEP_MS + 200),
     )
 
     return () => timersRef.current.forEach(clearTimeout)
@@ -684,7 +390,7 @@ function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
     timersRef.current.forEach(clearTimeout)
     timersRef.current = []
     setActiveLane(index)
-    setLightsOn(true)
+    setSequenceDone(true)
   }
 
   if (!schedule?.length) return null
@@ -692,80 +398,73 @@ function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
   return (
     <Reveal as="div" direction="up" className="pitbull-meet" aria-label={t('pages.pitbull.programAria')}>
       <header className="pitbull-meet__top">
-        <div className="pitbull-meet__top-status">
-          <span className={`motif-lights${lightsOn ? ' motif-lights--sequence' : ''}`} aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={`motif-lights__dot${lightsOn ? ' motif-lights__dot--on' : ''}`} />
-            ))}
-          </span>
-          <div className="pitbull-meet__top-copy">
-            <p className="pitbull-meet__top-day">
-              {activeDay.day} <time>{activeDay.date}</time>
-            </p>
-            <p className="pitbull-meet__top-phase">
-              {t('pages.pitbull.meetPhaseLabel')}: {featureFacts[activeLane]?.label}
-              <span aria-hidden> · </span>
-              {t('pages.pitbull.stepperStepOf', { current: activeLane + 1, total: laneCount })}
-            </p>
-          </div>
+        <div
+          className="pitbull-meet__days"
+          role="tablist"
+          aria-label={t('pages.pitbull.programScheduleTitle')}
+        >
+          {schedule.map((entry) => {
+            const isActive = entry.day === day
+            return (
+              <button
+                key={entry.day}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`pitbull-meet__day${isActive ? ' is-active' : ''}`}
+                onClick={() => setDay(entry.day)}
+              >
+                <span className="pitbull-meet__day-name">{entry.day}</span>
+                <time className="pitbull-meet__day-date">{entry.date}</time>
+              </button>
+            )
+          })}
         </div>
-        <SegmentedSwitch
-          active={day}
-          ariaLabel={t('pages.pitbull.programScheduleTitle')}
-          className="pitbull-meet__switch segmented-switch--pitbull"
-          onChange={setDay}
-          options={dayOptions}
-        />
+        <p className="pitbull-meet__phase" aria-live="polite">
+          <span className="pitbull-meet__phase-label">{t('pages.pitbull.meetPhaseLabel')}</span>
+          <span className="pitbull-meet__phase-value">{featureFacts[activeLane]?.label}</span>
+        </p>
       </header>
 
       <MotionContentSwap swapKey={day} className="pitbull-meet__pane">
-        <ol className="pitbull-meet__lanes" aria-label={t('pages.pitbull.featureFactsAria')}>
-          {featureFacts.map((fact, index) => {
-            const Icon = FEATURE_FACT_ICONS[fact.label]
-            const row = activeDay.items[index]
-            const isActive = index === activeLane
-            return (
-              <li key={fact.label} className={`pitbull-meet__lane${isActive ? ' is-active' : ''}`}>
-                <button
-                  type="button"
-                  className="pitbull-meet__lane-hit"
-                  aria-current={isActive ? 'step' : undefined}
-                  onClick={() => selectLane(index)}
-                >
-                  <span className="pitbull-meet__lane-num motif-num motif-num--solid" aria-hidden>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="pitbull-meet__lane-copy">
-                    <span className="pitbull-meet__lane-label">
-                      {Icon ? (
-                        <Icon size={14} strokeWidth={1.7} className="pitbull-meet__lane-icon" aria-hidden />
-                      ) : null}
-                      {fact.label}
+        <div className="pitbull-meet__lanes-wrap">
+          <ol className="pitbull-meet__lanes" aria-label={t('pages.pitbull.featureFactsAria')}>
+            {featureFacts.map((fact, index) => {
+              const Icon = FEATURE_FACT_ICONS[fact.label]
+              const row = activeDay.items[index]
+              const isActive = index === activeLane
+              const num = String(index + 1).padStart(2, '0')
+              return (
+                <li key={fact.label} className={`pitbull-meet__lane${isActive ? ' is-active' : ''}`}>
+                  <button
+                    type="button"
+                    className="pitbull-meet__lane-hit"
+                    aria-current={isActive ? 'step' : undefined}
+                    onClick={() => selectLane(index)}
+                  >
+                    <span className="pitbull-meet__lane-index motif-num" aria-hidden>
+                      {num}
                     </span>
-                    <span className="pitbull-meet__lane-value">{fact.value}</span>
-                    {row ? (
-                      <span className="pitbull-meet__lane-row">
-                        <span className="pitbull-meet__lane-time">{row.time}</span>
-                        {row.label}
+                    <span className="pitbull-meet__lane-copy">
+                      <span className="pitbull-meet__lane-head">
+                        {row ? <span className="pitbull-meet__lane-time">{row.time}</span> : null}
+                        <span className="pitbull-meet__lane-label">
+                          {Icon ? <Icon size={14} strokeWidth={1.75} aria-hidden /> : null}
+                          {fact.label}
+                        </span>
                       </span>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-          {reducedMotion ? null : (
-            <m.span
-              className="pitbull-meet__indicator"
-              aria-hidden
-              animate={{ left: `${(activeLane / laneCount) * 100 + 100 / (laneCount * 2)}%` }}
-              transition={{ duration: 0.45, ease: MOTION_EASE.out }}
-            />
-          )}
-        </ol>
+                      <span className="pitbull-meet__lane-value">{fact.value}</span>
+                      {row ? <span className="pitbull-meet__lane-desc">{row.label}</span> : null}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
       </MotionContentSwap>
 
-      <footer className={`pitbull-meet__exit${lightsOn ? ' pitbull-meet__exit--in' : ''}`}>
+      <footer className={`pitbull-meet__exit${sequenceDone ? ' pitbull-meet__exit--in' : ''}`}>
         <button
           type="button"
           className="pitbull-meet__exit-link motion-icon-shift motif-tap-target"
@@ -793,9 +492,12 @@ function PitbullLocationSection({ venue, t }) {
       titleId="pitbull-location-title"
     >
       <div className="pitbull-location pitbull-location--editorial">
-        <Reveal as="div" direction="scale" className="pitbull-location__map-shell">
-          <div className={`pitbull-location__map-placeholder${mapLoaded ? ' pitbull-location__map-placeholder--hidden' : ''}`} aria-hidden>
-            <MapPinned size={26} aria-hidden />
+        <Reveal as="div" direction="up" className="pitbull-location__map-shell">
+          <div
+            className={`pitbull-location__map-placeholder${mapLoaded ? ' pitbull-location__map-placeholder--hidden' : ''}`}
+            aria-hidden
+          >
+            <MapPinned size={22} aria-hidden />
             <span>{venue.name}</span>
           </div>
           <iframe
@@ -804,31 +506,26 @@ function PitbullLocationSection({ venue, t }) {
             title={t('pages.pitbull.venueMapsTitle', { venue: venue.name })}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
+            tabIndex={-1}
             onLoad={() => setMapLoaded(true)}
           />
-          <div className="pitbull-location__map-overlay" aria-hidden />
-        </Reveal>
-
-        <Reveal as="div" direction="up" delay={100} className="pitbull-location__details">
-          <p className="pitbull-location__kicker">
-            <MapPin size={13} aria-hidden />
-            {venue.address}
-          </p>
-
-          <p className="pitbull-location__note">
-            {t('pages.pitbull.locationDirectionsNote')}
-          </p>
-
           <a
             href={venue.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="pitbull-location__maps-link pitbull-location__maps-link--primary motion-icon-shift"
+            className="pitbull-location__map-cta motion-icon-shift"
           >
             {t('pages.pitbull.locationMapsLink')}
-            <ExternalLink size={14} aria-hidden className="motion-icon-shift__target" />
+            <ExternalLink size={13} aria-hidden className="motion-icon-shift__target" />
           </a>
+        </Reveal>
+
+        <Reveal as="div" direction="up" delay={80} className="pitbull-location__details">
+          <p className="pitbull-location__kicker">
+            <MapPin size={13} aria-hidden />
+            {venue.address}
+          </p>
+          <p className="pitbull-location__note">{t('pages.pitbull.locationDirectionsNote')}</p>
         </Reveal>
       </div>
     </PitbullDossierSection>
@@ -867,10 +564,7 @@ function PitbullInscriptionSection({
       title={t('pages.pitbull.inscriptionTitle')}
       tone="ops"
     >
-      <div
-        className="pitbull-inscription-shell pitbull-inscription-shell--compact"
-        onPointerMove={handleReactivePointer}
-      >
+      <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
         <PitbullInscriptionCounter
           registered={pitbullClassic.registered}
           slots={pitbullClassic.slots}
@@ -947,11 +641,8 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
   return (
     <PitbullDossierSection
       className="pitbull-dossier__section--feature"
-      eyebrow={t('pages.pitbull.featureEyebrow')}
-      index={t('pages.pitbull.featureIndex')}
-      lead={t('pages.pitbull.featureLead')}
+      hideHeader
       title={t('pages.pitbull.featureTitle')}
-      titleId="pitbull-feature-title"
     >
       {schedule?.length > 0 ? (
         <PitbullMeetSystem featureFacts={featureFacts} schedule={schedule} onNavigate={onNavigate} t={t} />
@@ -1053,13 +744,16 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
             aria-labelledby={`pitbull-doc-tab-${tab}`}
           >
             <MotionContentSwap swapKey={tab} className="pitbull-doc__panel">
-              <StaggerGroup as="ol" className="pitbull-doc__rows" stagger={35} role="list">
-                {rows.map((row, index) => (
-                  <li key={row} className="pitbull-doc__row">
-                    <span className="pitbull-doc__row-num motif-num">{String(index + 1).padStart(2, '0')}</span>
-                    <span className="pitbull-doc__row-label">{row}</span>
-                  </li>
-                ))}
+              <StaggerGroup as="ol" className="pitbull-doc__chips" stagger={35} role="list">
+                {rows.map((row) => {
+                  const ChipIcon = tab === 'modalities' ? Dumbbell : Users
+                  return (
+                    <li key={row} className="pitbull-doc__chip">
+                      <ChipIcon size={15} strokeWidth={1.85} aria-hidden />
+                      <span>{row}</span>
+                    </li>
+                  )
+                })}
               </StaggerGroup>
 
               {detail ? (
@@ -1093,7 +787,8 @@ export default function PitbullPage({
 
   const pitbullEvent = events.find((event) => event.featured)
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
-  const canRegister = eventStatus === 'inscripcion_abierta' || eventStatus === 'cupos_limitados'
+  const canRegister = isRegistrationOpen(eventStatus)
+  const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const ticketsOpen = eventPricing.ticketsEnabled !== false
 
@@ -1104,6 +799,10 @@ export default function PitbullPage({
   function handleHeroRegister() {
     if (canRegister) {
       onNavigate('competition')
+      return
+    }
+    if (isFinished) {
+      onNavigate('results')
       return
     }
     onNavigate('members')

@@ -1,11 +1,13 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
+  createAccessRoleRequest,
   createSecurityAccessLinkRequest,
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
   createStaffUserRequest,
   deactivateAllSecurityUsersRequest,
+  listAccessRolesRequest,
   listSecurityUsersRequest,
   listStaffUsersRequest,
   loginRequest,
@@ -14,10 +16,18 @@ import {
   oauthSessionRequest,
   securityGateRequest,
   updateSecurityUserStatusRequest,
+  updateAccessRolePermissionsRequest,
+  updateStaffUserRoleRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
-import { canEdit } from '../lib/roles.js'
+import {
+  ACCESS_ROLE_TEMPLATES,
+  getDefaultPermissionsForRole,
+  hasAnyPermission,
+  hasPermission,
+  PERMISSION_CATALOG,
+} from '../lib/permissions.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
 import {
@@ -154,6 +164,16 @@ export function useAppData() {
     getInitialShopProducts(storedData?.shopProducts),
   )
   const [users, setUsers] = useState(() => getInitialUsers(storedData?.users))
+  const [accessRoles, setAccessRoles] = useState(() =>
+    ACCESS_ROLE_TEMPLATES.map((role) => ({
+      id: role.key,
+      ...role,
+      permissions: getDefaultPermissionsForRole(role.key),
+      canAssign: role.assignableByAdmin,
+      userCount: 0,
+    })),
+  )
+  const [permissionCatalog, setPermissionCatalog] = useState(PERMISSION_CATALOG)
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
   const membershipAttemptRef = useRef(null)
@@ -161,7 +181,6 @@ export function useAppData() {
   const ticketAttemptRef = useRef(null)
 
   const role = session?.role || null
-  const userCanEdit = canEdit(role)
 
   // athletes/memberships/registrations/payments ya no se persisten acá --
   // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
@@ -191,37 +210,72 @@ export function useAppData() {
   const refreshAthleteData = useCallback(async () => {
     if (!session || isDemoSession(session)) return
 
-    try {
-      if (session.role === 'athlete_plu') {
+    if (session.role === 'athlete_plu') {
+      try {
         const snapshot = await fetchAthleteSnapshot(session.athleteId)
         setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
         setMemberships(snapshot.memberships)
         setRegistrations(snapshot.registrations)
         setPayments(snapshot.payments)
-      } else {
-        const [data, remoteEvents] = await Promise.all([
-          fetchAdminAthleteData(),
-          fetchAdminEvents(),
-        ])
+      } catch (error) {
+        console.error('refreshAthleteData:', error)
+      }
+      return
+    }
+
+    const canReadAthleteData = hasAnyPermission(session, [
+      'admin.athletes.read',
+      'admin.memberships.read',
+      'admin.registrations.read',
+      'admin.payments.read',
+    ])
+    if (canReadAthleteData) {
+      try {
+        const data = await fetchAdminAthleteData()
         setAthletes(data.athletes)
         setMemberships(data.memberships)
         setRegistrations(data.registrations)
         setPayments(data.payments)
-        setAdminEvents(remoteEvents)
+      } catch (error) {
+        console.error('refreshAthleteData:', error)
+      }
+    } else {
+      setAthletes([])
+      setMemberships([])
+      setRegistrations([])
+      setPayments([])
+    }
 
-        // Listado de staff real (solo lo permiten admin_maximal/admin_plu_arg;
-        // para el resto queda el fallback local sin cortar el resto del load).
-        try {
-          const { users: staffUsers } = await listStaffUsersRequest()
-          setUsers(staffUsers)
-        } catch (error) {
-          if (!(error instanceof ApiError && error.status === 403)) {
-            console.warn('No se pudo cargar el listado de staff.', error)
-          }
+    if (hasPermission(session, 'admin.events.read')) {
+      try {
+        const remoteEvents = await fetchAdminEvents()
+        setAdminEvents(remoteEvents)
+      } catch (error) {
+        console.warn('No se pudieron cargar los eventos del panel.', error)
+      }
+    }
+
+    if (hasPermission(session, 'admin.users.read')) {
+      try {
+        const { users: staffUsers } = await listStaffUsersRequest()
+        setUsers(staffUsers)
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 403)) {
+          console.warn('No se pudo cargar el listado de staff.', error)
         }
       }
-    } catch (error) {
-      console.error('refreshAthleteData:', error)
+    }
+
+    if (hasPermission(session, 'admin.roles.read')) {
+      try {
+        const { permissions, roles: remoteRoles } = await listAccessRolesRequest()
+        setAccessRoles(remoteRoles)
+        setPermissionCatalog(permissions)
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 403)) {
+          console.warn('No se pudo cargar la matriz de roles.', error)
+        }
+      }
     }
   }, [session])
 
@@ -246,6 +300,8 @@ export function useAppData() {
   }, [refreshAthleteData])
 
   useEffect(() => {
+    if (env.demoMode) return undefined
+
     let active = true
 
     meRequest()
@@ -660,6 +716,9 @@ export function useAppData() {
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
   // Mercado Pago se acreditan exclusivamente mediante webhook.
   const approveTicketPurchase = useCallback(async (orderId) => {
+    if (!hasPermission(session, 'admin.payments.approve')) {
+      return { error: 'Sin permisos para aprobar pagos.' }
+    }
     try {
       const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
       setTickets((current) => {
@@ -676,7 +735,7 @@ export function useAppData() {
       console.error('approveTicketPurchase:', error)
       throw error
     }
-  }, [])
+  }, [session])
 
   const uploadTicketPaymentProofAction = useCallback(
     async (orderId, file) => {
@@ -715,7 +774,7 @@ export function useAppData() {
   )
 
   const refreshPendingTicketOrders = useCallback(async () => {
-    if (!userCanEdit) return
+    if (!hasPermission(session, 'admin.payments.read') || isDemoSession(session)) return
     setPendingTicketOrdersLoading(true)
     setPendingTicketOrdersError(null)
     try {
@@ -727,18 +786,21 @@ export function useAppData() {
     } finally {
       setPendingTicketOrdersLoading(false)
     }
-  }, [userCanEdit])
+  }, [session])
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
   // usado de forma atÃ³mica â€” dos escaneos simultÃ¡neos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
-    if (!userCanEdit) return undefined
+    if (!hasPermission(session, 'admin.payments.read')) return undefined
     refreshPendingTicketOrders()
     return undefined
-  }, [userCanEdit, refreshPendingTicketOrders])
+  }, [session, refreshPendingTicketOrders])
 
   const checkInTicketAction = useCallback(async (qrToken) => {
+    if (!hasPermission(session, 'admin.checkin.execute')) {
+      return { outcome: 'forbidden' }
+    }
     try {
       const { ticket, checkIn } = await checkInTicketRequest(qrToken)
       const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
@@ -753,7 +815,7 @@ export function useAppData() {
       }
       throw error
     }
-  }, [])
+  }, [session])
 
   const redeemTicketAddonAction = useCallback(async (qrToken, addonId) => {
     try {
@@ -788,6 +850,9 @@ export function useAppData() {
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
   const checkInRegistrationAction = useCallback(async (registrationId, gate) => {
+    if (!hasPermission(session, 'admin.checkin.execute')) {
+      return { outcome: 'forbidden' }
+    }
     try {
       const { registration } = await checkInRegistrationRequest(registrationId, gate)
       setRegistrations((current) =>
@@ -805,13 +870,23 @@ export function useAppData() {
       }
       throw error
     }
-  }, [])
+  }, [session])
 
-  // GestiÃ³n de cuentas del panel: solo quien tiene canManageUsers puede
-  // cambiar roles o crear cuentas nuevas (se valida tambiÃ©n en la UI).
-  const updateUserRoleAction = useCallback((userId, nextRole) => {
-    setUsers((current) => updateUserRole(current, userId, nextRole))
-  }, [])
+  // La asignación se persiste y se vuelve a validar en Express. El fallback
+  // local queda únicamente para la sesión demo.
+  const updateUserRoleAction = useCallback(
+    async (userId, nextRole) => {
+      if (isDemoSession(session)) {
+        setUsers((current) => updateUserRole(current, userId, nextRole))
+        return users.find((user) => user.id === userId) ?? null
+      }
+
+      const { user } = await updateStaffUserRoleRequest(userId, nextRole)
+      setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
+      return user
+    },
+    [session, users],
+  )
 
   // Alta real de staff (admin/operador/viewer): pega al backend, que crea la
   // cuenta sin contraseña para que entre por Auth0. Devuelve el usuario creado
@@ -822,6 +897,70 @@ export function useAppData() {
     setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
     return user
   }, [])
+
+  const createAccessRoleAction = useCallback(async (draft) => {
+    let createdRole
+
+    if (isDemoSession(session)) {
+      const normalizedName = draft.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+      const key = `custom_${normalizedName || crypto.randomUUID().slice(0, 8)}`
+      createdRole = {
+        id: key,
+        key,
+        name: draft.name.trim(),
+        description: draft.description?.trim() ?? '',
+        baseRole: 'operador_plu_arg',
+        isSystem: false,
+        isProtected: false,
+        assignableByAdmin: true,
+        active: true,
+        permissions: [...(draft.permissionKeys ?? [])],
+        userCount: 0,
+        canAssign: true,
+        canManagePermissions: true,
+      }
+    } else {
+      const response = await createAccessRoleRequest(draft)
+      createdRole = response.role
+    }
+
+    setAccessRoles((current) => [
+      ...current.filter((role) => role.id !== createdRole.id),
+      createdRole,
+    ])
+    return createdRole
+  }, [session])
+
+  const updateAccessRolePermissionsAction = useCallback(async (roleId, permissionKeys) => {
+    let updatedRole
+
+    if (isDemoSession(session)) {
+      const currentRole = accessRoles.find((role) => role.id === roleId)
+      if (!currentRole) throw new Error('El rol seleccionado no existe.')
+      updatedRole = { ...currentRole, permissions: [...permissionKeys] }
+    } else {
+      const response = await updateAccessRolePermissionsRequest(roleId, permissionKeys)
+      updatedRole = response.role
+    }
+
+    setAccessRoles((current) =>
+      current.map((role) => (role.id === updatedRole.id ? updatedRole : role)),
+    )
+    setSession((current) => {
+      if (!current || current.roleKey !== updatedRole.key) return current
+      return {
+        ...current,
+        permissions: updatedRole.permissions,
+        roleLabel: updatedRole.name,
+      }
+    })
+    return updatedRole
+  }, [accessRoles, session, setSession])
 
   const createSecurityUserAction = useCallback(async (draft) => {
     const { user, tempPassword, emailed, accessUrl, expiresAt } =
@@ -983,14 +1122,17 @@ export function useAppData() {
           (emailRaw === 'demo3' || email === 'demo3@pluarg.com.ar') &&
           password === '123'
         ) {
-          const demoPluUsaSession = {
+          const demoPluSession = {
             id: 'demo-plu-usa',
-            role: 'viewer_plu_usa',
-            name: 'PLU USA',
+            role: 'operador_plu_arg',
+            roleKey: 'plu_arg',
+            roleLabel: 'PLU',
+            permissions: getDefaultPermissionsForRole('plu_arg'),
+            name: 'Equipo PLU',
             email: 'demo3@pluarg.com.ar',
           }
-          setSession(demoPluUsaSession)
-          return demoPluUsaSession
+          setSession(demoPluSession)
+          return demoPluSession
         }
 
         // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
@@ -1042,6 +1184,9 @@ export function useAppData() {
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para aprobar pagos.' }
+      }
       try {
         const { order, membership, registration } =
           await approveAthletePaymentOrderRequest(paymentId)
@@ -1091,9 +1236,10 @@ export function useAppData() {
         ])
       } catch (error) {
         console.error('handleApprovePayment:', error)
+        return { error: error?.message ?? 'No se pudo aprobar el pago.' }
       }
     },
-    [athletes, registrations],
+    [athletes, registrations, session],
   )
 
   const activateDemoMembership = useCallback(
@@ -1200,18 +1346,22 @@ export function useAppData() {
   }, [])
 
   const exportAdminCsv = useCallback(() => {
+    if (!hasPermission(session, 'admin.exports.admin')) return
     const rows = buildAdminExportRows(registrations, athletes, memberships, payments)
     createCsv('plu-arg-admin-export.csv', rows)
-  }, [registrations, athletes, memberships, payments])
+  }, [registrations, athletes, memberships, payments, session])
 
   const exportPluUsaCsv = useCallback(() => {
+    if (!hasPermission(session, 'admin.exports.plu_usa')) return
     const rows = buildPluUsaExportRows(athletes, memberships, registrations)
     createCsv('plu-usa-export.csv', rows)
-  }, [athletes, memberships, registrations])
+  }, [athletes, memberships, registrations, session])
 
   const saveAdminEvent = useCallback(
     (draft) => {
-      if (!userCanEdit) return { error: 'Sin permisos para editar eventos.' }
+      if (!hasPermission(session, 'admin.events.write')) {
+        return { error: 'Sin permisos para editar eventos.' }
+      }
 
       if (draft.id) {
         const result = updateAdminEvent(adminEvents, draft.id, draft)
@@ -1226,12 +1376,14 @@ export function useAppData() {
       setAuditLogs((current) => [result.auditLog, ...current])
       return { event: result.event }
     },
-    [adminEvents, userCanEdit],
+    [adminEvents, session],
   )
 
   const saveShopProduct = useCallback(
     (draft) => {
-      if (!userCanEdit) return { error: 'Sin permisos para editar productos.' }
+      if (!hasPermission(session, 'admin.shop.write')) {
+        return { error: 'Sin permisos para editar productos.' }
+      }
       const nextProducts = upsertShopProduct(shopProducts, draft)
       const savedProduct = draft.id
         ? nextProducts.find((product) => product.id === draft.id)
@@ -1248,12 +1400,14 @@ export function useAppData() {
       ])
       return { product: savedProduct }
     },
-    [shopProducts, userCanEdit],
+    [shopProducts, session],
   )
 
   const deleteShopProductAction = useCallback(
     (productId) => {
-      if (!userCanEdit) return { error: 'Sin permisos para eliminar productos.' }
+      if (!hasPermission(session, 'admin.shop.write')) {
+        return { error: 'Sin permisos para eliminar productos.' }
+      }
       setShopProducts((current) => deleteShopProduct(current, productId))
       setAuditLogs((current) => [
         buildAuditLog('shop.product.deleted', 'shop_product', productId, 'admin'),
@@ -1261,7 +1415,7 @@ export function useAppData() {
       ])
       return { ok: true }
     },
-    [userCanEdit],
+    [session],
   )
 
   return {
@@ -1270,7 +1424,6 @@ export function useAppData() {
     getSession,
     login,
     logout,
-    userCanEdit,
     athletes,
     memberships,
     registrations,
@@ -1316,8 +1469,12 @@ export function useAppData() {
     refreshTickets,
     checkInRegistrationAction,
     users,
+    accessRoles,
+    permissionCatalog,
     updateUserRoleAction,
     createUserAction,
+    createAccessRoleAction,
+    updateAccessRolePermissionsAction,
     createSecurityUserAction,
     createSecurityUsersBulkAction,
     createSecurityAccessLinkAction,

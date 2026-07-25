@@ -337,7 +337,7 @@ export default function DashboardSection({
         aria-label={t('admin.dashboard.metricsAria')}
       >
         <div className="admin-kpi-board">
-          <div className="admin-kpi-strip" role="list" aria-label={t('admin.dashboard.swipeHint')}>
+          <div className="admin-kpi-strip" role="list" aria-label={t('admin.dashboard.metricsAria')}>
             {primaryMetrics.map((item, index) => (
               <DashboardKpiTile
                 key={item.labelKey}
@@ -354,7 +354,7 @@ export default function DashboardSection({
           {secondaryMetrics.length > 0 && (
             <details className="admin-kpi-more">
               <summary className="admin-kpi-more__summary">
-                <span>{t('admin.dashboard.moreMetrics')}</span>
+                <span className="admin-kpi-more__label">{t('admin.dashboard.moreMetrics')}</span>
                 <span className="admin-kpi-more__count">{secondaryMetrics.length}</span>
               </summary>
               <div className="admin-kpi-sub" role="list">

@@ -1275,7 +1275,28 @@
 }
 
 [data-theme='light'] .login-field__forgot:hover {
-  color: rgba(15, 17, 23, 0.85);
+  color: color-mix(in oklab, var(--plu-gold-600) 72%, rgba(15, 17, 23, 0.85));
+  text-decoration-color: color-mix(in oklab, var(--plu-gold-600) 40%, transparent);
+}
+
+[data-theme='light'] .login-field__error {
+  color: var(--color-brand-red, #c0392b);
+}
+
+[data-theme='light'] .login-form__back {
+  color: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .login-form__back:hover {
+  color: rgba(15, 17, 23, 0.88);
+}
+
+[data-theme='light'] .login-form__notice {
+  color: color-mix(in oklab, var(--plu-gold-600) 55%, rgba(15, 17, 23, 0.78));
+}
+
+[data-theme='light'] .login-form__hint {
+  color: rgba(15, 17, 23, 0.48);
 }
 
 [data-theme='light'] .login-field__control {

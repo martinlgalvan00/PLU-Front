@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
 import AthletesSection from './admin/AthletesSection.jsx'
@@ -11,10 +11,14 @@ import RegistrationsSection from './admin/RegistrationsSection.jsx'
 import PaymentsOperationsSection from './admin/PaymentsOperationsSection.jsx'
 import ShopSection from './admin/ShopSection.jsx'
 import UsersSection from './admin/UsersSection.jsx'
+import RolesSection from './admin/RolesSection.jsx'
+import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 
 export default function AdminPage({
+  accessRoles,
   adminEvents,
-  canEdit,
+  allowedSections = [],
+  authorization,
   canManageUsers,
   dashboardOverview,
   filters,
@@ -34,12 +38,15 @@ export default function AdminPage({
   onListSecurityUsers,
   onUpdateSecurityUserStatus,
   onCreateUser,
+  onCreateRole,
   onExportAdmin,
   onExportPluUsa,
   onSaveEvent,
   onSaveShopProduct,
   onSetFilters,
   onUpdateUserRole,
+  onUpdateRolePermissions,
+  permissionCatalog,
   onDeleteShopProduct,
   payments,
   pendingTicketOrders,
@@ -55,8 +62,9 @@ export default function AdminPage({
   isCheckinOnly = false,
   onExit,
 }) {
-  const [section, setSection] = useState(
-    isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard',
+  const preferredSection = isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard'
+  const [section, setSection] = useState(() =>
+    allowedSections.includes(preferredSection) ? preferredSection : allowedSections[0] ?? preferredSection,
   )
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
@@ -65,7 +73,15 @@ export default function AdminPage({
     (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
   ).length
 
+  useEffect(() => {
+    if (allowedSections.length > 0 && !allowedSections.includes(section)) {
+      setSection(allowedSections[0])
+      setSelectedAthleteId(null)
+    }
+  }, [allowedSections, section])
+
   function handleSectionChange(nextSection) {
+    if (!allowedSections.includes(nextSection)) return
     setSection(nextSection)
     if (nextSection !== 'athletes') {
       setSelectedAthleteId(null)
@@ -73,13 +89,14 @@ export default function AdminPage({
   }
 
   function handleSelectAthlete(athleteId) {
+    if (!allowedSections.includes('athletes')) return
     setSelectedAthleteId(athleteId)
     setSection('athletes')
   }
 
   function handleDashboardSearchSubmit(query) {
     const normalizedQuery = query.trim()
-    if (!normalizedQuery) return
+    if (!normalizedQuery || !allowedSections.includes('registrations')) return
 
     onSetFilters((current) => ({
       ...current,
@@ -101,7 +118,7 @@ export default function AdminPage({
           onNavigate={handleSectionChange}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
-          canEdit={canEdit}
+          canEdit={hasPermission(authorization, 'admin.payments.approve')}
           globalSearch={globalSearch}
           onGlobalSearchChange={setGlobalSearch}
           onGlobalSearchSubmit={handleDashboardSearchSubmit}
@@ -115,7 +132,7 @@ export default function AdminPage({
           <AthleteDetailSection
             detail={getAthleteDetail(selectedAthleteId)}
             onBack={() => setSelectedAthleteId(null)}
-            canEdit={canEdit}
+            canEdit={hasPermission(authorization, 'admin.athletes.write')}
             onApprovePayment={onApprovePayment}
           />
         )
@@ -136,7 +153,10 @@ export default function AdminPage({
     if (section === 'registrations') {
       return (
         <RegistrationsSection
-          canEdit={canEdit}
+          canEdit={hasAnyPermission(authorization, [
+            'admin.registrations.write',
+            'admin.payments.approve',
+          ])}
           filters={filters}
           filteredRegistrations={filteredRegistrations}
           payments={payments}
@@ -145,6 +165,7 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           onExportAdmin={onExportAdmin}
           onExportPluUsa={onExportPluUsa}
+          onGoToEvents={() => setSection('events')}
           onSetFilters={onSetFilters}
         />
       )
@@ -154,7 +175,7 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
-          canEdit={canEdit}
+          canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
@@ -171,6 +192,7 @@ export default function AdminPage({
     if (section === 'users') {
       return (
         <UsersSection
+          accessRoles={accessRoles}
           adminEvents={adminEvents}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
@@ -181,10 +203,22 @@ export default function AdminPage({
       )
     }
 
+    if (section === 'roles') {
+      return (
+        <RolesSection
+          authorization={authorization}
+          onCreateRole={onCreateRole}
+          onUpdatePermissions={onUpdateRolePermissions}
+          permissionCatalog={permissionCatalog}
+          roles={accessRoles}
+        />
+      )
+    }
+
     if (section === 'payments') {
       return (
         <PaymentsOperationsSection
-          canEdit={canEdit}
+          canEdit={hasPermission(authorization, 'admin.payments.approve')}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}
@@ -197,7 +231,7 @@ export default function AdminPage({
     if (section === 'shop') {
       return (
         <ShopSection
-          canEdit={canEdit}
+          canEdit={hasPermission(authorization, 'admin.shop.write')}
           products={shopProducts}
           onDeleteProduct={onDeleteShopProduct}
           onSaveProduct={onSaveShopProduct}
@@ -230,6 +264,7 @@ export default function AdminPage({
       onExit={onExit}
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
+      allowedSections={allowedSections}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
     >
       <div

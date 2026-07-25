@@ -1,5 +1,9 @@
 # UX/UI Guidelines — PLU ARG / Maximal
 
+> **Autoridad de marca:** ver [`.claude/skills/plu-frontend-design`](../.claude/skills/plu-frontend-design/SKILL.md)
+> primero. La tabla de paleta de este doc quedaba desactualizada (rojo como CTA) — corregida
+> abajo contra el ground truth real de `src/styles/tokens/palette.css`.
+
 ## Tipografía
 
 - **Poppins** en todo el proyecto (pesos 300–900). Es la única familia — no introducir una segunda
@@ -46,12 +50,12 @@ entre "plataforma federativa" y "mockup generado". Antes de sumar un hover nuevo
 |-----|-------|
 | Fondo | `--color-bg-primary` |
 | Superficie | `--color-bg-surface` |
-| CTA principal | `--color-brand-red` |
-| Acento AR | `--color-brand-celeste` (sutil) |
+| CTA principal | `--color-brand-action` (oro) |
+| Identidad/navegación | `--color-brand-celeste` (azul institucional) |
 | Premium/records | `--color-brand-gold` |
 | Éxito | success tokens |
 | Pendiente | warning tokens |
-| Error | danger tokens |
+| Error / danger | `--color-brand-red` — **único uso permitido de rojo**, nunca CTA ni decorativo |
 
 ## Regla de 2 clics (público)
 

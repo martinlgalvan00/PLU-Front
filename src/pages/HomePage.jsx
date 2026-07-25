@@ -5,16 +5,13 @@ import HeroSection from '../components/layout/HeroSection.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
-import FAQAccordion from '../components/ui/FAQAccordion.jsx'
+import HomeSupportStrip from '../components/ui/HomeSupportStrip.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import SectionHeading from '../components/ui/SectionHeading.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { getFeaturedEvent } from '../lib/eventNavigation.js'
 
 export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
-  const { HOME_FAQ, HOME_FAQ_ITEMS } = useContent()
-
   const pitbullEvent = getFeaturedEvent(events)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership = isLoggedInAthlete && memberships.some(
@@ -44,10 +41,10 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
           <PitbullSpotlight
             variant="home"
             event={pitbullEvent}
-            onDetail={() => onNavigate('pitbull')}
+            onDetail={() => onNavigate?.('pitbull')}
             onRegister={handlePitbullRegister}
-            onJoin={() => onNavigate('members')}
-            onResults={() => onNavigate('results')}
+            onJoin={() => onNavigate?.('members')}
+            onResults={() => onNavigate?.('results')}
           />
         </div>
       </Reveal>
@@ -75,41 +72,9 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
         </div>
       </Reveal>
 
-      <Reveal as="section" className="home-section home-section--canvas-light home-section--faq" variant="fade">
+      <Reveal as="section" className="home-section home-section--canvas-light home-section--support" variant="fade">
         <div className="home-section__inner">
-          <div className="home-faq">
-            <div className="home-faq__intro">
-              <SectionHeading
-                align="left"
-                variant="ref"
-                eyebrow={HOME_FAQ.eyebrow}
-                title={HOME_FAQ.title}
-                description={HOME_FAQ.description}
-              />
-              <div className="home-faq__quick-links">
-                {HOME_FAQ.quickLinks.map(({ label, view }) => (
-                  <button
-                    key={view}
-                    type="button"
-                    className="home-faq__quick-link"
-                    onClick={() => onNavigate(view)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="home-faq__panel">
-              <FAQAccordion items={HOME_FAQ_ITEMS} variant="ref" numbered />
-              <div className="home-faq__footer">
-                <button type="button" className="home-faq__more" onClick={() => onNavigate('faq')}>
-                  {HOME_FAQ.cta}
-                  <span aria-hidden>→</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          <HomeSupportStrip onNavigate={onNavigate} />
         </div>
       </Reveal>
 

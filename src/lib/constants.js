@@ -20,7 +20,7 @@ export const PAYMENT_METHODS = {
 
 export const ROLES = {
   admin_maximal: {
-    label: 'Admin Maximal',
+    label: 'Super Admin',
     canViewAdmin: true,
     canEditOperationalData: true,
     canManageUsers: true,
@@ -30,7 +30,7 @@ export const ROLES = {
     canCheckIn: true,
   },
   admin_plu_arg: {
-    label: 'Admin PLU ARG',
+    label: 'Administrador',
     canViewAdmin: true,
     canEditOperationalData: true,
     canManageUsers: true,
@@ -39,26 +39,15 @@ export const ROLES = {
     canExportPluUsa: true,
     canCheckIn: true,
   },
-  operador_plu_arg: {
-    label: 'Operador PLU ARG',
-    canViewAdmin: true,
-    canEditOperationalData: true,
-    canManageUsers: false,
-    canApproveManualPayments: true,
-    canExportAdmin: true,
-    canExportPluUsa: true,
-    canCheckIn: true,
-  },
-  viewer_plu_usa: {
-    label: 'PLU USA lectura',
+  plu_arg: {
+    label: 'PLU',
     canViewAdmin: true,
     canEditOperationalData: false,
     canManageUsers: false,
     canApproveManualPayments: false,
-    canExportAdmin: false,
-    canExportPluUsa: true,
+    canExportAdmin: true,
+    canExportPluUsa: false,
     canCheckIn: false,
-    isPluUsaPartner: true,
   },
   seguridad_plu_arg: {
     label: 'Seguridad',

@@ -24,10 +24,21 @@ El archivo canonico es [`prisma/schema.prisma`](../prisma/schema.prisma).
 | `Organization` | Tenant operativo: PLU ARG, Maximal u organizaciones futuras. |
 | `OrganizationMember` | Usuario, rol y estado dentro de una organizacion. |
 | `User`, `Session`, `UserIdentity`, `UserProfile` | Identidad, sesion y perfil del operador. |
+| `AccessRole` | Rol configurable del staff y política de asignación. |
+| `AccessPermission` | Capacidad atómica por módulo y acción. |
+| `AccessRolePermission` | Matriz de capacidades otorgadas a cada rol. |
 
 `organizationId` se replica en tablas operativas aunque pueda derivarse por join.
 Es una desnormalizacion controlada para que Supabase RLS y los indices compuestos
 sean simples y rapidos.
+
+`User.accessRoleId` referencia la matriz efectiva. Cuatro `AccessRole` forman
+la base protegida: `admin_maximal`, `admin_plu_arg`, `plu_arg` y
+`seguridad_plu_arg`; pueden coexistir roles operativos personalizados. El enum
+histórico `User.role` se conserva como rol base compatible, pero no reemplaza la
+validación de permisos. PLU y los roles personalizados utilizan
+`operador_plu_arg` como base interna; el rol visible y autoritativo siempre es
+el `AccessRole` referenciado.
 
 ## Personas, atletas y afiliaciones
 

@@ -1,7 +1,14 @@
-export default function AdminPageHeader({ title, subtitle, eyebrow, actions, compact = false }) {
+export default function AdminPageHeader({
+  title,
+  subtitle,
+  eyebrow,
+  actions,
+  className = '',
+  compact = false,
+}) {
   return (
     <header
-      className={`admin-page-toolbar${actions ? ' admin-page-toolbar--with-actions' : ''}${compact ? ' admin-page-toolbar--compact' : ''}`.trim()}
+      className={`admin-page-toolbar${actions ? ' admin-page-toolbar--with-actions' : ''}${compact ? ' admin-page-toolbar--compact' : ''}${className ? ` ${className}` : ''}`.trim()}
     >
       <div className="admin-page-toolbar__headline">
         {eyebrow && <span className="admin-page-toolbar__eyebrow">{eyebrow}</span>}

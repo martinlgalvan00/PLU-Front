@@ -12,7 +12,6 @@ import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
-import TiltCard from '../../motion/TiltCard.tsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
@@ -157,130 +156,135 @@ export default function PitbullSpotlight({
 
     return (
       <article className="pitbull-spotlight pitbull-spotlight--home">
-        <TiltCard
-          className="pitbull-spotlight__home-tilt"
-          innerClassName="tilt-card__inner pitbull-spotlight__home-stage"
-          maxTilt={3}
-        >
-          <div className="pitbull-spotlight__home-media">
-            <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
-              <figure className="pitbull-spotlight__home-hero-frame">
-                <picture>
-                  {/* Tablet/notebook (640-1199): foto landscape, encaja mejor en
-                      la caja apaisada de esos anchos. Mobile chico y desktop
-                      amplio usan el retrato de medallas. */}
-                  <source
-                    media="(min-width: 640px) and (max-width: 1199px)"
-                    srcSet={photoLift}
-                  />
-                  <img
-                    src={photoMedals}
-                    alt=""
-                    className="pitbull-spotlight__home-hero-img"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
-                <span className="pitbull-spotlight__home-hero-badge">
-                  {t('pages.pitbull.spotlight.featured')}
-                </span>
-                <EventDatePlate
-                  day={PITBULL_CLASSIC.dateDay}
-                  month={dateMonthLabel}
-                  className="pitbull-spotlight__home-date"
-                  as="div"
-                  tilt={false}
-                />
-              </figure>
-            </MaskReveal>
-
-            <div className="pitbull-spotlight__home-strip" aria-hidden>
-              {stripPhotos.map((photo) => (
-                <figure
-                  key={photo.key}
-                  className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
-                >
-                  <img
-                    src={photo.src}
-                    alt=""
-                    className="pitbull-spotlight__home-strip-img"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </figure>
-              ))}
-            </div>
-          </div>
-
-          <Panel {...panelProps}>
-            <span className="pitbull-spotlight__home-glow" aria-hidden />
-
-            <PanelItem {...panelItemProps}>
-              <header className="pitbull-spotlight__home-head">
-                <p className="pitbull-spotlight__home-kicker">
-                  <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
-                  <span>{t('pages.pitbull.heroEyebrow')}</span>
-                  <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
-                    ·
-                  </span>
-                  <span>{statusLabel}</span>
-                </p>
-                <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
-                <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
-              </header>
-            </PanelItem>
-
-            <PanelItem {...panelItemProps}>
-              <dl className="pitbull-spotlight__home-facts">
-                <div className="pitbull-spotlight__home-fact">
-                  <dt>{t('pages.pitbull.quickFactsDate')}</dt>
-                  <dd>
-                    <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
-                  </dd>
-                </div>
-                <div className="pitbull-spotlight__home-fact">
-                  <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
-                  <dd>
-                    {PITBULL_CLASSIC.venue}
-                    <span aria-hidden> · </span>
-                    {PITBULL_CLASSIC.location}
-                  </dd>
-                </div>
-              </dl>
-            </PanelItem>
-
-            <PanelItem {...panelItemProps}>
-              <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
-                {PITBULL_CLASSIC.categories.map((category) => (
-                  <li key={category}>{category}</li>
-                ))}
-              </ul>
-            </PanelItem>
-
-            <PanelItem {...panelItemProps}>
-              <footer className="pitbull-spotlight__home-actions">
+        <div className="pitbull-spotlight__home-tilt">
+          <div className="pitbull-spotlight__home-stage">
+            <div className="pitbull-spotlight__home-media">
+              <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
                 <button
                   type="button"
-                  className="pitbull-spotlight__home-cta motion-icon-shift"
-                  onClick={primaryAction}
+                  className="pitbull-spotlight__home-hero-frame pitbull-spotlight__home-hero-frame--link"
+                  aria-label={primaryLabel}
+                  onClick={() => primaryAction?.()}
                 >
-                  {primaryLabel}
-                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                  <picture>
+                    {/* Tablet/notebook (640-1199): foto landscape, encaja mejor en
+                        la caja apaisada de esos anchos. Mobile chico y desktop
+                        amplio usan el retrato de medallas. */}
+                    <source
+                      media="(min-width: 640px) and (max-width: 1199px)"
+                      srcSet={photoLift}
+                    />
+                    <img
+                      src={photoMedals}
+                      alt=""
+                      className="pitbull-spotlight__home-hero-img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </picture>
+                  <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
+                  <span className="pitbull-spotlight__home-hero-badge">
+                    {t('pages.pitbull.spotlight.featured')}
+                  </span>
+                  <EventDatePlate
+                    day={PITBULL_CLASSIC.dateDay}
+                    month={dateMonthLabel}
+                    className="pitbull-spotlight__home-date"
+                    as="div"
+                    tilt={false}
+                  />
                 </button>
-                {showSecondary ? (
-                  <button
-                    type="button"
-                    className="pitbull-spotlight__home-cta-secondary"
-                    onClick={onDetail}
+              </MaskReveal>
+
+              <div className="pitbull-spotlight__home-strip" aria-hidden>
+                {stripPhotos.map((photo) => (
+                  <figure
+                    key={photo.key}
+                    className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
                   >
-                    {t('pages.pitbull.spotlight.viewFullCard')}
-                  </button>
-                ) : null}
-              </footer>
-            </PanelItem>
-          </Panel>
-        </TiltCard>
+                    <img
+                      src={photo.src}
+                      alt=""
+                      className="pitbull-spotlight__home-strip-img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                ))}
+              </div>
+            </div>
+
+            <Panel {...panelProps}>
+              <span className="pitbull-spotlight__home-glow" aria-hidden />
+
+              <PanelItem {...panelItemProps}>
+                <header className="pitbull-spotlight__home-head">
+                  <p className="pitbull-spotlight__home-kicker">
+                    <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
+                    <span>{t('pages.pitbull.heroEyebrow')}</span>
+                    <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
+                      ·
+                    </span>
+                    <span>{statusLabel}</span>
+                  </p>
+                  <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
+                  <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
+                </header>
+              </PanelItem>
+
+              <PanelItem {...panelItemProps}>
+                <dl className="pitbull-spotlight__home-facts">
+                  <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--date">
+                    <dt>{t('pages.pitbull.quickFactsDate')}</dt>
+                    <dd>
+                      <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
+                    </dd>
+                  </div>
+                  <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--venue">
+                    <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
+                    <dd>
+                      <span className="pitbull-spotlight__home-fact-primary">{PITBULL_CLASSIC.venue}</span>
+                      <span className="pitbull-spotlight__home-fact-sep" aria-hidden>
+                        ·
+                      </span>
+                      <span className="pitbull-spotlight__home-fact-secondary">{PITBULL_CLASSIC.location}</span>
+                    </dd>
+                  </div>
+                </dl>
+              </PanelItem>
+
+              <PanelItem {...panelItemProps}>
+                <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
+                  {PITBULL_CLASSIC.categories.map((category) => (
+                    <li key={category}>{category}</li>
+                  ))}
+                </ul>
+              </PanelItem>
+
+              <PanelItem {...panelItemProps}>
+                <footer className="pitbull-spotlight__home-actions">
+                  <Button
+                    variant="gold"
+                    className="pitbull-spotlight__home-cta motion-icon-shift"
+                    onClick={() => primaryAction?.()}
+                  >
+                    {primaryLabel}
+                    <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                  </Button>
+                  {showSecondary ? (
+                    <button
+                      type="button"
+                      className="pitbull-spotlight__home-cta-secondary"
+                      onClick={() => onDetail?.()}
+                    >
+                      {t('pages.pitbull.spotlight.viewFullCard')}
+                    </button>
+                  ) : null}
+                </footer>
+              </PanelItem>
+            </Panel>
+          </div>
+        </div>
       </article>
     )
   }

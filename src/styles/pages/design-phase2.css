@@ -1887,8 +1887,59 @@
 }
 
 .login-field__forgot:hover {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration-color: rgba(255, 255, 255, 0.4);
+  color: color-mix(in srgb, var(--color-brand-gold) 78%, #fff);
+  text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.login-field__error {
+  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 92%, #fff);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.login-field.is-invalid .login-field__control {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 70%, transparent);
+}
+
+.login-form__back {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 8px 0;
+  transition: color var(--duration-base) var(--ease-design);
+}
+
+.login-form__back:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.login-form__notice {
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, #fff);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.login-form__hint {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.login-form--sent {
+  gap: 14px;
 }
 
 .login-field__control {

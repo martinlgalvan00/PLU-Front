@@ -174,6 +174,14 @@ export function loginAthleteSession(credentials) {
   return apiPost('/api/athletes/login', credentials)
 }
 
+export function forgotAthletePassword(email) {
+  return apiPost('/api/athletes/forgot-password', { email })
+}
+
+export function resetAthletePassword({ token, password }) {
+  return apiPost('/api/athletes/reset-password', { token, password })
+}
+
 /** Snapshot completo para el panel admin/seguridad. */
 export async function fetchAdminAthleteData() {
   const result = await apiGet('/api/athletes/admin')

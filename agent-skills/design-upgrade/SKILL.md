@@ -1,5 +1,10 @@
 # Design Upgrade — PLU ARG / Maximal
 
+> **Autoridad de marca:** ver [`.claude/skills/plu-frontend-design`](../../.claude/skills/plu-frontend-design/SKILL.md)
+> primero. Esta skill sigue siendo la referencia de proceso/QA por pantalla, pero su tabla de
+> paleta (§3) quedaba desactualizada (rojo como acento) — corregida abajo contra el ground
+> truth real de `src/styles/tokens/palette.css`.
+
 ## Objetivo
 
 Mejorar todos los diseños del proyecto PLU ARG / Maximal para que la plataforma tenga una identidad visual **profesional, moderna, deportiva, argentina y superior a la referencia base** de [Powerlifting United](https://powerliftingunited.com/).
@@ -98,20 +103,22 @@ El diseño debe transmitir: fuerza, federación, competencia, profesionalismo, e
 
 - Estética fitness genérica (gradientes neón, tipografía script).
 - Diseño amateur (márgenes inconsistentes, 5 tamaños de botón).
-- Exceso celeste/blanco (celeste solo como acento secundario: `--color-brand-celeste`).
+- Rojo como acento decorativo o CTA — reservado exclusivamente a error/peligro.
 - Folklore exagerado.
-- Copia literal de PLU USA (copy, logos, layout idéntico).
+- Copia literal de PLU USA (assets, logos, layout idéntico). El copy institucional sí se
+  adapta fielmente desde jul. 2026 — ver `PLU_BRAND_ALIGNMENT.md` §2.
 - Tablas desordenadas, formularios largos sin agrupación, botones sin jerarquía.
 
-**Paleta actual (tokens):**
+**Paleta actual (tokens, confirmada por PLU USA jul. 2026 — negro/azul/blanco/amarillo del logo):**
 
 | Token | Rol |
 |-------|-----|
 | `--color-bg-primary` | Base oscura |
-| `--color-brand-red` | CTAs primarios, energía competitiva |
+| `--color-brand-action` (oro) | CTA primario |
+| `--color-brand-celeste` (azul) | Identidad/navegación, acento institucional |
 | `--color-brand-gold` | Acento premium, precios destacados |
-| `--color-brand-celeste` | Detalle argentino sutil |
-| `--font-display` | Barlow Condensed — títulos en mayúsculas |
+| `--color-brand-red` | Solo error/peligro real |
+| `--font-display` | Poppins — sin segunda tipografía |
 
 ### 4. Usar sistema visual consistente
 

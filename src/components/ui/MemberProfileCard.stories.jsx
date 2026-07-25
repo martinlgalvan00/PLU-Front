@@ -12,6 +12,8 @@ export default {
     status: 'activa',
     memberCode: 'PLU-00123',
     onAction: () => {},
+    flat: true,
+    metaLayout: 'grid',
   },
 }
 
@@ -19,4 +21,12 @@ export const Default = {}
 
 export const NoAction = {
   args: { onAction: undefined },
+}
+
+export const InlineMeta = {
+  args: {
+    onAction: undefined,
+    metaLayout: 'inline',
+    email: undefined,
+  },
 }

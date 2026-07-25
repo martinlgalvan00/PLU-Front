@@ -75,50 +75,45 @@ export default function MembersPluHero({
           </div>
         </div>
 
-        <TiltCard
-          className="members-plu-hero__card-tilt members-cred-tilt"
-          innerClassName="members-plu-hero__card members-plu-hero__card-inner members-cred"
-          maxTilt={7}
-        >
-          <aside className="members-cred__stack" aria-label={t('pages.members.credentialPreviewLabel')}>
-            <span className="members-cred__glow" aria-hidden />
-            <span className="members-cred__grain" aria-hidden />
-            <span className="members-cred__watermark" aria-hidden>
-              PLU
-            </span>
-            <span className="members-cred__stripe" aria-hidden />
+        <div className="members-plu-hero__showcase">
+          <TiltCard
+            className="members-plu-hero__card-tilt members-cred-tilt"
+            innerClassName="members-plu-hero__card members-plu-hero__card-inner members-cred"
+            maxTilt={3}
+          >
+            <aside className="members-cred__stack" aria-label={t('pages.members.credentialPreviewLabel')}>
+              <span className="members-cred__glow" aria-hidden />
+              <span className="members-cred__grain" aria-hidden />
+              <span className="members-cred__watermark" aria-hidden>
+                PLU
+              </span>
+              <span className="members-cred__stripe" aria-hidden />
 
-            <div className="members-cred__layer members-cred__layer--front">
-              <header className="members-cred__head">
-                <p className="members-cred__brand">{t('pages.members.credentialPreviewLabel')}</p>
-                <span className="members-cred__chip" aria-hidden>
-                  <span className="members-cred__chip-shine" />
-                </span>
-              </header>
+              <div className="members-cred__layer members-cred__layer--front">
+                <header className="members-cred__head">
+                  <span className="members-cred__mark">PLU</span>
+                  <span className="members-cred__chip" aria-hidden>
+                    <span className="members-cred__chip-shine" />
+                  </span>
+                </header>
 
-              <div className="members-cred__identity">
-                <p className="members-cred__code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</p>
-                <p className="members-cred__name">{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</p>
-              </div>
-
-              <dl className="members-cred__meta">
-                <div className="members-cred__meta-item">
-                  <dt>{t('pages.members.credentialSeasonLabel')}</dt>
-                  <dd>{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</dd>
+                <div className="members-cred__identity">
+                  <p className="members-cred__name">{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</p>
+                  <p className="members-cred__code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</p>
                 </div>
-                <div className="members-cred__meta-item members-cred__meta-item--status">
-                  <dt>{t('pages.members.credentialStatusLabel')}</dt>
-                  <dd>
+
+                <footer className="members-cred__foot">
+                  <span className="members-cred__season">{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</span>
+                  <span className="members-cred__status">
                     <span className="members-cred__status-dot" aria-hidden />
                     {MEMBERSHIP_CREDENTIAL_SAMPLE.status}
-                  </dd>
-                </div>
-              </dl>
-
-              <p className="members-cred__note">{t('pages.members.credentialPreviewNote')}</p>
-            </div>
-          </aside>
-        </TiltCard>
+                  </span>
+                </footer>
+              </div>
+            </aside>
+          </TiltCard>
+          <p className="members-cred__caption">{t('pages.members.credentialPreviewNote')}</p>
+        </div>
       </div>
 
       <nav className="members-plu-quicknav" aria-label={t('pages.members.quickNavAria')}>

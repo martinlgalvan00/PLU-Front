@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import AdminFilterBar from './AdminFilterBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -36,6 +36,7 @@ export default function AdminListSection({
   query,
   showHeader = true,
   showStats = true,
+  showFilters = true,
   stats = [],
   subtitle,
   title,
@@ -49,6 +50,8 @@ export default function AdminListSection({
   const searchPlaceholder = placeholder ?? t('admin.search.default')
   const isNarrow = useIsNarrow()
   const [statsOpen, setStatsOpen] = useState(false)
+  const bodyRef = useRef(null)
+  const hasMountedFilters = useRef(false)
   const shellClass = [
     'admin-list-shell surface-card surface-card--flat',
     variant ? `admin-list-shell--${variant}` : '',
@@ -59,6 +62,26 @@ export default function AdminListSection({
   const showStatsStrip = showStats && (stats.length > 0 || totalCount != null)
   const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
+  const showFilterBar = showFilters && (Boolean(onQueryChange) || filters.length > 0)
+
+  const filterSignature = useMemo(
+    () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
+    [filters, query],
+  )
+
+  useEffect(() => {
+    if (!hasMountedFilters.current) {
+      hasMountedFilters.current = true
+      return
+    }
+    const body = bodyRef.current
+    if (!body) return
+    body.classList.remove('is-filter-animating')
+    void body.offsetWidth
+    body.classList.add('is-filter-animating')
+    const timer = window.setTimeout(() => body.classList.remove('is-filter-animating'), 480)
+    return () => window.clearTimeout(timer)
+  }, [filterSignature])
 
   return (
     <div className={`admin-list-section${variant ? ` admin-list-section--${variant}` : ''}`}>
@@ -133,17 +156,21 @@ export default function AdminListSection({
 
         {beforeFilters}
 
-        <AdminFilterBar
-          className={variant ? `admin-filters--${variant}` : ''}
-          compact
-          inline
-          filters={filters}
-          placeholder={searchPlaceholder}
-          query={query}
-          onQueryChange={onQueryChange}
-        />
+        {showFilterBar ? (
+          <AdminFilterBar
+            className={variant ? `admin-filters--${variant}` : ''}
+            compact
+            inline
+            filters={filters}
+            placeholder={searchPlaceholder}
+            query={query}
+            onQueryChange={onQueryChange}
+          />
+        ) : null}
 
-        <div className="admin-list-shell__body">{children}</div>
+        <div ref={bodyRef} className="admin-list-shell__body">
+          {children}
+        </div>
       </section>
     </div>
   )

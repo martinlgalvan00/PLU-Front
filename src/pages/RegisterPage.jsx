@@ -611,6 +611,7 @@ export default function RegisterPage({
                     <div className="form-grid">
                       <Field
                         autoComplete="name"
+                        className="field--span-2"
                         error={visibleErrors.fullName}
                         label={t('pages.register.fullName')}
                         name="fullName"
@@ -661,6 +662,7 @@ export default function RegisterPage({
                       />
                       <Field
                         autoComplete="new-password"
+                        className="field--span-2"
                         error={visibleErrors.password}
                         label={t('login.password')}
                         name="password"

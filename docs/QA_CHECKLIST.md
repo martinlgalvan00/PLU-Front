@@ -30,7 +30,20 @@
 ## Panel admin
 
 - [ ] Dashboard muestra métricas
-- [ ] Cambio de rol afecta permisos (PLU USA no edita)
+- [ ] La jerarquía muestra exactamente Super Admin, Administrador, PLU y Seguridad
+- [ ] Super Admin y Administrador conservan acceso total con matrices protegidas
+- [ ] Administrador puede otorgar y remover permisos de PLU y Seguridad
+- [ ] Super Admin puede asignar Administrador; Administrador sólo asigna PLU o Seguridad
+- [ ] Cambiar el rol de un usuario persiste y actualiza su sesión efectiva
+- [ ] PLU ve únicamente los módulos configurados para representar a la federación
+- [ ] Seguridad inicia con eventos y check-in y admite permisos operativos adicionales
+- [ ] PLU y Seguridad no pueden recibir gestión de usuarios ni de roles
+- [ ] Un permiso `read` no habilita mutaciones y un permiso `write` no evita la
+      validación server-side
+- [ ] Nadie puede autoasignarse otro rol ni elevar a Super Admin
+- [ ] Modificar permisos y reasignar usuarios genera auditoría
+- [ ] La matriz no produce overflow horizontal en 1366, 390 y 360px
+- [ ] Roles y permisos conservan contraste y foco visible en tema claro y oscuro
 - [ ] Filtros de inscripciones funcionan
 - [ ] Aprobar pago actualiza estados
 - [ ] Export CSV admin y PLU USA descargan

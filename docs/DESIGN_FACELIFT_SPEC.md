@@ -1,5 +1,13 @@
 # PLU ARG — Spec técnica de facelift visual
 
+> **Documento histórico, parcialmente superado.** La §2 (Paleta) de abajo describe la paleta
+> previa a la corrección de jul. 2026 (dorado apagado `#c9b978`, rojo como acento primario).
+> Esa corrección quedó documentada en `docs/PLU_BRAND_ALIGNMENT.md` §7 y el ground truth actual
+> es `src/styles/tokens/palette.css` (dorado vívido `#f2b705`, rojo exclusivo de error). Para
+> reglas vigentes de marca usar [`.claude/skills/plu-frontend-design`](../.claude/skills/plu-frontend-design/SKILL.md).
+> El resto del documento (tipografía, spacing, radios, elevación, foco, estructura de Home)
+> sigue siendo válido como referencia de proceso.
+
 Documento de implementación para refactor visual del frontend existente
 (Vite + React + CSS modular con custom properties). **No introduce Tailwind**
 ni ninguna dependencia nueva: el repo ya tiene un sistema de design tokens

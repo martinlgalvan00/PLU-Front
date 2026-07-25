@@ -361,8 +361,8 @@
   border-top: 1px solid var(--pitbull-section-divider);
   display: flex;
   flex-direction: column;
-  gap: clamp(44px, 6.5vw, 72px);
-  padding-top: clamp(28px, 4vw, 40px);
+  gap: clamp(28px, 4.5vw, 52px);
+  padding-top: clamp(22px, 3.2vw, 32px);
   width: 100%;
 }
 
@@ -607,8 +607,8 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
   display: grid;
-  gap: clamp(22px, 3.2vw, 32px);
-  margin-top: clamp(20px, 3vw, 28px);
+  gap: clamp(16px, 2.6vw, 24px);
+  margin-top: 0;
   width: 100%;
 }
 
@@ -617,9 +617,9 @@
   border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 20px;
+  gap: 10px 18px;
   margin-top: 0;
-  padding-top: clamp(14px, 2vw, 18px);
+  padding-top: clamp(12px, 1.8vw, 16px);
 }
 
 [data-theme='light'] .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head {
@@ -683,31 +683,18 @@
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
   align-items: start;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: 8px 48px;
-  margin-bottom: clamp(6px, 1.2vw, 10px);
+  gap: 6px 40px;
+  margin-bottom: clamp(4px, 1vw, 8px);
   max-width: none;
-  padding-bottom: clamp(16px, 2.4vw, 22px);
-  padding-left: clamp(14px, 2vw, 20px);
+  padding-bottom: clamp(12px, 2vw, 18px);
+  padding-left: 0;
   position: relative;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head::before {
-  background: linear-gradient(
-    180deg,
-    var(--plu-celeste-500),
-    color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500))
-  );
-  border-radius: 99px;
-  bottom: 18%;
-  content: '';
-  display: block;
-  left: 0;
-  opacity: 0.9;
-  position: absolute;
-  top: 8%;
-  width: 2px;
+  display: none;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__kicker {
@@ -715,22 +702,22 @@
   display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: 8px;
   grid-column: 1 / -1;
   margin: 0;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index {
-  color: color-mix(in oklab, var(--plu-gold-500) 88%, var(--color-text-primary));
+  color: var(--color-text-muted);
   display: inline;
   font-family: var(--font-display);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   line-height: 1;
   margin: 0;
-  opacity: 1;
+  opacity: 0.85;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index::after {
@@ -742,43 +729,131 @@
   font-family: var(--font-family);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__title {
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3vw, 2.3rem);
+  font-size: clamp(1.55rem, 2.8vw, 2.1rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
+  grid-column: 1 / -1;
+  letter-spacing: -0.038em;
+  line-height: 1.05;
   margin: 0;
-  max-width: 20ch;
-  padding-top: 0.1em;
+  max-width: none;
+  padding-top: 0;
   text-wrap: balance;
+  width: 100%;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
   color: var(--color-text-muted);
-  font-size: clamp(13.5px, 1.5vw, 15px);
+  font-size: clamp(13px, 1.4vw, 14.5px);
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.4;
   margin: 0;
-  max-width: 26ch;
+  max-width: 28ch;
   opacity: 1;
 }
 
 @media (min-width: 820px) {
   .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
-    align-items: end;
-    grid-template-columns: minmax(0, 1.2fr) minmax(11rem, 0.8fr);
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
-    justify-self: end;
-    max-width: 22ch;
-    padding-bottom: 4px;
-    text-align: right;
+    max-width: 36ch;
+    padding-bottom: 0;
+    text-align: left;
+  }
+}
+
+/* Mobile / tablet angosto: head más denso, tipografía más corta */
+@media (max-width: 819px) {
+  .pitbull-dossier--minimal > .pitbull-dossier__section--athletes {
+    padding-top: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__head {
+    gap: 4px;
+    margin-bottom: 2px;
+    padding-bottom: 12px;
+    padding-left: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__kicker {
+    gap: 7px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__index,
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__title {
+    font-size: clamp(1.4rem, 5.8vw, 1.75rem);
+    letter-spacing: -0.036em;
+    line-height: 1.04;
+    max-width: none;
+    width: 100%;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__lead {
+    font-size: 12.5px;
+    line-height: 1.35;
+    max-width: 32ch;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-dossier__body {
+    display: grid;
+    gap: 14px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__actions--athletes {
+    align-items: center;
+    border-top: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding-top: 2px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__actions--athletes .pitbull-dossier__cta--primary {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+    min-width: min(100%, 180px);
+    width: auto;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__actions--athletes .pitbull-dossier__text-link {
+    align-self: center;
+    min-height: 44px;
+    padding-inline: 4px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-value-block {
+    gap: 14px;
+    margin-top: 4px;
+    padding-top: 14px;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-value-block__head {
+    gap: 5px;
+    padding-left: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-value-block__title {
+    font-size: clamp(1.35rem, 5.5vw, 1.7rem);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--athletes .pitbull-value-block__lead {
+    font-size: 13px;
+    line-height: 1.45;
   }
 }
 
@@ -810,14 +885,16 @@
 /* ── 02 Categories — chips matrix ───────────── */
 
 .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
-  padding-left: clamp(14px, 2vw, 20px);
+  margin-bottom: clamp(2px, 0.6vw, 6px);
+  padding-bottom: 0;
+  padding-left: clamp(12px, 1.8vw, 18px);
   position: relative;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head::before {
   background: var(--pitbull-editorial-rule);
   border-radius: 99px;
-  bottom: 4px;
+  bottom: 6px;
   content: '';
   left: 0;
   position: absolute;
@@ -830,7 +907,7 @@
   display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
 }
 
@@ -852,11 +929,19 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  font-size: clamp(1.45rem, 2.8vw, 2.1rem);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.08;
+  margin-top: 2px;
   max-width: min(100%, 22ch);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__lead {
+  font-size: clamp(12.5px, 1.4vw, 13.5px);
+  line-height: 1.4;
+  margin: 4px 0 0;
+  max-width: 42ch;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--stack,
@@ -6049,18 +6134,8 @@
   color: #14181f;
 }
 
-[data-theme='light'] .pitbull-location__maps-link--primary {
-  background: var(--plu-gold-500, var(--color-brand-gold));
-  color: #14181f;
-}
-
-[data-theme='light'] .pitbull-location__maps-link--primary:hover {
-  background: var(--plu-gold-400);
-  color: #14181f;
-}
-
 [data-theme='light'] .pitbull-location--editorial .pitbull-location__map-shell {
-  box-shadow: 0 14px 32px rgba(15, 17, 23, 0.1);
+  box-shadow: none;
 }
 
 .pitbull-categories-panel__grid {
@@ -6403,10 +6478,10 @@
 }
 
 .pitbull-inscription-counter__row {
-  align-items: center;
+  align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 10px 16px;
   justify-content: space-between;
 }
 
@@ -6418,11 +6493,11 @@
 }
 
 .pitbull-inscription-counter__value {
-  color: var(--color-brand-gold);
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(30px, 4.2vw, 38px);
+  font-size: clamp(28px, 4vw, 36px);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -6430,32 +6505,32 @@
 .pitbull-inscription-counter__of {
   color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: clamp(15px, 2vw, 18px);
+  font-size: clamp(14px, 1.8vw, 17px);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: -0.02em;
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
 .pitbull-inscription-counter__unit {
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .pitbull-inscription-counter__badge {
   align-items: center;
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-primary);
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-muted);
   display: inline-flex;
-  font-size: 10px;
-  font-weight: 600;
-  gap: 6px;
-  letter-spacing: 0.06em;
-  padding: 5px 10px;
+  font-size: 10.5px;
+  font-weight: 650;
+  gap: 7px;
+  letter-spacing: 0.08em;
+  padding: 0;
   text-transform: uppercase;
 }
 
@@ -6464,45 +6539,38 @@
   border-radius: 50%;
   flex: none;
   height: 6px;
-  opacity: 0.85;
+  opacity: 0.9;
   width: 6px;
 }
 
 .pitbull-inscription-counter__badge--success {
-  border-color: rgba(110, 207, 152, 0.28);
   color: #6ecf98;
 }
 
 .pitbull-inscription-counter__badge--warning {
-  border-color: rgba(251, 191, 36, 0.28);
-  color: #fbbf24;
+  color: color-mix(in oklab, var(--plu-gold-500) 80%, var(--color-text-muted));
 }
 
 .pitbull-inscription-counter__badge--danger {
-  border-color: rgba(248, 113, 113, 0.28);
   color: #f87171;
 }
 
 .pitbull-inscription-counter__badge--neutral {
-  border-color: var(--pitbull-section-divider, rgba(255, 255, 255, 0.12));
   color: var(--color-text-muted);
 }
 
 .pitbull-inscription-counter__bar {
-  background: var(--pitbull-counter-track, rgba(255, 255, 255, 0.07));
-  border-radius: var(--border-radius-pill);
-  height: 3px;
+  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: 0;
+  height: 2px;
   overflow: hidden;
   width: 100%;
 }
 
 .pitbull-inscription-counter__fill {
-  background: linear-gradient(
-    90deg,
-    var(--color-brand-gold) 0%,
-    color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-brand-celeste)) 100%
-  );
-  border-radius: var(--border-radius-pill);
+  background: var(--color-text-primary);
+  border-radius: 0;
+  box-shadow: none;
   height: 100%;
   transform-origin: left;
   transition: width var(--duration-xslow) var(--ease-out);
@@ -6513,22 +6581,19 @@
   .pitbull-inscription-counter__fill {
     transition: none;
   }
-  .pitbull-inscription-counter__value {
-    /* skip count-up animation in reduced motion */
-  }
 }
 
 [data-theme='light'] .pitbull-inscription-counter__bar {
-  background: rgba(15, 17, 23, 0.08);
+  background: rgba(15, 17, 23, 0.1);
 }
 
 .pitbull-inscription-counter--compact {
-  gap: 8px;
-  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.4vw, 22px);
+  gap: 10px;
+  padding: clamp(16px, 2.2vw, 20px) clamp(16px, 2.4vw, 22px);
 }
 
 .pitbull-inscription-counter--compact .pitbull-inscription-counter__value {
-  font-size: clamp(22px, 3vw, 28px);
+  font-size: clamp(24px, 3.2vw, 30px);
 }
 
 .pitbull-inscription-counter--compact .pitbull-inscription-counter__of {
@@ -6542,13 +6607,13 @@
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-counter {
-  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__body {
   display: grid;
-  gap: clamp(12px, 1.8vw, 16px);
-  padding: clamp(14px, 2vw, 18px) clamp(16px, 2.4vw, 22px);
+  gap: clamp(14px, 2vw, 18px);
+  padding: clamp(16px, 2.2vw, 20px) clamp(16px, 2.4vw, 22px);
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__pricing {
@@ -6558,17 +6623,26 @@
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
-  border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+  border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  padding-left: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__price:first-child {
+  padding-right: clamp(14px, 2vw, 18px);
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
-  align-items: end;
+  align-items: start;
   display: grid;
-  gap: 12px 18px;
+  gap: 14px 18px;
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__desc {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
   margin: 0;
+  max-width: 42ch;
 }
 
 @media (min-width: 1100px) {
@@ -6609,8 +6683,8 @@
 
 .pitbull-inscription-shell {
   background: transparent;
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: calc(var(--border-radius-lg) - 2px);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
   display: grid;
   gap: 0;
   margin-inline: auto;
@@ -6619,9 +6693,19 @@
   width: 100%;
 }
 
+.pitbull-inscription-shell::before {
+  background: var(--color-text-primary);
+  content: '';
+  height: 2px;
+  inset-inline: 0;
+  opacity: 0.85;
+  position: absolute;
+  top: 0;
+}
+
 [data-theme='light'] .pitbull-inscription-shell {
-  background: rgba(15, 17, 23, 0.02);
-  border-color: rgba(15, 17, 23, 0.08);
+  background: transparent;
+  border-color: rgba(15, 17, 23, 0.1);
   box-shadow: none;
 }
 
@@ -6706,7 +6790,7 @@
 }
 
 .pitbull-inscription-shell__price dd {
-  color: var(--color-text-primary);
+  color: color-mix(in oklab, var(--plu-gold-500) 22%, var(--color-text-primary));
   font-family: var(--font-display);
   font-size: clamp(18px, 2.6vw, 22px);
   font-variant-numeric: tabular-nums;
@@ -7020,29 +7104,33 @@
 
 .pitbull-location {
   display: grid;
-  gap: clamp(14px, 2vw, 18px);
+  gap: clamp(16px, 2.4vw, 22px);
 }
 
 .pitbull-location--editorial {
-  gap: clamp(18px, 2.6vw, 24px);
+  gap: clamp(16px, 2.4vw, 22px);
 }
 
 .pitbull-location__map-shell {
-  border-radius: var(--border-radius-lg);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
+  isolation: isolate;
+  margin: 0;
   overflow: hidden;
   position: relative;
   width: 100%;
 }
 
 .pitbull-location--editorial .pitbull-location__map-shell {
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 .pitbull-location__map {
   border: none;
-  border-radius: var(--border-radius-lg);
   display: block;
-  height: clamp(180px, 28vw, 260px);
+  filter: grayscale(0.55) contrast(1.05);
+  height: clamp(220px, 48vw, 340px);
+  pointer-events: none;
   position: relative;
   width: 100%;
   z-index: 1;
@@ -7051,37 +7139,32 @@
 .pitbull-location__map-placeholder {
   align-items: center;
   background:
-    radial-gradient(circle at 22% 28%, color-mix(in oklab, var(--plu-celeste-500) 20%, transparent), transparent 55%),
-    radial-gradient(circle at 78% 72%, color-mix(in oklab, var(--plu-gold-500) 16%, transparent), transparent 58%),
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in oklab, var(--color-text-primary) 5%, transparent) 0,
-      color-mix(in oklab, var(--color-text-primary) 5%, transparent) 1px,
-      transparent 1px,
-      transparent 22px
-    ),
-    var(--pitbull-control-rail-bg, rgba(15, 17, 23, 0.03));
-  border-radius: var(--border-radius-lg);
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--color-text-primary) 4%, transparent),
+      color-mix(in oklab, var(--color-text-primary) 1.5%, transparent)
+    );
   color: var(--color-text-muted);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: clamp(180px, 28vw, 260px);
+  height: clamp(220px, 48vw, 340px);
   inset: 0;
   justify-content: center;
   opacity: 1;
   position: absolute;
   text-align: center;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.35s ease;
   width: 100%;
   z-index: 0;
 }
 
 .pitbull-location__map-placeholder span {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .pitbull-location__map-placeholder--hidden {
@@ -7090,24 +7173,49 @@
 }
 
 .pitbull-location__map-overlay {
-  border-radius: var(--border-radius-lg);
-  bottom: 0;
-  box-shadow: inset 0 0 0 1px var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  left: 0;
-  pointer-events: none;
+  display: none;
+}
+
+.pitbull-location__map-cta {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-bg-surface) 92%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 14%, transparent);
+  bottom: 14px;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 650;
+  gap: 7px;
+  left: 14px;
+  letter-spacing: -0.01em;
+  min-height: 40px;
+  padding: 8px 14px;
   position: absolute;
-  right: 0;
-  top: 0;
+  text-decoration: none;
+  transition:
+    background var(--duration-base) var(--ease-design),
+    border-color var(--duration-base) var(--ease-design);
+  z-index: 2;
+}
+
+.pitbull-location__map-cta:hover {
+  background: var(--color-bg-surface);
+  border-color: color-mix(in oklab, var(--color-text-primary) 28%, transparent);
+}
+
+.pitbull-location__map-cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
 }
 
 .pitbull-location__details {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .pitbull-location--editorial .pitbull-location__details {
   align-content: start;
-  gap: 14px;
+  gap: 8px;
 }
 
 .pitbull-location__kicker {
@@ -7115,7 +7223,7 @@
   color: var(--color-text-primary);
   display: inline-flex;
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.8vw, 1.15rem);
+  font-size: clamp(0.98rem, 1.6vw, 1.1rem);
   font-weight: 700;
   gap: 8px;
   letter-spacing: -0.02em;
@@ -7126,162 +7234,70 @@
 }
 
 .pitbull-location__kicker svg {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   flex-shrink: 0;
-}
-
-.pitbull-location__dl {
-  display: grid;
-  gap: 0;
-  margin: 0;
-}
-
-.pitbull-location__row {
-  border-bottom: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
-  display: grid;
-  gap: 4px 12px;
-  grid-template-columns: minmax(72px, 88px) minmax(0, 1fr);
-  padding: 10px 0;
-}
-
-.pitbull-location__row:last-child {
-  border-bottom: none;
-}
-
-.pitbull-location__row dt {
-  align-items: center;
-  color: var(--color-brand-celeste);
-  display: flex;
-  font-size: 9px;
-  font-weight: 700;
-  gap: 5px;
-  letter-spacing: 0.12em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.pitbull-location__row dd {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
-  margin: 0;
+  margin-top: 3px;
 }
 
 .pitbull-location__note {
   color: var(--color-text-muted);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
-  max-width: 42ch;
+  max-width: 46ch;
 }
 
 .pitbull-location__maps-link {
-  align-items: center;
-  background: var(--pitbull-benefit-card-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: var(--border-radius-pill);
-  color: var(--color-text-primary);
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 600;
-  gap: 7px;
-  justify-self: start;
-  letter-spacing: 0.01em;
-  min-height: 44px;
-  padding: 9px 16px;
-  text-decoration: none;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
+  display: none;
 }
 
-.pitbull-location__maps-link:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #fff;
-}
-
-.pitbull-location__maps-link--primary {
-  background: var(--plu-gold-500, var(--color-brand-gold));
-  border-color: transparent;
-  border-radius: 6px;
-  color: #14181f;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 11px 18px;
-}
-
-.pitbull-location__maps-link--primary:hover {
-  background: var(--plu-gold-400);
-  border-color: transparent;
-  color: #14181f;
-}
-
-.pitbull-location__maps-link:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 3px;
-}
-
-/* ── Location — editorial head + map stack en notebook ── */
+/* ── Location — head alineado al dossier atletas ── */
 
 .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head {
-  padding-left: clamp(14px, 2vw, 20px);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  gap: 6px;
+  margin-bottom: clamp(4px, 1vw, 8px);
+  padding-bottom: clamp(12px, 2vw, 18px);
+  padding-left: 0;
   position: relative;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__head::before {
-  background: var(--pitbull-editorial-rule);
-  border-radius: 99px;
-  bottom: 4px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 4px;
-  width: 2px;
+  display: none;
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__title {
+  grid-column: 1 / -1;
   max-width: none;
+  width: 100%;
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1100px) {
   .pitbull-location {
     align-items: start;
-    gap: clamp(20px, 3vw, 32px);
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: clamp(20px, 3vw, 28px);
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   }
 
   .pitbull-location__map,
   .pitbull-location__map-placeholder {
-    height: clamp(240px, 28vw, 320px);
+    height: clamp(260px, 30vw, 360px);
   }
 }
 
-@media (max-width: 1399px) {
+@media (max-width: 1099px) {
   .pitbull-location {
     grid-template-columns: 1fr;
   }
-
-  .pitbull-location__map,
-  .pitbull-location__map-placeholder {
-    height: clamp(200px, 42vw, 300px);
-  }
 }
 
-[data-theme='light'] .pitbull-location__maps-link {
-  background: rgba(15, 17, 23, 0.03);
-  border-color: rgba(15, 17, 23, 0.08);
-  color: var(--plu-ink-900);
+[data-theme='light'] .pitbull-location__map-shell {
+  border-color: rgba(15, 17, 23, 0.1);
 }
 
-[data-theme='light'] .pitbull-location__maps-link:hover {
-  background: rgba(15, 17, 23, 0.06);
-  border-color: rgba(15, 17, 23, 0.14);
+[data-theme='light'] .pitbull-location__map-cta {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(15, 17, 23, 0.12);
 }
 
 /* =============================================
@@ -7483,12 +7499,16 @@
 @media (max-width: 640px) {
 
   .pitbull-dossier--minimal {
-    gap: clamp(40px, 10vw, 56px);
-    padding-top: clamp(24px, 5vw, 36px);
+    gap: clamp(20px, 5vw, 28px);
+    padding-top: clamp(16px, 4vw, 24px);
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__section {
-    padding-top: clamp(28px, 7vw, 40px);
+    padding-top: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    margin-top: 0;
   }
 
   .pitbull-dossier--minimal .pitbull-dossier__kicker {
@@ -9192,9 +9212,14 @@
     grid-template-columns: 1fr;
   }
 
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__price:first-child {
+    padding-bottom: 12px;
+    padding-right: 0;
+  }
+
   .pitbull-inscription-shell--compact .pitbull-inscription-shell__price + .pitbull-inscription-shell__price {
     border-left: none;
-    border-top: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.07));
+    border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
     padding-left: 0;
     padding-top: 12px;
   }
@@ -9203,12 +9228,6 @@
   .pitbull-inscription__cta {
     max-width: 100%;
     white-space: normal;
-  }
-
-  .pitbull-location__maps-link {
-    justify-content: center;
-    max-width: 100%;
-    width: 100%;
   }
 }
 
@@ -9222,84 +9241,38 @@
 
 /* ── Categorías — chips con luz reactiva y microlift ── */
 
-/* ── Mapa — marco reactivo con anillo dorado y barrido de luz al hover ── */
+/* ── Mapa — sin anillo/glow reactivo ── */
 .pitbull-location--editorial .pitbull-location__map-shell {
-  transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: none;
 }
 
-.pitbull-location__map-shell::before {
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
-  content: '';
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 3;
-}
-
+.pitbull-location__map-shell::before,
 .pitbull-location__map-shell::after {
-  background: linear-gradient(120deg, transparent 40%, rgba(242, 183, 5, 0.14) 50%, transparent 60%);
-  border-radius: inherit;
-  content: '';
-  inset: 0;
-  mix-blend-mode: screen;
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 3;
+  content: none;
+  display: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .pitbull-location--editorial .pitbull-location__map-shell:hover {
-    box-shadow:
-      0 26px 56px -34px rgba(0, 0, 0, 0.4),
-      0 14px 34px -28px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
-  }
-
-  .pitbull-location__map-shell:hover::before,
-  .pitbull-location__map-shell:hover::after {
-    opacity: 1;
-  }
-}
-
-/* ── Inscripción — panel premium con luz reactiva ── */
+/* ── Inscripción — panel plano, sin luz reactiva ── */
 .pitbull-inscription-shell--compact {
-  background:
-    radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, var(--plu-gold-500) 8%, transparent), transparent 52%),
-    linear-gradient(160deg, color-mix(in oklab, var(--color-text-primary) 3%, transparent), transparent 62%);
-  box-shadow: 0 30px 70px -54px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  background: transparent;
+  box-shadow: none;
   isolation: isolate;
 }
 
 .pitbull-inscription-shell--compact::before {
-  background: radial-gradient(
-    340px 280px at var(--mx, 50%) var(--my, 0%),
-    color-mix(in oklab, var(--plu-gold-500) 12%, transparent),
-    transparent 62%
-  );
+  background: var(--color-text-primary);
   content: '';
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
+  height: 2px;
+  inset-inline: 0;
+  opacity: 0.85;
   position: absolute;
-  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: -1;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pitbull-inscription-shell--compact:hover::before {
-    opacity: 1;
-  }
+  top: 0;
+  z-index: 1;
 }
 
 [data-theme='light'] .pitbull-inscription-shell--compact {
-  background:
-    radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, var(--plu-gold-500) 9%, transparent), transparent 52%),
-    linear-gradient(160deg, #fff, rgba(15, 17, 23, 0.012) 100%);
-  box-shadow: 0 26px 60px -50px rgba(15, 17, 23, 0.2);
+  background: transparent;
+  box-shadow: none;
 }
 
 /* ── Athletes journey — glow del índice al hover ── */
@@ -9322,23 +9295,12 @@
   display: grid;
   gap: 8px;
   max-width: 46ch;
-  padding-left: clamp(14px, 2vw, 18px);
+  padding-left: 0;
   position: relative;
 }
 
 .pitbull-value-block__head::before {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-brand-gold) 88%, transparent) 0%,
-    color-mix(in srgb, var(--color-text-primary) 18%, transparent) 100%
-  );
-  border-radius: 99px;
-  bottom: 12%;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 12%;
-  width: 2px;
+  display: none;
 }
 
 .pitbull-value-block__eyebrow {
@@ -9515,7 +9477,6 @@
   .pitbull-value-card:hover .pitbull-value-card__icon {
     background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
     border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
-    transform: scale(1.06);
   }
 
   .pitbull-value-card:hover .pitbull-value-card__ghost {
@@ -9762,7 +9723,15 @@
 
 .pitbull-hero-card__row {
   align-items: baseline;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--plu-gold-400) 45%, transparent) 0%,
+    rgba(255, 255, 255, 0.1) 22%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-position: top;
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -9783,9 +9752,9 @@
 }
 
 .pitbull-hero-card__row dd {
-  color: #fff;
+  color: color-mix(in oklab, var(--plu-gold-300) 30%, #fff);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   text-align: right;
 }

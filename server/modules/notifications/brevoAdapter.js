@@ -37,5 +37,32 @@ export function createBrevoAdapter({ env = process.env, fetchImpl = fetch } = {}
       }
       return body
     },
+
+    async sendHtml({ to, subject, htmlContent }) {
+      if (!apiKey || !senderEmail) throw new HttpError(503, 'Brevo no está configurado en el servidor.')
+      if (!to || !subject || !htmlContent) {
+        throw new HttpError(400, 'Faltan datos para el email.')
+      }
+
+      const response = await fetchImpl(BREVO_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { email: senderEmail, name: senderName },
+          to: [{ email: to }],
+          subject,
+          htmlContent,
+        }),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new HttpError(502, body?.message ?? `Brevo respondió ${response.status}.`)
+      }
+      return body
+    },
   }
 }

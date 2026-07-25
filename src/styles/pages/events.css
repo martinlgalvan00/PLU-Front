@@ -964,6 +964,31 @@
   .event-card__date-block {
     min-height: 60px;
   }
+
+  .events-page--plu-ref .events-list--design .event-card {
+    align-items: start;
+    gap: 8px 12px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding: 16px 4px 16px 10px;
+  }
+
+  .events-page--plu-ref .event-card__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .events-page--plu-ref .event-card__action {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .events-page--plu-ref .event-card__action--quiet,
+  .events-page--plu-ref .event-card__action--live {
+    min-height: 40px;
+  }
 }
 
 /* ── Light theme overrides ──────────────────── */
@@ -2589,35 +2614,47 @@
 }
 
 .events-page--plu-ref .events-list--design {
-  gap: 6px;
+  gap: 0;
 }
 
-/* Event cards — listado editorial */
+/* Event cards — listado editorial lujoso */
 .events-page--plu-ref .events-list--design .event-card {
+  align-items: center;
   background: transparent;
   border: none;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   border-radius: 0;
   box-shadow: none;
-  gap: 0 16px;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  padding: 4px 0;
+  gap: 0 clamp(14px, 2vw, 22px);
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  padding: 18px 8px 18px 12px;
+  transform: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+/* Anula el hover “premium” genérico de .surface-card */
+.events-page--plu-ref .events-list--design .event-card.surface-card:hover {
+  border-color: color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  box-shadow: none;
   transform: none;
 }
 
 .events-page--plu-ref .events-list--design .event-card::before {
   background: var(--events-editorial-rule, var(--plu-gold-500));
   border-radius: 99px;
+  bottom: 22%;
+  left: 0;
   opacity: 0;
-  top: 18%;
-  bottom: 18%;
+  top: 22%;
   transition: opacity var(--transition-fast);
   width: 2px;
 }
 
 .events-page--plu-ref .events-list--design .event-card:hover {
-  background: color-mix(in oklab, var(--color-text-primary) 2.5%, transparent);
-  border-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  background: color-mix(in oklab, var(--color-text-primary) 2%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   box-shadow: none;
   transform: none;
 }
@@ -2625,12 +2662,11 @@
 .events-page--plu-ref .events-list--design .event-card:hover::before,
 .events-page--plu-ref .events-list--design .event-card--selected::before {
   opacity: 1;
-  width: 2px;
 }
 
 .events-page--plu-ref .events-list--design .event-card--selected {
-  background: color-mix(in oklab, var(--plu-gold-500) 5%, transparent);
-  border-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  background: color-mix(in oklab, var(--plu-gold-500) 4.5%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   box-shadow: none;
 }
 
@@ -2639,64 +2675,210 @@
 }
 
 .events-page--plu-ref .event-card__date-block {
+  align-self: center;
   border-right: none;
-  min-height: 64px;
-  padding: 10px 4px 10px 10px;
+  gap: 4px;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 4px 0 8px;
 }
 
 .events-page--plu-ref .event-card__day {
-  font-size: clamp(1.25rem, 1.8vw, 1.45rem);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.2vw, 1.85rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
 }
 
 .events-page--plu-ref .event-card__month {
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  opacity: 0.72;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  opacity: 0.78;
+  text-transform: uppercase;
 }
 
 .events-page--plu-ref .event-card__body {
-  padding: 12px 8px 12px 0;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.events-page--plu-ref .event-card__status {
+  color: color-mix(in oklab, var(--color-text-muted) 88%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  gap: 7px;
+  letter-spacing: 0.14em;
+  margin: 0;
+}
+
+.events-page--plu-ref .event-card__status-dot {
+  height: 5px;
+  opacity: 0.9;
+  width: 5px;
+}
+
+.events-page--plu-ref .event-card__status[data-tone='success'] {
+  color: color-mix(in oklab, var(--plu-success-400, #4ade80) 82%, #fff);
+}
+
+.events-page--plu-ref .event-card__status[data-tone='warning'],
+.events-page--plu-ref .event-card__status[data-tone='info'] {
+  color: color-mix(in oklab, var(--plu-gold-400, var(--color-brand-gold)) 72%, #fff);
 }
 
 .events-page--plu-ref .event-card__title {
   font-family: var(--font-display);
-  font-size: clamp(15px, 1.35vw, 17px);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin: 0 0 6px;
+  font-size: clamp(1.05rem, 1.5vw, 1.22rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .events-page--plu-ref .event-card__meta {
-  font-size: 12px;
-  opacity: 0.78;
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  font-weight: 400;
+  gap: 0 6px;
+  line-height: 1.35;
+  margin: 0;
+  min-width: 0;
+  opacity: 0.82;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.events-page--plu-ref .event-card__meta > span {
+  min-width: 0;
+}
+
+.events-page--plu-ref .event-card__meta-sep {
+  opacity: 0.45;
 }
 
 .events-page--plu-ref .event-card__action {
-  margin-right: 4px;
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0;
+  max-width: 100%;
+  padding: 0;
 }
 
-.events-page--plu-ref .event-card__action--live,
 .events-page--plu-ref .event-card__action--quiet {
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
-  border-radius: 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: color-mix(in oklab, var(--color-text-secondary) 92%, transparent);
+  font-family: var(--font-family);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  min-height: 36px;
-  padding: 0 12px;
+  gap: 8px;
+  height: auto;
+  letter-spacing: 0.06em;
+  min-height: 44px;
+  padding: 0 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: auto;
 }
 
-.events-page--plu-ref .event-card__action--live {
-  background: color-mix(in oklab, var(--plu-gold-500) 12%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 32%, transparent);
+.events-page--plu-ref .event-card__action--quiet:hover {
+  background: transparent;
   color: var(--color-text-primary);
 }
 
+.events-page--plu-ref .event-card__action--live {
+  background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 36%, transparent);
+  border-radius: 1px;
+  color: var(--color-text-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+  gap: 8px;
+  height: auto;
+  letter-spacing: 0.08em;
+  min-height: 40px;
+  padding: 0 14px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: auto;
+}
+
 .events-page--plu-ref .event-card__action--live:hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 18%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+  background: color-mix(in oklab, var(--plu-gold-500) 22%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 52%, transparent);
+}
+
+/* Responsive por ancho de columna (no solo viewport):
+   con layout angosto la card queda ~560–640px aunque el monitor sea grande. */
+@container events-main (max-width: 680px) {
+  .events-page--plu-ref .events-list--design .event-card {
+    align-items: start;
+    gap: 8px 14px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding: 16px 4px 16px 10px;
+  }
+
+  .events-page--plu-ref .event-card__date-block {
+    padding: 2px 0 0;
+  }
+
+  .events-page--plu-ref .event-card__day {
+    font-size: 1.45rem;
+  }
+
+  .events-page--plu-ref .event-card__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .events-page--plu-ref .event-card__action {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 2px;
+  }
+
+  .events-page--plu-ref .event-card__action--quiet,
+  .events-page--plu-ref .event-card__action--live {
+    min-height: 40px;
+    padding-inline: 0;
+  }
+
+  .events-page--plu-ref .event-card__action--live {
+    padding-inline: 12px;
+  }
+}
+
+@container events-main (max-width: 420px) {
+  .events-page--plu-ref .events-list--design .event-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 6px 10px;
+    padding: 14px 2px 14px 8px;
+  }
+
+  .events-page--plu-ref .event-card__day {
+    font-size: 1.3rem;
+  }
+
+  .events-page--plu-ref .event-card__meta {
+    font-size: 12px;
+  }
 }
 
 [data-theme='light'] .events-page--plu-ref .events-list--design .event-card {
@@ -2704,11 +2886,24 @@
 }
 
 [data-theme='light'] .events-page--plu-ref .events-list--design .event-card:hover {
-  background: rgba(15, 17, 23, 0.02);
+  background: rgba(15, 17, 23, 0.018);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-list--design .event-card--selected {
-  background: color-mix(in oklab, var(--plu-gold-500) 7%, #fff);
+  background: color-mix(in oklab, var(--plu-gold-500) 6%, #fff);
+}
+
+[data-theme='light'] .events-page--plu-ref .event-card__action--quiet {
+  color: rgba(15, 17, 23, 0.55);
+}
+
+[data-theme='light'] .events-page--plu-ref .event-card__action--quiet:hover {
+  color: rgba(15, 17, 23, 0.92);
+}
+
+[data-theme='light'] .events-page--plu-ref .event-card__status[data-tone='warning'],
+[data-theme='light'] .events-page--plu-ref .event-card__status[data-tone='info'] {
+  color: color-mix(in oklab, var(--plu-gold-600, #a9790f) 78%, #111);
 }
 
 /* Featured event card — compacto */

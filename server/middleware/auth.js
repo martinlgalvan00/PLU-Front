@@ -1,4 +1,5 @@
 import { HttpError } from '../lib/errors.js'
+import { hasAnyPermission, hasPermission } from '../../src/lib/permissions.js'
 import { readSessionFromRequest } from '../services/sessionService.js'
 
 export function requireAuth({ prisma }) {
@@ -27,6 +28,29 @@ export function requireRole(allowedRoles, deps) {
     (req, _res, next) => {
       if (!roles.has(req.auth.user.role)) {
         next(new HttpError(403, 'No tenes permisos para esta accion.'))
+        return
+      }
+
+      next()
+    },
+  ]
+}
+
+export function requirePermission(requiredPermissions, deps, options = {}) {
+  const permissions = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions]
+  const mode = options.mode === 'any' ? 'any' : 'all'
+  const auth = requireAuth(deps)
+
+  return [
+    auth,
+    (req, _res, next) => {
+      const allowed =
+        mode === 'any'
+          ? hasAnyPermission(req.auth.user, permissions)
+          : permissions.every((permissionKey) => hasPermission(req.auth.user, permissionKey))
+
+      if (!allowed) {
+        next(new HttpError(403, 'No tenés permisos para esta acción.'))
         return
       }
 

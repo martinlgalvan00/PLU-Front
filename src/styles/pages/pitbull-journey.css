@@ -1,133 +1,103 @@
 /* =============================================
    PITBULL — CAMINO DEL COMPETIDOR
-   "Del trámite a la tarima": ≥768px es un recorrido compacto de dos
-   niveles (riel completo + panel activo de dos columnas); <768px es un
-   timeline vertical compacto, siempre visible, sin selección.
+   Fases tipográficas (Antes / Día). Sin timeline circular ni franja
+   foto en mobile. Notebook: dos fases en paralelo. Desktop ancho: foto.
    ============================================= */
 
-.pitbull-stepper-wrap {
-  position: relative;
+.pitbull-journey-layout {
+  display: grid;
+  gap: clamp(22px, 3vw, 36px);
+  grid-template-columns: minmax(0, 1fr);
+  /* La página usa --premium (max-width: none en .pitbull-page__body) para
+     que el hero pueda ir a sangre completa, pero esta grilla sí necesita
+     un ancho de lectura acotado: en monitores anchos la foto sticky de
+     al lado (alta por aspect-ratio, ver más abajo) crecía mucho más que
+     las dos fases de texto y dejaba un bloque de aire enorme debajo. */
+  margin-inline: auto;
+  max-width: var(--max-width-content);
 }
-
-/* ── Timeline compacta (mobile, <768px) ──────────────────────────────── */
 
 .pitbull-journey {
   display: flex;
   flex-direction: column;
-  position: relative;
+  gap: 18px;
+  min-width: 0;
 }
 
-@media (min-width: 768px) {
-  .pitbull-journey {
-    display: none;
+.pitbull-journey__phases {
+  display: grid;
+  gap: clamp(18px, 3vw, 28px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Notebook / tablet: las dos fases lado a lado */
+@media (min-width: 640px) and (max-width: 1099px) {
+  .pitbull-journey__phases {
+    gap: 20px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.pitbull-journey__line {
-  background: linear-gradient(
-    180deg,
-    var(--color-brand-celeste) 0%,
-    var(--color-brand-celeste) 56%,
-    var(--plu-gold-500) 62%,
-    var(--plu-gold-500) 100%
-  );
-  border-radius: 2px;
-  bottom: 6px;
-  left: 13px;
-  position: absolute;
-  top: 6px;
-  transform-origin: top;
-  width: 2px;
+.pitbull-journey__phase {
+  min-width: 0;
 }
 
-[data-theme='light'] .pitbull-journey__line {
-  background: linear-gradient(
-    180deg,
-    var(--color-brand-celeste) 0%,
-    var(--color-brand-celeste) 56%,
-    var(--plu-gold-600) 62%,
-    var(--plu-gold-600) 100%
-  );
+.pitbull-journey__phase-label {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label {
+  color: color-mix(in oklab, var(--plu-gold-600) 80%, var(--color-text-muted));
+}
+
+[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label {
+  color: color-mix(in oklab, var(--plu-gold-400) 70%, var(--color-text-muted));
 }
 
 .pitbull-journey__steps {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.pitbull-journey__divider {
-  color: var(--color-text-muted);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  padding: clamp(10px, 3vw, 14px) 0 6px 30px;
-  text-transform: uppercase;
-}
-
-.pitbull-journey__divider:first-child {
-  padding-top: 0;
-}
-
-.pitbull-journey__divider[data-phase='meet'] .pitbull-journey__divider-label {
-  color: var(--plu-gold-600);
-}
-
-[data-theme='dark'] .pitbull-journey__divider[data-phase='meet'] .pitbull-journey__divider-label {
-  color: var(--plu-gold-400);
-}
-
 .pitbull-journey__step {
   align-items: flex-start;
-  display: flex;
+  display: grid;
   gap: 12px;
-  padding-block: 7px;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  padding-block: 8px;
 }
 
-.pitbull-journey__marker {
-  align-items: center;
-  background: var(--color-bg-surface);
-  border: 1.5px solid var(--color-border-strong);
-  border-radius: 50%;
-  display: flex;
-  flex: none;
-  height: 22px;
-  justify-content: center;
-  position: relative;
-  width: 22px;
-  z-index: 1;
-}
-
-.pitbull-journey__marker-num {
-  font-size: 9px;
+.pitbull-journey__num {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
   opacity: 0.72;
+  padding-top: 1px;
 }
 
-.pitbull-journey__step[data-phase='meet'] .pitbull-journey__marker {
-  background: var(--plu-gold-600);
-  border: none;
+.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
+  color: color-mix(in oklab, var(--plu-gold-600) 75%, var(--color-text-muted));
+  opacity: 0.95;
 }
 
-[data-theme='dark'] .pitbull-journey__step[data-phase='meet'] .pitbull-journey__marker {
-  background: var(--plu-gold-400);
-}
-
-.pitbull-journey__step[data-phase='meet'] .pitbull-journey__marker-num {
-  color: #14181f;
-  opacity: 1;
-}
-
-.pitbull-journey__marker--arrival {
-  background: var(--plu-gold-600);
-  color: #14181f;
-  height: 26px;
-  width: 26px;
-}
-
-[data-theme='dark'] .pitbull-journey__marker--arrival {
-  background: var(--plu-gold-400);
+[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
+  color: color-mix(in oklab, var(--plu-gold-400) 70%, var(--color-text-muted));
 }
 
 .pitbull-journey__copy {
@@ -135,29 +105,31 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding-top: 1px;
 }
 
 .pitbull-journey__title {
   align-items: center;
   color: var(--color-text-primary);
   display: flex;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
-  gap: 6px;
+  gap: 7px;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   margin: 0;
 }
 
 .pitbull-journey__title-icon {
   color: var(--color-brand-celeste);
   flex: none;
+  opacity: 0.85;
 }
 
-.pitbull-journey__step[data-phase='meet'] .pitbull-journey__title-icon {
-  color: var(--plu-gold-600);
+.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__title-icon {
+  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--color-text-primary));
 }
 
-[data-theme='dark'] .pitbull-journey__step[data-phase='meet'] .pitbull-journey__title-icon {
+[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__title-icon {
   color: var(--plu-gold-400);
 }
 
@@ -166,700 +138,110 @@
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  max-width: 38ch;
+  max-width: 36ch;
 }
 
-.pitbull-journey__step--arrival {
-  padding-top: 10px;
-}
-
-.pitbull-journey__step--arrival .pitbull-journey__title {
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pitbull-journey__line {
-    transform: none;
-  }
-}
-
-/* ── Riel completo + panel activo (tablet/notebook/desktop, ≥768px) ──── */
-
-.pitbull-stepper {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .pitbull-stepper {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(14px, 2vw, 20px);
-  }
-}
-
-/* Etiquetas de fase — siempre visibles arriba del riel, para que las
-   cinco etapas se entiendan sin necesidad de interactuar. */
-.pitbull-stepper__phases {
-  color: var(--color-text-muted);
-  display: flex;
-  font-size: 10.5px;
-  font-weight: 700;
-  justify-content: space-between;
-  letter-spacing: 0.12em;
-  padding-inline: 2px;
-  text-transform: uppercase;
-}
-
-.pitbull-stepper__phase-tag {
-  transition: opacity var(--transition-base);
-}
-
-.pitbull-stepper__phase-tag.is-past {
-  opacity: 0.55;
-}
-
-.pitbull-stepper__phase-tag--meet {
-  color: var(--plu-gold-600);
-}
-
-[data-theme='dark'] .pitbull-stepper__phase-tag--meet {
-  color: var(--plu-gold-400);
-}
-
-.pitbull-stepper__phase-tag--meet:not(.is-active) {
-  opacity: 0.55;
-}
-
-/* Riel — 5 nodos + remate de llegada. El marcador es un punto de estado,
-   no un círculo con número dominante: el ordinal acompaña en tamaño
-   menor, arriba del punto. La llegada vive FUERA de la grilla de 5
-   columnas (ancho fijo propio) para que nunca compita por espacio con
-   ella ni quede recortada por el overflow-x:clip de la página. */
-.pitbull-stepper__rail {
-  align-items: start;
-  display: flex;
-  gap: clamp(10px, 1.8vw, 20px);
-  padding-block: 6px 0;
-}
-
-.pitbull-stepper__rail-track-wrap {
-  display: grid;
-  flex: 1;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0;
-  min-width: 0;
-  position: relative;
-}
-
-.pitbull-stepper__rail-track {
-  background: linear-gradient(
-    90deg,
-    var(--motif-tick) 0%,
-    var(--motif-tick) 58%,
-    color-mix(in oklab, var(--plu-gold-500) 45%, var(--motif-tick)) 62%,
-    color-mix(in oklab, var(--plu-gold-500) 45%, var(--motif-tick)) 100%
-  );
-  height: 2px;
-  left: 10%;
-  position: absolute;
-  right: 10%;
-  top: 15px;
-  transform-origin: left;
-}
-
-.pitbull-stepper__rail-ticks {
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--plu-gold-600) 0,
-    var(--plu-gold-600) 1.5px,
-    transparent 1.5px,
-    transparent 9px
-  );
-  height: 6px;
-  left: 62%;
-  opacity: 0;
-  position: absolute;
-  right: 10%;
-  top: 12px;
-  transition: opacity 0.5s var(--ease-out);
-}
-
-[data-theme='dark'] .pitbull-stepper__rail-ticks {
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--plu-gold-400) 0,
-    var(--plu-gold-400) 1.5px,
-    transparent 1.5px,
-    transparent 9px
-  );
-}
-
-.pitbull-stepper__rail-ticks.is-visible {
-  opacity: 0.55;
-}
-
-.pitbull-stepper__rail-fill {
-  background: linear-gradient(90deg, var(--color-brand-celeste) 0%, var(--plu-gold-500) 100%);
-  height: 2px;
-  left: 10%;
-  position: absolute;
-  top: 15px;
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
-  transition: transform var(--transition-slow);
-  width: 80%;
-}
-
-.pitbull-stepper__rail-gate {
-  background: var(--color-border-strong);
-  border-radius: 1px;
-  height: 12px;
-  left: 60%;
-  position: absolute;
-  top: 10px;
-  transform: translateX(-50%);
-  transition: background var(--transition-slow), box-shadow var(--transition-slow);
-  width: 2px;
-}
-
-.pitbull-stepper__rail-gate--lit {
-  background: var(--plu-gold-600);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-gold-600) 20%, transparent);
-}
-
-[data-theme='dark'] .pitbull-stepper__rail-gate--lit {
-  background: var(--plu-gold-500);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
-}
-
-/* Indicador compartido — único elemento que se desplaza entre nodos,
-   la misma gramática de movimiento que "Cómo corre el meet". */
-.pitbull-stepper__rail-indicator {
-  background: var(--color-text-primary);
-  border-radius: 2px;
-  height: 3px;
-  pointer-events: none;
-  position: absolute;
-  top: 14.5px;
-  transform: translateX(-50%);
-  width: 15%;
-}
-
-.pitbull-stepper__phase-pulse {
-  border-radius: 50%;
-  height: 22px;
-  left: calc(60% - 11px);
-  pointer-events: none;
-  position: absolute;
-  top: 5px;
-  width: 22px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .pitbull-stepper__phase-pulse {
-    animation: pitbull-stepper-pulse 0.7s var(--ease-out);
-  }
-}
-
-@keyframes pitbull-stepper-pulse {
-  from {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
-    opacity: 1;
-  }
-  to {
-    box-shadow: 0 0 0 14px color-mix(in oklab, var(--plu-gold-500) 0%, transparent);
-    opacity: 0;
-  }
-}
-
-.pitbull-stepper__node-slot {
-  display: block;
-}
-
-.pitbull-stepper__node {
-  align-items: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 4px 6px;
-  position: relative;
-  width: 100%;
-  z-index: 1;
-}
-
-.pitbull-stepper__node-ord {
-  color: var(--color-text-muted);
-  font-size: 9px;
-  opacity: 0.55;
-  transition: color var(--transition-base), opacity var(--transition-base);
-}
-
-.pitbull-stepper__node-dot {
-  background: var(--color-bg-surface);
-  border: 1.5px solid var(--color-border-strong);
-  border-radius: 50%;
-  height: 9px;
-  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
-  width: 9px;
-}
-
-.pitbull-stepper__node-label {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.005em;
-  line-height: 1.2;
-  max-width: 11ch;
-  text-align: center;
-  transition: color var(--transition-base);
-}
-
-.pitbull-stepper__node:hover .pitbull-stepper__node-dot {
-  border-color: var(--color-brand-celeste);
-}
-
-.pitbull-stepper__node--done .pitbull-stepper__node-dot {
-  background: var(--color-brand-celeste);
-  border-color: var(--color-brand-celeste);
-}
-
-.pitbull-stepper__node--meet.pitbull-stepper__node--done .pitbull-stepper__node-dot {
-  background: var(--plu-gold-600);
-  border-color: var(--plu-gold-600);
-}
-
-[data-theme='dark'] .pitbull-stepper__node--meet.pitbull-stepper__node--done .pitbull-stepper__node-dot {
-  background: var(--plu-gold-500);
-  border-color: var(--plu-gold-500);
-}
-
-.pitbull-stepper__node--active .pitbull-stepper__node-dot {
-  transform: scale(1.35);
-}
-
-.pitbull-stepper__node--active .pitbull-stepper__node-ord {
-  color: var(--color-text-primary);
-  opacity: 1;
-}
-
-.pitbull-stepper__node--active .pitbull-stepper__node-label {
-  color: var(--color-text-primary);
-}
-
-.pitbull-stepper__node:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .pitbull-stepper__node--morph .pitbull-stepper__node-dot {
-    animation: pitbull-node-morph 0.4s var(--ease-out);
-  }
-}
-
-@keyframes pitbull-node-morph {
-  from {
-    transform: scale(0.75);
-  }
-  to {
-    transform: scale(1.35);
-  }
-}
-
-/* Remate — "llegada a la plataforma" como cierre del propio riel, no
-   como bloque agregado debajo. Ancho fijo y propio: nunca se lo disputa
-   con los 5 pasos ni depende de un cálculo de grilla compartido. */
-.pitbull-stepper__arrival {
-  align-items: center;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 17px;
-  position: relative;
-  width: 72px;
-  z-index: 1;
-}
-
-.pitbull-stepper__arrival::before {
-  background: var(--plu-gold-600);
-  content: '';
-  height: 2px;
-  left: -2px;
-  position: absolute;
-  top: 4.5px;
-  width: 14px;
-}
-
-[data-theme='dark'] .pitbull-stepper__arrival::before {
-  background: var(--plu-gold-500);
-}
-
-.pitbull-stepper__arrival-marker {
-  align-items: center;
-  background: var(--plu-gold-600);
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-gold-600) 16%, transparent);
-  color: #14181f;
-  display: flex;
-  height: 22px;
-  justify-content: center;
-  width: 22px;
-}
-
-[data-theme='dark'] .pitbull-stepper__arrival-marker {
-  background: var(--plu-gold-500);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
-}
-
-.pitbull-stepper__arrival-label {
-  color: var(--color-text-muted);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  max-width: 100%;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-/* ── Panel activo — dos columnas equilibradas ─────────────────────────── */
-
-.pitbull-stepper__lower {
-  align-items: stretch;
-  display: grid;
-  gap: clamp(20px, 2.6vw, 32px);
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  min-height: 190px;
-}
-
-.pitbull-stepper__detail {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.pitbull-stepper__detail-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.pitbull-stepper__detail-phase {
-  color: var(--color-brand-celeste);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  width: fit-content;
-}
-
-.pitbull-stepper__detail-phase--meet {
-  color: var(--plu-gold-600);
-}
-
-[data-theme='dark'] .pitbull-stepper__detail-phase--meet {
-  color: var(--plu-gold-400);
-}
-
-.pitbull-stepper__detail-title {
-  align-items: center;
-  color: var(--color-text-primary);
-  display: flex;
+.pitbull-journey__arrival {
+  border-top: 1px solid color-mix(in oklab, var(--plu-gold-500) 35%, transparent);
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 1.5vw + 0.85rem, 1.85rem);
+  font-size: 12px;
   font-weight: 700;
-  gap: 9px;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.pitbull-stepper__detail-icon {
-  color: var(--color-brand-celeste);
-  flex: none;
-}
-
-.pitbull-stepper__detail-phase--meet ~ .pitbull-stepper__detail-title .pitbull-stepper__detail-icon {
-  color: var(--plu-gold-600);
-}
-
-[data-theme='dark'] .pitbull-stepper__detail-phase--meet ~ .pitbull-stepper__detail-title .pitbull-stepper__detail-icon {
-  color: var(--plu-gold-400);
-}
-
-.pitbull-stepper__detail-text {
-  color: var(--color-text-muted);
-  font-size: 13.5px;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 38ch;
-}
-
-.pitbull-stepper__detail-meta {
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
   letter-spacing: 0.08em;
   margin: 4px 0 0;
-  opacity: 0.6;
+  padding-top: 14px;
   text-transform: uppercase;
 }
 
-.pitbull-stepper__detail-action {
-  align-items: center;
-  background: none;
-  border: none;
-  color: var(--color-brand-celeste);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 0;
-  width: fit-content;
-}
-
-.pitbull-stepper__detail-action:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.pitbull-stepper__detail-action:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 3px;
-}
-
-/* Escenario — cambia con cada paso (crossfade vía MotionContentSwap):
-   foto real (día de competencia) o composición abstracta (antes del meet). */
-.pitbull-stepper__stage {
-  border-radius: var(--border-radius-lg);
-  flex: 1;
+/* Visual: oculto en mobile/notebook; solo ≥1100px */
+.pitbull-journey-visual {
+  display: none;
   isolation: isolate;
-  min-height: 190px;
+  margin: 0;
   overflow: hidden;
   position: relative;
 }
 
-.pitbull-stepper__stage-photo,
-.pitbull-stepper__stage-abstract {
+.pitbull-journey-visual__img {
+  display: block;
+  filter: grayscale(0.28) contrast(1.05);
   height: 100%;
-  position: relative;
+  object-fit: cover;
   width: 100%;
 }
 
-.pitbull-stepper__stage-plate {
-  height: 130%;
-  inset-block-start: -10%;
-  inset-inline-end: -20%;
+.pitbull-journey-visual::after {
+  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
   z-index: 0;
 }
 
-.pitbull-stepper__stage-plate::before {
-  opacity: 0.5;
-}
-
-.pitbull-stepper__stage-img {
-  display: block;
-  filter: grayscale(0.3) contrast(1.08);
-  height: 100%;
-  object-fit: cover;
-  position: relative;
-  width: 100%;
-  z-index: 1;
-}
-
-.pitbull-stepper__stage-glare {
-  background: linear-gradient(200deg, transparent 45%, rgba(0, 0, 0, 0.5) 100%);
-  inset: 0;
-  position: absolute;
-  z-index: 1;
-}
-
-.pitbull-stepper__stage-badge {
-  align-items: center;
-  background: color-mix(in oklab, var(--plu-gold-500) 88%, transparent);
-  border-radius: 50%;
-  color: #14181f;
-  display: flex;
-  height: 30px;
-  justify-content: center;
-  position: absolute;
-  right: 14px;
-  top: 14px;
-  width: 30px;
-  z-index: 2;
-}
-
-.pitbull-stepper__stage-caption {
+.pitbull-journey-visual__caption {
   bottom: 14px;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10.5px;
   font-weight: 600;
   left: 16px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   position: absolute;
   text-transform: uppercase;
-  z-index: 2;
+  z-index: 1;
 }
 
-.pitbull-stepper__stage-abstract {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: clamp(20px, 2.6vw, 30px);
-}
-
-.pitbull-stepper__stage-rule {
-  max-width: 84px;
-}
-
-.pitbull-stepper__stage-hint {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.2vw + 0.55rem, 1.35rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  margin: 0;
-  max-width: 24ch;
-}
-
-.pitbull-stepper__stage-facts {
-  display: flex;
-  gap: clamp(18px, 2.2vw, 30px);
-  margin: auto 0 0;
-}
-
-.pitbull-stepper__stage-facts dt {
-  color: var(--color-text-muted);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.pitbull-stepper__stage-facts dd {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-  margin: 4px 0 0;
-}
-
-.pitbull-stepper__stage-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  list-style: none;
-  margin: auto 0 0;
-  padding: 0;
-}
-
-.pitbull-stepper__stage-list li {
-  align-items: baseline;
-  border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-  display: flex;
-  font-size: 13.5px;
-  font-weight: 600;
-  gap: 12px;
-  padding-top: 7px;
-}
-
-.pitbull-stepper__stage-list li:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-
-.pitbull-stepper__stage-list-num {
-  color: var(--color-text-muted);
-  flex: none;
-  font-size: 10px;
-  opacity: 0.6;
-  width: 16px;
-}
-
-.pitbull-stepper__stage-abstract--confirm {
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.pitbull-stepper__stage-check {
-  color: var(--color-brand-celeste);
-  margin-bottom: 2px;
-}
-
-/* Notebook (768–1439px): mismo sistema, altura total objetivo 620–780px. */
-@media (min-width: 768px) and (max-width: 1439px) {
-  .pitbull-stepper {
-    gap: 14px;
+@media (min-width: 1100px) {
+  .pitbull-journey-layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   }
 
-  .pitbull-stepper__lower {
-    gap: 20px;
-    min-height: 168px;
-  }
-
-  .pitbull-stepper__detail-title {
-    font-size: clamp(1.2rem, 1.3vw + 0.7rem, 1.5rem);
-  }
-
-  .pitbull-stepper__detail-text {
-    font-size: 13px;
-    max-width: 34ch;
-  }
-
-  .pitbull-stepper__stage {
-    min-height: 168px;
-  }
-
-  .pitbull-stepper__stage-hint {
-    font-size: clamp(0.95rem, 0.9vw + 0.55rem, 1.15rem);
-  }
-}
-
-/* Tablet (768–1023px): riel un poco más compacto, labels más cortas. */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .pitbull-stepper__node-label {
-    font-size: 10px;
-    max-width: 9ch;
-  }
-
-  .pitbull-stepper__lower {
+  .pitbull-journey__phases {
     grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
   }
 
-  .pitbull-stepper__stage {
-    min-height: 150px;
+  .pitbull-journey-visual {
+    aspect-ratio: 4 / 5;
+    display: block;
+    /* Techo absoluto: sin esto, en monitores ≥1920px la columna de foto
+       (ancho de grilla × aspect-ratio) sigue estirándose mucho más alta
+       que las dos fases de texto de al lado. */
+    max-height: 640px;
+    position: sticky;
+    top: calc(var(--header-height) + 24px);
+  }
+
+  .pitbull-journey-visual__img {
+    min-height: 100%;
   }
 }
 
-/* Desktop amplio (≥1440px): más aire, sin estirar el riel de más. */
-@media (min-width: 1440px) {
-  .pitbull-stepper__lower {
-    max-width: 1180px;
+@media (max-width: 639px) {
+  .pitbull-journey__step {
+    gap: 10px;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    padding-block: 7px;
+  }
+
+  .pitbull-journey__title {
+    font-size: 14px;
+  }
+
+  .pitbull-journey__text {
+    font-size: 12px;
+    max-width: none;
+  }
+
+  .pitbull-journey__title-icon {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pitbull-stepper__rail-fill {
-    transition: none;
-  }
-
-  .pitbull-stepper__rail-ticks {
-    transition: none;
+  .pitbull-journey__step,
+  .pitbull-journey__arrival {
+    opacity: 1;
+    transform: none;
   }
 }

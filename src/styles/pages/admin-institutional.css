@@ -1458,7 +1458,6 @@
   }
 
   .admin-shell .admin-page-toolbar h1 {
-    display: block;
     font-size: 30px;
   }
 
@@ -1485,7 +1484,8 @@
   }
 
   .admin-dashboard--executive .admin-kpi-tile__icon {
-    display: none;
+    height: 26px;
+    width: 26px;
   }
 
   .admin-dashboard--executive .admin-kpi-tile__value {
@@ -1559,14 +1559,14 @@
   }
 
   .admin-shell .data-table-card--admin {
-    background: var(--admin-surface-raised);
+    background: transparent;
     border: 1px solid var(--admin-hairline);
     border-radius: 10px;
     box-shadow: none;
   }
 
   .admin-shell .data-table-cards--admin {
-    background: var(--admin-surface-muted);
+    background: transparent;
     gap: 9px;
     padding: 10px;
   }

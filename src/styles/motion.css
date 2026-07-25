@@ -33,7 +33,14 @@
 
 .tilt-card--interactive .tilt-card__inner,
 .tilt-card--interactive .members-plu-hero__card-inner {
-  transition-duration: var(--motion-fast);
+  /* Tracking rápido mientras el puntero mueve; settle más largo al salir. */
+  transition-duration: 140ms;
+}
+
+.tilt-card--interactive[data-tilt-active='0'] .tilt-card__inner,
+.tilt-card--interactive[data-tilt-active='0'] .members-plu-hero__card-inner {
+  transition-duration: 420ms;
+  transition-timing-function: var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .tilt-card--interactive::after {
@@ -49,8 +56,12 @@
   pointer-events: none;
   position: absolute;
   transform: translate(var(--tilt-shift-x), var(--tilt-shift-y));
-  transition: transform var(--motion-fast) var(--ease-out);
+  transition: transform 140ms var(--ease-out);
   z-index: 2;
+}
+
+.tilt-card--interactive[data-tilt-active='0']::after {
+  transition-duration: 420ms;
 }
 
 .tilt-card {
@@ -430,24 +441,22 @@
 
 /* ── Hero proof strip ───────────────────────── */
 
-.hero--design.is-animate .hero-meta--note > * {
+.hero--design.is-animate .hero-meta__date,
+.hero--design.is-animate .hero-meta__copy,
+.hero--design.is-animate .hero-meta__go {
   animation: motion-fade-up 0.34s var(--ease-emphasized) both;
 }
 
-.hero--design.is-animate .hero-meta__label {
+.hero--design.is-animate .hero-meta__date {
   animation-delay: 0.36s;
 }
 
-.hero--design.is-animate .hero-meta__meet {
+.hero--design.is-animate .hero-meta__copy {
   animation-delay: 0.42s;
 }
 
-.hero--design.is-animate .hero-meta__body {
-  animation-delay: 0.48s;
-}
-
-.hero--design.is-animate .hero-meta__status {
-  animation-delay: 0.54s;
+.hero--design.is-animate .hero-meta__go {
+  animation-delay: 0.5s;
 }
 
 /* ── Event / membership cards ───────────────── */
@@ -476,7 +485,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero--design.is-animate .hero-meta--note > *,
+  .hero--design.is-animate .hero-meta__date,
+  .hero--design.is-animate .hero-meta__copy,
+  .hero--design.is-animate .hero-meta__go,
   .site-header__drawer.is-open .site-header__drawer-foot {
     animation: none;
     opacity: 1;

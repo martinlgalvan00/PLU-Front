@@ -2,11 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
-import { requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
-
-const EDIT_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg']
-const VIEW_ROLES = [...EDIT_ROLES, 'viewer_plu_usa', 'seguridad_plu_arg']
 
 // Forma de cada beneficio del catálogo de tickets (ver src/lib/ticketAddons.js
 // normalizeTicketAddon): validada acá porque de acá sale directo a
@@ -65,8 +62,8 @@ const eventSchema = z.object({
 export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
-  const editGuard = requireRole(EDIT_ROLES, { prisma })
-  const viewGuard = requireRole(VIEW_ROLES, { prisma })
+  const editGuard = requirePermission('admin.events.write', { prisma })
+  const viewGuard = requirePermission('admin.events.read', { prisma })
   router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())

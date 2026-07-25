@@ -1,14 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../server/services/passwordService.js'
+import {
+  ACCESS_ROLE_TEMPLATES,
+  getDefaultPermissionsForRole,
+  PERMISSION_CATALOG,
+} from '../src/lib/permissions.js'
 
 const prisma = new PrismaClient()
 
 const allowedRoles = new Set([
   'admin_maximal',
   'admin_plu_arg',
-  'operador_plu_arg',
-  'viewer_plu_usa',
-  'seguridad_plu_arg',
 ])
 
 function readSeedAdmin() {
@@ -32,7 +34,77 @@ function readSeedAdmin() {
   return { email, password, role, firstName, lastName }
 }
 
+async function ensureAccessControlCatalog() {
+  const activeRoleKeys = ACCESS_ROLE_TEMPLATES.map(({ key }) => key)
+
+  for (const permission of PERMISSION_CATALOG) {
+    await prisma.accessPermission.upsert({
+      where: { key: permission.key },
+      create: {
+        key: permission.key,
+        module: permission.module,
+        action: permission.action,
+        label: permission.actionLabel,
+        description: permission.description,
+        sortOrder: permission.sortOrder,
+      },
+      update: {
+        module: permission.module,
+        action: permission.action,
+        label: permission.actionLabel,
+        description: permission.description,
+        sortOrder: permission.sortOrder,
+      },
+    })
+  }
+
+  for (const template of ACCESS_ROLE_TEMPLATES) {
+    const existing = await prisma.accessRole.findUnique({ where: { key: template.key } })
+    await prisma.accessRole.upsert({
+      where: { key: template.key },
+      create: {
+        id: template.key,
+        ...template,
+        permissions: {
+          create: getDefaultPermissionsForRole(template.key).map((permissionKey) => ({
+            permission: { connect: { key: permissionKey } },
+          })),
+        },
+      },
+      update: {
+        name: template.name,
+        description: template.description,
+        baseRole: template.baseRole,
+        isSystem: template.isSystem,
+        isProtected: template.isProtected,
+        assignableByAdmin: template.assignableByAdmin,
+        active: true,
+      },
+    })
+
+    if (!existing) {
+      console.info(`Rol inicial creado: ${template.name}`)
+    }
+
+    if (template.isProtected) {
+      await prisma.accessRolePermission.createMany({
+        data: getDefaultPermissionsForRole(template.key).map((permissionKey) => ({
+          roleId: template.key,
+          permissionKey,
+        })),
+        skipDuplicates: true,
+      })
+    }
+  }
+
+  await prisma.accessRole.updateMany({
+    where: { isSystem: true, key: { notIn: activeRoleKeys } },
+    data: { active: false },
+  })
+}
+
 async function main() {
+  await ensureAccessControlCatalog()
   const seedAdmin = readSeedAdmin()
 
   if (!seedAdmin) {
@@ -50,6 +122,7 @@ async function main() {
       email: seedAdmin.email,
       passwordHash,
       role: seedAdmin.role,
+      accessRole: { connect: { key: seedAdmin.role } },
       status: 'active',
       profile: {
         create: {
@@ -62,6 +135,7 @@ async function main() {
     update: {
       passwordHash,
       role: seedAdmin.role,
+      accessRole: { connect: { key: seedAdmin.role } },
       status: 'active',
       profile: {
         upsert: {

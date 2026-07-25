@@ -126,7 +126,7 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
         </CopyItem>
       </CopyShell>
 
-      <HomeMembershipCredential onNavigate={onNavigate} />
+      <HomeMembershipCredential />
     </div>
   )
 }

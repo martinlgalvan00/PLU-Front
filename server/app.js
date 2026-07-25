@@ -7,6 +7,7 @@ import { createPaymentRoutes } from './routes/payments.js'
 import { createEmailRoutes } from './routes/emails.js'
 import { createAuthRoutes } from './routes/auth.js'
 import { createUserRoutes } from './routes/users.js'
+import { createAccessControlRoutes } from './routes/accessControl.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
 import { createEventRoutes } from './routes/events.js'
@@ -59,6 +60,12 @@ export function createApp(deps = {}) {
     }),
   )
   app.use(
+    '/api/access-control/roles',
+    createAccessControlRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+    }),
+  )
+  app.use(
     '/api/payments',
     createPaymentRoutes({
       supabaseAdmin: deps.supabaseAdmin,
@@ -88,6 +95,7 @@ export function createApp(deps = {}) {
       getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
       repository: deps.athleteRepository,
       env: deps.env,
+      brevo: deps.brevo,
     }),
   )
   app.use('/api/tickets', createTicketRoutes({
