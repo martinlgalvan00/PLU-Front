@@ -86,16 +86,42 @@ export default function PaymentsOperationsSection({
       + Number(summary.health.staleReconciliationLocks ?? 0)
       + Number(summary.health.exhaustedEvents ?? 0)
     : null
-  const metrics = [
+  const failedCount = summary.events?.failed ?? 0
+  const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
+  const isLedgerHealthy =
+    Boolean(data) &&
+    failedCount === 0 &&
+    pendingReconciliations === 0 &&
+    summary.health?.healthy !== false
+
+  const primaryMetrics = [
     {
       label: t('admin.paymentOperations.integrity'),
       value: summary.health?.healthy ? t('admin.paymentOperations.integrityOk') : (healthIssues ?? '—'),
       tone: summary.health?.healthy ? 'success' : 'danger',
     },
-    { label: t('admin.paymentOperations.failedEvents'), value: summary.events?.failed ?? 0, tone: 'danger' },
-    { label: t('admin.paymentOperations.pendingReconciliations'), value: summary.attempts?.reconciliationPending ?? 0, tone: 'warning' },
-    { label: t('admin.paymentOperations.pastDueSubscriptions'), value: summary.subscriptions?.pastDue ?? 0, tone: 'warning' },
-    { label: t('admin.paymentOperations.processedEvents'), value: summary.events?.processed ?? 0, tone: 'success' },
+    {
+      label: t('admin.paymentOperations.failedEvents'),
+      value: failedCount,
+      tone: 'danger',
+    },
+  ]
+  const secondaryMetrics = [
+    {
+      label: t('admin.paymentOperations.pendingReconciliations'),
+      value: pendingReconciliations,
+      tone: 'warning',
+    },
+    {
+      label: t('admin.paymentOperations.pastDueSubscriptions'),
+      value: summary.subscriptions?.pastDue ?? 0,
+      tone: 'warning',
+    },
+    {
+      label: t('admin.paymentOperations.processedEvents'),
+      value: summary.events?.processed ?? 0,
+      tone: 'success',
+    },
   ]
   const operationRows = [
     ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
@@ -111,42 +137,76 @@ export default function PaymentsOperationsSection({
     })),
   ].filter((row) => !status || row.status === status)
 
+  const showHealthyEmpty =
+    !loading &&
+    !error &&
+    operationRows.length === 0 &&
+    isLedgerHealthy &&
+    (!status || status === 'failed')
+
   return (
     <div className="admin-payments-operations">
       <section className="admin-payment-ops" aria-labelledby="payment-ops-title">
         <header className="admin-payment-ops__header">
-          <div>
-            <span className="admin-payment-ops__eyebrow"><ShieldCheck size={15} aria-hidden /> Mercado Pago</span>
+          <div className="admin-payment-ops__intro">
+            <span className="admin-payment-ops__eyebrow">
+              <ShieldCheck size={15} aria-hidden /> Mercado Pago
+            </span>
             <h2 id="payment-ops-title">{t('admin.paymentOperations.title')}</h2>
             <p className="admin-payment-ops__subtitle">{t('admin.paymentOperations.subtitle')}</p>
-            {data?.configuration && (
-              <span className={data.configuration.recoveryEnabled ? 'admin-payment-ops__worker is-active' : 'admin-payment-ops__worker'}>
-                <span aria-hidden />
-                {t(data.configuration.recoveryEnabled
-                  ? 'admin.paymentOperations.workerActive'
-                  : 'admin.paymentOperations.workerInactive')}
-              </span>
-            )}
           </div>
-          <div className="admin-payment-ops__actions">
-            <button type="button" className="btn btn--outline btn--small" onClick={load} disabled={loading}>
-              <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-            </button>
-            {canEdit && (
-              <button type="button" className="btn btn--small" onClick={handleRecover} disabled={recovering}>
-                <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+          <div className="admin-payment-ops__toolbar">
+            {data?.configuration ? (
+              <span
+                className={
+                  data.configuration.recoveryEnabled
+                    ? 'admin-payment-ops__worker is-active'
+                    : 'admin-payment-ops__worker'
+                }
+              >
+                <span aria-hidden />
+                {t(
+                  data.configuration.recoveryEnabled
+                    ? 'admin.paymentOperations.workerActive'
+                    : 'admin.paymentOperations.workerInactive',
+                )}
+              </span>
+            ) : null}
+            <div className="admin-payment-ops__actions">
+              <button type="button" className="btn btn--outline btn--small" onClick={load} disabled={loading}>
+                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
               </button>
-            )}
+              {canEdit ? (
+                <button type="button" className="btn btn--small" onClick={handleRecover} disabled={recovering}>
+                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+                </button>
+              ) : null}
+            </div>
           </div>
         </header>
 
+        <div className="admin-payment-ops__signal" aria-label={t('admin.paymentOperations.signalAria')}>
+          {primaryMetrics.map((metric) => (
+            <article
+              key={metric.label}
+              className={`admin-payment-ops__metric admin-payment-ops__metric--compact admin-payment-ops__metric--${metric.tone}`}
+            >
+              <strong>{metric.value}</strong>
+              <span>{metric.label}</span>
+            </article>
+          ))}
+        </div>
+
         <details className="admin-payment-ops__metrics-panel">
           <summary className="admin-payment-ops__metrics-summary">
-            {t('admin.paymentOperations.metricsToggle')}
+            {t('admin.paymentOperations.metricsMore')}
           </summary>
           <div className="admin-payment-ops__metrics">
-            {metrics.map((metric) => (
-              <article key={metric.label} className={`admin-payment-ops__metric admin-payment-ops__metric--${metric.tone}`}>
+            {secondaryMetrics.map((metric) => (
+              <article
+                key={metric.label}
+                className={`admin-payment-ops__metric admin-payment-ops__metric--${metric.tone}`}
+              >
                 <strong>{metric.value}</strong>
                 <span>{metric.label}</span>
               </article>
@@ -180,6 +240,14 @@ export default function PaymentsOperationsSection({
           <ErrorState message={error} onRetry={load} retryLabel={t('common.retry')} />
         ) : loading && !data ? (
           <LoadingState label={t('admin.paymentOperations.loading')} />
+        ) : showHealthyEmpty ? (
+          <div className="admin-empty admin-empty--payment-ops">
+            <span className="admin-empty__icon" aria-hidden>
+              <ShieldCheck size={22} strokeWidth={1.6} />
+            </span>
+            <h3 className="admin-empty__title">{t('admin.paymentOperations.emptyHealthyTitle')}</h3>
+            <p className="admin-empty__lead">{t('admin.paymentOperations.emptyHealthyLead')}</p>
+          </div>
         ) : (
           <AdminDataTable
             variant="admin"
@@ -188,24 +256,52 @@ export default function PaymentsOperationsSection({
             columns={[
               { key: 'event_type', label: t('admin.paymentOperations.type'), mobile: 'primary', sortable: true },
               { key: 'resource_id', label: t('admin.paymentOperations.resource'), mobile: 'default', sortable: true },
-              { key: 'status', label: t('admin.columns.status'), mobile: 'badge', sortable: true, render: (row) => <StatusBadge value={row.status} /> },
-              { key: 'attempts_count', label: t('admin.paymentOperations.attempts'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true, render: (row) => `${row.attempts_count}/${row.max_attempts}` },
-              { key: 'last_attempt_at', label: t('admin.paymentOperations.lastAttempt'), mobile: 'default', sortable: true, render: (row) => formatDate(row.last_attempt_at, locale) },
-              { key: 'error', label: t('admin.paymentOperations.detail'), mobile: 'hidden', render: (row) => row.error || '—' },
+              {
+                key: 'status',
+                label: t('admin.columns.status'),
+                mobile: 'badge',
+                sortable: true,
+                render: (row) => <StatusBadge value={row.status} />,
+              },
+              {
+                key: 'attempts_count',
+                label: t('admin.paymentOperations.attempts'),
+                mobile: 'default',
+                desktop: 'numeric',
+                align: 'end',
+                sortable: true,
+                render: (row) => `${row.attempts_count}/${row.max_attempts}`,
+              },
+              {
+                key: 'last_attempt_at',
+                label: t('admin.paymentOperations.lastAttempt'),
+                mobile: 'default',
+                sortable: true,
+                render: (row) => formatDate(row.last_attempt_at, locale),
+              },
+              {
+                key: 'error',
+                label: t('admin.paymentOperations.detail'),
+                mobile: 'hidden',
+                render: (row) => row.error || '—',
+              },
               {
                 key: 'actions',
                 label: t('admin.columns.action'),
                 mobile: 'action',
-                render: (row) => ['failed', 'pending'].includes(row.status) && canEdit ? (
-                  <button
-                    type="button"
-                    className="btn btn--small btn--outline"
-                    disabled={retryingId === row.id}
-                    onClick={() => handleRetry(row)}
-                  >
-                    {t('admin.paymentOperations.retry')}
-                  </button>
-                ) : '—',
+                render: (row) =>
+                  ['failed', 'pending'].includes(row.status) && canEdit ? (
+                    <button
+                      type="button"
+                      className="btn btn--small btn--outline"
+                      disabled={retryingId === row.id}
+                      onClick={() => handleRetry(row)}
+                    >
+                      {t('admin.paymentOperations.retry')}
+                    </button>
+                  ) : (
+                    '—'
+                  ),
               },
             ]}
           />

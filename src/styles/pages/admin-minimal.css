@@ -307,9 +307,13 @@
 }
 
 .admin-shell .data-table-card__meta-value {
-  overflow: visible;
-  overflow-wrap: anywhere;
-  text-overflow: clip;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .data-table-card__meta--inline .data-table-card__meta-value {
+  overflow-wrap: normal;
 }
 
 .admin-shell .data-table-card--admin {
@@ -317,30 +321,16 @@
   border-color: var(--admin-hairline);
 }
 
-.admin-shell .data-table-card--admin:has(.status-pill--success) {
-  border-left: 2px solid var(--admin-status-success);
-}
-
-.admin-shell .data-table-card--admin:has(.status-pill--warning) {
-  border-left: 2px solid var(--admin-status-warning);
-}
-
-.admin-shell .data-table-card--admin:has(.status-pill--danger) {
-  border-left: 2px solid var(--admin-status-danger);
-}
-
-.admin-shell .data-table-card--admin:has(.status-pill--info) {
-  border-left: 2px solid var(--admin-status-info);
+.admin-shell .data-table-card--admin.data-table-card--compact {
+  border-left-width: 1px;
+  border-left-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card__meta {
-  display: grid;
-  gap: 6px 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-shell .admin-list-shell--registrations .data-table-card__meta-label {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  grid-template-columns: none;
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card__meta-value {
@@ -1435,9 +1425,19 @@
 }
 
 .admin-shell .data-table-mobile-toolbar {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.admin-shell .data-table-mobile-toolbar__summary {
   background: var(--admin-table-head);
   border-color: var(--admin-hairline);
-  padding: 9px 10px;
+  color: var(--admin-muted);
+}
+
+.admin-shell .data-table-mobile-toolbar.is-sorted .data-table-mobile-toolbar__summary {
+  color: var(--admin-ink);
 }
 
 .admin-shell .data-table-mobile-toolbar__select,
@@ -1447,15 +1447,30 @@
 }
 
 .admin-shell .data-table-card--admin {
-  border-radius: 11px;
-  box-shadow: var(--admin-shadow-soft);
-  padding: 13px;
+  border-radius: 10px;
+  box-shadow: none;
+  padding: 10px 12px;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact {
+  padding: 8px 10px;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact .data-table-card__top {
+  align-items: center;
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .admin-shell .data-table-card__top {
   align-items: flex-start;
   border-bottom: 1px solid var(--admin-hairline);
   padding-bottom: 10px;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact .data-table-card__meta--inline {
+  gap: 0;
+  grid-template-columns: none;
 }
 
 .admin-shell .data-table-card__meta {

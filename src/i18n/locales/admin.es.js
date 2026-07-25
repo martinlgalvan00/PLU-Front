@@ -117,6 +117,8 @@ export default {
   },
   table: {
     sortLabel: 'Ordenar',
+    sortField: 'Campo',
+    sortedBy: 'Orden: {{field}}',
     defaultOrder: 'Orden original',
     sortAscending: 'Ordenar ascendente',
     sortDescending: 'Ordenar descendente',
@@ -556,6 +558,9 @@ export default {
     processed: 'Procesados',
     loading: 'Consultando la integración…',
     empty: 'No hay eventos para este filtro.',
+    emptyHealthyTitle: 'Ledger al día',
+    emptyHealthyLead:
+      'No hay webhooks fallidos ni conciliaciones pendientes. La integración de Mercado Pago está en orden.',
     type: 'Tipo',
     reconciliation: 'Conciliación de pago',
     resource: 'Recurso MP',
@@ -564,6 +569,8 @@ export default {
     detail: 'Detalle',
     updatedAt: 'Actualizado {{date}}',
     metricsToggle: 'Métricas del ledger',
+    metricsMore: 'Más métricas',
+    signalAria: 'Señales clave del ledger',
     loadError: 'No se pudo consultar la operación de Mercado Pago.',
     recoverError: 'No se pudo ejecutar la recuperación automática.',
     retryError: 'No se pudo reintentar el evento.',

@@ -139,6 +139,7 @@ function PitbullDossierSection({
 }
 
 function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone, t, variant = 'default' }) {
+  const { reducedMotion } = useMotionConfig()
   const pct = slots > 0 ? Math.round((registered / slots) * 100) : 0
   const isCompact = variant === 'compact'
 
@@ -157,16 +158,36 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
           <span className="pitbull-inscription-counter__of">/ {slots}</span>
           <span className="pitbull-inscription-counter__unit">cupos</span>
         </div>
-        <span className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}>
-          <span className="pitbull-inscription-counter__badge-dot" aria-hidden />
-          {statusLabel}
-        </span>
+        {reducedMotion ? (
+          <span className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}>
+            <span className="pitbull-inscription-counter__badge-dot" aria-hidden />
+            {statusLabel}
+          </span>
+        ) : (
+          <m.span
+            className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}
+            initial={{ opacity: 0, y: 6 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={MOTION_VIEWPORT}
+            transition={{ duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.18 }}
+          >
+            <span className="pitbull-inscription-counter__badge-dot" aria-hidden />
+            {statusLabel}
+          </m.span>
+        )}
       </div>
       <div className="pitbull-inscription-counter__bar" aria-hidden>
-        <div
-          className="pitbull-inscription-counter__fill"
-          style={{ '--counter-pct': `${pct}%` }}
-        />
+        {reducedMotion ? (
+          <div className="pitbull-inscription-counter__fill" style={{ transform: `scaleX(${pct / 100})` }} />
+        ) : (
+          <m.div
+            className="pitbull-inscription-counter__fill"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: pct / 100 }}
+            viewport={MOTION_VIEWPORT}
+            transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
+          />
+        )}
       </div>
     </div>
   )
@@ -534,13 +555,15 @@ function PitbullLocationSection({ venue, t }) {
 
 function PitbullTicketPass({ onOpen, t }) {
   return (
-    <div className="pitbull-ticket-pass pitbull-ticket-pass--cta">
-      <div className="pitbull-ticket-pass__actions">
-        <button type="button" className="pitbull-dossier__cta pitbull-ticket-pass__cta" onClick={onOpen}>
-          {t('pages.pitbull.ticketsFormTitle')}
-          <ArrowRight size={14} aria-hidden />
-        </button>
+    <div className="pitbull-ticket-invite">
+      <div className="pitbull-ticket-invite__copy">
+        <p className="pitbull-ticket-invite__hook">{t('pages.pitbull.ticketsHook')}</p>
+        <p className="pitbull-ticket-invite__note">{t('pages.pitbull.ticketsNote')}</p>
       </div>
+      <button type="button" className="pitbull-ticket-invite__cta" onClick={onOpen}>
+        {t('pages.pitbull.ticketPassCta')}
+        <ArrowRight size={14} aria-hidden />
+      </button>
     </div>
   )
 }
@@ -554,7 +577,24 @@ function PitbullInscriptionSection({
   pricing,
   t,
 }) {
+  const { reducedMotion } = useMotionConfig()
   const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
+
+  const bodyGroupMotion = {
+    hidden: {},
+    show: { transition: { staggerChildren: MOTION_STAGGER.step, delayChildren: 0.24 } },
+  }
+  const bodyEntryMotion = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out } },
+  }
+  const Body = reducedMotion ? 'div' : m.div
+  const bodyProps = reducedMotion
+    ? {}
+    : { variants: bodyGroupMotion, initial: 'hidden', whileInView: 'show', viewport: MOTION_VIEWPORT }
+  const Pricing = reducedMotion ? 'dl' : m.dl
+  const Footer = reducedMotion ? 'div' : m.div
+  const childProps = reducedMotion ? {} : { variants: bodyEntryMotion }
 
   return (
     <PitbullDossierSection
@@ -574,8 +614,8 @@ function PitbullInscriptionSection({
           variant="compact"
         />
 
-        <div className="pitbull-inscription-shell__body">
-          <dl className="pitbull-inscription-shell__pricing" aria-label={t('pages.pitbull.costsAria')}>
+        <Body className="pitbull-inscription-shell__body" {...bodyProps}>
+          <Pricing className="pitbull-inscription-shell__pricing" aria-label={t('pages.pitbull.costsAria')} {...childProps}>
             <div className="pitbull-inscription-shell__price">
               <dt>{t('pages.pitbull.costMembership')}</dt>
               <dd>{money(pricing.membership, locale)}</dd>
@@ -584,9 +624,9 @@ function PitbullInscriptionSection({
               <dt>{t('pages.pitbull.costMeet')}</dt>
               <dd>{money(pricing.registration, locale)}</dd>
             </div>
-          </dl>
+          </Pricing>
 
-          <div className="pitbull-inscription-shell__footer">
+          <Footer className="pitbull-inscription-shell__footer" {...childProps}>
             <p className="pitbull-inscription-shell__desc">
               {canRegister ? t('pages.pitbull.cardDescOpen') : t('pages.pitbull.cardDescClosed')}
             </p>
@@ -630,8 +670,8 @@ function PitbullInscriptionSection({
                 </>
               )}
             </div>
-          </div>
-        </div>
+          </Footer>
+        </Body>
       </div>
     </PitbullDossierSection>
   )
@@ -659,7 +699,7 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
         </button>
         {ticketsOpen ? (
           <button type="button" className="pitbull-dossier__text-link" onClick={onTickets}>
-            {t('pages.pitbull.ticketsTitle')}
+            {t('pages.pitbull.ticketPassCta')}
           </button>
         ) : (
           <button
@@ -675,21 +715,19 @@ function PitbullFeatureSection({ featureFacts, schedule, onNavigate, onTickets, 
   )
 }
 
-/** Explorador documental — no un segmented control + chips flotando.
- * Nivel superior: estado documental + acceso al reglamento. Nivel
- * principal: columna de navegación (tabla de contenidos) + panel con
- * la lista técnica (filas, no chips) y su nota asociada. */
-function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t }) {
-  const [tab, setTab] = useState('modalities')
-  const detailCards = categoryCards.filter((card) => card.id === 'weight' || card.id === 'gender')
-  const detail =
-    tab === 'modalities'
-      ? detailCards.find((card) => card.id === 'weight')
-      : detailCards.find((card) => card.id === 'gender')
-  const rows = tab === 'modalities' ? pitbullClassic.categories : pitbullClassic.divisions
-  const navItems = [
-    { id: 'modalities', label: t('pages.pitbull.categoriesModalities') },
-    { id: 'divisions', label: t('pages.pitbull.categoriesDivisions') },
+/** Catálogo tipográfico — modalidades y divisiones, sin tabs. */
+function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
+  const groups = [
+    {
+      id: 'modalities',
+      label: t('pages.pitbull.categoriesModalities'),
+      rows: pitbullClassic.categories,
+    },
+    {
+      id: 'divisions',
+      label: t('pages.pitbull.categoriesDivisions'),
+      rows: pitbullClassic.divisions,
+    },
   ]
 
   return (
@@ -718,52 +756,19 @@ function PitbullCategoriesSection({ categoryCards, pitbullClassic, onNavigate, t
           </button>
         </div>
 
-        <div className="pitbull-doc__body" aria-label={t('pages.pitbull.categoriesListAria')}>
-          <div className="pitbull-doc__nav" role="tablist" aria-label={t('pages.pitbull.categoriesTabsAria')}>
-            {navItems.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                id={`pitbull-doc-tab-${item.id}`}
-                aria-selected={tab === item.id}
-                aria-controls={`pitbull-doc-panel-${item.id}`}
-                className={`pitbull-doc__nav-item${tab === item.id ? ' is-active' : ''}`}
-                onClick={() => setTab(item.id)}
-              >
-                <span className="pitbull-doc__nav-num motif-num">{String(index + 1).padStart(2, '0')}</span>
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div
-            className="pitbull-doc__panel-wrap"
-            role="tabpanel"
-            id={`pitbull-doc-panel-${tab}`}
-            aria-labelledby={`pitbull-doc-tab-${tab}`}
-          >
-            <MotionContentSwap swapKey={tab} className="pitbull-doc__panel">
-              <StaggerGroup as="ol" className="pitbull-doc__chips" stagger={35} role="list">
-                {rows.map((row) => {
-                  const ChipIcon = tab === 'modalities' ? Dumbbell : Users
-                  return (
-                    <li key={row} className="pitbull-doc__chip">
-                      <ChipIcon size={15} strokeWidth={1.85} aria-hidden />
-                      <span>{row}</span>
-                    </li>
-                  )
-                })}
+        <div className="pitbull-doc__catalog" aria-label={t('pages.pitbull.categoriesListAria')}>
+          {groups.map((group) => (
+            <div key={group.id} className="pitbull-doc__group">
+              <p className="pitbull-doc__group-label">{group.label}</p>
+              <StaggerGroup as="ul" className="pitbull-doc__lookbook" stagger={24} role="list">
+                {group.rows.map((row) => (
+                  <li key={row} className="pitbull-doc__lookbook-item">
+                    <span className="pitbull-doc__lookbook-label">{row}</span>
+                  </li>
+                ))}
               </StaggerGroup>
-
-              {detail ? (
-                <div className="pitbull-doc__note">
-                  <span className="pitbull-doc__note-label">{detail.title}</span>
-                  <p className="pitbull-doc__note-text">{detail.text}</p>
-                </div>
-              ) : null}
-            </MotionContentSwap>
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </PitbullDossierSection>
@@ -776,7 +781,6 @@ export default function PitbullPage({
 }) {
   const {
     PITBULL_ATHLETE_GROUPS,
-    PITBULL_CATEGORY_CARDS,
     PITBULL_CLASSIC,
     PITBULL_SCHEDULE,
     PITBULL_VENUE,
@@ -848,7 +852,6 @@ export default function PitbullPage({
           />
 
           <PitbullCategoriesSection
-            categoryCards={PITBULL_CATEGORY_CARDS}
             pitbullClassic={PITBULL_CLASSIC}
             onNavigate={onNavigate}
             t={t}

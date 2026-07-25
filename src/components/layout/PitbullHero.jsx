@@ -71,7 +71,7 @@ function PitbullHeroPanel({
     : isFinished
       ? t('pages.home.viewResults')
       : t('pages.pitbull.joinNow')
-  const secondaryLabel = ticketsOpen ? t('pages.pitbull.ticketsTitle') : t('pages.pitbull.ctaCategories')
+  const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
 
