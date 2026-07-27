@@ -130,10 +130,19 @@ function createPrismaDouble({ actorRole = 'admin_maximal' } = {}) {
     },
     auditLog: {
       create: async ({ data }) => {
-        const log = { id: `audit-${auditLogs.length + 1}`, ...data }
+        const log = {
+          id: `audit-${auditLogs.length + 1}`,
+          createdAt: new Date(Date.UTC(2026, 6, 26, 12, auditLogs.length)),
+          ...data,
+        }
         auditLogs.push(log)
         return log
       },
+      findMany: async () =>
+        [...auditLogs].reverse().map((log) => ({
+          ...log,
+          actor: users.find((user) => user.id === log.actorId) ?? null,
+        })),
     },
   }
   prisma.$transaction = async (callback) => callback(prisma)
@@ -182,6 +191,7 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
       expect(response.status).toBe(200)
       expect(body.roles.map(({ key }) => key)).toEqual(ROLE_HIERARCHY)
       expect(body.roles.find(({ key }) => key === 'plu_arg').canManagePermissions).toBe(true)
+      expect(body.activity).toEqual([])
     } finally {
       await target.close()
     }
@@ -198,7 +208,8 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
         description: 'Opera accesos sin administrar usuarios.',
         permissionKeys: ['admin.events.read', 'admin.checkin.execute'],
       })
-      const created = (await createResponse.json()).role
+      const createBody = await createResponse.json()
+      const created = createBody.role
 
       expect(createResponse.status).toBe(201)
       expect(created).toMatchObject({
@@ -209,29 +220,38 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
         canAssign: true,
         canManagePermissions: true,
       })
-      expect(created.permissions).toEqual([
-        'admin.events.read',
-        'admin.checkin.execute',
-      ])
+      expect(created.permissions).toEqual(['admin.events.read', 'admin.checkin.execute'])
       expect(state.auditLogs.at(-1)).toMatchObject({
         action: 'access_role.created',
         actorId: 'usr-admin',
         entityId: created.id,
       })
+      expect(createBody.activity).toMatchObject({
+        action: 'access_role.created',
+        roleId: created.id,
+        roleName: 'Control de plataforma',
+        actorName: 'Administrador',
+        addedPermissions: ['admin.events.read', 'admin.checkin.execute'],
+        removedPermissions: [],
+      })
 
       const listResponse = await fetch(`${target.url}/api/access-control/roles`, {
         headers: headers(cookie),
       })
-      const listed = (await listResponse.json()).roles
+      const listBody = await listResponse.json()
+      const listed = listBody.roles
       expect(listed.map(({ key }) => key)).toContain(created.key)
+      expect(listBody.activity[0]).toMatchObject({
+        action: 'access_role.created',
+        roleId: created.id,
+        actorName: 'Administrador',
+      })
 
       const updateResponse = await updatePermissions(target.url, cookie, created.id, [
         'admin.athletes.read',
       ])
       expect(updateResponse.status).toBe(200)
-      expect((await updateResponse.json()).role.permissions).toEqual([
-        'admin.athletes.read',
-      ])
+      expect((await updateResponse.json()).role.permissions).toEqual(['admin.athletes.read'])
     } finally {
       await target.close()
     }
@@ -247,18 +267,20 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
         'admin.events.read',
         'admin.events.write',
       ])
-      const securityUpdate = await updatePermissions(
-        target.url,
-        cookie,
-        'seguridad_plu_arg',
-        ['admin.events.read', 'admin.checkin.execute', 'admin.athletes.read'],
-      )
+      const securityUpdate = await updatePermissions(target.url, cookie, 'seguridad_plu_arg', [
+        'admin.events.read',
+        'admin.checkin.execute',
+        'admin.athletes.read',
+      ])
 
       expect(pluUpdate.status).toBe(200)
-      expect((await pluUpdate.json()).role.permissions).toEqual([
-        'admin.events.read',
-        'admin.events.write',
-      ])
+      const pluBody = await pluUpdate.json()
+      expect(pluBody.role.permissions).toEqual(['admin.events.read', 'admin.events.write'])
+      expect(pluBody.activity).toMatchObject({
+        action: 'access_role.permissions_updated',
+        roleId: 'plu_arg',
+        addedPermissions: ['admin.events.write'],
+      })
       expect(securityUpdate.status).toBe(200)
       expect(state.auditLogs.at(-1)).toMatchObject({
         action: 'access_role.permissions_updated',
@@ -277,14 +299,12 @@ describe('RBAC jerárquico (/api/access-control/roles)', () => {
     try {
       const cookie = await login(target.url, state)
       expect(
-        (await updatePermissions(target.url, cookie, 'admin_maximal', [
-          'admin.dashboard.read',
-        ])).status,
+        (await updatePermissions(target.url, cookie, 'admin_maximal', ['admin.dashboard.read']))
+          .status,
       ).toBe(403)
       expect(
-        (await updatePermissions(target.url, cookie, 'admin_plu_arg', [
-          'admin.dashboard.read',
-        ])).status,
+        (await updatePermissions(target.url, cookie, 'admin_plu_arg', ['admin.dashboard.read']))
+          .status,
       ).toBe(403)
     } finally {
       await target.close()

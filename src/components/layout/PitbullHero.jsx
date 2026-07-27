@@ -64,7 +64,7 @@ function PitbullHeroPanel({
   title,
   motion = false,
 }) {
-  const { label: statusLabel } = getStatusMeta(eventStatus, t)
+  const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
   const isFinished = eventStatus === 'finalizado'
   const primaryLabel = canRegister
     ? t('pages.pitbull.register')
@@ -89,14 +89,12 @@ function PitbullHeroPanel({
 
       <header className="pitbull-hero-masthead__head">
         <Item {...itemProps}>
-          <p className="pitbull-hero-masthead__status">
-            <span className="motif-lights motif-lights--sequence" aria-hidden>
-              <span className="motif-lights__dot motif-lights__dot--on" />
-              <span className="motif-lights__dot motif-lights__dot--on" />
-              <span className="motif-lights__dot motif-lights__dot--on" />
-            </span>
+          <span
+            className={`pitbull-hero-masthead__status-badge pitbull-hero-masthead__status-badge--${statusTone}`}
+          >
+            <span className="pitbull-hero-masthead__status-badge-dot" aria-hidden />
             {statusLabel}
-          </p>
+          </span>
         </Item>
 
         <Item {...itemProps}>
@@ -144,12 +142,14 @@ function PitbullHeroPanel({
   )
 }
 
-function PitbullHeroBackdrop() {
+/** Marco de imagen contenido — la ficha protagonista se apoya sobre su
+ * borde inferior, en vez de flotar sobre una foto a sangre completa. */
+function PitbullHeroFrame({ eventStatus, pitbullClassic, t, title }) {
   return (
-    <div className="pitbull-hero-masthead__backdrop" aria-hidden>
-      <div className="pitbull-hero-masthead__backdrop-plate">
+    <div className="pitbull-hero-masthead__frame">
+      <div className="pitbull-hero-masthead__frame-plate">
         <img
-          className="pitbull-hero-masthead__backdrop-img"
+          className="pitbull-hero-masthead__frame-img"
           src={photoMedals}
           alt=""
           width={800}
@@ -158,9 +158,14 @@ function PitbullHeroBackdrop() {
           decoding="async"
           fetchPriority="high"
         />
+        <div className="pitbull-hero-masthead__frame-scrim" aria-hidden />
       </div>
-      <div className="pitbull-hero-masthead__backdrop-scrim" />
-      <div className="pitbull-hero-masthead__reactive" />
+      <PitbullHeroShowcase
+        eventStatus={eventStatus}
+        pitbullClassic={pitbullClassic}
+        t={t}
+        title={title}
+      />
     </div>
   )
 }
@@ -178,51 +183,6 @@ export default function PitbullHero({
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
 
-  function handleHeroPointer(event) {
-    if (reducedMotion) return
-    const el = event.currentTarget
-    const rect = el.getBoundingClientRect()
-    const nx = (event.clientX - rect.left) / rect.width
-    const ny = (event.clientY - rect.top) / rect.height
-    el.style.setProperty('--px', (nx - 0.5).toFixed(3))
-    el.style.setProperty('--py', (ny - 0.5).toFixed(3))
-    el.style.setProperty('--glow-x', `${(nx * 100).toFixed(1)}%`)
-    el.style.setProperty('--glow-y', `${(ny * 100).toFixed(1)}%`)
-    el.style.setProperty('--active', '1')
-  }
-
-  function resetHeroPointer(event) {
-    const el = event.currentTarget
-    el.style.setProperty('--px', '0')
-    el.style.setProperty('--py', '0')
-    el.style.setProperty('--active', '0')
-  }
-
-  const pointerProps = reducedMotion
-    ? {}
-    : { onPointerMove: handleHeroPointer, onPointerLeave: resetHeroPointer }
-
-  const mark = reducedMotion ? (
-    <p className="pitbull-hero-masthead__mark" aria-hidden>
-      PITBULL
-    </p>
-  ) : (
-    <m.p
-      className="pitbull-hero-masthead__mark"
-      aria-hidden
-      variants={{
-        hidden: { y: 28, scale: 0.97 },
-        visible: {
-          y: 0,
-          scale: 1,
-          transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] },
-        },
-      }}
-    >
-      PITBULL
-    </m.p>
-  )
-
   const panel = (
     <PitbullHeroPanel
       canRegister={canRegister}
@@ -238,8 +198,8 @@ export default function PitbullHero({
     />
   )
 
-  const showcase = (
-    <PitbullHeroShowcase
+  const frame = (
+    <PitbullHeroFrame
       eventStatus={eventStatus}
       pitbullClassic={pitbullClassic}
       t={t}
@@ -247,19 +207,13 @@ export default function PitbullHero({
     />
   )
 
-  const backdrop = <PitbullHeroBackdrop />
-
   if (reducedMotion) {
     return (
-      <header className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--medals">
-        {backdrop}
-        {/* reduced-motion: sin parallax */}
+      <header className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--split">
         <div className="pitbull-hero-masthead__shell">
-          {mark}
-          <div className="pitbull-hero-masthead__stripe" aria-hidden />
-          <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
+          <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--split">
             {panel}
-            {showcase}
+            {frame}
           </div>
         </div>
       </header>
@@ -268,19 +222,15 @@ export default function PitbullHero({
 
   return (
     <m.header
-      className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--medals pitbull-hero-masthead--motion"
+      className="pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--split pitbull-hero-masthead--motion"
       initial="hidden"
       animate="visible"
       variants={heroStaggerContainer}
-      {...pointerProps}
     >
-      {backdrop}
       <div className="pitbull-hero-masthead__shell">
-        {mark}
-        <m.div className="pitbull-hero-masthead__stripe" aria-hidden variants={heroSequenceItem} />
-        <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--text">
+        <div className="pitbull-hero-masthead__layout pitbull-hero-masthead__layout--split">
           {panel}
-          {showcase}
+          {frame}
         </div>
       </div>
     </m.header>

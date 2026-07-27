@@ -52,3 +52,4 @@
 @import url('/src/styles/pages/admin-minimal.css');
 @import url('/src/styles/layout/institutional-shell.css');
 @import url('/src/styles/pages/institutional-pages.css');
+@import './themes/dark-atmosphere.css';

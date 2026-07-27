@@ -30,7 +30,6 @@ import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
-import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
 
 const ATHLETE_STEP_ICONS = {
@@ -56,22 +55,21 @@ const BENEFIT_ICONS = {
   community: Users,
 }
 
-/** Tarjeta premium reactiva compartida — numeral fantasma, ícono y luz que sigue el cursor */
-function PitbullValueCard({ index, Icon, label, text }) {
+/** Fila editorial — numeral e ícono funcional, mismo lenguaje visual que
+ * el numerado de "Camino del competidor" (sin card, sin hover reactivo). */
+function PitbullValueRow({ index, Icon, label, text }) {
   const num = String(index + 1).padStart(2, '0')
   return (
-    <li className="pitbull-value-card" onPointerMove={handleReactivePointer}>
-      <span className="pitbull-value-card__ghost" aria-hidden>
+    <li className="pitbull-value-row__item">
+      <span className="pitbull-value-row__index motif-num" aria-hidden>
         {num}
       </span>
-      {Icon ? (
-        <span className="pitbull-value-card__icon" aria-hidden>
-          <Icon size={19} strokeWidth={1.5} />
-        </span>
-      ) : null}
-      <div className="pitbull-value-card__body">
-        <h4 className="pitbull-value-card__label">{label}</h4>
-        <p className="pitbull-value-card__text">{text}</p>
+      <div className="pitbull-value-row__copy">
+        <h4 className="pitbull-value-row__label">
+          {Icon ? <Icon size={15} strokeWidth={1.75} aria-hidden className="pitbull-value-row__icon" /> : null}
+          {label}
+        </h4>
+        <p className="pitbull-value-row__text">{text}</p>
       </div>
     </li>
   )
@@ -79,14 +77,6 @@ function PitbullValueCard({ index, Icon, label, text }) {
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-/** Luz reactiva compartida — setea la posición del cursor como % sobre el elemento */
-function handleReactivePointer(event) {
-  const el = event.currentTarget
-  const rect = el.getBoundingClientRect()
-  el.style.setProperty('--mx', `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`)
-  el.style.setProperty('--my', `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`)
 }
 
 function scrollToInscription() {
@@ -327,7 +317,7 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
       <div className="pitbull-dossier__actions pitbull-dossier__actions--athletes">
         <button
           type="button"
-          className="pitbull-dossier__cta pitbull-dossier__cta--primary motion-icon-shift"
+          className="pitbull-dossier__cta motion-icon-shift"
           onClick={scrollToInscription}
         >
           {t('pages.pitbull.athletesCta')}
@@ -349,14 +339,9 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
             <h3 className="pitbull-value-block__title">{t('pages.pitbull.benefitsTitle')}</h3>
             <p className="pitbull-value-block__lead">{t('pages.pitbull.benefitsLead')}</p>
           </header>
-          <StaggerGroup
-            as="ol"
-            className="pitbull-value-grid"
-            stagger={70}
-            aria-label={t('pages.pitbull.benefitsAria')}
-          >
+          <ol className="pitbull-value-row" aria-label={t('pages.pitbull.benefitsAria')}>
             {benefits.map((benefit, index) => (
-              <PitbullValueCard
+              <PitbullValueRow
                 key={benefit.id}
                 index={index}
                 Icon={BENEFIT_ICONS[benefit.id]}
@@ -364,7 +349,7 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
                 text={benefit.text}
               />
             ))}
-          </StaggerGroup>
+          </ol>
         </div>
       ) : null}
     </PitbullDossierSection>
@@ -760,13 +745,13 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           {groups.map((group) => (
             <div key={group.id} className="pitbull-doc__group">
               <p className="pitbull-doc__group-label">{group.label}</p>
-              <StaggerGroup as="ul" className="pitbull-doc__lookbook" stagger={24} role="list">
+              <ul className="pitbull-doc__lookbook" role="list">
                 {group.rows.map((row) => (
                   <li key={row} className="pitbull-doc__lookbook-item">
-                    <span className="pitbull-doc__lookbook-label">{row}</span>
+                    {row}
                   </li>
                 ))}
-              </StaggerGroup>
+              </ul>
             </div>
           ))}
         </div>

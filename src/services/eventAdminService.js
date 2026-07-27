@@ -6,20 +6,84 @@ import { apiGet, apiPost } from '../lib/api.js'
 const DEFAULT_SLOTS = 80
 
 function slugify(title, dateISO) {
-  const base = title
+  const base = String(title ?? '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
   const year = dateISO?.slice(0, 4) ?? '2026'
-  return `${base}-${year}`
+  return `${base || 'evento'}-${year}`
 }
 
 function formatEventDate(dateISO) {
   if (!dateISO) return '—'
   const date = new Date(`${dateISO}T12:00:00`)
   return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '')
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16)
+
+  const pad = (part) => String(part).padStart(2, '0')
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  ].join('T')
+}
+
+function clonePricing(pricing) {
+  const normalized = normalizeEventPricingInput(pricing)
+  return {
+    ...normalized,
+    ticketAddons: (normalized.ticketAddons ?? []).map((addon) => ({ ...addon })),
+  }
+}
+
+export function createAdminEventDraft() {
+  return {
+    ...ADMIN_EVENT_FORM_DEFAULT,
+    pricing: clonePricing(ADMIN_EVENT_FORM_DEFAULT.pricing),
+    eventDays: [],
+    ticketTypes: [],
+  }
+}
+
+export function buildAdminEventDraft(event) {
+  if (!event) return createAdminEventDraft()
+
+  return {
+    ...createAdminEventDraft(),
+    id: event.id,
+    expectedUpdatedAt: event.updatedAt ?? '',
+    slug: event.slug,
+    title: event.title ?? '',
+    dateISO: event.dateISO ?? event.startsAt?.slice(0, 10) ?? '',
+    venue: event.venue ?? '',
+    location: event.location ?? '',
+    status: event.status ?? 'proximamente',
+    featured: Boolean(event.featured),
+    slots: event.slots ?? DEFAULT_SLOTS,
+    pricing: clonePricing(event.pricing),
+    startsAt: toDateTimeLocal(event.startsAt),
+    endsAt: toDateTimeLocal(event.endsAt),
+    registrationOpensAt: toDateTimeLocal(event.registrationOpensAt),
+    registrationClosesAt: toDateTimeLocal(event.registrationClosesAt),
+    ticketSalesOpensAt: toDateTimeLocal(event.ticketSalesOpensAt),
+    ticketSalesClosesAt: toDateTimeLocal(event.ticketSalesClosesAt),
+    eventDays: (event.eventDays ?? []).map((day) => ({ ...day })),
+    ticketTypes: (event.ticketTypes ?? []).map((type) => ({
+      ...type,
+      dayIndexes: [...(type.dayIndexes ?? [])],
+      includedAddonIds: [...(type.includedAddonIds ?? [])],
+    })),
+    liveStreamUrl: event.liveStreamUrl ?? '',
+    liveStreamProvider: event.liveStreamProvider ?? 'youtube',
+    liveStatus: event.liveStatus ?? 'offline',
+    published: event.published === true,
+  }
 }
 
 export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
@@ -38,7 +102,11 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     featured: Boolean(draft.featured),
     slots,
     registered: sourceEvent?.registered ?? 0,
-    slug: sourceEvent?.slug ?? (title && dateISO ? slugify(title, dateISO) : 'evento-preview'),
+    published: draft.published === true,
+    slug:
+      draft.slug ??
+      sourceEvent?.slug ??
+      (title && dateISO ? slugify(title, dateISO) : 'evento-preview'),
   }
 }
 
@@ -57,15 +125,17 @@ export function getInitialAdminEvents(storedEvents) {
   if (!storedEvents?.length) return seed
 
   const seedBySlug = Object.fromEntries(seed.map((event) => [event.slug, event]))
-  const merged = storedEvents
-    .map((event, index) => ({
-      ...(seedBySlug[event.slug] ?? {}),
-      ...event,
-      createdAt: event.createdAt ?? seedBySlug[event.slug]?.createdAt ?? `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
-      createdOrder: event.createdOrder ?? seedBySlug[event.slug]?.createdOrder ?? Date.now() + index,
-      published: event.published ?? seedBySlug[event.slug]?.published ?? true,
-      pricing: normalizeEventPricingInput(event.pricing ?? seedBySlug[event.slug]?.pricing),
-    }))
+  const merged = storedEvents.map((event, index) => ({
+    ...(seedBySlug[event.slug] ?? {}),
+    ...event,
+    createdAt:
+      event.createdAt ??
+      seedBySlug[event.slug]?.createdAt ??
+      `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+    createdOrder: event.createdOrder ?? seedBySlug[event.slug]?.createdOrder ?? Date.now() + index,
+    published: event.published ?? seedBySlug[event.slug]?.published ?? true,
+    pricing: normalizeEventPricingInput(event.pricing ?? seedBySlug[event.slug]?.pricing),
+  }))
 
   for (const event of seed) {
     if (!merged.some((item) => item.slug === event.slug)) {
@@ -81,12 +151,16 @@ export function filterAdminEvents(events, { query = '', status = 'all' } = {}) {
 
   return events.filter((event) => {
     const statusMatch = status === 'all' || event.status === status
+    const title = String(event.title ?? '').toLowerCase()
+    const venue = String(event.venue ?? '').toLowerCase()
+    const location = String(event.location ?? '').toLowerCase()
+    const slug = String(event.slug ?? '').toLowerCase()
     const queryMatch =
       !normalizedQuery ||
-      event.title.toLowerCase().includes(normalizedQuery) ||
-      event.venue.toLowerCase().includes(normalizedQuery) ||
-      event.location.toLowerCase().includes(normalizedQuery) ||
-      event.slug.includes(normalizedQuery)
+      title.includes(normalizedQuery) ||
+      venue.includes(normalizedQuery) ||
+      location.includes(normalizedQuery) ||
+      slug.includes(normalizedQuery)
 
     return statusMatch && queryMatch
   })
@@ -119,6 +193,7 @@ export function createAdminEvent(events, payload) {
     status: payload.status ?? 'proximamente',
     featured,
     createdAt,
+    updatedAt: createdAt,
     createdOrder: Date.now(),
     slots: Number(payload.slots) || DEFAULT_SLOTS,
     registered: 0,
@@ -187,6 +262,7 @@ export function updateAdminEvent(events, eventId, payload) {
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
       published: Boolean(payload.published),
+      updatedAt: new Date().toISOString(),
     }
     return updated
   })
@@ -245,7 +321,9 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
  */
 export function buildEventTicketStats(tickets, eventSlug) {
   const eventTickets = tickets.filter((ticket) => ticket.eventSlug === eventSlug)
-  const paid = eventTickets.filter((ticket) => ticket.status === 'pagada' || ticket.status === 'usada')
+  const paid = eventTickets.filter(
+    (ticket) => ticket.status === 'pagada' || ticket.status === 'usada',
+  )
   const pending = eventTickets.filter((ticket) => ticket.status === 'pendiente_pago')
   const checkedIn = eventTickets.filter((ticket) => Boolean(ticket.checkedInAt))
   const revenue = paid.reduce((sum, ticket) => sum + (ticket.unitPrice ?? 0), 0)
@@ -254,7 +332,11 @@ export function buildEventTicketStats(tickets, eventSlug) {
   for (const ticket of paid) {
     const key = ticket.ticketTypeId ?? 'sin-tipo'
     if (!byTicketType[key]) {
-      byTicketType[key] = { ticketTypeId: ticket.ticketTypeId, name: ticket.ticketTypeName ?? key, count: 0 }
+      byTicketType[key] = {
+        ticketTypeId: ticket.ticketTypeId,
+        name: ticket.ticketTypeName ?? key,
+        count: 0,
+      }
     }
     byTicketType[key].count += 1
   }
@@ -295,16 +377,18 @@ function mapSupabaseTicketCatalog(row) {
   return { eventDays, ticketTypes }
 }
 
-/**
- * Fase 1 — calendario/directo/cupos viven en Supabase (supabase/migrations/
- * 20260706030000_phase1_events_ticketing.sql), no en localStorage. El resto
- * del catálogo de eventos (título/venue/pricing/featured) sigue en
- * localStorage por ahora — ver AdminEventEditor.jsx.
- */
 export function mapSupabaseEventRow(row) {
   const rules = row.rules ?? {}
   const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
+  const registrationCount =
+    row.registrationCount ??
+    row.registration_count ??
+    row.eventRegistrations?.[0]?.count ??
+    row.event_registrations?.[0]?.count ??
+    0
+
   return {
+    id: row.id,
     slug: row.slug,
     title: row.title,
     description: row.description ?? '',
@@ -327,7 +411,10 @@ export function mapSupabaseEventRow(row) {
     liveStatus: row.live_status,
     dateISO: row.starts_at?.slice(0, 10) ?? '',
     slots: row.capacity ?? DEFAULT_SLOTS,
+    registered: Number(registrationCount) || 0,
     featured: Boolean(rules.featured),
+    createdAt: row.created_at ?? '',
+    updatedAt: row.updated_at ?? '',
     eventDays,
     ticketTypes,
     pricing: normalizeEventPricingInput({
@@ -337,6 +424,20 @@ export function mapSupabaseEventRow(row) {
       ticketsEnabled: rules.ticketsEnabled,
       ticketAddons: rules.ticketAddons,
     }),
+  }
+}
+
+function mapAdminEventRow(row, index = 0) {
+  const capacity = Object.fromEntries(
+    (row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]),
+  )
+  const event = mapSupabaseEventRow(row)
+
+  return {
+    ...event,
+    date: event.dateISO ? formatEventDate(event.dateISO) : '—',
+    slots: row.capacity ?? capacity.event ?? event.slots ?? DEFAULT_SLOTS,
+    createdOrder: row.created_at ? new Date(row.created_at).getTime() : index,
   }
 }
 
@@ -355,47 +456,42 @@ const PUBLISHED_EVENTS_SELECT = `
 export async function fetchPublishedEvents() {
   if (!isSupabaseConfigured || !supabase) return []
 
-  const { data, error } = await supabase.from('events').select(PUBLISHED_EVENTS_SELECT).eq('published', true)
+  const { data, error } = await supabase
+    .from('events')
+    .select(PUBLISHED_EVENTS_SELECT)
+    .eq('published', true)
   if (error) throw error
   return (data ?? []).map(mapSupabaseEventRow)
 }
 
-/**
- * Escribe los campos de calendario/directo/cupos de un evento en Supabase
- * (upsert por slug). Requiere una sesión de Supabase con rol admin (RLS
- * `events_write_admin`) — hasta que la fase de migración de auth conecte
- * el login del panel a Supabase Auth, esta llamada va a fallar con un
- * error de permisos; se deja implementada para que empiece a funcionar
- * en cuanto esa fase esté lista, sin tener que reescribir el formulario.
- */
-export async function upsertEventCalendarLiveFields(draft) {
-  if (!draft.slug) throw new Error('Falta el slug del evento.')
+/** Guarda el evento completo a través de Express y devuelve el estado
+ * canónico de la colección. El navegador nunca escribe Supabase directo. */
+export async function saveAdminEventRequest(draft, sourceEvent = null) {
+  const preview = mapDraftToPreviewEvent(draft, sourceEvent)
+  const slug = sourceEvent?.slug ?? draft.slug ?? preview.slug
+  if (!slug) throw new Error('Falta el slug del evento.')
 
   const startsAt = draft.startsAt || (draft.dateISO ? `${draft.dateISO}T00:00:00` : null)
   const endsAt = draft.endsAt || startsAt
   if (!startsAt || !endsAt) throw new Error('Falta la fecha del evento.')
 
-  const { event } = await apiPost('/api/events/upsert', {
+  const response = await apiPost('/api/events/upsert', {
     ...draft,
+    id: sourceEvent?.id ?? draft.id,
+    expectedUpdatedAt: sourceEvent?.updatedAt ?? draft.expectedUpdatedAt,
+    slug,
     startsAt,
     endsAt,
     pricing: normalizeEventPricingInput(draft.pricing),
   })
-  return mapSupabaseEventRow(event)
+
+  return {
+    event: mapAdminEventRow(response.event),
+    events: (response.events ?? [response.event]).map(mapAdminEventRow),
+  }
 }
 
 export async function fetchAdminEvents() {
   const { events } = await apiGet('/api/events')
-  return events.map((row) => {
-    const capacity = Object.fromEntries((row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]))
-    return {
-      id: row.id,
-      ...mapSupabaseEventRow(row),
-      dateISO: row.starts_at?.slice(0, 10) ?? '',
-      date: row.starts_at ? formatEventDate(row.starts_at.slice(0, 10)) : '—',
-      slots: row.capacity ?? capacity.event ?? DEFAULT_SLOTS,
-      registered: 0,
-      createdAt: row.created_at,
-    }
-  })
+  return events.map(mapAdminEventRow)
 }

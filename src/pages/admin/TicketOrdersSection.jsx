@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
@@ -20,6 +20,7 @@ function formatUploadedAt(value, locale) {
 
 export default function TicketOrdersSection({
   canEdit,
+  initialQuery = '',
   pendingTicketOrders = [],
   isLoading = false,
   loadError = null,
@@ -30,7 +31,11 @@ export default function TicketOrdersSection({
   const [openingProofId, setOpeningProofId] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
   const [actionError, setActionError] = useState(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
+
+  useEffect(() => {
+    setQuery(initialQuery)
+  }, [initialQuery])
 
   const allRows = useMemo(
     () =>
@@ -58,24 +63,29 @@ export default function TicketOrdersSection({
     if (!normalized) return allRows
 
     return allRows.filter((row) =>
-      [row.reference, row.event, row.attendees].some((field) => field?.toLowerCase().includes(normalized)),
+      [row.reference, row.event, row.attendees].some((field) =>
+        field?.toLowerCase().includes(normalized),
+      ),
     )
   }, [allRows, query])
 
-  const handleOpenProof = useCallback(async (row) => {
-    if (!row.paymentProofPath) return
-    setOpeningProofId(row.id)
-    setActionError(null)
-    try {
-      const url = await getTicketPaymentProofUrl(row.id)
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-    } catch (error) {
-      console.error('getTicketPaymentProofUrl:', error)
-      setActionError(error.message ?? t('admin.ticketOrders.proofErrorFallback'))
-    } finally {
-      setOpeningProofId(null)
-    }
-  }, [t])
+  const handleOpenProof = useCallback(
+    async (row) => {
+      if (!row.paymentProofPath) return
+      setOpeningProofId(row.id)
+      setActionError(null)
+      try {
+        const url = await getTicketPaymentProofUrl(row.id)
+        if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      } catch (error) {
+        console.error('getTicketPaymentProofUrl:', error)
+        setActionError(error.message ?? t('admin.ticketOrders.proofErrorFallback'))
+      } finally {
+        setOpeningProofId(null)
+      }
+    },
+    [t],
+  )
 
   async function handleApprove(orderId) {
     if (!canEdit) return
@@ -111,65 +121,100 @@ export default function TicketOrdersSection({
       ) : loadError ? (
         <ErrorState message={loadError} onRetry={onRefresh} retryLabel={t('common.retry')} />
       ) : (
-      <AdminDataTable
-        columns={[
-          { key: 'reference', label: t('admin.columns.reference'), mobile: 'primary', sortable: true },
-          { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
-          { key: 'attendees', label: t('admin.columns.attendee'), mobile: 'default', sortable: true },
-          { key: 'ticketCount', label: t('admin.ticketOrders.tickets'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true },
-          { key: 'amount', label: t('admin.columns.amount'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true },
-          {
-            key: 'proofStatus',
-            label: t('admin.ticketOrders.proof'),
-            mobile: 'badge',
-            sortable: true,
-            render: (row) => (
-              <span className={row.paymentProofPath ? 'admin-proof-pill admin-proof-pill--ok' : 'admin-proof-pill'}>
-                {row.proofStatus}
-              </span>
-            ),
-          },
-          { key: 'proofUploadedAt', label: t('admin.ticketOrders.uploadedAt'), mobile: 'hidden', sortable: true },
-          {
-            key: 'status',
-            label: t('admin.columns.status'),
-            mobile: 'badge',
-            sortable: true,
-            render: (row) => <StatusBadge value={row.status} />,
-          },
-          {
-            key: 'actions',
-            label: t('admin.columns.action'),
-            mobile: 'action',
-            render: (row) => (
-              <AdminTableActions>
-                {row.paymentProofPath ? (
-                  <AdminIconButton
-                    label={t('admin.ticketOrders.viewProof')}
-                    onClick={() => handleOpenProof(row)}
-                    disabled={openingProofId === row.id}
-                  >
-                    <ExternalLink size={14} aria-hidden />
-                  </AdminIconButton>
-                ) : null}
-                {canEdit ? (
-                  <button
-                    type="button"
-                    className="btn btn--small"
-                    disabled={approvingId === row.id}
-                    onClick={() => handleApprove(row.id)}
-                  >
-                    {t('admin.actions.validate')}
-                  </button>
-                ) : null}
-              </AdminTableActions>
-            ),
-          },
-        ]}
-        rows={rows}
-        emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
-        variant="admin"
-      />
+        <AdminDataTable
+          columns={[
+            {
+              key: 'reference',
+              label: t('admin.columns.reference'),
+              mobile: 'primary',
+              sortable: true,
+            },
+            { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
+            {
+              key: 'attendees',
+              label: t('admin.columns.attendee'),
+              mobile: 'default',
+              sortable: true,
+            },
+            {
+              key: 'ticketCount',
+              label: t('admin.ticketOrders.tickets'),
+              mobile: 'default',
+              desktop: 'numeric',
+              align: 'end',
+              sortable: true,
+            },
+            {
+              key: 'amount',
+              label: t('admin.columns.amount'),
+              mobile: 'default',
+              desktop: 'numeric',
+              align: 'end',
+              sortable: true,
+            },
+            {
+              key: 'proofStatus',
+              label: t('admin.ticketOrders.proof'),
+              mobile: 'badge',
+              sortable: true,
+              render: (row) => (
+                <span
+                  className={
+                    row.paymentProofPath
+                      ? 'admin-proof-pill admin-proof-pill--ok'
+                      : 'admin-proof-pill'
+                  }
+                >
+                  {row.proofStatus}
+                </span>
+              ),
+            },
+            {
+              key: 'proofUploadedAt',
+              label: t('admin.ticketOrders.uploadedAt'),
+              mobile: 'hidden',
+              sortable: true,
+            },
+            {
+              key: 'status',
+              label: t('admin.columns.status'),
+              mobile: 'badge',
+              sortable: true,
+              render: (row) => <StatusBadge value={row.status} />,
+            },
+            {
+              key: 'actions',
+              label: t('admin.columns.action'),
+              mobile: 'action',
+              render: (row) => (
+                <AdminTableActions>
+                  {row.paymentProofPath ? (
+                    <AdminIconButton
+                      label={t('admin.ticketOrders.viewProof')}
+                      onClick={() => handleOpenProof(row)}
+                      disabled={openingProofId === row.id}
+                    >
+                      <ExternalLink size={14} aria-hidden />
+                    </AdminIconButton>
+                  ) : null}
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      disabled={approvingId === row.id}
+                      onClick={() => handleApprove(row.id)}
+                    >
+                      {t('admin.actions.validate')}
+                    </button>
+                  ) : null}
+                </AdminTableActions>
+              ),
+            },
+          ]}
+          rows={rows}
+          emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
+          variant="admin"
+        />
       )}
     </AdminListSection>
   )

@@ -206,6 +206,7 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
                 render: (row) => formatDateTime(row.createdAt, locale),
                 sortAccessor: (row) => row.createdAt ?? '',
                 sortable: true,
+                defaultSort: 'desc',
               },
               {
                 key: 'amount',

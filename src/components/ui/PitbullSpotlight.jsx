@@ -48,6 +48,9 @@ export default function PitbullSpotlight({
   const dateMonthLabel = `${PITBULL_CLASSIC.dateMonth} 2026`
 
   if (isEvents) {
+    // Todo lo visible sale de `event` (el próximo evento real, resuelto por
+    // fecha/estado en EventsPage) — antes esta rama mostraba siempre los
+    // datos de PITBULL_CLASSIC sin importar qué evento llegara por prop.
     const calendarEvent = event ?? {
       slug: 'pitbull-classic-2026',
       title: PITBULL_CLASSIC.title,
@@ -57,20 +60,48 @@ export default function PitbullSpotlight({
       endsAt: '2026-12-13T20:00:00-03:00',
       description: t('pages.events.spotlightLead'),
     }
+    const title = event?.title ?? PITBULL_CLASSIC.title
+    const venue = event?.venue ?? PITBULL_CLASSIC.venue
+    const location = event?.location ?? PITBULL_CLASSIC.location
+    const displayDate = event?.displayDate ?? PITBULL_CLASSIC.dateShort
     const status = event?.status ?? 'proximamente'
     const { label: statusLabel, tone: statusTone } = getStatusMeta(status, t)
+
+    // Mismo criterio que PitbullHero: el CTA principal sigue el estado real
+    // del evento — antes esta ficha ofrecía "Registrarme" aunque la
+    // inscripción todavía no estuviera abierta.
+    const registrationOpen = isRegistrationOpen(status)
+    const isFinished = status === 'finalizado'
+    let primaryLabel = resolvedRegisterLabel
+    let primaryAction = onRegister
+    if (!registrationOpen) {
+      if (isFinished) {
+        primaryLabel = t('pages.home.viewResults')
+        primaryAction = onResults ?? onDetail
+      } else {
+        primaryLabel = t('pages.pitbull.joinNow')
+        primaryAction = onJoin ?? onDetail
+      }
+    }
 
     return (
       <article className="events-spotlight-card">
         <div className="events-spotlight-card__layout">
           <div className="events-spotlight-card__main">
+            <p className="events-spotlight-card__eyebrow">
+              <span className="events-spotlight-card__eyebrow-dot" aria-hidden />
+              {t('pages.pitbull.spotlight.nextEvent')}
+            </p>
+
             <div className="events-spotlight-card__head">
               <div className="events-spotlight-card__copy">
-                <h2 className="events-spotlight-card__title">{PITBULL_CLASSIC.title}</h2>
+                <h2 className="events-spotlight-card__title">{title}</h2>
                 <p className="events-spotlight-card__meta">
-                  {PITBULL_CLASSIC.venue}
+                  <time dateTime={event?.dateISO}>{displayDate}</time>
                   <span aria-hidden> · </span>
-                  {PITBULL_CLASSIC.location}
+                  {venue}
+                  <span aria-hidden> · </span>
+                  {location}
                 </p>
               </div>
               <span className={`events-spotlight-card__status events-spotlight-card__status--${statusTone}`}>
@@ -84,12 +115,12 @@ export default function PitbullSpotlight({
                 role="group"
                 aria-label={t('pages.events.spotlightActionsAria')}
               >
-                {onRegister ? (
+                {primaryAction ? (
                   <Button
                     className="events-spotlight-card__cta events-spotlight-card__cta--primary motion-icon-shift"
-                    onClick={onRegister}
+                    onClick={primaryAction}
                   >
-                    {resolvedRegisterLabel}
+                    {primaryLabel}
                     <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
                   </Button>
                 ) : null}
@@ -105,9 +136,6 @@ export default function PitbullSpotlight({
             </div>
           </div>
         </div>
-        <time className="events-spotlight-card__date-sr" dateTime="2026-12-12/2026-12-13">
-          {PITBULL_CLASSIC.date}
-        </time>
       </article>
     )
   }

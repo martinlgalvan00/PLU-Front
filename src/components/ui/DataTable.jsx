@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronsUpDown, Inbox, SlidersHorizontal } from 'lucide-react'
+import { useId, useMemo, useState } from 'react'
+import { ArrowDown, ArrowUp, ChevronsUpDown, Inbox } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import StatusBadge from './StatusBadge.jsx'
 
@@ -21,6 +21,15 @@ function compareValues(a, b) {
 
 function hasMobileLayout(columns) {
   return columns.some((col) => col.mobile)
+}
+
+function initialSortFromColumns(columns) {
+  const column = columns.find((item) => item.sortable && item.defaultSort)
+  if (!column) return null
+  return {
+    key: column.key,
+    direction: column.defaultSort === 'asc' ? 'asc' : 'desc',
+  }
 }
 
 function columnClassName(column, index) {
@@ -122,6 +131,7 @@ export default function DataTable({
   variant = 'default',
 }) {
   const { t } = useI18n()
+  const sortToolbarLabelId = useId()
   const tableClass = [
     'data-table',
     variant === 'admin' ? 'data-table--admin' : '',
@@ -136,9 +146,21 @@ export default function DataTable({
     `data-table-cards ${variant === 'admin' ? 'data-table-cards--admin' : ''}`.trim()
   const useCompactCards = variant === 'admin' && hasMobileLayout(columns)
   const sortableColumns = columns.filter((column) => column.sortable)
+  /** En mobile solo se ofrecen campos que la card muestra (y no opt-out). */
+  const mobileSortColumns = sortableColumns.filter(
+    (column) => column.mobile !== 'hidden' && column.mobileSortable !== false,
+  )
 
-  const [sort, setSort] = useState(null)
+  const [sort, setSort] = useState(() => initialSortFromColumns(columns))
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const activeSortColumn = sort ? columns.find((item) => item.key === sort.key) : null
+  const singleMobileSortColumn =
+    mobileSortColumns.length === 1 ? mobileSortColumns[0] : null
+  // Un solo campo con orden por defecto (ej. pagos por fecha): sin toolbar.
+  const showMobileSortToolbar =
+    useCompactCards &&
+    (mobileSortColumns.length > 1 ||
+      Boolean(singleMobileSortColumn && !singleMobileSortColumn.defaultSort))
 
   const sortedRows = useMemo(() => {
     if (!sort) return rows
@@ -151,15 +173,34 @@ export default function DataTable({
   function toggleSort(col) {
     if (!col.sortable) return
     setSort((current) => {
-      if (current?.key !== col.key) return { key: col.key, direction: 'asc' }
+      if (current?.key !== col.key) {
+        return {
+          key: col.key,
+          direction: col.defaultSort === 'asc' ? 'asc' : col.defaultSort ? 'desc' : 'asc',
+        }
+      }
+      // Con defaultSort (ej. historial por fecha) solo flip; no tiene sentido "orden original".
+      if (col.defaultSort) {
+        return { key: col.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+      }
       if (current.direction === 'asc') return { key: col.key, direction: 'desc' }
       return null
     })
   }
 
-  function handleMobileSortChange(event) {
-    const key = event.target.value
-    setSort(key ? { key, direction: 'asc' } : null)
+  function chooseMobileSort(col) {
+    const isSame = sort?.key === col.key
+    if (!isSame) {
+      setSort({ key: col.key, direction: 'asc' })
+      setSortMenuOpen(false)
+      return
+    }
+    if (sort.direction === 'asc') {
+      setSort({ key: col.key, direction: 'desc' })
+      return
+    }
+    setSort(null)
+    setSortMenuOpen(false)
   }
 
   if (!rows.length) {
@@ -266,57 +307,113 @@ export default function DataTable({
         </table>
       </div>
 
-      {useCompactCards && sortableColumns.length > 0 && (
-        <details className={`data-table-mobile-toolbar${sort ? ' is-sorted' : ''}`}>
-          <summary className="data-table-mobile-toolbar__summary">
-            <SlidersHorizontal size={14} aria-hidden />
-            <span className="data-table-mobile-toolbar__summary-label">
-              {activeSortColumn
-                ? t('admin.table.sortedBy', { field: activeSortColumn.label })
-                : t('admin.table.sortLabel')}
-            </span>
-            <ChevronsUpDown size={14} aria-hidden className="data-table-mobile-toolbar__chevron" />
-          </summary>
-          <div className="data-table-mobile-toolbar__panel">
-            <label className="data-table-mobile-toolbar__select">
-              <span>{t('admin.table.sortField')}</span>
-              <select value={sort?.key ?? ''} onChange={handleMobileSortChange}>
-                <option value="">{t('admin.table.defaultOrder')}</option>
-                {sortableColumns.map((column) => (
-                  <option key={column.key} value={column.key}>
-                    {column.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+      {showMobileSortToolbar ? (
+        singleMobileSortColumn ? (
+          <div
+            className={`data-table-mobile-toolbar data-table-mobile-toolbar--single${sort ? ' is-sorted' : ''}`}
+          >
             <button
               type="button"
-              className="data-table-mobile-toolbar__direction"
+              className="data-table-mobile-toolbar__trigger"
+              aria-pressed={Boolean(sort)}
               aria-label={
-                sort?.direction === 'desc'
-                  ? t('admin.table.sortAscending')
-                  : t('admin.table.sortDescending')
+                sort?.direction === 'asc'
+                  ? t('admin.table.sortDescending')
+                  : t('admin.table.sortAscending')
               }
-              disabled={!sort}
-              onClick={() =>
-                setSort(
-                  (current) =>
-                    current && {
-                      ...current,
-                      direction: current.direction === 'asc' ? 'desc' : 'asc',
-                    },
-                )
-              }
+              onClick={() => toggleSort(singleMobileSortColumn)}
             >
-              {sort?.direction === 'desc' ? (
-                <ArrowDown size={15} aria-hidden />
+              <span className="data-table-mobile-toolbar__trigger-label">
+                {singleMobileSortColumn.mobileSortLabel ?? singleMobileSortColumn.label}
+              </span>
+              {sort?.key === singleMobileSortColumn.key ? (
+                sort.direction === 'asc' ? (
+                  <ArrowUp size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                ) : (
+                  <ArrowDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                )
               ) : (
-                <ArrowUp size={15} aria-hidden />
+                <ChevronsUpDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
               )}
             </button>
           </div>
-        </details>
-      )}
+        ) : (
+          <div
+            className={`data-table-mobile-toolbar${sort ? ' is-sorted' : ''}${sortMenuOpen ? ' is-open' : ''}`}
+          >
+            <div className="data-table-mobile-toolbar__bar">
+              <button
+                type="button"
+                className="data-table-mobile-toolbar__trigger"
+                aria-controls={sortToolbarLabelId}
+                aria-expanded={sortMenuOpen}
+                onClick={() => setSortMenuOpen((open) => !open)}
+              >
+                <span className="data-table-mobile-toolbar__trigger-label">
+                  {activeSortColumn
+                    ? t('admin.table.sortedBy', {
+                        field: activeSortColumn.mobileSortLabel ?? activeSortColumn.label,
+                      })
+                    : t('admin.table.sortLabel')}
+                </span>
+                {activeSortColumn ? (
+                  sort.direction === 'asc' ? (
+                    <ArrowUp size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                  ) : (
+                    <ArrowDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                  )
+                ) : (
+                  <ChevronsUpDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                )}
+              </button>
+
+              {sort ? (
+                <button
+                  type="button"
+                  className="data-table-mobile-toolbar__clear"
+                  onClick={() => {
+                    setSort(null)
+                    setSortMenuOpen(false)
+                  }}
+                >
+                  {t('admin.table.clearSort')}
+                </button>
+              ) : null}
+            </div>
+
+            {sortMenuOpen ? (
+              <div
+                id={sortToolbarLabelId}
+                className="data-table-mobile-toolbar__chips"
+                role="group"
+                aria-label={t('admin.table.sortLabel')}
+              >
+                {mobileSortColumns.map((column) => {
+                  const active = sort?.key === column.key
+                  return (
+                    <button
+                      key={column.key}
+                      type="button"
+                      className={`data-table-mobile-toolbar__chip${active ? ' is-active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() => chooseMobileSort(column)}
+                    >
+                      <span>{column.mobileSortLabel ?? column.label}</span>
+                      {active ? (
+                        sort.direction === 'asc' ? (
+                          <ArrowUp size={12} aria-hidden className="data-table-mobile-toolbar__chip-icon" />
+                        ) : (
+                          <ArrowDown size={12} aria-hidden className="data-table-mobile-toolbar__chip-icon" />
+                        )
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        )
+      ) : null}
 
       <div className={cardsClass} aria-label={t('admin.table.listAria')}>
         {sortedRows.map((row) => {

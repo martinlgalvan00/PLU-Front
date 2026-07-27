@@ -16,7 +16,10 @@ import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 
 export default function AdminPage({
   accessRoles,
+  roleActivity,
   adminEvents,
+  adminEventsLoading,
+  adminEventsError,
   allowedSections = [],
   authorization,
   canManageUsers,
@@ -31,6 +34,7 @@ export default function AdminPage({
   onApprovePayment,
   onApproveTicketPurchase,
   onRefreshPendingTicketOrders,
+  onRefreshAdminEvents,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
@@ -64,10 +68,13 @@ export default function AdminPage({
 }) {
   const preferredSection = isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard'
   const [section, setSection] = useState(() =>
-    allowedSections.includes(preferredSection) ? preferredSection : allowedSections[0] ?? preferredSection,
+    allowedSections.includes(preferredSection)
+      ? preferredSection
+      : (allowedSections[0] ?? preferredSection),
   )
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
+  const [paymentEventScope, setPaymentEventScope] = useState('')
 
   const pendingPayments = payments.filter(
     (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
@@ -82,6 +89,7 @@ export default function AdminPage({
 
   function handleSectionChange(nextSection) {
     if (!allowedSections.includes(nextSection)) return
+    if (nextSection === 'payments') setPaymentEventScope('')
     setSection(nextSection)
     if (nextSection !== 'athletes') {
       setSelectedAthleteId(null)
@@ -105,6 +113,23 @@ export default function AdminPage({
       status: 'all',
     }))
     setSection('registrations')
+  }
+
+  function handleManageEventRegistrations(event) {
+    if (!allowedSections.includes('registrations')) return
+    onSetFilters((current) => ({
+      ...current,
+      event: event.title,
+      query: '',
+      status: 'all',
+    }))
+    setSection('registrations')
+  }
+
+  function handleManageEventPayments(event) {
+    if (!allowedSections.includes('payments')) return
+    setPaymentEventScope(event.title)
+    setSection('payments')
   }
 
   function renderSection() {
@@ -175,6 +200,8 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
+          isLoading={adminEventsLoading}
+          loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
@@ -182,6 +209,13 @@ export default function AdminPage({
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
           onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
+          onManagePayments={
+            allowedSections.includes('payments') ? handleManageEventPayments : undefined
+          }
+          onManageRegistrations={
+            allowedSections.includes('registrations') ? handleManageEventRegistrations : undefined
+          }
+          onRefresh={onRefreshAdminEvents}
           onSaveEvent={onSaveEvent}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           tickets={tickets}
@@ -206,6 +240,7 @@ export default function AdminPage({
     if (section === 'roles') {
       return (
         <RolesSection
+          activity={roleActivity}
           authorization={authorization}
           onCreateRole={onCreateRole}
           onUpdatePermissions={onUpdateRolePermissions}
@@ -219,6 +254,7 @@ export default function AdminPage({
       return (
         <PaymentsOperationsSection
           canEdit={hasPermission(authorization, 'admin.payments.approve')}
+          ticketOrderEventScope={paymentEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}

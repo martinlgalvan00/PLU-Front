@@ -62,6 +62,15 @@ export default function RegistrationsSection({
       ]),
     [statusCounts, t],
   )
+  const eventOptions = useMemo(
+    () => [
+      ['all', t('admin.filters.allEvents')],
+      ...[...new Set(registrations.map((registration) => registration.event).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right))
+        .map((event) => [event, event]),
+    ],
+    [registrations, t],
+  )
 
   const registrationRows = useMemo(
     () =>
@@ -90,8 +99,12 @@ export default function RegistrationsSection({
     onSetFilters((current) => ({ ...current, status: value }))
   }
 
+  function handleEventChange(value) {
+    onSetFilters((current) => ({ ...current, event: value }))
+  }
+
   function handleClearFilters() {
-    onSetFilters((current) => ({ ...current, status: 'all', query: '' }))
+    onSetFilters((current) => ({ ...current, event: 'all', status: 'all', query: '' }))
   }
 
   return (
@@ -155,6 +168,14 @@ export default function RegistrationsSection({
         isGloballyEmpty
           ? []
           : [
+              {
+                id: 'event',
+                label: t('admin.filters.event'),
+                value: filters.event ?? 'all',
+                onChange: handleEventChange,
+                options: eventOptions,
+                variant: 'select',
+              },
               {
                 id: 'status',
                 label: t('admin.filters.status'),

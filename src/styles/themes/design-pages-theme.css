@@ -134,7 +134,7 @@
     radial-gradient(ellipse 72% 58% at 12% 38%, color-mix(in oklab, var(--plu-celeste-500) 16%, transparent), transparent 68%),
     radial-gradient(ellipse 48% 42% at 88% 22%, color-mix(in oklab, var(--plu-gold-500) 11%, transparent), transparent 70%);
   --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
-  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.68);
+  --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.72);
   --home-hero-eyebrow-stripe: linear-gradient(
     90deg,
     #5ba3d9 0%,
@@ -159,8 +159,8 @@
     var(--plu-gold-400) 48%,
     var(--plu-gold-500) 100%
   );
-  --home-hero-lead: rgba(255, 255, 255, 0.58);
-  --home-hero-lead-meta: rgba(255, 255, 255, 0.36);
+  --home-hero-lead: rgba(255, 255, 255, 0.72);
+  --home-hero-lead-meta: rgba(255, 255, 255, 0.48);
   --home-hero-metrics-border: rgba(255, 255, 255, 0.08);
   --home-hero-metric-value: #fff;
   --home-hero-metric-label: rgba(255, 255, 255, 0.42);
@@ -653,8 +653,8 @@
     var(--plu-gold-600) 52%,
     var(--plu-gold-600) 100%
   );
-  --home-hero-lead: rgba(15, 17, 23, 0.66);
-  --home-hero-lead-meta: rgba(15, 17, 23, 0.42);
+  --home-hero-lead: rgba(15, 17, 23, 0.72);
+  --home-hero-lead-meta: rgba(15, 17, 23, 0.5);
   --home-hero-metrics-border: rgba(15, 17, 23, 0.1);
   --home-hero-metric-value: var(--plu-ink-900);
   --home-hero-metric-label: rgba(15, 17, 23, 0.48);

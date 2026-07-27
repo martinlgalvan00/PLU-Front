@@ -5,6 +5,18 @@
    ============================================= */
 
 .pitbull-meet {
+  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 6px);
+  padding: clamp(6px, 1vw, 10px) clamp(16px, 2.4vw, 24px) clamp(12px, 1.8vw, 18px);
+}
+
+[data-theme='light'] .pitbull-meet {
+  background: color-mix(in oklab, var(--color-text-primary) 2%, transparent);
+  border-color: rgba(15, 17, 23, 0.09);
+}
+
+.pitbull-meet__top {
   border-top: 2px solid var(--color-border-strong);
 }
 

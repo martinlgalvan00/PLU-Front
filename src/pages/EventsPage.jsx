@@ -43,7 +43,7 @@ function EventsCountdownChip({ event, days, t }) {
   )
 }
 
-function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t }) {
+function EventsDetailPanel({ event, isFeaturedSelected, onRegister, onViewPitbull, registerLabel, t }) {
   if (!event) {
     return (
       <div className="events-detail events-detail--empty">
@@ -53,7 +53,28 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
     )
   }
 
-  const isPitbull = event.featured
+  // El evento destacado ya tiene su ficha completa (título, fecha, sede,
+  // CTA, calendario) en la columna principal — repetir todo acá abajo
+  // competía visualmente con esa pieza. Cuando la selección coincide con
+  // el destacado, mostramos solo un link de vuelta.
+  if (isFeaturedSelected) {
+    return (
+      <div className="events-detail events-detail--linked">
+        <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
+        {onViewPitbull ? (
+          <Button
+            variant="outline"
+            className="events-detail__cta events-detail__cta--secondary motion-icon-shift"
+            onClick={onViewPitbull}
+          >
+            {t('pages.events.viewFull')}
+            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+          </Button>
+        ) : null}
+      </div>
+    )
+  }
+
   const canRegister = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   const statusCopy = t(`pages.events.statusCopy.${event.status}`)
 
@@ -85,7 +106,7 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
             <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
           </Button>
         ) : null}
-        {isPitbull && onViewPitbull ? (
+        {onViewPitbull ? (
           <Button
             variant="outline"
             className="events-detail__cta events-detail__cta--secondary motion-icon-shift"
@@ -111,7 +132,10 @@ function EventsDetailPanel({ event, onRegister, onViewPitbull, registerLabel, t 
 function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  const ticketsEnabled = event?.pricing?.ticketsEnabled !== false
+  // `ticketPrice` es null cuando el evento todavía no tiene tipos de
+  // entrada cargados — antes eso caía en `money(null)` y mostraba
+  // "Desde $ 0", que lee como entrada gratis en vez de "sin publicar".
+  const hasPublishedPrice = event?.pricing?.ticketsEnabled !== false && ticketPrice != null
 
   return (
     <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">
@@ -122,7 +146,7 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
       </div>
       <div className="events-public-tickets__aside">
         <p className="events-public-tickets__price">
-          {ticketsEnabled
+          {hasPublishedPrice
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
             : t('pages.events.publicTicketsClosed')}
         </p>
@@ -130,7 +154,7 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
           variant="outline"
           className="events-public-tickets__cta motion-icon-shift"
           onClick={onBuyTickets}
-          disabled={!ticketsEnabled}
+          disabled={!hasPublishedPrice}
         >
           <Ticket size={14} aria-hidden />
           {t('pages.events.publicTicketsCta')}
@@ -254,8 +278,12 @@ export default function EventsPage({
 
   const listEvents = useMemo(() => {
     if (filter === 'done') return filteredEvents
-    return filteredEvents.filter((event) => !event.featured || !showPitbull)
-  }, [filter, filteredEvents, showPitbull])
+    // Excluye por slug (no por `event.featured`): ese flag viene del mock
+    // local (lib/events.js) pero se pierde al enriquecer con datos reales
+    // (admin/Supabase), y el evento destacado terminaba duplicado acá abajo.
+    if (!showPitbull || !pitbull?.slug) return filteredEvents
+    return filteredEvents.filter((event) => event.slug !== pitbull.slug)
+  }, [filter, filteredEvents, showPitbull, pitbull])
 
   useEffect(() => {
     // El evento destacado se excluye de `listEvents` porque ya se muestra en
@@ -342,6 +370,8 @@ export default function EventsPage({
                     event={pitbull}
                     onDetail={() => onNavigate('pitbull')}
                     onRegister={() => handleRegister(pitbull)}
+                    onJoin={() => onNavigate('members')}
+                    onResults={() => onNavigate('results')}
                     registerLabel={registerLabel}
                   />
                   <EventsAudienceTicketsPanel
@@ -404,8 +434,9 @@ export default function EventsPage({
             <div className="events-sidebar-card__detail">
               <EventsDetailPanel
                 event={selected}
+                isFeaturedSelected={Boolean(showPitbull && pitbull?.slug && selected?.slug === pitbull.slug)}
                 onRegister={selected ? () => handleRegister(selected) : undefined}
-                onViewPitbull={selected?.featured ? () => onNavigate('pitbull') : undefined}
+                onViewPitbull={pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined}
                 registerLabel={registerLabel}
                 t={t}
               />

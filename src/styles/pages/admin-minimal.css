@@ -16,7 +16,7 @@
 }
 
 .admin-shell .admin-shell__brand {
-  padding-block: 16px;
+  padding-block: 14px;
 }
 
 .admin-shell .admin-shell__nav {
@@ -29,7 +29,7 @@
 }
 
 .admin-shell .admin-shell__nav button.active::before,
-.admin-shell .admin-shell__session-dot {
+.admin-shell .admin-shell__account-mark {
   background: var(--admin-brand);
 }
 
@@ -38,8 +38,8 @@
   color: var(--admin-brand);
 }
 
-.admin-shell .admin-shell__session-dot {
-  border-color: color-mix(in srgb, var(--admin-sidebar-text) 14%, transparent);
+.admin-shell .admin-shell__account-mark {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-sidebar-text) 10%, transparent);
 }
 
 .admin-shell .admin-page {
@@ -482,13 +482,22 @@
 
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__copy,
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__copy,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action {
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__copy,
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__action {
   color: var(--admin-attention-text);
 }
 
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action {
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__action {
   color: var(--admin-premium, var(--admin-accent));
 }
 
@@ -691,7 +700,8 @@
   flex: 0 0 auto;
 }
 
-.admin-event-editor-modal .btn:not(.btn--ghost):not(.btn--outline):not(.btn--secondary):not(.btn--danger) {
+.admin-event-editor-modal
+  .btn:not(.btn--ghost):not(.btn--outline):not(.btn--secondary):not(.btn--danger) {
   background: var(--admin-action);
   border-color: var(--admin-action);
   color: var(--admin-on-action);
@@ -841,11 +851,23 @@
   }
 
   .admin-shell .admin-event-row {
-    grid-template-columns: minmax(220px, 1fr) auto auto;
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  }
+
+  .admin-shell .admin-event-row__capacity-bar {
+    display: none;
   }
 
   .admin-shell .admin-event-row__capacity {
-    display: none;
+    align-items: center;
+    display: inline-flex;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .admin-shell .admin-event-row__capacity-label {
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 
@@ -856,6 +878,21 @@
 
   .admin-quick-dock {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-shell .admin-list-shell__eyebrow,
+  .admin-shell .admin-list-shell__subtitle,
+  .admin-shell .admin-list-shell__title {
+    display: none;
+  }
+
+  .admin-shell
+    .admin-list-shell__header:not(:has(.admin-list-shell__actions)):not(
+      :has(.admin-list-shell__meta)
+    ) {
+    display: none;
   }
 }
 
@@ -973,7 +1010,17 @@
 
   .admin-shell .admin-event-row__body {
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-event-row__capacity {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .admin-shell .admin-event-row__capacity-bar {
+    display: none;
   }
 
   .admin-shell .admin-event-row__badge {
@@ -1427,23 +1474,49 @@
 .admin-shell .data-table-mobile-toolbar {
   background: transparent;
   border: 0;
+  justify-content: flex-end;
+  margin: 0 0 6px;
   padding: 0;
 }
 
-.admin-shell .data-table-mobile-toolbar__summary {
-  background: var(--admin-table-head);
-  border-color: var(--admin-hairline);
-  color: var(--admin-muted);
+.admin-shell .data-table-mobile-toolbar__bar {
+  justify-content: flex-end;
+  width: 100%;
 }
 
-.admin-shell .data-table-mobile-toolbar.is-sorted .data-table-mobile-toolbar__summary {
+.admin-shell .data-table-mobile-toolbar__trigger {
+  background: var(--admin-control-bg);
+  border-color: var(--admin-hairline);
+  color: var(--admin-text-secondary);
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.admin-shell .data-table-mobile-toolbar.is-sorted .data-table-mobile-toolbar__trigger,
+.admin-shell .data-table-mobile-toolbar.is-open .data-table-mobile-toolbar__trigger {
+  border-color: color-mix(in srgb, var(--admin-brand) 38%, transparent);
   color: var(--admin-ink);
 }
 
-.admin-shell .data-table-mobile-toolbar__select,
-.admin-shell .data-table-mobile-toolbar__direction {
+.admin-shell .data-table-mobile-toolbar__clear {
+  color: var(--admin-muted);
+}
+
+.admin-shell .data-table-mobile-toolbar__chip {
   background: var(--admin-control-bg);
   border-color: var(--admin-hairline);
+  color: var(--admin-text-secondary);
+}
+
+.admin-shell .data-table-mobile-toolbar__chip:hover {
+  border-color: var(--admin-hairline-strong);
+  color: var(--admin-ink);
+}
+
+.admin-shell .data-table-mobile-toolbar__chip.is-active {
+  background: color-mix(in srgb, var(--admin-brand) 12%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand) 38%, transparent);
+  color: var(--admin-ink);
 }
 
 .admin-shell .data-table-card--admin {
@@ -1469,8 +1542,20 @@
 }
 
 .admin-shell .data-table-card--admin.data-table-card--compact .data-table-card__meta--inline {
-  gap: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   grid-template-columns: none;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact .data-table-card__meta-sep {
+  color: var(--admin-muted);
+  opacity: 0.55;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact .data-table-card__meta-value {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-shell .data-table-card__meta {
@@ -1618,7 +1703,7 @@
   .admin-shell .admin-filters__panel .admin-filters__groups--multi {
     align-items: stretch;
     display: grid;
-    gap: 11px;
+    gap: 7px;
     overflow: visible;
   }
 
@@ -1630,17 +1715,28 @@
   }
 
   .admin-shell .admin-filters__panel .admin-filter-group__label {
-    display: block;
-    font-size: 8px;
+    display: none;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-chips {
     margin-inline: -9px;
-    padding: 0 9px 2px;
+    padding: 0 9px 1px;
   }
 
   .admin-shell .admin-filter-chip {
-    min-height: 34px;
+    font-size: 11px;
+    gap: 4px;
+    min-height: 28px;
+    padding: 3px 9px;
+  }
+
+  .admin-shell .admin-filter-chip__indicator {
+    display: none;
+  }
+
+  .admin-shell .admin-filters__panel.is-open {
+    margin-top: 7px;
+    padding-top: 8px;
   }
 
   .admin-shell .data-table-cards--admin {
@@ -2638,14 +2734,24 @@
   animation-delay: 0.14s;
 }
 .admin-shell .admin-list-shell__body.is-filter-animating .data-table-card--admin:nth-child(n + 6),
-.admin-shell .admin-list-shell__body.is-filter-animating .data-table--admin tbody tr:nth-child(n + 6) {
+.admin-shell
+  .admin-list-shell__body.is-filter-animating
+  .data-table--admin
+  tbody
+  tr:nth-child(n + 6) {
   animation-delay: 0.16s;
 }
 
 @keyframes admin-filter-chip-pop {
-  0% { transform: translateY(0) scale(1); }
-  45% { transform: translateY(-1px) scale(1.03); }
-  100% { transform: translateY(-1px) scale(1); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.03);
+  }
+  100% {
+    transform: translateY(-1px) scale(1);
+  }
 }
 
 @keyframes admin-filter-row-in {
@@ -2812,5 +2918,917 @@
 
   .admin-dashboard--executive .admin-kpi-tile__label {
     font-size: 10px;
+  }
+}
+
+/* =============================================
+   EVENTOS · DOSSIER OPERATIVO
+   Una sola superficie principal, detalle editorial
+   y acciones secundarias reveladas por contexto.
+   ============================================= */
+
+.admin-shell .admin-list-shell--events {
+  border-color: var(--admin-hairline);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-shell .admin-list-shell--events::before {
+  background: var(--gradient-brand);
+  content: '';
+  height: 1px;
+  inset: 0 0 auto;
+  opacity: 0.72;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__header {
+  min-height: 118px;
+  padding: 22px 22px 19px;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__intro {
+  gap: 3px;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__title {
+  font-size: clamp(28px, 2.25vw, 34px);
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  font-weight: 450;
+  max-width: 58ch;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__meta {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--admin-muted);
+  font-size: 10.5px;
+  font-weight: 550;
+  margin-top: 8px;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__meta::before {
+  background: var(--admin-brand);
+  border-radius: 50%;
+  content: '';
+  height: 5px;
+  margin-right: 7px;
+  opacity: 0.8;
+  width: 5px;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__actions .btn {
+  min-height: 38px;
+  padding-inline: 14px;
+}
+
+.admin-shell .admin-list-shell--events .admin-filters--inline.admin-filters--compact {
+  background: color-mix(in srgb, var(--admin-surface-muted) 62%, var(--admin-surface));
+  border-bottom: 1px solid var(--admin-hairline);
+  border-top: 1px solid var(--admin-hairline);
+  gap: 18px;
+  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+  padding: 11px 18px;
+}
+
+.admin-shell .admin-list-shell--events .admin-filters__primary .admin-filters__search {
+  background: var(--admin-surface);
+  border-color: var(--admin-hairline);
+  border-radius: 8px;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--admin-ink) 3%, transparent);
+  height: 40px;
+  min-height: 40px;
+}
+
+.admin-shell .admin-list-shell--events .admin-filter-chip {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 7px;
+  box-shadow: none;
+  min-height: 31px;
+  padding: 4px 10px;
+  transform: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-filter-chip__indicator {
+  display: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-filter-chip:hover {
+  background: var(--admin-row-hover);
+  border-color: transparent;
+}
+
+.admin-shell .admin-list-shell--events .admin-filter-chip.is-active,
+.admin-shell .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-hairline-strong);
+  box-shadow: var(--admin-shadow-soft);
+  color: var(--admin-ink);
+  transform: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-filter-group__label {
+  letter-spacing: 0.12em;
+}
+
+.admin-shell .admin-list-shell--events .admin-list-shell__body {
+  background: var(--admin-surface);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-list {
+  padding: 8px 10px 22px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row {
+  border-bottom-color: var(--admin-hairline);
+  border-radius: 8px;
+  gap: 4px 22px;
+  grid-template-columns: minmax(260px, 1fr) minmax(104px, 142px) auto auto;
+  min-height: 76px;
+  padding: 14px 12px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row:last-child {
+  border-bottom: 1px solid transparent;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--selected,
+.admin-shell .admin-list-shell--events .admin-event-row--selected:hover {
+  background: color-mix(in srgb, var(--admin-brand) 8%, var(--admin-surface));
+  box-shadow: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--selected .admin-event-row__title {
+  color: color-mix(in srgb, var(--admin-brand) 82%, var(--admin-ink));
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__body {
+  gap: 7px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__title-wrap {
+  gap: 9px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__title {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__meta {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  gap: 5px 18px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__meta svg {
+  opacity: 0.66;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__capacity {
+  gap: 7px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__capacity-bar {
+  height: 3px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__capacity-label {
+  color: var(--admin-muted);
+  font-size: 10.5px;
+  font-weight: 550;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__actions {
+  gap: 2px;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-row:is(:hover, :focus-within, .admin-event-row--selected)
+  .admin-event-row__actions {
+  opacity: 1;
+  transform: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel {
+  background: color-mix(in srgb, var(--admin-surface-muted) 68%, var(--admin-surface));
+  border-color: var(--admin-hairline);
+  gap: 0;
+  padding: 20px 20px 28px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+  border-bottom-color: var(--admin-hairline);
+  margin: -20px -20px 0;
+  padding: 16px 20px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__label {
+  color: var(--admin-brand);
+  letter-spacing: 0.13em;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__detail {
+  gap: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview--embedded {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  gap: 0;
+  padding: 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-preview--embedded::before {
+  display: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 18px 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-preview__card
+  .event-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__date-block {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-hairline);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__day,
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__title {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__month,
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__meta,
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__status {
+  color: var(--admin-muted);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .event-card__status[data-tone='success'] {
+  color: var(--admin-status-success);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .event-card__status[data-tone='warning'] {
+  color: var(--admin-status-warning);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .event-card__status[data-tone='danger'] {
+  color: var(--admin-status-danger);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-preview__publication {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  min-height: 0;
+  padding: 12px 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__footer {
+  border: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__capacity {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  margin: 0;
+  padding: 16px 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta li {
+  background: transparent;
+  border-bottom-color: var(--admin-hairline);
+  padding: 13px 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-ticket-insights {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  gap: 0;
+  padding: 18px 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__head {
+  margin-bottom: 13px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__stripe {
+  background: var(--admin-brand);
+  height: 12px;
+  opacity: 0.82;
+  width: 1px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metrics {
+  gap: 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metric {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 12px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metric:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metric:last-child {
+  padding-right: 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metric::before {
+  display: none;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__icon {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: auto;
+  width: auto;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__metric
+  .admin-event-ticket-insights__value {
+  color: var(--admin-ink);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__breakdown {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--admin-hairline);
+  margin-top: 14px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-preview--panel
+  .admin-event-ticket-insights__breakdown
+  li {
+  border-color: var(--admin-hairline);
+  padding-block: 9px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-addon-report {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 18px;
+}
+
+@media (min-width: 1200px) {
+  .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.58fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .admin-shell .admin-list-shell--events .admin-event-row {
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  }
+}
+
+@media (max-width: 899px) {
+  .admin-shell .admin-list-shell--events .admin-event-list {
+    padding: 5px 6px 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row {
+    border-radius: 7px;
+    min-height: 68px;
+    padding: 11px 10px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    opacity: 1;
+    transform: none;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel {
+    background: var(--admin-surface);
+    padding: 0 16px 18px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+    margin: 0 -16px;
+    padding: 14px 16px;
+  }
+
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-preview--panel
+    .admin-event-preview__expand-toggle {
+    border-color: var(--admin-hairline);
+    border-radius: 8px;
+    margin-top: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-shell .admin-list-shell--events {
+    border-radius: 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-list-shell__header {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-list-shell__actions {
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-events__header-actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-events__header-actions .btn--outline {
+    font-size: 0;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0;
+    width: 44px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-events__header-actions .btn--outline svg {
+    margin: 0;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-list-shell__meta {
+    margin-bottom: 8px;
+    margin-top: 0;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-filters--inline.admin-filters--compact {
+    background: color-mix(in srgb, var(--admin-surface-muted) 62%, var(--admin-surface));
+    padding: 10px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__title {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* =============================================
+   EVENTOS · FLUJO INTEGRADO
+   El editor sigue el ciclo real del evento y la
+   ficha concentra sus accesos operativos.
+   ============================================= */
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-inline: -20px;
+  padding: 6px 12px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--admin-hairline);
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 10.5px;
+  gap: 6px;
+  justify-content: center;
+  min-height: 38px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:last-child {
+  border-right: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__command-bar button strong {
+  color: var(--admin-ink);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.admin-ticket-orders-anchor {
+  scroll-margin-top: 16px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav {
+  background: var(--admin-surface);
+  gap: 0;
+  padding-block: 7px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav button {
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 38px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav button > span {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 50%;
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 9px;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav button:hover > span {
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section {
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  gap: 16px;
+  padding: 18px 0 22px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-head h4 {
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__rate-cards {
+  border: 1px solid var(--admin-hairline);
+  border-radius: 10px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__rate-card {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 13px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__rate-card:first-child {
+  border-left: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__rate-card--featured {
+  background: color-mix(in srgb, var(--admin-premium) 5%, transparent);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section > .admin-event-form__toggle {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  padding: 13px 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section > .admin-event-form__toggle:last-child {
+  padding-bottom: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-note {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config {
+  border-top: 1px solid var(--admin-hairline);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 0 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary strong {
+  color: var(--admin-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary small {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-body {
+  display: grid;
+  gap: 0;
+  padding-top: 14px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-body > .admin-event-form__block,
+.admin-event-editor-modal__panel
+  .admin-event-form__ticket-config-body
+  > .admin-event-form__pricing {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  padding: 16px 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-body > :last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-event-editor-modal__panel
+  .admin-event-form__ticket-config-body
+  .admin-event-form__pricing
+  legend {
+  margin-inline: 0;
+  padding-inline: 0;
+  width: 100%;
+}
+
+.admin-event-editor-modal__panel
+  .admin-event-form__ticket-config-body
+  .admin-ticket-types__day-item,
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-body .admin-ticket-types__item,
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-body .admin-ticket-addons__item {
+  background: transparent;
+  border-color: var(--admin-hairline);
+  border-radius: 8px;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__card {
+  background: transparent;
+  border-color: var(--admin-hairline);
+  box-shadow: none;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__card .event-card {
+  background: transparent;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__date-block {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-hairline);
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__day,
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__title {
+  color: var(--admin-ink);
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__month,
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__meta,
+.admin-event-editor-modal__panel .admin-event-preview--live .event-card__status {
+  color: var(--admin-muted);
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__footer {
+  border-top: 1px solid var(--admin-hairline);
+  gap: 0;
+  padding-top: 4px;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__capacity {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding-block: 12px;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .capacity-widget__header {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .capacity-widget__header strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta {
+  gap: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta li {
+  align-items: start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  padding-block: 10px;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta-label {
+  color: var(--admin-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta strong,
+.admin-event-editor-modal__panel .admin-event-preview--live .admin-event-preview__meta code {
+  color: var(--admin-ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+    margin-inline: -16px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-event-editor-modal__panel .admin-event-form--editor {
+    scroll-padding-bottom: 88px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+    padding-inline: 6px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+    font-size: 10px;
+    min-height: 44px;
+    padding-inline: 5px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__rate-cards {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__rate-card,
+  .admin-event-editor-modal__panel .admin-event-form__rate-card:first-child {
+    border: 1px solid var(--admin-hairline);
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__save-state {
+    display: none;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__actions {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 10px;
   }
 }

@@ -292,8 +292,10 @@
   left: 0;
   position: absolute;
   top: 0;
-  transition: width var(--transition-fast);
-  width: 3px;
+  transform: scaleX(0.75);
+  transform-origin: left;
+  transition: transform var(--transition-fast);
+  width: 4px;
 }
 
 .events-list--design .event-card:hover {
@@ -303,7 +305,7 @@
 }
 
 .events-list--design .event-card:hover::before {
-  width: 4px;
+  transform: scaleX(1);
 }
 
 .events-list--design .event-card--selected {
@@ -714,6 +716,19 @@
   line-height: 1.5;
   margin: 0;
   max-width: 200px;
+}
+
+/* Mismo tratamiento "estado liviano" que .events-detail--empty — evita que
+   el panel condensado (selección = evento destacado) quede como una caja
+   vacía cuando comparte fila con el calendario en tablet. */
+.events-detail--linked {
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.events-detail--linked .events-detail__linked-copy {
+  max-width: 26ch;
 }
 
 .events-detail__eyebrow {
@@ -3069,16 +3084,30 @@
   padding-inline: 8px;
 }
 
-.events-spotlight-card__date-sr {
-  border: 0;
-  clip: rect(0 0 0 0);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
+.events-spotlight-card__eyebrow {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 7px;
+  letter-spacing: 0.1em;
+  margin: 0 0 clamp(8px, 1.2vw, 12px);
+  text-transform: uppercase;
+}
+
+.events-spotlight-card__eyebrow-dot {
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  height: 5px;
+  width: 5px;
+}
+
+.events-spotlight-card__meta time {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  text-transform: none;
 }
 
 @media (max-width: 640px) {
@@ -3370,10 +3399,7 @@
 }
 
 .events-page--plu-ref .events-sidebar-card .events-countdown-chip__value {
-  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-celeste-400));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--plu-gold-400);
   font-size: clamp(2.4rem, 3.2vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.06em;
@@ -3637,6 +3663,15 @@
   transform: none;
 }
 
+/* Selección = evento destacado: la ficha completa ya está arriba, así que
+   este panel queda liviano en vez de repetir título/estado/acciones. */
+.events-page--plu-ref .events-detail__linked-copy {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
 @media (min-width: 960px) {
   .events-page--plu-ref.events-page--design .events-layout-v2,
   .events-page--plu-ref .events-layout-v2 {
@@ -3874,8 +3909,8 @@
   }
 
   .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item {
-    min-height: 38px;
-    padding: 8px 10px 10px;
+    min-height: 44px;
+    padding: 8px 10px;
   }
 
   .events-page--plu-ref .events-page__filters.filter-pills--editorial .filter-pills__item:has(.filter-pills__label--short) .filter-pills__label--full {
@@ -4016,9 +4051,7 @@
 }
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .events-countdown-chip__value {
-  background: linear-gradient(135deg, var(--plu-gold-600), var(--plu-celeste-600));
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled) {

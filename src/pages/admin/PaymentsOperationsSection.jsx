@@ -23,6 +23,7 @@ function formatDate(value, locale) {
 
 export default function PaymentsOperationsSection({
   canEdit,
+  ticketOrderEventScope = '',
   pendingTicketOrders,
   isLoading: manualLoading,
   loadError: manualError,
@@ -49,7 +50,17 @@ export default function PaymentsOperationsSection({
     }
   }, [status, t])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    if (!ticketOrderEventScope || loading) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('admin-ticket-orders')?.scrollIntoView({ block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [loading, ticketOrderEventScope])
 
   async function handleRecover() {
     setRecovering(true)
@@ -80,11 +91,11 @@ export default function PaymentsOperationsSection({
 
   const summary = data?.summary ?? {}
   const healthIssues = summary.health
-    ? Number(summary.health.athleteOrderDrift ?? 0)
-      + Number(summary.health.ticketOrderDrift ?? 0)
-      + Number(summary.health.staleEventLocks ?? 0)
-      + Number(summary.health.staleReconciliationLocks ?? 0)
-      + Number(summary.health.exhaustedEvents ?? 0)
+    ? Number(summary.health.athleteOrderDrift ?? 0) +
+      Number(summary.health.ticketOrderDrift ?? 0) +
+      Number(summary.health.staleEventLocks ?? 0) +
+      Number(summary.health.staleReconciliationLocks ?? 0) +
+      Number(summary.health.exhaustedEvents ?? 0)
     : null
   const failedCount = summary.events?.failed ?? 0
   const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
@@ -97,7 +108,9 @@ export default function PaymentsOperationsSection({
   const primaryMetrics = [
     {
       label: t('admin.paymentOperations.integrity'),
-      value: summary.health?.healthy ? t('admin.paymentOperations.integrityOk') : (healthIssues ?? '—'),
+      value: summary.health?.healthy
+        ? t('admin.paymentOperations.integrityOk')
+        : (healthIssues ?? '—'),
       tone: summary.health?.healthy ? 'success' : 'danger',
     },
     {
@@ -173,11 +186,21 @@ export default function PaymentsOperationsSection({
               </span>
             ) : null}
             <div className="admin-payment-ops__actions">
-              <button type="button" className="btn btn--outline btn--small" onClick={load} disabled={loading}>
+              <button
+                type="button"
+                className="btn btn--outline btn--small"
+                onClick={load}
+                disabled={loading}
+              >
                 <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
               </button>
               {canEdit ? (
-                <button type="button" className="btn btn--small" onClick={handleRecover} disabled={recovering}>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={handleRecover}
+                  disabled={recovering}
+                >
                   <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
                 </button>
               ) : null}
@@ -185,7 +208,10 @@ export default function PaymentsOperationsSection({
           </div>
         </header>
 
-        <div className="admin-payment-ops__signal" aria-label={t('admin.paymentOperations.signalAria')}>
+        <div
+          className="admin-payment-ops__signal"
+          aria-label={t('admin.paymentOperations.signalAria')}
+        >
           {primaryMetrics.map((metric) => (
             <article
               key={metric.label}
@@ -231,7 +257,9 @@ export default function PaymentsOperationsSection({
           />
           {summary.updatedAt ? (
             <small className="admin-payment-ops__filter-meta">
-              {t('admin.paymentOperations.updatedAt', { date: formatDate(summary.updatedAt, locale) })}
+              {t('admin.paymentOperations.updatedAt', {
+                date: formatDate(summary.updatedAt, locale),
+              })}
             </small>
           ) : null}
         </div>
@@ -254,8 +282,18 @@ export default function PaymentsOperationsSection({
             emptyMessage={t('admin.paymentOperations.empty')}
             rows={operationRows}
             columns={[
-              { key: 'event_type', label: t('admin.paymentOperations.type'), mobile: 'primary', sortable: true },
-              { key: 'resource_id', label: t('admin.paymentOperations.resource'), mobile: 'default', sortable: true },
+              {
+                key: 'event_type',
+                label: t('admin.paymentOperations.type'),
+                mobile: 'primary',
+                sortable: true,
+              },
+              {
+                key: 'resource_id',
+                label: t('admin.paymentOperations.resource'),
+                mobile: 'default',
+                sortable: true,
+              },
               {
                 key: 'status',
                 label: t('admin.columns.status'),
@@ -308,14 +346,17 @@ export default function PaymentsOperationsSection({
         )}
       </section>
 
-      <TicketOrdersSection
-        canEdit={canEdit}
-        pendingTicketOrders={pendingTicketOrders}
-        isLoading={manualLoading}
-        loadError={manualError}
-        onApproveTicketOrder={onApproveTicketOrder}
-        onRefresh={onRefreshManual}
-      />
+      <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
+        <TicketOrdersSection
+          canEdit={canEdit}
+          initialQuery={ticketOrderEventScope}
+          pendingTicketOrders={pendingTicketOrders}
+          isLoading={manualLoading}
+          loadError={manualError}
+          onApproveTicketOrder={onApproveTicketOrder}
+          onRefresh={onRefreshManual}
+        />
+      </div>
     </div>
   )
 }
