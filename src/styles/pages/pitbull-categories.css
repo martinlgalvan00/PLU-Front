@@ -77,48 +77,38 @@
   text-transform: uppercase;
 }
 
+/* Tags sobrios — sin separador por pseudo-elemento sibling: ese approach
+   se rompía cuando el listado pasaba por StaggerGroup (cada <li> quedaba
+   envuelto en su propio <div>, por lo que ninguno calzaba con
+   :not(:last-child)). El gap del contenedor ya separa los ítems. */
 .pitbull-doc__lookbook {
-  align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
+  gap: 8px 10px;
   list-style: none;
   margin: 0;
   padding: 0;
-  row-gap: 8px;
 }
 
 .pitbull-doc__lookbook-item {
-  align-items: baseline;
-  display: inline-flex;
-}
-
-.pitbull-doc__lookbook-item:not(:last-child)::after {
-  color: color-mix(in oklab, var(--color-text-muted) 70%, transparent);
-  content: '·';
-  font-family: var(--font-display);
-  font-size: 0.95em;
-  font-weight: 400;
-  margin: 0 0.65em;
-}
-
-.pitbull-doc__lookbook-label {
+  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-size: clamp(12.5px, 1.4vw, 13.5px);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.005em;
   line-height: 1.3;
-  white-space: nowrap;
+  padding: 6px 14px;
+}
+
+[data-theme='light'] .pitbull-doc__lookbook-item {
+  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
 }
 
 @media (max-width: 480px) {
-  .pitbull-doc__lookbook-label {
-    font-size: clamp(1.02rem, 4.4vw, 1.15rem);
-    white-space: normal;
-  }
-
-  .pitbull-doc__lookbook-item:not(:last-child)::after {
-    margin: 0 0.5em;
+  .pitbull-doc__lookbook-item {
+    font-size: 12.5px;
+    padding: 6px 12px;
   }
 }

@@ -1,7 +1,23 @@
-import { useMemo, useState } from 'react'
-import { CalendarDays, MapPin, Pencil, Plus, ShieldCheck, Star, Users } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  CalendarDays,
+  ChevronDown,
+  ClipboardList,
+  CreditCard,
+  MapPin,
+  Pencil,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Star,
+  Ticket,
+  Users,
+} from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
-import AdminEventEditor, { AdminEventLivePreview } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventEditor, {
+  AdminEventLivePreview,
+} from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -15,8 +31,9 @@ import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import {
-  ADMIN_EVENT_FORM_DEFAULT,
   ADMIN_EVENT_STATUS_OPTIONS,
+  buildAdminEventDraft,
+  createAdminEventDraft,
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
 
@@ -24,11 +41,16 @@ export default function EventsSection({
   adminEvents,
   canEdit,
   canManageUsers,
+  isLoading = false,
+  loadError = null,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
+  onManagePayments,
+  onManageRegistrations,
+  onRefresh,
   onSaveEvent,
   onUpdateSecurityUserStatus,
   tickets = [],
@@ -38,13 +60,21 @@ export default function EventsSection({
   const [status, setStatus] = useState('all')
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
   const [formOpen, setFormOpen] = useState(false)
-  const [draft, setDraft] = useState(ADMIN_EVENT_FORM_DEFAULT)
+  const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')
+  const [previewExpanded, setPreviewExpanded] = useState(false)
+  const [message, setMessage] = useState(null)
 
-  const statusOptions = useMemo(
-    () => translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t),
-    [t],
-  )
+  useEffect(() => {
+    setPreviewExpanded(false)
+  }, [selectedId])
+
+  useEffect(() => {
+    if (adminEvents.some((event) => event.id === selectedId)) return
+    setSelectedId(adminEvents[0]?.id ?? null)
+  }, [adminEvents, selectedId])
+
+  const statusOptions = useMemo(() => translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t), [t])
 
   const rows = useMemo(
     () => filterAdminEvents(adminEvents, { query, status }),
@@ -53,11 +83,16 @@ export default function EventsSection({
 
   const resultMeta = formatRecordCount(t, rows.length, adminEvents.length)
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
-  const editingSource = draft.id ? adminEvents.find((event) => event.id === draft.id) ?? selectedEvent : null
+  const activeTicketTypeCount =
+    selectedEvent?.ticketTypes?.filter((ticketType) => ticketType.active !== false).length ?? 0
+  const editingSource = draft.id
+    ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
+    : null
 
   function openCreateForm() {
-    setDraft(ADMIN_EVENT_FORM_DEFAULT)
+    setDraft(createAdminEventDraft())
     setEditorFocus('details')
+    setMessage(null)
     setFormOpen(true)
   }
 
@@ -65,44 +100,28 @@ export default function EventsSection({
     if (!event) return
     setSelectedId(event.id)
     setEditorFocus(focus)
-    setDraft({
-      ...ADMIN_EVENT_FORM_DEFAULT,
-      id: event.id,
-      title: event.title,
-      dateISO: event.dateISO,
-      venue: event.venue,
-      location: event.location,
-      status: event.status,
-      featured: event.featured,
-      slots: event.slots,
-      pricing: event.pricing,
-      startsAt: event.startsAt ?? '',
-      endsAt: event.endsAt ?? '',
-      registrationOpensAt: event.registrationOpensAt ?? '',
-      registrationClosesAt: event.registrationClosesAt ?? '',
-      ticketSalesOpensAt: event.ticketSalesOpensAt ?? '',
-      ticketSalesClosesAt: event.ticketSalesClosesAt ?? '',
-      eventDays: event.eventDays ?? [],
-      ticketTypes: event.ticketTypes ?? [],
-      liveStreamUrl: event.liveStreamUrl ?? '',
-      liveStreamProvider: event.liveStreamProvider ?? 'youtube',
-      liveStatus: event.liveStatus ?? 'offline',
-      published: event.published !== false,
-    })
+    setDraft(buildAdminEventDraft(event))
+    setMessage(null)
     setFormOpen(true)
   }
 
   function closeForm() {
     setFormOpen(false)
-    setDraft(ADMIN_EVENT_FORM_DEFAULT)
+    setDraft(createAdminEventDraft())
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    const saved = onSaveEvent?.(draft)
-    if (saved?.error) return
+  async function handleSubmit(submittedDraft) {
+    const saved = await onSaveEvent?.(submittedDraft)
+    if (saved?.error) throw new Error(saved.error)
     closeForm()
     if (saved?.event?.id) setSelectedId(saved.event.id)
+    setMessage({
+      tone: 'success',
+      text: submittedDraft.id
+        ? t('admin.sections.events.updated')
+        : t('admin.sections.events.created'),
+    })
+    return saved
   }
 
   function buildEventLinks(row) {
@@ -141,12 +160,36 @@ export default function EventsSection({
       totalCount={adminEvents.length}
       variant="events"
       actions={
-        canEdit ? (
-          <Button className="btn--small" onClick={openCreateForm}>
-            <Plus size={15} aria-hidden />
-            {t('admin.actions.newEvent')}
-          </Button>
-        ) : null
+        <div className="admin-events__header-actions">
+          {onRefresh ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="btn--small"
+              disabled={isLoading}
+              onClick={onRefresh}
+            >
+              <RefreshCw
+                size={14}
+                aria-hidden
+                className={
+                  isLoading
+                    ? 'admin-events__refresh-icon is-spinning'
+                    : 'admin-events__refresh-icon'
+                }
+              />
+              {isLoading
+                ? t('admin.sections.events.refreshing')
+                : t('admin.sections.events.refresh')}
+            </Button>
+          ) : null}
+          {canEdit ? (
+            <Button type="button" className="btn--small" onClick={openCreateForm}>
+              <Plus size={15} aria-hidden />
+              {t('admin.actions.newEvent')}
+            </Button>
+          ) : null}
+        </div>
       }
       filters={[
         {
@@ -159,9 +202,35 @@ export default function EventsSection({
       ]}
       onQueryChange={setQuery}
     >
+      {loadError ? (
+        <div className="admin-events__notice admin-events__notice--error" role="alert">
+          <AlertTriangle size={16} aria-hidden />
+          <div>
+            <strong>{t('admin.sections.events.loadErrorTitle')}</strong>
+            <p>{loadError}</p>
+          </div>
+          {onRefresh ? (
+            <Button type="button" variant="outline" className="btn--small" onClick={onRefresh}>
+              {t('admin.sections.events.retry')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {message ? (
+        <p className={`admin-events__message admin-events__message--${message.tone}`} role="status">
+          {message.text}
+        </p>
+      ) : null}
+
       <div className="admin-events-workspace">
         <div className="admin-events-workspace__main">
-          {rows.length === 0 ? (
+          {isLoading && adminEvents.length === 0 ? (
+            <div className="admin-events__loading" role="status">
+              <span className="admin-events__loading-indicator" aria-hidden />
+              <p>{t('admin.sections.events.loading')}</p>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="data-table__empty-wrap data-table__empty-wrap--admin">
               <span className="data-table__empty-icon" aria-hidden>
                 <CalendarDays size={20} strokeWidth={1.5} />
@@ -169,6 +238,12 @@ export default function EventsSection({
               <p className="data-table__empty data-table__empty--admin admin-event-list__empty">
                 {t('admin.sections.events.empty')}
               </p>
+              {canEdit && adminEvents.length === 0 ? (
+                <Button type="button" className="btn--small" onClick={openCreateForm}>
+                  <Plus size={14} aria-hidden />
+                  {t('admin.sections.events.createFirst')}
+                </Button>
+              ) : null}
             </div>
           ) : (
             <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
@@ -227,7 +302,9 @@ export default function EventsSection({
                       </div>
                     </div>
 
-                    <div className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}>
+                    <div
+                      className={`admin-event-row__capacity admin-event-row__capacity--${capacityTone}`}
+                    >
                       <div
                         className="admin-event-row__capacity-bar"
                         role="progressbar"
@@ -251,10 +328,7 @@ export default function EventsSection({
                       <StatusPill value={row.status} />
                     </div>
 
-                    <div
-                      className="admin-event-row__actions"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="admin-event-row__actions" onClick={(e) => e.stopPropagation()}>
                       <AdminCopyLinkMenu links={buildEventLinks(row)} />
                       <AdminIconButton
                         disabled={!canEdit}
@@ -280,11 +354,22 @@ export default function EventsSection({
 
         {selectedEvent && (
           <aside
-            className="admin-event-preview admin-event-preview--panel"
+            className={[
+              'admin-event-preview',
+              'admin-event-preview--panel',
+              previewExpanded ? 'is-expanded' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             aria-label={t('admin.sections.events.previewLabel')}
           >
             <div className="admin-event-preview__head">
-              <span className="admin-event-preview__label">{t('admin.sections.events.previewLabel')}</span>
+              <div className="admin-event-preview__head-copy">
+                <span className="admin-event-preview__label">
+                  {t('admin.sections.events.previewLabel')}
+                </span>
+                <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
+              </div>
               <div className="admin-event-preview__head-actions">
                 <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
                 {canEdit && (
@@ -305,9 +390,58 @@ export default function EventsSection({
                 )}
               </div>
             </div>
-            <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
-            <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />
-            <AdminEventTicketAddonReport event={selectedEvent} tickets={tickets} />
+
+            <div
+              className="admin-event-preview__command-bar"
+              aria-label={t('admin.eventEditor.managementAria')}
+            >
+              {canEdit ? (
+                <button
+                  type="button"
+                  aria-label={t('admin.eventEditor.manageTicketsLabel', {
+                    count: activeTicketTypeCount,
+                  })}
+                  onClick={() => openEditForm(selectedEvent, 'tickets')}
+                >
+                  <Ticket size={13} aria-hidden />
+                  <span>{t('admin.eventEditor.manageTickets')}</span>
+                  <strong>{activeTicketTypeCount}</strong>
+                </button>
+              ) : null}
+              {onManageRegistrations ? (
+                <button type="button" onClick={() => onManageRegistrations(selectedEvent)}>
+                  <ClipboardList size={13} aria-hidden />
+                  <span>{t('admin.eventEditor.manageRegistrations')}</span>
+                  <strong>{selectedEvent.registered ?? 0}</strong>
+                </button>
+              ) : null}
+              {onManagePayments ? (
+                <button type="button" onClick={() => onManagePayments(selectedEvent)}>
+                  <CreditCard size={13} aria-hidden />
+                  <span>{t('admin.eventEditor.managePayments')}</span>
+                </button>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              className="admin-event-preview__expand-toggle"
+              aria-expanded={previewExpanded}
+              onClick={() => setPreviewExpanded((current) => !current)}
+            >
+              <span>
+                {previewExpanded
+                  ? t('admin.sections.events.previewHide')
+                  : t('admin.sections.events.previewShow')}
+              </span>
+              <ChevronDown size={14} aria-hidden className="admin-event-preview__expand-icon" />
+            </button>
+
+            <div className="admin-event-preview__detail">
+              <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
+              <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />
+              <AdminEventTicketAddonReport event={selectedEvent} tickets={tickets} />
+            </div>
           </aside>
         )}
       </div>

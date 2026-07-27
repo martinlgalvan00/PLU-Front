@@ -26,6 +26,127 @@
 
   --color-page-canvas: var(--plu-cool-950);
 
+  /* Atmósfera dark — washes + vignette (color canvas sigue sólido) */
+  --theme-atmosphere-wash-celeste: radial-gradient(
+    ellipse 88% 58% at 12% -6%,
+    color-mix(in srgb, var(--plu-celeste-400) 5.5%, transparent),
+    transparent 62%
+  );
+  --theme-atmosphere-wash-gold: radial-gradient(
+    ellipse 72% 48% at 92% 108%,
+    color-mix(in srgb, var(--plu-gold-500) 3.5%, transparent),
+    transparent 58%
+  );
+  --theme-atmosphere-vignette: radial-gradient(
+    ellipse 120% 100% at 50% 42%,
+    transparent 42%,
+    color-mix(in srgb, black 22%, transparent) 100%
+  );
+  --theme-atmosphere-satin: radial-gradient(
+    ellipse 92% 34% at 50% -10%,
+    color-mix(in srgb, white 2.8%, transparent),
+    transparent 72%
+  );
+  --theme-atmosphere-stack:
+    var(--theme-atmosphere-vignette),
+    var(--theme-atmosphere-satin),
+    var(--theme-atmosphere-wash-celeste),
+    var(--theme-atmosphere-wash-gold);
+  --theme-atmosphere-wash-celeste-admin: radial-gradient(
+    ellipse 90% 55% at 8% -4%,
+    color-mix(in srgb, var(--plu-celeste-400) 3%, transparent),
+    transparent 60%
+  );
+  --theme-atmosphere-wash-gold-admin: radial-gradient(
+    ellipse 70% 45% at 96% 110%,
+    color-mix(in srgb, var(--plu-gold-500) 2%, transparent),
+    transparent 56%
+  );
+  --theme-atmosphere-vignette-admin: radial-gradient(
+    ellipse 125% 105% at 50% 40%,
+    transparent 48%,
+    color-mix(in srgb, black 16%, transparent) 100%
+  );
+  --theme-atmosphere-satin-admin: radial-gradient(
+    ellipse 88% 30% at 48% -8%,
+    color-mix(in srgb, white 1.8%, transparent),
+    transparent 72%
+  );
+  --theme-atmosphere-stack-admin:
+    var(--theme-atmosphere-vignette-admin),
+    var(--theme-atmosphere-satin-admin),
+    var(--theme-atmosphere-wash-celeste-admin),
+    var(--theme-atmosphere-wash-gold-admin);
+  --theme-page-sheen: radial-gradient(
+    ellipse 76% 28% at 50% 0%,
+    color-mix(in srgb, white 2.2%, transparent),
+    transparent 70%
+  );
+  --theme-section-satin: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 1.6%, transparent),
+    transparent 22%
+  );
+  --theme-section-wash-celeste: radial-gradient(
+    ellipse 70% 62% at 12% 24%,
+    color-mix(in srgb, var(--plu-celeste-400) 2.8%, transparent),
+    transparent 68%
+  );
+  --theme-section-wash-gold: radial-gradient(
+    ellipse 64% 58% at 88% 72%,
+    color-mix(in srgb, var(--plu-gold-500) 2.4%, transparent),
+    transparent 68%
+  );
+  --theme-login-atmosphere:
+    radial-gradient(
+      ellipse 52% 70% at 26% 48%,
+      color-mix(in srgb, var(--plu-celeste-400) 4%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 48% 64% at 76% 48%,
+      color-mix(in srgb, var(--plu-gold-500) 3%, transparent),
+      transparent 72%
+    ),
+    var(--theme-page-sheen);
+  --theme-surface-satin:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 3.2%, transparent),
+      transparent 22%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--plu-celeste-400) 1.5%, transparent),
+      transparent 44%
+    );
+  --theme-surface-satin-strong:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 4.6%, transparent),
+      transparent 20%
+    ),
+    radial-gradient(
+      ellipse 70% 90% at 96% 100%,
+      color-mix(in srgb, var(--plu-gold-500) 2.4%, transparent),
+      transparent 68%
+    );
+  --theme-sidebar-satin:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--plu-celeste-400) 2.4%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(90deg, transparent 72%, color-mix(in srgb, white 1.4%, transparent));
+  --theme-footer-satin: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 1.8%, transparent),
+    transparent 24%
+  );
+  --theme-surface-highlight: color-mix(in srgb, white 7%, transparent);
+  --theme-overlay-backdrop: color-mix(in srgb, var(--plu-cool-950) 78%, transparent);
+  --theme-overlay-blur: 8px;
+
   --color-section-muted: var(--plu-cool-750);
 
   --color-text-on-light: var(--plu-ink-900);
@@ -141,13 +262,13 @@
   --admin-surface: var(--plu-cool-850);
   --admin-surface-raised: var(--plu-cool-800);
   --admin-surface-muted: var(--plu-cool-900);
-  --admin-sidebar: color-mix(in srgb, var(--plu-cool-950) 92%, black);
-  --admin-sidebar-surface: var(--plu-cool-900);
-  --admin-sidebar-text: var(--plu-ink-inverse);
-  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-inverse) 50%, transparent);
-  --admin-sidebar-hover: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
-  --admin-sidebar-border: color-mix(in srgb, var(--plu-ink-inverse) 9%, transparent);
-  --admin-sidebar-shadow: 18px 0 54px color-mix(in srgb, var(--plu-cool-950) 18%, transparent);
+  --admin-sidebar: #090b0e;
+  --admin-sidebar-surface: #0e1115;
+  --admin-sidebar-text: #ecece8;
+  --admin-sidebar-muted: rgba(236, 236, 232, 0.46);
+  --admin-sidebar-hover: rgba(255, 255, 255, 0.045);
+  --admin-sidebar-border: rgba(255, 255, 255, 0.055);
+  --admin-sidebar-shadow: 24px 0 64px rgba(0, 0, 0, 0.45);
   --admin-ink: var(--plu-ink-inverse);
   --admin-text-secondary: var(--color-text-secondary);
   --admin-muted: var(--color-text-muted);

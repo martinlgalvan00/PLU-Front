@@ -5,7 +5,11 @@ import PageTransition from './components/layout/PageTransition.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
-import { clearEventPageRoute, matchEventPageRoute, pushEventPageRoute } from './lib/eventPageRoute.js'
+import {
+  clearEventPageRoute,
+  matchEventPageRoute,
+  pushEventPageRoute,
+} from './lib/eventPageRoute.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
@@ -242,6 +246,8 @@ export default function App() {
           canManageUsers={canManageUsers(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
+          adminEventsLoading={app.adminEventsLoading}
+          adminEventsError={app.adminEventsError}
           filters={app.filters}
           filteredRegistrations={app.filteredRegistrations}
           enrichedMemberships={app.enrichedMemberships}
@@ -256,6 +262,7 @@ export default function App() {
           onRedeemTicketAddon={app.redeemTicketAddonAction}
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
+          onRefreshAdminEvents={app.refreshAdminEvents}
           onCreateSecurityUser={app.createSecurityUserAction}
           onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
           onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
@@ -282,6 +289,7 @@ export default function App() {
           tickets={app.tickets}
           users={app.users}
           accessRoles={app.accessRoles}
+          roleActivity={app.roleActivity}
           permissionCatalog={app.permissionCatalog}
           roleLabel={getRoleLabel(app.session)}
           isPluUsaPartner={isPluUsaPartner(app.session)}
@@ -342,11 +350,11 @@ export default function App() {
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                     }
-              : view === 'results'
-                ? { onNavigate: navigate, events: publicEvents }
-              : view === 'members'
-                ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
-                : { onNavigate: navigate }
+                  : view === 'results'
+                    ? { onNavigate: navigate, events: publicEvents }
+                    : view === 'members'
+                      ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
+                      : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
     return (
@@ -406,8 +414,19 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <NavbarPublic activeView={view} latestEvent={nextEvent} onLogout={app.logout} onNavigate={navigate} session={app.session} />
-      <PageTransition viewKey={view} direction={transitionDirection} id="main-content" tabIndex={-1}>
+      <NavbarPublic
+        activeView={view}
+        latestEvent={nextEvent}
+        onLogout={app.logout}
+        onNavigate={navigate}
+        session={app.session}
+      />
+      <PageTransition
+        viewKey={view}
+        direction={transitionDirection}
+        id="main-content"
+        tabIndex={-1}
+      >
         <Suspense fallback={<PageLoadFallback />}>
           <Page {...pageProps} />
         </Suspense>
@@ -422,7 +441,10 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
     <div className="app-shell">
       <NavbarPublic
         activeView={view}
-        latestEvent={getNextUpcomingEvent(app.adminEvents.filter((event) => event.published !== false)) ?? UPCOMING_EVENTS[0]}
+        latestEvent={
+          getNextUpcomingEvent(app.adminEvents.filter((event) => event.published !== false)) ??
+          UPCOMING_EVENTS[0]
+        }
         onLogout={() => {
           app.logout()
           navigate('home')
@@ -430,7 +452,12 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         onNavigate={navigate}
         session={app.session}
       />
-      <PageTransition viewKey={view} direction={transitionDirection} id="main-content" tabIndex={-1}>
+      <PageTransition
+        viewKey={view}
+        direction={transitionDirection}
+        id="main-content"
+        tabIndex={-1}
+      >
         <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
       </PageTransition>
       <Footer onNavigate={navigate} />

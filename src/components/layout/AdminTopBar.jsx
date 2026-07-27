@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, Search } from 'lucide-react'
+import { ArrowRight, Bell, Search } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function AdminTopBar({
@@ -19,9 +19,9 @@ export default function AdminTopBar({
   const { locale, t } = useI18n()
   const placeholder = searchPlaceholder ?? t('admin.search.dashboard')
   const dateLabel = new Intl.DateTimeFormat(locale, {
-    day: '2-digit',
-    month: 'long',
-    weekday: 'long',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
   }).format(new Date())
 
   const alertLabel =
@@ -39,17 +39,18 @@ export default function AdminTopBar({
   return (
     <header className="admin-page-toolbar admin-page-toolbar--dashboard">
       <div className="admin-page-toolbar__headline">
-        <div className="admin-page-toolbar__meta">
-          {eyebrow && <span className="admin-page-toolbar__eyebrow">{eyebrow}</span>}
-          {showDate && (
-            <span className="admin-page-toolbar__date">
-              <CalendarDays size={13} strokeWidth={1.7} aria-hidden />
-              {dateLabel}
-            </span>
-          )}
-        </div>
+        {(eyebrow || showDate) && (
+          <div className="admin-page-toolbar__meta">
+            {eyebrow ? <span className="admin-page-toolbar__eyebrow">{eyebrow}</span> : null}
+            {showDate ? (
+              <time className="admin-page-toolbar__date" dateTime={new Date().toISOString().slice(0, 10)}>
+                {dateLabel}
+              </time>
+            ) : null}
+          </div>
+        )}
         <h1>{title}</h1>
-        {subtitle && <p className="admin-page-toolbar__subtitle">{subtitle}</p>}
+        {subtitle ? <p className="admin-page-toolbar__subtitle">{subtitle}</p> : null}
       </div>
 
       {(showSearch || showAlerts) && (

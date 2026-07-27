@@ -9,6 +9,23 @@
   --color-bg-secondary: var(--plu-warm-100);
   --color-page-canvas: var(--plu-warm-50);
   --color-section-muted: var(--plu-warm-100);
+
+  /* Sin atmósfera en light */
+  --theme-atmosphere-stack: none;
+  --theme-atmosphere-stack-admin: none;
+  --theme-page-sheen: none;
+  --theme-section-satin: none;
+  --theme-section-wash-celeste: none;
+  --theme-section-wash-gold: none;
+  --theme-login-atmosphere: none;
+  --theme-surface-satin: none;
+  --theme-surface-satin-strong: none;
+  --theme-sidebar-satin: none;
+  --theme-footer-satin: none;
+  --theme-surface-highlight: transparent;
+  --theme-overlay-backdrop: rgba(15, 17, 23, 0.45);
+  --theme-overlay-blur: 0px;
+
   --color-text-on-light: var(--plu-ink-900);
   --color-bg-surface: #ffffff;
   --color-bg-elevated: #fafafa;

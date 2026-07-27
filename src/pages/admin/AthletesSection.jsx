@@ -11,9 +11,22 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
 
+  const statusCounts = useMemo(() => {
+    const counts = Object.create(null)
+    for (const athlete of athletes) {
+      counts[athlete.status] = (counts[athlete.status] ?? 0) + 1
+    }
+    return counts
+  }, [athletes])
+
   const statusOptions = useMemo(
-    () => translateFilterOptions(ATHLETE_FILTER_STATUSES, t),
-    [t],
+    () =>
+      translateFilterOptions(ATHLETE_FILTER_STATUSES, t).map(([value, label]) => [
+        value,
+        label,
+        value === 'all' ? athletes.length : (statusCounts[value] ?? 0),
+      ]),
+    [athletes.length, statusCounts, t],
   )
 
   const rows = useMemo(() => {
@@ -32,16 +45,38 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
       .map((athlete) => ({ ...athlete, id: athlete.id }))
   }, [athletes, query, status])
 
+  const stats = useMemo(
+    () => [
+      {
+        label: t('admin.sections.athletes.statActive'),
+        value: statusCounts.afiliado_activo ?? 0,
+        tone: 'success',
+      },
+      {
+        label: t('admin.sections.athletes.statExpired'),
+        value: statusCounts.afiliado_vencido ?? 0,
+        tone: 'warning',
+      },
+      {
+        label: t('admin.sections.athletes.statBlocked'),
+        value: statusCounts.bloqueado ?? 0,
+        tone: 'default',
+      },
+    ],
+    [statusCounts, t],
+  )
+
   return (
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.search.athlete')}
       query={query}
       showHeader
-      showStats={false}
+      showStats
       eyebrow={t('admin.sections.athletes.eyebrow')}
       title={t('admin.sections.athletes.title')}
       subtitle={t('admin.sections.athletes.subtitle')}
+      stats={stats}
       totalCount={athletes.length}
       filters={[
         {
@@ -62,17 +97,37 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             label: t('admin.columns.athlete'),
             mobile: 'primary',
             sortable: true,
+            defaultSort: 'asc',
             render: (row) => <AdminIdentityCell name={row.fullName} sub={row.documentId} />,
           },
-          { key: 'documentId', label: t('admin.columns.document'), mobile: 'hidden', sortable: true },
-          { key: 'gym', label: t('admin.columns.gym'), mobile: 'default', sortable: true },
-          { key: 'division', label: t('admin.columns.division'), mobile: 'default', sortable: true },
+          {
+            key: 'documentId',
+            label: t('admin.columns.document'),
+            mobile: 'hidden',
+            sortable: true,
+            mobileSortable: false,
+          },
+          {
+            key: 'gym',
+            label: t('admin.columns.gym'),
+            mobile: 'default',
+            sortable: true,
+            mobileSortable: false,
+          },
+          {
+            key: 'division',
+            label: t('admin.columns.division'),
+            mobile: 'default',
+            sortable: true,
+            mobileSortable: false,
+          },
           {
             key: 'status',
             label: t('admin.columns.status'),
             mobile: 'badge',
             mobileLabel: '',
             sortable: true,
+            mobileSortable: false,
             render: (row) => <StatusBadge value={row.status} />,
           },
         ]}

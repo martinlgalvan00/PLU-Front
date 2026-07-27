@@ -5,6 +5,7 @@ import {
 } from '../../src/lib/schemas/accessControl.js'
 import {
   canManageRolePermissions,
+  hasPermission,
   PERMISSION_CATALOG,
 } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
@@ -16,10 +17,11 @@ import {
   assertMutablePermissionSet,
   canActorAssignRole,
   serializeAccessRole,
+  serializeAccessRoleActivity,
 } from '../services/accessControlService.js'
 
 async function audit(prisma, { action, actorId, entityId, before, after }) {
-  await prisma.auditLog.create({
+  return prisma.auditLog.create({
     data: {
       action,
       entityType: 'access_role',
@@ -36,6 +38,42 @@ function roleInclude() {
     ...ACCESS_ROLE_INCLUDE,
     _count: { select: { users: true } },
   }
+}
+
+const ACCESS_ROLE_AUDIT_ACTIONS = [
+  'access_role.created',
+  'access_role.permissions_updated',
+  'access_role.hierarchy_configured',
+]
+
+async function listRecentRoleActivity(prisma, actor, roles) {
+  if (
+    !hasPermission(actor, 'admin.audit.read') ||
+    typeof prisma.auditLog?.findMany !== 'function'
+  ) {
+    return []
+  }
+
+  const logs = await prisma.auditLog.findMany({
+    where: {
+      entityType: 'access_role',
+      action: { in: ACCESS_ROLE_AUDIT_ACTIONS },
+    },
+    include: {
+      actor: {
+        include: { profile: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  const roleNames = new Map(roles.map((role) => [role.id, role.name]))
+
+  return logs.map((log) =>
+    serializeAccessRoleActivity(log, {
+      roleName: roleNames.get(log.entityId) ?? null,
+    }),
+  )
 }
 
 function roleKeyBase(name) {
@@ -74,8 +112,10 @@ export function createAccessControlRoutes({ getPrisma }) {
         where: { active: true },
         include: roleInclude(),
       })
+      const activity = await listRecentRoleActivity(prisma, req.auth.user, roles)
 
       res.json({
+        activity,
         permissions: PERMISSION_CATALOG,
         roles: roles
           .map((role) =>
@@ -120,7 +160,7 @@ export function createAccessControlRoutes({ getPrisma }) {
 
         assertMutablePermissionSet(req.auth.user, definition, permissionKeys)
 
-        const role = await prismaClient.$transaction(async (tx) => {
+        const result = await prismaClient.$transaction(async (tx) => {
           const created = await tx.accessRole.create({
             data: {
               ...definition,
@@ -137,7 +177,7 @@ export function createAccessControlRoutes({ getPrisma }) {
             include: roleInclude(),
           })
 
-          await audit(tx, {
+          const activity = await audit(tx, {
             action: 'access_role.created',
             actorId: req.auth.user.id,
             entityId: created.id,
@@ -145,13 +185,17 @@ export function createAccessControlRoutes({ getPrisma }) {
             after: { name, description, permissionKeys },
           })
 
-          return created
+          return { activity, role: created }
         })
 
         res.status(201).json({
-          role: serializeAccessRole(role, {
-            canAssign: canActorAssignRole(req.auth.user, role),
-            canManagePermissions: canManageRolePermissions(req.auth.user, role),
+          activity: serializeAccessRoleActivity(result.activity, {
+            actor: req.auth.user,
+            roleName: result.role.name,
+          }),
+          role: serializeAccessRole(result.role, {
+            canAssign: canActorAssignRole(req.auth.user, result.role),
+            canManagePermissions: canManageRolePermissions(req.auth.user, result.role),
           }),
         })
       } catch (error) {
@@ -184,7 +228,7 @@ export function createAccessControlRoutes({ getPrisma }) {
           .map((grant) => grant.permission?.key ?? grant.permissionKey)
           .filter(Boolean)
 
-        const role = await prismaClient.$transaction(async (tx) => {
+        const result = await prismaClient.$transaction(async (tx) => {
           await tx.accessRolePermission.deleteMany({ where: { roleId: current.id } })
           if (permissionKeys.length > 0) {
             await tx.accessRolePermission.createMany({
@@ -195,7 +239,7 @@ export function createAccessControlRoutes({ getPrisma }) {
             })
           }
 
-          await audit(tx, {
+          const activity = await audit(tx, {
             action: 'access_role.permissions_updated',
             actorId: req.auth.user.id,
             entityId: current.id,
@@ -203,16 +247,22 @@ export function createAccessControlRoutes({ getPrisma }) {
             after: { permissionKeys },
           })
 
-          return tx.accessRole.findUnique({
+          const role = await tx.accessRole.findUnique({
             where: { id: current.id },
             include: roleInclude(),
           })
+
+          return { activity, role }
         })
 
         res.json({
-          role: serializeAccessRole(role, {
-            canAssign: canActorAssignRole(req.auth.user, role),
-            canManagePermissions: canManageRolePermissions(req.auth.user, role),
+          activity: serializeAccessRoleActivity(result.activity, {
+            actor: req.auth.user,
+            roleName: result.role.name,
+          }),
+          role: serializeAccessRole(result.role, {
+            canAssign: canActorAssignRole(req.auth.user, result.role),
+            canManagePermissions: canManageRolePermissions(req.auth.user, result.role),
           }),
         })
       } catch (error) {

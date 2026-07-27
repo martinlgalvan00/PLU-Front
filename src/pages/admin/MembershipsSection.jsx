@@ -13,9 +13,22 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
   const [status, setStatus] = useState('all')
   const [expiring, setExpiring] = useState('all')
 
+  const statusCounts = useMemo(() => {
+    const counts = Object.create(null)
+    for (const item of memberships) {
+      counts[item.status] = (counts[item.status] ?? 0) + 1
+    }
+    return counts
+  }, [memberships])
+
   const statusOptions = useMemo(
-    () => translateFilterOptions(MEMBERSHIP_FILTER_STATUSES, t),
-    [t],
+    () =>
+      translateFilterOptions(MEMBERSHIP_FILTER_STATUSES, t).map(([value, label]) => [
+        value,
+        label,
+        value === 'all' ? memberships.length : (statusCounts[value] ?? 0),
+      ]),
+    [memberships.length, statusCounts, t],
   )
 
   const expiringOptions = useMemo(
@@ -39,16 +52,38 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
     [memberships, query, status, expiring],
   )
 
+  const stats = useMemo(
+    () => [
+      {
+        label: t('admin.sections.memberships.statActive'),
+        value: statusCounts.activa ?? 0,
+        tone: 'success',
+      },
+      {
+        label: t('admin.sections.memberships.statExpired'),
+        value: statusCounts.vencida ?? 0,
+        tone: 'warning',
+      },
+      {
+        label: t('admin.sections.memberships.statCancelled'),
+        value: statusCounts.cancelada ?? 0,
+        tone: 'default',
+      },
+    ],
+    [statusCounts, t],
+  )
+
   return (
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.search.membership')}
       query={query}
       showHeader
-      showStats={false}
+      showStats
       eyebrow={t('admin.sections.memberships.eyebrow')}
       title={t('admin.sections.memberships.title')}
       subtitle={t('admin.sections.memberships.subtitle')}
+      stats={stats}
       totalCount={memberships.length}
       filters={[
         {
@@ -76,19 +111,49 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
             label: t('admin.columns.athlete'),
             mobile: 'primary',
             sortable: true,
+            defaultSort: 'asc',
             render: (row) => <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} />,
           },
-          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default', sortable: true },
-          { key: 'year', label: t('admin.columns.year'), mobile: 'default', desktop: 'numeric', align: 'end', sortable: true },
+          {
+            key: 'memberCode',
+            label: t('admin.columns.code'),
+            mobile: 'default',
+            mobileSortLabel: t('admin.columns.code'),
+            sortable: true,
+            mobileSortable: false,
+          },
+          {
+            key: 'year',
+            label: t('admin.columns.year'),
+            mobile: 'hidden',
+            desktop: 'numeric',
+            align: 'end',
+            sortable: true,
+            mobileSortable: false,
+          },
           {
             key: 'status',
             label: t('admin.columns.status'),
             mobile: 'badge',
             sortable: true,
+            mobileSortable: false,
             render: (row) => <StatusBadge value={row.status} />,
           },
-          { key: 'startDate', label: t('admin.columns.start'), mobile: 'default', sortable: true },
-          { key: 'expirationDate', label: t('admin.columns.expiration'), mobile: 'default', sortable: true },
+          {
+            key: 'startDate',
+            label: t('admin.columns.start'),
+            mobile: 'hidden',
+            sortable: true,
+            mobileSortable: false,
+          },
+          {
+            key: 'expirationDate',
+            label: t('admin.columns.expiration'),
+            mobile: 'default',
+            mobileSortLabel: t('admin.columns.expiration'),
+            sortable: true,
+            mobileSortable: false,
+          },
         ]}
         rows={rows}
         emptyMessage={t('admin.sections.memberships.empty')}

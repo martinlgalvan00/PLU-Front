@@ -311,7 +311,6 @@ export default function DashboardSection({
   return (
     <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury admin-dashboard--executive">
       <AdminTopBar
-        eyebrow={t('admin.dashboard.eyebrow')}
         title={t('admin.dashboard.title')}
         subtitle={t('admin.dashboard.subtitle')}
         searchValue={globalSearch}

@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { expect, test } from 'vitest'
 import {
   createPasswordResetToken,
   verifyPasswordResetToken,
@@ -14,7 +13,7 @@ test('password reset token roundtrip', () => {
     expiresAt: new Date(Date.now() + 60_000),
   })
   const payload = verifyPasswordResetToken(token, { secret: SECRET })
-  assert.equal(payload?.aid, 'ath-123')
+  expect(payload?.aid).toBe('ath-123')
 })
 
 test('password reset token rejects tampering', () => {
@@ -25,7 +24,7 @@ test('password reset token rejects tampering', () => {
   })
   const [payloadB64] = token.split('.')
   const forged = `${payloadB64}.not-a-real-signature`
-  assert.equal(verifyPasswordResetToken(forged, { secret: SECRET }), null)
+  expect(verifyPasswordResetToken(forged, { secret: SECRET })).toBeNull()
 })
 
 test('password reset token rejects expired', () => {
@@ -34,5 +33,5 @@ test('password reset token rejects expired', () => {
     secret: SECRET,
     expiresAt: new Date(Date.now() - 1000),
   })
-  assert.equal(verifyPasswordResetToken(token, { secret: SECRET }), null)
+  expect(verifyPasswordResetToken(token, { secret: SECRET })).toBeNull()
 })

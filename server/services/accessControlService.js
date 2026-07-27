@@ -61,6 +61,34 @@ export function serializeAccessRole(
   }
 }
 
+function permissionKeysFromSnapshot(snapshot) {
+  return Array.isArray(snapshot?.permissionKeys)
+    ? snapshot.permissionKeys.filter((permissionKey) => typeof permissionKey === 'string')
+    : []
+}
+
+export function serializeAccessRoleActivity(log, { actor = null, roleName = null } = {}) {
+  const beforePermissions = permissionKeysFromSnapshot(log.before)
+  const afterPermissions = permissionKeysFromSnapshot(log.after)
+  const beforeSet = new Set(beforePermissions)
+  const afterSet = new Set(afterPermissions)
+  const resolvedActor = log.actor ?? actor
+  const createdAt =
+    log.createdAt instanceof Date ? log.createdAt.toISOString() : String(log.createdAt ?? '')
+
+  return {
+    id: log.id,
+    action: log.action,
+    roleId: log.entityId,
+    roleName: roleName ?? log.after?.name ?? log.entityId,
+    actorName:
+      resolvedActor?.profile?.displayName ?? resolvedActor?.name ?? resolvedActor?.email ?? null,
+    createdAt,
+    addedPermissions: afterPermissions.filter((permissionKey) => !beforeSet.has(permissionKey)),
+    removedPermissions: beforePermissions.filter((permissionKey) => !afterSet.has(permissionKey)),
+  }
+}
+
 export async function findAccessRole(prisma, roleKey) {
   if (prisma.accessRole?.findUnique) {
     return prisma.accessRole.findUnique({
@@ -73,10 +101,7 @@ export async function findAccessRole(prisma, roleKey) {
 }
 
 export function canActorAssignRole(actor, targetRole) {
-  if (
-    !targetRole?.active ||
-    targetRole.key === 'admin_maximal'
-  ) {
+  if (!targetRole?.active || targetRole.key === 'admin_maximal') {
     return false
   }
 
@@ -117,9 +142,7 @@ export function assertMutablePermissionSet(actor, role, permissionKeys) {
     if (!permission || permission.action === 'read' || permission.module === 'exports') continue
 
     const readPermission = PERMISSION_CATALOG.find(
-      (candidate) =>
-        candidate.module === permission.module &&
-        candidate.action === 'read',
+      (candidate) => candidate.module === permission.module && candidate.action === 'read',
     )
     if (readPermission && !selected.has(readPermission.key)) {
       throw new HttpError(

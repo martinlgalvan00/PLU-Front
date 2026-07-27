@@ -8,15 +8,12 @@ import {
 
 const prisma = new PrismaClient()
 
-const allowedRoles = new Set([
-  'admin_maximal',
-  'admin_plu_arg',
-])
+const allowedRoles = new Set(ACCESS_ROLE_TEMPLATES.map(({ key }) => key))
 
 function readSeedAdmin() {
   const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase()
   const password = process.env.SEED_ADMIN_PASSWORD
-  const role = process.env.SEED_ADMIN_ROLE?.trim() || 'admin_plu_arg'
+  const roleKey = process.env.SEED_ADMIN_ROLE?.trim() || 'admin_plu_arg'
   const firstName = process.env.SEED_ADMIN_FIRST_NAME?.trim() || 'Admin'
   const lastName = process.env.SEED_ADMIN_LAST_NAME?.trim() || 'PLU'
 
@@ -27,11 +24,19 @@ function readSeedAdmin() {
   if (password.length < 8) {
     throw new Error('SEED_ADMIN_PASSWORD debe tener al menos 8 caracteres.')
   }
-  if (!allowedRoles.has(role)) {
-    throw new Error(`SEED_ADMIN_ROLE invalido: ${role}`)
+  if (!allowedRoles.has(roleKey)) {
+    throw new Error(`SEED_ADMIN_ROLE invalido: ${roleKey}`)
   }
 
-  return { email, password, role, firstName, lastName }
+  const accessRole = ACCESS_ROLE_TEMPLATES.find(({ key }) => key === roleKey)
+  return {
+    email,
+    password,
+    roleKey,
+    baseRole: accessRole.baseRole,
+    firstName,
+    lastName,
+  }
 }
 
 async function ensureAccessControlCatalog() {
@@ -60,11 +65,13 @@ async function ensureAccessControlCatalog() {
 
   for (const template of ACCESS_ROLE_TEMPLATES) {
     const existing = await prisma.accessRole.findUnique({ where: { key: template.key } })
+    // hierarchyLevel vive en el catálogo JS; AccessRole no tiene esa columna.
+    const { hierarchyLevel: _hierarchyLevel, ...roleFields } = template
     await prisma.accessRole.upsert({
       where: { key: template.key },
       create: {
         id: template.key,
-        ...template,
+        ...roleFields,
         permissions: {
           create: getDefaultPermissionsForRole(template.key).map((permissionKey) => ({
             permission: { connect: { key: permissionKey } },
@@ -121,8 +128,8 @@ async function main() {
     create: {
       email: seedAdmin.email,
       passwordHash,
-      role: seedAdmin.role,
-      accessRole: { connect: { key: seedAdmin.role } },
+      role: seedAdmin.baseRole,
+      accessRole: { connect: { key: seedAdmin.roleKey } },
       status: 'active',
       profile: {
         create: {
@@ -134,8 +141,8 @@ async function main() {
     },
     update: {
       passwordHash,
-      role: seedAdmin.role,
-      accessRole: { connect: { key: seedAdmin.role } },
+      role: seedAdmin.baseRole,
+      accessRole: { connect: { key: seedAdmin.roleKey } },
       status: 'active',
       profile: {
         upsert: {
@@ -154,7 +161,7 @@ async function main() {
     },
   })
 
-  console.info(`Admin seed listo: ${seedAdmin.email} (${seedAdmin.role})`)
+  console.info(`Admin seed listo: ${seedAdmin.email} (${seedAdmin.roleKey})`)
 }
 
 main()

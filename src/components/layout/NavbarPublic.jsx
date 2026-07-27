@@ -494,12 +494,13 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
                 type="button"
-                className="plu-global-nav__mobile-affiliate"
-                aria-label={t('nav.members')}
+                className={`plu-global-nav__mobile-affiliate${activeView === 'members' ? ' is-active' : ''}`}
+                aria-current={activeView === 'members' ? 'page' : undefined}
+                aria-label={t('nav.affiliate')}
+                title={t('nav.affiliate')}
                 onClick={() => go('members')}
               >
-                <IdCard size={14} aria-hidden />
-                <span aria-hidden>{t('nav.members')}</span>
+                <span className="plu-global-nav__mobile-affiliate-label">{t('nav.affiliateShort')}</span>
               </button>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
@@ -511,7 +512,11 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 ref={menuButtonRef}
                 onClick={drawerOpen ? () => closeDrawer(true) : openDrawer}
               >
-                <span aria-hidden><i /><i /><i /></span>
+                <span className="plu-global-nav__menu-icon" aria-hidden>
+                  <span className="plu-global-nav__menu-line" />
+                  <span className="plu-global-nav__menu-line" />
+                  <span className="plu-global-nav__menu-line" />
+                </span>
               </button>
             </div>
           </div>

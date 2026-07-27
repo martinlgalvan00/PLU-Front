@@ -88,6 +88,7 @@ import {
   fetchAdminEvents,
   fetchPublishedEvents,
   getInitialAdminEvents,
+  saveAdminEventRequest,
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
@@ -160,6 +161,8 @@ export function useAppData() {
   const [adminEvents, setAdminEvents] = useState(() =>
     getInitialAdminEvents(storedData?.adminEvents),
   )
+  const [adminEventsLoading, setAdminEventsLoading] = useState(false)
+  const [adminEventsError, setAdminEventsError] = useState(null)
   const [shopProducts, setShopProducts] = useState(() =>
     getInitialShopProducts(storedData?.shopProducts),
   )
@@ -173,6 +176,7 @@ export function useAppData() {
       userCount: 0,
     })),
   )
+  const [roleActivity, setRoleActivity] = useState([])
   const [permissionCatalog, setPermissionCatalog] = useState(PERMISSION_CATALOG)
   const [form, setForm] = useState(DEFAULT_FORM)
   const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
@@ -207,6 +211,31 @@ export function useAppData() {
     }
   }, [])
 
+  const refreshAdminEvents = useCallback(async () => {
+    const currentSession = sessionRef.current
+    if (
+      !currentSession ||
+      isDemoSession(currentSession) ||
+      !hasPermission(currentSession, 'admin.events.read')
+    ) {
+      return null
+    }
+
+    setAdminEventsLoading(true)
+    setAdminEventsError(null)
+    try {
+      const remoteEvents = await fetchAdminEvents()
+      setAdminEvents(remoteEvents)
+      return remoteEvents
+    } catch (error) {
+      setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      console.warn('No se pudieron cargar los eventos del panel.', error)
+      return null
+    } finally {
+      setAdminEventsLoading(false)
+    }
+  }, [])
+
   const refreshAthleteData = useCallback(async () => {
     if (!session || isDemoSession(session)) return
 
@@ -223,22 +252,25 @@ export function useAppData() {
       return
     }
 
+    const tasks = []
     const canReadAthleteData = hasAnyPermission(session, [
       'admin.athletes.read',
       'admin.memberships.read',
       'admin.registrations.read',
       'admin.payments.read',
     ])
+
     if (canReadAthleteData) {
-      try {
-        const data = await fetchAdminAthleteData()
-        setAthletes(data.athletes)
-        setMemberships(data.memberships)
-        setRegistrations(data.registrations)
-        setPayments(data.payments)
-      } catch (error) {
-        console.error('refreshAthleteData:', error)
-      }
+      tasks.push(
+        fetchAdminAthleteData()
+          .then((data) => {
+            setAthletes(data.athletes)
+            setMemberships(data.memberships)
+            setRegistrations(data.registrations)
+            setPayments(data.payments)
+          })
+          .catch((error) => console.error('refreshAthleteData:', error)),
+      )
     } else {
       setAthletes([])
       setMemberships([])
@@ -247,37 +279,39 @@ export function useAppData() {
     }
 
     if (hasPermission(session, 'admin.events.read')) {
-      try {
-        const remoteEvents = await fetchAdminEvents()
-        setAdminEvents(remoteEvents)
-      } catch (error) {
-        console.warn('No se pudieron cargar los eventos del panel.', error)
-      }
+      tasks.push(refreshAdminEvents())
     }
 
     if (hasPermission(session, 'admin.users.read')) {
-      try {
-        const { users: staffUsers } = await listStaffUsersRequest()
-        setUsers(staffUsers)
-      } catch (error) {
-        if (!(error instanceof ApiError && error.status === 403)) {
-          console.warn('No se pudo cargar el listado de staff.', error)
-        }
-      }
+      tasks.push(
+        listStaffUsersRequest()
+          .then(({ users: staffUsers }) => setUsers(staffUsers))
+          .catch((error) => {
+            if (!(error instanceof ApiError && error.status === 403)) {
+              console.warn('No se pudo cargar el listado de staff.', error)
+            }
+          }),
+      )
     }
 
     if (hasPermission(session, 'admin.roles.read')) {
-      try {
-        const { permissions, roles: remoteRoles } = await listAccessRolesRequest()
-        setAccessRoles(remoteRoles)
-        setPermissionCatalog(permissions)
-      } catch (error) {
-        if (!(error instanceof ApiError && error.status === 403)) {
-          console.warn('No se pudo cargar la matriz de roles.', error)
-        }
-      }
+      tasks.push(
+        listAccessRolesRequest()
+          .then(({ activity = [], permissions, roles: remoteRoles }) => {
+            setAccessRoles(remoteRoles)
+            setRoleActivity(activity)
+            setPermissionCatalog(permissions)
+          })
+          .catch((error) => {
+            if (!(error instanceof ApiError && error.status === 403)) {
+              console.warn('No se pudo cargar la matriz de roles.', error)
+            }
+          }),
+      )
     }
-  }, [session])
+
+    await Promise.all(tasks)
+  }, [refreshAdminEvents, session])
 
   useEffect(() => {
     refreshAthleteData()
@@ -715,27 +749,30 @@ export function useAppData() {
 
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
   // Mercado Pago se acreditan exclusivamente mediante webhook.
-  const approveTicketPurchase = useCallback(async (orderId) => {
-    if (!hasPermission(session, 'admin.payments.approve')) {
-      return { error: 'Sin permisos para aprobar pagos.' }
-    }
-    try {
-      const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
-      setTickets((current) => {
-        const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
-        return current.map((item) =>
-          byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+  const approveTicketPurchase = useCallback(
+    async (orderId) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para aprobar pagos.' }
+      }
+      try {
+        const { order, tickets: approvedTickets } = await approveTicketOrderRequest(orderId)
+        setTickets((current) => {
+          const byId = new Map(approvedTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
         )
-      })
-      setCreatedOrder((current) =>
-        current?.orderId === orderId ? { ...current, status: order.status } : current,
-      )
-      setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
-    } catch (error) {
-      console.error('approveTicketPurchase:', error)
-      throw error
-    }
-  }, [session])
+        setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
+      } catch (error) {
+        console.error('approveTicketPurchase:', error)
+        throw error
+      }
+    },
+    [session],
+  )
 
   const uploadTicketPaymentProofAction = useCallback(
     async (orderId, file) => {
@@ -797,25 +834,28 @@ export function useAppData() {
     return undefined
   }, [session, refreshPendingTicketOrders])
 
-  const checkInTicketAction = useCallback(async (qrToken) => {
-    if (!hasPermission(session, 'admin.checkin.execute')) {
-      return { outcome: 'forbidden' }
-    }
-    try {
-      const { ticket, checkIn } = await checkInTicketRequest(qrToken)
-      const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
-      setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
-      return { outcome: 'ok', ticket: updated }
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+  const checkInTicketAction = useCallback(
+    async (qrToken) => {
+      if (!hasPermission(session, 'admin.checkin.execute')) {
+        return { outcome: 'forbidden' }
       }
-      if (error instanceof ApiError && error.status === 404) {
-        return { outcome: 'not_found' }
+      try {
+        const { ticket, checkIn } = await checkInTicketRequest(qrToken)
+        const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
+        setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
+        return { outcome: 'ok', ticket: updated }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+        }
+        if (error instanceof ApiError && error.status === 404) {
+          return { outcome: 'not_found' }
+        }
+        throw error
       }
-      throw error
-    }
-  }, [session])
+    },
+    [session],
+  )
 
   const redeemTicketAddonAction = useCallback(async (qrToken, addonId) => {
     try {
@@ -849,28 +889,31 @@ export function useAppData() {
   // Check-in en la puerta para un atleta inscripto (competidor) â€” separado
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
-  const checkInRegistrationAction = useCallback(async (registrationId, gate) => {
-    if (!hasPermission(session, 'admin.checkin.execute')) {
-      return { outcome: 'forbidden' }
-    }
-    try {
-      const { registration } = await checkInRegistrationRequest(registrationId, gate)
-      setRegistrations((current) =>
-        current.map((item) =>
-          item.id === registration.id ? { ...item, checkedInAt: registration.checkedInAt } : item,
-        ),
-      )
-      return { outcome: 'ok', registration }
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+  const checkInRegistrationAction = useCallback(
+    async (registrationId, gate) => {
+      if (!hasPermission(session, 'admin.checkin.execute')) {
+        return { outcome: 'forbidden' }
       }
-      if (error instanceof ApiError && error.status === 404) {
-        return { outcome: 'not_found' }
+      try {
+        const { registration } = await checkInRegistrationRequest(registrationId, gate)
+        setRegistrations((current) =>
+          current.map((item) =>
+            item.id === registration.id ? { ...item, checkedInAt: registration.checkedInAt } : item,
+          ),
+        )
+        return { outcome: 'ok', registration }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+        }
+        if (error instanceof ApiError && error.status === 404) {
+          return { outcome: 'not_found' }
+        }
+        throw error
       }
-      throw error
-    }
-  }, [session])
+    },
+    [session],
+  )
 
   // La asignación se persiste y se vuelve a validar en Express. El fallback
   // local queda únicamente para la sesión demo.
@@ -898,69 +941,115 @@ export function useAppData() {
     return user
   }, [])
 
-  const createAccessRoleAction = useCallback(async (draft) => {
-    let createdRole
+  const createAccessRoleAction = useCallback(
+    async (draft) => {
+      let createdRole
+      let activityEntry
 
-    if (isDemoSession(session)) {
-      const normalizedName = draft.name
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '')
-      const key = `custom_${normalizedName || crypto.randomUUID().slice(0, 8)}`
-      createdRole = {
-        id: key,
-        key,
-        name: draft.name.trim(),
-        description: draft.description?.trim() ?? '',
-        baseRole: 'operador_plu_arg',
-        isSystem: false,
-        isProtected: false,
-        assignableByAdmin: true,
-        active: true,
-        permissions: [...(draft.permissionKeys ?? [])],
-        userCount: 0,
-        canAssign: true,
-        canManagePermissions: true,
+      if (isDemoSession(session)) {
+        const normalizedName = draft.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+        const key = `custom_${normalizedName || crypto.randomUUID().slice(0, 8)}`
+        createdRole = {
+          id: key,
+          key,
+          name: draft.name.trim(),
+          description: draft.description?.trim() ?? '',
+          baseRole: 'operador_plu_arg',
+          isSystem: false,
+          isProtected: false,
+          assignableByAdmin: true,
+          active: true,
+          permissions: [...(draft.permissionKeys ?? [])],
+          userCount: 0,
+          canAssign: true,
+          canManagePermissions: true,
+        }
+        activityEntry = {
+          id: `demo-role-created-${Date.now()}`,
+          action: 'access_role.created',
+          roleId: createdRole.id,
+          roleName: createdRole.name,
+          actorName: session?.name ?? session?.email ?? null,
+          createdAt: new Date().toISOString(),
+          addedPermissions: [...createdRole.permissions],
+          removedPermissions: [],
+        }
+      } else {
+        const response = await createAccessRoleRequest(draft)
+        createdRole = response.role
+        activityEntry = response.activity
       }
-    } else {
-      const response = await createAccessRoleRequest(draft)
-      createdRole = response.role
-    }
 
-    setAccessRoles((current) => [
-      ...current.filter((role) => role.id !== createdRole.id),
-      createdRole,
-    ])
-    return createdRole
-  }, [session])
+      setAccessRoles((current) => [
+        ...current.filter((role) => role.id !== createdRole.id),
+        createdRole,
+      ])
+      if (activityEntry) {
+        setRoleActivity((current) =>
+          [activityEntry, ...current.filter((item) => item.id !== activityEntry.id)].slice(0, 20),
+        )
+      }
+      return createdRole
+    },
+    [session],
+  )
 
-  const updateAccessRolePermissionsAction = useCallback(async (roleId, permissionKeys) => {
-    let updatedRole
-
-    if (isDemoSession(session)) {
+  const updateAccessRolePermissionsAction = useCallback(
+    async (roleId, permissionKeys) => {
+      let updatedRole
+      let activityEntry
       const currentRole = accessRoles.find((role) => role.id === roleId)
       if (!currentRole) throw new Error('El rol seleccionado no existe.')
-      updatedRole = { ...currentRole, permissions: [...permissionKeys] }
-    } else {
-      const response = await updateAccessRolePermissionsRequest(roleId, permissionKeys)
-      updatedRole = response.role
-    }
 
-    setAccessRoles((current) =>
-      current.map((role) => (role.id === updatedRole.id ? updatedRole : role)),
-    )
-    setSession((current) => {
-      if (!current || current.roleKey !== updatedRole.key) return current
-      return {
-        ...current,
-        permissions: updatedRole.permissions,
-        roleLabel: updatedRole.name,
+      if (isDemoSession(session)) {
+        updatedRole = { ...currentRole, permissions: [...permissionKeys] }
+        const beforePermissions = new Set(currentRole.permissions ?? [])
+        const afterPermissions = new Set(permissionKeys)
+        activityEntry = {
+          id: `demo-role-updated-${Date.now()}`,
+          action: 'access_role.permissions_updated',
+          roleId: updatedRole.id,
+          roleName: updatedRole.name,
+          actorName: session?.name ?? session?.email ?? null,
+          createdAt: new Date().toISOString(),
+          addedPermissions: permissionKeys.filter(
+            (permissionKey) => !beforePermissions.has(permissionKey),
+          ),
+          removedPermissions: [...beforePermissions].filter(
+            (permissionKey) => !afterPermissions.has(permissionKey),
+          ),
+        }
+      } else {
+        const response = await updateAccessRolePermissionsRequest(roleId, permissionKeys)
+        updatedRole = response.role
+        activityEntry = response.activity
       }
-    })
-    return updatedRole
-  }, [accessRoles, session, setSession])
+
+      setAccessRoles((current) =>
+        current.map((role) => (role.id === updatedRole.id ? updatedRole : role)),
+      )
+      setSession((current) => {
+        if (!current || current.roleKey !== updatedRole.key) return current
+        return {
+          ...current,
+          permissions: updatedRole.permissions,
+          roleLabel: updatedRole.name,
+        }
+      })
+      if (activityEntry) {
+        setRoleActivity((current) =>
+          [activityEntry, ...current.filter((item) => item.id !== activityEntry.id)].slice(0, 20),
+        )
+      }
+      return updatedRole
+    },
+    [accessRoles, session, setSession],
+  )
 
   const createSecurityUserAction = useCallback(async (draft) => {
     const { user, tempPassword, emailed, accessUrl, expiresAt } =
@@ -998,10 +1087,17 @@ export function useAppData() {
   // ligero (ver getInitialUsers) que no refleja lo que hay en el backend
   // para este rol, así que el panel de "Seguridad" de cada evento pide su
   // propia lista en vez de confiar en `users`.
-  const listSecurityUsersForEventAction = useCallback(async (eventId) => {
-    const { users: securityUsers } = await listSecurityUsersRequest(eventId)
-    return securityUsers
-  }, [])
+  const listSecurityUsersForEventAction = useCallback(
+    async (eventId) => {
+      if (isDemoSession(session)) {
+        return users.filter((user) => user.role === 'seguridad_plu_arg' && user.eventId === eventId)
+      }
+
+      const { users: securityUsers } = await listSecurityUsersRequest(eventId)
+      return securityUsers
+    },
+    [session, users],
+  )
 
   const updateSecurityUserStatusAction = useCallback(async (userId, status) => {
     const { user } = await updateSecurityUserStatusRequest(userId, status)
@@ -1358,23 +1454,33 @@ export function useAppData() {
   }, [athletes, memberships, registrations, session])
 
   const saveAdminEvent = useCallback(
-    (draft) => {
+    async (draft) => {
       if (!hasPermission(session, 'admin.events.write')) {
         return { error: 'Sin permisos para editar eventos.' }
       }
 
-      if (draft.id) {
-        const result = updateAdminEvent(adminEvents, draft.id, draft)
-        if (!result.event) return { error: 'No se encontrÃ³ el evento.' }
+      if (isDemoSession(session)) {
+        if (draft.id) {
+          const result = updateAdminEvent(adminEvents, draft.id, draft)
+          if (!result.event) return { error: 'No se encontró el evento.' }
+          setAdminEvents(result.events)
+          if (result.auditLog) setAuditLogs((current) => [result.auditLog, ...current])
+          return { event: result.event, events: result.events }
+        }
+
+        const result = createAdminEvent(adminEvents, draft)
         setAdminEvents(result.events)
-        if (result.auditLog) setAuditLogs((current) => [result.auditLog, ...current])
-        return { event: result.event }
+        setAuditLogs((current) => [result.auditLog, ...current])
+        return { event: result.event, events: result.events }
       }
 
-      const result = createAdminEvent(adminEvents, draft)
+      const sourceEvent = draft.id
+        ? (adminEvents.find((event) => event.id === draft.id) ?? null)
+        : null
+      const result = await saveAdminEventRequest(draft, sourceEvent)
       setAdminEvents(result.events)
-      setAuditLogs((current) => [result.auditLog, ...current])
-      return { event: result.event }
+      setAdminEventsError(null)
+      return result
     },
     [adminEvents, session],
   )
@@ -1440,6 +1546,9 @@ export function useAppData() {
     dashboard,
     dashboardOverview,
     adminEvents,
+    adminEventsLoading,
+    adminEventsError,
+    refreshAdminEvents,
     shopProducts,
     saveAdminEvent,
     saveShopProduct,
@@ -1470,6 +1579,7 @@ export function useAppData() {
     checkInRegistrationAction,
     users,
     accessRoles,
+    roleActivity,
     permissionCatalog,
     updateUserRoleAction,
     createUserAction,

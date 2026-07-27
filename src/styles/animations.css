@@ -295,7 +295,7 @@
    ============================================= */
 
 .admin-section-enter {
-  animation: admin-section-enter 0.36s var(--ease-out) both;
+  animation: admin-section-enter 0.36s var(--ease-out) backwards;
 }
 
 @keyframes admin-section-enter {

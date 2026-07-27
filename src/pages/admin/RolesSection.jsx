@@ -1,5 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check, LockKeyhole, Plus, Save, ShieldCheck, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Check,
+  History,
+  LockKeyhole,
+  Minus,
+  Plus,
+  RotateCcw,
+  Save,
+  ShieldCheck,
+  UsersRound,
+  X,
+} from 'lucide-react'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -13,20 +24,33 @@ const ACTION_ORDER = ['read', 'write', 'approve', 'execute']
 const RESERVED_LOWER_PERMISSIONS = new Set(['admin.users.write', 'admin.roles.write'])
 
 function actorCanEditRole(actor, role) {
-  return (
-    role?.canManagePermissions ??
-    canManageRolePermissions(actor, role)
-  )
+  return role?.canManagePermissions ?? canManageRolePermissions(actor, role)
+}
+
+function permissionSignature(permissionKeys) {
+  return [...(permissionKeys ?? [])].sort().join('|')
+}
+
+function formatActivityDate(value, locale) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat(locale === 'es' ? 'es-AR' : 'en-US', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date)
 }
 
 export default function RolesSection({
+  activity = [],
   authorization,
   onCreateRole,
   onUpdatePermissions,
-  permissionCatalog,
-  roles,
+  permissionCatalog = [],
+  roles = [],
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
+  const roleListRef = useRef(null)
 
   const orderedRoles = useMemo(
     () =>
@@ -40,9 +64,7 @@ export default function RolesSection({
   )
 
   const initialRole =
-    orderedRoles.find((role) => actorCanEditRole(authorization, role)) ??
-    orderedRoles[0] ??
-    null
+    orderedRoles.find((role) => actorCanEditRole(authorization, role)) ?? orderedRoles[0] ?? null
   const [selectedRoleId, setSelectedRoleId] = useState(initialRole?.id ?? null)
   const [permissionDraft, setPermissionDraft] = useState([])
   const [message, setMessage] = useState(null)
@@ -50,6 +72,7 @@ export default function RolesSection({
   const [isCreating, setIsCreating] = useState(false)
   const [isCreatingRole, setIsCreatingRole] = useState(false)
   const [roleDraft, setRoleDraft] = useState({ name: '', description: '' })
+  const [pendingRoleId, setPendingRoleId] = useState(null)
 
   const selectedRole =
     orderedRoles.find((role) => role.id === selectedRoleId) ?? orderedRoles[0] ?? null
@@ -57,16 +80,20 @@ export default function RolesSection({
   useEffect(() => {
     if (orderedRoles.some((role) => role.id === selectedRoleId)) return
     const nextRole =
-      orderedRoles.find((role) => actorCanEditRole(authorization, role)) ??
-      orderedRoles[0] ??
-      null
+      orderedRoles.find((role) => actorCanEditRole(authorization, role)) ?? orderedRoles[0] ?? null
     setSelectedRoleId(nextRole?.id ?? null)
   }, [authorization, orderedRoles, selectedRoleId])
 
   useEffect(() => {
     setPermissionDraft(selectedRole?.permissions ?? [])
     setMessage(null)
+    setPendingRoleId(null)
   }, [selectedRole])
+
+  useEffect(() => {
+    const selectedButton = roleListRef.current?.querySelector(`[data-role-id="${selectedRoleId}"]`)
+    selectedButton?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [selectedRoleId])
 
   const permissionRows = useMemo(() => {
     const byModule = new Map()
@@ -84,17 +111,85 @@ export default function RolesSection({
   }, [permissionCatalog])
 
   const editable = Boolean(
-    selectedRole &&
-    !selectedRole.isProtected &&
-    actorCanEditRole(authorization, selectedRole),
+    selectedRole && !selectedRole.isProtected && actorCanEditRole(authorization, selectedRole),
   )
   const dirty =
     selectedRole &&
-    [...permissionDraft].sort().join('|') !==
-      [...(selectedRole.permissions ?? [])].sort().join('|')
+    permissionSignature(permissionDraft) !== permissionSignature(selectedRole.permissions)
   const activePermissionCount = permissionDraft.length
-  const canCreateRole =
-    Boolean(onCreateRole) && hasPermission(authorization, 'admin.roles.write')
+  const canCreateRole = Boolean(onCreateRole) && hasPermission(authorization, 'admin.roles.write')
+  const canViewAudit = hasPermission(authorization, 'admin.audit.read')
+  const pendingRole = orderedRoles.find((role) => role.id === pendingRoleId) ?? null
+
+  const permissionByKey = useMemo(
+    () => new Map(permissionCatalog.map((permission) => [permission.key, permission])),
+    [permissionCatalog],
+  )
+  const permissionDraftSet = useMemo(
+    () => new Set(permissionDraft),
+    [permissionDraft],
+  )
+  const permissionDiff = useMemo(() => {
+    const savedPermissions = new Set(selectedRole?.permissions ?? [])
+    const draftPermissions = new Set(permissionDraft)
+
+    return {
+      added: permissionDraft.filter((permissionKey) => !savedPermissions.has(permissionKey)),
+      removed: [...savedPermissions].filter(
+        (permissionKey) => !draftPermissions.has(permissionKey),
+      ),
+    }
+  }, [permissionDraft, selectedRole])
+  const roleStats = useMemo(() => {
+    const selectedPermissions = permissionCatalog.filter((permission) =>
+      permissionDraftSet.has(permission.key),
+    )
+
+    return {
+      modules: new Set(selectedPermissions.map((permission) => permission.module)).size,
+      elevated: selectedPermissions.filter((permission) => permission.action !== 'read').length,
+    }
+  }, [permissionCatalog, permissionDraftSet])
+  const selectedActivity = useMemo(
+    () => activity.filter((item) => item.roleId === selectedRole?.id).slice(0, 6),
+    [activity, selectedRole?.id],
+  )
+
+  useEffect(() => {
+    if (!dirty) return undefined
+
+    function preventAccidentalExit(event) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', preventAccidentalExit)
+    return () => window.removeEventListener('beforeunload', preventAccidentalExit)
+  }, [dirty])
+
+  function permissionLabel(permissionKey) {
+    const permission = permissionByKey.get(permissionKey)
+    if (!permission) return permissionKey
+    return `${t(`admin.roles.modules.${permission.module}`)} · ${t(`admin.roles.actions.${permission.action}`)}`
+  }
+
+  function handleRoleSelect(roleId) {
+    if (roleId === selectedRoleId) return
+    if (dirty) {
+      setPendingRoleId(roleId)
+      setMessage(null)
+      return
+    }
+    setSelectedRoleId(roleId)
+  }
+
+  function handleDiscard() {
+    setPermissionDraft(selectedRole?.permissions ?? [])
+    setMessage(null)
+    const nextRoleId = pendingRoleId
+    setPendingRoleId(null)
+    if (nextRoleId) setSelectedRoleId(nextRoleId)
+  }
 
   function handlePermissionChange(permission, checked) {
     if (!editable || RESERVED_LOWER_PERMISSIONS.has(permission.key)) return
@@ -106,9 +201,7 @@ export default function RolesSection({
 
         if (permission.action !== 'read' && permission.module !== 'exports') {
           const readPermission = permissionCatalog.find(
-            (candidate) =>
-              candidate.module === permission.module &&
-              candidate.action === 'read',
+            (candidate) => candidate.module === permission.module && candidate.action === 'read',
           )
           if (readPermission) next.add(readPermission.key)
         }
@@ -134,8 +227,12 @@ export default function RolesSection({
     setIsSaving(true)
     setMessage(null)
     try {
-      await onUpdatePermissions(selectedRole.id, permissionDraft)
+      const updatedRole = await onUpdatePermissions(selectedRole.id, permissionDraft)
+      setPermissionDraft(updatedRole?.permissions ?? permissionDraft)
       setMessage({ tone: 'success', text: t('admin.roles.saved') })
+      const nextRoleId = pendingRoleId
+      setPendingRoleId(null)
+      if (nextRoleId) setSelectedRoleId(nextRoleId)
     } catch (error) {
       setMessage({
         tone: 'error',
@@ -149,6 +246,13 @@ export default function RolesSection({
   async function handleCreateRole(event) {
     event.preventDefault()
     const name = roleDraft.name.trim()
+    if (dirty) {
+      setMessage({
+        tone: 'warning',
+        text: t('admin.roles.finishChangesFirst'),
+      })
+      return
+    }
     if (!canCreateRole || name.length < 3 || isCreatingRole) return
 
     setIsCreatingRole(true)
@@ -205,14 +309,19 @@ export default function RolesSection({
                 aria-controls="admin-role-create"
                 aria-expanded={isCreating}
                 onClick={() => {
+                  if (dirty) {
+                    setMessage({
+                      tone: 'warning',
+                      text: t('admin.roles.finishChangesFirst'),
+                    })
+                    return
+                  }
                   setIsCreating((current) => !current)
                   setMessage(null)
                 }}
               >
                 {isCreating ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
-                <span>
-                  {isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}
-                </span>
+                <span>{isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}</span>
               </button>
             ) : null}
           </div>
@@ -265,19 +374,19 @@ export default function RolesSection({
             </form>
           ) : null}
 
-          <ol>
+          <ol ref={roleListRef}>
             {orderedRoles.map((role) => {
               const level = getRoleHierarchyLevel(role)
-              const roleEditable =
-                !role.isProtected && actorCanEditRole(authorization, role)
+              const roleEditable = !role.isProtected && actorCanEditRole(authorization, role)
 
               return (
                 <li key={role.id}>
                   <button
                     type="button"
+                    data-role-id={role.id}
                     className={role.id === selectedRole?.id ? 'is-active' : ''}
                     aria-pressed={role.id === selectedRole?.id}
-                    onClick={() => setSelectedRoleId(role.id)}
+                    onClick={() => handleRoleSelect(role.id)}
                   >
                     <span className="admin-roles__level" aria-hidden>
                       {role.isSystem ? level : t('admin.roles.customBadge')}
@@ -289,17 +398,15 @@ export default function RolesSection({
                           ? t('admin.roles.protectedShort')
                           : !role.isSystem
                             ? t('admin.roles.customShort')
-                          : roleEditable
-                            ? t('admin.roles.configurableShort')
-                            : t('admin.roles.usersCount', { count: role.userCount ?? 0 })}
+                            : roleEditable
+                              ? t('admin.roles.configurableShort')
+                              : t('admin.roles.usersCount', {
+                                  count: role.userCount ?? 0,
+                                })}
                       </small>
                     </span>
                     <span className="admin-roles__list-status" aria-hidden>
-                      {role.isProtected ? (
-                        <LockKeyhole size={14} />
-                      ) : (
-                        <ShieldCheck size={14} />
-                      )}
+                      {role.isProtected ? <LockKeyhole size={14} /> : <ShieldCheck size={14} />}
                     </span>
                   </button>
                 </li>
@@ -334,6 +441,23 @@ export default function RolesSection({
               </div>
 
               <div className="admin-roles__matrix-actions">
+                <dl className="admin-roles__impact">
+                  <div>
+                    <dt>{t('admin.roles.impactUsers')}</dt>
+                    <dd>
+                      <UsersRound size={13} aria-hidden />
+                      {selectedRole.userCount ?? 0}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('admin.roles.impactModules')}</dt>
+                    <dd>{roleStats.modules}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('admin.roles.impactElevated')}</dt>
+                    <dd>{roleStats.elevated}</dd>
+                  </div>
+                </dl>
                 <div
                   className="admin-roles__coverage"
                   aria-label={t('admin.roles.activeCount', {
@@ -347,33 +471,20 @@ export default function RolesSection({
                       total: permissionCatalog.length,
                     })}
                   </span>
-                  <span className="admin-roles__coverage-bar" aria-hidden="true">
-                    <span
-                      className="admin-roles__coverage-fill"
-                      style={{
-                        '--admin-role-coverage': permissionCatalog.length
-                          ? activePermissionCount / permissionCatalog.length
-                          : 0,
-                      }}
-                    />
-                  </span>
+                  <progress
+                    className="admin-roles__coverage-bar"
+                    max={permissionCatalog.length || 1}
+                    value={activePermissionCount}
+                  />
                 </div>
-                {editable ? (
-                  <Button
-                    type="button"
-                    className="btn--small"
-                    disabled={!dirty || isSaving}
-                    onClick={handleSave}
-                  >
-                    <Save size={15} aria-hidden />
-                    {isSaving ? t('admin.roles.saving') : t('admin.roles.save')}
-                  </Button>
-                ) : null}
               </div>
             </header>
 
             <div className="admin-roles__matrix-scroll" tabIndex={0}>
               <table className="admin-roles__matrix">
+                <caption className="visually-hidden">
+                  {t('admin.roles.matrixAria', { role: selectedRole.name })}
+                </caption>
                 <thead>
                   <tr>
                     <th scope="col">{t('admin.roles.module')}</th>
@@ -395,6 +506,7 @@ export default function RolesSection({
                             <td
                               key={action}
                               className="admin-roles__empty-cell"
+                              data-label={t(`admin.roles.actions.${action}`)}
                               aria-label={t('admin.roles.notApplicable')}
                             >
                               <span aria-hidden>—</span>
@@ -402,13 +514,13 @@ export default function RolesSection({
                           )
                         }
 
-                        const checked = permissionDraft.includes(permission.key)
+                        const checked = permissionDraftSet.has(permission.key)
                         const reserved =
                           !selectedRole.isProtected &&
                           RESERVED_LOWER_PERMISSIONS.has(permission.key)
 
                         return (
-                          <td key={action}>
+                          <td key={action} data-label={t(`admin.roles.actions.${action}`)}>
                             <label
                               className={`admin-roles__permission${checked ? ' is-checked' : ''}${reserved ? ' is-reserved' : ''}`}
                               title={
@@ -448,14 +560,170 @@ export default function RolesSection({
               </table>
             </div>
 
-            {editable ? (
-              <p className="admin-roles__matrix-hint">{t('admin.roles.dependencyHint')}</p>
-            ) : null}
+            <footer className="admin-roles__matrix-footer">
+              {editable ? (
+                <p className="admin-roles__matrix-hint">{t('admin.roles.dependencyHint')}</p>
+              ) : null}
+
+              {dirty ? (
+                <div className="admin-roles__changebar" role="status" aria-live="polite">
+                  <div className="admin-roles__changebar-copy">
+                    <strong>
+                      {pendingRole
+                        ? t('admin.roles.unsavedBeforeSwitch', {
+                            role: pendingRole.name,
+                          })
+                        : t('admin.roles.unsaved')}
+                    </strong>
+                    <div className="admin-roles__change-counts">
+                      {permissionDiff.added.length > 0 ? (
+                        <span className="is-added">
+                          <Plus size={12} aria-hidden />
+                          {t('admin.roles.permissionsAdded', {
+                            count: permissionDiff.added.length,
+                          })}
+                        </span>
+                      ) : null}
+                      {permissionDiff.removed.length > 0 ? (
+                        <span className="is-removed">
+                          <Minus size={12} aria-hidden />
+                          {t('admin.roles.permissionsRemoved', {
+                            count: permissionDiff.removed.length,
+                          })}
+                        </span>
+                      ) : null}
+                    </div>
+                    <details className="admin-roles__change-details">
+                      <summary>{t('admin.roles.reviewChanges')}</summary>
+                      <ul>
+                        {permissionDiff.added.map((permissionKey) => (
+                          <li key={`added-${permissionKey}`} className="is-added">
+                            <Plus size={12} aria-hidden />
+                            {permissionLabel(permissionKey)}
+                          </li>
+                        ))}
+                        {permissionDiff.removed.map((permissionKey) => (
+                          <li key={`removed-${permissionKey}`} className="is-removed">
+                            <Minus size={12} aria-hidden />
+                            {permissionLabel(permissionKey)}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </div>
+                  <div className="admin-roles__changebar-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="btn--small"
+                      disabled={isSaving}
+                      onClick={handleDiscard}
+                    >
+                      <RotateCcw size={14} aria-hidden />
+                      {pendingRole ? t('admin.roles.discardAndOpen') : t('admin.roles.discard')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="gold"
+                      className="btn--small"
+                      disabled={isSaving}
+                      onClick={handleSave}
+                    >
+                      <Save size={14} aria-hidden />
+                      {isSaving ? t('admin.roles.saving') : t('admin.roles.apply')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </footer>
           </div>
         ) : (
           <p className="admin-roles__empty">{t('admin.roles.empty')}</p>
         )}
       </div>
+
+      {canViewAudit && selectedRole ? (
+        <section className="admin-roles__activity" aria-labelledby="admin-role-activity-title">
+          <header className="admin-roles__activity-head">
+            <span className="admin-roles__activity-icon" aria-hidden>
+              <History size={16} />
+            </span>
+            <div>
+              <h2 id="admin-role-activity-title">{t('admin.roles.activityTitle')}</h2>
+              <p>{t('admin.roles.activitySubtitle', { role: selectedRole.name })}</p>
+            </div>
+          </header>
+
+          {selectedActivity.length > 0 ? (
+            <ol className="admin-roles__activity-list">
+              {selectedActivity.map((item) => {
+                const addedPermissions = item.addedPermissions ?? []
+                const removedPermissions = item.removedPermissions ?? []
+                const hasPermissionDetails =
+                  addedPermissions.length > 0 || removedPermissions.length > 0
+
+                return (
+                  <li key={item.id}>
+                    <span className="admin-roles__activity-dot" aria-hidden />
+                    <div className="admin-roles__activity-body">
+                      <div className="admin-roles__activity-title">
+                        <strong>
+                          {item.action === 'access_role.created'
+                            ? t('admin.roles.activityCreated')
+                            : item.action === 'access_role.permissions_updated'
+                              ? t('admin.roles.activityUpdated')
+                              : t('admin.roles.activityConfigured')}
+                        </strong>
+                        <time dateTime={item.createdAt}>
+                          {formatActivityDate(item.createdAt, locale)}
+                        </time>
+                      </div>
+                      <p>
+                        {t('admin.roles.activityActor', {
+                          actor: item.actorName || t('admin.roles.systemActor'),
+                        })}
+                      </p>
+                      {hasPermissionDetails ? (
+                        <details className="admin-roles__activity-details">
+                          <summary>
+                            {t('admin.roles.activitySummary', {
+                              added: addedPermissions.length,
+                              removed: removedPermissions.length,
+                            })}
+                          </summary>
+                          <ul>
+                            {addedPermissions.map((permissionKey) => (
+                              <li key={`activity-added-${item.id}-${permissionKey}`}>
+                                <Plus size={12} aria-hidden />
+                                {permissionLabel(permissionKey)}
+                              </li>
+                            ))}
+                            {removedPermissions.map((permissionKey) => (
+                              <li
+                                key={`activity-removed-${item.id}-${permissionKey}`}
+                                className="is-removed"
+                              >
+                                <Minus size={12} aria-hidden />
+                                {permissionLabel(permissionKey)}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : (
+                        <span className="admin-roles__activity-no-detail">
+                          {t('admin.roles.activityNoPermissionChanges')}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          ) : (
+            <p className="admin-roles__activity-empty">{t('admin.roles.activityEmpty')}</p>
+          )}
+        </section>
+      ) : null}
     </section>
   )
 }

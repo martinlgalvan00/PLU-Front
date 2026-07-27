@@ -70,8 +70,6 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
 
   return (
     <div className="home-membership-band">
-      <span className="home-membership-band__spine" aria-hidden />
-
       <CopyShell {...copyProps}>
         <CopyItem {...itemProps} className="home-membership-band__eyebrow">
           {HOME_MEMBERSHIP.eyebrow}
@@ -125,6 +123,9 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
           </p>
         </CopyItem>
       </CopyShell>
+
+      {/* Spine entre copy y credencial — el grid es copy | spine | card */}
+      <span className="home-membership-band__spine" aria-hidden />
 
       <HomeMembershipCredential />
     </div>

@@ -1,0 +1,202 @@
+/* =============================================
+   DARK MATERIAL — atmósfera + superficies
+   Carga al final del cascade para unificar los
+   fondos sin alterar estructura ni contenido.
+   ============================================= */
+
+[data-theme='dark'] .app-shell {
+  background-color: var(--color-page-canvas);
+  background-image: var(--theme-atmosphere-stack);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/* Los wrappers dejan ver el canvas global y reciben una luz superior
+   muy tenue. No se agrega textura ni movimiento al fondo. */
+[data-theme='dark']
+  .app-shell
+  :is(
+    .home-page,
+    .page,
+    .members-page,
+    .events-page,
+    .results-page,
+    .results-page--design,
+    .results-page--premium,
+    .records-page,
+    .community-page,
+    .community-page--institutional,
+    .contact-page,
+    .register-page,
+    .tickets-page,
+    .faq-page,
+    .faq-page--institutional,
+    .pitbull-page,
+    .login-page--design,
+    .login-page--editorial,
+    .institutional-page,
+    .credential-page,
+    .account-page,
+    .rulebook-page,
+    .rulebook-page--institutional,
+    .resources-page,
+    .shop-page
+  ) {
+  background-color: transparent;
+  background-image: var(--theme-page-sheen);
+  background-repeat: no-repeat;
+  background-size: 100% min(720px, 72vh);
+}
+
+[data-theme='dark'] .app-shell .login-page--design {
+  background-image: var(--theme-login-atmosphere);
+  background-size: 100% 100%;
+}
+
+/* Ritmo de secciones de Home: material local, no bloques de negro
+   idénticos. Solo las dos piezas editoriales reciben color contextual. */
+[data-theme='dark'] .home-page .home-section {
+  background-image: var(--theme-section-satin);
+  background-repeat: no-repeat;
+}
+
+[data-theme='dark'] .home-page .home-section--pitbull-home {
+  background-image: var(--theme-section-wash-gold), var(--theme-section-satin);
+}
+
+[data-theme='dark'] .home-page .home-section--community {
+  background-image: var(--theme-section-wash-celeste), var(--theme-section-satin);
+}
+
+/* Superficies públicas protagonistas. Se conserva su color base y se
+   suma únicamente una terminación satinada y una línea de luz interior. */
+[data-theme='dark']
+  .app-shell
+  :is(
+    .events-sidebar-card,
+    .pitbull-spotlight--events,
+    .events-public-tickets,
+    .login-card--editorial,
+    .security-gate-card,
+    .contact-form,
+    .contact-sidebar,
+    .membership-card--design,
+    .results-status-table,
+    .rulebook-doc-panel
+  ) {
+  background-image: var(--theme-surface-satin);
+  box-shadow: inset 0 1px 0 var(--theme-surface-highlight);
+}
+
+[data-theme='dark'] .app-shell :is(.site-footer--design, .site-footer--premium) {
+  background-image: var(--theme-footer-satin);
+  background-repeat: no-repeat;
+}
+
+/* Administración: canvas quieto, sidebar material y paneles con una
+   sola lectura de profundidad. No hay glow decorativo. */
+[data-theme='dark'] .admin-shell {
+  background-color: var(--admin-canvas, var(--color-page-canvas));
+}
+
+[data-theme='dark'] .admin-shell .admin-shell__main {
+  background-color: var(--admin-canvas, var(--color-page-canvas));
+  background-image: var(--theme-atmosphere-stack-admin);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+[data-theme='dark'] .admin-shell .admin-shell__sidebar {
+  background-image: var(--theme-sidebar-satin);
+  background-repeat: no-repeat;
+}
+
+[data-theme='dark']
+  .admin-shell
+  :is(
+    .admin-list-shell,
+    .admin-payment-ops,
+    .admin-kpi-board,
+    .admin-command-center__pane,
+    .admin-quick-dock,
+    .recent-activity,
+    .action-queue,
+    .athlete-detail__panel,
+    .admin-event-preview--panel
+  ) {
+  background-image: var(--theme-surface-satin);
+  box-shadow: inset 0 1px 0 var(--theme-surface-highlight);
+}
+
+[data-theme='dark'] .admin-event-editor-modal__backdrop {
+  -webkit-backdrop-filter: blur(var(--theme-overlay-blur)) saturate(82%);
+  backdrop-filter: blur(var(--theme-overlay-blur)) saturate(82%);
+  background: var(--theme-overlay-backdrop);
+}
+
+[data-theme='dark'] .admin-event-editor-modal__panel {
+  background-color: var(--admin-surface-raised, var(--color-bg-surface));
+  background-image: var(--theme-surface-satin-strong);
+  box-shadow:
+    inset 0 1px 0 var(--theme-surface-highlight),
+    0 28px 80px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-preview--live {
+  background-image: var(--theme-section-satin);
+}
+
+/* En monitores grandes la atmósfera se expande, no aumenta su brillo. */
+@media (min-width: 1600px) {
+  [data-theme='dark'] {
+    --theme-atmosphere-wash-celeste: radial-gradient(
+      ellipse 92% 52% at 50% -8%,
+      color-mix(in srgb, var(--plu-celeste-400) 6%, transparent),
+      transparent 62%
+    );
+    --theme-atmosphere-wash-gold: radial-gradient(
+      ellipse 74% 44% at 50% 100%,
+      color-mix(in srgb, var(--plu-gold-500) 4%, transparent),
+      transparent 58%
+    );
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme='dark'] {
+    --theme-atmosphere-stack: none;
+    --theme-atmosphere-stack-admin: none;
+    --theme-page-sheen: none;
+    --theme-section-satin: none;
+    --theme-section-wash-celeste: none;
+    --theme-section-wash-gold: none;
+    --theme-login-atmosphere: none;
+    --theme-surface-satin: none;
+    --theme-surface-satin-strong: none;
+    --theme-sidebar-satin: none;
+    --theme-footer-satin: none;
+    --theme-surface-highlight: transparent;
+    --theme-overlay-blur: 0px;
+  }
+
+  [data-theme='dark'] .admin-event-editor-modal__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-theme='dark'] {
+    --theme-atmosphere-stack: none;
+    --theme-atmosphere-stack-admin: none;
+    --theme-page-sheen: none;
+    --theme-section-satin: none;
+    --theme-section-wash-celeste: none;
+    --theme-section-wash-gold: none;
+    --theme-login-atmosphere: none;
+    --theme-surface-satin: none;
+    --theme-surface-satin-strong: none;
+    --theme-sidebar-satin: none;
+    --theme-footer-satin: none;
+  }
+}

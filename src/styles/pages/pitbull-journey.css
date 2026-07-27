@@ -5,6 +5,9 @@
    ============================================= */
 
 .pitbull-journey-layout {
+  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
+  border-radius: calc(var(--border-radius-lg) + 6px);
   display: grid;
   gap: clamp(22px, 3vw, 36px);
   grid-template-columns: minmax(0, 1fr);
@@ -15,6 +18,12 @@
      las dos fases de texto y dejaba un bloque de aire enorme debajo. */
   margin-inline: auto;
   max-width: var(--max-width-content);
+  padding: clamp(20px, 2.6vw, 28px);
+}
+
+[data-theme='light'] .pitbull-journey-layout {
+  background: color-mix(in oklab, var(--color-text-primary) 2%, transparent);
+  border-color: rgba(15, 17, 23, 0.09);
 }
 
 .pitbull-journey {
@@ -69,6 +78,23 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  position: relative;
+}
+
+/* Línea de continuidad — conecta los pasos de una misma fase para que se
+   lean como un proceso, no como filas sueltas. */
+.pitbull-journey__steps::before {
+  background: color-mix(in oklab, var(--color-brand-celeste) 32%, transparent);
+  bottom: 20px;
+  content: '';
+  left: 14px;
+  position: absolute;
+  top: 20px;
+  width: 1px;
+}
+
+.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__steps::before {
+  background: color-mix(in oklab, var(--plu-gold-500) 45%, transparent);
 }
 
 .pitbull-journey__step {
@@ -76,34 +102,57 @@
   display: grid;
   gap: 12px;
   grid-template-columns: 2.2rem minmax(0, 1fr);
-  padding-block: 8px;
+  padding-block: 13px;
+  position: relative;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pitbull-journey__step:hover {
+    transform: translateX(2px);
+  }
+
+  [data-theme='dark'] .pitbull-journey__step:hover {
+    background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+    border-radius: var(--border-radius-md, 8px);
+  }
 }
 
 .pitbull-journey__num {
-  color: var(--color-text-muted);
+  align-items: center;
+  background: var(--color-bg-elevated, var(--color-page-canvas));
+  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 16%, transparent);
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  display: inline-flex;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.35;
-  opacity: 0.72;
-  padding-top: 1px;
+  height: 28px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  position: relative;
+  width: 28px;
+  z-index: 1;
 }
 
 .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
-  color: color-mix(in oklab, var(--plu-gold-600) 75%, var(--color-text-muted));
-  opacity: 0.95;
+  border-color: color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
+  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--color-text-primary));
 }
 
 [data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
-  color: color-mix(in oklab, var(--plu-gold-400) 70%, var(--color-text-muted));
+  color: var(--plu-gold-400);
 }
 
 .pitbull-journey__copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -111,11 +160,11 @@
   align-items: center;
   color: var(--color-text-primary);
   display: flex;
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 700;
   gap: 7px;
   letter-spacing: -0.015em;
-  line-height: 1.25;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -135,8 +184,8 @@
 
 .pitbull-journey__text {
   color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.5;
   margin: 0;
   max-width: 36ch;
 }
@@ -243,5 +292,6 @@
   .pitbull-journey__arrival {
     opacity: 1;
     transform: none;
+    transition: none;
   }
 }
