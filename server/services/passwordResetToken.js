@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { HttpError } from '../lib/errors.js'
 
 /**
@@ -34,6 +34,10 @@ export function createPasswordResetToken({ athleteId, expiresAt, secret }) {
   }
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
   return `${payloadB64}.${sign(payloadB64, key)}`
+}
+
+export function hashPasswordResetToken(token) {
+  return createHash('sha256').update(String(token)).digest('hex')
 }
 
 /**
