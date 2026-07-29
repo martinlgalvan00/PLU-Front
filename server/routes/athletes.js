@@ -10,6 +10,7 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
+  hashPasswordResetToken,
   verifyPasswordResetToken,
 } from '../services/passwordResetToken.js'
 import { buildPasswordResetUrl } from '../../src/lib/passwordResetRoute.js'
@@ -75,6 +76,8 @@ const uploadSchema = z.object({
 
 const FORGOT_OK_MESSAGE =
   'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
+
+const PASSWORD_RESET_TTL_MS = 1000 * 60 * 30
 
 async function dispatchPasswordResetEmail({ brevo, env, to, name, resetUrl }) {
   const templateId = env.BREVO_TEMPLATE_PASSWORD_RESET
@@ -155,7 +158,9 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const row = await repo().findLogin(email)
 
       if (row && row.status !== 'bloqueado' && row.password_hash) {
-        const token = createPasswordResetToken({ athleteId: row.id })
+        const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS)
+        const token = createPasswordResetToken({ athleteId: row.id, expiresAt })
+        await repo().createPasswordResetToken(row.id, hashPasswordResetToken(token), expiresAt)
         const appUrl = env.APP_URL ?? env.VITE_APP_URL ?? ''
         const resetUrl = buildPasswordResetUrl(appUrl, token)
         try {
@@ -189,7 +194,15 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
       }
 
-      await repo().setPassword(payload.aid, await hashPassword(req.validatedBody.password))
+      const reset = await repo().resetPasswordWithToken({
+        athleteId: payload.aid,
+        tokenHash: hashPasswordResetToken(req.validatedBody.token),
+        passwordHash: await hashPassword(req.validatedBody.password),
+      })
+      if (!reset) {
+        throw new HttpError(400, 'El enlace de recuperacion no es valido o ya vencio.')
+      }
+
       res.json({ ok: true })
     } catch (error) {
       next(error)

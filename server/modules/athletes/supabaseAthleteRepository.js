@@ -63,6 +63,47 @@ export function createSupabaseAthleteRepository(
       client.from('athlete_credentials').select('password_hash').eq('athlete_id', athleteId).maybeSingle(),
       'No se pudo validar la credencial.',
     ),
+    createPasswordResetToken: (athleteId, tokenHash, expiresAt) => assertSupabaseResult(
+      client.from('athlete_password_reset_tokens').insert({
+        athlete_id: athleteId,
+        token_hash: tokenHash,
+        expires_at: expiresAt.toISOString(),
+      }),
+      'No se pudo crear el token de recuperacion.',
+    ),
+    async consumePasswordResetToken({ athleteId, tokenHash }) {
+      const row = assertSupabaseResult(
+        await client
+          .from('athlete_password_reset_tokens')
+          .select('id, used_at, expires_at')
+          .eq('athlete_id', athleteId)
+          .eq('token_hash', tokenHash)
+          .maybeSingle(),
+        'No se pudo validar el token de recuperacion.',
+      )
+      if (!row || row.used_at || new Date(row.expires_at).getTime() <= Date.now()) return false
+
+      const consumed = assertSupabaseResult(
+        await client
+          .from('athlete_password_reset_tokens')
+          .update({ used_at: new Date().toISOString() })
+          .eq('id', row.id)
+          .is('used_at', null)
+          .select('id')
+          .maybeSingle(),
+        'No se pudo consumir el token de recuperacion.',
+      )
+      return Boolean(consumed)
+    },
+    resetPasswordWithToken: ({ athleteId, tokenHash, passwordHash }) => rpc(
+      'reset_athlete_password_with_token',
+      {
+        p_athlete_id: athleteId,
+        p_token_hash: tokenHash,
+        p_password_hash: passwordHash,
+      },
+      'No se pudo restablecer la contraseña.',
+    ),
     snapshot: async (athleteId) => addSignedPhotoUrls(
       await rpc('get_athlete_snapshot', { p_athlete_id: athleteId }, 'No se pudo leer el perfil.'),
     ),
