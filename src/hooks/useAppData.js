@@ -52,11 +52,6 @@ import {
   demoRegistrations,
   isDemoSession,
 } from '../services/demoAthleteSeed.js'
-import {
-  notifyAffiliationStarted,
-  notifyPaymentApproved,
-  notifyRegistrationConfirmed,
-} from '../services/emailService.js'
 import { createPreference as createPreferenceRequest } from '../services/paymentService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
@@ -1292,24 +1287,18 @@ export function useAppData() {
           ),
         )
 
-        const athlete = athletes.find((a) => a.id === order.athleteId)
-
+        // Los emails de aprobación (comprobante, afiliación activa,
+        // inscripción confirmada) los manda el backend dentro del mismo
+        // endpoint, con registro en `transactional_email_logs`. Acá solo se
+        // refleja el nuevo estado en la UI.
         if (membership) {
           setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
           setAthletes((c) =>
             c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)),
           )
-          if (athlete)
-            await notifyPaymentApproved(athlete, {
-              amount: order.amount,
-              concept: 'Afiliación anual',
-            })
-          if (athlete)
-            await notifyAffiliationStarted({ ...athlete, memberCode: membership.memberCode })
         }
 
         if (registration) {
-          const eventTitle = registrations.find((r) => r.id === registration.id)?.event
           setRegistrations((c) =>
             c.map((r) =>
               r.id === registration.id
@@ -1317,12 +1306,6 @@ export function useAppData() {
                 : r,
             ),
           )
-          if (athlete)
-            await notifyPaymentApproved(athlete, {
-              amount: order.amount,
-              concept: `Inscripción ${eventTitle}`,
-            })
-          if (athlete) await notifyRegistrationConfirmed(athlete, eventTitle)
         }
 
         setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
@@ -1335,7 +1318,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo aprobar el pago.' }
       }
     },
-    [athletes, registrations, session],
+    [session],
   )
 
   const activateDemoMembership = useCallback(

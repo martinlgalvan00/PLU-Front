@@ -12,6 +12,7 @@ import {
 } from './lib/eventPageRoute.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import {
   clearTicketsRoute,
   getTicketsRouteEventSlug,
@@ -414,6 +415,10 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {/* Resuelve el deep link /?verificar=<token> del email de confirmación.
+          Se monta acá, fuera de PageTransition, para que el aviso no se pierda
+          al cambiar de vista. */}
+      <EmailVerificationNotice />
       <NavbarPublic
         activeView={view}
         latestEvent={nextEvent}

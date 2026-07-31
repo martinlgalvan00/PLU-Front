@@ -1,0 +1,600 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it, vi } from 'vitest'
+import { createBrevoAdapter, BrevoError } from '../server/modules/notifications/brevoAdapter.js'
+import {
+  EMAIL_TYPES,
+  MANUALLY_SENDABLE_EMAIL_TYPES,
+  describeCatalog,
+  findMissingParams,
+  resolveTemplateId,
+} from '../server/modules/notifications/emailCatalog.js'
+import { mapWithConcurrency } from '../server/lib/concurrency.js'
+import { createEmailDispatcher, nextRetryAt } from '../server/modules/notifications/emailDispatcher.js'
+import { createEventNotificationService } from '../server/modules/notifications/eventNotificationService.js'
+import { createPaymentNotificationService } from '../server/modules/notifications/paymentNotificationService.js'
+import {
+  createEmailVerificationToken,
+  verifyEmailVerificationToken,
+} from '../server/services/emailVerificationToken.js'
+import { createPasswordResetToken } from '../server/services/passwordResetToken.js'
+import {
+  buildEmailVerificationUrl,
+  readEmailVerificationToken,
+} from '../src/lib/emailVerificationRoute.js'
+import { hasHtmlFallback, renderEmail, safeUrl } from '../server/modules/notifications/emailTemplates.js'
+
+const okResponse = (body = { messageId: 'msg-1' }) => ({
+  ok: true,
+  status: 200,
+  headers: new Headers(),
+  json: async () => body,
+})
+
+const errorResponse = (status, body = {}) => ({
+  ok: false,
+  status,
+  headers: new Headers(),
+  json: async () => body,
+})
+
+function memoryRepository() {
+  const rows = new Map()
+  const suppressions = new Map()
+  return {
+    rows,
+    suppressions,
+    async beginEmail(input) {
+      if (rows.has(input.idempotencyKey)) {
+        return { emailLog: rows.get(input.idempotencyKey), created: false }
+      }
+      const row = {
+        id: `log-${rows.size + 1}`,
+        idempotency_key: input.idempotencyKey,
+        template_key: input.type,
+        recipient_email: input.to,
+        payload: input.params,
+        status: 'processing',
+        attempts_count: 1,
+      }
+      rows.set(input.idempotencyKey, row)
+      return { emailLog: row, created: true }
+    },
+    // Espeja el mapeo a snake_case de supabaseNotificationRepository, para que
+    // las aserciones sobre las columnas sean representativas.
+    async completeEmail(id, patch) {
+      const row = [...rows.values()].find((candidate) => candidate.id === id)
+      row.status = patch.status
+      row.error = patch.error ?? null
+      row.error_code = patch.errorCode ?? null
+      row.next_retry_at = patch.status === 'retrying' ? patch.nextRetryAt : null
+      if (Number.isInteger(patch.attempt)) row.attempts_count = patch.attempt
+      return row
+    },
+    async findSuppression(email) {
+      return suppressions.get(email) ?? null
+    },
+  }
+}
+
+describe('migración de infraestructura de emails', () => {
+  const migration = readFileSync(
+    join(process.cwd(), 'supabase/migrations/20260730120000_email_infrastructure_hardening.sql'),
+    'utf8',
+  )
+
+  it('agrega los estados de cola y las columnas de reintento', () => {
+    for (const status of ['retrying', 'delivered', 'bounced', 'suppressed']) {
+      expect(migration).toContain(`'${status}'`)
+    }
+    expect(migration).toContain('add column if not exists next_retry_at timestamptz')
+    expect(migration).toContain('add column if not exists last_attempt_at timestamptz')
+  })
+
+  it('reserva el lote de forma atómica para no duplicar envíos entre instancias', () => {
+    expect(migration).toContain('for update skip locked')
+    expect(migration).toContain('create or replace function public.claim_retryable_emails')
+  })
+
+  it('rescata las filas colgadas en processing', () => {
+    // Sin esto, una instancia que muere después de reservar el lote deja el
+    // email muerto: el filtro del claim solo levanta 'retrying' y 'pending'.
+    expect(migration).toContain("where status = 'processing'")
+    expect(migration).toContain("last_attempt_at < now() - interval '15 minutes'")
+  })
+
+  it('nunca reintenta contra una dirección suprimida', () => {
+    expect(migration).toContain('from public.email_suppressions s')
+    expect(migration).toContain("s.reason in ('hard_bounce', 'spam', 'blocked', 'invalid')")
+  })
+
+  it('expone las RPC solo al service_role', () => {
+    expect(migration).toContain(
+      'revoke all on function public.claim_retryable_emails(int) from public, anon, authenticated;',
+    )
+    expect(migration).toContain('grant execute on function public.claim_retryable_emails(int) to service_role;')
+  })
+
+  it('protege las tablas con RLS y lectura solo para staff', () => {
+    expect(migration).toContain('alter table public.email_suppressions enable row level security;')
+    expect(migration).toContain('public.can_view_admin_data()')
+  })
+
+  it('no suprime por rebote blando', () => {
+    // Un buzón lleno pasajero no puede dejar a un socio sin comprobantes.
+    const suppressionBlock = migration.slice(migration.indexOf('if p_event in ('))
+    expect(suppressionBlock).toContain("'hard_bounce', 'blocked', 'spam', 'invalid_email', 'unsubscribed'")
+    expect(suppressionBlock.slice(0, suppressionBlock.indexOf('then'))).not.toContain('soft_bounce')
+  })
+})
+
+describe('catálogo de emails', () => {
+  it('declara la variable de template y los params obligatorios de cada tipo', () => {
+    for (const type of EMAIL_TYPES) {
+      const [entry] = describeCatalog({}).filter((item) => item.type === type)
+      expect(entry.templateEnv).toMatch(/^BREVO_TEMPLATE_[A-Z_]+$/)
+      expect(entry.category).toBeTruthy()
+    }
+  })
+
+  it('resuelve el template solo si el env trae un entero positivo', () => {
+    expect(resolveTemplateId('welcome', { BREVO_TEMPLATE_WELCOME: '7' })).toBe(7)
+    expect(resolveTemplateId('welcome', { BREVO_TEMPLATE_WELCOME: '' })).toBeNull()
+    expect(resolveTemplateId('welcome', { BREVO_TEMPLATE_WELCOME: 'abc' })).toBeNull()
+    expect(resolveTemplateId('welcome', { BREVO_TEMPLATE_WELCOME: '0' })).toBeNull()
+  })
+
+  it('marca los params faltantes antes de gastar una llamada a Brevo', () => {
+    expect(findMissingParams('payment_receipt', { name: 'Ana', amount: 1000 })).toEqual(['reference'])
+    expect(findMissingParams('payment_receipt', { name: 'Ana', amount: 1000, reference: 'X' })).toEqual([])
+  })
+
+  it('no expone los emails de cuenta al disparo manual desde el panel', () => {
+    // Permitir un `password_reset` a mano sería una vía de phishing con
+    // nuestro propio remitente verificado.
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('password_reset')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('security_access')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('welcome')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).toContain('event_announcement')
+  })
+})
+
+describe('plantillas HTML de fallback', () => {
+  it('cubre todos los tipos del catálogo', () => {
+    const sinFallback = EMAIL_TYPES.filter((type) => !hasHtmlFallback(type))
+    expect(sinFallback).toEqual([])
+  })
+
+  it('escapa los datos del destinatario en el cuerpo', () => {
+    const { htmlContent } = renderEmail('welcome', {
+      name: '<script>alert(1)</script>',
+      accountUrl: 'https://plu.example/mi-cuenta',
+    })
+    expect(htmlContent).not.toContain('<script>')
+    expect(htmlContent).toContain('&lt;script&gt;')
+  })
+
+  it('descarta enlaces con protocolos peligrosos', () => {
+    expect(safeUrl('javascript:alert(1)')).toBe('')
+    expect(safeUrl('data:text/html,<h1>x</h1>')).toBe('')
+    expect(safeUrl('https://plu.example/reset?token=abc')).toContain('https://plu.example/reset')
+  })
+
+  it('genera versión texto además del HTML', () => {
+    const rendered = renderEmail('password_reset', {
+      name: 'Ana',
+      resetUrl: 'https://plu.example/reset?token=abc',
+    })
+    expect(rendered.textContent).toContain('Restablecé tu contraseña')
+    expect(rendered.textContent).not.toContain('<')
+  })
+})
+
+describe('adaptador de Brevo', () => {
+  const env = { BREVO_API_KEY: 'k', BREVO_SENDER_EMAIL: 'no-reply@plu.example' }
+
+  it('reintenta ante un 429 y termina enviando', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(errorResponse(429, { message: 'rate limited' }))
+      .mockResolvedValueOnce(okResponse())
+    const adapter = createBrevoAdapter({ env, fetchImpl, sleepImpl: async () => {} })
+
+    const result = await adapter.send({ to: 'a@example.com', subject: 'S', htmlContent: '<p>x</p>' })
+
+    expect(result.messageId).toBe('msg-1')
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
+  it('no reintenta un 400 y lo marca como permanente', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(errorResponse(400, { code: 'invalid_parameter', message: 'mal' }))
+    const adapter = createBrevoAdapter({ env, fetchImpl, sleepImpl: async () => {} })
+
+    await expect(
+      adapter.send({ to: 'a@example.com', subject: 'S', htmlContent: '<p>x</p>' }),
+    ).rejects.toMatchObject({ retryable: false, providerCode: 'invalid_parameter' })
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('marca los fallos de red como reintentables', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('ECONNRESET'))
+    const adapter = createBrevoAdapter({ env, fetchImpl, sleepImpl: async () => {} })
+
+    await expect(adapter.send({ to: 'a@example.com', subject: 'S', htmlContent: '<p>x</p>' })).rejects.toMatchObject({
+      retryable: true,
+    })
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
+
+  it('mantiene la API key fuera del payload y solo en el header', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse())
+    const adapter = createBrevoAdapter({ env, fetchImpl })
+
+    await adapter.send({ to: 'a@example.com', templateId: 3, params: {} })
+
+    const [, options] = fetchImpl.mock.calls[0]
+    expect(options.headers['api-key']).toBe('k')
+    expect(options.body).not.toContain('k"')
+    expect(JSON.parse(options.body).sender.email).toBe('no-reply@plu.example')
+  })
+})
+
+describe('dispatcher de emails', () => {
+  const brevoOk = { configured: true, send: vi.fn().mockResolvedValue({ messageId: 'm-1' }) }
+
+  it('usa el template de Brevo cuando está cargado', async () => {
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({
+      repository: memoryRepository(),
+      brevo: { configured: true, send },
+      env: { BREVO_TEMPLATE_WELCOME: '11' },
+    })
+
+    await dispatcher.send('welcome', { to: 'a@example.com', params: { name: 'Ana' } })
+
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ templateId: 11 }))
+    expect(send.mock.calls[0][0].htmlContent).toBeUndefined()
+  })
+
+  it('cae al HTML del repo cuando falta el template', async () => {
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({
+      repository: memoryRepository(),
+      brevo: { configured: true, send },
+      env: {},
+    })
+
+    await dispatcher.send('welcome', { to: 'a@example.com', params: { name: 'Ana' } })
+
+    const payload = send.mock.calls[0][0]
+    expect(payload.templateId).toBeUndefined()
+    expect(payload.htmlContent).toContain('PLU Argentina')
+  })
+
+  it('no manda dos veces el mismo email ante un reintento de webhook', async () => {
+    const repository = memoryRepository()
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({ repository, brevo: { configured: true, send }, env: {} })
+    const input = { to: 'a@example.com', entityId: 'pay-1', params: { name: 'Ana', amount: 1000 } }
+
+    const first = await dispatcher.send('payment_approved', input)
+    const second = await dispatcher.send('payment_approved', input)
+
+    expect(first.created).toBe(true)
+    expect(second.created).toBe(false)
+    expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('rechaza el envío si faltan params obligatorios', async () => {
+    const dispatcher = createEmailDispatcher({ repository: memoryRepository(), brevo: brevoOk, env: {} })
+
+    await expect(dispatcher.send('payment_receipt', { to: 'a@example.com', params: { name: 'Ana' } })).rejects.toThrow(
+      /Faltan datos/,
+    )
+  })
+
+  it('rechaza un destinatario con formato inválido', async () => {
+    const dispatcher = createEmailDispatcher({ repository: memoryRepository(), brevo: brevoOk, env: {} })
+
+    await expect(dispatcher.send('welcome', { to: 'no-es-un-mail', params: { name: 'Ana' } })).rejects.toThrow(
+      /no es válido/,
+    )
+  })
+
+  it('frena un destinatario con rebote duro incluso en emails críticos', async () => {
+    const repository = memoryRepository()
+    repository.suppressions.set('a@example.com', { reason: 'hard_bounce' })
+    const send = vi.fn()
+    const dispatcher = createEmailDispatcher({ repository, brevo: { configured: true, send }, env: {} })
+
+    const result = await dispatcher.send('password_reset', {
+      to: 'a@example.com',
+      params: { resetUrl: 'https://plu.example/reset?token=x' },
+    })
+
+    expect(result.status).toBe('suppressed')
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('la desuscripción corta los avisos de evento pero no el comprobante de pago', async () => {
+    const repository = memoryRepository()
+    repository.suppressions.set('a@example.com', { reason: 'unsubscribed' })
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({ repository, brevo: { configured: true, send }, env: {} })
+
+    const anuncio = await dispatcher.send('event_announcement', {
+      to: 'a@example.com',
+      entityId: 'ev-1',
+      params: { eventTitle: 'Pitbull Classic' },
+    })
+    const comprobante = await dispatcher.send('payment_receipt', {
+      to: 'a@example.com',
+      entityId: 'pay-9',
+      params: { name: 'Ana', amount: 1000, reference: 'R-1' },
+    })
+
+    expect(anuncio.status).toBe('suppressed')
+    expect(comprobante.status).toBe('sent')
+    expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('programa reintento ante un fallo transitorio y no ante uno permanente', async () => {
+    const repository = memoryRepository()
+    const transitorio = new BrevoError('502', { retryable: true })
+    const permanente = new BrevoError('400', { retryable: false })
+
+    const d1 = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send: vi.fn().mockRejectedValue(transitorio) },
+      env: {},
+    })
+    await expect(d1.send('welcome', { to: 'a@example.com', entityId: '1', params: { name: 'Ana' } })).rejects.toThrow()
+
+    const d2 = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send: vi.fn().mockRejectedValue(permanente) },
+      env: {},
+    })
+    await expect(d2.send('welcome', { to: 'b@example.com', entityId: '2', params: { name: 'Bea' } })).rejects.toThrow()
+
+    const [primero, segundo] = [...repository.rows.values()]
+    expect(primero.status).toBe('retrying')
+    expect(primero.next_retry_at).toBeTruthy()
+    expect(segundo.status).toBe('failed')
+    expect(segundo.next_retry_at).toBeNull()
+  })
+
+  it('marca como omitido cuando Brevo no está configurado, sin romper el flujo', async () => {
+    const repository = memoryRepository()
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { configured: false },
+      env: {},
+      logger: { info: () => {} },
+    })
+
+    const result = await dispatcher.send('welcome', { to: 'a@example.com', params: { name: 'Ana' } })
+
+    expect(result.status).toBe('skipped')
+  })
+
+  it('agota los reintentos y deja de reprogramar', () => {
+    expect(nextRetryAt(1)).toBeTruthy()
+    expect(nextRetryAt(5)).toBeTruthy()
+    expect(nextRetryAt(6)).toBeNull()
+  })
+
+  it('usa el caché de supresiones sin consultar la base por destinatario', async () => {
+    const repository = memoryRepository()
+    const findSuppression = vi.fn()
+    repository.findSuppression = findSuppression
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({ repository, brevo: { configured: true, send }, env: {} })
+
+    const result = await dispatcher.send('event_announcement', {
+      to: 'a@example.com',
+      entityId: 'ev-1',
+      suppressionCache: new Map([['a@example.com', { reason: 'unsubscribed' }]]),
+      params: { eventTitle: 'Pitbull Classic' },
+    })
+
+    expect(result.status).toBe('suppressed')
+    expect(findSuppression).not.toHaveBeenCalled()
+  })
+})
+
+describe('token de verificación de email', () => {
+  const secret = 'un-secreto-de-pruebas-suficientemente-largo'
+
+  it('ida y vuelta con el mismo secreto', () => {
+    const token = createEmailVerificationToken({ athleteId: 'atleta-1', secret })
+    expect(verifyEmailVerificationToken(token, { secret })).toMatchObject({ aid: 'atleta-1' })
+  })
+
+  it('rechaza firma adulterada, secreto distinto y token vencido', () => {
+    const token = createEmailVerificationToken({ athleteId: 'atleta-1', secret })
+    expect(verifyEmailVerificationToken(`${token}x`, { secret })).toBeNull()
+    expect(verifyEmailVerificationToken(token, { secret: 'otro-secreto-distinto-largo' })).toBeNull()
+
+    const vencido = createEmailVerificationToken({
+      athleteId: 'atleta-1',
+      expiresAt: new Date(Date.now() - 1000),
+      secret,
+    })
+    expect(verifyEmailVerificationToken(vencido, { secret })).toBeNull()
+  })
+
+  it('no acepta un token de reset de contraseña', () => {
+    // Comparten AUTH_SECRET, así que el discriminante `typ` es lo único que
+    // impide usar un enlace de reset para verificar una cuenta ajena.
+    const reset = createPasswordResetToken({ athleteId: 'atleta-1', secret })
+    expect(verifyEmailVerificationToken(reset, { secret })).toBeNull()
+  })
+
+  it('construye el deep link y lo vuelve a leer', () => {
+    const token = createEmailVerificationToken({ athleteId: 'atleta-1', secret })
+    const url = buildEmailVerificationUrl('https://plu.example/', token)
+    expect(url).toContain('/?verificar=')
+    expect(readEmailVerificationToken(new URL(url).search)).toBe(token)
+  })
+})
+
+describe('emails de pago (vía Mercado Pago)', () => {
+  const aprobado = { status: 'aprobado', externalPaymentId: 'mp-1', amount: 78000, raw: {} }
+
+  async function tiposEnviados(order, payment = aprobado) {
+    const send = vi.fn().mockResolvedValue({ status: 'sent' })
+    const notify = createPaymentNotificationService({ dispatcher: { configured: true, send }, env: {} })
+    await notify({ order, payment })
+    return send.mock.calls.map(([type]) => type)
+  }
+
+  it('manda comprobante y aviso en todo pago aprobado', async () => {
+    const tipos = await tiposEnviados({
+      kind: 'athlete', id: 'o1', concept: 'membership', reference: 'R1',
+      payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
+    })
+    expect(tipos).toContain('payment_approved')
+    expect(tipos).toContain('payment_receipt')
+    expect(tipos).toContain('affiliation_started')
+  })
+
+  it('confirma la inscripción, igual que la aprobación manual', async () => {
+    // Regresión: por Mercado Pago llegaba el comprobante pero nunca la
+    // confirmación de inscripción, que sí salía por la aprobación manual.
+    const tipos = await tiposEnviados({
+      kind: 'athlete', id: 'o2', concept: 'registration', reference: 'R2',
+      payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
+      registration: { id: 'reg-1', division: 'Open', category: '-83', event: { title: 'Pitbull', slug: 'pitbull', starts_at: '2026-09-12' } },
+    })
+    expect(tipos).toContain('registration_confirmed')
+  })
+
+  it('manda la entrada al comprar tickets', async () => {
+    const tipos = await tiposEnviados({
+      kind: 'ticket', id: 'o3', concept: 'tickets', reference: 'T1',
+      payerEmail: 'ana@example.com', event: { title: 'Pitbull', slug: 'pitbull' },
+    })
+    expect(tipos).toContain('ticket_confirmation')
+  })
+
+  it('avisa el rechazo y el pendiente sin mandar comprobante', async () => {
+    const rechazado = await tiposEnviados(
+      { kind: 'athlete', id: 'o4', concept: 'membership', payerEmail: 'a@example.com', athlete: { full_name: 'Ana' } },
+      { status: 'rechazado', externalPaymentId: 'mp-2', amount: 1000, statusDetail: 'sin fondos' },
+    )
+    expect(rechazado).toEqual(['payment_rejected'])
+
+    const pendiente = await tiposEnviados(
+      { kind: 'athlete', id: 'o5', concept: 'membership', payerEmail: 'a@example.com', athlete: { full_name: 'Ana' } },
+      { status: 'pendiente', externalPaymentId: 'mp-3', amount: 1000 },
+    )
+    expect(pendiente).toEqual(['payment_pending'])
+  })
+
+  it('no manda nada si la orden no tiene email del pagador', async () => {
+    expect(await tiposEnviados({ kind: 'athlete', id: 'o6', concept: 'membership' })).toEqual([])
+  })
+})
+
+describe('paralelismo acotado', () => {
+  it('nunca supera el límite de tareas simultáneas', async () => {
+    let running = 0
+    let peak = 0
+    const items = Array.from({ length: 40 }, (_, i) => i)
+
+    await mapWithConcurrency(items, 5, async () => {
+      running += 1
+      peak = Math.max(peak, running)
+      await new Promise((r) => setTimeout(r, 1))
+      running -= 1
+    })
+
+    expect(peak).toBeLessThanOrEqual(5)
+  })
+
+  it('aísla los fallos y conserva el orden de entrada', async () => {
+    const results = await mapWithConcurrency([1, 2, 3], 2, async (n) => {
+      if (n === 2) throw new Error('falló ' + n)
+      return n * 10
+    })
+
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected', 'fulfilled'])
+    expect(results[0].value).toBe(10)
+    expect(results[2].value).toBe(30)
+  })
+})
+
+describe('aviso de evento a una audiencia', () => {
+  const event = { id: 'ev-1', slug: 'pitbull-2026', title: 'Pitbull Classic', starts_at: '2026-09-12', venue: 'CABA' }
+
+  function audienceRepo(recipients) {
+    return { findEvent: async () => event, listRecipients: async () => recipients }
+  }
+
+  it('no manda a bloqueados ni a direcciones vacías', async () => {
+    const send = vi.fn().mockResolvedValue({ status: 'sent' })
+    const notify = createEventNotificationService({
+      audienceRepository: audienceRepo([
+        { id: '1', full_name: 'Ana', email: 'ana@example.com', status: 'activo' },
+        { id: '2', full_name: 'Bea', email: 'bea@example.com', status: 'bloqueado' },
+        { id: '3', full_name: 'Ce', email: null, status: 'activo' },
+      ]),
+      dispatcher: { configured: true, send },
+      env: { APP_URL: 'https://plu.example' },
+    })
+
+    const result = await notify({ eventId: 'ev-1' })
+
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({ total: 3, sent: 1, skipped: 2, failed: 0 })
+  })
+
+  it('precarga las supresiones en una sola consulta para toda la audiencia', async () => {
+    const findSuppressions = vi.fn().mockResolvedValue(new Map())
+    const recipients = Array.from({ length: 25 }, (_, i) => ({
+      id: String(i), full_name: `A${i}`, email: `a${i}@example.com`, status: 'activo',
+    }))
+    const notify = createEventNotificationService({
+      audienceRepository: audienceRepo(recipients),
+      notificationRepository: { findSuppressions },
+      dispatcher: { configured: true, send: vi.fn().mockResolvedValue({ status: 'sent' }) },
+      env: {},
+    })
+
+    await notify({ eventId: 'ev-1' })
+
+    expect(findSuppressions).toHaveBeenCalledTimes(1)
+    expect(findSuppressions.mock.calls[0][0]).toHaveLength(25)
+  })
+
+  it('un destinatario que falla no corta el lote', async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 'sent' })
+      .mockRejectedValueOnce(new Error('Brevo 500'))
+      .mockResolvedValueOnce({ status: 'sent' })
+    const notify = createEventNotificationService({
+      audienceRepository: audienceRepo(
+        ['a', 'b', 'c'].map((n, i) => ({ id: String(i), full_name: n, email: `${n}@example.com`, status: 'activo' })),
+      ),
+      dispatcher: { configured: true, send },
+      env: {},
+    })
+
+    const result = await notify({ eventId: 'ev-1' })
+
+    expect(result).toMatchObject({ total: 3, sent: 2, failed: 1 })
+  })
+
+  it('rechaza una audiencia o un tipo desconocido', async () => {
+    const notify = createEventNotificationService({
+      audienceRepository: audienceRepo([]),
+      dispatcher: { configured: true, send: vi.fn() },
+      env: {},
+    })
+
+    await expect(notify({ eventId: 'ev-1', audience: 'todos' })).rejects.toThrow(/Audiencia desconocida/)
+    await expect(notify({ eventId: 'ev-1', type: 'welcome' })).rejects.toThrow(/inválido/)
+  })
+})

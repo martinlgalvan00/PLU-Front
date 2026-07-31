@@ -2,7 +2,13 @@ import { HttpError } from './errors.js'
 
 const TRUSTED_BROWSER_HEADER = 'x-plu-request'
 const TRUSTED_BROWSER_VALUE = 'browser'
-const SERVER_TO_SERVER_MUTATION_PATHS = new Set(['/api/payments/webhook'])
+// Webhooks entrantes: no los manda un browser, así que no pueden traer el
+// header de mutación confiable. Cada uno valida su propio origen (firma de
+// Mercado Pago, token compartido en el de Brevo).
+const SERVER_TO_SERVER_MUTATION_PATHS = new Set([
+  '/api/payments/webhook',
+  '/api/emails/webhook/brevo',
+])
 
 function asOrigin(value) {
   const candidate = String(value ?? '').trim()

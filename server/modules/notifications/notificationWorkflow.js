@@ -1,45 +1,32 @@
 import { randomUUID } from 'node:crypto'
 import { integrationEventStore as defaultEventStore } from '../integrations/integrationEventStore.js'
+import { createEmailDispatcher, buildIdempotencyKey } from './emailDispatcher.js'
 
+/**
+ * notificationWorkflow.js — PLU ARG
+ *
+ * Compatibilidad hacia atrás. La lógica de envío real vive en
+ * `emailDispatcher.js`; acá queda el encolado en memoria contra
+ * `integrationEventStore`, que se sigue usando cuando no hay Supabase
+ * disponible (tests de integración del webhook, scripts locales).
+ *
+ * Para código nuevo usar `createEmailDispatcher(...).send(type, input)`
+ * directamente: valida contra el catálogo, respeta la lista de supresión y
+ * programa reintentos, cosas que este camino en memoria no hace.
+ */
 export async function queueTransactionalEmail(type, input, options = {}) {
   if (options.repository) {
-    const idempotencyKey =
-      input.idempotencyKey ?? `email:${type}:${input.entityType ?? 'none'}:${input.entityId ?? input.to}`
-    const started = await options.repository.beginEmail({
-      ...input,
-      type,
-      idempotencyKey,
+    const dispatcher = createEmailDispatcher({
+      repository: options.repository,
+      brevo: options.brevo,
+      env: options.env ?? process.env,
     })
-    if (!started.created) return { emailLog: started.emailLog, created: false }
-
-    if (!options.brevo?.configured || !input.templateId) {
-      const emailLog = await options.repository.completeEmail(started.emailLog.id, { status: 'skipped' })
-      return { emailLog, created: true }
-    }
-
-    try {
-      const response = await options.brevo.sendTemplate({
-        to: input.to,
-        templateId: input.templateId,
-        params: input.params,
-      })
-      const emailLog = await options.repository.completeEmail(started.emailLog.id, {
-        status: 'sent',
-        response,
-      })
-      return { emailLog, created: true }
-    } catch (error) {
-      await options.repository.completeEmail(started.emailLog.id, {
-        status: 'failed',
-        error: error?.message ?? String(error),
-      })
-      throw error
-    }
+    const result = await dispatcher.send(type, input)
+    return { emailLog: result.emailLog, created: result.created }
   }
 
   const eventStore = options.eventStore ?? defaultEventStore
-  const idempotencyKey =
-    input.idempotencyKey ?? `email:${type}:${input.entityType ?? 'none'}:${input.entityId ?? input.to}`
+  const idempotencyKey = input.idempotencyKey ?? buildIdempotencyKey(type, input)
 
   const integrationEvent = eventStore.record({
     provider: 'brevo',

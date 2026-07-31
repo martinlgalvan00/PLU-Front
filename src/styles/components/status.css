@@ -76,3 +76,39 @@
   position: relative;
   width: 6px;
 }
+
+/* =============================================
+   AVISO DE VERIFICACION DE EMAIL
+   Aparece solo al abrir el deep link /?verificar=<token>.
+   Fijo arriba para que se lea sin depender de donde quedo el scroll.
+   ============================================= */
+
+.email-verification-notice {
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: var(--space-3, 12px);
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 60;
+}
+
+.email-verification-notice .status-pill {
+  box-shadow: var(--elevation-md);
+  max-width: min(92vw, 520px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .email-verification-notice {
+    animation: email-verification-in var(--motion-base, 240ms) var(--ease-standard, ease) both;
+  }
+}
+
+@keyframes email-verification-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}

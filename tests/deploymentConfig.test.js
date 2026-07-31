@@ -24,6 +24,7 @@ describe('Vercel deployment contract', () => {
 
   it('programa como máximo una ejecución diaria por job para Vercel Hobby', () => {
     expect(config.crons).toEqual([
+      { path: '/api/internal/jobs/email-dispatch', schedule: '0 2 * * *' },
       { path: '/api/internal/jobs/payment-recovery', schedule: '15 2 * * *' },
       { path: '/api/internal/jobs/membership-renewal', schedule: '30 2 * * *' },
       { path: '/api/internal/jobs/security-user-lifecycle', schedule: '45 2 * * *' },

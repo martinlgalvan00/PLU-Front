@@ -11,7 +11,9 @@ import {
 } from '../../src/lib/schemas/auth.js'
 import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
 import { HttpError } from '../lib/errors.js'
+import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
+import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
 import { fetchSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
@@ -84,10 +86,26 @@ export function createAuthRoutes({
       throw new HttpError(400, 'El evento ya finalizo.')
     }
   }
+  // `brevo` y `notificationRepository` solo se inyectan desde los tests. En
+  // producción llegaban undefined, con lo cual el aviso de acceso caía al
+  // camino en memoria: no se enviaba ni quedaba registrado, y el alta se
+  // apoyaba silenciosamente en mostrar las credenciales en pantalla. Se
+  // construyen acá cuando no vienen dados. Sin Supabase se sigue sin
+  // repositorio (modo degradado) en vez de romper el armado de la app.
+  function resolveNotificationRepository() {
+    if (notificationRepository) return notificationRepository
+    try {
+      const client = getSupabaseAdmin?.()
+      return client ? createSupabaseNotificationRepository(client) : null
+    } catch {
+      return null
+    }
+  }
+
   const notifySecurityAccess = createSecurityAccessNotificationService({
-    repository: notificationRepository,
-    brevo,
-    env,
+    repository: resolveNotificationRepository(),
+    brevo: brevo ?? createBrevoAdapter({ env: env ?? process.env }),
+    env: env ?? process.env,
   })
   const accessLinkAppUrl = (env?.APP_URL ?? process.env.APP_URL ?? '').replace(/\/$/, '')
   const accessLinkSecret = env?.AUTH_SECRET ?? process.env.AUTH_SECRET
@@ -136,7 +154,9 @@ export function createAuthRoutes({
   async function dispatchAccessEmail(payload) {
     try {
       const result = await notifySecurityAccess(payload)
-      return result?.emailLog?.status === 'sent'
+      // El dispatcher expone el estado arriba de todo; `emailLog` es null
+      // cuando se corre sin repositorio.
+      return result?.status === 'sent' || result?.emailLog?.status === 'sent'
     } catch {
       return false
     }
