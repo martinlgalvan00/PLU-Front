@@ -1,70 +1,61 @@
-import { env } from '../config/env.js'
-import { apiPost } from '../lib/api.js'
+/**
+ * emailService.js — PLU ARG
+ *
+ * Los emails transaccionales se disparan y se registran **en el servidor**
+ * (`server/modules/notifications/`). El frontend no elige templates ni habla
+ * con Brevo.
+ *
+ * Antes este archivo resolvía el `templateId` desde variables `VITE_BREVO_*` y
+ * guardaba los envíos en un array en memoria. Eso tenía tres problemas:
+ * exponía la configuración de templates al browser, el "log" se perdía al
+ * recargar la página, y los emails de aprobación manual de un pago no
+ * quedaban en `transactional_email_logs` (a diferencia de los del webhook de
+ * Mercado Pago, que sí). Hoy la aprobación manual notifica desde
+ * `POST /api/athletes/admin/payment-orders/:orderId/approve`.
+ *
+ * Lo que queda acá es el disparo manual desde el panel admin (avisos
+ * operativos, anuncios de evento), que pega contra `/api/emails/send`.
+ */
 
-const logs = []
+import { apiGet, apiPost } from '../lib/api.js'
 
-const templateByType = {
-  affiliation_started: env.brevo.templates.affiliationStarted,
-  payment_approved: env.brevo.templates.paymentApproved,
-  registration_confirmed: env.brevo.templates.registrationConfirmed,
-  payment_pending: env.brevo.templates.paymentPending,
-  admin_notification: env.brevo.templates.adminNotification,
+/**
+ * Disparo manual de un email del catálogo. El backend valida el tipo, resuelve
+ * el template y decide si usa el de Brevo o el fallback HTML del repo.
+ *
+ * @param {string} type Clave del catálogo (`server/modules/notifications/emailCatalog.js`).
+ * @param {{ to: string, params?: Record<string, unknown>, subject?: string }} payload
+ */
+export function sendTransactionalEmail(type, { to, params = {}, subject } = {}) {
+  return apiPost('/api/emails/send', { type, to, params, subject })
 }
 
-export function isBrevoConfigured() {
-  return env.brevo.configured
+/**
+ * Aviso de evento a una audiencia (`registered`, `members`, `all_athletes`).
+ * @param {{ eventId: string, audience?: string, type?: string, campaignKey?: string,
+ *   subject?: string, summary?: string, notes?: string }} payload
+ */
+export function notifyEventAudience(payload) {
+  return apiPost('/api/emails/events/notify', payload)
 }
 
-export function getEmailLogs() {
-  return [...logs]
+/** Auditoría de envíos para el panel admin. */
+export function getEmailLogs(filters = {}) {
+  const query = new URLSearchParams(
+    Object.entries(filters).filter(([, value]) => value !== undefined && value !== ''),
+  ).toString()
+  return apiGet(`/api/emails/logs${query ? `?${query}` : ''}`)
 }
 
-export async function sendTransactionalEmail(type, { to, params = {} }) {
-  const entry = {
-    id: `email-${Date.now()}`,
-    type,
-    to,
-    templateId: templateByType[type] || null,
-    params,
-    status: 'pendiente',
-    createdAt: new Date().toISOString(),
-  }
-
-  if (!env.brevo.configured) {
-    entry.status = 'omitido'
-    logs.push(entry)
-    return entry
-  }
-
-  try {
-    await apiPost('/api/emails/send', { type, to, params, templateId: entry.templateId })
-    entry.status = 'enviado'
-  } catch (error) {
-    entry.status = 'fallido'
-    entry.error = error.message
-  }
-
-  logs.push(entry)
-  return entry
+/**
+ * Estado de configuración por tipo: qué sale por template de Brevo y qué por
+ * el fallback HTML. Sirve para ver de un vistazo qué falta cargar en el
+ * dashboard.
+ */
+export function getEmailCatalog() {
+  return apiGet('/api/emails/catalog')
 }
 
-export function notifyAffiliationStarted(athlete) {
-  return sendTransactionalEmail('affiliation_started', {
-    to: athlete.email,
-    params: { name: athlete.fullName, memberCode: athlete.memberCode },
-  })
-}
-
-export function notifyPaymentApproved(athlete, payment) {
-  return sendTransactionalEmail('payment_approved', {
-    to: athlete.email,
-    params: { name: athlete.fullName, amount: payment.amount, concept: payment.concept },
-  })
-}
-
-export function notifyRegistrationConfirmed(athlete, event) {
-  return sendTransactionalEmail('registration_confirmed', {
-    to: athlete.email,
-    params: { name: athlete.fullName, event },
-  })
+export function suppressEmail({ email, reason, detail }) {
+  return apiPost('/api/emails/suppressions', { email, reason, detail })
 }

@@ -4,6 +4,7 @@ import { applyDeploymentEnvironmentDefaults } from './lib/deploymentEnvironment.
 import { applyServerRuntimeDefaults } from './lib/runtime.js'
 import { getPrisma } from './lib/prisma.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
+import { startEmailDispatchJob } from './jobs/emailDispatchJob.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startPaymentRecoveryJob } from './jobs/paymentRecoveryJob.js'
 import { startDomainMaintenanceJob } from './jobs/domainMaintenanceJob.js'
@@ -25,6 +26,7 @@ const server = app.listen(port, () => {
 })
 
 applyServerRuntimeDefaults(server)
+startEmailDispatchJob({ client: getSupabaseAdmin() })
 startMembershipRenewalJob({ client: getSupabaseAdmin() })
 startPaymentRecoveryJob({ client: getSupabaseAdmin() })
 startDomainMaintenanceJob({ client: getSupabaseAdmin() })

@@ -134,6 +134,27 @@ export function createSupabaseAthleteRepository(
       p_payment_method: data.paymentMethod,
       p_idempotency_key: data.idempotencyKey,
     }, 'No se pudo crear la inscripcion.'),
+    // Datos mínimos de contacto para notificar. No usa get_athlete_snapshot
+    // porque ese arma el perfil completo con URLs firmadas de foto.
+    async findContact(athleteId) {
+      return assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('id, full_name, email, status, email_verified_at')
+          .eq('id', athleteId)
+          .maybeSingle(),
+        'No se pudo leer el atleta.',
+      )
+    },
+
+    verifyEmail: (athleteId) =>
+      rpc('verify_athlete_email', { p_athlete_id: athleteId }, 'No se pudo verificar el correo.'),
+    async findEventSummary(eventId) {
+      return assertSupabaseResult(
+        await client.from('events').select('id, title, slug, starts_at, venue').eq('id', eventId).maybeSingle(),
+        'No se pudo leer el evento.',
+      )
+    },
     async approvePayment(orderId) {
       const order = assertSupabaseResult(
         await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),

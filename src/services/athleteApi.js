@@ -182,6 +182,16 @@ export function resetAthletePassword({ token, password }) {
   return apiPost('/api/athletes/reset-password', { token, password })
 }
 
+/** Confirma el correo desde el link que llega por email. No requiere sesión. */
+export function verifyAthleteEmail(token) {
+  return apiPost('/api/athletes/verify-email', { token })
+}
+
+/** Reenvía el enlace de confirmación al atleta con sesión iniciada. */
+export function resendAthleteVerification() {
+  return apiPost('/api/athletes/me/resend-verification', {})
+}
+
 /** Snapshot completo para el panel admin/seguridad. */
 export async function fetchAdminAthleteData() {
   const result = await apiGet('/api/athletes/admin')

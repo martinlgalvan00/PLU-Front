@@ -26,7 +26,12 @@ export function createSupabasePaymentRepository(
   async function getOrder(orderId) {
     const athleteResult = await client
       .from('athlete_payment_orders')
-      .select('*, athlete:athletes(id, full_name, email, document_id)')
+      // La inscripción se trae para poder mandar `registration_confirmed` con
+      // el título real del evento cuando el pago entra por Mercado Pago. Sin
+      // este join, ese email solo salía por la aprobación manual.
+      .select(
+        '*, athlete:athletes(id, full_name, email, document_id), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue))',
+      )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
       .maybeSingle()
@@ -52,6 +57,8 @@ export function createSupabasePaymentRepository(
         initPoint: data.provider_init_point,
         payerEmail: data.payer_email ?? data.athlete?.email ?? null,
         athlete: data.athlete,
+        // PostgREST devuelve un array en la relación inversa; interesa la única.
+        registration: Array.isArray(data.registration) ? (data.registration[0] ?? null) : (data.registration ?? null),
       }
     }
 

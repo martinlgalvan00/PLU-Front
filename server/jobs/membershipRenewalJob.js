@@ -1,4 +1,5 @@
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
+import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { processMembershipRenewals } from '../modules/memberships/renewalWorkflow.js'
 
@@ -11,8 +12,7 @@ export function runMembershipRenewalJob({ client, env = process.env } = {}) {
   const brevo = createBrevoAdapter({ env })
   return processMembershipRenewals({
     repository,
-    brevo,
-    templateId: env.BREVO_TEMPLATE_MEMBERSHIP_RENEWAL,
+    dispatcher: createEmailDispatcher({ repository, brevo, env }),
     appUrl: env.APP_URL ?? env.VITE_APP_URL ?? 'http://localhost:5173',
   })
 }

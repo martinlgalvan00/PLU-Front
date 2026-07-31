@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { Router } from 'express'
 import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
+import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
@@ -21,6 +22,7 @@ export function createInternalJobRoutes({
   const router = Router()
   const run = {
     domainMaintenance: runners.domainMaintenance ?? runDomainMaintenanceJob,
+    emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
     securityUserLifecycle: runners.securityUserLifecycle ?? runSecurityUserLifecycleJob,
@@ -47,6 +49,17 @@ export function createInternalJobRoutes({
     }
     const result = await run.paymentRecovery({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'payment-recovery', result })
+  })
+
+  // Vacía la cola de emails en 'retrying'. Habilitado salvo que sea 'false':
+  // sin él, un fallo transitorio de Brevo deja el email muerto.
+  router.get('/jobs/email-dispatch', async (_req, res) => {
+    if (env.EMAIL_DISPATCH_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'email-dispatch' })
+      return
+    }
+    const result = await run.emailDispatch({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'email-dispatch', result })
   })
 
   router.get('/jobs/membership-renewal', async (_req, res) => {

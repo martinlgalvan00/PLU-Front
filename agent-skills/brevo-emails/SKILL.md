@@ -2,190 +2,140 @@
 
 ## Objetivo
 
-Enviar emails transaccionales del flujo PLU ARG (afiliación iniciada, pago aprobado, inscripción confirmada, etc.) vía **Brevo API** (`POST /v3/smtp/email`), con templates parametrizados, logging en `EmailLog` y **fallback mock** que no rompe el flujo si no hay API key.
+Enviar los emails transaccionales de PLU ARG vía **Brevo API** (`POST /v3/smtp/email`), con
+catálogo central, idempotencia, reintentos, lista de supresión y fallback HTML propio.
+
+Documentación completa del flujo: [`docs/EMAIL_FLOW.md`](../../docs/EMAIL_FLOW.md).
 
 ## Cuándo usarla
 
-- Agregar o modificar notificaciones por email.
-- Configurar templates en Brevo y mapearlos en `.env`.
-- Implementar `POST /api/emails/send` en `server/`.
-- Depurar emails que no llegan o se duplican.
-- Auditar envíos desde admin (futuro).
+- Agregar o modificar un email del sistema.
+- Cargar templates de Brevo y mapearlos.
+- Depurar emails que no llegan, se duplican o rebotan.
+- Configurar el webhook de entrega.
 
-## Entradas requeridas
+## Regla de oro
 
-| Entrada | Variable / ubicación |
-|---------|----------------------|
-| API key server | `BREVO_API_KEY` |
-| API key frontend (evitar en prod) | `VITE_BREVO_API_KEY` |
-| Remitente | `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` |
-| Template IDs | `VITE_BREVO_TEMPLATE_*` en `.env.example` |
-| Datos atleta/pago | Desde `athleteService.approvePayment` |
+**Todo email sale por `emailDispatcher.send(type, input)`.** No llamar `brevoAdapter` directo
+desde una ruta o un workflow: se pierde idempotencia, log, supresión y reintento. Ese fue
+exactamente el problema que tenía el repo antes (cinco caminos de envío distintos, dos de ellos
+sin dejar rastro en la base).
 
-## Salidas esperadas
+## Agregar un email nuevo
 
-- Email enviado vía Brevo con template correcto y params.
-- Registro en memoria (`emailLogs`) o DB (`EmailLog`) con status.
-- En dev sin key: log en consola `[Brevo mock]` sin throw.
-- Funciones de alto nivel: `notifyAffiliationStarted`, `notifyPaymentApproved`, etc.
+Dos archivos, nada más:
 
-## Procedimiento paso a paso
-
-### 1. Tipos de email soportados
-
-Definidos en `src/services/emailService.js`:
-
-| Tipo | Función helper | Momento del flujo |
-|------|----------------|-------------------|
-| `affiliation_started` | `notifyAffiliationStarted` | Pago de afiliación aprobado |
-| `payment_approved` | `notifyPaymentApproved` | Cualquier pago aprobado |
-| `registration_confirmed` | `notifyRegistrationConfirmed` | Inscripción Pitbull confirmada |
-| `payment_pending` | — | Recordatorio pendiente (futuro) |
-| `admin_notification` | — | Alerta a operadores (futuro) |
-
-### 2. Configuración de templates
-
-En Brevo Dashboard → Transactional → Templates:
-
-1. Crear template con placeholders: `{{ params.name }}`, `{{ params.memberCode }}`, etc.
-2. Copiar template ID numérico a `.env`:
-
-```env
-VITE_BREVO_TEMPLATE_AFFILIATION_STARTED=1
-VITE_BREVO_TEMPLATE_PAYMENT_APPROVED=2
-VITE_BREVO_TEMPLATE_REGISTRATION_CONFIRMED=3
-```
-
-Mapeo en código:
+**1. `server/modules/notifications/emailCatalog.js`** — declarar la entrada:
 
 ```javascript
-const TEMPLATES = {
-  affiliation_started: import.meta.env.VITE_BREVO_TEMPLATE_AFFILIATION_STARTED,
-  // ...
-}
+mi_email_nuevo: {
+  category: EMAIL_CATEGORIES.event,      // account | membership | billing | event | ops
+  templateEnv: 'BREVO_TEMPLATE_MI_EMAIL_NUEVO',
+  subject: 'Asunto del fallback HTML',
+  entityType: 'event',                    // ancla del log para auditoría
+  requiredParams: ['name', 'eventTitle'], // se validan antes de llamar a Brevo
+  optOutAllowed: false,                   // true = el usuario puede desuscribirse
+  critical: false,                        // true = ignora la supresión por desuscripción
+},
 ```
 
-### 3. API Brevo — payload estándar
-
-```http
-POST https://api.brevo.com/v3/smtp/email
-api-key: {BREVO_API_KEY}
-Content-Type: application/json
-
-{
-  "sender": { "name": "PLU ARG", "email": "soporte@pluarg.com" },
-  "to": [{ "email": "atleta@example.com", "name": "Nombre" }],
-  "templateId": 2,
-  "params": {
-    "name": "Martina Rivas",
-    "amount": 78000,
-    "concept": "Afiliación anual + Pitbull Classic"
-  }
-}
-```
-
-### 4. Adaptador actual (`emailService.js`)
+**2. `server/modules/notifications/emailTemplates.js`** — agregar el cuerpo en `BODIES`:
 
 ```javascript
-export async function sendTransactionalEmail(type, { to, params = {} }) {
-  // 1. Resolver templateId desde TEMPLATES[type]
-  // 2. Si !BREVO_ENABLED → mock_sent + console.info en DEV
-  // 3. Si enabled → POST /api/emails/send (futuro) o directo desde server
-  // 4. Push a emailLogs con status sent | failed | mock_sent
-}
+mi_email_nuevo: (p) => ({
+  title: 'Título visible',
+  preheader: 'Texto de vista previa en la bandeja.',
+  body: [
+    paragraph(`${greeting(p.name)} cuerpo del mensaje.`),
+    dataPanel([['Evento', p.eventTitle]]),
+    button(p.eventUrl, 'Ver el evento'),
+  ].join(''),
+}),
 ```
 
-**Regla:** en producción, la API key debe vivir solo en `server/` — el frontend llama al proxy backend.
+**3.** Agregar `BREVO_TEMPLATE_MI_EMAIL_NUEVO=` a `.env.example` (vacío: es opcional).
 
-### 5. Integración con flujo de pago
+El test `tests/emailInfrastructure.test.js` verifica que todo tipo del catálogo tenga fallback,
+así que si falta el paso 2 la suite falla.
 
-En `athleteService.approvePayment`:
-
-```javascript
-emails: async (athlete) => {
-  await notifyPaymentApproved(athlete, payment)
-  if (payment.concept.includes('Pitbull')) {
-    await notifyRegistrationConfirmed(athlete, 'Pitbull Classic')
-  }
-  if (payment.concept.includes('Afiliación')) {
-    await notifyAffiliationStarted({ ...athlete, memberCode })
-  }
-}
-```
-
-Invocar desde `useAppData.handleApprovePayment` después de actualizar estado.
-
-### 6. Endpoint backend (implementar)
+## Disparar el envío
 
 ```javascript
-// POST /api/emails/send — server/index.js (hoy 501)
-app.post('/api/emails/send', async (req, res) => {
-  const { type, to, params } = req.body
-  // Validar type permitido
-  // Llamar Brevo con BREVO_API_KEY
-  // Persistir EmailLog en Prisma
-  res.json({ status: 'sent', id: logId })
+import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
+
+const dispatcher = createEmailDispatcher({ repository, brevo, env })
+
+await dispatcher.send('mi_email_nuevo', {
+  to: athlete.email,
+  toName: athlete.full_name,
+  entityId: event.id,
+  idempotencyKey: `email:mi-email:${event.id}:${athlete.id}`, // opcional, hay default
+  params: { name: athlete.full_name, eventTitle: event.title },
 })
 ```
 
-### 7. Modelo `EmailLog` (Prisma)
+**Siempre best-effort.** La operación de negocio se confirma primero; el envío se envuelve en
+try/catch (o `Promise.allSettled` si son varios) y nunca revierte nada.
 
-```prisma
-model EmailLog {
-  id         String   @id @default(cuid())
-  type       String
-  to         String
-  templateId String?
-  status     String   // sent | failed | mock_sent
-  params     Json?
-  error      String?
-  createdAt  DateTime @default(now())
-}
-```
+## Templates de Brevo
 
-## Validaciones
+En Brevo Dashboard → Transactional → Templates. Los `params` se leen como `{{ params.name }}`.
+Copiar el ID numérico a la variable `BREVO_TEMPLATE_*` correspondiente.
 
-- Email destino con formato válido antes de enviar.
-- `templateId` existe o fallback a email HTML simple (futuro).
-- Errores de Brevo capturados; flujo de pago no revierte por email fallido.
-- No loguear API keys ni contenido sensible completo.
-- `getEmailLogs()` disponible para debug en dev.
-- Rate limiting en endpoint server (futuro).
+Sin template cargado el email **igual sale**, con el HTML del repo. Cargar el template lo
+convierte automáticamente en la versión que se envía, sin tocar código.
+
+Estado de cada tipo: `GET /api/emails/catalog`.
+
+## Webhook de entrega
+
+`POST /api/emails/webhook/brevo?token=<BREVO_WEBHOOK_TOKEN>`
+
+Configurar en Brevo → Transactional → Settings → Webhooks. Eventos a habilitar: `delivered`,
+`hard_bounce`, `soft_bounce`, `blocked`, `spam`, `invalid_email`, `unsubscribed`.
+
+Sin webhook el sistema funciona, pero no hay visibilidad de rebotes ni supresión automática.
+
+## Diagnóstico
+
+| Síntoma | Dónde mirar |
+|---|---|
+| No llega ningún email | `GET /api/emails/catalog` → `configured: false` = falta `BREVO_API_KEY` o `BREVO_SENDER_EMAIL` |
+| Un tipo no llega | `GET /api/emails/logs?type=<tipo>` → `status` |
+| `status: skipped` | Brevo sin configurar, o el tipo no tiene template ni fallback |
+| `status: suppressed` | El destinatario está en `email_suppressions` |
+| `status: retrying` | Fallo transitorio, lo levanta `emailDispatchJob` |
+| `status: failed` | Error permanente: mirar `error` y `error_code` |
+| `status: bounced` | Rebotó. La dirección quedó suprimida |
+| Se envía duplicado | La `idempotencyKey` está variando entre llamadas; anclarla a un ID externo estable |
 
 ## Errores comunes
 
-| Error | Síntoma | Fix |
-|-------|---------|-----|
-| API key en frontend prod | Exposición | Proxy server-only |
-| Template ID incorrecto | 400 de Brevo | Verificar dashboard |
-| Params sin match template | Campos vacíos en email | Alinear nombres `params` |
-| Email bloquea approvePayment | UX rota | try/catch, log error |
-| Duplicar envíos | 2 emails por webhook retry | Idempotency por paymentId |
-| Remitente no verificado | Rechazo Brevo | Verificar dominio en Brevo |
+| Error | Causa | Fix |
+|---|---|---|
+| Remitente no verificado | Dominio sin validar en Brevo | Verificar dominio en el dashboard |
+| `document_not_found` | Template ID inexistente | Revisar el ID en el dashboard |
+| Campos vacíos en el email | Nombres de `params` que no matchean el template | Alinear con `requiredParams` del catálogo |
+| El email revierte el pago | Falta el try/catch | Envolver best-effort |
+| Reintentos lentos en producción | Vercel Hobby = un cron diario | Ver la nota de limitación en `docs/EMAIL_FLOW.md` |
+
+## Validaciones que ya están cubiertas
+
+- Formato del destinatario y params obligatorios, antes de gastar una llamada.
+- Escapado de HTML en todos los params y validación de protocolo en las URLs.
+- API key solo en el servidor (`tests/env.test.js` verifica que no vuelva `VITE_BREVO_API_KEY`).
+- Los tipos de cuenta no se pueden disparar desde `POST /api/emails/send`.
 
 ## Checklist de aceptación
 
-- [ ] Todos los tipos de email tienen template o documentación de creación
-- [ ] Mock funciona sin `BREVO_API_KEY`
-- [ ] Envío real funciona en sandbox/staging
-- [ ] `approvePayment` dispara emails correctos según concepto
-- [ ] Logs consultables (`getEmailLogs` o Prisma)
-- [ ] API key solo en server para producción
-- [ ] `.env.example` actualizado
+- [ ] El tipo nuevo está en `emailCatalog.js` y tiene cuerpo en `emailTemplates.js`
+- [ ] `BREVO_TEMPLATE_*` agregado a `.env.example`
+- [ ] El llamador lo invoca best-effort, sin poder revertir la operación de negocio
+- [ ] La `idempotencyKey` se ancla a un identificador externo estable
+- [ ] `npm run lint` y la suite de tests en verde
 
 ## Referencias oficiales
 
 - [Brevo — Send transactional email](https://developers.brevo.com/reference/sendtransacemail)
-- [Brevo — Transactional templates](https://developers.brevo.com/docs/send-a-transactional-email)
-- [Brevo API authentication](https://developers.brevo.com/docs/authentication)
-
-## Archivos del proyecto relacionados
-
-| Archivo | Rol |
-|---------|-----|
-| `src/services/emailService.js` | Adaptador + helpers |
-| `src/services/athleteService.js` | Dispara emails post-aprobación |
-| `src/hooks/useAppData.js` | Llama `emails()` tras approve |
-| `server/index.js` | Endpoint proxy (pendiente) |
-| `prisma/schema.prisma` | `EmailLog` |
-| `.env.example` | Keys y template IDs |
+- [Brevo — Transactional webhooks](https://developers.brevo.com/docs/transactional-webhooks)
+- [Brevo — Error codes](https://developers.brevo.com/docs/error-codes)
