@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { UserPlus } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { UserPlus, X } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
@@ -20,7 +20,10 @@ export default function UsersSection({
   users,
 }) {
   const { t } = useI18n()
+  const formId = useId()
+  const formRef = useRef(null)
   const [query, setQuery] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
   const [tempPassword, setTempPassword] = useState(null)
@@ -53,6 +56,42 @@ export default function UsersSection({
     })
   }, [users, query])
 
+  useEffect(() => {
+    if (!isCreating) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      formRef.current?.querySelector('input[name="name"]')?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [isCreating])
+
+  useEffect(() => {
+    if (!isCreating) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key !== 'Escape' || isSubmitting) return
+      event.preventDefault()
+      setIsCreating(false)
+      setDraft(EMPTY_DRAFT)
+      setFormError('')
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isCreating, isSubmitting])
+
+  function closeCreateForm() {
+    setIsCreating(false)
+    setDraft(EMPTY_DRAFT)
+    setFormError('')
+  }
+
+  function openCreateForm() {
+    setFormError('')
+    setTempPassword(null)
+    setInviteNotice(null)
+    setIsCreating(true)
+  }
+
   async function handleAddUser(event) {
     event.preventDefault()
     if (draft.name.trim().length < 3) {
@@ -78,12 +117,14 @@ export default function UsersSection({
         const user = await onCreateUser(draft)
         setInviteNotice({ email: user?.email ?? draft.email.trim().toLowerCase() })
         setDraft(EMPTY_DRAFT)
+        setIsCreating(false)
         return
       }
 
       const { user, tempPassword: password } = await onCreateSecurityUser(draft)
       setTempPassword({ email: user.email, password })
       setDraft(EMPTY_DRAFT)
+      setIsCreating(false)
     } catch (error) {
       setFormError(error?.status === 409 ? t('admin.users.errorEmailTaken') : t('admin.users.errorCreate'))
     } finally {
@@ -103,10 +144,31 @@ export default function UsersSection({
     }
   }
 
+  const filterActions = canManageUsers ? (
+    <Button
+      type="button"
+      variant={isCreating ? 'secondary' : 'gold'}
+      className="btn--small"
+      aria-controls={formId}
+      aria-expanded={isCreating}
+      onClick={() => {
+        if (isCreating) {
+          if (!isSubmitting) closeCreateForm()
+          return
+        }
+        openCreateForm()
+      }}
+    >
+      {isCreating ? <X size={14} aria-hidden /> : <UserPlus size={14} aria-hidden />}
+      <span>{isCreating ? t('admin.users.cancel') : t('admin.users.newUser')}</span>
+    </Button>
+  ) : null
+
   return (
     <AdminListSection
       variant="users"
       filteredCount={rows.length}
+      filterActions={filterActions}
       placeholder={t('admin.search.users')}
       query={query}
       showHeader
@@ -117,9 +179,11 @@ export default function UsersSection({
       totalCount={users.length}
       onQueryChange={setQuery}
     >
-      {canManageUsers && (
+      {canManageUsers && isCreating ? (
         <form
-          className={`admin-users__add-form${isSecurityRole ? ' admin-users__add-form--security' : ''}`}
+          ref={formRef}
+          id={formId}
+          className={`admin-users__add-form admin-users__add-form--compact${isSecurityRole ? ' admin-users__add-form--security' : ''}`}
           onSubmit={handleAddUser}
         >
           <header className="admin-users__add-form-head">
@@ -152,7 +216,7 @@ export default function UsersSection({
               onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
               options={roleOptions}
             />
-            {isSecurityRole && (
+            {isSecurityRole ? (
               <Select
                 label={t('admin.users.event')}
                 name="eventId"
@@ -160,19 +224,18 @@ export default function UsersSection({
                 onChange={(e) => setDraft((current) => ({ ...current, eventId: e.target.value }))}
                 options={[['', t('admin.users.eventPlaceholder')], ...eventOptions]}
               />
-            )}
+            ) : null}
+            <div className="admin-users__add-form-actions">
+              <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
+                <UserPlus size={14} aria-hidden />
+                {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
+              </Button>
+            </div>
           </div>
 
-          {isSecurityRole && <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p>}
-
-          <div className="admin-users__add-form-actions">
-            <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
-              <UserPlus size={14} aria-hidden />
-              {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
-            </Button>
-          </div>
+          {isSecurityRole ? <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p> : null}
         </form>
-      )}
+      ) : null}
 
       {formError && (
         <p className="admin-users__form-error" role="alert">

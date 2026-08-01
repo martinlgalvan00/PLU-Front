@@ -743,6 +743,7 @@ export default {
       calendarIcsHint: 'The .ics file works with Apple Calendar, Outlook and other apps.',
       calendarPrev: 'Previous month',
       calendarNext: 'Next month',
+      calendarToday: 'Today',
       nextMeet: 'Next meet',
       spotlightLead: 'Two days of official competition in Buenos Aires.',
       spotlightIndex: '01',

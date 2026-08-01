@@ -25,9 +25,11 @@ function isFilterActive(filter) {
 }
 
 export default function AdminFilterBar({
+  actions = null,
   className = '',
   compact = false,
   inline = false,
+  count = null,
   query,
   onQueryChange,
   filters = [],
@@ -108,6 +110,8 @@ export default function AdminFilterBar({
             <span>{t('admin.filters.clearActive', { count: activeCount })}</span>
           </button>
         ) : null}
+
+        {actions ? <div className="admin-filters__actions">{actions}</div> : null}
       </div>
 
       {filters.length > 0 ? (
@@ -140,6 +144,12 @@ export default function AdminFilterBar({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {count ? (
+        <span className="admin-filters__count" aria-live="polite">
+          {count}
+        </span>
       ) : null}
     </div>
   )

@@ -6,9 +6,14 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_BLUR, MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
 const groupVariants = {
-  hidden: {},
+  hidden: { opacity: 0, y: 14 },
   visible: {
+    opacity: 1,
+    y: 0,
     transition: {
+      duration: MOTION_DURATION.slow,
+      ease: MOTION_EASE.cinematic,
+      when: 'beforeChildren',
       staggerChildren: 0.055,
       delayChildren: 0.02,
     },
@@ -23,6 +28,17 @@ const fadeUp = (delay = 0) => ({
     transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay },
   },
 })
+
+/** Badge de estado: settle one-shot (no loop) — comunica “Pendiente”. */
+const statusVariants = {
+  hidden: { opacity: 0, scale: 0.92, y: 4 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.spring },
+  },
+}
 
 const sheetVariants = {
   hidden: {
@@ -41,8 +57,17 @@ const sheetVariants = {
       ease: MOTION_EASE.cinematic,
       when: 'beforeChildren',
       staggerChildren: 0.07,
-      delayChildren: 0.1,
+      delayChildren: 0.08,
     },
+  },
+}
+
+const sheetRuleVariants = {
+  hidden: { scaleX: 0, opacity: 0 },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
   },
 }
 
@@ -128,8 +153,11 @@ const GHOST_ROWS = [
 /**
  * Teaser de resultados — empty state editorial (sin inventar rankings).
  * Planilla ghost + podio con entrada cinematográfica y stagger.
+ *
+ * `orchestrated`: el padre (.home-teaser-duo) dispara whileInView; acá solo
+ * respondemos con variants para que Resultados entre antes que Reglamento.
  */
-export default function HomeResultsTeaser({ onNavigate }) {
+export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) {
   const { HOME_RESULTS } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
@@ -137,9 +165,11 @@ export default function HomeResultsTeaser({ onNavigate }) {
   const Group = reducedMotion ? 'article' : m.article
   const Bar = reducedMotion ? 'span' : m.span
   const Eyebrow = reducedMotion ? 'p' : m.p
+  const Status = reducedMotion ? 'span' : m.span
   const Title = reducedMotion ? 'h2' : m.h2
   const Desc = reducedMotion ? 'p' : m.p
   const Sheet = reducedMotion ? 'div' : m.div
+  const Rule = reducedMotion ? 'span' : m.span
   const Meta = reducedMotion ? 'div' : m.div
   const Body = reducedMotion ? 'div' : m.div
   const Podium = reducedMotion ? 'div' : m.div
@@ -153,9 +183,13 @@ export default function HomeResultsTeaser({ onNavigate }) {
     : {
         className: 'home-teaser-card home-teaser-card--results',
         variants: groupVariants,
-        initial: 'hidden',
-        whileInView: 'visible',
-        viewport: { once: true, amount: 0.4 },
+        ...(orchestrated
+          ? {}
+          : {
+              initial: 'hidden',
+              whileInView: 'visible',
+              viewport: { once: true, amount: 0.35 },
+            }),
       }
 
   const withVariant = (variants) => (reducedMotion ? {} : { variants })
@@ -166,7 +200,9 @@ export default function HomeResultsTeaser({ onNavigate }) {
         <Eyebrow {...withVariant(fadeUp())} className="home-teaser-card__eyebrow">
           {HOME_RESULTS.eyebrow}
         </Eyebrow>
-        <span className="home-teaser-card__status">{HOME_RESULTS.status}</span>
+        <Status {...withVariant(statusVariants)} className="home-teaser-card__status">
+          {HOME_RESULTS.status}
+        </Status>
       </div>
 
       <div className="home-teaser-card__body">
@@ -179,6 +215,8 @@ export default function HomeResultsTeaser({ onNavigate }) {
       </div>
 
       <Sheet {...withVariant(sheetVariants)} className="home-teaser-card__sheet" aria-hidden>
+        <Rule {...withVariant(sheetRuleVariants)} className="home-teaser-card__sheet-rule" />
+
         <Meta {...withVariant(sheetMetaVariants)} className="home-teaser-card__sheet-meta">
           <span>{HOME_RESULTS.metaEvent}</span>
           <span className="home-teaser-card__sheet-sep" />

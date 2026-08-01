@@ -464,18 +464,18 @@ export const PITBULL_SCHEDULE = [
     day: 'Day 1',
     date: 'Dec 12',
     items: [
-      { time: 'AM', label: 'Weigh-in: Day 1 categories' },
-      { time: 'MID', label: 'Mandatory technical briefing' },
-      { time: 'PM', label: 'Competition: Day 1 categories' },
+      { time: 'AM', label: 'Day 1 categories' },
+      { time: 'MID', label: 'Before platform' },
+      { time: 'PM', label: 'Day 1 categories' },
     ],
   },
   {
     day: 'Day 2',
     date: 'Dec 13',
     items: [
-      { time: 'AM', label: 'Weigh-in: Day 2 categories' },
-      { time: 'MID', label: 'Mandatory technical briefing' },
-      { time: 'PM', label: 'Competition + Award ceremony' },
+      { time: 'AM', label: 'Day 2 categories' },
+      { time: 'MID', label: 'Before platform' },
+      { time: 'PM', label: 'Competition + awards' },
     ],
   },
 ]

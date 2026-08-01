@@ -231,15 +231,20 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 ) : null}
               </label>
 
-              <label className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
+              {/* div + htmlFor: no anidar forgot/toggle en un <label> — el click del
+                  ojo activaba el primer labelable (olvidaste) y abría recover. */}
+              <div className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
                 <span className="login-field__row">
-                  <span className="login-field__label">{t('login.password')}</span>
+                  <label htmlFor="login-password" className="login-field__label">
+                    {t('login.password')}
+                  </label>
                   <button type="button" className="login-field__forgot" onClick={openRecover}>
                     {t('login.forgot')}
                   </button>
                 </span>
                 <span className="login-field__control">
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={password}
@@ -263,7 +268,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     {fieldErrors.password}
                   </span>
                 ) : null}
-              </label>
+              </div>
 
               <button type="submit" className="login-submit" disabled={isSubmitting}>
                 {isSubmitting ? t('login.submitting') : t('login.submit')}

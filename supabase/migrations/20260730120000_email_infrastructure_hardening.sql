@@ -75,6 +75,9 @@ create table if not exists public.email_suppressions (
 
 alter table public.email_suppressions enable row level security;
 
+-- Idempotente: la tabla/policy pueden existir de un push parcial previo
+-- (columnas e índices ya usaban IF NOT EXISTS; CREATE POLICY no).
+drop policy if exists "email_suppressions_staff_read" on public.email_suppressions;
 create policy "email_suppressions_staff_read" on public.email_suppressions
   for select to authenticated using (public.can_view_admin_data());
 

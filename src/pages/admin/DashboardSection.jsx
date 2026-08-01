@@ -11,11 +11,12 @@ import {
 } from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
+import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import RecentActivity from '../../components/admin/RecentActivity.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { money } from '../../lib/format.js'
+import { formatDayMonth, money } from '../../lib/format.js'
 
 const METRIC_TONES = {
   users: 'celeste',
@@ -62,7 +63,7 @@ function DashboardKpiTile({ icon, label, value, tone, onClick, index }) {
   return (
     <button
       type="button"
-      className={`admin-kpi-tile admin-kpi-tile--strip admin-kpi-tile--${tone}`}
+      className={`admin-bento__cell admin-bento__cell--kpi admin-kpi-tile admin-kpi-tile--strip admin-kpi-tile--${tone}`}
       style={{ '--kpi-index': index }}
       onClick={onClick}
     >
@@ -106,7 +107,7 @@ function CommandCenterPaneHead({ eyebrow, subtitle, hideSubtitle = false }) {
 function DashboardQuickActions({ onNavigate, t }) {
   return (
     <section
-      className="admin-quick-dock admin-dashboard__block"
+      className="admin-bento__cell admin-bento__cell--quick admin-quick-dock"
       aria-labelledby="admin-quick-dock-title"
     >
       <header className="admin-quick-dock__intro">
@@ -136,7 +137,7 @@ function DashboardQuickActions({ onNavigate, t }) {
   )
 }
 
-function DashboardSpotlightEvent({ event, onNavigate, t }) {
+function DashboardSpotlightEvent({ event, locale, onNavigate, t }) {
   if (!event) {
     return (
       <div className="admin-spotlight admin-spotlight--empty admin-spotlight--flat">
@@ -155,6 +156,11 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
 
   const { label: statusLabel, tone } = getStatusMeta(event.status, t)
   const fillPercent = event.slots > 0 ? Math.round((event.registered / event.slots) * 100) : 0
+  const slotsLeft = Math.max((event.slots ?? 0) - (event.registered ?? 0), 0)
+  const closesAt = event.registrationClosesAt
+    ? formatDayMonth(event.registrationClosesAt.slice(0, 10), locale)
+    : null
+  const registrationFee = event.pricing?.registration
 
   return (
     <article className="admin-spotlight admin-spotlight--flat">
@@ -185,6 +191,24 @@ function DashboardSpotlightEvent({ event, onNavigate, t }) {
           </span>
           <span className="admin-spotlight__fill-percent">{fillPercent}%</span>
         </div>
+        <dl className="admin-spotlight__facts">
+          <div className="admin-spotlight__fact">
+            <dt>{t('admin.dashboard.slotsLeft')}</dt>
+            <dd>{slotsLeft}</dd>
+          </div>
+          {closesAt ? (
+            <div className="admin-spotlight__fact">
+              <dt>{t('admin.dashboard.registrationCloses')}</dt>
+              <dd>{closesAt}</dd>
+            </div>
+          ) : null}
+          {registrationFee > 0 ? (
+            <div className="admin-spotlight__fact">
+              <dt>{t('admin.dashboard.registrationFee')}</dt>
+              <dd>{money(registrationFee, locale)}</dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
       <button
         type="button"
@@ -211,29 +235,30 @@ function DashboardFinancePanel({ canEdit, finance, onApprovePayment, onNavigate,
 
   return (
     <div className="admin-finance admin-finance--flat">
-      <div className="admin-finance__metrics" aria-label={t('admin.dashboard.financeAria')}>
-        <div className="admin-finance__metric admin-finance__metric--primary">
-          <span>{t('admin.dashboard.financeOperated')}</span>
-          <strong>{money(totalAmount)}</strong>
-        </div>
-        <div className="admin-finance__metric admin-finance__metric--rate">
-          <span>{t('admin.dashboard.financeRate')}</span>
-          <strong>{collectionRate}%</strong>
-        </div>
-        <div className="admin-finance__metric admin-finance__metric--success">
-          <span>{t('admin.dashboard.financeCollected')}</span>
-          <strong>{money(collectedAmount)}</strong>
-        </div>
-        <div className="admin-finance__metric admin-finance__metric--pending">
-          <span>
-            {t('admin.dashboard.financePending')}
-            {pendingCount > 0 ? ` · ${pendingCount}` : ''}
-          </span>
-          <strong>{money(pendingAmount)}</strong>
-        </div>
-      </div>
-      <div className="admin-finance__progress" aria-hidden>
-        <span style={{ width: `${collectionRate}%` }} />
+      <div className="admin-finance__chart">
+        <CollectionDonut
+          collected={collectedAmount}
+          pending={pendingAmount}
+          rate={collectionRate}
+          label={t('admin.dashboard.financeRate')}
+        />
+        <dl className="admin-finance__legend" aria-label={t('admin.dashboard.financeAria')}>
+          <div className="admin-finance__legend-item admin-finance__legend-item--collected">
+            <dt>{t('admin.dashboard.financeCollected')}</dt>
+            <dd>{money(collectedAmount)}</dd>
+          </div>
+          <div className="admin-finance__legend-item admin-finance__legend-item--pending">
+            <dt>
+              {t('admin.dashboard.financePending')}
+              {pendingCount > 0 ? ` · ${pendingCount}` : ''}
+            </dt>
+            <dd>{money(pendingAmount)}</dd>
+          </div>
+          <div className="admin-finance__legend-item admin-finance__legend-item--total">
+            <dt>{t('admin.dashboard.financeOperated')}</dt>
+            <dd>{money(totalAmount)}</dd>
+          </div>
+        </dl>
       </div>
 
       {topPending && (
@@ -295,7 +320,7 @@ export default function DashboardSection({
   onGlobalSearchChange,
   onGlobalSearchSubmit,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
 
   const { finance, primary, secondary, spotlightEvent } = dashboardOverview
@@ -309,7 +334,7 @@ export default function DashboardSection({
   const secondaryMetrics = useMemo(() => mapMetrics(secondary, t), [secondary, t])
 
   return (
-    <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury admin-dashboard--executive">
+    <div className="admin-dashboard admin-dashboard--compact admin-dashboard--luxury admin-dashboard--executive admin-dashboard--bento">
       <AdminTopBar
         title={t('admin.dashboard.title')}
         subtitle={t('admin.dashboard.subtitle')}
@@ -331,75 +356,39 @@ export default function DashboardSection({
         canEdit={canEdit}
       />
 
-      <section
-        className="admin-dashboard-snapshot admin-dashboard__block"
-        aria-label={t('admin.dashboard.metricsAria')}
-      >
-        <div className="admin-kpi-board">
-          <div className="admin-kpi-strip" role="list" aria-label={t('admin.dashboard.metricsAria')}>
-            {primaryMetrics.map((item, index) => (
-              <DashboardKpiTile
-                key={item.labelKey}
-                icon={item.icon}
-                index={index}
-                label={item.label}
-                tone={item.tone}
-                value={item.value}
-                onClick={() => onNavigate?.(item.section)}
-              />
-            ))}
-          </div>
+      <section className="admin-bento" aria-label={t('admin.dashboard.metricsAria')}>
+        {pendingActions.length > 0 && (
+          <button
+            type="button"
+            className="admin-bento__cell admin-bento__cell--alerts admin-attention-bar"
+            onClick={() => setAlertsOpen(true)}
+          >
+            <span className="admin-attention-bar__count">{pendingActions.length}</span>
+            <span className="admin-attention-bar__copy">
+              {pendingActions.length === 1
+                ? t('admin.actionQueue.tasks', { count: pendingActions.length })
+                : t('admin.actionQueue.tasksMany', { count: pendingActions.length })}
+            </span>
+            <span className="admin-attention-bar__action">
+              {t('admin.actionQueue.title')}
+              <ChevronRight size={14} aria-hidden />
+            </span>
+          </button>
+        )}
 
-          {secondaryMetrics.length > 0 && (
-            <details className="admin-kpi-more">
-              <summary className="admin-kpi-more__summary">
-                <span className="admin-kpi-more__label">{t('admin.dashboard.moreMetrics')}</span>
-                <span className="admin-kpi-more__count">{secondaryMetrics.length}</span>
-              </summary>
-              <div className="admin-kpi-sub" role="list">
-                {secondaryMetrics.map((item) => (
-                  <DashboardKpiChip
-                    key={item.labelKey}
-                    label={item.label}
-                    tone={item.tone}
-                    value={item.value}
-                    onClick={() => onNavigate?.(item.section)}
-                  />
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-      </section>
+        {primaryMetrics.map((item, index) => (
+          <DashboardKpiTile
+            key={item.labelKey}
+            icon={item.icon}
+            index={index}
+            label={item.label}
+            tone={item.tone}
+            value={item.value}
+            onClick={() => onNavigate?.(item.section)}
+          />
+        ))}
 
-      {pendingActions.length > 0 && (
-        <button
-          type="button"
-          className="admin-attention-bar admin-dashboard__block"
-          onClick={() => setAlertsOpen(true)}
-        >
-          <span className="admin-attention-bar__count">{pendingActions.length}</span>
-          <span className="admin-attention-bar__copy">
-            {pendingActions.length === 1
-              ? t('admin.actionQueue.tasks', { count: pendingActions.length })
-              : t('admin.actionQueue.tasksMany', { count: pendingActions.length })}
-          </span>
-          <span className="admin-attention-bar__action">
-            {t('admin.actionQueue.title')}
-            <ChevronRight size={14} aria-hidden />
-          </span>
-        </button>
-      )}
-
-      <DashboardQuickActions onNavigate={onNavigate} t={t} />
-
-      <section className="admin-command-center admin-dashboard__block">
-        <article className="admin-command-center__pane admin-command-center__pane--spotlight">
-          <CommandCenterPaneHead eyebrow={t('admin.dashboard.spotlightTitle')} />
-          <DashboardSpotlightEvent event={spotlightEvent} onNavigate={onNavigate} t={t} />
-        </article>
-
-        <article className="admin-command-center__pane admin-command-center__pane--finance">
+        <section className="admin-bento__cell admin-bento__cell--finance">
           <CommandCenterPaneHead
             eyebrow={t('admin.dashboard.financeTitle')}
             subtitle={financeSubtitle}
@@ -411,12 +400,41 @@ export default function DashboardSection({
             onNavigate={onNavigate}
             t={t}
           />
-        </article>
-      </section>
+        </section>
 
-      <div className="admin-dashboard__panels admin-dashboard__panels--activity admin-dashboard__block">
-        <RecentActivity compact items={recentActivity} />
-      </div>
+        <section className="admin-bento__cell admin-bento__cell--spotlight">
+          <CommandCenterPaneHead eyebrow={t('admin.dashboard.spotlightTitle')} />
+          <DashboardSpotlightEvent
+            event={spotlightEvent}
+            locale={locale}
+            onNavigate={onNavigate}
+            t={t}
+          />
+        </section>
+
+        <div className="admin-bento__cell admin-bento__cell--activity">
+          <RecentActivity compact items={recentActivity} />
+        </div>
+
+        {secondaryMetrics.length > 0 && (
+          <section className="admin-bento__cell admin-bento__cell--pulse">
+            <CommandCenterPaneHead eyebrow={t('admin.dashboard.secondaryTitle')} />
+            <div className="admin-kpi-sub">
+              {secondaryMetrics.map((item) => (
+                <DashboardKpiChip
+                  key={item.labelKey}
+                  label={item.label}
+                  tone={item.tone}
+                  value={item.value}
+                  onClick={() => onNavigate?.(item.section)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <DashboardQuickActions onNavigate={onNavigate} t={t} />
+      </section>
     </div>
   )
 }

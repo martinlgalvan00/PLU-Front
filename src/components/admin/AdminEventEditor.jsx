@@ -43,6 +43,14 @@ function draftSignature(draft) {
   return JSON.stringify(draft ?? {})
 }
 
+const EDITOR_SECTION_IDS = [
+  'event-section-basics',
+  'event-section-pricing',
+  'event-section-tickets',
+  'event-section-visibility',
+  'event-section-security',
+]
+
 function FormField({ children, error, htmlFor, label, wide = false }) {
   const errorId = htmlFor ? `${htmlFor}-error` : undefined
   return (
@@ -204,15 +212,20 @@ export default function AdminEventEditor({
     Boolean(draft.eventDays?.length || draft.ticketTypes?.length),
   )
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [activeSection, setActiveSection] = useState('event-section-basics')
   const dialogTitle = draft.id
     ? t('admin.eventEditor.editTitle')
     : t('admin.eventEditor.createTitle')
+  const headingTitle =
+    draft.id && draft.title?.trim() ? draft.title.trim() : dialogTitle
   const onCancelRef = useRef(onCancel)
   const requestCloseRef = useRef(null)
   const securitySectionRef = useRef(null)
   const formRef = useRef(null)
   const panelRef = useRef(null)
   const previousFocusRef = useRef(null)
+  const navLockRef = useRef(false)
+  const navLockTimerRef = useRef(0)
   const initialDraftSignatureRef = useRef(draftSignature(draft))
   const dirty = draftSignature(draft) !== initialDraftSignatureRef.current
   onCancelRef.current = onCancel
@@ -287,6 +300,7 @@ export default function AdminEventEditor({
 
   useEffect(() => {
     if (initialFocus !== 'security' || !draft.id) return
+    setActiveSection('event-section-security')
     const frame = requestAnimationFrame(() => {
       securitySectionRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' })
     })
@@ -296,6 +310,7 @@ export default function AdminEventEditor({
   useEffect(() => {
     if (initialFocus !== 'tickets') return
     setShowTicketConfig(true)
+    setActiveSection('event-section-tickets')
     const frame = requestAnimationFrame(() => {
       panelRef.current
         ?.querySelector('#event-section-tickets')
@@ -303,6 +318,45 @@ export default function AdminEventEditor({
     })
     return () => cancelAnimationFrame(frame)
   }, [initialFocus])
+
+  useEffect(() => {
+    const root = formRef.current
+    if (!root) return undefined
+
+    const sectionIds = draft.id
+      ? EDITOR_SECTION_IDS
+      : EDITOR_SECTION_IDS.filter((id) => id !== 'event-section-security')
+    const elements = sectionIds
+      .map((id) => root.querySelector(`#${id}`))
+      .filter(Boolean)
+    if (elements.length === 0) return undefined
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (navLockRef.current) return
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        const nextId = visible[0]?.target?.id
+        if (nextId) setActiveSection(nextId)
+      },
+      {
+        root,
+        rootMargin: '-18% 0px -58% 0px',
+        threshold: [0, 0.2, 0.45, 0.75],
+      },
+    )
+
+    elements.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [draft.id, showAdvanced, showTicketConfig])
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(navLockTimerRef.current)
+    },
+    [],
+  )
 
   function patchDraft(next) {
     onChange(next)
@@ -325,11 +379,17 @@ export default function AdminEventEditor({
   function goToSection(sectionId, { advanced = false, tickets = false } = {}) {
     if (advanced) setShowAdvanced(true)
     if (tickets) setShowTicketConfig(true)
+    setActiveSection(sectionId)
+    navLockRef.current = true
+    window.clearTimeout(navLockTimerRef.current)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         panelRef.current
           ?.querySelector(`#${sectionId}`)
           ?.scrollIntoView({ behavior: 'auto', block: 'start' })
+        navLockTimerRef.current = window.setTimeout(() => {
+          navLockRef.current = false
+        }, 450)
       })
     })
   }
@@ -425,9 +485,9 @@ export default function AdminEventEditor({
                 <span className="admin-event-form__mode">
                   {draft.id ? t('admin.eventEditor.editMode') : t('admin.eventEditor.createMode')}
                 </span>
-                <h3 id="admin-event-editor-title">{dialogTitle}</h3>
+                <h3 id="admin-event-editor-title">{headingTitle}</h3>
                 <p id="admin-event-editor-lead" className="admin-event-form__lead">
-                  {t('admin.eventEditor.lead')}
+                  {draft.id ? dialogTitle : t('admin.eventEditor.lead')}
                 </p>
               </div>
               <button
@@ -444,27 +504,69 @@ export default function AdminEventEditor({
               className="admin-event-form__section-nav"
               aria-label={t('admin.eventEditor.sectionNavAria')}
             >
-              <button type="button" onClick={() => goToSection('event-section-basics')}>
+              <button
+                type="button"
+                className={
+                  activeSection === 'event-section-basics'
+                    ? 'admin-event-form__nav-item is-active'
+                    : 'admin-event-form__nav-item'
+                }
+                aria-current={activeSection === 'event-section-basics' ? 'true' : undefined}
+                onClick={() => goToSection('event-section-basics')}
+              >
                 <span aria-hidden>1</span>
                 {t('admin.eventEditor.navBasics')}
               </button>
-              <button type="button" onClick={() => goToSection('event-section-pricing')}>
+              <button
+                type="button"
+                className={
+                  activeSection === 'event-section-pricing'
+                    ? 'admin-event-form__nav-item is-active'
+                    : 'admin-event-form__nav-item'
+                }
+                aria-current={activeSection === 'event-section-pricing' ? 'true' : undefined}
+                onClick={() => goToSection('event-section-pricing')}
+              >
                 <span aria-hidden>2</span>
                 {t('admin.eventEditor.navPricing')}
               </button>
               <button
                 type="button"
+                className={
+                  activeSection === 'event-section-tickets'
+                    ? 'admin-event-form__nav-item is-active'
+                    : 'admin-event-form__nav-item'
+                }
+                aria-current={activeSection === 'event-section-tickets' ? 'true' : undefined}
                 onClick={() => goToSection('event-section-tickets', { tickets: true })}
               >
                 <span aria-hidden>3</span>
                 {t('admin.eventEditor.navTickets')}
               </button>
-              <button type="button" onClick={() => goToSection('event-section-visibility')}>
+              <button
+                type="button"
+                className={
+                  activeSection === 'event-section-visibility'
+                    ? 'admin-event-form__nav-item is-active'
+                    : 'admin-event-form__nav-item'
+                }
+                aria-current={activeSection === 'event-section-visibility' ? 'true' : undefined}
+                onClick={() => goToSection('event-section-visibility')}
+              >
                 <span aria-hidden>4</span>
                 {t('admin.eventEditor.navVisibility')}
               </button>
               {draft.id ? (
-                <button type="button" onClick={() => goToSection('event-section-security')}>
+                <button
+                  type="button"
+                  className={
+                    activeSection === 'event-section-security'
+                      ? 'admin-event-form__nav-item is-active'
+                      : 'admin-event-form__nav-item'
+                  }
+                  aria-current={activeSection === 'event-section-security' ? 'true' : undefined}
+                  onClick={() => goToSection('event-section-security')}
+                >
                   <span aria-hidden>5</span>
                   {t('admin.eventEditor.navSecurity')}
                 </button>

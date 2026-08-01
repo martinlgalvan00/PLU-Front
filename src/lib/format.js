@@ -71,6 +71,15 @@ export function formatShortDate(iso, locale = 'es') {
     .replace('.', '')
 }
 
+export function formatDayMonth(iso, locale = 'es') {
+  if (!iso) return ''
+  const date = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return iso
+  return date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', { day: 'numeric', month: 'short' })
+    .replace('.', '')
+}
+
 export function generateId(prefix, index) {
   return `${prefix}-${String(index).padStart(3, '0')}`
 }
