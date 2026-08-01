@@ -1,4 +1,4 @@
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import Button from './Button.jsx'
 import HomeMembershipCredential from './HomeMembershipCredential.jsx'
@@ -89,10 +89,12 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
         {HOME_MEMBERSHIP_FEATURES?.length ? (
           <CopyItem {...itemProps}>
             <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
-              {HOME_MEMBERSHIP_FEATURES.map((feature) => (
+              {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
                 <li key={feature} className="home-membership-band__benefit">
-                  <Check size={14} strokeWidth={2.5} aria-hidden className="home-membership-band__benefit-icon" />
-                  {feature}
+                  <span className="home-membership-band__benefit-index" aria-hidden>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="home-membership-band__benefit-text">{feature}</span>
                 </li>
               ))}
             </ul>

@@ -824,7 +824,7 @@
 [data-theme='dark'] .plu-drawer__footer {
   background: #07090c;
   border-top-color: rgba(255, 255, 255, 0.05);
-  gap: 10px;
+  row-gap: 10px;
 }
 
 [data-theme='dark'] .plu-drawer__utility-sep {
@@ -892,7 +892,7 @@
 .plu-drawer__head {
   border-bottom: 1px solid var(--institution-border);
   display: grid;
-  gap: 0;
+  gap: 14px;
   padding:
     calc(10px + env(safe-area-inset-top))
     20px
@@ -992,7 +992,7 @@
   justify-content: space-between;
   margin: 0;
   min-height: 0;
-  padding: 10px 0 14px;
+  padding: 4px 0 16px;
   position: relative;
   text-align: left;
   transition:
@@ -1268,11 +1268,20 @@
 
 /* ── Footer sticky: prefs + cuenta ─────────────── */
 
+/* Prefs compactas a la izquierda; Acceder llena el resto hasta el toggle. */
 .plu-drawer__footer {
+  align-items: center;
   border-top: 1px solid var(--institution-border);
+  column-gap: 12px;
   display: grid;
-  gap: 12px;
-  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+  row-gap: 10px;
+}
+
+/* La ficha de cuenta no entra al lado de las prefs: fila completa. */
+.plu-drawer__footer-account {
+  grid-column: 1 / -1;
 }
 
 .plu-drawer__preferences {
@@ -1424,20 +1433,25 @@
 }
 
 .plu-drawer__footer-login {
+  align-items: center;
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--institution-gold) 38%, var(--institution-border));
   border-radius: 999px;
   color: var(--institution-text);
   cursor: pointer;
-  font-size: 12.5px;
+  display: inline-flex;
+  font-size: 12px;
   font-weight: 550;
+  height: 30px;
+  justify-content: center;
+  justify-self: stretch;
   letter-spacing: -0.01em;
-  justify-self: end;
-  min-height: 40px;
-  padding: 8px 16px;
+  min-height: 30px;
+  padding: 0 14px;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
 }
 
 .plu-drawer__footer-login:hover,
@@ -2107,86 +2121,66 @@
     width: 16px;
   }
 
-  /* ES / EN — switch segmentado minimal / luxury */
-  .plu-global-nav__mobile-cluster .locale-switch--segment {
-    --locale-segment-pad: 2px;
-    --locale-track-bg: color-mix(in srgb, var(--institution-text) 5%, transparent);
-    --locale-track-border: color-mix(in srgb, var(--institution-text) 14%, transparent);
-    --locale-track-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
-    --locale-thumb-bg: color-mix(in srgb, var(--institution-gold) 18%, var(--institution-surface-raised, var(--institution-surface)));
-    --locale-thumb-border: color-mix(in srgb, var(--institution-gold) 42%, transparent);
-    --locale-thumb-shadow: 0 1px 0 color-mix(in srgb, #fff 10%, transparent) inset;
-    --locale-hover-border: color-mix(in srgb, var(--institution-gold) 36%, transparent);
-    --locale-focus-ring: color-mix(in srgb, var(--institution-gold) 28%, transparent);
-    align-self: center;
-    background: var(--locale-track-bg);
-    border: 1px solid var(--locale-track-border);
-    border-radius: 999px;
-    box-shadow: var(--locale-track-shadow);
-    display: inline-grid;
-    flex: none;
-    grid-template-columns: 1fr 1fr;
-    height: 32px;
-    isolation: isolate;
-    min-height: 32px;
-    padding: var(--locale-segment-pad);
-    position: relative;
-    width: 72px;
-  }
-
-  .site-header--over-hero:not(.site-header--scrolled) .plu-global-nav__mobile-cluster .locale-switch--segment {
-    background: color-mix(in srgb, var(--institution-text) 8%, transparent);
-    border-color: color-mix(in srgb, var(--institution-text) 18%, transparent);
-  }
-
-  .plu-global-nav__mobile-cluster .locale-switch--segment:hover {
-    border-color: var(--locale-hover-border);
-  }
-
+  /* ES / EN — par tipográfico con barra editorial, sin caja ni acento propio.
+     El único acento del cluster es Afiliar (un énfasis por bloque).
+     Las reglas de `components/states.css` empatan en especificidad, así que
+     acá se anulan de forma explícita en vez de depender del orden de carga. */
+  .plu-global-nav__mobile-cluster .locale-switch--segment,
+  .plu-global-nav__mobile-cluster .locale-switch--segment:hover,
   .plu-global-nav__mobile-cluster .locale-switch--segment:focus-within {
-    border-color: var(--locale-hover-border);
-    box-shadow:
-      var(--locale-track-shadow),
-      0 0 0 2px var(--locale-focus-ring);
+    align-items: center;
+    align-self: center;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: inline-flex;
+    flex: none;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    position: relative;
+    width: auto;
   }
 
+  /* El estado activo se comunica con color y peso; aria-pressed ya lo expone
+     a lectores de pantalla, así que la pastilla deslizante no aporta. */
   .plu-global-nav__mobile-cluster .locale-switch__segment-thumb {
-    background: var(--locale-thumb-bg);
-    border: 1px solid var(--locale-thumb-border);
-    border-radius: 999px;
-    box-shadow: var(--locale-thumb-shadow);
-    display: block;
-    height: calc(100% - (var(--locale-segment-pad) * 2));
-    left: var(--locale-segment-pad);
-    pointer-events: none;
-    position: absolute;
-    top: var(--locale-segment-pad);
-    transform: translateX(calc(var(--locale-active-index, 0) * 100%));
-    transition:
-      transform var(--motion-base) var(--ease-emphasized),
-      background-color var(--motion-fast) var(--ease-out),
-      border-color var(--motion-fast) var(--ease-out);
-    width: calc((100% - (var(--locale-segment-pad) * 2)) / 2);
-    z-index: 0;
+    display: none;
   }
 
   .plu-global-nav__mobile-cluster .locale-switch__segment-option {
     align-items: center;
     background: transparent;
     border: 0;
-    border-radius: 999px;
-    color: color-mix(in srgb, var(--institution-text) 48%, transparent);
+    border-radius: 4px;
+    color: color-mix(in srgb, var(--institution-text) 38%, transparent);
     display: inline-flex;
     font-family: var(--font-display);
     font-size: 10px;
-    font-weight: 650;
+    font-weight: 500;
+    height: auto;
     justify-content: center;
-    letter-spacing: 0.08em;
-    min-height: 0;
+    letter-spacing: 0.11em;
+    min-height: 40px;
     min-width: 0;
-    padding: 0;
+    padding: 0 6px;
     position: relative;
-    z-index: 1;
+    transition: color var(--motion-fast) var(--ease-out);
+    width: auto;
+  }
+
+  /* Barra fina entre siglas: las vuelve un par de alternativas, no dos botones sueltos.
+     El nombre accesible sale del aria-label del botón, así que no interfiere. */
+  .plu-global-nav__mobile-cluster
+    .locale-switch__segment-option
+    + .locale-switch__segment-option::before {
+    color: color-mix(in srgb, var(--institution-text) 18%, transparent);
+    content: '/';
+    font-weight: 400;
+    left: -2px;
+    pointer-events: none;
+    position: absolute;
   }
 
   .plu-global-nav__mobile-cluster .locale-switch__segment-option:hover:not(.is-active) {
@@ -2196,7 +2190,7 @@
 
   .plu-global-nav__mobile-cluster .locale-switch__segment-option.is-active {
     background: transparent;
-    color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-text));
+    color: var(--institution-text);
     font-weight: 700;
   }
 
@@ -2207,53 +2201,65 @@
 
   .plu-global-nav__mobile-divider {
     align-self: center;
-    background: color-mix(in srgb, var(--institution-text) 14%, transparent);
+    background: color-mix(in srgb, var(--institution-text) 11%, transparent);
     flex: none;
-    height: 14px;
-    opacity: 0.85;
+    height: 12px;
+    opacity: 0.9;
     width: 1px;
   }
 
-  /* Afiliar — chip tipográfico gold (sin ícono) */
+  /* Afiliar — sin caja: el acento es una hairline gold bajo el texto */
   .plu-global-nav__mobile-affiliate {
     align-items: center;
     background: transparent;
-    border: 1px solid color-mix(in srgb, var(--institution-gold) 34%, transparent);
-    border-radius: 999px;
+    border: 0;
+    border-radius: 4px;
     box-shadow: none;
-    color: var(--institution-gold);
+    color: var(--institution-text);
     display: inline-flex;
-    height: 32px;
+    flex: none;
+    height: 40px;
     justify-content: center;
-    min-height: 32px;
+    min-height: 40px;
     min-width: 0;
-    padding: 0 11px;
-    transition:
-      background-color var(--motion-fast) var(--ease-out),
-      border-color var(--motion-fast) var(--ease-out),
-      color var(--motion-fast) var(--ease-out),
-      transform var(--motion-fast) var(--ease-out);
+    padding: 0 7px;
+    transition: color var(--motion-fast) var(--ease-out);
     width: auto;
   }
 
   .plu-global-nav__mobile-affiliate-label {
     font-family: var(--font-display);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.09em;
     line-height: 1;
+    padding-bottom: 4px;
+    position: relative;
     text-transform: uppercase;
   }
 
-  .plu-global-nav__mobile-affiliate:hover,
-  .plu-global-nav__mobile-affiliate.is-active {
-    background: color-mix(in srgb, var(--institution-gold) 12%, transparent);
-    border-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
-    color: color-mix(in srgb, var(--institution-gold) 88%, var(--institution-text));
+  .plu-global-nav__mobile-affiliate-label::after {
+    background: var(--institution-gold);
+    bottom: 0;
+    content: '';
+    height: 1.5px;
+    left: 0;
+    opacity: 0.75;
+    position: absolute;
+    right: 0;
+    transition: opacity var(--motion-fast) var(--ease-out);
   }
 
-  .plu-global-nav__mobile-affiliate:active {
-    transform: scale(0.96);
+  .plu-global-nav__mobile-affiliate:hover .plu-global-nav__mobile-affiliate-label::after {
+    opacity: 1;
+  }
+
+  .plu-global-nav__mobile-affiliate.is-active {
+    color: var(--institution-text-secondary);
+  }
+
+  .plu-global-nav__mobile-affiliate.is-active .plu-global-nav__mobile-affiliate-label::after {
+    opacity: 0.4;
   }
 
   .plu-global-nav__mobile-affiliate:focus-visible {
@@ -2504,7 +2510,6 @@
   .plu-drawer__cta:hover,
   .plu-drawer__row:hover,
   .plu-drawer__group-footer:hover svg,
-  .plu-global-nav__mobile-affiliate:active,
   .plu-global-nav__brand:hover .plu-global-nav__emblem,
   .plu-global-nav__link:hover .plu-global-nav__link-icon,
   .plu-global-nav__menu-button:active,

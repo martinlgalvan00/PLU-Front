@@ -204,6 +204,17 @@
   font-size: 18px;
 }
 
+@media (max-width: 1100px) {
+  .admin-shell .admin-list-stat {
+    min-height: 0;
+    padding: 7px 10px;
+  }
+
+  .admin-shell .admin-list-stat__value {
+    font-size: 14px;
+  }
+}
+
 /* Busqueda primero en el DOM y una sola barra operativa en desktop. */
 .admin-shell .admin-filters--inline.admin-filters--compact {
   align-items: center;
@@ -851,7 +862,7 @@
   }
 
   .admin-shell .admin-event-row {
-    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    grid-template-columns: 46px minmax(200px, 1fr) auto auto auto;
   }
 
   .admin-shell .admin-event-row__capacity-bar {
@@ -1002,19 +1013,25 @@
 
   .admin-shell .admin-event-row {
     gap: 0 8px;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: 42px minmax(0, 1fr) auto auto;
     grid-template-rows: auto auto;
     min-height: 64px;
     padding: 8px;
   }
 
-  .admin-shell .admin-event-row__body {
+  .admin-shell .admin-event-row__date {
     grid-column: 1;
+    grid-row: 1 / span 2;
+    padding-right: 8px;
+  }
+
+  .admin-shell .admin-event-row__body {
+    grid-column: 2;
     grid-row: 1;
   }
 
   .admin-shell .admin-event-row__capacity {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 2;
     justify-self: start;
   }
@@ -1024,12 +1041,12 @@
   }
 
   .admin-shell .admin-event-row__badge {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
   }
 
   .admin-shell .admin-event-row__actions {
-    grid-column: 3;
+    grid-column: 4;
     grid-row: 1;
   }
 
@@ -1085,6 +1102,37 @@
   display: flex;
   gap: 8px;
   min-width: 0;
+}
+
+.admin-shell .admin-filters__actions {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.admin-shell .admin-filters__actions .btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-shell .admin-filters--users .admin-filters__primary {
+  width: 100%;
+}
+
+.admin-shell .admin-filters--users .admin-filters__primary .admin-filters__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
 }
 
 .admin-shell .admin-filters__primary .admin-filters__search {
@@ -1195,6 +1243,18 @@
 
 .admin-shell .admin-filters__primary .admin-filters__clear > span {
   display: none;
+}
+
+.admin-shell .admin-filters__count {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .admin-shell .admin-filters__panel {
@@ -1642,7 +1702,7 @@
   .admin-shell .admin-filters__primary {
     display: grid;
     gap: 7px;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
   }
 
   .admin-shell .admin-filters__primary .admin-filters__search {
@@ -1665,6 +1725,34 @@
     height: 40px;
     min-height: 40px;
     width: 36px;
+  }
+
+  .admin-shell .admin-filters__actions {
+    grid-column: 4;
+    grid-row: 1;
+    margin-left: 0;
+  }
+
+  .admin-shell .admin-filters--users .admin-filters__primary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-filters--users .admin-filters__actions {
+    grid-column: 2;
+  }
+
+  .admin-shell .admin-filters__actions .btn {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+
+  /* La barra pasa a display:block; el conteo cae como línea propia bajo la búsqueda. */
+  .admin-shell .admin-filters__count {
+    display: block;
+    justify-self: start;
+    margin-top: 7px;
+    padding-left: 2px;
+    text-align: left;
   }
 
   .admin-shell .admin-filters__panel {
@@ -2946,30 +3034,34 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__header {
-  min-height: 118px;
-  padding: 22px 22px 19px;
+  align-items: center;
+  min-height: 0;
+  padding: 12px 16px;
 }
 
+/* Una sola banda: título y contador comparten línea, acciones a la derecha.
+   A ≤1024px el título vive en .admin-mobile-bar, así que la banda queda como
+   toolbar de contador + acciones en vez de un header casi vacío. */
 .admin-shell .admin-list-shell--events .admin-list-shell__intro {
-  gap: 3px;
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 
-.admin-shell .admin-list-shell--events .admin-list-shell__eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.16em;
+.admin-shell .admin-list-shell--events .admin-list-shell__eyebrow,
+.admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
+  display: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__title {
-  font-size: clamp(28px, 2.25vw, 34px);
-  letter-spacing: -0.035em;
-  line-height: 1.04;
+  font-size: clamp(18px, 1.8vw, 22px);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
-.admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
-  color: var(--admin-text-secondary);
-  font-size: 12.5px;
-  font-weight: 450;
-  max-width: 58ch;
+.admin-shell .admin-list-shell--events .admin-events__refresh-btn.is-spinning svg {
+  animation: admin-spin 0.9s linear infinite;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__meta {
@@ -2979,7 +3071,7 @@
   color: var(--admin-muted);
   font-size: 10.5px;
   font-weight: 550;
-  margin-top: 8px;
+  margin-top: 0;
   padding: 0;
 }
 
@@ -3053,16 +3145,94 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-list {
-  padding: 8px 10px 22px;
+  display: grid;
+  gap: 14px;
+  max-height: min(68vh, 720px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px 18px;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__label {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.08em;
+  padding: 6px 10px 2px;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__label strong {
+  color: var(--admin-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row {
   border-bottom-color: var(--admin-hairline);
   border-radius: 8px;
-  gap: 4px 22px;
-  grid-template-columns: minmax(260px, 1fr) minmax(104px, 142px) auto auto;
-  min-height: 76px;
-  padding: 14px 12px;
+  gap: 4px 14px;
+  grid-template-columns: 50px minmax(180px, 1fr) 92px 140px auto;
+  min-height: 56px;
+  padding: 10px 12px;
+}
+
+/* Cada fila es su propia grilla, así que solo las columnas con ancho fijo
+   quedan alineadas entre filas: sin esto, cupos y estado bailaban. */
+.admin-shell .admin-list-shell--events .admin-event-row__badge {
+  justify-self: start;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__date {
+  border-right-color: var(--admin-hairline);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__day {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__month {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row--selected .admin-event-row__day {
+  color: color-mix(in srgb, var(--admin-brand) 82%, var(--admin-ink));
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__slug {
+  display: none;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__featured-mark {
+  align-items: center;
+  color: var(--color-brand-gold, var(--admin-premium));
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__featured-badge {
+  display: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row:last-child {
@@ -3084,17 +3254,17 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__body {
-  gap: 7px;
+  gap: 4px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__title-wrap {
-  gap: 9px;
+  gap: 6px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__title {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 650;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta {
@@ -3107,12 +3277,30 @@
   opacity: 0.66;
 }
 
+/* Cupos como bloque compacto alineado a la derecha: número arriba, riel
+   corto abajo. Antes el riel ocupaba toda la columna y quedaba flotando
+   como una línea de color suelta al lado del número. */
 .admin-shell .admin-list-shell--events .admin-event-row__capacity {
-  gap: 7px;
+  align-items: end;
+  display: grid;
+  gap: 4px;
+  width: 100%;
 }
 
+/* El riel base es casi invisible en light y el relleno quedaba como una
+   línea suelta; con el track visible se lee como medidor. */
 .admin-shell .admin-list-shell--events .admin-event-row__capacity-bar {
+  background: color-mix(in srgb, var(--admin-ink) 12%, transparent);
   height: 3px;
+  max-width: none;
+  width: 100%;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__capacity-label {
+  font-variant-numeric: tabular-nums;
+  justify-content: flex-end;
+  order: -1;
+  width: 100%;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__capacity-label {
@@ -3142,18 +3330,62 @@
   background: color-mix(in srgb, var(--admin-surface-muted) 68%, var(--admin-surface));
   border-color: var(--admin-hairline);
   gap: 0;
-  padding: 20px 20px 28px;
+  padding: 0 0 20px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+  align-items: flex-start;
   border-bottom-color: var(--admin-hairline);
-  margin: -20px -20px 0;
-  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 14px 16px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__label {
   color: var(--admin-brand);
-  letter-spacing: 0.13em;
+  letter-spacing: 0.1em;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__selected-title {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 2px 0 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__status {
+  margin-top: 8px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
+  min-height: 34px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__detail {
+  padding-inline: 16px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-preview__detail-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 14px 0 0;
+  text-transform: uppercase;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__detail {
@@ -3392,12 +3624,29 @@
 
 @media (max-width: 1100px) {
   .admin-shell .admin-list-shell--events .admin-event-row {
-    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    grid-template-columns: 46px minmax(160px, 1fr) 58px 134px auto;
+  }
+
+  /* Ancho fijo: con ancho automático el contador variaba de fila en fila y
+     las pastillas de estado quedaban desalineadas. */
+  .admin-shell .admin-list-shell--events .admin-event-row__capacity {
+    justify-content: flex-end;
+    width: 58px;
+  }
+
+  /* El strip de estados scrollea con la barra oculta: el degradado avisa
+     que hay más filtros a la derecha. */
+  .admin-shell .admin-list-shell--events .admin-filters__groups {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
 }
 
 @media (max-width: 899px) {
+  /* El panel pasa a estar debajo de la lista, así que el scroll interno
+     sobra: partía la última fila al medio y sumaba un segundo scroll. */
   .admin-shell .admin-list-shell--events .admin-event-list {
+    max-height: none;
+    overflow: visible;
     padding: 5px 6px 12px;
   }
 
@@ -3437,6 +3686,47 @@
     border-radius: 12px;
   }
 
+  /* Sin este bloque la regla de 5 columnas de --events (más específica que la
+     del skin genérico) seguía activa y la fila se iba de ancho. El estado y
+     los cupos bajan a la segunda línea para que el título respire. */
+  .admin-shell .admin-list-shell--events .admin-event-row {
+    gap: 6px 10px;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    padding: 9px 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__date {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    padding-right: 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__body {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__badge {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__capacity {
+    align-self: center;
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
   .admin-shell .admin-list-shell--events .admin-list-shell__header {
     min-height: 0;
     padding: 12px;
@@ -3453,16 +3743,13 @@
     width: 100%;
   }
 
-  .admin-shell .admin-list-shell--events .admin-events__header-actions .btn--outline {
-    font-size: 0;
-    justify-content: center;
+  .admin-shell .admin-list-shell--events .admin-events__refresh-btn {
     min-height: 44px;
-    padding: 0;
     width: 44px;
   }
 
-  .admin-shell .admin-list-shell--events .admin-events__header-actions .btn--outline svg {
-    margin: 0;
+  .admin-shell .admin-list-shell--events .admin-event-list {
+    max-height: none;
   }
 
   .admin-shell .admin-list-shell--events .admin-list-shell__meta {
@@ -3494,11 +3781,13 @@
    ============================================= */
 
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+  background: color-mix(in srgb, var(--admin-surface-raised) 80%, transparent);
   border-bottom: 1px solid var(--admin-hairline);
+  border-top: 1px solid var(--admin-hairline);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-inline: -20px;
-  padding: 6px 12px;
+  margin-inline: 0;
+  padding: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
@@ -3509,13 +3798,14 @@
   color: var(--admin-text-secondary);
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   font: inherit;
   font-size: 10.5px;
-  gap: 6px;
+  gap: 2px;
   justify-content: center;
-  min-height: 38px;
+  min-height: 52px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 8px 10px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:last-child {
@@ -3550,21 +3840,49 @@
   scroll-margin-top: 16px;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__section-nav {
-  background: var(--admin-surface);
-  gap: 0;
-  padding-block: 7px;
+.admin-event-editor-modal__backdrop {
+  background: rgba(4, 6, 10, 0.78);
 }
 
-.admin-event-editor-modal__panel .admin-event-form__section-nav button {
+.admin-event-editor-modal__panel {
+  background: var(--admin-surface, var(--color-bg-surface));
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.55);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__head {
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 14px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__head h3 {
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav {
+  background: var(--admin-surface);
+  gap: 4px;
+  padding-block: 8px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav button,
+.admin-event-editor-modal__panel .admin-event-form__nav-item {
   align-items: center;
-  border-radius: 6px;
+  border-radius: 8px;
   display: inline-flex;
   gap: 7px;
   min-height: 38px;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__section-nav button > span {
+.admin-event-editor-modal__panel .admin-event-form__nav-item.is-active {
+  background: color-mix(in srgb, var(--admin-brand) 14%, transparent);
+  color: var(--admin-ink);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-nav button > span,
+.admin-event-editor-modal__panel .admin-event-form__nav-item > span {
   align-items: center;
   border: 1px solid var(--admin-hairline-strong);
   border-radius: 50%;
@@ -3577,9 +3895,22 @@
   width: 20px;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__section-nav button:hover > span {
+.admin-event-editor-modal__panel .admin-event-form__section-nav button:hover > span,
+.admin-event-editor-modal__panel .admin-event-form__nav-item:hover > span {
   border-color: var(--admin-brand-border);
   color: var(--admin-brand);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__nav-item.is-active > span {
+  background: var(--admin-brand);
+  border-color: var(--admin-brand);
+  color: var(--admin-surface, #0b0d12);
+}
+
+.admin-event-editor-modal__panel .admin-event-form__actions {
+  background: color-mix(in srgb, var(--admin-surface-raised) 92%, var(--admin-surface));
+  border-top: 1px solid var(--admin-hairline-strong, var(--admin-hairline));
+  box-shadow: 0 -10px 28px color-mix(in srgb, var(--color-bg-primary) 35%, transparent);
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section {

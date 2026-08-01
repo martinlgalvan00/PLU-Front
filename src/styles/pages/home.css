@@ -1758,12 +1758,12 @@
   }
 
   .about-section__pillar-title {
-    font-size: 15px;
+    font-size: 17px;
   }
 
   .about-section__pillar-text {
-    font-size: 13.5px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.6;
   }
 
   .home-section--immersive.home-section--community {
@@ -2627,137 +2627,83 @@
   }
 }
 
+/* Manifiesto: un pilar por fila. La jerarquía la da la tipografía, no cajas
+   ni columnas — la grilla de 3 columnas se leía como listado de features. */
 .about-section__pillars {
   border-top: 1px solid var(--home-canvas-card-border);
   display: grid;
   gap: 0;
-  grid-template-columns: 1fr;
   list-style: none;
   margin: 0;
-  padding: clamp(28px, 4vw, 36px) 0 0;
+  padding: 0;
 }
 
 .about-section__pillar {
-  align-items: start;
+  align-items: baseline;
+  column-gap: clamp(14px, 2.2vw, 26px);
   display: grid;
-  gap: 14px 18px;
+  /* El texto ocupa el ancho completo mientras el número y el título comparten
+     línea; en desktop las tres piezas se alinean sobre una misma base. */
+  grid-template-areas:
+    'index title'
+    'text text';
   grid-template-columns: auto minmax(0, 1fr);
   margin: 0;
-  padding: clamp(18px, 3vw, 26px) 0;
-  position: relative;
-  transition: background var(--transition-fast);
+  padding: clamp(20px, 3.2vw, 30px) 0 clamp(20px, 3.2vw, 30px)
+    clamp(18px, 2.2vw, 28px);
+  row-gap: 10px;
 }
 
 .about-section__pillar + .about-section__pillar {
   border-top: 1px solid var(--home-canvas-card-border);
 }
 
-.about-section__pillar-top {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-}
-
-.about-section__pillar-icon {
-  align-items: center;
-  background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
-  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 30%, transparent);
-  border-radius: var(--border-radius-md, 10px);
-  color: color-mix(in oklab, var(--plu-gold-600) 88%, var(--home-canvas-fg));
-  display: inline-flex;
-  flex: none;
-  height: 36px;
-  justify-content: center;
-  width: 36px;
-}
-
 .about-section__pillar-index {
-  color: color-mix(in oklab, var(--plu-gold-500) 70%, var(--home-canvas-fg-muted));
+  color: color-mix(in srgb, var(--home-canvas-fg) 34%, transparent);
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.4vw, 1.85rem);
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  grid-area: index;
+  letter-spacing: -0.05em;
   line-height: 1;
-  opacity: 0.72;
-}
-
-.about-section__pillar-body {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
+  min-width: 2ch;
 }
 
 .about-section__pillar-title {
   color: var(--home-canvas-fg);
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  grid-area: title;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
   margin: 0;
 }
 
 .about-section__pillar-text {
   color: var(--home-canvas-fg-muted);
-  font-size: clamp(13.5px, 1.25vw, 14.5px);
+  font-size: clamp(14px, 1.2vw, 15.5px);
   font-weight: 400;
-  line-height: 1.55;
+  grid-area: text;
+  line-height: 1.6;
   margin: 0;
-  max-width: 42ch;
+  max-width: 54ch;
 }
 
-/* Notebook / tablet: stack limpio (evita 3 cols aplastadas) */
-@media (min-width: 720px) and (max-width: 1099px) {
-  .about-section__pillars {
-    padding-top: clamp(30px, 3.5vw, 40px);
-  }
-
+@media (min-width: 900px) {
   .about-section__pillar {
-    gap: 16px 20px;
-    padding-block: clamp(20px, 2.6vw, 28px);
+    column-gap: clamp(24px, 3.4vw, 52px);
+    grid-template-areas: 'index title text';
+    grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1.28fr);
+    padding-block: clamp(24px, 2.6vw, 34px);
+    row-gap: 0;
   }
 
+  /* Medida algo más ancha que en el stack para que el borde derecho de la
+     lista cierre a la par del copy del encabezado. */
   .about-section__pillar-text {
-    max-width: 52ch;
-  }
-}
-
-/* Desktop ancho: tres columnas */
-@media (min-width: 1100px) {
-  .about-section__pillars {
-    gap: 0;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding-top: clamp(32px, 4vw, 44px);
-  }
-
-  .about-section__pillar {
-    display: grid;
-    gap: 14px;
-    grid-template-columns: 1fr;
-    padding: 0 clamp(22px, 2.6vw, 32px);
-  }
-
-  .about-section__pillar + .about-section__pillar {
-    border-left: 1px solid var(--home-canvas-card-border);
-    border-top: none;
-  }
-
-  .about-section__pillar:first-child {
-    padding-left: 0;
-  }
-
-  .about-section__pillar:last-child {
-    padding-right: 0;
-  }
-
-  .about-section__pillar-index {
-    font-size: clamp(1.7rem, 2vw, 2rem);
-    opacity: 0.55;
-  }
-
-  .about-section__pillar-text {
-    max-width: 30ch;
+    max-width: 62ch;
   }
 }
 
@@ -2775,14 +2721,7 @@
 }
 
 [data-theme='dark'] .home-section--about .about-section__pillar-index {
-  color: color-mix(in oklab, var(--plu-gold-400) 68%, #fff);
-  opacity: 0.55;
-}
-
-[data-theme='dark'] .home-section--about .about-section__pillar-icon {
-  background: color-mix(in oklab, var(--plu-gold-400) 16%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-400) 32%, transparent);
-  color: color-mix(in oklab, var(--plu-gold-400) 85%, #fff);
+  color: rgba(255, 255, 255, 0.34);
 }
 
 [data-theme='dark'] .home-section--about .about-section__label {
@@ -2958,11 +2897,13 @@
   border: 1px solid color-mix(in oklab, var(--plu-celeste-500) 36%, transparent);
   border-radius: 0;
   color: color-mix(in oklab, var(--plu-celeste-500) 82%, var(--home-canvas-fg));
+  display: inline-block;
   font-size: 9.5px;
   font-weight: 650;
   letter-spacing: 0.1em;
   padding: 3px 8px;
   text-transform: uppercase;
+  transform-origin: left center;
 }
 
 .home-teaser-card__sheet {
@@ -2977,23 +2918,27 @@
   padding: 0;
   position: relative;
   transform-origin: center top;
+  transition: border-color var(--motion-base, 0.24s) var(--ease-out);
   will-change: transform, opacity, filter;
 }
 
-.home-teaser-card__sheet::before {
+.home-teaser-card--results:hover .home-teaser-card__sheet {
+  border-color: color-mix(in srgb, var(--home-canvas-fg) 14%, transparent);
+}
+
+/* Línea tricolor real (no ::before) para poder animar scaleX al entrar. */
+.home-teaser-card__sheet-rule {
   background: linear-gradient(
     90deg,
     var(--plu-celeste-500) 0%,
     color-mix(in oklab, var(--plu-gold-500) 70%, var(--plu-celeste-500)) 55%,
     var(--plu-gold-500) 100%
   );
-  content: '';
+  display: block;
   height: 1.5px;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  z-index: 1;
+  transform-origin: left center;
+  width: 100%;
+  will-change: transform;
 }
 
 .home-teaser-card__sheet-meta {
@@ -3031,6 +2976,7 @@
   gap: 5px;
   height: 48px;
   padding-bottom: 1px;
+  transition: transform var(--motion-base, 0.24s) var(--ease-out);
 }
 
 .home-teaser-card__podium-bar {
@@ -3058,13 +3004,30 @@
   height: 52%;
 }
 
-.home-teaser-card--results:hover .home-teaser-card__podium-bar--1 {
-  filter: saturate(1.15) brightness(1.08);
-}
+/* Hover con causa: translateY del podio + filter (sin pelear scaleY de Motion). */
+@media (hover: hover) and (pointer: fine) {
+  .home-teaser-card--results:hover .home-teaser-card__podium {
+    transform: translateY(-2px);
+  }
 
-.home-teaser-card--results:hover .home-teaser-card__podium-bar--2,
-.home-teaser-card--results:hover .home-teaser-card__podium-bar--3 {
-  filter: saturate(1.08) brightness(1.04);
+  .home-teaser-card--results:hover .home-teaser-card__podium-bar--1 {
+    filter: saturate(1.15) brightness(1.08);
+  }
+
+  .home-teaser-card--results:hover .home-teaser-card__podium-bar--2,
+  .home-teaser-card--results:hover .home-teaser-card__podium-bar--3 {
+    filter: saturate(1.08) brightness(1.04);
+  }
+
+  .home-teaser-card--rulebook:hover .home-teaser-card__doc-icon {
+    border-color: color-mix(in oklab, var(--plu-gold-500) 40%, transparent);
+  }
+
+  /* Las líneas del doc ya se dibujan al entrar; en hover solo se alarga
+     la última (width CSS, no transform) para no pelear con Motion. */
+  .home-teaser-card--rulebook:hover .home-teaser-card__doc-lines span:last-child {
+    width: 100%;
+  }
 }
 
 .home-teaser-card__ledger {
@@ -3139,10 +3102,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-teaser-card__sheet,
+  .home-teaser-card__sheet-rule,
   .home-teaser-card__podium-bar,
-  .home-teaser-card__ledger-ghost {
+  .home-teaser-card__ledger-ghost,
+  .home-teaser-card__doc-lines span {
     filter: none;
     transform: none;
+    transition: none;
     will-change: auto;
   }
 }
@@ -3162,6 +3128,8 @@
   grid-template-columns: auto 30px;
   height: 32px;
   padding: 0 9px;
+  transform-origin: left center;
+  transition: border-color var(--motion-base, 0.24s) var(--ease-out);
   width: max-content;
 }
 
@@ -3181,10 +3149,14 @@
   border-radius: 999px;
   height: 1.5px;
   transform-origin: left center;
+  transition: transform var(--motion-base, 0.24s) var(--ease-out);
   width: 100%;
 }
 
 .home-teaser-card__doc-lines span:last-child {
+  transition:
+    transform var(--motion-base, 0.24s) var(--ease-out),
+    width var(--motion-base, 0.24s) var(--ease-out);
   width: 65%;
 }
 
@@ -3436,33 +3408,48 @@
   max-width: 40ch;
 }
 
-/* Lista compacta de beneficios verificables — escaneable, no otro párrafo. */
+/* Manifiesto compacto — misma lógica que AboutSection: número + línea,
+   sin checks ni chips. Tres filas caben al lado de la credencial. */
 .home-membership-band__benefits {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px;
+  border-top: 1px solid var(--home-canvas-card-border);
+  display: grid;
+  gap: 0;
   list-style: none;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   padding: 0;
+  width: 100%;
 }
 
 .home-membership-band__benefit {
-  align-items: center;
-  color: color-mix(in srgb, var(--home-canvas-fg) 82%, transparent);
-  display: inline-flex;
-  font-size: 13.5px;
+  align-items: baseline;
+  column-gap: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+  padding: 11px 0;
+}
+
+.home-membership-band__benefit + .home-membership-band__benefit {
+  border-top: 1px solid var(--home-canvas-card-border);
+}
+
+.home-membership-band__benefit-index {
+  color: color-mix(in srgb, var(--home-canvas-fg) 34%, transparent);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 2ch;
+}
+
+.home-membership-band__benefit-text {
+  color: color-mix(in srgb, var(--home-canvas-fg) 86%, transparent);
+  font-size: clamp(13.5px, 1.15vw, 14.5px);
   font-weight: 500;
-  gap: 7px;
-}
-
-.home-membership-band__benefit-icon {
-  color: color-mix(in oklab, var(--plu-gold-500) 82%, var(--home-canvas-fg));
-  flex: none;
-  transition: transform var(--motion-fast, 0.16s) var(--ease-out);
-}
-
-.home-membership-band__benefit:hover .home-membership-band__benefit-icon {
-  transform: translateX(3px);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
 .home-membership-band__actions {

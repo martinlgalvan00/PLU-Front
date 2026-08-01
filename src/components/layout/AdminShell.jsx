@@ -48,11 +48,14 @@ const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'audit', 'checkin'])
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 
 function readStoredCollapsed() {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return true
   try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
+    const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
+    // Sin preferencia guardada: rail de iconos (navegación más rápida).
+    if (stored === null) return true
+    return stored === '1'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -194,11 +197,12 @@ export default function AdminShell({
                       type="button"
                       className={activeSection === key ? 'active' : ''}
                       aria-current={activeSection === key ? 'page' : undefined}
+                      aria-label={label}
                       onClick={() => handleSectionChange(key)}
                       title={collapsed ? label : undefined}
                     >
                       <span className="admin-shell__nav-icon" aria-hidden>
-                        <Icon size={15} strokeWidth={1.75} />
+                        <Icon size={collapsed ? 18 : 16} strokeWidth={1.75} />
                       </span>
                       <span className="admin-shell__nav-label">{label}</span>
                       {badge > 0 && (

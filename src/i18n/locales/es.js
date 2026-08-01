@@ -740,6 +740,7 @@ export default {
       calendarIcsHint: 'El archivo .ics funciona con Apple Calendar, Outlook y otras apps.',
       calendarPrev: 'Mes anterior',
       calendarNext: 'Mes siguiente',
+      calendarToday: 'Hoy',
       nextMeet: 'Próximo meet',
       spotlightLead: 'Dos jornadas de competencia oficial en Buenos Aires.',
       spotlightIndex: '01',

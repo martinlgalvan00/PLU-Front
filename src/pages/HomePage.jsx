@@ -1,4 +1,4 @@
-import { useContent } from '../hooks/useContent.js'
+import { m } from 'motion/react'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
@@ -10,8 +10,20 @@ import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { getFeaturedEvent } from '../lib/eventNavigation.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
+
+const teaserDuoVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.18,
+      delayChildren: 0.04,
+    },
+  },
+}
 
 export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
+  const { reducedMotion } = useMotionConfig()
   const pitbullEvent = getFeaturedEvent(events)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership = isLoggedInAthlete && memberships.some(
@@ -25,6 +37,17 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
     }
     onSelectEvent?.(pitbullEvent)
   }
+
+  const TeaserDuo = reducedMotion ? 'div' : m.div
+  const teaserDuoProps = reducedMotion
+    ? { className: 'home-teaser-duo' }
+    : {
+        className: 'home-teaser-duo',
+        variants: teaserDuoVariants,
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: { once: true, amount: 0.28 },
+      }
 
   return (
     <main className="home-page">
@@ -59,10 +82,10 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
 
           <div className="home-mid-stack__divider" aria-hidden />
 
-          <div className="home-teaser-duo">
-            <HomeResultsTeaser onNavigate={onNavigate} />
-            <HomeRulebookTeaser onNavigate={onNavigate} />
-          </div>
+          <TeaserDuo {...teaserDuoProps}>
+            <HomeResultsTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
+            <HomeRulebookTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
+          </TeaserDuo>
         </div>
       </Reveal>
 

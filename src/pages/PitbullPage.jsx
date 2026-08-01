@@ -202,8 +202,17 @@ function PitbullJourneyVisual({ t }) {
   )
 }
 
-/** Recorrido en fases tipográficas (antes / día) — sin timeline circular ni
- * franja foto en mobile. En notebook las dos fases van en paralelo. */
+/** Rango de pasos de una fase, para el encabezado del panel (ej. "01-03"). */
+function formatStepRange(items) {
+  if (!items.length) return ''
+  const first = String(items[0].index + 1).padStart(2, '0')
+  if (items.length === 1) return first
+  const last = String(items[items.length - 1].index + 1).padStart(2, '0')
+  return `${first}-${last}`
+}
+
+/** Recorrido en paneles de fase con filas de datos (antes / día de competencia).
+ * Sin franja foto en mobile. En notebook los dos paneles van en paralelo. */
 function PitbullJourneyTimeline({ numberedGroups, t }) {
   const { reducedMotion } = useMotionConfig()
 
@@ -233,7 +242,12 @@ function PitbullJourneyTimeline({ numberedGroups, t }) {
             data-phase={group.id}
             aria-label={group.label}
           >
-            <h3 className="pitbull-journey__phase-label">{group.label}</h3>
+            <header className="pitbull-journey__phase-head">
+              <h3 className="pitbull-journey__phase-label">{group.label}</h3>
+              <span className="pitbull-journey__phase-range motif-num" aria-hidden>
+                {formatStepRange(group.items)}
+              </span>
+            </header>
             <ol className="pitbull-journey__steps">
               {group.items.map((item) => {
                 const num = String(item.index + 1).padStart(2, '0')
@@ -243,13 +257,11 @@ function PitbullJourneyTimeline({ numberedGroups, t }) {
                     <span className="pitbull-journey__num motif-num" aria-hidden>
                       {num}
                     </span>
+                    <span className="pitbull-journey__icon" aria-hidden>
+                      {StepIcon ? <StepIcon size={15} strokeWidth={1.75} /> : null}
+                    </span>
                     <div className="pitbull-journey__copy">
-                      <h4 className="pitbull-journey__title">
-                        {StepIcon ? (
-                          <StepIcon size={14} aria-hidden className="pitbull-journey__title-icon" />
-                        ) : null}
-                        {item.title}
-                      </h4>
+                      <h4 className="pitbull-journey__title">{item.title}</h4>
                       <p className="pitbull-journey__text">{item.text}</p>
                     </div>
                   </>
@@ -358,7 +370,7 @@ function PitbullAthletesSection({ athleteGroups, benefits = [], onNavigate, t })
 
 const MEET_SEQUENCE_STEP_MS = 550
 
-/** Programa del meet — jornada por tabs tipográficos + agenda del día.
+/** Programa del meet — tabs de jornada + tres paneles de fase (hora · nombre · dato).
  * La secuencia recorre las fases una vez; sin luces ni switch tipo control. */
 function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
@@ -433,41 +445,36 @@ function PitbullMeetSystem({ featureFacts, schedule, onNavigate, t }) {
       </header>
 
       <MotionContentSwap swapKey={day} className="pitbull-meet__pane">
-        <div className="pitbull-meet__lanes-wrap">
-          <ol className="pitbull-meet__lanes" aria-label={t('pages.pitbull.featureFactsAria')}>
-            {featureFacts.map((fact, index) => {
-              const Icon = FEATURE_FACT_ICONS[fact.label]
-              const row = activeDay.items[index]
-              const isActive = index === activeLane
-              const num = String(index + 1).padStart(2, '0')
-              return (
-                <li key={fact.label} className={`pitbull-meet__lane${isActive ? ' is-active' : ''}`}>
-                  <button
-                    type="button"
-                    className="pitbull-meet__lane-hit"
-                    aria-current={isActive ? 'step' : undefined}
-                    onClick={() => selectLane(index)}
-                  >
+        <ol className="pitbull-meet__lanes" aria-label={t('pages.pitbull.featureFactsAria')}>
+          {featureFacts.map((fact, index) => {
+            const Icon = FEATURE_FACT_ICONS[fact.label]
+            const row = activeDay.items[index]
+            const isActive = index === activeLane
+            const num = String(index + 1).padStart(2, '0')
+            return (
+              <li key={fact.label} className={`pitbull-meet__lane${isActive ? ' is-active' : ''}`}>
+                <button
+                  type="button"
+                  className="pitbull-meet__lane-hit"
+                  aria-current={isActive ? 'step' : undefined}
+                  onClick={() => selectLane(index)}
+                >
+                  <span className="pitbull-meet__lane-meta">
+                    <span className="pitbull-meet__lane-time">{row?.time ?? '—'}</span>
                     <span className="pitbull-meet__lane-index motif-num" aria-hidden>
                       {num}
                     </span>
-                    <span className="pitbull-meet__lane-copy">
-                      <span className="pitbull-meet__lane-head">
-                        {row ? <span className="pitbull-meet__lane-time">{row.time}</span> : null}
-                        <span className="pitbull-meet__lane-label">
-                          {Icon ? <Icon size={14} strokeWidth={1.75} aria-hidden /> : null}
-                          {fact.label}
-                        </span>
-                      </span>
-                      <span className="pitbull-meet__lane-value">{fact.value}</span>
-                      {row ? <span className="pitbull-meet__lane-desc">{row.label}</span> : null}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
-        </div>
+                  </span>
+                  <span className="pitbull-meet__lane-label">
+                    {Icon ? <Icon size={15} strokeWidth={1.75} aria-hidden className="pitbull-meet__lane-icon" /> : null}
+                    {fact.label}
+                  </span>
+                  {row ? <span className="pitbull-meet__lane-desc">{row.label}</span> : null}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
       </MotionContentSwap>
 
       <footer className={`pitbull-meet__exit${sequenceDone ? ' pitbull-meet__exit--in' : ''}`}>
@@ -813,7 +820,9 @@ export default function PitbullPage({
         onHome={() => onNavigate('home')}
         onRegister={handleHeroRegister}
         onSecondary={handleHeroSecondary}
-        pitbullClassic={PITBULL_CLASSIC}
+        date={PITBULL_CLASSIC.date}
+        venue={PITBULL_CLASSIC.venue}
+        location={PITBULL_CLASSIC.location}
         ticketsOpen={ticketsOpen}
         title={PITBULL_CLASSIC.title}
       />

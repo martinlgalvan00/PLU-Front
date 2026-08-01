@@ -4,8 +4,19 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
 import { getStatusMeta } from '../../lib/status.js'
 
+/** Tope de expansión de un evento multi-día: guarda ante startsAt/endsAt inconsistentes. */
+const MAX_EVENT_SPAN_DAYS = 45
+/** Semanas mínimas de la grilla, para que la altura no salte al cambiar de mes. */
+const MIN_WEEKS = 5
+/** Chips visibles por día antes de agrupar el resto en "+N". */
+const MAX_CHIPS_PER_DAY = 2
+
+function intlLocale(locale) {
+  return locale === 'en' ? 'en-US' : 'es-AR'
+}
+
 function getWeekdayLabels(locale) {
-  const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', { weekday: 'short' })
+  const formatter = new Intl.DateTimeFormat(intlLocale(locale), { weekday: 'short' })
   const monday = new Date(2026, 0, 5)
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(monday)
@@ -14,20 +25,74 @@ function getWeekdayLabels(locale) {
   })
 }
 
-function toKey(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+function pad(value) {
+  return String(value).padStart(2, '0')
 }
 
-function buildMonthGrid(year, month) {
-  const first = new Date(year, month, 1)
-  const startOffset = (first.getDay() + 6) % 7
+function toDayKey(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/**
+ * Día calendario de un ISO leído del string, no del `Date`: `new Date('2026-12-01')`
+ * se interpreta como UTC y en AR (-03) cae el 30/11, lo que corría el mes del cursor.
+ */
+function isoDayKey(value) {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : null
+}
+
+function dayKeyToDate(key) {
+  const [year, month, day] = key.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function addDaysToKey(key, amount) {
+  const date = dayKeyToDate(key)
+  date.setDate(date.getDate() + amount)
+  return toDayKey(date)
+}
+
+/** Todos los días que ocupa un evento. Un meet de 2 jornadas aparece en ambas. */
+function getEventDayKeys(event) {
+  const startKey = isoDayKey(event.startsAt) ?? isoDayKey(event.dateISO)
+  if (!startKey) return []
+
+  const endKey = isoDayKey(event.endsAt) ?? startKey
+  if (endKey <= startKey) return [startKey]
+
+  const keys = []
+  let cursor = startKey
+  while (cursor <= endKey && keys.length <= MAX_EVENT_SPAN_DAYS) {
+    keys.push(cursor)
+    cursor = addDaysToKey(cursor, 1)
+  }
+  return keys
+}
+
+function buildMonthCells(year, month) {
+  const startOffset = (new Date(year, month, 1).getDay() + 6) % 7
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const cells = []
+  const weeks = Math.max(MIN_WEEKS, Math.ceil((startOffset + daysInMonth) / 7))
 
-  for (let i = 0; i < startOffset; i += 1) cells.push(null)
-  for (let day = 1; day <= daysInMonth; day += 1) cells.push(day)
+  return Array.from({ length: weeks * 7 }, (_, index) => {
+    const date = new Date(year, month, 1 - startOffset + index)
+    return {
+      date,
+      key: toDayKey(date),
+      day: date.getDate(),
+      inMonth: date.getMonth() === month && date.getFullYear() === year,
+      isWeekStart: index % 7 === 0,
+    }
+  })
+}
 
-  return cells
+function monthFromISO(value, fallback) {
+  const key = isoDayKey(value)
+  if (!key) return fallback
+  const date = dayKeyToDate(key)
+  return { year: date.getFullYear(), month: date.getMonth() }
 }
 
 export default function EventCalendar({
@@ -39,22 +104,29 @@ export default function EventCalendar({
 }) {
   const { locale, t } = useI18n()
   const weekdays = useMemo(() => getWeekdayLabels(locale), [locale])
-  const seed = initialDate ? new Date(initialDate) : new Date(2026, 7, 1)
-  const [cursor, setCursor] = useState({ year: seed.getFullYear(), month: seed.getMonth() })
+  const today = new Date()
+  const todayMonth = { year: today.getFullYear(), month: today.getMonth() }
+  const [cursor, setCursor] = useState(() => monthFromISO(initialDate, todayMonth))
 
   useEffect(() => {
     if (!focusDateISO) return
-    const focus = new Date(focusDateISO)
-    setCursor({ year: focus.getFullYear(), month: focus.getMonth() })
+    setCursor((current) => monthFromISO(focusDateISO, current))
   }, [focusDateISO])
 
-  const eventsByDate = useMemo(() => {
+  const eventsByDay = useMemo(() => {
     const map = new Map()
     events.forEach((event) => {
-      if (!event.dateISO) return
-      const list = map.get(event.dateISO) ?? []
-      list.push(event)
-      map.set(event.dateISO, list)
+      const dayKeys = getEventDayKeys(event)
+      dayKeys.forEach((key, index) => {
+        const list = map.get(key) ?? []
+        list.push({
+          event,
+          isStart: index === 0,
+          isEnd: index === dayKeys.length - 1,
+          isSpan: dayKeys.length > 1,
+        })
+        map.set(key, list)
+      })
     })
     return map
   }, [events])
@@ -64,42 +136,59 @@ export default function EventCalendar({
     [events],
   )
 
-  const cells = buildMonthGrid(cursor.year, cursor.month)
+  const cells = useMemo(() => buildMonthCells(cursor.year, cursor.month), [cursor])
+  const todayKey = toDayKey(today)
+  const isTodayVisible = cursor.year === todayMonth.year && cursor.month === todayMonth.month
 
-  function prevMonth() {
-    setCursor((current) => {
-      const month = current.month === 0 ? 11 : current.month - 1
-      const year = current.month === 0 ? current.year - 1 : current.year
-      return { year, month }
-    })
-  }
-
-  function nextMonth() {
-    setCursor((current) => {
-      const month = current.month === 11 ? 0 : current.month + 1
-      const year = current.month === 11 ? current.year + 1 : current.year
-      return { year, month }
-    })
-  }
-
-  const today = new Date()
-  const todayKey = toKey(today.getFullYear(), today.getMonth(), today.getDate())
-  const monthTitle = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+  const monthTitle = new Intl.DateTimeFormat(intlLocale(locale), { month: 'long' }).format(
+    new Date(cursor.year, cursor.month, 1),
+  )
+  const dayFormatter = new Intl.DateTimeFormat(intlLocale(locale), {
+    day: 'numeric',
     month: 'long',
-  }).format(new Date(cursor.year, cursor.month, 1))
+    year: 'numeric',
+  })
+
+  function shiftMonth(step) {
+    setCursor((current) => {
+      const date = new Date(current.year, current.month + step, 1)
+      return { year: date.getFullYear(), month: date.getMonth() }
+    })
+  }
 
   return (
     <div className="event-calendar event-calendar--premium">
       <header className="event-calendar__header">
-        <button type="button" className="event-calendar__nav" onClick={prevMonth} aria-label={t('pages.events.calendarPrev')}>
-          <ChevronLeft size={20} />
-        </button>
         <h3 className="event-calendar__title">
           {monthTitle} <span>{cursor.year}</span>
         </h3>
-        <button type="button" className="event-calendar__nav" onClick={nextMonth} aria-label={t('pages.events.calendarNext')}>
-          <ChevronRight size={20} />
-        </button>
+        <div className="event-calendar__controls">
+          {!isTodayVisible && (
+            <button
+              type="button"
+              className="event-calendar__today-btn"
+              onClick={() => setCursor(todayMonth)}
+            >
+              {t('pages.events.calendarToday')}
+            </button>
+          )}
+          <button
+            type="button"
+            className="event-calendar__nav"
+            onClick={() => shiftMonth(-1)}
+            aria-label={t('pages.events.calendarPrev')}
+          >
+            <ChevronLeft size={18} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="event-calendar__nav"
+            onClick={() => shiftMonth(1)}
+            aria-label={t('pages.events.calendarNext')}
+          >
+            <ChevronRight size={18} aria-hidden />
+          </button>
+        </div>
       </header>
 
       <div className="event-calendar__weekdays">
@@ -108,48 +197,71 @@ export default function EventCalendar({
         ))}
       </div>
 
-      <div className="event-calendar__grid">
-        {cells.map((day, index) => {
-          if (!day) {
-            return <div key={`empty-${index}`} className="event-calendar__cell event-calendar__cell--empty" />
+      <div className="event-calendar__grid" key={`${cursor.year}-${cursor.month}`}>
+        {cells.map((cell) => {
+          const dayEntries = eventsByDay.get(cell.key) ?? []
+          const hasEvent = dayEntries.length > 0
+          const isSelected = dayEntries.some(({ event }) => event.slug === selectedEventSlug)
+          const className = [
+            'event-calendar__cell',
+            cell.inMonth ? '' : 'event-calendar__cell--outside',
+            cell.key === todayKey ? 'event-calendar__cell--today' : '',
+            hasEvent ? 'event-calendar__cell--event' : '',
+            isSelected ? 'event-calendar__cell--selected' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+
+          const dayNumber = <span className="event-calendar__day">{cell.day}</span>
+
+          if (!hasEvent) {
+            return (
+              <div key={cell.key} className={className}>
+                {dayNumber}
+              </div>
+            )
           }
 
-          const key = toKey(cursor.year, cursor.month, day)
-          const dayEvents = eventsByDate.get(key) ?? []
-          const hasEvent = dayEvents.length > 0
-          const isToday = key === todayKey
-          const isSelected = dayEvents.some((event) => event.slug === selectedEventSlug)
+          const visible = dayEntries.slice(0, MAX_CHIPS_PER_DAY)
+          const hiddenCount = dayEntries.length - visible.length
 
           return (
             <button
-              key={key}
+              key={cell.key}
               type="button"
-              className={[
-                'event-calendar__cell',
-                hasEvent ? 'event-calendar__cell--event' : '',
-                isToday ? 'event-calendar__cell--today' : '',
-                isSelected ? 'event-calendar__cell--selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => hasEvent && onEventSelect?.(dayEvents[0])}
-              disabled={!hasEvent}
-              title={hasEvent ? dayEvents.map((event) => event.title).join(', ') : undefined}
+              className={className}
+              onClick={() => onEventSelect?.(dayEntries[0].event)}
+              aria-pressed={isSelected}
+              aria-label={`${dayFormatter.format(cell.date)}: ${dayEntries
+                .map(({ event }) => event.title)
+                .join(', ')}`}
             >
-              <span className="event-calendar__day">{day}</span>
-              {hasEvent && (
-                <>
-                  <span className="event-calendar__event-label">{dayEvents[0].title.split(' ')[0]}</span>
-                  <span className="event-calendar__dots" aria-hidden>
-                    {dayEvents.map((event) => (
-                      <span
-                        key={event.slug}
-                        className={`event-calendar__dot event-calendar__dot--${EVENT_STATUS[event.status]?.tone ?? 'neutral'}`}
-                      />
-                    ))}
+              {dayNumber}
+              <span className="event-calendar__chips">
+                {visible.map(({ event, isStart, isEnd, isSpan }) => (
+                  <span
+                    key={event.slug}
+                    className={[
+                      'event-calendar__chip',
+                      `event-calendar__chip--${EVENT_STATUS[event.status]?.tone ?? 'neutral'}`,
+                      isSpan ? 'event-calendar__chip--span' : '',
+                      isSpan && isStart ? 'event-calendar__chip--span-start' : '',
+                      isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <span className="event-calendar__chip-label" aria-hidden>
+                      {isStart || cell.isWeekStart ? event.title : ''}
+                    </span>
                   </span>
-                </>
-              )}
+                ))}
+                {hiddenCount > 0 && (
+                  <span className="event-calendar__chip-more" aria-hidden>
+                    +{hiddenCount}
+                  </span>
+                )}
+              </span>
             </button>
           )
         })}

@@ -1,209 +1,210 @@
 /* =============================================
    PITBULL — CAMINO DEL COMPETIDOR
-   Fases tipográficas (Antes / Día). Sin timeline circular ni franja
-   foto en mobile. Notebook: dos fases en paralelo. Desktop ancho: foto.
+   Cada fase (Antes / Día de competencia) es un panel elevado y los pasos son
+   filas de datos: índice, ícono y copy en columnas alineadas. Un solo acento
+   de color por panel (celeste antes, dorado en competencia).
+   Notebook: dos paneles en paralelo. Desktop ancho: foto a la derecha.
    ============================================= */
 
 .pitbull-journey-layout {
-  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.08));
-  border-radius: calc(var(--border-radius-lg) + 6px);
   display: grid;
-  gap: clamp(22px, 3vw, 36px);
+  gap: clamp(20px, 2.6vw, 32px);
   grid-template-columns: minmax(0, 1fr);
-  /* La página usa --premium (max-width: none en .pitbull-page__body) para
-     que el hero pueda ir a sangre completa, pero esta grilla sí necesita
-     un ancho de lectura acotado: en monitores anchos la foto sticky de
-     al lado (alta por aspect-ratio, ver más abajo) crecía mucho más que
-     las dos fases de texto y dejaba un bloque de aire enorme debajo. */
+  /* La página usa --premium (max-width: none en .pitbull-page__body) para que el
+     hero pueda ir a sangre completa, pero esta grilla sí necesita un ancho de
+     lectura acotado. */
   margin-inline: auto;
   max-width: var(--max-width-content);
-  padding: clamp(20px, 2.6vw, 28px);
-}
-
-[data-theme='light'] .pitbull-journey-layout {
-  background: color-mix(in oklab, var(--color-text-primary) 2%, transparent);
-  border-color: rgba(15, 17, 23, 0.09);
 }
 
 .pitbull-journey {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(16px, 2vw, 22px);
   min-width: 0;
 }
 
 .pitbull-journey__phases {
   display: grid;
-  gap: clamp(18px, 3vw, 28px);
+  gap: clamp(16px, 2vw, 22px);
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Notebook / tablet: las dos fases lado a lado */
+/* Notebook / tablet: los dos paneles lado a lado */
 @media (min-width: 640px) and (max-width: 1099px) {
   .pitbull-journey__phases {
-    gap: 20px 28px;
+    align-items: start;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
+/* ── Panel de fase ─────────────────────────── */
+
 .pitbull-journey__phase {
+  background: var(--pitbull-journey-panel-bg);
+  border: 1px solid var(--pitbull-journey-panel-border);
+  border-radius: var(--border-radius-lg);
+  border-top: 2px solid var(--pitbull-journey-accent-before);
+  box-shadow: var(--pitbull-journey-panel-shadow);
   min-width: 0;
+  overflow: hidden;
+}
+
+.pitbull-journey__phase[data-phase='meet'] {
+  border-top-color: var(--pitbull-journey-accent-meet);
+}
+
+.pitbull-journey__phase-head {
+  align-items: baseline;
+  background: var(--pitbull-journey-head-bg);
+  border-bottom: 1px solid var(--pitbull-journey-row-divider);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 13px clamp(14px, 1.6vw, 18px);
 }
 
 .pitbull-journey__phase-label {
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-family: var(--font-family);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0.12em;
-  margin: 0 0 12px;
-  padding-bottom: 8px;
+  margin: 0;
   text-transform: uppercase;
 }
 
 .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label {
-  color: color-mix(in oklab, var(--plu-gold-600) 80%, var(--color-text-muted));
+  color: var(--pitbull-journey-accent-meet);
 }
 
-[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label {
-  color: color-mix(in oklab, var(--plu-gold-400) 70%, var(--color-text-muted));
+.pitbull-journey__phase-range {
+  color: var(--pitbull-journey-index-fg);
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
+
+/* ── Filas de datos ────────────────────────── */
 
 .pitbull-journey__steps {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   list-style: none;
   margin: 0;
   padding: 0;
-  position: relative;
-}
-
-/* Línea de continuidad — conecta los pasos de una misma fase para que se
-   lean como un proceso, no como filas sueltas. */
-.pitbull-journey__steps::before {
-  background: color-mix(in oklab, var(--color-brand-celeste) 32%, transparent);
-  bottom: 20px;
-  content: '';
-  left: 14px;
-  position: absolute;
-  top: 20px;
-  width: 1px;
-}
-
-.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__steps::before {
-  background: color-mix(in oklab, var(--plu-gold-500) 45%, transparent);
 }
 
 .pitbull-journey__step {
-  align-items: flex-start;
+  align-items: start;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 2.2rem minmax(0, 1fr);
-  padding-block: 13px;
-  position: relative;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-out);
+  gap: 0 12px;
+  grid-template-columns: 1.75rem 1.15rem minmax(0, 1fr);
+  padding: 12px clamp(14px, 1.6vw, 18px);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.pitbull-journey__step + .pitbull-journey__step {
+  border-top: 1px solid var(--pitbull-journey-row-divider);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pitbull-journey__step:hover {
-    transform: translateX(2px);
-  }
-
-  [data-theme='dark'] .pitbull-journey__step:hover {
-    background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
-    border-radius: var(--border-radius-md, 8px);
+    background: var(--pitbull-journey-row-hover);
   }
 }
 
 .pitbull-journey__num {
   align-items: center;
-  background: var(--color-bg-elevated, var(--color-page-canvas));
-  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 16%, transparent);
-  border-radius: 50%;
-  color: var(--color-text-primary);
+  background: var(--pitbull-journey-index-bg);
+  border: 1px solid var(--pitbull-journey-index-border);
+  border-radius: var(--border-radius-sm, 6px);
+  color: var(--pitbull-journey-index-fg);
   display: inline-flex;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  height: 28px;
+  height: 22px;
   justify-content: center;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
   line-height: 1;
-  position: relative;
-  width: 28px;
-  z-index: 1;
 }
 
 .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
-  border-color: color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
-  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--color-text-primary));
+  border-color: color-mix(in oklab, var(--pitbull-journey-accent-meet) 40%, transparent);
+  color: var(--pitbull-journey-accent-meet);
 }
 
-[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
-  color: var(--plu-gold-400);
+.pitbull-journey__icon {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  opacity: 0.7;
 }
 
 .pitbull-journey__copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .pitbull-journey__title {
-  align-items: center;
   color: var(--color-text-primary);
-  display: flex;
-  font-size: 15.5px;
-  font-weight: 700;
-  gap: 7px;
+  font-size: 15px;
+  font-weight: 650;
   letter-spacing: -0.015em;
-  line-height: 1.3;
+  line-height: 1.35;
   margin: 0;
-}
-
-.pitbull-journey__title-icon {
-  color: var(--color-brand-celeste);
-  flex: none;
-  opacity: 0.85;
-}
-
-.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__title-icon {
-  color: color-mix(in oklab, var(--plu-gold-600) 85%, var(--color-text-primary));
-}
-
-[data-theme='dark'] .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__title-icon {
-  color: var(--plu-gold-400);
 }
 
 .pitbull-journey__text {
   color: var(--color-text-muted);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  max-width: 36ch;
+  max-width: 42ch;
 }
 
+/* ── Cierre de la ficha ────────────────────── */
+
 .pitbull-journey__arrival {
-  border-top: 1px solid color-mix(in oklab, var(--plu-gold-500) 35%, transparent);
+  background: var(--pitbull-journey-footer-bg);
+  border: 1px solid var(--pitbull-journey-footer-border);
+  border-radius: var(--border-radius-lg);
   color: var(--color-text-secondary);
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 4px 0 0;
-  padding-top: 14px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  overflow: hidden;
+  padding: 14px clamp(14px, 1.6vw, 18px);
+  position: relative;
   text-transform: uppercase;
 }
 
-/* Visual: oculto en mobile/notebook; solo ≥1100px */
+/* Firma tricolor de marca como remate del bloque. */
+.pitbull-journey__arrival::before {
+  background: var(--pitbull-feature-stripe, var(--plu-gradient-stripe));
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+/* ── Foto: solo desktop ancho (≥1100px) ────── */
+
 .pitbull-journey-visual {
+  border-radius: var(--border-radius-lg);
   display: none;
   isolation: isolate;
   margin: 0;
@@ -242,7 +243,7 @@
 
 @media (min-width: 1100px) {
   .pitbull-journey-layout {
-    align-items: start;
+    align-items: stretch;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   }
 
@@ -250,27 +251,24 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* La foto toma la altura real de la columna de contenido: con aspect-ratio
+     fijo quedaba más alta que las fases y dejaba un hueco debajo del texto. */
   .pitbull-journey-visual {
-    aspect-ratio: 4 / 5;
+    align-self: stretch;
     display: block;
-    /* Techo absoluto: sin esto, en monitores ≥1920px la columna de foto
-       (ancho de grilla × aspect-ratio) sigue estirándose mucho más alta
-       que las dos fases de texto de al lado. */
-    max-height: 640px;
-    position: sticky;
-    top: calc(var(--header-height) + 24px);
-  }
-
-  .pitbull-journey-visual__img {
     min-height: 100%;
   }
 }
 
 @media (max-width: 639px) {
   .pitbull-journey__step {
-    gap: 10px;
-    grid-template-columns: 1.9rem minmax(0, 1fr);
-    padding-block: 7px;
+    gap: 0 10px;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    padding-block: 11px;
+  }
+
+  .pitbull-journey__icon {
+    display: none;
   }
 
   .pitbull-journey__title {
@@ -278,12 +276,8 @@
   }
 
   .pitbull-journey__text {
-    font-size: 12px;
+    font-size: 12.5px;
     max-width: none;
-  }
-
-  .pitbull-journey__title-icon {
-    display: none;
   }
 }
 

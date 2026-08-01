@@ -397,6 +397,33 @@
   --pitbull-inscription-step-icon-bg: rgba(116, 172, 223, 0.1);
   --pitbull-inscription-step-icon-border: rgba(116, 172, 223, 0.2);
   --pitbull-section-divider: rgba(255, 255, 255, 0.06);
+  /* Camino del competidor: paneles de fase con filas de datos */
+  --pitbull-journey-panel-bg: var(--color-bg-surface);
+  --pitbull-journey-panel-border: rgba(255, 255, 255, 0.09);
+  --pitbull-journey-panel-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+  --pitbull-journey-head-bg: rgba(255, 255, 255, 0.035);
+  --pitbull-journey-row-divider: rgba(255, 255, 255, 0.07);
+  --pitbull-journey-row-hover: rgba(255, 255, 255, 0.045);
+  --pitbull-journey-index-bg: rgba(255, 255, 255, 0.05);
+  --pitbull-journey-index-border: rgba(255, 255, 255, 0.1);
+  --pitbull-journey-index-fg: rgba(255, 255, 255, 0.62);
+  --pitbull-journey-accent-before: var(--plu-celeste-400);
+  --pitbull-journey-accent-meet: var(--plu-gold-500);
+  --pitbull-journey-footer-bg: rgba(255, 255, 255, 0.03);
+  --pitbull-journey-footer-border: rgba(255, 255, 255, 0.08);
+  /* Programa del meet: shell + paneles de fase */
+  --pitbull-meet-shell-bg: var(--color-bg-surface);
+  --pitbull-meet-shell-border: rgba(255, 255, 255, 0.09);
+  --pitbull-meet-shell-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+  --pitbull-meet-head-border: rgba(255, 255, 255, 0.08);
+  --pitbull-meet-day-active: var(--color-text-primary);
+  --pitbull-meet-lane-bg: rgba(255, 255, 255, 0.025);
+  --pitbull-meet-lane-border: rgba(255, 255, 255, 0.08);
+  --pitbull-meet-lane-active-bg: rgba(255, 255, 255, 0.05);
+  --pitbull-meet-lane-active-border: rgba(242, 183, 5, 0.35);
+  --pitbull-meet-lane-accent: var(--plu-gold-500);
+  --pitbull-meet-time-fg: rgba(255, 255, 255, 0.42);
+  --pitbull-meet-time-active: var(--plu-gold-400);
   --pitbull-categories-shell-bg:
     linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%),
     var(--color-bg-surface);
@@ -884,6 +911,33 @@
   --pitbull-inscription-step-icon-bg: rgba(26, 107, 176, 0.08);
   --pitbull-inscription-step-icon-border: rgba(26, 107, 176, 0.18);
   --pitbull-section-divider: rgba(15, 17, 23, 0.08);
+  /* Camino del competidor: paneles de fase con filas de datos */
+  --pitbull-journey-panel-bg: #fff;
+  --pitbull-journey-panel-border: rgba(15, 17, 23, 0.09);
+  --pitbull-journey-panel-shadow: 0 14px 36px rgba(15, 17, 23, 0.07);
+  --pitbull-journey-head-bg: rgba(15, 17, 23, 0.025);
+  --pitbull-journey-row-divider: rgba(15, 17, 23, 0.07);
+  --pitbull-journey-row-hover: rgba(15, 17, 23, 0.03);
+  --pitbull-journey-index-bg: rgba(15, 17, 23, 0.035);
+  --pitbull-journey-index-border: rgba(15, 17, 23, 0.1);
+  --pitbull-journey-index-fg: rgba(15, 17, 23, 0.6);
+  --pitbull-journey-accent-before: var(--plu-celeste-600);
+  --pitbull-journey-accent-meet: var(--plu-gold-600);
+  --pitbull-journey-footer-bg: rgba(15, 17, 23, 0.02);
+  --pitbull-journey-footer-border: rgba(15, 17, 23, 0.08);
+  /* Programa del meet: shell + paneles de fase */
+  --pitbull-meet-shell-bg: #fff;
+  --pitbull-meet-shell-border: rgba(15, 17, 23, 0.09);
+  --pitbull-meet-shell-shadow: 0 14px 36px rgba(15, 17, 23, 0.07);
+  --pitbull-meet-head-border: rgba(15, 17, 23, 0.08);
+  --pitbull-meet-day-active: var(--plu-ink-900);
+  --pitbull-meet-lane-bg: rgba(15, 17, 23, 0.02);
+  --pitbull-meet-lane-border: rgba(15, 17, 23, 0.08);
+  --pitbull-meet-lane-active-bg: rgba(242, 183, 5, 0.06);
+  --pitbull-meet-lane-active-border: rgba(169, 121, 15, 0.35);
+  --pitbull-meet-lane-accent: var(--plu-gold-600);
+  --pitbull-meet-time-fg: rgba(15, 17, 23, 0.4);
+  --pitbull-meet-time-active: var(--plu-gold-600);
   --pitbull-categories-shell-bg:
     linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
   --pitbull-categories-shell-border: rgba(242, 183, 5, 0.22);

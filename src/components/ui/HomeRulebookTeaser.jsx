@@ -4,31 +4,88 @@ import { useContent } from '../../hooks/useContent.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
-const groupVariants = { hidden: {}, visible: {} }
+/** Entra un beat después de Resultados cuando el duo orquesta. */
+const groupVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: MOTION_DURATION.slow,
+      ease: MOTION_EASE.out,
+      when: 'beforeChildren',
+      staggerChildren: 0.06,
+      delayChildren: 0.04,
+    },
+  },
+}
 
-/** Ritmo más lento y documental que Resultados — nunca compite en velocidad,
- * es reglamento, no un dato dinámico. */
-const lineA = { hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.3, ease: MOTION_EASE.out, delay: 0 } } }
-const lineB = { hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.3, ease: MOTION_EASE.out, delay: 0.06 } } }
-const lineC = { hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.3, ease: MOTION_EASE.out, delay: 0.12 } } }
+/** Ritmo más lento y documental que Resultados — nunca compite en velocidad. */
+const iconIn = {
+  hidden: { opacity: 0, scale: 0.94 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+
+const lineA = {
+  hidden: { scaleX: 0, opacity: 0 },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.04 },
+  },
+}
+const lineB = {
+  hidden: { scaleX: 0, opacity: 0 },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.1 },
+  },
+}
+const lineC = {
+  hidden: { scaleX: 0, opacity: 0 },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.16 },
+  },
+}
+
 const eyebrowIn = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.22 } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
 }
 const titleIn = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out, delay: 0.3 } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
 }
 const ctaIn = {
   hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out, delay: 0.56 } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
 }
 
-export default function HomeRulebookTeaser({ onNavigate }) {
+export default function HomeRulebookTeaser({ onNavigate, orchestrated = false }) {
   const { HOME_RULEBOOK } = useContent()
   const { reducedMotion } = useMotionConfig()
 
   const Group = reducedMotion ? 'article' : m.article
+  const Icon = reducedMotion ? 'div' : m.div
   const Line = reducedMotion ? 'span' : m.span
   const Eyebrow = reducedMotion ? 'p' : m.p
   const Title = reducedMotion ? 'h2' : m.h2
@@ -39,23 +96,27 @@ export default function HomeRulebookTeaser({ onNavigate }) {
     : {
         className: 'home-teaser-card home-teaser-card--rulebook',
         variants: groupVariants,
-        initial: 'hidden',
-        whileInView: 'visible',
-        viewport: { once: true, amount: 0.5 },
+        ...(orchestrated
+          ? {}
+          : {
+              initial: 'hidden',
+              whileInView: 'visible',
+              viewport: { once: true, amount: 0.45 },
+            }),
       }
 
   const withVariant = (variants) => (reducedMotion ? {} : { variants })
 
   return (
     <Group {...groupProps}>
-      <div className="home-teaser-card__doc-icon" aria-hidden>
+      <Icon {...withVariant(iconIn)} className="home-teaser-card__doc-icon" aria-hidden>
         <ScrollText size={15} strokeWidth={1.75} />
         <span className="home-teaser-card__doc-lines">
           <Line {...withVariant(lineA)} />
           <Line {...withVariant(lineB)} />
           <Line {...withVariant(lineC)} />
         </span>
-      </div>
+      </Icon>
 
       <Eyebrow {...withVariant(eyebrowIn)} className="home-teaser-card__eyebrow">
         {HOME_RULEBOOK.eyebrow}

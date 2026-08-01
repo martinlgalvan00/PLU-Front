@@ -29,21 +29,22 @@
   align-items: center;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  border-radius: 999px;
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  height: 22px;
+  height: 24px;
   justify-content: center;
-  left: calc(var(--admin-sidebar-width) - 11px);
+  left: calc(var(--admin-sidebar-width) - 12px);
   position: fixed;
-  top: 58px;
+  top: 56px;
   transition:
     left var(--transition-base),
     background var(--transition-fast),
     border-color var(--transition-fast),
-    color var(--transition-fast);
-  width: 22px;
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  width: 24px;
   z-index: 210;
 }
 
@@ -143,9 +144,17 @@
   display: none;
 }
 
+.admin-shell--collapsed .admin-shell__brand {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  padding-inline: 12px;
+}
+
 .admin-shell--collapsed .admin-shell__brand-inner {
   justify-content: center;
   padding-right: 0;
+  width: auto;
 }
 
 .admin-shell--collapsed .admin-shell__brand-copy {
@@ -206,12 +215,29 @@
   text-transform: uppercase;
 }
 
+.admin-shell--collapsed .admin-shell__group + .admin-shell__group {
+  border-top: 1px solid var(--admin-sidebar-border, var(--color-border-subtle));
+  margin-top: 8px;
+  padding-top: 8px;
+  width: 100%;
+}
+
 .admin-shell--collapsed .admin-shell__group-label {
   display: none;
 }
 
 .admin-shell--collapsed .admin-shell__nav {
-  padding-inline: 8px;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 10px;
+}
+
+.admin-shell--collapsed .admin-shell__group {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
 }
 
 .admin-shell__nav button {
@@ -251,13 +277,33 @@
 }
 
 .admin-shell--collapsed .admin-shell__nav button {
+  border-radius: 10px;
   gap: 0;
+  height: 42px;
   justify-content: center;
+  min-height: 42px;
   padding: 0;
+  width: 42px;
+}
+
+.admin-shell--collapsed .admin-shell__nav-icon {
+  height: 20px;
+  margin: 0 auto;
+  width: 20px;
 }
 
 .admin-shell--collapsed .admin-shell__nav-label {
   display: none;
+}
+
+@media (min-width: 768px) {
+  .admin-shell--collapsed .admin-shell__nav button::before {
+    display: none;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button {
+    margin-inline: auto;
+  }
 }
 
 .admin-shell__nav button:hover {
@@ -302,14 +348,14 @@
   background: var(--color-brand-celeste);
   border-radius: 50%;
   font-size: 0;
-  height: 6px;
+  height: 7px;
   line-height: 0;
   min-width: 0;
   padding: 0;
   position: absolute;
-  right: 8px;
+  right: 7px;
   top: 7px;
-  width: 6px;
+  width: 7px;
 }
 
 .admin-shell--collapsed .admin-shell__badge--alert {
@@ -329,8 +375,20 @@
 }
 
 .admin-shell--collapsed .admin-shell__footer {
+  align-items: center;
   gap: 6px;
-  padding-inline: 8px;
+  justify-items: center;
+  padding-inline: 10px;
+}
+
+.admin-shell--collapsed .admin-shell__exit {
+  border-radius: 10px;
+  height: 42px;
+  justify-content: center;
+  margin-inline: auto;
+  min-height: 42px;
+  padding: 0;
+  width: 42px;
 }
 
 .admin-shell__account {
@@ -441,11 +499,6 @@
 .admin-shell__exit:focus-visible {
   outline: 2px solid var(--color-brand-gold);
   outline-offset: 2px;
-}
-
-.admin-shell--collapsed .admin-shell__exit {
-  justify-content: center;
-  padding-inline: 0;
 }
 
 .admin-shell--collapsed .admin-shell__exit-label {
@@ -627,7 +680,131 @@
   }
 }
 
-@media (max-width: 1024px) {
+/* ---- Tablet / notebook: rail persistente; expand solo con collapse-toggle ---- */
+@media (max-width: 1024px) and (min-width: 768px) {
+  .admin-shell__sidebar,
+  .admin-shell--collapsed .admin-shell__sidebar {
+    background: var(--admin-sidebar, var(--color-bg-secondary));
+    border-radius: 0;
+    border-right: 1px solid var(--admin-sidebar-border, var(--color-border-subtle));
+    box-shadow: none;
+    left: 0;
+    position: fixed;
+    top: 0;
+    transform: none;
+    transition: width var(--transition-base);
+    width: var(--admin-sidebar-rail-width);
+  }
+
+  .admin-shell:not(.admin-shell--collapsed) .admin-shell__sidebar {
+    width: var(--admin-sidebar-width);
+  }
+
+  .admin-shell__main {
+    padding-left: var(--admin-sidebar-rail-width);
+  }
+
+  .admin-shell:not(.admin-shell--collapsed) .admin-shell__main {
+    padding-left: var(--admin-sidebar-width);
+  }
+
+  .admin-shell__collapse-toggle {
+    display: inline-flex;
+  }
+
+  .admin-shell__close {
+    display: none;
+  }
+
+  .admin-shell__brand {
+    padding-top: max(var(--space-md), env(safe-area-inset-top, 0px));
+  }
+
+  .admin-shell__backdrop {
+    display: none;
+  }
+
+  .admin-mobile-bar {
+    align-items: center;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--admin-canvas, var(--color-bg-secondary)) 88%, transparent);
+    border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+    display: flex;
+    gap: 12px;
+    min-height: 52px;
+    padding:
+      max(8px, env(safe-area-inset-top, 0px))
+      16px
+      8px;
+    position: sticky;
+    top: 0;
+    z-index: 120;
+  }
+
+  /* Rail + collapse-toggle alcanzan; el hamburguesa sobra en tablet/notebook. */
+  .admin-mobile-bar__menu {
+    display: none;
+  }
+
+  .admin-mobile-bar__title {
+    color: var(--admin-ink, var(--color-text-primary));
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-mobile-bar__actions {
+    align-items: center;
+    display: flex;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .admin-mobile-bar__actions .locale-switch--compact {
+    --locale-track-w: 56px;
+    --locale-thumb-w: 24px;
+  }
+
+  .admin-page-toolbar {
+    align-items: stretch;
+    border-bottom: 0;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding-bottom: 0;
+  }
+
+  .admin-page-toolbar__eyebrow,
+  .admin-page-toolbar__headline h1 {
+    display: none;
+  }
+
+  .admin-page-toolbar__subtitle {
+    font-size: 13px;
+    margin: 0;
+    max-width: none;
+  }
+
+  .admin-page-toolbar__tools {
+    width: 100%;
+  }
+
+  .admin-page-toolbar__search {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ---- Phone: drawer completo ---- */
+@media (max-width: 767px) {
   .admin-shell__sidebar,
   .admin-shell--collapsed .admin-shell__sidebar {
     background: var(--admin-sidebar, var(--color-bg-secondary));
@@ -646,9 +823,14 @@
     transform: translateX(0);
   }
 
-  /* El colapso a rail es un comportamiento de escritorio; en mobile el drawer siempre va completo. */
   .admin-shell__collapse-toggle {
     display: none;
+  }
+
+  .admin-shell--collapsed .admin-shell__brand {
+    display: block;
+    justify-content: flex-start;
+    padding-inline: 16px;
   }
 
   .admin-shell--collapsed .admin-shell__brand-inner {
@@ -672,13 +854,31 @@
   }
 
   .admin-shell--collapsed .admin-shell__nav {
+    align-items: stretch;
     padding-inline: var(--space-md);
   }
 
+  .admin-shell--collapsed .admin-shell__group {
+    align-items: stretch;
+    display: grid;
+    gap: 3px;
+  }
+
   .admin-shell--collapsed .admin-shell__nav button {
+    border-radius: 9px;
     gap: 10px;
+    height: auto;
     justify-content: flex-start;
+    margin-inline: 0;
+    min-height: 40px;
     padding: 0 10px;
+    width: 100%;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav-icon {
+    height: 16px;
+    margin: 0;
+    width: 16px;
   }
 
   .admin-shell--collapsed .admin-shell__badge {
@@ -699,6 +899,8 @@
   }
 
   .admin-shell--collapsed .admin-shell__footer {
+    align-items: stretch;
+    justify-items: stretch;
     padding-inline: var(--space-md);
   }
 
@@ -720,7 +922,18 @@
   }
 
   .admin-shell--collapsed .admin-shell__exit {
+    height: auto;
     justify-content: flex-start;
+    margin-inline: 0;
+    min-height: 34px;
+    padding: 0 8px;
+    width: 100%;
+  }
+
+  .admin-shell--collapsed .admin-shell__group + .admin-shell__group {
+    border-top: 0;
+    margin-top: 1px;
+    padding-top: 0;
   }
 
   .admin-shell__close {
@@ -763,7 +976,7 @@
     background: color-mix(in srgb, var(--admin-canvas, var(--color-bg-secondary)) 88%, transparent);
     border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
     display: flex;
-    gap: 10px;
+    gap: 12px;
     min-height: 52px;
     padding:
       max(8px, env(safe-area-inset-top, 0px))
@@ -798,12 +1011,13 @@
   }
 
   .admin-mobile-bar__title {
+    color: var(--admin-ink, var(--color-text-primary));
     flex: 1;
     font-family: var(--font-display);
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
     margin: 0;
     min-width: 0;
     overflow: hidden;
@@ -862,6 +1076,7 @@
   }
 
   .admin-mobile-bar__title {
-    font-size: 15px;
+    font-size: 16px;
+    letter-spacing: 0.035em;
   }
 }

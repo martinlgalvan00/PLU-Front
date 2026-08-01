@@ -487,142 +487,8 @@
   padding: 8px 10px;
 }
 
-.event-calendar__month-label {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.event-calendar__nav-btn {
-  align-items: center;
-  background: transparent;
-  border: none;
-  border-radius: var(--border-radius-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  height: 28px;
-  justify-content: center;
-  transition: background var(--transition-fast), color var(--transition-fast);
-  width: 28px;
-}
-
-.event-calendar__nav-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text-primary);
-}
-
-.event-calendar__grid {
-  display: grid;
-  gap: 2px;
-  grid-template-columns: repeat(7, 1fr);
-}
-
-.event-calendar__day-label {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 4px 0;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.event-calendar__cell {
-  align-items: center;
-  background: transparent;
-  border: none;
-  border-radius: var(--border-radius-sm);
-  cursor: default;
-  display: flex;
-  flex-direction: column;
-  font-size: 11px;
-  gap: 1px;
-  justify-content: center;
-  min-height: 36px;
-  padding: 3px 2px;
-  position: relative;
-  text-align: center;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.event-calendar__cell--muted {
-  color: var(--color-text-muted);
-  opacity: 0.38;
-}
-
-.event-calendar__cell--today {
-  color: var(--color-brand-celeste);
-  font-weight: 700;
-}
-
-.event-calendar__cell--today::after {
-  background: var(--color-brand-action);
-  border-radius: 50%;
-  bottom: 3px;
-  content: '';
-  height: 3px;
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-  width: 3px;
-}
-
-.event-calendar__cell--event {
-  cursor: pointer;
-  font-weight: 600;
-}
-
 .event-calendar__cell--event:hover {
-  background: var(--events-calendar-day-hover, rgba(255, 255, 255, 0.05));
-}
-
-.event-calendar__cell--selected {
-  background: rgba(116, 172, 223, 0.14) !important;
-  border-radius: var(--border-radius-sm);
-  box-shadow: 0 0 0 1px rgba(116, 172, 223, 0.32);
-  color: var(--color-brand-celeste) !important;
-  font-weight: 700;
-}
-
-.event-calendar__day {
-  color: inherit;
-  font-weight: inherit;
-  line-height: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.event-calendar__event-dot {
-  background: var(--color-brand-celeste);
-  border-radius: 50%;
-  flex-shrink: 0;
-  height: 4px;
-  transition: background var(--transition-fast);
-  width: 4px;
-}
-
-.event-calendar__cell--selected .event-calendar__event-dot {
-  background: var(--color-brand-celeste);
-}
-
-.event-calendar__event-label {
-  color: var(--color-brand-celeste);
-  display: none;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
+  background: var(--events-calendar-day-hover, var(--calendar-hover));
 }
 
 .event-calendar__footer {
@@ -902,11 +768,11 @@
   }
 
   .event-calendar__cell {
-    min-height: 48px;
+    min-height: 54px;
   }
 
-  .event-calendar__cell--event .event-calendar__event-label {
-    display: block;
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
+    min-height: 54px;
   }
 }
 
@@ -1077,11 +943,6 @@
 
 [data-theme='light'] .event-calendar__header {
   background: var(--events-calendar-header);
-}
-
-[data-theme='light'] .event-calendar__nav-btn:hover {
-  background: rgba(15, 17, 23, 0.05);
-  color: var(--color-text-primary);
 }
 
 [data-theme='light'] .event-calendar__cell--event:hover {
@@ -2689,13 +2550,22 @@
   background: var(--events-editorial-rule, var(--plu-gold-500));
 }
 
-.events-page--plu-ref .event-card__date-block {
+/* Acá la fecha es tipografía, no chip: neutraliza la variante "ticket" de
+   plu-ui.css, cuyo `width: 62px` fijo desbordaba los tracks de 56/48px del
+   grid angosto y empujaba el título encima del bloque. Necesita el peso de
+   `.events-list--design` para ganarle a design-phase2.css, que pinta el chip
+   con `.events-page--design .events-list--design .event-card__date-block`. */
+.events-page--plu-ref .events-list--design .event-card__date-block {
   align-self: center;
-  border-right: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
   gap: 4px;
   justify-content: center;
   min-height: 0;
+  min-width: 0;
   padding: 0 4px 0 8px;
+  width: 100%;
 }
 
 .events-page--plu-ref .event-card__day {
@@ -2847,7 +2717,7 @@
     padding: 16px 4px 16px 10px;
   }
 
-  .events-page--plu-ref .event-card__date-block {
+  .events-page--plu-ref .events-list--design .event-card__date-block {
     padding: 2px 0 0;
   }
 
@@ -3474,48 +3344,35 @@
   text-transform: uppercase;
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__grid {
-  gap: 2px;
-}
-
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
-  border-radius: 2px;
   font-size: 12px;
   font-weight: 500;
-  min-height: 36px;
+  min-height: 44px;
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled) {
-  background: color-mix(in oklab, var(--plu-gold-500) 9%, transparent);
-  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 26%, transparent);
-  box-shadow: none;
+/* El día con evento no se pinta entero: el chip comunica el evento y el dorado
+   queda reservado al día seleccionado. */
+.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event {
   color: var(--color-text-primary);
   font-weight: 700;
-  transform: none;
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled):hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 46%, transparent);
-  box-shadow: none;
-  transform: none;
+.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:hover {
+  background: color-mix(in oklab, var(--plu-gold-500) 9%, transparent);
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event.event-calendar__cell--selected:not(:disabled),
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event.event-calendar__cell--selected:not(:disabled):hover {
-  background: var(--plu-gold-500) !important;
-  border-color: transparent;
-  box-shadow: none;
-  color: #14181f !important;
+.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--selected {
+  background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--plu-gold-500) 58%, transparent);
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--today::after {
+.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--today .event-calendar__day {
   background: var(--plu-celeste-500);
+  color: #0d1117;
 }
 
-.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__event-label {
-  color: inherit;
-  opacity: 0.72;
+.events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__chip-label {
+  opacity: 0.88;
 }
 
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__footer {
@@ -3706,7 +3563,13 @@
 
   .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
     font-size: 12.5px;
-    min-height: 42px;
+    min-height: 56px;
+  }
+
+  /* Recién con la celda cerca de 50px el título del evento entra sin quedar
+     reducido a dos letras; abajo de este ancho el chip queda como barra de color. */
+  .event-calendar__chip-label {
+    display: block;
   }
 
   .events-page--plu-ref .events-countdown-chip__value {
@@ -3769,7 +3632,7 @@
 
   .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
     font-size: 13px;
-    min-height: 46px;
+    min-height: 62px;
   }
 
   .events-page--plu-ref .events-sidebar-card .events-detail {
@@ -4054,18 +3917,20 @@
   color: var(--plu-gold-600);
 }
 
-[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled) {
-  background: color-mix(in oklab, var(--plu-gold-500) 10%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-600) 28%, transparent);
+[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event {
   color: var(--plu-ink-900);
 }
 
-[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:not(:disabled):hover {
-  background: color-mix(in oklab, var(--plu-gold-500) 16%, transparent);
+[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event:hover {
+  background: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
 }
 
-[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event.event-calendar__cell--selected:not(:disabled),
-[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event.event-calendar__cell--selected:not(:disabled):hover {
-  background: var(--plu-gold-500) !important;
-  color: #14181f !important;
+[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--selected {
+  background: color-mix(in oklab, var(--plu-gold-500) 20%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--plu-gold-600);
+}
+
+[data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--today .event-calendar__day {
+  background: var(--plu-celeste-600);
+  color: #fff;
 }

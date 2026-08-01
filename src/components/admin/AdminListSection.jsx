@@ -4,9 +4,9 @@ import AdminFilterBar from './AdminFilterBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
 
-const MOBILE_STATS_MQ = '(max-width: 720px)'
+const COMPACT_STATS_MQ = '(max-width: 1100px)'
 
-function useIsNarrow(query = MOBILE_STATS_MQ) {
+function useIsNarrow(query = COMPACT_STATS_MQ) {
   const [isNarrow, setIsNarrow] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.matchMedia(query).matches
@@ -29,6 +29,7 @@ export default function AdminListSection({
   beforeFilters,
   children,
   filteredCount,
+  filterActions = null,
   filters = [],
   meta,
   onQueryChange,
@@ -43,6 +44,7 @@ export default function AdminListSection({
   totalCount,
   variant,
   eyebrow,
+  /** En viewports ≤1100px el resumen arranca colapsado (mobile + notebook). */
   collapseStatsOnMobile = true,
 }) {
   const { t } = useI18n()
@@ -59,10 +61,25 @@ export default function AdminListSection({
     .filter(Boolean)
     .join(' ')
 
-  const showStatsStrip = showStats && (stats.length > 0 || totalCount != null)
+  const showFilterBar =
+    showFilters && (Boolean(onQueryChange) || filters.length > 0 || Boolean(filterActions))
+
+  // Los chips de filtro que ya traen su propio conteo cubren la misma información
+  // que el strip de stats; en pantallas chicas repetirla cuesta una barra entera.
+  const filtersCarryCounts = useMemo(
+    () =>
+      filters.some(
+        (filter) =>
+          filter.variant !== 'select' &&
+          filter.options?.some(([, , count]) => count != null && count !== ''),
+      ),
+    [filters],
+  )
+
+  const statsAreRedundant = isNarrow && showFilterBar && filtersCarryCounts
+  const showStatsStrip = showStats && !statsAreRedundant && (stats.length > 0 || totalCount != null)
   const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
-  const showFilterBar = showFilters && (Boolean(onQueryChange) || filters.length > 0)
 
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
@@ -158,9 +175,11 @@ export default function AdminListSection({
 
         {showFilterBar ? (
           <AdminFilterBar
+            actions={filterActions}
             className={variant ? `admin-filters--${variant}` : ''}
             compact
             inline
+            count={statsAreRedundant ? resultLabel : null}
             filters={filters}
             placeholder={searchPlaceholder}
             query={query}

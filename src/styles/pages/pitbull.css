@@ -7786,53 +7786,52 @@
   z-index: -1;
 }
 
-/* ── Split editorial: panel de texto sobre superficie sólida (no hay
-   foto detrás) + imagen contenida en un marco propio. Reemplaza el hero
-   anterior de foto a sangre completa + scrim, que competía con el texto
-   y lavaba la imagen. ── */
-.pitbull-hero-masthead--split {
+/* ── Bleed editorial: texto anclado al grid + foto al borde derecho.
+   Mobile: el panel se superpone a la foto (misma celda de grid + scrim). ── */
+.pitbull-hero-masthead--bleed {
   isolation: isolate;
+  overflow: hidden;
 }
 
-.pitbull-hero-masthead--split .pitbull-hero-masthead__shell {
-  /* Techo fijo (no el --max-width-content de las secciones, que escala
-     hasta 1880px en monitores anchos): igual al ancho real del panel
-     (38rem) + el marco (460px) + el gap — sin esto, en pantallas anchas
-     ninguno de los dos crece más allá de su propio máximo y el espacio
-     sobrante se convertía en un vacío enorme en el medio del hero. */
-  margin-inline: auto;
-  max-width: 1180px;
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__shell {
+  margin-inline: 0;
+  max-width: none;
   position: relative;
+  width: 100%;
   z-index: 1;
 }
 
-.pitbull-hero-masthead--split .pitbull-hero-masthead__panel {
-  max-width: min(38rem, 100%);
+.pitbull-hero-masthead__layout--bleed {
+  display: grid;
+  gap: clamp(22px, 3vw, 32px);
+  grid-template-columns: 1fr;
+  min-height: 0;
 }
 
-.pitbull-hero-masthead__layout--split {
-  gap: clamp(28px, 6vw, 48px);
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+  max-width: min(36rem, 100%);
+  width: 100%;
 }
 
-.pitbull-hero-masthead__frame {
-  margin-inline: auto;
-  max-width: min(460px, 100%);
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
+  margin: 0;
+  max-width: none;
   position: relative;
   width: 100%;
 }
 
-.pitbull-hero-masthead__frame-plate {
-  aspect-ratio: 4 / 5;
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+  aspect-ratio: 16 / 10;
   border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-  border-radius: calc(var(--border-radius-lg) + 6px);
-  box-shadow: 0 30px 60px -32px rgba(0, 0, 0, 0.55);
+  border-radius: calc(var(--border-radius-lg) + 4px);
+  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   position: relative;
 }
 
-[data-theme='light'] .pitbull-hero-masthead__frame-plate {
+[data-theme='light'] .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
   border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 24px 48px -30px rgba(15, 17, 23, 0.32);
+  box-shadow: 0 20px 40px -28px rgba(15, 17, 23, 0.28);
 }
 
 .pitbull-hero-masthead__frame-img {
@@ -7840,55 +7839,240 @@
   filter: grayscale(0.05) contrast(1.08) saturate(1.05);
   height: 100%;
   object-fit: cover;
-  object-position: center 32%;
+  object-position: center 36%;
   width: 100%;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__frame-img {
-  filter: grayscale(0.15) contrast(1.06) saturate(0.95) brightness(1.02);
+  filter: grayscale(0.12) contrast(1.06) saturate(0.95) brightness(1.02);
 }
 
 .pitbull-hero-masthead__frame-scrim {
-  background: linear-gradient(180deg, transparent 60%, rgba(8, 9, 12, 0.5) 100%);
+  background: linear-gradient(180deg, transparent 55%, rgba(8, 9, 12, 0.42) 100%);
   inset: 0;
+  pointer-events: none;
   position: absolute;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__frame-scrim {
-  background: linear-gradient(180deg, transparent 60%, rgba(15, 17, 23, 0.28) 100%);
+  background: linear-gradient(180deg, transparent 55%, rgba(15, 17, 23, 0.22) 100%);
 }
 
-/* La ficha protagonista se apoya sobre el borde inferior del marco — es
-   opaca, así que no depende del scrim para leerse. */
-.pitbull-hero-masthead__showcase {
-  margin: -48px 16px 0;
-  position: relative;
-  z-index: 2;
+/* Kicker: fecha · sede en una sola línea (no la grilla de hechos). */
+.pitbull-hero-masthead__kicker {
+  color: var(--color-text-secondary);
+  font-size: clamp(14px, 1.4vw, 15.5px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 40ch;
 }
 
-@media (min-width: 480px) {
-  .pitbull-hero-masthead__showcase {
-    margin: -56px 24px 0;
+.pitbull-hero-masthead__kicker time {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.pitbull-hero-masthead__kicker-loc {
+  color: var(--color-text-muted);
+}
+
+/* Mobile: texto encima de la foto (overlay). */
+@media (max-width: 767px) {
+  .pitbull-hero-masthead--bleed {
+    padding: 0;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
+    gap: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(min(88vh, 680px), auto);
+    min-height: min(88vh, 680px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    grid-area: 1 / 1;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
+    height: 100%;
+    min-height: min(88vh, 680px);
+    z-index: 0;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    height: 100%;
+    min-height: min(88vh, 680px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(8, 9, 12, 0.72) 0%,
+        rgba(8, 9, 12, 0.28) 38%,
+        rgba(8, 9, 12, 0.55) 62%,
+        rgba(8, 9, 12, 0.92) 100%
+      );
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    align-self: end;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 3.5vw, 20px);
+    justify-content: flex-end;
+    max-width: none;
+    padding:
+      calc(var(--header-height) + 12px)
+      var(--layout-gutter-lg)
+      clamp(28px, 7vw, 40px);
+    position: relative;
+    z-index: 2;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel::before {
+    opacity: 0.95;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
+    gap: 10px;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
+    color: #fff;
+    font-size: clamp(2.15rem, 9vw, 2.75rem);
+    max-width: 11ch;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb {
+    color: rgba(255, 255, 255, 0.62);
+    opacity: 1;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb span:last-child {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker time {
+    color: #fff;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
+    color: rgba(255, 255, 255, 0.72);
+    max-width: 32ch;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
+    border-top-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link {
+    align-self: flex-start;
+    color: rgba(255, 255, 255, 0.92);
+    min-height: 44px;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link:hover {
+    color: #fff;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge {
+    background: rgba(8, 9, 12, 0.45);
+    backdrop-filter: blur(8px);
   }
 }
 
-@media (min-width: 900px) {
-  .pitbull-hero-masthead__layout--split {
-    /* Centrado, no "start": el panel (más bajo) quedaba pegado arriba
-       con un bloque de aire vacío debajo, mientras la foto+ficha (más
-       alta) ocupaba el resto — centrar los une en una sola composición. */
-    align-items: center;
-    column-gap: clamp(32px, 5vw, 64px);
-    /* La 2da columna queda fija en el ancho real del marco (no una
-       fracción) para que la 1ra no reserve espacio de más — si no, el
-       panel (con su propio max-width) quedaba pegado a la izquierda con
-       un vacío antes del marco. */
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
+/* Notebook+: texto a la izquierda anclado al content-grid, foto a sangre
+   derecha. Especificidad alta vs. la regla base `__layout { 1fr }`. */
+@media (min-width: 768px) {
+  .pitbull-hero-masthead--bleed {
+    padding-right: 0;
   }
 
-  .pitbull-hero-masthead__frame {
-    margin-inline: 0;
-    margin-left: auto;
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
+    align-items: stretch;
+    column-gap: clamp(28px, 3.5vw, 48px);
+    /* Altura fija del bloque (no min-height): si el plate no tiene altura
+       concreta, la img 800×1200 recupera su intrínseco y el hero se va a
+       +1200px. */
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 46%);
+    height: clamp(400px, 58vh, 520px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 2vw, 22px);
+    justify-content: center;
+    margin-left: max(0px, calc((100vw - var(--max-width-content) - var(--layout-gutter-lg)) / 2));
+    max-width: min(34rem, 100%);
+    min-height: 0;
+    padding-block: clamp(4px, 1vw, 12px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
+    gap: clamp(10px, 1.2vw, 14px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+    aspect-ratio: auto;
+    border-radius: calc(var(--border-radius-lg) + 4px) 0 0 calc(var(--border-radius-lg) + 4px);
+    border-right: none;
+    box-shadow: none;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
+    font-size: clamp(2rem, 3.6vw, 2.85rem);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
+    max-width: 38ch;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
+    display: none;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
+    border-top: none;
+    margin-top: 2px;
+    max-width: min(28rem, 100%);
+    padding-top: 0;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
+    column-gap: clamp(40px, 4.5vw, 64px);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 48%);
+    height: clamp(440px, 62vh, 560px);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
+    font-size: clamp(2.6rem, 3.8vw, 3.6rem);
   }
 }
 
@@ -8652,8 +8836,19 @@
   }
 
   .pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 6px;
+  }
+
+  /* CTA full-width en mobile (regla del proyecto) y target táctil real para
+     el link secundario, que como texto suelto no llegaba a 44px. */
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__cta {
+    width: 100%;
+  }
+
+  .pitbull-hero-masthead--text .pitbull-hero-masthead__text-link {
+    min-height: 44px;
   }
 }
 
@@ -9522,13 +9717,12 @@
 }
 
 /* =============================================
-   PITBULL — hero showcase 3D (tarjeta de evento)
-   Segunda columna del hero en pantallas grandes.
+   PITBULL — hero motion (entrada del frame)
    ============================================= */
 
 @media (prefers-reduced-motion: no-preference) {
-  .pitbull-hero-masthead--motion .pitbull-hero-masthead__showcase {
-    animation: pitbull-showcase-in 0.7s var(--ease-out) 0.32s both;
+  .pitbull-hero-masthead--motion .pitbull-hero-masthead__frame {
+    animation: pitbull-showcase-in 0.7s var(--ease-out) 0.28s both;
   }
 }
 
@@ -9564,7 +9758,7 @@
     0 12px 32px -28px color-mix(in oklab, var(--plu-gold-500) 55%, transparent);
   display: grid;
   isolation: isolate;
-  min-height: 300px;
+  min-height: 0;
   overflow: hidden;
   padding: 0;
   position: relative;
@@ -9594,23 +9788,6 @@
   z-index: 3;
 }
 
-.pitbull-hero-card__watermark {
-  color: color-mix(in oklab, #fff 6%, transparent);
-  font-family: var(--font-display);
-  font-size: clamp(6rem, 12vw, 9rem);
-  font-weight: 800;
-  left: -0.05em;
-  letter-spacing: -0.06em;
-  line-height: 0.8;
-  pointer-events: none;
-  position: absolute;
-  top: 40%;
-  transform: translate3d(calc(var(--tilt-px, 0) * -28px), calc(var(--tilt-py, 0) * -20px), 0);
-  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
-  user-select: none;
-  z-index: 1;
-}
-
 .pitbull-hero-card__stripe {
   background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), #fff, var(--plu-gold-500)));
   height: 3px;
@@ -9634,77 +9811,10 @@
   z-index: 5;
 }
 
-.pitbull-hero-card__head {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.pitbull-hero-card__badge {
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 99px;
-  color: rgba(255, 255, 255, 0.86);
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 700;
-  gap: 6px;
-  letter-spacing: 0.08em;
-  padding: 5px 10px;
-  text-transform: uppercase;
-}
-
-.pitbull-hero-card__badge-dot {
-  background: currentColor;
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
-}
-
-.pitbull-hero-card__badge--success {
-  border-color: rgba(110, 207, 152, 0.32);
-  color: #7dd99f;
-}
-
-.pitbull-hero-card__badge--warning {
-  border-color: rgba(251, 191, 36, 0.32);
-  color: #fbbf24;
-}
-
-.pitbull-hero-card__badge--danger {
-  border-color: rgba(248, 113, 113, 0.32);
-  color: #f87171;
-}
-
-.pitbull-hero-card__badge--info {
-  border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
-  color: var(--color-brand-celeste);
-}
-
-.pitbull-hero-card__season {
-  color: rgba(255, 255, 255, 0.5);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-}
-
-.pitbull-hero-card__title {
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 2.4vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
-  margin: 0;
-  text-wrap: balance;
-}
-
 .pitbull-hero-card__rows {
   display: grid;
   gap: 0;
-  margin: clamp(6px, 1.5vw, 10px) 0 0;
-  margin-top: auto;
+  margin: 0;
 }
 
 .pitbull-hero-card__row {
@@ -9748,18 +9858,7 @@
 @media (prefers-reduced-motion: no-preference) {
   .pitbull-hero-card__body > * {
     animation: pitbull-hero-card-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .pitbull-hero-card__head {
-    animation-delay: 0.08s;
-  }
-
-  .pitbull-hero-card__title {
-    animation-delay: 0.16s;
-  }
-
-  .pitbull-hero-card__rows {
-    animation-delay: 0.24s;
+    animation-delay: 0.12s;
   }
 }
 
@@ -9776,7 +9875,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pitbull-hero-card__watermark,
   .pitbull-hero-card__body,
   .pitbull-hero-card__glow {
     transform: none;
