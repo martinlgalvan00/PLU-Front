@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { eventSchema } from '../server/routes/events.js'
+import { validateAdminEventDraft } from '../src/lib/schemas/adminEvent.js'
 
 function validEvent(overrides = {}) {
   return {
@@ -84,5 +85,57 @@ describe('eventSchema del backend', () => {
     expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
       expect.arrayContaining(['eventDays', 'ticketTypes']),
     )
+  })
+})
+
+describe('validateAdminEventDraft del editor', () => {
+  const t = (key) => key
+
+  function validDraft(overrides = {}) {
+    return {
+      title: 'Pitbull Classic',
+      slots: 120,
+      venue: 'Maximal Strength Club',
+      location: 'Buenos Aires',
+      status: 'proximamente',
+      startsAt: '2026-08-15T09:00',
+      endsAt: '2026-08-15T20:00',
+      pricing: { membership: 38000, registration: 45000, combo: 78000 },
+      ...overrides,
+    }
+  }
+
+  it('acepta un draft completo', () => {
+    expect(validateAdminEventDraft(validDraft(), t).ok).toBe(true)
+  })
+
+  // startsAt/endsAt pasaron de opcionales a requeridos: eran opcionales acá pero
+  // obligatorios en el backend, así que un evento sin horario pasaba la
+  // validación del editor y lo rechazaba la API. Además convivían con un
+  // `dateISO` aparte que podía contradecirlos.
+  it('exige inicio y fin, que antes eran opcionales', () => {
+    const missingStart = validateAdminEventDraft(validDraft({ startsAt: '' }), t)
+    const missingEnd = validateAdminEventDraft(validDraft({ endsAt: '' }), t)
+
+    expect(missingStart.ok).toBe(false)
+    expect(missingStart.fieldErrors.startsAt).toBe(
+      'admin.eventEditor.validation.startsAtRequired',
+    )
+    expect(missingEnd.ok).toBe(false)
+    expect(missingEnd.fieldErrors.endsAt).toBe('admin.eventEditor.validation.endsAtRequired')
+  })
+
+  it('ya no pide dateISO por separado: el inicio es la única fuente de fecha', () => {
+    expect(validateAdminEventDraft(validDraft({ dateISO: '' }), t).ok).toBe(true)
+  })
+
+  it('rechaza un fin anterior al inicio', () => {
+    const result = validateAdminEventDraft(
+      validDraft({ startsAt: '2026-08-15T20:00', endsAt: '2026-08-15T09:00' }),
+      t,
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.fieldErrors.endsAt).toBe('admin.eventEditor.validation.endsBeforeStarts')
   })
 })

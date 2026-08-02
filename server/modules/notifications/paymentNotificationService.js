@@ -16,7 +16,7 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
   const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
 
-  return async function notifyPaymentApplied({ order, payment }) {
+  return async function notifyPaymentApplied({ order, payment, result }) {
     const payerEmail = order.payerEmail ?? payment.payerEmail
     if (!payerEmail) return []
 
@@ -90,17 +90,39 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
       }),
     ]
 
+    // La RPC de acreditación deja la afiliación `activa` en la misma
+    // transacción, así que el aviso correcto es el de afiliación aprobada —
+    // el que lleva el código de socio. Antes salía `affiliation_started` ("en
+    // curso"), y como ese es el camino principal, quien pagaba con tarjeta
+    // recibía el comprobante pero nunca su código ni la confirmación.
+    const membership = result?.membership
     if (order.kind === 'athlete' && ['membership', 'combo'].includes(order.concept)) {
       jobs.push(
-        mailer.send('affiliation_started', {
-          ...common,
-          idempotencyKey: `email:affiliation-started:${payment.externalPaymentId}`,
-          params: {
-            name: order.athlete?.full_name,
-            reference: order.reference,
-            accountUrl: `${appUrl}/mi-cuenta`,
-          },
-        }),
+        membership?.id
+          ? mailer.send('affiliation_approved', {
+              ...common,
+              entityType: 'membership',
+              entityId: membership.id,
+              // Anclada en la afiliación y no en el pago: una renovación del
+              // mismo socio es un derecho nuevo y merece su propio aviso, pero
+              // un reintento del webhook sobre el mismo ciclo no.
+              idempotencyKey: `email:affiliation-approved:${membership.id}`,
+              params: {
+                name: order.athlete?.full_name ?? recipientName,
+                memberCode: membership.member_code,
+                expirationDate: membership.expiration_date,
+                accountUrl: `${appUrl}/mi-cuenta`,
+              },
+            })
+          : mailer.send('affiliation_started', {
+              ...common,
+              idempotencyKey: `email:affiliation-started:${payment.externalPaymentId}`,
+              params: {
+                name: order.athlete?.full_name ?? recipientName,
+                reference: order.reference,
+                accountUrl: `${appUrl}/mi-cuenta`,
+              },
+            }),
       )
     }
 

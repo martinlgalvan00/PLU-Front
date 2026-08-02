@@ -15,12 +15,31 @@ import rateLimit from 'express-rate-limit'
  * compartido (ej. Redis, vía `rate-limit-redis`).
  */
 
+/**
+ * Clave de conteo. `x-vercel-forwarded-for` la escribe el edge de Vercel y
+ * pisa cualquier valor que mande el cliente, asi que no es falsificable; el
+ * `X-Forwarded-For` crudo si lo es, y por eso no se lee directo. Fuera de
+ * Vercel cae en req.ip, que es confiable segun el `trust proxy` de app.js.
+ *
+ * Sin esto -- y sin trust proxy -- todos los clientes compartian una unica
+ * clave: el limite se volvia global y alcanzaba con que una sola IP lo agotara
+ * para dejar sin login a todo el mundo.
+ */
+function clientKey(req) {
+  const vercelClientIp = String(req.get('x-vercel-forwarded-for') ?? '')
+    .split(',')[0]
+    .trim()
+
+  return vercelClientIp || req.ip || 'desconocido'
+}
+
 function buildLimiter(windowMs, limit, message) {
   return rateLimit({
     windowMs,
     limit,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: clientKey,
     message: { error: message },
   })
 }

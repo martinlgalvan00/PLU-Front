@@ -3,8 +3,10 @@ import {
   buildAdminEventDraft,
   createAdminEventDraft,
   filterAdminEvents,
+  getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
   mapSupabaseEventRow,
+  withEventStart,
 } from '../src/services/eventAdminService.js'
 
 describe('eventAdminService', () => {
@@ -54,7 +56,7 @@ describe('eventAdminService', () => {
     )
   })
 
-  it('mapea el conteo real de inscripciones y el catálogo anidado', () => {
+  it('cuenta solo las inscripciones que ocupan cupo y mapea el catálogo anidado', () => {
     const event = mapSupabaseEventRow({
       id: '11111111-1111-4111-8111-111111111111',
       slug: 'pitbull-classic-2026',
@@ -69,7 +71,15 @@ describe('eventAdminService', () => {
       price: 45000,
       currency: 'ARS',
       rules: {},
-      eventRegistrations: [{ count: 48 }],
+      // Mezcla deliberada: solo pendiente_pago/pagada/confirmada bloquean cupo
+      // en create_competition_registration_v2 — cancelada y borrador no.
+      eventRegistrations: [
+        ...Array.from({ length: 20 }, () => ({ status: 'confirmada' })),
+        ...Array.from({ length: 18 }, () => ({ status: 'pagada' })),
+        ...Array.from({ length: 10 }, () => ({ status: 'pendiente_pago' })),
+        ...Array.from({ length: 3 }, () => ({ status: 'cancelada' })),
+        ...Array.from({ length: 2 }, () => ({ status: 'borrador' })),
+      ],
       eventDays: [{ id: 'day-1', day_index: 0, label: 'Día 1', date: '2026-08-15' }],
       ticketTypes: [],
       created_at: '2026-07-01T00:00:00.000Z',
@@ -94,5 +104,96 @@ describe('eventAdminService', () => {
 
     expect(filterAdminEvents(events, { query: 'open' })).toHaveLength(1)
     expect(filterAdminEvents(events, { query: 'maximal' })).toHaveLength(0)
+  })
+})
+
+describe('withEventStart', () => {
+  it('deriva dateISO del inicio para que no puedan contradecirse', () => {
+    const draft = withEventStart({ dateISO: '2026-01-01' }, '2026-08-15T09:00')
+
+    expect(draft).toMatchObject({ startsAt: '2026-08-15T09:00', dateISO: '2026-08-15' })
+  })
+
+  it('limpia dateISO cuando se borra el inicio', () => {
+    expect(withEventStart({ dateISO: '2026-08-15' }, '')).toMatchObject({
+      startsAt: '',
+      dateISO: '',
+    })
+  })
+})
+
+describe('getEventConsistencyWarnings', () => {
+  const now = new Date('2026-08-01T12:00:00')
+
+  function draft(overrides = {}) {
+    return {
+      status: 'inscripcion_abierta',
+      slots: 120,
+      startsAt: '2026-09-15T09:00',
+      endsAt: '2026-09-15T20:00',
+      pricing: { ticketsEnabled: false },
+      ...overrides,
+    }
+  }
+
+  it('no advierte nada cuando el estado coincide con la configuración', () => {
+    expect(
+      getEventConsistencyWarnings(
+        draft({ registrationOpensAt: '2026-07-01T00:00', registrationClosesAt: '2026-09-01T00:00' }),
+        { registered: 40 },
+        now,
+      ),
+    ).toEqual([])
+  })
+
+  it('detecta inscripción abierta con la ventana ya vencida', () => {
+    expect(
+      getEventConsistencyWarnings(draft({ registrationClosesAt: '2026-07-15T00:00' }), null, now),
+    ).toContain('registrationClosedButOpenStatus')
+  })
+
+  it('detecta inscripción abierta antes de la fecha de apertura', () => {
+    expect(
+      getEventConsistencyWarnings(draft({ registrationOpensAt: '2026-08-20T00:00' }), null, now),
+    ).toContain('registrationNotYetOpen')
+  })
+
+  it('detecta evento cerrado con la ventana de inscripción todavía vigente', () => {
+    expect(
+      getEventConsistencyWarnings(
+        draft({
+          status: 'cerrado',
+          registrationOpensAt: '2026-07-01T00:00',
+          registrationClosesAt: '2026-09-01T00:00',
+        }),
+        null,
+        now,
+      ),
+    ).toContain('registrationOpenButClosedStatus')
+  })
+
+  it('detecta cupo lleno con el estado todavía en inscripción abierta', () => {
+    expect(getEventConsistencyWarnings(draft(), { registered: 120 }, now)).toContain(
+      'slotsFullButOpenStatus',
+    )
+  })
+
+  it('detecta venta de entradas habilitada con el cierre ya pasado', () => {
+    expect(
+      getEventConsistencyWarnings(
+        draft({
+          pricing: { ticketsEnabled: true },
+          ticketSalesClosesAt: '2026-07-20T00:00',
+        }),
+        null,
+        now,
+      ),
+    ).toContain('ticketSalesClosedButEnabled')
+  })
+
+  it('detecta evento finalizado antes de su fecha de fin', () => {
+    expect(getEventConsistencyWarnings(draft({ status: 'finalizado' }), null, now)).toContain(
+      'finishedButNotEnded',
+    )
   })
 })

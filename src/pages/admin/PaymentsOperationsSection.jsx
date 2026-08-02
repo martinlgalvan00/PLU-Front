@@ -11,6 +11,7 @@ import {
   retryPaymentEvent,
   retryPaymentReconciliation,
 } from '../../services/paymentService.js'
+import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
 import TicketOrdersSection from './TicketOrdersSection.jsx'
 
 function formatDate(value, locale) {
@@ -23,10 +24,12 @@ function formatDate(value, locale) {
 
 export default function PaymentsOperationsSection({
   canEdit,
+  highlightOrderId = null,
   ticketOrderEventScope = '',
   pendingTicketOrders,
   isLoading: manualLoading,
   loadError: manualError,
+  onApprovePayment,
   onApproveTicketOrder,
   onRefresh: onRefreshManual,
 }) {
@@ -345,6 +348,12 @@ export default function PaymentsOperationsSection({
           />
         )}
       </section>
+
+      <AthletePaymentOrdersSection
+        canEdit={canEdit}
+        highlightOrderId={highlightOrderId}
+        onApprovePayment={onApprovePayment}
+      />
 
       <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
         <TicketOrdersSection

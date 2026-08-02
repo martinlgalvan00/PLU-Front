@@ -82,6 +82,18 @@ const uploadSchema = z.object({
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
   size: z.number().int().positive().max(3 * 1024 * 1024),
 })
+const proofUploadSchema = z.object({
+  fileName: z.string().trim().min(1).max(120),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  size: z.number().int().positive().max(5 * 1024 * 1024),
+})
+const proofSchema = z.object({ proofPath: z.string().trim().min(3).max(300) })
+const paymentOrdersQuerySchema = z.object({
+  status: z.enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado']).optional(),
+  method: z.enum(['mercado_pago', 'manual_link']).optional(),
+  concept: z.enum(['membership', 'registration', 'combo']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+})
 
 const FORGOT_OK_MESSAGE =
   'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
@@ -108,7 +120,13 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     { mode: 'any' },
   )
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
+  const financeReadGuard = requirePermission('admin.payments.read', { prisma })
+  const membershipWriteGuard = requirePermission('admin.memberships.write', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
+  // Mismo formato que usa el check-in (`server/routes/tickets.js`): el actor
+  // queda identificable en `domain_audit_logs` sin depender de que el id de
+  // usuario siga existiendo cuando se lea la auditoría.
+  const actorLabel = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
 
@@ -346,6 +364,28 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       res.status(201).json(await repo().createRegistration(auth.athleteId, req.validatedBody))
     } catch (error) { next(error) }
   })
+  /**
+   * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
+   * completo (subida firmada + revisión); las de afiliación tenían las
+   * columnas en la tabla desde la fase 2 pero nada que las escribiera, así que
+   * Finanzas aprobaba sin evidencia adjunta.
+   */
+  router.post('/me/payment-orders/:orderId/proof-upload', athleteWriteLimiter, validateBody(proofUploadSchema), async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      res.json(await repo().createPaymentProofUpload(auth.athleteId, orderId.data, req.validatedBody.fileName))
+    } catch (error) { next(error) }
+  })
+  router.post('/me/payment-orders/:orderId/proof', athleteWriteLimiter, validateBody(proofSchema), async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      res.json(await repo().registerPaymentProof(auth.athleteId, orderId.data, req.validatedBody.proofPath))
+    } catch (error) { next(error) }
+  })
   router.post('/me/photo-upload', athleteWriteLimiter, validateBody(uploadSchema), async (req, res, next) => {
     try { const auth = await athlete(req); res.json(await repo().createPhotoUpload(auth.athleteId, req.validatedBody)) }
     catch (error) { next(error) }
@@ -462,14 +502,56 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     }
   }
 
+  /**
+   * Bandeja de órdenes de atleta. Antes la única forma de llegar a una orden
+   * de afiliación pendiente era entrar atleta por atleta desde el padrón, y el
+   * acceso directo del dashboard llevaba a una sección que ni siquiera las
+   * renderizaba.
+   */
+  router.get('/admin/payment-orders', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = paymentOrdersQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Filtros de pago inválidos.')
+      res.json({ orders: await repo().listPaymentOrders(parsed.data) })
+    } catch (error) { next(error) }
+  })
+  router.get('/admin/payment-orders/:orderId/proof-url', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      res.json({ url: await repo().paymentProofUrl(orderId.data) })
+    } catch (error) { next(error) }
+  })
   router.post('/admin/payment-orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {
-      const result = await repo().approvePayment(req.params.orderId)
+      const result = await repo().approvePayment(req.params.orderId, actorLabel(req))
       // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
       await notifyManualApproval(result).catch((error) =>
         console.warn('[payment-approval] no se pudieron enviar los emails', error?.message ?? error),
       )
       res.json(result)
+    } catch (error) { next(error) }
+  })
+  /**
+   * Credencial de un socio desde el panel: hasta ahora no había forma de ver
+   * el QR emitido, y si un token se filtraba la única salida era editar la
+   * fila a mano en la base.
+   */
+  router.get('/admin/memberships/:membershipId/credential', ...adminGuard, staffLimiter, async (req, res, next) => {
+    try {
+      if (!hasPermission(req.auth.user, 'admin.memberships.read')) {
+        throw new HttpError(403, 'Sin permisos para ver afiliaciones.')
+      }
+      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+      res.json({ membership: await repo().membershipCredential(membershipId.data) })
+    } catch (error) { next(error) }
+  })
+  router.post('/admin/memberships/:membershipId/rotate-qr', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+      res.json(await repo().rotateMembershipQrToken(membershipId.data, actorLabel(req)))
     } catch (error) { next(error) }
   })
   router.post('/admin/:athleteId/credential', ...accountGuard, staffLimiter, validateBody(

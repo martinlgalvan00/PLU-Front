@@ -9,7 +9,7 @@ import { staffLimiter } from '../middleware/rateLimit.js'
 const EVENT_SELECT = `
   *,
   capacityRules:event_capacity_rules(*),
-  eventRegistrations:event_registrations(count),
+  eventRegistrations:event_registrations(status),
   eventDays:event_days(*),
   ticketTypes:ticket_types(
     *,

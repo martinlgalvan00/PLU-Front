@@ -35,6 +35,11 @@ function toCamelAthlete(row) {
     status: row.status,
     photoPath: row.photo_path,
     photoUrl: row.photo_url ?? null,
+    // Afiliarse e inscribirse exigen correo confirmado (ver
+    // `assertEmailVerified` en server/routes/athletes.js). Sin este campo la
+    // cuenta no podía avisar por qué el checkout se bloqueaba ni ofrecer el
+    // reenvío del enlace.
+    emailVerifiedAt: row.email_verified_at ?? null,
   }
 }
 
@@ -285,16 +290,102 @@ export async function approveAthletePaymentOrder(orderId) {
   }
 }
 
+function toCredentialResult(result, eventSlug) {
+  return {
+    athlete: toCamelAthlete(result.athlete),
+    membership: toCamelMembership(result.membership),
+    registration: result.registration
+      ? toCamelRegistrationEntry({
+          registration: result.registration,
+          event: { slug: eventSlug },
+          // La proyección ahora incluye el ingreso ya registrado: sin esto una
+          // credencial usada volvía a mostrarse como válida y el rechazo
+          // aparecía recién al apretar "marcar ingreso".
+          checkIn: result.registration.check_in ?? null,
+        })
+      : null,
+  }
+}
+
+/**
+ * Verificación pública de credencial: a donde apunta el QR impreso, sin
+ * sesión. La proyección no trae documento ni `qr_token` — el `member_code` es
+ * correlativo, así que devolver cualquiera de los dos permitía cosecharlos
+ * iterando códigos desde la home.
+ */
 export async function getMembershipByCodeOrToken(code, eventSlug) {
   const result = await callRpc('get_membership_by_code_or_token', {
     p_code: code,
     p_event_slug: eventSlug ?? null,
   })
+  return toCredentialResult(result, eventSlug)
+}
+
+/**
+ * Misma credencial, con documento, para el operador en la puerta. Va por la
+ * API con sesión de staff (`admin.checkin.execute` + alcance de evento) en vez
+ * de por la RPC pública.
+ */
+export async function getStaffMembershipCredential(code, eventSlug) {
+  const query = eventSlug ? `?eventSlug=${encodeURIComponent(eventSlug)}` : ''
+  const result = await apiGet(`/api/tickets/credentials/${encodeURIComponent(code)}${query}`)
+  return toCredentialResult(result, eventSlug)
+}
+
+/** Órdenes de afiliación/inscripción para la bandeja de Finanzas. */
+export async function listAthletePaymentOrders(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.status) params.set('status', filters.status)
+  if (filters.method) params.set('method', filters.method)
+  if (filters.concept) params.set('concept', filters.concept)
+  if (filters.limit) params.set('limit', String(filters.limit))
+  const query = params.toString()
+  const { orders } = await apiGet(`/api/athletes/admin/payment-orders${query ? `?${query}` : ''}`)
+
+  return orders.map((row) => ({
+    ...toCamelPaymentOrder(row),
+    concept: row.concept,
+    conceptLabel: CONCEPT_LABELS[row.concept] ?? row.concept,
+    athlete: row.athlete
+      ? {
+          id: row.athlete.id,
+          fullName: row.athlete.full_name,
+          documentId: row.athlete.document_id,
+          email: row.athlete.email,
+        }
+      : null,
+  }))
+}
+
+export async function getAthletePaymentProofUrl(orderId) {
+  const { url } = await apiGet(`/api/athletes/admin/payment-orders/${orderId}/proof-url`)
+  return url
+}
+
+export async function registerAthletePaymentProof(orderId, proofPath) {
+  const { order } = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof`, { proofPath })
+  return { order: toCamelPaymentOrder(order) }
+}
+
+/** Credencial emitida de un socio, para verla y reemitirla desde el panel. */
+export async function getMembershipCredential(membershipId) {
+  const { membership } = await apiGet(`/api/athletes/admin/memberships/${membershipId}/credential`)
   return {
-    athlete: toCamelAthlete(result.athlete),
-    membership: toCamelMembership(result.membership),
-    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration, event: { slug: eventSlug } }) : null,
+    membership: toCamelMembership(membership),
+    athlete: membership.athlete
+      ? {
+          id: membership.athlete.id,
+          fullName: membership.athlete.full_name,
+          documentId: membership.athlete.document_id,
+          email: membership.athlete.email,
+        }
+      : null,
   }
+}
+
+export async function rotateMembershipQrToken(membershipId) {
+  const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/rotate-qr`, {})
+  return { membership: toCamelMembership(membership) }
 }
 
 export async function registerAthletePhoto(_athleteId, photoPath) {

@@ -11,6 +11,7 @@ import {
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
+import AdminRecentActivity from '../../components/admin/AdminRecentActivity.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
@@ -482,6 +483,8 @@ export default function DashboardSection({
             onNavigate={onNavigate}
             t={t}
           />
+
+          <AdminRecentActivity />
         </section>
       </div>
     </div>

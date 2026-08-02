@@ -10,6 +10,7 @@ import {
   staffLimiter,
   ticketPublicWriteLimiter,
 } from '../middleware/rateLimit.js'
+import { createSupabaseAthleteRepository } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseTicketRepository } from '../modules/ticketing/supabaseTicketRepository.js'
 
 const attendeeSchema = z.object({
@@ -40,9 +41,10 @@ const createOrderSchema = z.object({
 })
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 
-export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) {
+export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, athleteRepository }) {
   const router = Router()
   const repo = () => repository ?? createSupabaseTicketRepository(getSupabaseAdmin?.())
+  const athleteRepo = () => athleteRepository ?? createSupabaseAthleteRepository(getSupabaseAdmin?.())
   const prisma = getPrisma()
   const guard = requirePermission('admin.checkin.execute', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
@@ -169,6 +171,22 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository }) 
       if (!eventSlug) throw new HttpError(400, 'Falta eventSlug.')
       assertEventSlugScope(req, eventSlug)
       res.json({ tickets: await repo().listForEvent(eventSlug) })
+    } catch (error) {
+      next(error)
+    }
+  })
+  /**
+   * Credencial de socio para el scanner de staff. La proyección pública dejó
+   * de exponer el documento (el member_code es enumerable, así que devolver
+   * PII ahí era una fuga), pero en la puerta el operador tiene que cotejar el
+   * DNI físico contra el registro. Detrás de admin.checkin.execute y del mismo
+   * alcance de evento que el resto del portal.
+   */
+  router.get('/credentials/:code', ...guard, staffLimiter, async (req, res, next) => {
+    try {
+      const eventSlug = req.query.eventSlug ? String(req.query.eventSlug) : null
+      if (eventSlug) assertEventSlugScope(req, eventSlug)
+      res.json(await athleteRepo().staffCredential(String(req.params.code), eventSlug))
     } catch (error) {
       next(error)
     }

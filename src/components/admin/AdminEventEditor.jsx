@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Eye,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   Star,
   Ticket,
+  Users,
   X,
 } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
@@ -21,7 +23,9 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
+  getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
+  withEventStart,
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
@@ -46,8 +50,7 @@ function draftSignature(draft) {
 
 const EDITOR_SECTION_IDS = [
   'event-section-basics',
-  'event-section-pricing',
-  'event-section-tickets',
+  'event-section-sales',
   'event-section-visibility',
   'event-section-security',
 ]
@@ -240,6 +243,25 @@ export default function AdminEventEditor({
     [t],
   )
 
+  // La numeración de la nav sale de las secciones que existen de verdad. Antes
+  // estaba escrita a mano (1..5) y no contemplaba el bloque "Avanzado", que
+  // quedaba fuera de la navegación.
+  const navSections = useMemo(
+    () =>
+      [
+        { id: 'event-section-basics', labelKey: 'admin.eventEditor.navBasics' },
+        { id: 'event-section-sales', labelKey: 'admin.eventEditor.navSales' },
+        { id: 'event-section-visibility', labelKey: 'admin.eventEditor.navVisibility' },
+        draft.id ? { id: 'event-section-security', labelKey: 'admin.eventEditor.navSecurity' } : null,
+      ].filter(Boolean),
+    [draft.id],
+  )
+
+  const consistencyWarnings = useMemo(
+    () => getEventConsistencyWarnings(draft, sourceEvent),
+    [draft, sourceEvent],
+  )
+
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
@@ -411,16 +433,10 @@ export default function AdminEventEditor({
     const validation = validateAdminEventDraft(draft, t)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
-      if (
-        validation.firstKey?.startsWith('startsAt') ||
-        validation.firstKey?.startsWith('endsAt') ||
-        validation.firstKey?.startsWith('registration') ||
-        validation.firstKey?.startsWith('liveStream')
-      ) {
+      // Los únicos campos que siguen viviendo detrás de un <details> son los de
+      // transmisión; el resto ya está siempre visible en su sección.
+      if (validation.firstKey?.startsWith('liveStream')) {
         setShowAdvanced(true)
-      }
-      if (validation.firstKey?.startsWith('ticketSales')) {
-        setShowTicketConfig(true)
       }
       requestAnimationFrame(() =>
         requestAnimationFrame(() => focusFirstInvalid(validation.firstKey)),
@@ -454,6 +470,9 @@ export default function AdminEventEditor({
     days: draft.eventDays?.length ?? 0,
     types: configuredTicketTypes,
   })
+  const registeredCount = sourceEvent?.registered ?? 0
+  const slotsTotal = Math.max(0, Number(draft.slots) || 0)
+  const slotsRemaining = Math.max(slotsTotal - registeredCount, 0)
 
   return createPortal(
     <div className="admin-event-editor-modal">
@@ -505,73 +524,22 @@ export default function AdminEventEditor({
               className="admin-event-form__section-nav"
               aria-label={t('admin.eventEditor.sectionNavAria')}
             >
-              <button
-                type="button"
-                className={
-                  activeSection === 'event-section-basics'
-                    ? 'admin-event-form__nav-item is-active'
-                    : 'admin-event-form__nav-item'
-                }
-                aria-current={activeSection === 'event-section-basics' ? 'true' : undefined}
-                onClick={() => goToSection('event-section-basics')}
-              >
-                <span aria-hidden>1</span>
-                {t('admin.eventEditor.navBasics')}
-              </button>
-              <button
-                type="button"
-                className={
-                  activeSection === 'event-section-pricing'
-                    ? 'admin-event-form__nav-item is-active'
-                    : 'admin-event-form__nav-item'
-                }
-                aria-current={activeSection === 'event-section-pricing' ? 'true' : undefined}
-                onClick={() => goToSection('event-section-pricing')}
-              >
-                <span aria-hidden>2</span>
-                {t('admin.eventEditor.navPricing')}
-              </button>
-              <button
-                type="button"
-                className={
-                  activeSection === 'event-section-tickets'
-                    ? 'admin-event-form__nav-item is-active'
-                    : 'admin-event-form__nav-item'
-                }
-                aria-current={activeSection === 'event-section-tickets' ? 'true' : undefined}
-                onClick={() => goToSection('event-section-tickets', { tickets: true })}
-              >
-                <span aria-hidden>3</span>
-                {t('admin.eventEditor.navTickets')}
-              </button>
-              <button
-                type="button"
-                className={
-                  activeSection === 'event-section-visibility'
-                    ? 'admin-event-form__nav-item is-active'
-                    : 'admin-event-form__nav-item'
-                }
-                aria-current={activeSection === 'event-section-visibility' ? 'true' : undefined}
-                onClick={() => goToSection('event-section-visibility')}
-              >
-                <span aria-hidden>4</span>
-                {t('admin.eventEditor.navVisibility')}
-              </button>
-              {draft.id ? (
+              {navSections.map((section, index) => (
                 <button
+                  key={section.id}
                   type="button"
                   className={
-                    activeSection === 'event-section-security'
+                    activeSection === section.id
                       ? 'admin-event-form__nav-item is-active'
                       : 'admin-event-form__nav-item'
                   }
-                  aria-current={activeSection === 'event-section-security' ? 'true' : undefined}
-                  onClick={() => goToSection('event-section-security')}
+                  aria-current={activeSection === section.id ? 'true' : undefined}
+                  onClick={() => goToSection(section.id)}
                 >
-                  <span aria-hidden>5</span>
-                  {t('admin.eventEditor.navSecurity')}
+                  <span aria-hidden>{index + 1}</span>
+                  {t(section.labelKey)}
                 </button>
-              ) : null}
+              ))}
             </nav>
 
             <details className="admin-event-form__mobile-preview">
@@ -615,38 +583,37 @@ export default function AdminEventEditor({
                 </FormField>
 
                 <FormField
-                  htmlFor="event-date"
-                  label={t('admin.eventEditor.date')}
-                  error={err('dateISO')}
+                  htmlFor="event-starts-at"
+                  label={t('admin.eventEditor.supabase.startsAt')}
+                  error={err('startsAt')}
                 >
                   <input
-                    id="event-date"
-                    name="dateISO"
-                    data-field="dateISO"
+                    id="event-starts-at"
+                    name="startsAt"
+                    data-field="startsAt"
                     required
-                    type="date"
-                    value={draft.dateISO}
-                    aria-invalid={Boolean(err('dateISO'))}
-                    onChange={(event) => patchDraft({ ...draft, dateISO: event.target.value })}
+                    type="datetime-local"
+                    value={draft.startsAt ?? ''}
+                    aria-invalid={Boolean(err('startsAt'))}
+                    onChange={(event) => patchDraft(withEventStart(draft, event.target.value))}
                     disabled={!canEdit}
                   />
                 </FormField>
 
                 <FormField
-                  htmlFor="event-slots"
-                  label={t('admin.eventEditor.totalSlots')}
-                  error={err('slots')}
+                  htmlFor="event-ends-at"
+                  label={t('admin.eventEditor.supabase.endsAt')}
+                  error={err('endsAt')}
                 >
                   <input
-                    id="event-slots"
-                    name="slots"
-                    data-field="slots"
-                    min={1}
+                    id="event-ends-at"
+                    name="endsAt"
+                    data-field="endsAt"
                     required
-                    type="number"
-                    value={draft.slots}
-                    aria-invalid={Boolean(err('slots'))}
-                    onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
+                    type="datetime-local"
+                    value={draft.endsAt ?? ''}
+                    aria-invalid={Boolean(err('endsAt'))}
+                    onChange={(event) => patchDraft({ ...draft, endsAt: event.target.value })}
                     disabled={!canEdit}
                   />
                 </FormField>
@@ -689,13 +656,97 @@ export default function AdminEventEditor({
               </div>
             </section>
 
-            <section className="admin-event-form__section" aria-labelledby="event-section-pricing">
+            <section
+              id="event-section-sales"
+              className="admin-event-form__section"
+              aria-labelledby="event-section-sales-title"
+            >
               <header className="admin-event-form__section-head">
-                <h4 id="event-section-pricing">{t('admin.eventEditor.sectionPricing')}</h4>
-                <p>{t('admin.eventEditor.pricingLead')}</p>
+                <h4 id="event-section-sales-title">{t('admin.eventEditor.sectionSales')}</h4>
+                <p>{t('admin.eventEditor.sectionSalesLead')}</p>
               </header>
 
-              <div className="admin-event-form__rate-cards">
+              <div className="admin-event-form__lane">
+                <header className="admin-event-form__lane-head">
+                  <h5 className="admin-event-form__lane-title">
+                    <Users size={13} aria-hidden />
+                    {t('admin.eventEditor.laneAthletes')}
+                  </h5>
+                  <p>{t('admin.eventEditor.laneAthletesLead')}</p>
+                </header>
+
+                <div className="admin-event-form__grid">
+                  <FormField
+                    htmlFor="event-slots"
+                    label={t('admin.eventEditor.totalSlots')}
+                    error={err('slots')}
+                  >
+                    <input
+                      id="event-slots"
+                      name="slots"
+                      data-field="slots"
+                      min={1}
+                      required
+                      type="number"
+                      value={draft.slots}
+                      aria-invalid={Boolean(err('slots'))}
+                      onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
+                      disabled={!canEdit}
+                    />
+                  </FormField>
+
+                  <div className="admin-event-form__occupancy">
+                    <CapacityBar
+                      compact
+                      current={registeredCount}
+                      total={slotsTotal}
+                      label={t('admin.eventEditor.slotsShortLabel')}
+                    />
+                    <small>
+                      {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
+                    </small>
+                  </div>
+
+                  <FormField
+                    htmlFor="event-reg-opens"
+                    label={t('admin.eventEditor.supabase.registrationOpensAt')}
+                    error={err('registrationOpensAt')}
+                  >
+                    <input
+                      id="event-reg-opens"
+                      name="registrationOpensAt"
+                      data-field="registrationOpensAt"
+                      type="datetime-local"
+                      value={draft.registrationOpensAt ?? ''}
+                      aria-invalid={Boolean(err('registrationOpensAt'))}
+                      onChange={(event) =>
+                        patchDraft({ ...draft, registrationOpensAt: event.target.value })
+                      }
+                      disabled={!canEdit}
+                    />
+                  </FormField>
+
+                  <FormField
+                    htmlFor="event-reg-closes"
+                    label={t('admin.eventEditor.supabase.registrationClosesAt')}
+                    error={err('registrationClosesAt')}
+                  >
+                    <input
+                      id="event-reg-closes"
+                      name="registrationClosesAt"
+                      data-field="registrationClosesAt"
+                      type="datetime-local"
+                      value={draft.registrationClosesAt ?? ''}
+                      aria-invalid={Boolean(err('registrationClosesAt'))}
+                      onChange={(event) =>
+                        patchDraft({ ...draft, registrationClosesAt: event.target.value })
+                      }
+                      disabled={!canEdit}
+                    />
+                  </FormField>
+                </div>
+
+                <div className="admin-event-form__rate-cards">
                 <label
                   className={`admin-event-form__rate-card${err('pricing.membership') ? ' is-invalid' : ''}`}
                 >
@@ -780,18 +831,20 @@ export default function AdminEventEditor({
                     </span>
                   ) : null}
                 </label>
+                </div>
               </div>
-            </section>
 
-            <section
-              id="event-section-tickets"
-              className="admin-event-form__section admin-event-form__section--tickets"
-              aria-labelledby="event-section-tickets-title"
-            >
-              <header className="admin-event-form__section-head">
-                <h4 id="event-section-tickets-title">{t('admin.eventEditor.sectionTickets')}</h4>
-                <p>{t('admin.eventEditor.sectionTicketsLead')}</p>
-              </header>
+              <div
+                id="event-section-tickets"
+                className="admin-event-form__lane admin-event-form__lane--tickets"
+              >
+                <header className="admin-event-form__lane-head">
+                  <h5 className="admin-event-form__lane-title">
+                    <Ticket size={13} aria-hidden />
+                    {t('admin.eventEditor.laneSpectators')}
+                  </h5>
+                  <p>{t('admin.eventEditor.laneSpectatorsLead')}</p>
+                </header>
 
               <label className="admin-event-form__toggle">
                 <input
@@ -814,91 +867,87 @@ export default function AdminEventEditor({
               </label>
 
               {ticketSalesEnabled ? (
-                <details
-                  className="admin-event-form__ticket-config"
-                  open={showTicketConfig}
-                  onToggle={(event) => setShowTicketConfig(event.currentTarget.open)}
-                >
-                  <summary className="admin-event-form__ticket-config-summary">
-                    <span>
-                      <strong>{t('admin.eventEditor.configureTickets')}</strong>
-                      <small>{ticketConfigurationSummary}</small>
-                    </span>
-                  </summary>
-
-                  <div className="admin-event-form__ticket-config-body">
-                    <section className="admin-event-form__block">
-                      <header className="admin-event-form__block-head">
-                        <h3 className="admin-event-form__block-title">
-                          {t('admin.eventEditor.supabase.ticketSalesWindowTitle')}
-                        </h3>
-                        <p className="admin-event-form__block-lead">
-                          {t('admin.eventEditor.supabase.ticketSalesWindowLead')}
-                        </p>
-                      </header>
-                      <div className="admin-event-form__grid">
-                        <FormField
-                          htmlFor="event-ticket-opens"
-                          label={t('admin.eventEditor.supabase.ticketSalesOpensAt')}
-                          error={err('ticketSalesOpensAt')}
-                        >
-                          <input
-                            id="event-ticket-opens"
-                            name="ticketSalesOpensAt"
-                            data-field="ticketSalesOpensAt"
-                            type="datetime-local"
-                            value={draft.ticketSalesOpensAt ?? ''}
-                            aria-invalid={Boolean(err('ticketSalesOpensAt'))}
-                            onChange={(event) =>
-                              patchDraft({ ...draft, ticketSalesOpensAt: event.target.value })
-                            }
-                            disabled={!canEdit}
-                          />
-                        </FormField>
-                        <FormField
-                          htmlFor="event-ticket-closes"
-                          label={t('admin.eventEditor.supabase.ticketSalesClosesAt')}
-                          error={err('ticketSalesClosesAt')}
-                        >
-                          <input
-                            id="event-ticket-closes"
-                            name="ticketSalesClosesAt"
-                            data-field="ticketSalesClosesAt"
-                            type="datetime-local"
-                            value={draft.ticketSalesClosesAt ?? ''}
-                            aria-invalid={Boolean(err('ticketSalesClosesAt'))}
-                            onChange={(event) =>
-                              patchDraft({ ...draft, ticketSalesClosesAt: event.target.value })
-                            }
-                            disabled={!canEdit}
-                          />
-                        </FormField>
-                      </div>
-                    </section>
-
-                    <AdminTicketAddonsEditor
-                      addons={draft.pricing?.ticketAddons ?? []}
-                      canEdit={canEdit}
-                      onChange={(ticketAddons) =>
-                        patchDraft(updatePricingField(draft, 'ticketAddons', ticketAddons))
-                      }
-                    />
-
-                    <AdminTicketTypesEditor
-                      addonsCatalog={draft.pricing?.ticketAddons ?? []}
-                      canEdit={canEdit}
-                      eventDays={draft.eventDays ?? []}
-                      onChangeEventDays={(eventDays) => patchDraft({ ...draft, eventDays })}
-                      onChangeTicketTypes={(ticketTypes) => patchDraft({ ...draft, ticketTypes })}
-                      ticketTypes={draft.ticketTypes ?? []}
-                    />
+                <>
+                  {/* La ventana de venta queda al mismo nivel que la de
+                      inscripción: son las dos palancas de cierre del evento y
+                      antes esta vivía dos <details> más adentro. */}
+                  <div className="admin-event-form__grid">
+                    <FormField
+                      htmlFor="event-ticket-opens"
+                      label={t('admin.eventEditor.supabase.ticketSalesOpensAt')}
+                      error={err('ticketSalesOpensAt')}
+                    >
+                      <input
+                        id="event-ticket-opens"
+                        name="ticketSalesOpensAt"
+                        data-field="ticketSalesOpensAt"
+                        type="datetime-local"
+                        value={draft.ticketSalesOpensAt ?? ''}
+                        aria-invalid={Boolean(err('ticketSalesOpensAt'))}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, ticketSalesOpensAt: event.target.value })
+                        }
+                        disabled={!canEdit}
+                      />
+                    </FormField>
+                    <FormField
+                      htmlFor="event-ticket-closes"
+                      label={t('admin.eventEditor.supabase.ticketSalesClosesAt')}
+                      error={err('ticketSalesClosesAt')}
+                    >
+                      <input
+                        id="event-ticket-closes"
+                        name="ticketSalesClosesAt"
+                        data-field="ticketSalesClosesAt"
+                        type="datetime-local"
+                        value={draft.ticketSalesClosesAt ?? ''}
+                        aria-invalid={Boolean(err('ticketSalesClosesAt'))}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, ticketSalesClosesAt: event.target.value })
+                        }
+                        disabled={!canEdit}
+                      />
+                    </FormField>
                   </div>
-                </details>
+
+                  <details
+                    className="admin-event-form__ticket-config"
+                    open={showTicketConfig}
+                    onToggle={(event) => setShowTicketConfig(event.currentTarget.open)}
+                  >
+                    <summary className="admin-event-form__ticket-config-summary">
+                      <span>
+                        <strong>{t('admin.eventEditor.configureTickets')}</strong>
+                        <small>{ticketConfigurationSummary}</small>
+                      </span>
+                    </summary>
+
+                    <div className="admin-event-form__ticket-config-body">
+                      <AdminTicketAddonsEditor
+                        addons={draft.pricing?.ticketAddons ?? []}
+                        canEdit={canEdit}
+                        onChange={(ticketAddons) =>
+                          patchDraft(updatePricingField(draft, 'ticketAddons', ticketAddons))
+                        }
+                      />
+
+                      <AdminTicketTypesEditor
+                        addonsCatalog={draft.pricing?.ticketAddons ?? []}
+                        canEdit={canEdit}
+                        eventDays={draft.eventDays ?? []}
+                        onChangeEventDays={(eventDays) => patchDraft({ ...draft, eventDays })}
+                        onChangeTicketTypes={(ticketTypes) => patchDraft({ ...draft, ticketTypes })}
+                        ticketTypes={draft.ticketTypes ?? []}
+                      />
+                    </div>
+                  </details>
+                </>
               ) : (
                 <p className="admin-event-form__section-note">
                   {t('admin.eventEditor.ticketsDisabledNote')}
                 </p>
               )}
+              </div>
             </section>
 
             <section
@@ -918,6 +967,20 @@ export default function AdminEventEditor({
                 onChange={(value) => patchDraft({ ...draft, status: value })}
                 options={statusOptions}
               />
+
+              {consistencyWarnings.length > 0 ? (
+                <div className="admin-event-form__consistency" role="status">
+                  <p className="admin-event-form__consistency-head">
+                    <AlertTriangle size={13} aria-hidden />
+                    {t('admin.eventEditor.consistency.title')}
+                  </p>
+                  <ul>
+                    {consistencyWarnings.map((code) => (
+                      <li key={code}>{t(`admin.eventEditor.consistency.${code}`)}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <label className="admin-event-form__toggle">
                 <input
@@ -976,188 +1039,84 @@ export default function AdminEventEditor({
                   <small>{t('admin.eventEditor.requiresMembershipHint')}</small>
                 </span>
               </label>
+
+              <details
+                className="admin-event-form__ticket-config"
+                open={showAdvanced}
+                onToggle={(event) => setShowAdvanced(event.currentTarget.open)}
+              >
+                <summary className="admin-event-form__ticket-config-summary">
+                  <span>
+                    <strong>
+                      <Radio size={13} aria-hidden />
+                      {t('admin.eventEditor.supabase.liveTitle')}
+                    </strong>
+                    <small>{t('admin.eventEditor.liveSummary')}</small>
+                  </span>
+                </summary>
+
+                <div className="admin-event-form__ticket-config-body">
+                  <div className="admin-event-form__grid">
+                    <FormField
+                      wide
+                      htmlFor="event-live-url"
+                      label={t('admin.eventEditor.supabase.liveStreamUrl')}
+                      error={err('liveStreamUrl')}
+                    >
+                      <input
+                        id="event-live-url"
+                        name="liveStreamUrl"
+                        data-field="liveStreamUrl"
+                        type="url"
+                        placeholder="https://youtube.com/watch?v=..."
+                        value={draft.liveStreamUrl ?? ''}
+                        aria-invalid={Boolean(err('liveStreamUrl'))}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, liveStreamUrl: event.target.value })
+                        }
+                        disabled={!canEdit}
+                      />
+                    </FormField>
+                    <label className="admin-event-form__field" htmlFor="event-live-provider">
+                      <span>{t('admin.eventEditor.supabase.liveStreamProvider')}</span>
+                      <select
+                        id="event-live-provider"
+                        value={draft.liveStreamProvider ?? 'youtube'}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, liveStreamProvider: event.target.value })
+                        }
+                        disabled={!canEdit}
+                      >
+                        <option value="youtube">YouTube</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="twitch">Twitch</option>
+                      </select>
+                    </label>
+                    <label className="admin-event-form__field" htmlFor="event-live-status">
+                      <span>{t('admin.eventEditor.supabase.liveStatus')}</span>
+                      <select
+                        id="event-live-status"
+                        value={draft.liveStatus ?? 'offline'}
+                        onChange={(event) =>
+                          patchDraft({ ...draft, liveStatus: event.target.value })
+                        }
+                        disabled={!canEdit}
+                      >
+                        <option value="offline">
+                          {t('admin.eventEditor.supabase.liveStatusOffline')}
+                        </option>
+                        <option value="live">
+                          {t('admin.eventEditor.supabase.liveStatusLive')}
+                        </option>
+                        <option value="ended">
+                          {t('admin.eventEditor.supabase.liveStatusEnded')}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </details>
             </section>
-
-            <details
-              id="event-section-advanced"
-              className="admin-event-form__advanced"
-              open={showAdvanced}
-              onToggle={(event) => setShowAdvanced(event.currentTarget.open)}
-            >
-              <summary className="admin-event-form__advanced-summary">
-                <span>
-                  <strong>{t('admin.eventEditor.sectionAdvanced')}</strong>
-                  <small>{t('admin.eventEditor.sectionAdvancedLead')}</small>
-                </span>
-              </summary>
-
-              <div className="admin-event-form__advanced-body">
-                <fieldset className="admin-event-form__pricing">
-                  <legend>{t('admin.eventEditor.supabase.sectionTitle')}</legend>
-                  <p className="admin-event-form__pricing-lead">
-                    {t('admin.eventEditor.supabase.sectionLead')}
-                  </p>
-
-                  <section className="admin-event-form__block">
-                    <header className="admin-event-form__block-head">
-                      <h3 className="admin-event-form__block-title">
-                        {t('admin.eventEditor.supabase.scheduleBlockTitle')}
-                      </h3>
-                    </header>
-                    <div className="admin-event-form__grid">
-                      <FormField
-                        htmlFor="event-starts-at"
-                        label={t('admin.eventEditor.supabase.startsAt')}
-                        error={err('startsAt')}
-                      >
-                        <input
-                          id="event-starts-at"
-                          name="startsAt"
-                          data-field="startsAt"
-                          type="datetime-local"
-                          value={draft.startsAt ?? ''}
-                          aria-invalid={Boolean(err('startsAt'))}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, startsAt: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                      <FormField
-                        htmlFor="event-ends-at"
-                        label={t('admin.eventEditor.supabase.endsAt')}
-                        error={err('endsAt')}
-                      >
-                        <input
-                          id="event-ends-at"
-                          name="endsAt"
-                          data-field="endsAt"
-                          type="datetime-local"
-                          value={draft.endsAt ?? ''}
-                          aria-invalid={Boolean(err('endsAt'))}
-                          onChange={(event) => patchDraft({ ...draft, endsAt: event.target.value })}
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                    </div>
-                  </section>
-
-                  <section className="admin-event-form__block">
-                    <header className="admin-event-form__block-head">
-                      <h3 className="admin-event-form__block-title">
-                        {t('admin.eventEditor.supabase.registrationWindowTitle')}
-                      </h3>
-                      <p className="admin-event-form__block-lead">
-                        {t('admin.eventEditor.supabase.registrationWindowLead')}
-                      </p>
-                    </header>
-                    <div className="admin-event-form__grid">
-                      <FormField
-                        htmlFor="event-reg-opens"
-                        label={t('admin.eventEditor.supabase.registrationOpensAt')}
-                        error={err('registrationOpensAt')}
-                      >
-                        <input
-                          id="event-reg-opens"
-                          name="registrationOpensAt"
-                          data-field="registrationOpensAt"
-                          type="datetime-local"
-                          value={draft.registrationOpensAt ?? ''}
-                          aria-invalid={Boolean(err('registrationOpensAt'))}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, registrationOpensAt: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                      <FormField
-                        htmlFor="event-reg-closes"
-                        label={t('admin.eventEditor.supabase.registrationClosesAt')}
-                        error={err('registrationClosesAt')}
-                      >
-                        <input
-                          id="event-reg-closes"
-                          name="registrationClosesAt"
-                          data-field="registrationClosesAt"
-                          type="datetime-local"
-                          value={draft.registrationClosesAt ?? ''}
-                          aria-invalid={Boolean(err('registrationClosesAt'))}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, registrationClosesAt: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                    </div>
-                  </section>
-
-                  <section className="admin-event-form__block">
-                    <header className="admin-event-form__block-head">
-                      <h3 className="admin-event-form__block-title">
-                        <Radio size={13} aria-hidden />
-                        {t('admin.eventEditor.supabase.liveTitle')}
-                      </h3>
-                    </header>
-                    <div className="admin-event-form__grid">
-                      <FormField
-                        wide
-                        htmlFor="event-live-url"
-                        label={t('admin.eventEditor.supabase.liveStreamUrl')}
-                        error={err('liveStreamUrl')}
-                      >
-                        <input
-                          id="event-live-url"
-                          name="liveStreamUrl"
-                          data-field="liveStreamUrl"
-                          type="url"
-                          placeholder="https://youtube.com/watch?v=..."
-                          value={draft.liveStreamUrl ?? ''}
-                          aria-invalid={Boolean(err('liveStreamUrl'))}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, liveStreamUrl: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-                      <label className="admin-event-form__field">
-                        <span>{t('admin.eventEditor.supabase.liveStreamProvider')}</span>
-                        <select
-                          value={draft.liveStreamProvider ?? 'youtube'}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, liveStreamProvider: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        >
-                          <option value="youtube">YouTube</option>
-                          <option value="instagram">Instagram</option>
-                          <option value="twitch">Twitch</option>
-                        </select>
-                      </label>
-                      <label className="admin-event-form__field">
-                        <span>{t('admin.eventEditor.supabase.liveStatus')}</span>
-                        <select
-                          value={draft.liveStatus ?? 'offline'}
-                          onChange={(event) =>
-                            patchDraft({ ...draft, liveStatus: event.target.value })
-                          }
-                          disabled={!canEdit}
-                        >
-                          <option value="offline">
-                            {t('admin.eventEditor.supabase.liveStatusOffline')}
-                          </option>
-                          <option value="live">
-                            {t('admin.eventEditor.supabase.liveStatusLive')}
-                          </option>
-                          <option value="ended">
-                            {t('admin.eventEditor.supabase.liveStatusEnded')}
-                          </option>
-                        </select>
-                      </label>
-                    </div>
-                  </section>
-                </fieldset>
-              </div>
-            </details>
 
             {draft.id && (
               <div

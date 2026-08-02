@@ -14,7 +14,7 @@ export default defineConfig({
       test: {
         name: 'default',
         environment: 'jsdom',
-        include: ['tests/**/*.test.js', 'src/**/*.test.js'],
+        include: ['tests/**/*.test.{js,jsx}', 'src/**/*.test.{js,jsx}'],
         exclude: ['tests/integration/**']
       }
     }, {

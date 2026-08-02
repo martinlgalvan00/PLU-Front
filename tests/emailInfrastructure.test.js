@@ -442,11 +442,15 @@ describe('token de verificación de email', () => {
 describe('emails de pago (vía Mercado Pago)', () => {
   const aprobado = { status: 'aprobado', externalPaymentId: 'mp-1', amount: 78000, raw: {} }
 
-  async function tiposEnviados(order, payment = aprobado) {
+  async function llamadas(order, payment = aprobado, result) {
     const send = vi.fn().mockResolvedValue({ status: 'sent' })
     const notify = createPaymentNotificationService({ dispatcher: { configured: true, send }, env: {} })
-    await notify({ order, payment })
-    return send.mock.calls.map(([type]) => type)
+    await notify({ order, payment, result })
+    return send.mock.calls
+  }
+
+  async function tiposEnviados(order, payment = aprobado, result) {
+    return (await llamadas(order, payment, result)).map(([type]) => type)
   }
 
   it('manda comprobante y aviso en todo pago aprobado', async () => {
@@ -456,6 +460,37 @@ describe('emails de pago (vía Mercado Pago)', () => {
     })
     expect(tipos).toContain('payment_approved')
     expect(tipos).toContain('payment_receipt')
+  })
+
+  it('manda la afiliación aprobada con el código de socio', async () => {
+    // Regresión: la RPC deja la afiliación activa en la misma transacción,
+    // pero por Mercado Pago salía `affiliation_started` ("en curso"). Quien
+    // pagaba con tarjeta —el camino principal— nunca recibía su código.
+    const calls = await llamadas(
+      {
+        kind: 'athlete', id: 'o1', concept: 'membership', reference: 'R1',
+        payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
+      },
+      aprobado,
+      { membership: { id: 'mem-1', member_code: 'PLU-ARG-2026-014', expiration_date: '2027-08-02' } },
+    )
+    const afiliacion = calls.find(([type]) => type === 'affiliation_approved')
+
+    expect(afiliacion).toBeDefined()
+    expect(afiliacion[1].params.memberCode).toBe('PLU-ARG-2026-014')
+    expect(afiliacion[1].params.expirationDate).toBe('2027-08-02')
+    expect(afiliacion[1].entityId).toBe('mem-1')
+    // Anclada en la afiliación: un reintento del webhook sobre el mismo ciclo
+    // no puede generar un segundo aviso.
+    expect(afiliacion[1].idempotencyKey).toBe('email:affiliation-approved:mem-1')
+    expect(calls.map(([type]) => type)).not.toContain('affiliation_started')
+  })
+
+  it('cae en afiliación en curso si el pago aprobado no dejó afiliación', async () => {
+    const tipos = await tiposEnviados({
+      kind: 'athlete', id: 'o1', concept: 'membership', reference: 'R1',
+      payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
+    })
     expect(tipos).toContain('affiliation_started')
   })
 
