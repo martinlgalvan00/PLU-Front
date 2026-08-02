@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
+import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES } from '../../lib/constants.js'
@@ -96,21 +96,25 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             key: 'fullName',
             label: t('admin.columns.athlete'),
             mobile: 'primary',
+            desktop: 'primary',
             sortable: true,
             defaultSort: 'asc',
-            render: (row) => <AdminIdentityCell name={row.fullName} sub={row.documentId} />,
+            render: (row) => <AdminIdentityCell name={row.fullName} sub={row.email} />,
           },
           {
             key: 'documentId',
             label: t('admin.columns.document'),
             mobile: 'hidden',
+            className: 'data-table__column--mono',
             sortable: true,
             mobileSortable: false,
+            render: (row) => <AdminMonoCell>{row.documentId}</AdminMonoCell>,
           },
           {
             key: 'gym',
             label: t('admin.columns.gym'),
             mobile: 'default',
+            className: 'data-table__column--meta',
             sortable: true,
             mobileSortable: false,
           },
@@ -118,6 +122,7 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             key: 'division',
             label: t('admin.columns.division'),
             mobile: 'default',
+            className: 'data-table__column--meta',
             sortable: true,
             mobileSortable: false,
           },
@@ -126,6 +131,7 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             label: t('admin.columns.status'),
             mobile: 'badge',
             mobileLabel: '',
+            desktop: 'status',
             sortable: true,
             mobileSortable: false,
             render: (row) => <StatusBadge value={row.status} />,

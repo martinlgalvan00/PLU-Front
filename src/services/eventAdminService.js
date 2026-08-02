@@ -83,6 +83,7 @@ export function buildAdminEventDraft(event) {
     liveStreamProvider: event.liveStreamProvider ?? 'youtube',
     liveStatus: event.liveStatus ?? 'offline',
     published: event.published === true,
+    requiresMembership: event.requiresMembership !== false,
   }
 }
 
@@ -103,6 +104,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
     slots,
     registered: sourceEvent?.registered ?? 0,
     published: draft.published === true,
+    requiresMembership: draft.requiresMembership !== false,
     slug:
       draft.slug ??
       sourceEvent?.slug ??
@@ -120,6 +122,7 @@ export function getInitialAdminEvents(storedEvents) {
     registered: event.featured ? 48 : Math.floor(DEFAULT_SLOTS * 0.35),
     pricing: { ...DEFAULT_EVENT_PRICING },
     published: event.published ?? true,
+    requiresMembership: event.requiresMembership !== false,
   }))
 
   if (!storedEvents?.length) return seed
@@ -134,6 +137,8 @@ export function getInitialAdminEvents(storedEvents) {
       `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
     createdOrder: event.createdOrder ?? seedBySlug[event.slug]?.createdOrder ?? Date.now() + index,
     published: event.published ?? seedBySlug[event.slug]?.published ?? true,
+    requiresMembership:
+      event.requiresMembership ?? seedBySlug[event.slug]?.requiresMembership ?? true,
     pricing: normalizeEventPricingInput(event.pricing ?? seedBySlug[event.slug]?.pricing),
   }))
 
@@ -210,6 +215,7 @@ export function createAdminEvent(events, payload) {
     liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
     liveStatus: payload.liveStatus ?? 'offline',
     published: Boolean(payload.published),
+    requiresMembership: payload.requiresMembership !== false,
   }
 
   const siblings = featured ? events.map((item) => ({ ...item, featured: false })) : events
@@ -262,6 +268,10 @@ export function updateAdminEvent(events, eventId, payload) {
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
       published: Boolean(payload.published),
+      requiresMembership:
+        payload.requiresMembership !== undefined
+          ? Boolean(payload.requiresMembership)
+          : event.requiresMembership !== false,
       updatedAt: new Date().toISOString(),
     }
     return updated
@@ -314,6 +324,7 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
   published: false,
+  requiresMembership: true,
 }
 
 /**
@@ -403,7 +414,7 @@ export function mapSupabaseEventRow(row) {
     capacity: row.capacity,
     status: row.status,
     published: row.published,
-    requiresMembership: row.requires_membership,
+    requiresMembership: row.requires_membership !== false,
     price: row.price,
     currency: row.currency,
     liveStreamUrl: row.live_stream_url,

@@ -297,8 +297,14 @@ export default function EventsSection({
   }
 
   function renderEventGroup(group) {
+    const isFinishedGroup = group.id.startsWith('finished')
     return (
-      <li className="admin-event-group" key={group.id}>
+      <li
+        className={['admin-event-group', isFinishedGroup ? 'admin-event-group--finished' : '']
+          .filter(Boolean)
+          .join(' ')}
+        key={group.id}
+      >
         <div className="admin-event-group__label">
           <span>{group.label}</span>
           <strong>{group.rows.length}</strong>
@@ -322,14 +328,25 @@ export default function EventsSection({
     )
   }
 
+  const selectedVenueLine = selectedEvent
+    ? [selectedEvent.venue, selectedEvent.location].filter(Boolean).join(', ')
+    : ''
+  const selectedDateLabel = selectedEvent
+    ? selectedEvent.dateISO
+      ? formatDayMonth(selectedEvent.dateISO, locale)
+      : (selectedEvent.date ?? '')
+    : ''
+
   return (
     <AdminListSection
+      eyebrow={t('admin.sections.events.eyebrow')}
       filteredCount={rows.length}
       meta={resultMeta}
       placeholder={t('admin.search.event')}
       query={query}
       showHeader
       showStats={false}
+      subtitle={t('admin.sections.events.subtitle')}
       title={t('admin.sections.events.title')}
       totalCount={adminEvents.length}
       variant="events"
@@ -435,13 +452,21 @@ export default function EventsSection({
           >
             <div className="admin-event-preview__head">
               <div className="admin-event-preview__head-copy">
-                <span className="admin-event-preview__label">
-                  {t('admin.sections.events.panelLabel')}
-                </span>
-                <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
-                <div className="admin-event-preview__status">
+                <div className="admin-event-preview__title-row">
+                  <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
                   <StatusPill value={selectedEvent.status} />
                 </div>
+                {(selectedDateLabel || selectedVenueLine) && (
+                  <p className="admin-event-preview__meta-line">
+                    {selectedDateLabel ? <span>{selectedDateLabel}</span> : null}
+                    {selectedDateLabel && selectedVenueLine ? (
+                      <span className="admin-event-preview__meta-sep" aria-hidden>
+                        ·
+                      </span>
+                    ) : null}
+                    {selectedVenueLine ? <span>{selectedVenueLine}</span> : null}
+                  </p>
+                )}
               </div>
               <div className="admin-event-preview__head-actions">
                 <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
@@ -451,7 +476,7 @@ export default function EventsSection({
                       icon={ShieldCheck}
                       label={t('admin.eventEditor.security.title')}
                       onClick={() => openEditForm(selectedEvent, 'security')}
-                      variant="celeste"
+                      variant="ghost"
                     />
                     <Button
                       type="button"
@@ -479,21 +504,21 @@ export default function EventsSection({
                   })}
                   onClick={() => openEditForm(selectedEvent, 'tickets')}
                 >
-                  <Ticket size={13} aria-hidden />
+                  <Ticket size={14} aria-hidden />
                   <span>{t('admin.eventEditor.manageTickets')}</span>
                   <strong>{activeTicketTypeCount}</strong>
                 </button>
               ) : null}
               {onManageRegistrations ? (
                 <button type="button" onClick={() => onManageRegistrations(selectedEvent)}>
-                  <ClipboardList size={13} aria-hidden />
+                  <ClipboardList size={14} aria-hidden />
                   <span>{t('admin.eventEditor.manageRegistrations')}</span>
                   <strong>{selectedEvent.registered ?? 0}</strong>
                 </button>
               ) : null}
               {onManagePayments ? (
                 <button type="button" onClick={() => onManagePayments(selectedEvent)}>
-                  <CreditCard size={13} aria-hidden />
+                  <CreditCard size={14} aria-hidden />
                   <span>{t('admin.eventEditor.managePayments')}</span>
                 </button>
               ) : null}

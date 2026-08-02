@@ -142,6 +142,9 @@ export const REGISTRATION_FILTER_STATUSES = [
   ['aprobado', 'paymentApproved'],
 ]
 
+/** Lista para competir. `acreditada` es alias legacy; el backend escribe `confirmada`. */
+export const CONFIRMED_REGISTRATION_STATUSES = ['confirmada', 'acreditada']
+
 export const MEMBERSHIP_FILTER_STATUSES = [
   ['all', 'allStatuses'],
   ['activa', 'membershipActive'],

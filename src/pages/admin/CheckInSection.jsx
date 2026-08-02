@@ -149,7 +149,7 @@ export default function CheckInSection({
             key: 'name',
             label: t('admin.columns.attendee'),
             mobile: 'primary',
-            render: (row) => <AdminIdentityCell name={row.name} sub={row.document} />,
+            render: (row) => <AdminIdentityCell name={row.name} sub={row.document} subMono />,
           },
           {
             key: 'type',

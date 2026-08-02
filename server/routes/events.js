@@ -103,6 +103,7 @@ export const eventSchema = z
       'finalizado',
     ]),
     published: z.boolean(),
+    requiresMembership: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
     pricing: pricingSchema,
     featured: z.boolean().optional(),

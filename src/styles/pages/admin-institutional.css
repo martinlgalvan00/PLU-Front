@@ -1128,8 +1128,15 @@
   align-items: end;
   background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
   gap: 24px;
+  justify-content: space-between;
   padding: 25px 27px 22px;
+}
+
+.admin-shell .admin-list-section > .admin-list-shell__header {
+  border-bottom: 0;
+  padding: 0 2px 8px;
 }
 
 .admin-shell .admin-list-shell__intro {
@@ -1236,32 +1243,38 @@
 
 .admin-shell .admin-filters {
   align-items: center;
-  background: var(--admin-surface-muted);
+  background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   border-top: 0;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 8px 16px 10px;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external {
+  background: transparent;
+  border: 0;
+  padding: 2px 2px 4px;
 }
 
 .admin-shell .admin-filter-chip {
   background: transparent;
   border-color: transparent;
-  border-radius: 7px;
+  border-radius: 0;
   color: var(--admin-muted);
-  font-size: 10.5px;
-  min-height: 30px;
+  font-size: 12px;
+  min-height: 34px;
 }
 
 .admin-shell .admin-filter-chip:hover {
-  background: var(--admin-row-hover);
+  background: transparent;
   color: var(--admin-ink);
 }
 
 .admin-shell .admin-filter-chip.is-active,
 .admin-shell .admin-filter-chip[aria-pressed='true'] {
-  background: var(--admin-surface-raised);
-  border-color: var(--admin-hairline-strong);
-  box-shadow: var(--admin-shadow-soft);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
   color: var(--admin-ink);
 }
 
@@ -1304,24 +1317,24 @@
 }
 
 .admin-shell .data-table--admin th {
-  background: color-mix(in srgb, var(--admin-surface-muted) 72%, transparent);
+  background: color-mix(in srgb, var(--admin-surface-muted) 55%, transparent);
   border-bottom: 1px solid var(--admin-hairline);
   color: var(--admin-muted);
-  font-size: 8.5px;
-  font-weight: 700;
-  height: 39px;
-  letter-spacing: 0.11em;
+  font-size: 10px;
+  font-weight: 650;
+  height: 38px;
+  letter-spacing: 0.08em;
   padding: 0 18px;
   text-transform: uppercase;
 }
 
 .admin-shell .data-table--admin td {
   background: transparent;
-  border-bottom: 1px solid var(--admin-hairline);
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 72%, transparent);
   color: var(--admin-text-secondary);
-  font-size: 11.5px;
-  height: 55px;
-  padding: 10px 18px;
+  font-size: 12.5px;
+  height: 56px;
+  padding: 11px 18px;
 }
 
 .admin-shell .data-table--admin tbody tr {
@@ -1349,17 +1362,17 @@
 }
 
 .admin-shell .data-table__identity {
-  gap: 10px;
+  gap: 12px;
 }
 
 .admin-shell .data-table__avatar {
   background: var(--admin-focus-soft);
   border: 1px solid color-mix(in srgb, var(--admin-focus) 18%, transparent);
-  border-radius: 9px;
+  border-radius: 8px;
   color: var(--admin-focus);
   font-size: 11px;
-  height: 32px;
-  width: 32px;
+  height: 34px;
+  width: 34px;
 }
 
 .admin-shell .data-table__avatar--gold {
@@ -1368,15 +1381,23 @@
   color: var(--admin-accent);
 }
 
-.admin-shell .data-table__identity-copy strong {
+.admin-shell .data-table__identity-copy strong,
+.admin-shell .data-table__identity-name {
   color: var(--admin-ink);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 650;
+  letter-spacing: -0.015em;
 }
 
 .admin-shell .data-table__sub {
   color: var(--admin-muted);
-  font-size: 9.5px;
+  font-size: 11px;
+}
+
+.admin-shell .data-table__sub--mono,
+.admin-shell .data-table__mono {
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-shell .status-pill,

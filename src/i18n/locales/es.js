@@ -180,6 +180,7 @@ export default {
     borrador: 'Borrador',
     pagada: 'Pagada',
     confirmada: 'Confirmada',
+    acreditada: 'Acreditada',
     observada: 'Observada',
     creado: 'Creado',
     pendiente: 'Pendiente',

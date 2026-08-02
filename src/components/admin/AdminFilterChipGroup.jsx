@@ -109,22 +109,36 @@ export default function AdminFilterChipGroup({
           const [optionValue, optionLabel, optionCount] = option
           const active = value === optionValue
           const showCount = optionCount !== undefined && optionCount !== null && optionCount !== ''
+          const isZeroCount = showCount && Number(optionCount) === 0
+          const chipClass = [
+            'admin-filter-chip',
+            active ? 'is-active' : '',
+            showCount ? 'admin-filter-chip--counted' : '',
+            isZeroCount ? 'admin-filter-chip--zero' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
 
           return (
             <button
               key={optionValue}
               type="button"
-              className={`admin-filter-chip${active ? ' is-active' : ''}${showCount ? ' admin-filter-chip--counted' : ''}`.trim()}
+              className={chipClass}
               aria-pressed={active}
               disabled={disabled}
               onClick={() => onChange(optionValue)}
             >
-              <span className="admin-filter-chip__indicator" aria-hidden>
-                {active ? <Check size={10} strokeWidth={2.5} /> : null}
-              </span>
+              {!compact ? (
+                <span className="admin-filter-chip__indicator" aria-hidden>
+                  {active ? <Check size={10} strokeWidth={2.5} /> : null}
+                </span>
+              ) : null}
               <span className="admin-filter-chip__label">{optionLabel}</span>
               {showCount ? (
-                <span className="admin-filter-chip__count" aria-hidden>
+                <span
+                  className={`admin-filter-chip__count${isZeroCount ? ' is-zero' : ''}`.trim()}
+                  aria-hidden
+                >
                   {optionCount}
                 </span>
               ) : null}
