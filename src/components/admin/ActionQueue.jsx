@@ -145,7 +145,10 @@ export default function ActionQueue({
                       <button
                         type="button"
                         className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
-                        onClick={() => onNavigate?.(item.section)}
+                        // El id viaja con la navegación para que la sección
+                        // destino pueda enfocar la fila: antes "ver" llevaba a
+                        // una pantalla donde el ítem ni siquiera figuraba.
+                        onClick={() => onNavigate?.(item.section, item.paymentId ?? item.orderId ?? null)}
                       >
                         {t('admin.actions.view')}
                         <ArrowRight size={14} aria-hidden />

@@ -1,0 +1,84 @@
+import { Router } from 'express'
+import { z } from 'zod'
+import { HttpError } from '../lib/errors.js'
+import { requirePermission } from '../middleware/auth.js'
+import { staffLimiter } from '../middleware/rateLimit.js'
+import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRepository.js'
+
+/**
+ * audit.js — PLU ARG
+ *
+ * La sección Auditoría del panel era un placeholder y el timeline del atleta
+ * se armaba en el browser sobre localStorage. Acá se expone la bitácora real
+ * de `domain_audit_logs`, que es la que las RPC escriben en la misma
+ * transacción que aplica cada efecto de dominio.
+ *
+ * Solo lectura y detrás de `admin.audit.read`: la auditoría no se edita desde
+ * ningún lado, ni siquiera con permisos totales.
+ */
+
+const listQuerySchema = z.object({
+  action: z.string().trim().min(1).max(80).optional(),
+  entityType: z.string().trim().min(1).max(60).optional(),
+  entityId: z.string().trim().min(1).max(120).optional(),
+  entityIds: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2000)
+    .transform((value) => value.split(',').map((id) => id.trim()).filter(Boolean).slice(0, 50))
+    .optional(),
+  actorType: z.string().trim().min(1).max(40).optional(),
+  search: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    // El término entra en un `or(...ilike...)` de PostgREST, donde la coma y
+    // el paréntesis son sintaxis del filtro, no texto.
+    .transform((value) => value.replace(/[,()*]/g, ''))
+    .optional(),
+  before: z.string().datetime({ offset: true }).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+})
+
+export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
+  const router = Router()
+  const prisma = getPrisma()
+  const auditGuard = requirePermission('admin.audit.read', { prisma })
+
+  function repo() {
+    if (repository) return repository
+    const client = getSupabaseAdmin?.()
+    if (!client) throw new HttpError(503, 'Supabase Admin no está configurado.')
+    return createSupabaseAuditRepository(client)
+  }
+
+  router.get('/', ...auditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const parsed = listQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Parámetros de auditoría inválidos.')
+      const entries = await repo().list(parsed.data)
+      res.json({
+        entries,
+        // El cursor sale del último registro devuelto: la UI lo reenvía como
+        // `before` para pedir la página siguiente.
+        nextCursor: entries.length === parsed.data.limit
+          ? entries[entries.length - 1].created_at
+          : null,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/facets', ...auditGuard, staffLimiter, async (_req, res, next) => {
+    try {
+      res.json(await repo().facets())
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  return router
+}

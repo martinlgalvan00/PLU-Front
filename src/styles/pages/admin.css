@@ -2405,44 +2405,82 @@
   border-color: color-mix(in oklab, #e35d5d 32%, transparent);
 }
 
-.admin-event-form__advanced {
+/* Carriles de "Ventas y cupos": inscripción de atletas y entradas de público
+   son dos vías simétricas de ingreso al evento, así que se leen como dos
+   bloques equivalentes en vez de dos secciones separadas del editor. */
+.admin-event-form__lane {
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 10px;
-  overflow: hidden;
+  border-radius: var(--radius-lg, 12px);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
 }
 
-.admin-event-form__advanced-summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 14px;
+.admin-event-form__lane + .admin-event-form__lane {
+  margin-top: 14px;
 }
 
-.admin-event-form__advanced-summary::-webkit-details-marker {
-  display: none;
-}
-
-.admin-event-form__advanced-summary > span {
+.admin-event-form__lane-head {
   display: grid;
   gap: 3px;
 }
 
-.admin-event-form__advanced-summary strong {
+.admin-event-form__lane-title {
+  align-items: center;
+  display: flex;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
+  gap: 7px;
+  margin: 0;
 }
 
-.admin-event-form__advanced-summary small {
+.admin-event-form__lane-head p {
   color: var(--color-text-muted);
   font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.45;
+  margin: 0;
 }
 
-.admin-event-form__advanced-body {
-  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+.admin-event-form__occupancy {
+  align-content: end;
   display: grid;
-  gap: 18px;
-  padding: 14px;
+  gap: 6px;
+}
+
+.admin-event-form__occupancy small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* Contradicciones entre el estado público elegido a mano y la configuración
+   real. Advierte, no bloquea: el guardado sigue disponible. */
+.admin-event-form__consistency {
+  background: var(--admin-status-warning-bg);
+  border: 1px solid var(--admin-status-warning-border);
+  border-radius: var(--radius-md, 10px);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.admin-event-form__consistency-head {
+  align-items: center;
+  color: var(--admin-status-warning);
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 7px;
+  margin: 0;
+}
+
+.admin-event-form__consistency ul {
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 12px;
+  gap: 5px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 18px;
 }
 
 .admin-event-editor {

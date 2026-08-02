@@ -3,7 +3,8 @@ import { ArrowLeft, BadgeCheck } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
-import AuditTimeline from '../../components/ui/AuditTimeline.jsx'
+import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
+import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -30,7 +31,13 @@ function profileValue(value) {
   return value
 }
 
-export default function AthleteDetailSection({ detail, onBack, canEdit, onApprovePayment }) {
+export default function AthleteDetailSection({
+  detail,
+  onBack,
+  canEdit,
+  canRotateCredential = false,
+  onApprovePayment,
+}) {
   const { locale, t } = useI18n()
   const [activeTab, setActiveTab] = useState('profile')
   const {
@@ -38,9 +45,11 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
     memberships = [],
     registrations = [],
     payments = [],
-    auditLogs = [],
   } = detail ?? {}
   const activeMembership = memberships.find((item) => item.status === 'activa')
+  // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
+  // muestra la última emitida para poder cotejar un QR viejo.
+  const credentialMembership = activeMembership ?? memberships[0] ?? null
 
   const tabs = useMemo(
     () => [
@@ -48,9 +57,10 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
       { id: 'memberships', label: t('admin.athleteDetail.tabs.memberships'), count: memberships.length },
       { id: 'registrations', label: t('admin.athleteDetail.tabs.registrations'), count: registrations.length },
       { id: 'payments', label: t('admin.athleteDetail.tabs.payments'), count: payments.length },
-      { id: 'activity', label: t('admin.athleteDetail.tabs.activity'), count: auditLogs.length },
+      { id: 'credential', label: t('admin.athleteDetail.tabs.credential') },
+      { id: 'activity', label: t('admin.athleteDetail.tabs.activity') },
     ],
-    [auditLogs.length, memberships.length, payments.length, registrations.length, t],
+    [memberships.length, payments.length, registrations.length, t],
   )
 
   const profileGroups = useMemo(
@@ -249,13 +259,23 @@ export default function AthleteDetailSection({ detail, onBack, canEdit, onApprov
         </div>
       )}
 
+      {activeTab === 'credential' && (
+        <div className="surface-card surface-card--flat athlete-detail__credential">
+          <AdminMembershipCredential
+            membershipId={credentialMembership?.id ?? null}
+            canRotate={canRotateCredential}
+          />
+        </div>
+      )}
+
       {activeTab === 'activity' && (
         <div className="surface-card surface-card--flat athlete-detail__timeline">
-          {auditLogs.length > 0 ? (
-            <AuditTimeline items={auditLogs} />
-          ) : (
-            <p className="data-table__empty">{t('admin.athleteDetail.emptyActivity')}</p>
-          )}
+          <AdminAthleteActivity
+            athleteId={athlete?.id}
+            memberships={memberships}
+            registrations={registrations}
+            payments={payments}
+          />
         </div>
       )}
     </div>

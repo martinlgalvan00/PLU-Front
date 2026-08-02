@@ -113,18 +113,6 @@ async function establishSupabaseSession(supabaseAuth) {
   }
 }
 
-function buildAuditLog(action, entityType, entityId, actor, metadata) {
-  return {
-    id: `audit-${Date.now()}`,
-    action,
-    entityType,
-    entityId,
-    actor,
-    createdAt: new Date().toISOString(),
-    metadata,
-  }
-}
-
 export function useAppData() {
   const oauth = usePluOAuth()
   const storedData = useMemo(() => readStorage(), [])
@@ -152,7 +140,6 @@ export function useAppData() {
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
-  const [auditLogs, setAuditLogs] = useState(() => storedData?.auditLogs ?? [])
   const [adminEvents, setAdminEvents] = useState(() =>
     getInitialAdminEvents(storedData?.adminEvents),
   )
@@ -185,8 +172,8 @@ export function useAppData() {
   // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
   // siendo locales) tampoco necesitan persistirse entre recargas.
   useEffect(() => {
-    writeStorage({ createdOrder, auditLogs, adminEvents, shopProducts, users })
-  }, [createdOrder, auditLogs, adminEvents, shopProducts, users])
+    writeStorage({ createdOrder, adminEvents, shopProducts, users })
+  }, [createdOrder, adminEvents, shopProducts, users])
 
   useEffect(() => {
     let active = true
@@ -425,19 +412,10 @@ export function useAppData() {
     [payments, registrations, pendingTicketOrders],
   )
 
-  const recentActivity = useMemo(
-    () =>
-      buildRecentActivity({
-        auditLogs,
-        athletes,
-        memberships,
-        registrations,
-        payments,
-        events: adminEvents,
-      }),
-    [auditLogs, athletes, memberships, registrations, payments, adminEvents],
-  )
-
+  // La actividad reciente y el timeline del atleta salen de `domain_audit_logs`
+  // vía /api/audit (`AdminRecentActivity`, `AdminAthleteActivity`). Antes se
+  // armaban acá sobre un array de localStorage: uno distinto por navegador y
+  // sin relación con lo que había pasado de verdad en la base.
   const getAthleteDetail = useCallback(
     (athleteId) => {
       const athlete = athletes.find((item) => item.id === athleteId)
@@ -448,10 +426,9 @@ export function useAppData() {
         memberships: memberships.filter((item) => item.athleteId === athleteId),
         registrations: registrations.filter((item) => item.athleteId === athleteId),
         payments: payments.filter((item) => item.athleteId === athleteId),
-        auditLogs: getAthleteAuditLogs(athleteId, auditLogs, memberships, registrations, payments),
       }
     },
-    [athletes, memberships, registrations, payments, auditLogs],
+    [athletes, memberships, registrations, payments],
   )
 
   const filteredRegistrations = useMemo(() => {
@@ -494,10 +471,6 @@ export function useAppData() {
           status: 'registrado',
         }
         setCreatedOrder(confirmation)
-        setAuditLogs((c) => [
-          buildAuditLog('athlete.registered', 'athlete', athlete.id, 'public'),
-          ...c,
-        ])
         setForm({ ...DEFAULT_FORM })
         setSession({
           role: 'athlete_plu',
@@ -569,10 +542,6 @@ export function useAppData() {
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        setAuditLogs((current) => [
-          buildAuditLog('membership.created', 'membership', membership.id, athlete.id),
-          ...current,
-        ])
         return { membership, payment, plan, createdOrder }
       } catch (error) {
         if (error instanceof ApiError) return { error: error.message }
@@ -656,10 +625,6 @@ export function useAppData() {
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        setAuditLogs((current) => [
-          buildAuditLog('registration.created', 'registration', registration.id, athlete.id),
-          ...current,
-        ])
         return { registration: enrichedRegistration, payment, createdOrder }
       } catch (error) {
         // El servidor es la autoridad para el gate de membresía activa
@@ -1309,10 +1274,6 @@ export function useAppData() {
         }
 
         setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
-        setAuditLogs((c) => [
-          buildAuditLog('payment.approved', 'payment', paymentId, 'admin'),
-          ...c,
-        ])
       } catch (error) {
         console.error('handleApprovePayment:', error)
         return { error: error?.message ?? 'No se pudo aprobar el pago.' }
@@ -1478,15 +1439,6 @@ export function useAppData() {
         ? nextProducts.find((product) => product.id === draft.id)
         : nextProducts[0]
       setShopProducts(nextProducts)
-      setAuditLogs((current) => [
-        buildAuditLog(
-          draft.id ? 'shop.product.updated' : 'shop.product.created',
-          'shop_product',
-          savedProduct?.id ?? draft.id,
-          'admin',
-        ),
-        ...current,
-      ])
       return { product: savedProduct }
     },
     [shopProducts, session],
@@ -1498,10 +1450,6 @@ export function useAppData() {
         return { error: 'Sin permisos para eliminar productos.' }
       }
       setShopProducts((current) => deleteShopProduct(current, productId))
-      setAuditLogs((current) => [
-        buildAuditLog('shop.product.deleted', 'shop_product', productId, 'admin'),
-        ...current,
-      ])
       return { ok: true }
     },
     [session],
@@ -1522,7 +1470,6 @@ export function useAppData() {
     pendingTicketOrdersLoading,
     pendingTicketOrdersError,
     createdOrder,
-    auditLogs,
     form,
     filters,
     setFilters,
@@ -1540,7 +1487,6 @@ export function useAppData() {
     enrichedMemberships,
     pendingActions,
     adminNavBadges,
-    recentActivity,
     getAthleteDetail,
     updateForm,
     updateAthleteProfileAction,

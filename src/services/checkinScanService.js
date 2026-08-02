@@ -1,5 +1,5 @@
 import { ApiError } from '../lib/api.js'
-import { getMembershipByCodeOrToken } from './athleteApi.js'
+import { getMembershipByCodeOrToken, getStaffMembershipCredential } from './athleteApi.js'
 import { mapApiTicket, verifyTicketByQrToken } from './ticketApi.js'
 
 /** Estado sintético unificado para atletas (pagos) y tickets (ciclo de entrada). */
@@ -59,12 +59,29 @@ function checkinOutcomeFromStatus(status) {
   return 'not_ready'
 }
 
+/**
+ * El operador en la puerta necesita el DNI para cotejarlo contra el documento
+ * físico, pero la proyección pública dejó de exponerlo (el `member_code` es
+ * correlativo, así que devolver PII ahí era una fuga enumerable). Con sesión
+ * de staff se pide por la API autenticada; sin sesión se cae a la pública, que
+ * es la que consume la página de verificación del QR.
+ */
+function readCredential(code, slug, staff) {
+  if (!staff) return getMembershipByCodeOrToken(code, slug)
+  return getStaffMembershipCredential(code, slug).catch((error) => {
+    if (error instanceof ApiError && [401, 403].includes(error.status)) {
+      return getMembershipByCodeOrToken(code, slug)
+    }
+    throw error
+  })
+}
+
 export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
-  const { defaultEventSlug } = ctx
+  const { defaultEventSlug, staff = false } = ctx
   const slug = eventSlug || defaultEventSlug
 
   try {
-    const { athlete, membership, registration } = await getMembershipByCodeOrToken(code, slug)
+    const { athlete, membership, registration } = await readCredential(code, slug, staff)
     if (!membership || !athlete) return { kind: 'registration', outcome: 'not_found' }
 
     if (!registration) {

@@ -247,7 +247,13 @@ export function useCheckInWorkspace({
       setScanResult(null)
 
       try {
-        const resolved = await resolveCredentialScan(parsed, { defaultEventSlug: eventSlug })
+        // `staff` pide la proyección con documento: el workspace solo se
+        // renderiza detrás de admin.checkin.execute, que es el mismo permiso
+        // que exige el endpoint.
+        const resolved = await resolveCredentialScan(parsed, {
+          defaultEventSlug: eventSlug,
+          staff: canCheckIn,
+        })
         const historyEntry = buildHistoryEntry(resolved, raw)
         setScanResult(resolved)
         setRedeemError('')

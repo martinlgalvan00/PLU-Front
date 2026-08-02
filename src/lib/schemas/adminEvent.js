@@ -17,6 +17,19 @@ function optionalDateTime(message = 'dateTimeInvalid') {
     .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), message)
 }
 
+/** Inicio y fin dejaron de ser opcionales: son la única fuente de fecha del
+ * evento (antes convivían con un `dateISO` aparte que podía contradecirlas). */
+function requiredDateTime(missingMessage) {
+  return z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((value) => value || '')
+    .refine((value) => value !== '', missingMessage)
+    .refine((value) => value === '' || !Number.isNaN(Date.parse(value)), 'dateTimeInvalid')
+}
+
 /**
  * Validación del draft de creación/edición de eventos.
  * Campos críticos obligatorios; ventanas y live opcionales con consistencia.
@@ -24,10 +37,6 @@ function optionalDateTime(message = 'dateTimeInvalid') {
 export const adminEventDraftSchema = z
   .object({
     title: z.string().trim().min(3, 'titleMin').max(120, 'titleMax'),
-    dateISO: z
-      .string()
-      .trim()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'dateRequired'),
     slots: z.coerce
       .number({ invalid_type_error: 'slotsInvalid' })
       .int('slotsInt')
@@ -41,8 +50,8 @@ export const adminEventDraftSchema = z
       registration: moneyField,
       combo: moneyField,
     }),
-    startsAt: optionalDateTime(),
-    endsAt: optionalDateTime(),
+    startsAt: requiredDateTime('startsAtRequired'),
+    endsAt: requiredDateTime('endsAtRequired'),
     registrationOpensAt: optionalDateTime(),
     registrationClosesAt: optionalDateTime(),
     ticketSalesOpensAt: optionalDateTime(),
@@ -116,7 +125,6 @@ function pathKey(path) {
 export function validateAdminEventDraft(draft, t) {
   const result = adminEventDraftSchema.safeParse({
     title: draft?.title ?? '',
-    dateISO: draft?.dateISO ?? '',
     slots: draft?.slots,
     venue: draft?.venue ?? '',
     location: draft?.location ?? '',

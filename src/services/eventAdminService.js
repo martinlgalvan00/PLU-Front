@@ -5,6 +5,16 @@ import { apiGet, apiPost } from '../lib/api.js'
 
 const DEFAULT_SLOTS = 80
 
+// Mismo set que create_competition_registration_v2 usa para bloquear cupo
+// (supabase/migrations/20260717140000_plu_v26_1_division_category_lexicon.sql).
+// Contar canceladas/borradores acá mostraría el evento lleno mientras el RPC
+// todavía acepta inscripciones.
+const ACTIVE_REGISTRATION_STATUSES = ['pendiente_pago', 'pagada', 'confirmada']
+
+function countActiveRegistrations(rows) {
+  return rows.filter((row) => ACTIVE_REGISTRATION_STATUSES.includes(row?.status)).length
+}
+
 function slugify(title, dateISO) {
   const base = String(title ?? '')
     .toLowerCase()
@@ -87,6 +97,16 @@ export function buildAdminEventDraft(event) {
   }
 }
 
+/**
+ * `startsAt` es la única fuente de fecha del evento. `dateISO` sigue existiendo
+ * porque alimenta slug, orden del listado y preview, pero pasa a derivarse acá
+ * en vez de ser un input aparte que el admin podía dejar contradiciendo al
+ * inicio real (y que se sobrescribía solo al recargar).
+ */
+export function withEventStart(draft, startsAt) {
+  return { ...draft, startsAt, dateISO: startsAt ? startsAt.slice(0, 10) : '' }
+}
+
 export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
   const title = draft.title?.trim() || 'Título del evento'
   const dateISO = draft.dateISO || sourceEvent?.dateISO || ''
@@ -110,6 +130,69 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
       sourceEvent?.slug ??
       (title && dateISO ? slugify(title, dateISO) : 'evento-preview'),
   }
+}
+
+function parseLocalDateTime(value) {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const OPEN_REGISTRATION_STATUSES = ['inscripcion_abierta', 'cupos_limitados']
+const CLOSED_REGISTRATION_STATUSES = ['cerrado', 'finalizado']
+
+/**
+ * Contradicciones entre el estado público —que el admin elige a mano— y la
+ * realidad del evento: ventanas de fecha vencidas o cupo lleno. El backend ya
+ * rechaza estas altas (create_competition_registration_v2 / create_ticket_order_v2),
+ * pero el sitio público sigue invitando y el atleta se entera recién al final.
+ *
+ * Solo advierte: no corrige el dato ni bloquea el guardado. El admin manda.
+ * Devuelve códigos; el copy vive en `admin.eventEditor.consistency.*`.
+ */
+export function getEventConsistencyWarnings(draft, sourceEvent = null, now = new Date()) {
+  if (!draft) return []
+
+  const warnings = []
+  const status = draft.status ?? ''
+  const registrationOpensAt = parseLocalDateTime(draft.registrationOpensAt)
+  const registrationClosesAt = parseLocalDateTime(draft.registrationClosesAt)
+  const ticketSalesClosesAt = parseLocalDateTime(draft.ticketSalesClosesAt)
+  const endsAt = parseLocalDateTime(draft.endsAt)
+  const registered = sourceEvent?.registered ?? 0
+  const slots = Number(draft.slots) || 0
+
+  if (OPEN_REGISTRATION_STATUSES.includes(status)) {
+    if (registrationClosesAt && registrationClosesAt < now) {
+      warnings.push('registrationClosedButOpenStatus')
+    }
+    if (registrationOpensAt && registrationOpensAt > now) {
+      warnings.push('registrationNotYetOpen')
+    }
+  }
+
+  if (CLOSED_REGISTRATION_STATUSES.includes(status)) {
+    const windowOpen =
+      (!registrationOpensAt || registrationOpensAt <= now) &&
+      (!registrationClosesAt || registrationClosesAt >= now)
+    if (windowOpen && (registrationOpensAt || registrationClosesAt)) {
+      warnings.push('registrationOpenButClosedStatus')
+    }
+  }
+
+  if (status === 'inscripcion_abierta' && slots > 0 && registered >= slots) {
+    warnings.push('slotsFullButOpenStatus')
+  }
+
+  if (draft.pricing?.ticketsEnabled !== false && ticketSalesClosesAt && ticketSalesClosesAt < now) {
+    warnings.push('ticketSalesClosedButEnabled')
+  }
+
+  if (status === 'finalizado' && endsAt && endsAt > now) {
+    warnings.push('finishedButNotEnded')
+  }
+
+  return warnings
 }
 
 export function getInitialAdminEvents(storedEvents) {
@@ -391,12 +474,10 @@ function mapSupabaseTicketCatalog(row) {
 export function mapSupabaseEventRow(row) {
   const rules = row.rules ?? {}
   const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
-  const registrationCount =
-    row.registrationCount ??
-    row.registration_count ??
-    row.eventRegistrations?.[0]?.count ??
-    row.event_registrations?.[0]?.count ??
-    0
+  const registrationRows = row.eventRegistrations ?? row.event_registrations
+  const registrationCount = Array.isArray(registrationRows)
+    ? countActiveRegistrations(registrationRows)
+    : (row.registrationCount ?? row.registration_count ?? 0)
 
   return {
     id: row.id,

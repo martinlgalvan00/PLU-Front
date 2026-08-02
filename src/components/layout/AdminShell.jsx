@@ -44,7 +44,9 @@ const ICONS = {
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
-const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'audit', 'checkin'])
+// `audit` salió de acá al dejar de ser un placeholder: ahora lee
+// `domain_audit_logs` a través de /api/audit.
+const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 
 function readStoredCollapsed() {

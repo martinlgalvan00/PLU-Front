@@ -3,6 +3,7 @@ import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
+const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
 
 export function createSupabaseAthleteRepository(
   client,
@@ -155,7 +156,7 @@ export function createSupabaseAthleteRepository(
         'No se pudo leer el evento.',
       )
     },
-    async approvePayment(orderId) {
+    async approvePayment(orderId, actor = null) {
       const order = assertSupabaseResult(
         await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),
         'No se pudo leer la orden.',
@@ -164,8 +165,111 @@ export function createSupabaseAthleteRepository(
       if (order.method === 'mercado_pago') {
         throw new HttpError(400, 'Mercado Pago solo se acredita por webhook.')
       }
-      return rpc('approve_athlete_payment_order', { p_order_id: orderId }, 'No se pudo aprobar el pago.')
+      // `p_actor` viaja hasta domain_audit_logs: sin él la aprobación manual
+      // queda registrada sin responsable, que es justo lo que hay que poder
+      // reconstruir ante un reclamo.
+      return rpc('approve_athlete_payment_order', {
+        p_order_id: orderId,
+        p_actor: actor,
+      }, 'No se pudo aprobar el pago.')
     },
+
+    /**
+     * Órdenes de atleta (afiliación, inscripción, combo) para la bandeja de
+     * Finanzas. Hasta ahora la única forma de llegar a una era entrar atleta
+     * por atleta desde el padrón.
+     */
+    async listPaymentOrders({ status, method, concept, limit = 100 } = {}) {
+      let query = client
+        .from('athlete_payment_orders')
+        .select('*, athlete:athletes(id, full_name, document_id, email)')
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (status) query = query.eq('status', status)
+      if (method) query = query.eq('method', method)
+      if (concept) query = query.eq('concept', concept)
+
+      return assertSupabaseResult(query, 'No se pudieron leer las órdenes de pago.')
+    },
+
+    /**
+     * Comprobante de transferencia. Espejo del flujo de entradas: el backend
+     * firma la subida contra `<orderId>/` y la RPC valida que la orden sea del
+     * atleta con sesión activa antes de registrar la ruta.
+     */
+    async createPaymentProofUpload(athleteId, orderId, fileName) {
+      const order = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('id, athlete_id, method, status')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
+      )
+      if (!order || order.athlete_id !== athleteId) throw new HttpError(404, 'Orden no encontrada.')
+      if (order.method !== 'manual_link') throw new HttpError(400, 'La orden no admite comprobante.')
+      if (order.status === 'aprobado') throw new HttpError(409, 'La orden ya fue aprobada.')
+
+      const safeName = String(fileName).replace(/[^\w.\-()+ ]/g, '_').slice(0, 120)
+      const path = `${orderId}/${Date.now()}-${safeName}`
+      const signed = assertSupabaseResult(
+        await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUploadUrl(path),
+        'No se pudo preparar el comprobante.',
+      )
+      return { path, token: signed.token }
+    },
+    registerPaymentProof: (athleteId, orderId, proofPath) => rpc('register_athlete_payment_proof', {
+      p_order_id: orderId,
+      p_athlete_id: athleteId,
+      p_proof_path: proofPath,
+    }, 'No se pudo registrar el comprobante.'),
+    async paymentProofUrl(orderId) {
+      const order = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('payment_proof_path')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
+      )
+      if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
+      const signed = assertSupabaseResult(
+        await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUrl(order.payment_proof_path, 300),
+        'No se pudo abrir el comprobante.',
+      )
+      return signed.signedUrl
+    },
+
+    /** Credencial de un socio para el panel: QR, vigencia y datos de emisión. */
+    async membershipCredential(membershipId) {
+      const membership = assertSupabaseResult(
+        await client
+          .from('memberships')
+          .select('*, athlete:athletes(id, full_name, document_id, email)')
+          .eq('id', membershipId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer la afiliación.',
+      )
+      if (!membership) throw new HttpError(404, 'Afiliación no encontrada.')
+      return membership
+    },
+    rotateMembershipQrToken: (membershipId, actor) => rpc('staff_rotate_membership_qr_token', {
+      p_membership_id: membershipId,
+      p_actor: actor,
+    }, 'No se pudo rotar el código de la credencial.'),
+
+    /**
+     * Proyección de credencial para el scanner de staff: la pública no trae
+     * documento (el member_code es enumerable), pero en la puerta el operador
+     * tiene que cotejar el DNI físico.
+     */
+    staffCredential: (code, eventSlug) => rpc('staff_get_membership_by_code_or_token', {
+      p_code: code,
+      p_event_slug: eventSlug ?? null,
+    }, 'No se pudo leer la credencial.'),
     async registerPhoto(athleteId, photoPath) {
       const current = assertSupabaseResult(
         await client.from('athletes').select('photo_path').eq('id', athleteId).maybeSingle(),

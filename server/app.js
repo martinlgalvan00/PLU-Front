@@ -10,6 +10,7 @@ import { createUserRoutes } from './routes/users.js'
 import { createAccessControlRoutes } from './routes/accessControl.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
+import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
@@ -22,6 +23,15 @@ export function createApp(deps = {}) {
   const app = express()
 
   app.disable('x-powered-by')
+  // Detras del proxy de Vercel, req.ip es la IP interna del edge salvo que se
+  // habilite trust proxy: sin esto todos los clientes comparten una sola clave
+  // de rate limit y el ipHash que guardamos en sessions/athlete_sessions no
+  // identifica a nadie. Se limita al primer hop -- confiar en toda la cadena
+  // de X-Forwarded-For la volveria spoofeable por el cliente.
+  // En local (sin proxy) queda apagado para que express-rate-limit no rechace
+  // un X-Forwarded-For inesperado.
+  const trustedProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? (process.env.VERCEL ? 1 : 0))
+  if (trustedProxyHops > 0) app.set('trust proxy', trustedProxyHops)
   app.use(helmet())
   app.use(cors({ origin: corsOrigin, credentials: true }))
   app.use(express.json({ limit: '100kb' }))
@@ -102,6 +112,12 @@ export function createApp(deps = {}) {
     getPrisma: () => deps.prisma ?? getPrisma(),
     getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
     repository: deps.ticketRepository,
+    athleteRepository: deps.athleteRepository,
+  }))
+  app.use('/api/audit', createAuditRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    repository: deps.auditRepository,
   }))
   app.use('/api/events', createEventRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),

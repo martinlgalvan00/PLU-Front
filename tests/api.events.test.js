@@ -69,7 +69,10 @@ function canonicalEvent() {
     created_at: '2026-07-01T00:00:00.000Z',
     updated_at: '2026-07-26T12:00:00.000Z',
     capacityRules: [{ key: '', limit_count: 120 }],
-    eventRegistrations: [{ count: 48 }],
+    eventRegistrations: [
+      ...Array.from({ length: 48 }, () => ({ status: 'confirmada' })),
+      { status: 'cancelada' },
+    ],
     eventDays: [
       {
         id: '22222222-2222-4222-8222-222222222222',
@@ -126,11 +129,11 @@ describe('API administrativa de eventos', () => {
       const body = await response.json()
 
       expect(response.status).toBe(200)
-      expect(body.events[0]).toMatchObject({
-        id: EVENT_ID,
-        capacity: 120,
-        eventRegistrations: [{ count: 48 }],
-      })
+      expect(body.events[0]).toMatchObject({ id: EVENT_ID, capacity: 120 })
+      // El embed viaja con el status de cada inscripción: es lo que permite a
+      // mapSupabaseEventRow contar solo las que realmente ocupan cupo.
+      expect(body.events[0].eventRegistrations).toHaveLength(49)
+      expect(body.events[0].eventRegistrations.at(-1)).toEqual({ status: 'cancelada' })
       expect(body.events[0].eventDays).toHaveLength(1)
       expect(body.events[0].ticketTypes).toHaveLength(1)
     } finally {

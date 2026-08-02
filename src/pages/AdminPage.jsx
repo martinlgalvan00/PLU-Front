@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
 import AthletesSection from './admin/AthletesSection.jsx'
+import AuditSection from './admin/AuditSection.jsx'
 import DashboardSection from './admin/DashboardSection.jsx'
 import EventsSection from './admin/EventsSection.jsx'
 import MembershipsSection from './admin/MembershipsSection.jsx'
@@ -75,6 +76,7 @@ export default function AdminPage({
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
   const [paymentEventScope, setPaymentEventScope] = useState('')
+  const [paymentFocusId, setPaymentFocusId] = useState(null)
 
   const pendingPayments = payments.filter(
     (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
@@ -87,9 +89,10 @@ export default function AdminPage({
     }
   }, [allowedSections, section])
 
-  function handleSectionChange(nextSection) {
+  function handleSectionChange(nextSection, focusId = null) {
     if (!allowedSections.includes(nextSection)) return
     if (nextSection === 'payments') setPaymentEventScope('')
+    setPaymentFocusId(nextSection === 'payments' ? focusId : null)
     setSection(nextSection)
     if (nextSection !== 'athletes') {
       setSelectedAthleteId(null)
@@ -158,6 +161,7 @@ export default function AdminPage({
             detail={getAthleteDetail(selectedAthleteId)}
             onBack={() => setSelectedAthleteId(null)}
             canEdit={hasPermission(authorization, 'admin.athletes.write')}
+            canRotateCredential={hasPermission(authorization, 'admin.memberships.write')}
             onApprovePayment={onApprovePayment}
           />
         )
@@ -254,10 +258,12 @@ export default function AdminPage({
       return (
         <PaymentsOperationsSection
           canEdit={hasPermission(authorization, 'admin.payments.approve')}
+          highlightOrderId={paymentFocusId}
           ticketOrderEventScope={paymentEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}
+          onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRefresh={onRefreshPendingTicketOrders}
         />
@@ -286,7 +292,11 @@ export default function AdminPage({
       )
     }
 
-    if (['results', 'exports', 'audit'].includes(section)) {
+    if (section === 'audit') {
+      return <AuditSection />
+    }
+
+    if (['results', 'exports'].includes(section)) {
       return <PlaceholderSection section={section} />
     }
 
