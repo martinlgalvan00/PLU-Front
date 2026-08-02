@@ -17,6 +17,7 @@ describe('eventAdminService', () => {
 
     expect(second.eventDays).toEqual([])
     expect(second.pricing.ticketAddons).toEqual([])
+    expect(first.requiresMembership).toBe(true)
   })
 
   it('conserva la identidad y versión del backend al abrir una edición', () => {
@@ -37,6 +38,7 @@ describe('eventAdminService', () => {
       eventDays: [{ id: 'day-1', dayIndex: 0, label: 'Día 1' }],
       ticketTypes: [],
       published: true,
+      requiresMembership: false,
     })
 
     expect(draft).toMatchObject({
@@ -44,6 +46,7 @@ describe('eventAdminService', () => {
       slug: 'pitbull-classic-2026',
       expectedUpdatedAt: '2026-07-26T12:00:00.000Z',
       published: true,
+      requiresMembership: false,
     })
     expect(draft.startsAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
     expect(mapDraftToPreviewEvent({ ...draft, title: 'Título nuevo' }).slug).toBe(

@@ -219,7 +219,9 @@ export default function RegistrationsSection({
               label: t('admin.columns.athlete'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => <AdminIdentityCell name={row.athlete} sub={row.document} />,
+              render: (row) => (
+                <AdminIdentityCell name={row.athlete} sub={row.document} subMono />
+              ),
             },
             {
               key: 'event',

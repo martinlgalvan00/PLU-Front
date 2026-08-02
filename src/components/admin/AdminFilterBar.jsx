@@ -148,7 +148,7 @@ export default function AdminFilterBar({
 
       {count ? (
         <span className="admin-filters__count" aria-live="polite">
-          {count}
+          <span className="admin-filters__count-label">{count}</span>
         </span>
       ) : null}
     </div>

@@ -5,7 +5,10 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
-import { MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
+import {
+  CONFIRMED_REGISTRATION_STATUSES,
+  MEMBERSHIP_FILTER_STATUSES,
+} from '../../lib/constants.js'
 import { filterMemberships, isExpiringSoon } from '../../services/membershipService.js'
 
 export default function PluUsaSection({ athletes, memberships, registrations, onExportPluUsa }) {
@@ -29,7 +32,8 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
   )
 
   const confirmedCount = useMemo(
-    () => registrations.filter((item) => ['confirmada', 'acreditada'].includes(item.status)).length,
+    () =>
+      registrations.filter((item) => CONFIRMED_REGISTRATION_STATUSES.includes(item.status)).length,
     [registrations],
   )
 
@@ -94,7 +98,9 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
             key: 'athlete',
             label: t('admin.columns.athlete'),
             mobile: 'primary',
-            render: (row) => <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} />,
+            render: (row) => (
+              <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} subMono />
+            ),
           },
           { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default' },
           { key: 'year', label: t('admin.columns.year'), mobile: 'default', desktop: 'numeric', align: 'end' },

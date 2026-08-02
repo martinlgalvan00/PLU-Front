@@ -1,5 +1,10 @@
+import { CONFIRMED_REGISTRATION_STATUSES } from '../lib/constants.js'
 import { money } from '../lib/format.js'
 import { isExpiringSoon } from './membershipService.js'
+
+function isConfirmedRegistration(registration) {
+  return CONFIRMED_REGISTRATION_STATUSES.includes(registration?.status)
+}
 
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
 
@@ -161,6 +166,14 @@ export function getAdminNavBadges({ payments, registrations, pendingTicketOrders
   }
 }
 
+function countByStatus(items, statuses) {
+  const counts = Object.fromEntries(statuses.map((status) => [status, 0]))
+  items.forEach((item) => {
+    if (Object.hasOwn(counts, item.status)) counts[item.status] += 1
+  })
+  return statuses.map((status) => ({ status, value: counts[status] }))
+}
+
 export function buildDashboardOverview({
   athletes,
   memberships,
@@ -172,18 +185,31 @@ export function buildDashboardOverview({
     PENDING_PAYMENT_STATUSES.includes(payment.status),
   )
   const approvedPayments = payments.filter((payment) => payment.status === 'aprobado')
-  const confirmedRegistrations = registrations.filter((registration) =>
-    ['confirmada', 'acreditada'].includes(registration.status),
-  )
+  const confirmedRegistrations = registrations.filter(isConfirmedRegistration)
   const observedRegistrations = registrations.filter(
     (registration) => registration.status === 'observada',
   )
-  const expiringMemberships = memberships.filter(
-    (membership) => membership.status === 'activa' && isExpiringSoon(membership.expirationDate),
+  const pendingRegistrations = registrations.filter(
+    (registration) => registration.status === 'pendiente_pago',
   )
+  const activeMemberships = memberships.filter((membership) => membership.status === 'activa')
+  const expiringMemberships = activeMemberships.filter((membership) =>
+    isExpiringSoon(membership.expirationDate),
+  )
+  const expiredMemberships = memberships.filter((membership) => membership.status === 'vencida')
+  const cancelledMemberships = memberships.filter(
+    (membership) => membership.status === 'cancelada',
+  )
+  const stableActiveMemberships = activeMemberships.length - expiringMemberships.length
   const activeEvents = events.filter((event) => event.status !== 'finalizado')
   const openEvents = events.filter((event) =>
     ['inscripcion_abierta', 'cupos_limitados'].includes(event.status),
+  )
+  const manualValidationPayments = payments.filter(
+    (payment) => payment.status === 'validacion_manual',
+  )
+  const softPendingPayments = pendingPayments.filter(
+    (payment) => payment.status !== 'validacion_manual',
   )
 
   const pendingAmount = pendingPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
@@ -194,34 +220,155 @@ export function buildDashboardOverview({
       .filter((event) => event.featured && event.status !== 'finalizado')
       .sort((a, b) => new Date(a.dateISO) - new Date(b.dateISO))[0] ?? null
 
+  // `acreditada` se pliega a `confirmada` (alias legacy; el backend no lo escribe).
+  const registrationBreakdown = countByStatus(
+    registrations.map((registration) =>
+      registration.status === 'acreditada'
+        ? { ...registration, status: 'confirmada' }
+        : registration,
+    ),
+    ['confirmada', 'pendiente_pago', 'observada'],
+  )
+  const softPendingAmount = softPendingPayments.reduce(
+    (sum, payment) => sum + (payment.amount ?? 0),
+    0,
+  )
+  const manualAmount = manualValidationPayments.reduce(
+    (sum, payment) => sum + (payment.amount ?? 0),
+    0,
+  )
+  const categorizedPaymentCount =
+    approvedPayments.length + softPendingPayments.length + manualValidationPayments.length
+  const otherPayments = payments.length - categorizedPaymentCount
+  const paymentBreakdown = [
+    { status: 'aprobado', value: approvedPayments.length, amount: collectedAmount, tone: 'success' },
+    {
+      status: 'pendiente',
+      value: softPendingPayments.length,
+      amount: softPendingAmount,
+      tone: 'warning',
+    },
+    {
+      status: 'validacion_manual',
+      value: manualValidationPayments.length,
+      amount: manualAmount,
+      tone: 'alert',
+    },
+  ]
+  if (otherPayments > 0) {
+    paymentBreakdown.push({
+      status: 'otros',
+      value: otherPayments,
+      amount: 0,
+      tone: 'default',
+    })
+  }
+
+  const membershipBreakdown = [
+    { status: 'activa', value: Math.max(stableActiveMemberships, 0), tone: 'success' },
+    { status: 'expiringSoon', value: expiringMemberships.length, tone: 'gold' },
+    { status: 'vencida', value: expiredMemberships.length, tone: 'alert' },
+    { status: 'cancelada', value: cancelledMemberships.length, tone: 'default' },
+  ]
+
   return {
     primary: [
-      { labelKey: 'athletes', value: athletes.length, icon: 'users', section: 'athletes' },
+      {
+        labelKey: 'athletes',
+        value: athletes.length,
+        icon: 'users',
+        section: 'athletes',
+        tone: 'celeste',
+      },
       {
         labelKey: 'activeMemberships',
-        value: memberships.filter((membership) => membership.status === 'activa').length,
+        value: activeMemberships.length,
         icon: 'badge',
         section: 'memberships',
+        tone: 'gold',
+        hintKey: 'expiringSoon',
+        hintValue: expiringMemberships.length,
       },
       {
         labelKey: 'registrations',
         value: registrations.length,
         icon: 'clipboard',
         section: 'registrations',
+        tone: 'default',
+        hintKey: 'observed',
+        hintValue: observedRegistrations.length,
       },
       {
         labelKey: 'pendingPayments',
         value: pendingPayments.length,
         icon: 'shield',
-        section: 'registrations',
+        section: 'payments',
+        tone: 'alert',
+        hintKey: 'pendingAmount',
+        hintValue: pendingAmount,
+        hintFormat: 'money',
       },
     ],
     secondary: [
-      { labelKey: 'confirmed', value: confirmedRegistrations.length, tone: 'success', section: 'registrations', icon: 'clipboard' },
-      { labelKey: 'observed', value: observedRegistrations.length, tone: 'warning', section: 'registrations', icon: 'shield' },
-      { labelKey: 'activeEvents', value: activeEvents.length, tone: 'celeste', section: 'events', icon: 'badge' },
-      { labelKey: 'expiringSoon', value: expiringMemberships.length, tone: 'gold', section: 'memberships', icon: 'badge' },
+      {
+        labelKey: 'confirmed',
+        value: confirmedRegistrations.length,
+        tone: 'success',
+        section: 'registrations',
+        icon: 'clipboard',
+      },
+      {
+        labelKey: 'observed',
+        value: observedRegistrations.length,
+        tone: 'warning',
+        section: 'registrations',
+        icon: 'shield',
+      },
+      {
+        labelKey: 'activeEvents',
+        value: activeEvents.length,
+        tone: 'celeste',
+        section: 'events',
+        icon: 'badge',
+      },
+      {
+        labelKey: 'expiringSoon',
+        value: expiringMemberships.length,
+        tone: 'gold',
+        section: 'memberships',
+        icon: 'badge',
+      },
     ],
+    breakdowns: {
+      registrations: {
+        total: registrations.length,
+        section: 'registrations',
+        items: registrationBreakdown.map((item) => ({
+          ...item,
+          tone:
+            item.status === 'observada'
+              ? 'alert'
+              : item.status === 'pendiente_pago'
+                ? 'warning'
+                : 'success',
+        })),
+        pending: pendingRegistrations.length,
+        observed: observedRegistrations.length,
+      },
+      memberships: {
+        total: memberships.length,
+        section: 'memberships',
+        items: membershipBreakdown,
+        expiring: expiringMemberships.length,
+      },
+      payments: {
+        total: payments.length,
+        section: 'payments',
+        items: paymentBreakdown,
+        pending: pendingPayments.length,
+        pendingAmount,
+      },
+    },
     finance: {
       pendingCount: pendingPayments.length,
       pendingAmount,
@@ -229,7 +376,7 @@ export function buildDashboardOverview({
       totalAmount,
       collectionRate: totalAmount > 0 ? Math.round((collectedAmount / totalAmount) * 100) : 0,
       openEvents: openEvents.length,
-      pendingItems: pendingPayments.slice(0, 3).map((payment) => {
+      pendingItems: pendingPayments.slice(0, 5).map((payment) => {
         const athlete = athletes.find((item) => item.id === payment.athleteId)
         return {
           id: payment.id,

@@ -3172,12 +3172,16 @@
 }
 
 .home-teaser-card__body {
+  /* flex:1 iguala alturas con Resultados; align-content evita que el
+     grid estire el h2 a ~200px cuando Reglamento tiene menos contenido. */
+  align-content: start;
   display: grid;
   flex: 1 1 auto;
   gap: 10px;
 }
 
 .home-teaser-card__title {
+  align-self: start;
   color: var(--home-canvas-fg);
   font-family: var(--font-display);
   font-size: clamp(1.2rem, 2.1vw, 1.45rem);

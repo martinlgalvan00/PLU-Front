@@ -185,6 +185,7 @@ export default {
     borrador: 'Draft',
     pagada: 'Paid',
     confirmada: 'Confirmed',
+    acreditada: 'Accredited',
     observada: 'Observed',
     creado: 'Created',
     pendiente: 'Pending',

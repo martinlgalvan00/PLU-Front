@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
+import {
+  AdminIdentityCell,
+  AdminMonoCell,
+  AdminPeriodCell,
+} from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { MEMBERSHIP_EXPIRING_FILTER_OPTIONS, MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
 import { filterMemberships } from '../../services/membershipService.js'
 
 export default function MembershipsSection({ memberships, onSelectAthlete }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [expiring, setExpiring] = useState('all')
@@ -104,55 +108,56 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
       onQueryChange={setQuery}
     >
       <AdminDataTable
+        className="admin-data-table--memberships"
         variant="admin"
         columns={[
           {
             key: 'athlete',
             label: t('admin.columns.athlete'),
             mobile: 'primary',
+            desktop: 'primary',
             sortable: true,
             defaultSort: 'asc',
-            render: (row) => <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} />,
+            render: (row) => (
+              <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} subMono />
+            ),
           },
           {
             key: 'memberCode',
             label: t('admin.columns.code'),
             mobile: 'default',
             mobileSortLabel: t('admin.columns.code'),
+            className: 'data-table__column--mono data-table__column--code',
             sortable: true,
             mobileSortable: false,
+            render: (row) => <AdminMonoCell>{row.memberCode}</AdminMonoCell>,
           },
           {
-            key: 'year',
-            label: t('admin.columns.year'),
-            mobile: 'hidden',
-            desktop: 'numeric',
-            align: 'end',
+            key: 'expirationDate',
+            label: t('admin.columns.period'),
+            mobile: 'default',
+            mobileSortLabel: t('admin.columns.expiration'),
+            className: 'data-table__column--period',
             sortable: true,
             mobileSortable: false,
+            sortAccessor: (row) => row.expirationDate,
+            render: (row) => (
+              <AdminPeriodCell
+                start={row.startDate}
+                end={row.expirationDate}
+                year={row.year}
+                locale={locale}
+              />
+            ),
           },
           {
             key: 'status',
             label: t('admin.columns.status'),
             mobile: 'badge',
+            desktop: 'status',
             sortable: true,
             mobileSortable: false,
             render: (row) => <StatusBadge value={row.status} />,
-          },
-          {
-            key: 'startDate',
-            label: t('admin.columns.start'),
-            mobile: 'hidden',
-            sortable: true,
-            mobileSortable: false,
-          },
-          {
-            key: 'expirationDate',
-            label: t('admin.columns.expiration'),
-            mobile: 'default',
-            mobileSortLabel: t('admin.columns.expiration'),
-            sortable: true,
-            mobileSortable: false,
           },
         ]}
         rows={rows}

@@ -8,6 +8,7 @@ import {
   MapPin,
   Radio,
   Save,
+  ShieldCheck,
   Star,
   Ticket,
   X,
@@ -481,7 +482,7 @@ export default function AdminEventEditor({
             noValidate
           >
             <div className="admin-event-form__head">
-              <div>
+              <div className="admin-event-form__head-copy">
                 <span className="admin-event-form__mode">
                   {draft.id ? t('admin.eventEditor.editMode') : t('admin.eventEditor.createMode')}
                 </span>
@@ -953,6 +954,26 @@ export default function AdminEventEditor({
                       : t('admin.eventEditor.supabase.unpublishedTitle')}
                   </strong>
                   <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
+                </span>
+              </label>
+
+              <label className="admin-event-form__toggle">
+                <input
+                  checked={draft.requiresMembership !== false}
+                  className="admin-event-form__toggle-input"
+                  type="checkbox"
+                  onChange={(event) =>
+                    patchDraft({ ...draft, requiresMembership: event.target.checked })
+                  }
+                  disabled={!canEdit}
+                />
+                <span className="admin-event-form__toggle-ui" aria-hidden />
+                <span className="admin-event-form__toggle-copy">
+                  <strong>
+                    <ShieldCheck size={13} aria-hidden />
+                    {t('admin.eventEditor.requiresMembershipTitle')}
+                  </strong>
+                  <small>{t('admin.eventEditor.requiresMembershipHint')}</small>
                 </span>
               </label>
             </section>

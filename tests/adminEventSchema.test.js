@@ -40,6 +40,17 @@ describe('eventSchema del backend', () => {
 
     expect(result.success).toBe(true)
     expect(result.data.slots).toBe(120)
+    expect(result.data.requiresMembership).toBe(true)
+  })
+
+  it('acepta requiresMembership false y default true si falta', () => {
+    const withoutField = eventSchema.safeParse(validEvent())
+    const withFalse = eventSchema.safeParse(validEvent({ requiresMembership: false }))
+
+    expect(withoutField.success).toBe(true)
+    expect(withoutField.data.requiresMembership).toBe(true)
+    expect(withFalse.success).toBe(true)
+    expect(withFalse.data.requiresMembership).toBe(false)
   })
 
   it('rechaza una fecha final anterior al inicio', () => {

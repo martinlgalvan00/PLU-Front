@@ -159,7 +159,11 @@ describe('API administrativa de eventos', () => {
       expect(supabase.rpc).toHaveBeenCalledWith(
         'staff_save_event',
         expect.objectContaining({
-          p_event: expect.objectContaining({ title: payload.title, slots: 120 }),
+          p_event: expect.objectContaining({
+            title: payload.title,
+            slots: 120,
+            requiresMembership: true,
+          }),
           p_actor: expect.stringContaining(':admin_maximal@events.test'),
         }),
       )
@@ -236,6 +240,22 @@ describe('migración de guardado seguro de eventos', () => {
     expect(migration).toContain('v_existing.updated_at <> v_expected_updated_at')
     expect(migration).toContain('revoke all on function public.staff_save_event')
     expect(migration).toContain('grant execute on function public.staff_save_event(jsonb, text)')
+    expect(migration).toContain('to service_role')
+  })
+})
+
+describe('migración requiresMembership configurable', () => {
+  it('deja de hardcodear requires_membership y lee el payload', () => {
+    const migration = readFileSync(
+      resolve('supabase/migrations/20260801150000_staff_upsert_event_requires_membership.sql'),
+      'utf8',
+    )
+
+    expect(migration).toContain("coalesce((p_event ->> 'requiresMembership')::boolean, true)")
+    expect(migration).not.toMatch(
+      /coalesce\(\(p_event ->> 'published'\)::boolean, false\),\s*true,/,
+    )
+    expect(migration).toContain('grant execute on function public.staff_upsert_event(jsonb, text)')
     expect(migration).toContain('to service_role')
   })
 })

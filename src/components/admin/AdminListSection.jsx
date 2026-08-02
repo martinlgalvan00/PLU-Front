@@ -100,36 +100,61 @@ export default function AdminListSection({
     return () => window.clearTimeout(timer)
   }, [filterSignature])
 
+  const filterBar = showFilterBar ? (
+    <AdminFilterBar
+      actions={filterActions}
+      className={[
+        'admin-filters--external',
+        variant ? `admin-filters--${variant}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      compact
+      inline
+      count={statsAreRedundant ? resultLabel : null}
+      filters={filters}
+      placeholder={searchPlaceholder}
+      query={query}
+      onQueryChange={onQueryChange}
+    />
+  ) : null
+
+  const hasExternalHeader = showHeader && (Boolean(title) || Boolean(eyebrow) || Boolean(subtitle) || Boolean(meta) || Boolean(actions))
+  const hasExternalToolbar = !showHeader && (Boolean(actions) || Boolean(meta))
+
   return (
     <div className={`admin-list-section${variant ? ` admin-list-section--${variant}` : ''}`}>
-      <section className={shellClass}>
-        {showHeader && (
-          <header className="admin-list-shell__header">
-            <div className="admin-list-shell__intro">
-              {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
-              {title && <h1 className="admin-list-shell__title">{title}</h1>}
-              {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
-              {meta && (
-                <span className="admin-list-shell__meta" aria-live="polite">
-                  {meta}
-                </span>
-              )}
-            </div>
-            {actions && <div className="admin-list-shell__actions">{actions}</div>}
-          </header>
-        )}
-
-        {!showHeader && (actions || meta) && (
-          <div className="admin-list-shell__toolbar">
+      {hasExternalHeader ? (
+        <header className="admin-list-section__header admin-list-shell__header">
+          <div className="admin-list-shell__intro">
+            {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
+            {title && <h1 className="admin-list-shell__title">{title}</h1>}
+            {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
             {meta && (
               <span className="admin-list-shell__meta" aria-live="polite">
                 {meta}
               </span>
             )}
-            {actions && <div className="admin-list-shell__actions">{actions}</div>}
           </div>
-        )}
+          {actions && <div className="admin-list-shell__actions">{actions}</div>}
+        </header>
+      ) : null}
 
+      {hasExternalToolbar ? (
+        <div className="admin-list-section__toolbar admin-list-shell__toolbar">
+          {meta && (
+            <span className="admin-list-shell__meta" aria-live="polite">
+              {meta}
+            </span>
+          )}
+          {actions && <div className="admin-list-shell__actions">{actions}</div>}
+        </div>
+      ) : null}
+
+      {beforeFilters}
+      {filterBar}
+
+      <section className={shellClass}>
         {showStatsStrip && (
           <div
             className={`admin-list-shell__stats-panel${statsExpanded ? ' is-expanded' : ' is-collapsed'}`}
@@ -170,22 +195,6 @@ export default function AdminListSection({
             )}
           </div>
         )}
-
-        {beforeFilters}
-
-        {showFilterBar ? (
-          <AdminFilterBar
-            actions={filterActions}
-            className={variant ? `admin-filters--${variant}` : ''}
-            compact
-            inline
-            count={statsAreRedundant ? resultLabel : null}
-            filters={filters}
-            placeholder={searchPlaceholder}
-            query={query}
-            onQueryChange={onQueryChange}
-          />
-        ) : null}
 
         <div ref={bodyRef} className="admin-list-shell__body">
           {children}
