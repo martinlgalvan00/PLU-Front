@@ -785,8 +785,7 @@ export default {
       map: {
         eyebrow: 'Territorio PLU',
         title: 'Mapa de competencias',
-        description:
-          'Explorá las sedes publicadas sin perder la navegación accesible del calendario.',
+        description: 'Sedes publicadas con navegación accesible del calendario.',
         indexTitle: 'Eventos y sedes',
         featured: 'Próximo evento destacado',
         selected: 'Evento seleccionado',
@@ -799,18 +798,14 @@ export default {
         originLabel: 'Argentina · mapa abierto',
         resetView: 'Vista general',
         mapAria: 'Mapa interactivo de eventos PLU Argentina',
-        fallbackLabel: 'PLU Competition Map',
         loadingTitle: 'Preparando el mapa',
         loadingCopy: 'La información de la sede permanece disponible mientras carga el proveedor.',
         coordinatesTitle: 'Dirección confirmada, coordenadas pendientes',
-        coordinatesCopy:
-          'Podés consultar la sede y abrir la ubicación. El mapa se activará cuando el equipo publique coordenadas verificadas.',
-        locationTitle: 'Sede publicada, ubicación precisa pendiente',
-        locationCopy:
-          'El evento sigue disponible en el calendario. El mapa se activará cuando la sede tenga dirección y coordenadas verificadas.',
+        coordinatesCopy: 'El mapa se activa cuando el equipo publique coordenadas verificadas.',
+        locationTitle: 'Ubicación precisa pendiente',
+        locationCopy: 'El evento sigue en el calendario; el mapa se activa con dirección y coordenadas verificadas.',
         configTitle: 'Mapa interactivo pendiente de activación',
-        configCopy:
-          'La sede sigue disponible aunque la cartografía abierta no pueda inicializarse.',
+        configCopy: 'La sede sigue disponible aunque la cartografía no pueda inicializarse.',
         offlineTitle: 'Mapa no disponible sin conexión',
         offlineCopy: 'Revisá la dirección publicada o abrila cuando recuperes conexión.',
         errorTitle: 'No pudimos cargar el mapa',
@@ -823,6 +818,7 @@ export default {
           openData: 'Datos abiertos',
           description:
             'Calculá una estimación desde donde estás y revisá estacionamientos registrados cerca de la sede.',
+          externalOnlyDescription: 'Abrí la ubicación en mapas externos mientras las coordenadas están pendientes.',
           calculate: 'Calcular desde mi ubicación',
           calculating: 'Calculando recorrido…',
           minutes: '{{count}} min',

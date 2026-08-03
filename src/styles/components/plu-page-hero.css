@@ -1,18 +1,30 @@
-/* Portada editorial compartida para las páginas de consulta. */
+/* Portada editorial compartida para las páginas de consulta.
+   Tokens de superficie: también los consume .institutional-hero */
 
-.page--plu-ref.page {
-  padding-top: 0;
-}
-
-.plu-page-hero {
-  background:
+:root,
+[data-theme='light'] {
+  --plu-page-hero-bg:
     radial-gradient(
       circle at 82% 10%,
       color-mix(in srgb, var(--color-brand-celeste) 9%, transparent),
       transparent 38%
     ),
     color-mix(in srgb, var(--color-bg-surface) 96%, var(--color-bg-primary));
-  border-bottom: 1px solid var(--color-border-subtle);
+  --plu-page-hero-border: var(--color-border-subtle);
+}
+
+[data-theme='dark'] {
+  --plu-page-hero-bg: var(--color-bg-primary);
+  --plu-page-hero-border: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.page--plu-ref.page {
+  padding-top: 0;
+}
+
+.plu-page-hero {
+  background: var(--plu-page-hero-bg);
+  border-bottom: 1px solid var(--plu-page-hero-border);
   margin-top: calc(-1 * var(--header-height));
   overflow: hidden;
   padding: calc(var(--header-height) + clamp(42px, 6vw, 76px)) clamp(20px, 5vw, 64px)
@@ -22,8 +34,6 @@
 }
 
 [data-theme='dark'] .plu-page-hero {
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   box-shadow: none;
 }
 

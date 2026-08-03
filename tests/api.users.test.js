@@ -213,4 +213,57 @@ describe('alta de staff (/api/users)', () => {
       await target.close()
     }
   })
+
+  it('suspende un usuario de staff y corta el acceso', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin(),
+      {
+        id: 'usr-plu',
+        email: 'equipo@pluarg.test',
+        passwordHash: null,
+        role: 'operador_plu_arg',
+        status: 'active',
+        profile: { firstName: 'Equipo', lastName: 'PLU' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-plu/status`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ status: 'suspended' }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.user).toMatchObject({
+        id: 'usr-plu',
+        status: 'suspended',
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('bloquea (400) cambiar el propio estado', async () => {
+    const prisma = createPrismaDouble([await buildAdmin()])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-admin/status`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ status: 'disabled' }),
+      })
+
+      expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
 })

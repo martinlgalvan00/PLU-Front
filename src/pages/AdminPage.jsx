@@ -62,6 +62,7 @@ export default function AdminPage({
   onSaveShopProduct,
   onSetFilters,
   onUpdateUserRole,
+  onUpdateUserStatus,
   onUpdateRolePermissions,
   permissionCatalog,
   onDeleteShopProduct,
@@ -246,7 +247,11 @@ export default function AdminPage({
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateUser={onCreateUser}
+          onNavigateRoles={
+            allowedSections.includes('roles') ? () => setSection('roles') : undefined
+          }
           onUpdateRole={onUpdateUserRole}
+          onUpdateStatus={onUpdateUserStatus}
           users={users}
         />
       )

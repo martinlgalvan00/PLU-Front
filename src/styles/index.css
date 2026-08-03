@@ -22,6 +22,7 @@
 @import './components/brand-logo.css';
 @import './components/states.css';
 @import './components/segmented-switch.css';
+@import './components/plu-tab-rail.css';
 @import './pages/home.css';
 @import './pages/page.css';
 @import './pages/register.css';

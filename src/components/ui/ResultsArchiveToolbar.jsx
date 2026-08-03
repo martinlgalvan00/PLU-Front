@@ -42,6 +42,11 @@ export default function ResultsArchiveToolbar({
     .filter(Boolean)
     .join(' ')
 
+  const countUnit = t(
+    count === 1 ? 'pages.results.eventCount_one' : 'pages.results.eventCount_other',
+    { count: '' },
+  ).trim()
+
   const countLabel =
     count === 1
       ? t('pages.results.eventCount_one', { count })
@@ -74,16 +79,16 @@ export default function ResultsArchiveToolbar({
     return (
       <div className={`results-toolbar results-toolbar--page ${compact ? 'results-toolbar--compact' : ''}`.trim()}>
         <div className="results-page__toolbar-row">
-          <div className="results-page__filters-shell">
+          <div className="results-page__filters-shell plu-tab-rail__shell">
             <FilterPills
               active={filter}
               ariaLabel={t('pages.results.filterArchiveAria')}
-              className="results-page__filters filter-pills--refined"
+              className="results-page__filters filter-pills--refined plu-tab-rail"
               onChange={onFilterChange}
               options={filters}
             />
           </div>
-          <div className="results-page__toolbar-meta">
+          <div className="results-page__toolbar-meta plu-meta-chip--divider">
             <ResultsSortMenu
               className="results-sort-menu--inline"
               minimal
@@ -92,8 +97,17 @@ export default function ResultsArchiveToolbar({
               onSortChange={onSortChange}
             />
             {showCount ? (
-              <span className="results-page__count" aria-live="polite">
-                {countLabel}
+              <span
+                className="plu-meta-chip plu-meta-chip--divider results-page__count"
+                aria-label={countLabel}
+                aria-live="polite"
+              >
+                <span className="plu-meta-chip__value" aria-hidden="true">
+                  {count}
+                </span>
+                <span className="plu-meta-chip__unit" aria-hidden="true">
+                  {countUnit}
+                </span>
               </span>
             ) : null}
           </div>

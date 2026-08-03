@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.js'
-import { createStaffUserSchema } from '../../src/lib/schemas/auth.js'
+import { createStaffUserSchema, updateStaffUserStatusSchema } from '../../src/lib/schemas/auth.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -38,6 +38,21 @@ async function auditRoleAssignment(prisma, { actorId, userId, beforeRoleKey, aft
       actorId,
       before: beforeRoleKey ? { roleKey: beforeRoleKey } : null,
       after: { roleKey: afterRoleKey },
+    },
+  })
+}
+
+async function auditStatusChange(prisma, { actorId, userId, beforeStatus, afterStatus }) {
+  if (!prisma.auditLog?.create) return
+
+  await prisma.auditLog.create({
+    data: {
+      action: 'user.status_changed',
+      entityType: 'user',
+      entityId: userId,
+      actorId,
+      before: { status: beforeStatus },
+      after: { status: afterStatus },
     },
   })
 }
@@ -172,6 +187,70 @@ export function createUserRoutes({ getPrisma }) {
 
         res.json({
           user: serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole }),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.patch(
+    '/:userId/status',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(updateStaffUserStatusSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        if (req.params.userId === req.auth.user.id) {
+          throw new HttpError(400, 'No podés cambiar el estado de tu propia cuenta.')
+        }
+
+        const target = await prismaClient.user.findUnique({
+          where: { id: req.params.userId },
+          include: userInclude(),
+        })
+        if (!target) throw new HttpError(404, 'El usuario no existe.')
+        if (target.role === 'admin_maximal') {
+          throw new HttpError(403, 'El estado del Super Admin no se modifica desde el panel.')
+        }
+        if (!STAFF_LIST_ROLES.includes(target.role)) {
+          throw new HttpError(400, 'Esa cuenta no se administra desde Usuarios.')
+        }
+
+        const nextStatus = req.validatedBody.status
+        if (target.status === nextStatus) {
+          res.json({
+            user: serializeUser(
+              target.accessRole?.key ? target : { ...target, accessRole: target.accessRole },
+            ),
+          })
+          return
+        }
+
+        const updated = await prismaClient.user.update({
+          where: { id: target.id },
+          data: { status: nextStatus },
+          include: userInclude(),
+        })
+
+        await auditStatusChange(prismaClient, {
+          actorId: req.auth.user.id,
+          userId: target.id,
+          beforeStatus: target.status,
+          afterStatus: nextStatus,
+        })
+
+        // Suspendido o dado de baja: cortar sesiones ya. Activar no requiere
+        // revocar — el usuario vuelve a entrar con un login nuevo.
+        if (nextStatus !== 'active') {
+          await revokeSessionsForUser({ prisma: prismaClient, userId: target.id })
+        }
+
+        res.json({
+          user: serializeUser(
+            updated.accessRole?.key ? updated : { ...updated, accessRole: updated.accessRole },
+          ),
         })
       } catch (error) {
         next(error)

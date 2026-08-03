@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Star,
   Ticket,
+  TrendingUp,
   Users,
 } from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
@@ -239,6 +240,29 @@ export default function EventsSection({
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
 
+  const kpiStats = useMemo(() => {
+    let totalRegistered = 0
+    let totalSlots = 0
+    let upcomingCount = 0
+
+    for (const ev of adminEvents) {
+      totalRegistered += ev.registered ?? 0
+      totalSlots += ev.slots ?? 0
+      if (!isFinishedEvent(ev)) {
+        upcomingCount++
+      }
+    }
+
+    const fillPercent = totalSlots > 0 ? Math.round((totalRegistered / totalSlots) * 100) : 0
+
+    return {
+      upcomingCount,
+      totalRegistered,
+      totalSlots,
+      fillPercent,
+    }
+  }, [adminEvents])
+
   function openCreateForm() {
     setDraft(createAdminEventDraft())
     setEditorFocus('details')
@@ -337,47 +361,46 @@ export default function EventsSection({
       : (selectedEvent.date ?? '')
     : ''
 
+  const filterActions = (
+    <div className="admin-events__toolbar-actions">
+      {onRefresh ? (
+        <AdminIconButton
+          className={
+            isLoading ? 'admin-events__refresh-btn is-spinning' : 'admin-events__refresh-btn'
+          }
+          disabled={isLoading}
+          icon={RefreshCw}
+          label={
+            isLoading
+              ? t('admin.sections.events.refreshing')
+              : t('admin.sections.events.refresh')
+          }
+          onClick={onRefresh}
+          variant="ghost"
+        />
+      ) : null}
+      {canEdit ? (
+        <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
+          <Plus size={15} aria-hidden />
+          {t('admin.actions.newEvent')}
+        </Button>
+      ) : null}
+    </div>
+  )
+
   return (
     <AdminListSection
       eyebrow={t('admin.sections.events.eyebrow')}
       filteredCount={rows.length}
+      filterActions={filterActions}
       meta={resultMeta}
       placeholder={t('admin.search.event')}
       query={query}
       showHeader
       showStats={false}
-      subtitle={t('admin.sections.events.subtitle')}
       title={t('admin.sections.events.title')}
       totalCount={adminEvents.length}
       variant="events"
-      actions={
-        <div className="admin-events__header-actions">
-          {onRefresh ? (
-            <AdminIconButton
-              className={
-                isLoading
-                  ? 'admin-events__refresh-btn is-spinning'
-                  : 'admin-events__refresh-btn'
-              }
-              disabled={isLoading}
-              icon={RefreshCw}
-              label={
-                isLoading
-                  ? t('admin.sections.events.refreshing')
-                  : t('admin.sections.events.refresh')
-              }
-              onClick={onRefresh}
-              variant="ghost"
-            />
-          ) : null}
-          {canEdit ? (
-            <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
-              <Plus size={15} aria-hidden />
-              {t('admin.actions.newEvent')}
-            </Button>
-          ) : null}
-        </div>
-      }
       filters={[
         {
           id: 'status',
@@ -409,6 +432,48 @@ export default function EventsSection({
           {message.text}
         </p>
       ) : null}
+
+      <div className="admin-events-kpis">
+        <div className="admin-events-kpi">
+          <div className="admin-events-kpi__icon admin-events-kpi__icon--upcoming">
+            <CalendarDays size={16} aria-hidden />
+          </div>
+          <div className="admin-events-kpi__content">
+            <span className="admin-events-kpi__label">Eventos Próximos</span>
+            <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+          </div>
+        </div>
+
+        <div className="admin-events-kpi">
+          <div className="admin-events-kpi__icon admin-events-kpi__icon--athletes">
+            <Users size={16} aria-hidden />
+          </div>
+          <div className="admin-events-kpi__content">
+            <span className="admin-events-kpi__label">Inscriptos Totales</span>
+            <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+          </div>
+        </div>
+
+        <div className="admin-events-kpi">
+          <div className="admin-events-kpi__icon admin-events-kpi__icon--fill">
+            <TrendingUp size={16} aria-hidden />
+          </div>
+          <div className="admin-events-kpi__content">
+            <span className="admin-events-kpi__label">Ocupación Promedio</span>
+            <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+          </div>
+        </div>
+
+        <div className="admin-events-kpi">
+          <div className="admin-events-kpi__icon admin-events-kpi__icon--catalog">
+            <Ticket size={16} aria-hidden />
+          </div>
+          <div className="admin-events-kpi__content">
+            <span className="admin-events-kpi__label">Total Eventos</span>
+            <strong className="admin-events-kpi__value">{adminEvents.length}</strong>
+          </div>
+        </div>
+      </div>
 
       <div className="admin-events-workspace">
         <div className="admin-events-workspace__main">

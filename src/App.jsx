@@ -278,6 +278,7 @@ export default function App() {
           onSaveShopProduct={app.saveShopProduct}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
+          onUpdateUserStatus={app.updateUserStatusAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
           payments={app.payments}
           pendingTicketOrders={app.pendingTicketOrders}
@@ -435,7 +436,7 @@ export default function App() {
           <Page {...pageProps} />
         </Suspense>
       </PageTransition>
-      {view !== 'login' && <Footer onNavigate={navigate} />}
+      {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
     </div>
   )
 }

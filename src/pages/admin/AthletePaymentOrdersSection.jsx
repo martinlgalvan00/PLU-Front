@@ -171,6 +171,11 @@ export default function AthletePaymentOrdersSection({
         value={status}
         onChange={setStatus}
         compact
+        defaultValue="all"
+        omitNeutral
+        allLabel={t('admin.filters.showingAll')}
+        clearable
+        hideEmpty
         options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
       />
 

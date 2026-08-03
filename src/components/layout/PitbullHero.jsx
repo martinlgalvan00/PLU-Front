@@ -66,43 +66,42 @@ function PitbullHeroPanel({
       </header>
 
       <Item {...itemProps}>
-        <dl className="pitbull-hero-masthead__facts" aria-label={t('pages.pitbull.heroMetricsAria')}>
-          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--date">
-            <dt>{t('pages.pitbull.heroDate')}</dt>
-            <dd>
-              <time dateTime="2026-12-12/2026-12-13">{date}</time>
-            </dd>
-          </div>
-          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--venue">
-            <dt>{t('pages.pitbull.heroVenue')}</dt>
-            <dd>
-              {venue}
-              <span>{location}</span>
-            </dd>
-          </div>
-          <div className="pitbull-hero-masthead__fact">
-            <dt>{t('pages.pitbull.heroSlots')}</dt>
-            <dd>
-              {registered} <span>/ {slots}</span>
-            </dd>
-          </div>
-          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--accent">
-            <dt>{t('pages.pitbull.heroFee')}</dt>
-            <dd>{registrationFee}</dd>
-          </div>
-        </dl>
+        <p className="pitbull-hero-masthead__dateline" aria-label={t('pages.pitbull.heroMetricsAria')}>
+          <time dateTime="2026-12-12/2026-12-13">{date}</time>
+          <span className="pitbull-hero-masthead__dateline-sep" aria-hidden>
+            ·
+          </span>
+          <span className="pitbull-hero-masthead__dateline-venue">
+            {venue}
+            {location ? <span className="pitbull-hero-masthead__dateline-loc">{location}</span> : null}
+          </span>
+        </p>
+        <p className="pitbull-hero-masthead__slots">
+          <span className="pitbull-hero-masthead__slots-label">{t('pages.pitbull.heroSlots')}</span>
+          <span className="pitbull-hero-masthead__slots-value">
+            {registered}
+            <span aria-hidden> / </span>
+            {slots}
+          </span>
+        </p>
       </Item>
 
       <Item {...itemProps}>
         <div className="pitbull-hero-masthead__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
-          <button
-            type="button"
-            className="pitbull-hero-masthead__cta pitbull-hero-masthead__cta--primary motion-icon-shift"
-            onClick={onRegister}
-          >
-            {primaryLabel}
-            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-          </button>
+          <div className="pitbull-hero-masthead__cta-group">
+            <button
+              type="button"
+              className="pitbull-hero-masthead__cta pitbull-hero-masthead__cta--primary motion-icon-shift"
+              onClick={onRegister}
+            >
+              {primaryLabel}
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+            </button>
+            <span className="pitbull-hero-masthead__fee">
+              <span className="pitbull-hero-masthead__fee-label">{t('pages.pitbull.heroFee')}</span>
+              <span className="pitbull-hero-masthead__fee-value">{registrationFee}</span>
+            </span>
+          </div>
           <button type="button" className="pitbull-hero-masthead__text-link" onClick={onSecondary}>
             {secondaryLabel}
           </button>

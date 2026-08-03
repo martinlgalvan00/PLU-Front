@@ -77,7 +77,10 @@ export default function EventTravelPlanner({
     : ''
 
   return (
-    <section className="competition-map__travel" aria-labelledby={`travel-${event.id}`}>
+    <section
+      className={`competition-map__travel${coordinatesAvailable ? '' : ' competition-map__travel--external-only'}`}
+      aria-labelledby={`travel-${event.id}`}
+    >
       <div className="competition-map__travel-head">
         <div>
           <p>
@@ -86,10 +89,14 @@ export default function EventTravelPlanner({
           </p>
           <h4 id={`travel-${event.id}`}>{t('pages.events.map.travel.title')}</h4>
         </div>
-        <span>{t('pages.events.map.travel.openData')}</span>
+        {coordinatesAvailable ? <span>{t('pages.events.map.travel.openData')}</span> : null}
       </div>
 
-      <p className="competition-map__travel-lead">{t('pages.events.map.travel.description')}</p>
+      <p className="competition-map__travel-lead">
+        {coordinatesAvailable
+          ? t('pages.events.map.travel.description')
+          : t('pages.events.map.travel.externalOnlyDescription')}
+      </p>
 
       {coordinatesAvailable ? (
         <div className="competition-map__travel-tools">

@@ -524,26 +524,26 @@ export default function RegisterPage({
         flow === 'profile' ? ' register-page--profile' : ''
       }${flow === 'membership' ? ' register-page--membership' : ''}`.trim()}
     >
-      {(flow === 'profile' || flow === 'membership') && onNavigate && (
-        <nav className="register-topbar" aria-label={t('pages.register.navAria')} style={{ position: 'absolute', top: '24px', left: '24px', right: '24px', zIndex: 20 }}>
-          <button
-            type="button"
-            className="register-topbar__back"
-            onClick={() => onNavigate(flow === 'membership' ? 'members' : 'members')}
-          >
-            <ArrowLeft size={15} aria-hidden />
-            {flow === 'membership' ? t('pages.register.backToPlans') : t('pages.register.backMembership')}
-          </button>
-          {flow === 'profile' && (
-            <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
-              {t('pages.register.haveAccount')}
-              <ChevronRight size={14} aria-hidden />
-            </button>
-          )}
-        </nav>
-      )}
-
       <div className="auth-immersive-glass auth-immersive-glass--wide register-shell">
+        {(flow === 'profile' || flow === 'membership') && onNavigate && (
+          <nav className="register-topbar" aria-label={t('pages.register.navAria')}>
+            <button
+              type="button"
+              className="register-topbar__back"
+              onClick={() => onNavigate(flow === 'membership' ? 'members' : 'members')}
+            >
+              <ArrowLeft size={15} aria-hidden />
+              {flow === 'membership' ? t('pages.register.backToPlans') : t('pages.register.backMembership')}
+            </button>
+            {flow === 'profile' && (
+              <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
+                {t('pages.register.haveAccount')}
+                <ChevronRight size={14} aria-hidden />
+              </button>
+            )}
+          </nav>
+        )}
+
         <aside className="register-aside register-aside--desktop">
           {registerIntro}
           {flow === 'membership' && !visibleOrder && (

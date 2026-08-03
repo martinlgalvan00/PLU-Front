@@ -11,9 +11,10 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * @property {string} [label]
  * @property {string} value
  * @property {(value: string) => void} onChange
- * @property {[string, string][]} options
- * @property {'chips' | 'select'} [variant]
+ * @property {[string, string, (string|number)?][]} options
+ * @property {'chips' | 'select' | 'toggle'} [variant]
  * @property {string} [defaultValue] Valor sin filtro; por convención, la primera opción.
+ * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
  */
 
 function neutralValue(filter) {
@@ -22,6 +23,40 @@ function neutralValue(filter) {
 
 function isFilterActive(filter) {
   return filter.value !== neutralValue(filter)
+}
+
+/** Toggle binario: una sola opción no-neutra que se prende/apaga. */
+function AdminFilterToggle({ id, label, value, onChange, options = [], defaultValue, disabled = false }) {
+  const neutral = defaultValue ?? options[0]?.[0]
+  const activeOption = options.find(([optionValue]) => optionValue !== neutral) ?? options[1]
+  if (!activeOption) return null
+
+  const [optionValue, optionLabel] = activeOption
+  const pressed = value === optionValue
+  const labelId = label ? `${id}-label` : undefined
+
+  return (
+    <div
+      className="admin-filter-group admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle"
+      role="group"
+      aria-labelledby={labelId}
+    >
+      {label ? (
+        <span id={labelId} className="admin-filter-group__label">
+          {label}
+        </span>
+      ) : null}
+      <button
+        type="button"
+        className={`admin-filter-chip admin-filter-chip--toggle${pressed ? ' is-active' : ''}`}
+        aria-pressed={pressed}
+        disabled={disabled}
+        onClick={() => onChange(pressed ? neutral : optionValue)}
+      >
+        <span className="admin-filter-chip__label">{optionLabel}</span>
+      </button>
+    </div>
+  )
 }
 
 export default function AdminFilterBar({
@@ -48,6 +83,7 @@ export default function AdminFilterBar({
     compact ? 'admin-filters--compact' : '',
     inline ? 'admin-filters--inline' : '',
     alwaysShowFilters ? 'admin-filters--open' : '',
+    filters.some((filter) => isFilterActive(filter)) ? 'admin-filters--has-active' : '',
     className,
   ]
     .filter(Boolean)
@@ -57,6 +93,10 @@ export default function AdminFilterBar({
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
   const panelOpen = alwaysShowFilters || filtersOpen
+  const chipGroupCount = filters.filter(
+    (filter) => filter.variant !== 'select' && filter.variant !== 'toggle',
+  ).length
+  const showGroupLabels = filters.length > 1 || filters.some((filter) => filter.showLabel)
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
     [filters, query],
@@ -79,6 +119,61 @@ export default function AdminFilterBar({
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
     if (hasQuery) onQueryChange('')
+  }
+
+  function renderFilter(filter) {
+    const sharedLabel =
+      showGroupLabels || filter.showLabel || filter.variant === 'select'
+        ? filter.label
+        : undefined
+
+    if (filter.variant === 'select') {
+      return (
+        <AdminFilterSelect
+          key={filter.id}
+          id={filter.id}
+          label={sharedLabel}
+          value={filter.value}
+          onChange={filter.onChange}
+          options={filter.options}
+        />
+      )
+    }
+
+    if (filter.variant === 'toggle') {
+      return (
+        <AdminFilterToggle
+          key={filter.id}
+          id={filter.id}
+          label={sharedLabel}
+          value={filter.value}
+          onChange={filter.onChange}
+          options={filter.options}
+          defaultValue={neutralValue(filter)}
+          disabled={filter.disabled}
+        />
+      )
+    }
+
+    return (
+      <AdminFilterChipGroup
+        key={filter.id}
+        compact={compact}
+        inline={inline}
+        ariaLabel={filter.ariaLabel ?? filter.label}
+        id={filter.id}
+        label={sharedLabel}
+        value={filter.value}
+        onChange={filter.onChange}
+        options={filter.options}
+        disabled={filter.disabled}
+        defaultValue={neutralValue(filter)}
+        omitNeutral
+        allLabel={t('admin.filters.showingAll')}
+        clearable
+        hideEmpty
+      />
+    )
   }
 
   return (
@@ -126,26 +221,15 @@ export default function AdminFilterBar({
         >
           <div className="admin-filters__panel-inner">
             <div
-              className={`admin-filters__groups${filters.length > 2 ? ' admin-filters__groups--multi' : ''}`}
+              className={[
+                'admin-filters__groups',
+                filters.length > 1 ? 'admin-filters__groups--multi' : '',
+                chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
-              {filters.map((filter) =>
-                filter.variant === 'select' ? (
-                  <AdminFilterSelect key={filter.id} {...filter} />
-                ) : (
-                  <AdminFilterChipGroup
-                    key={filter.id}
-                    compact={compact}
-                    inline={inline}
-                    ariaLabel={filter.ariaLabel}
-                    id={filter.id}
-                    label={filter.label}
-                    value={filter.value}
-                    onChange={filter.onChange}
-                    options={filter.options}
-                    disabled={filter.disabled}
-                  />
-                ),
-              )}
+              {filters.map(renderFilter)}
             </div>
           </div>
         </div>

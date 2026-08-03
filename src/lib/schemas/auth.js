@@ -68,6 +68,11 @@ export const updateSecurityUserStatusSchema = z.object({
   status: z.enum(['active', 'disabled']),
 })
 
+/** Ciclo de vida de cuentas de staff del panel (no seguridad de evento). */
+export const updateStaffUserStatusSchema = z.object({
+  status: z.enum(['active', 'suspended', 'disabled']),
+})
+
 export const deactivateAllSecurityUsersSchema = z.object({
   eventId: z.string().trim().min(1, 'Elegí un evento.'),
 })

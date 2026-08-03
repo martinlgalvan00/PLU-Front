@@ -372,6 +372,11 @@ export default function EventsPage({
       ? t('pages.events.eventCount_one', { count: visibleEventCount })
       : t('pages.events.eventCount_other', { count: visibleEventCount })
 
+  const eventCountUnit = t(
+    visibleEventCount === 1 ? 'pages.events.eventCount_one' : 'pages.events.eventCount_other',
+    { count: '' },
+  ).trim()
+
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref">
       <PluPageHero
@@ -407,18 +412,26 @@ export default function EventsPage({
 
       <div className="events-page__body">
         <div className="events-page__toolbar">
-          <div className="events-page__filters-shell">
-            <span className="events-page__filters-label">{t('pages.events.filterLabel')}</span>
+          <div className="events-page__filters-shell plu-tab-rail__shell">
             <FilterPills
               active={filter}
               ariaLabel={t('pages.events.filterAria')}
-              className="events-page__filters filter-pills--editorial"
+              className="events-page__filters filter-pills--refined plu-tab-rail"
               onChange={setFilter}
               options={filters}
             />
           </div>
-          <span className="events-page__count" aria-live="polite">
-            {eventCountLabel}
+          <span
+            className="plu-meta-chip plu-meta-chip--divider events-page__count"
+            aria-label={eventCountLabel}
+            aria-live="polite"
+          >
+            <span className="plu-meta-chip__value" aria-hidden="true">
+              {visibleEventCount}
+            </span>
+            <span className="plu-meta-chip__unit" aria-hidden="true">
+              {eventCountUnit}
+            </span>
           </span>
         </div>
         <CompetitionMap
@@ -428,6 +441,7 @@ export default function EventsPage({
           onSelectEvent={focusEvent}
           resolvePrimaryAction={resolveMapPrimaryAction}
           selectedEventId={selected?.slug}
+          showHeader={false}
         />
         <div className="events-layout-v2">
           <MotionContentSwap swapKey={filter} className="events-main-column">

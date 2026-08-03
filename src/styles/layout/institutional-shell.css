@@ -42,72 +42,85 @@
 
 .site-header-shell--institutional {
   isolation: isolate;
+  margin: 0 auto;
+  max-width: calc(100% - 32px);
+  pointer-events: auto;
   position: sticky;
-  top: 0;
+  top: 16px;
+  width: max-content;
   z-index: var(--z-header);
 }
 
 .site-header--institutional {
-  animation: institutional-header-enter 480ms var(--ease-out) both;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  background: var(--institution-header);
-  border-bottom: 1px solid var(--institution-border);
-  box-shadow: none;
+  animation: institutional-header-enter 480ms var(--ease-out) backwards;
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  background: color-mix(in srgb, var(--institution-header) 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--institution-border) 20%, transparent);
+  border-radius: 9999px;
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
+  max-width: 100%;
   overflow: visible;
+  pointer-events: auto;
   position: relative;
   top: auto;
   transition:
     background-color var(--motion-base) var(--ease-out),
     border-color var(--motion-base) var(--ease-out),
-    box-shadow var(--motion-base) var(--ease-out);
+    box-shadow var(--motion-base) var(--ease-out),
+    max-width var(--motion-base) var(--ease-out);
   z-index: var(--z-header);
 }
 
-.site-header--institutional::before {
-  background: linear-gradient(90deg, var(--institution-blue), transparent 30%, transparent 70%, var(--institution-gold));
-  content: '';
-  height: 2px;
-  inset: 0 0 auto;
-  opacity: 0.85;
-  position: absolute;
+.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  background: var(--institution-header-blend);
+  border-color: color-mix(in srgb, var(--institution-border) 50%, transparent);
 }
 
-.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  background: var(--institution-header-blend);
-  border-bottom-color: color-mix(in srgb, var(--institution-border) 70%, transparent);
+.site-header {
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Nav institucional: siempre visible al scrollear (pill compacta). El auto-hide
+   quedaba en conflicto con la animación de entrada y dejaba botones sin click. */
+.site-header--institutional.site-header--hidden {
+  pointer-events: auto;
+  transform: none;
+  visibility: visible;
 }
 
 .site-header--institutional.site-header--scrolled,
 .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  background: var(--institution-header);
-  border-bottom-color: var(--institution-border-strong);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-shadow-tint) 55%, transparent);
+  background: rgba(10, 10, 12, 0.65);
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Lux + institutional: no anular la stripe de marca del shell */
-.site-header--institutional.site-header--lux::before {
-  height: 1px;
-  opacity: 0.9;
+[data-theme='light'] .site-header--institutional.site-header--scrolled,
+[data-theme='light'] .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
+
+/* Lux + institutional */
 
 .plu-global-nav {
   align-items: center;
-  display: grid;
-  gap: clamp(16px, 2vw, 30px);
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin: 0 auto;
-  max-width: 1440px;
-  min-height: 64px;
-  padding: 0 var(--institution-gutter);
+  display: flex;
+  gap: clamp(12px, 1.5vw, 24px);
+  padding: 0 12px 0 20px;
+  min-height: 56px;
   transition: min-height var(--motion-base) var(--ease-out);
-  width: 100%;
 }
 
 .site-header--scrolled .plu-global-nav {
-  min-height: 54px;
+  min-height: 50px;
 }
 
 .plu-global-nav__brand {
@@ -148,6 +161,21 @@
   display: grid;
   gap: 0;
   min-width: 0;
+  max-width: 300px;
+  opacity: 1;
+  transform: translateX(0);
+  transition: max-width 400ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.site-header--scrolled .plu-global-nav__brand > span {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
 }
 
 .plu-global-nav__letterhead {
@@ -212,6 +240,26 @@
     opacity var(--motion-fast) var(--ease-out);
 }
 
+.plu-global-nav__link-content {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.plu-global-nav__hover-pill {
+  position: absolute;
+  inset: 6px 0;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--border-radius-sm);
+  z-index: 0;
+}
+
+[data-theme='light'] .plu-global-nav__hover-pill {
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .plu-global-nav__link-icon {
   color: var(--institution-blue);
   flex: none;
@@ -234,25 +282,15 @@
   font-weight: 700;
 }
 
-/* Afiliación: acento editorial en el nav (sin caja dorada) */
+/* Afiliación: acento editorial en el nav (sin caja dorada ni ícono) */
 .plu-global-nav__link--affiliate {
   color: var(--institution-text-secondary);
-  gap: 6px;
   letter-spacing: 0.06em;
-}
-
-.plu-global-nav__link--affiliate .plu-global-nav__link-icon {
-  color: var(--institution-gold);
 }
 
 .plu-global-nav__link--affiliate:hover,
 .plu-global-nav__link--affiliate.is-active {
   color: var(--institution-text);
-}
-
-.plu-global-nav__link--affiliate:hover .plu-global-nav__link-icon,
-.plu-global-nav__link--affiliate.is-active .plu-global-nav__link-icon {
-  color: var(--institution-gold);
 }
 
 .plu-global-nav__link--affiliate::after {
@@ -558,43 +596,53 @@
   opacity: 1;
 }
 
-/* Acceder: link tipográfico, sin caja */
+/* Acceder: label compacto, sin competir con la nav */
 .plu-global-nav__login {
   align-items: center;
   background: transparent;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid var(--institution-border);
+  border-radius: 4px;
+  box-shadow: none;
   color: var(--institution-text-secondary);
+  cursor: pointer;
   display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  height: 36px;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  height: 32px;
   justify-content: center;
-  letter-spacing: 0.02em;
-  min-height: 36px;
-  padding: 0 4px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  min-height: 32px;
+  padding: 0 10px;
   text-decoration: none;
-  text-transform: none;
+  text-transform: uppercase;
   transition:
-    color var(--motion-fast) var(--ease-out),
-    text-decoration-color var(--motion-fast) var(--ease-out);
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+  white-space: nowrap;
+  width: auto;
 }
 
 .plu-global-nav__login:hover,
 .plu-global-nav__login.is-active {
-  background: transparent;
-  border-color: transparent;
+  background: var(--institution-gold-soft);
+  border-color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-border));
   color: var(--institution-text);
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--institution-gold) 55%, transparent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+  text-decoration: none;
+}
+
+.plu-global-nav__login:active {
+  transform: none;
 }
 
 .plu-global-nav__account {
   align-items: center;
   display: flex;
   gap: 6px;
+  position: relative;
 }
 
 .plu-global-nav__profile,
@@ -604,11 +652,11 @@
   justify-content: center;
 }
 
-/* Avatar logueado: más visible, borde gold */
+/* Avatar logueado: circular, pareja del botón Acceder */
 .plu-global-nav__profile {
   background: transparent;
   border: 1.5px solid color-mix(in srgb, var(--institution-gold) 48%, var(--institution-border));
-  border-radius: var(--institution-radius-control);
+  border-radius: 50%;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--institution-gold) 12%, transparent);
   height: 40px;
   transition:
@@ -618,7 +666,8 @@
   width: 40px;
 }
 
-.plu-global-nav__profile:hover {
+.plu-global-nav__profile:hover,
+.plu-global-nav__profile.is-active {
   background: var(--institution-gold-soft);
   border-color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-border));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--institution-gold) 18%, transparent);
@@ -627,7 +676,7 @@
 .plu-global-nav__profile > span {
   align-items: center;
   background: var(--institution-blue-soft);
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--institution-text);
   display: flex;
   font-size: 13px;
@@ -707,19 +756,21 @@
 }
 
 .plu-drawer {
-  background: var(--institution-surface);
-  border-left: 1px solid var(--institution-border);
-  border-radius: 12px 0 0 12px;
-  box-shadow: -20px 0 48px color-mix(in srgb, var(--color-shadow-tint) 70%, transparent);
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  background: color-mix(in srgb, var(--institution-surface) 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--institution-border) 20%, transparent);
+  border-radius: 24px;
+  box-shadow: -20px 0 60px color-mix(in srgb, var(--color-shadow-tint) 70%, transparent), inset 1px 1px 0 rgba(255, 255, 255, 0.1);
   color: var(--institution-text);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  height: 100dvh;
-  inset: 0 0 0 auto;
+  height: calc(100dvh - 24px);
+  inset: 12px 12px 12px auto;
   max-width: 372px;
   overflow: hidden;
   position: fixed;
-  width: min(90vw, 372px);
+  width: calc(100vw - 24px);
   z-index: var(--z-drawer);
 }
 
@@ -731,9 +782,9 @@
 }
 
 [data-theme='dark'] .plu-drawer {
-  background: #090b0e;
-  border-left-color: rgba(255, 255, 255, 0.055);
-  box-shadow: -28px 0 72px rgba(0, 0, 0, 0.78);
+  background: color-mix(in srgb, #090b0e 65%, transparent);
+  border-color: rgba(255, 255, 255, 0.055);
+  box-shadow: -28px 0 72px rgba(0, 0, 0, 0.78), inset 1px 1px 0 rgba(255, 255, 255, 0.08);
   color: #ecece8;
 }
 
@@ -1518,46 +1569,33 @@
 }
 
 .institutional-hero {
-  background: var(--institution-hero-bg);
-  border-bottom: 1px solid var(--institution-border);
-  color: var(--institution-text);
+  /* Misma piel que .plu-page-hero (canvas de página) */
+  background: var(--plu-page-hero-bg, var(--color-bg-primary));
+  border-bottom: 1px solid var(--plu-page-hero-border, var(--color-border-subtle));
+  color: var(--color-text-primary);
   overflow: hidden;
   position: relative;
 }
 
-.institutional-hero::before {
-  background-image:
-    linear-gradient(var(--institution-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--institution-grid-line) 1px, transparent 1px);
-  background-size: 48px 48px;
-  content: '';
-  inset: 0;
-  opacity: 0.8;
-  pointer-events: none;
-  position: absolute;
-}
-
+.institutional-hero::before,
 .institutional-hero::after {
-  background: var(--institution-hero-wash);
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
+  content: none;
 }
 
 .institutional-hero__platform {
   bottom: 0;
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
-  height: 5px;
+  height: 2px;
   inset-inline: 0;
+  opacity: 0.55;
   position: absolute;
   z-index: 2;
 }
 
 .institutional-hero__platform span:nth-child(1) { background: var(--institution-blue); }
 .institutional-hero__platform span:nth-child(2) {
-  background: color-mix(in srgb, var(--institution-text) 72%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 35%, transparent);
 }
 .institutional-hero__platform span:nth-child(3) { background: var(--institution-gold); }
 
@@ -1571,23 +1609,34 @@
 
 .institutional-hero__breadcrumb {
   align-items: center;
-  color: var(--institution-text-muted);
+  color: var(--color-text-muted);
   display: flex;
-  font-size: 9px;
-  font-weight: 650;
-  gap: 7px;
-  letter-spacing: 0.1em;
-  margin-bottom: clamp(32px, 4.5vw, 52px);
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 9px;
+  letter-spacing: 0.06em;
+  margin-bottom: clamp(28px, 4vw, 46px);
+  text-transform: none;
 }
 
 .institutional-hero__breadcrumb button {
-  color: var(--institution-text-secondary);
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
   min-height: 32px;
-  padding: 0;
+  padding: 3px 0;
 }
 
-.institutional-hero__breadcrumb button:hover { color: var(--institution-text); }
+.institutional-hero__breadcrumb button:hover {
+  color: var(--color-text-primary);
+}
+
+.institutional-hero__breadcrumb span[aria-current='page'] {
+  color: var(--color-text-primary);
+}
 
 .institutional-hero__grid {
   align-items: end;
@@ -1597,49 +1646,61 @@
 }
 
 .institutional-hero__copy {
-  max-width: 780px;
+  max-width: 810px;
 }
 
 .institutional-hero__eyebrow,
 .institutional-kicker {
   align-items: center;
-  color: var(--institution-blue);
+  color: var(--color-brand-celeste);
   display: flex;
-  font-size: 9px;
-  font-weight: 750;
+  font-size: 10px;
+  font-weight: 700;
   gap: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.2em;
   line-height: 1.4;
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   text-transform: uppercase;
 }
 
+[data-theme='dark'] .institutional-hero__eyebrow,
+[data-theme='dark'] .institutional-kicker {
+  color: color-mix(in srgb, var(--plu-gold-500) 70%, transparent);
+}
+
 .institutional-hero__eyebrow span {
-  color: var(--institution-gold);
+  color: inherit;
   font-variant-numeric: tabular-nums;
+  opacity: 0.72;
 }
 
 .institutional-hero h1 {
-  color: var(--institution-text);
-  font-size: clamp(34px, 5.7vw, 70px);
-  font-weight: 760;
-  letter-spacing: -0.055em;
-  line-height: 0.98;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(34px, 4.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
   margin: 0;
-  max-width: 16ch;
+  max-width: 13ch;
   text-wrap: balance;
 }
 
+[data-theme='dark'] .institutional-hero h1 {
+  color: #fff;
+}
+
 .institutional-hero__description {
-  color: var(--institution-text-muted);
-  font-size: clamp(14px, 1.5vw, 17px);
+  color: var(--color-text-muted);
+  font-size: clamp(15px, 1.5vw, 17px);
   line-height: 1.65;
-  margin: 22px 0 0;
-  max-width: 62ch;
+  margin: 20px 0 0;
+  max-width: 54ch;
+  text-wrap: pretty;
 }
 
 .institutional-hero__aside {
-  border-left: 1px solid var(--institution-border);
+  border-left: 1px solid var(--color-border-subtle, var(--institution-border));
   min-height: 120px;
   padding-left: clamp(20px, 3vw, 34px);
 }
@@ -1651,7 +1712,7 @@
 }
 
 .institutional-hero__ledger > div {
-  border-bottom: 1px solid var(--institution-border);
+  border-bottom: 1px solid var(--color-border-subtle, var(--institution-border));
   display: grid;
   gap: 4px;
   grid-template-columns: 1fr auto;
@@ -1659,7 +1720,7 @@
 }
 
 .institutional-hero__ledger dt {
-  color: var(--institution-text-muted);
+  color: var(--color-text-muted);
   font-size: 9px;
   font-weight: 650;
   letter-spacing: 0.08em;
@@ -1667,7 +1728,7 @@
 }
 
 .institutional-hero__ledger dd {
-  color: var(--institution-text);
+  color: var(--color-text-primary);
   font-size: 11px;
   font-weight: 650;
   margin: 0;
@@ -1677,7 +1738,7 @@
 .institutional-hero__measure {
   align-items: center;
   bottom: 16px;
-  color: var(--institution-text-muted);
+  color: var(--color-text-muted);
   display: flex;
   font-family: var(--font-mono);
   font-size: 7px;
@@ -1690,7 +1751,7 @@
 }
 
 .institutional-hero__measure i {
-  background: var(--institution-border);
+  background: var(--color-border-subtle, var(--institution-border));
   flex: 1;
   height: 1px;
 }
@@ -2016,11 +2077,6 @@
   .plu-global-nav__preferences {
     padding-right: 5px;
   }
-
-  .plu-global-nav__login {
-    font-size: 11.25px;
-    padding-inline: 2px;
-  }
 }
 
 @media (max-width: 1099px) {
@@ -2273,12 +2329,14 @@
     outline-offset: 2px;
   }
 
+  /* Menú — ghost tipográfico: solo el glifo, sin caja (el acento del cluster es Afiliar) */
   .plu-global-nav__menu-button {
     align-items: center;
-    background: color-mix(in srgb, var(--institution-text) 5%, transparent);
-    border: 1px solid color-mix(in srgb, var(--institution-text) 16%, transparent);
-    border-radius: 10px;
-    color: var(--institution-text);
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    box-shadow: none;
+    color: var(--institution-text-secondary);
     display: inline-flex;
     flex: none;
     height: 40px;
@@ -2289,20 +2347,14 @@
     position: relative;
     transition:
       background-color var(--motion-fast) var(--ease-out),
-      border-color var(--motion-fast) var(--ease-out),
-      color var(--motion-fast) var(--ease-out),
-      transform var(--motion-fast) var(--ease-out);
+      color var(--motion-fast) var(--ease-out);
     width: 40px;
   }
 
-  .plu-global-nav__menu-button:hover {
-    background: color-mix(in srgb, var(--institution-text) 9%, transparent);
-    border-color: color-mix(in srgb, var(--institution-text) 26%, transparent);
+  .plu-global-nav__menu-button:hover,
+  .plu-global-nav__menu-button[aria-expanded='true'] {
+    background: transparent;
     color: var(--institution-text);
-  }
-
-  .plu-global-nav__menu-button:active {
-    transform: scale(0.94);
   }
 
   .plu-global-nav__menu-button:focus-visible {
@@ -2311,67 +2363,53 @@
   }
 
   .plu-global-nav__menu-icon {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    height: 14px;
-    justify-content: center;
+    display: block;
+    height: 10px;
+    position: relative;
     width: 18px;
   }
 
   .plu-global-nav__menu-line {
-    background: var(--institution-text);
+    background: currentColor;
     border-radius: 99px;
-    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--institution-surface) 55%, transparent);
     display: block;
-    flex: none;
-    height: 2px;
-    margin-left: auto;
+    height: 1px;
+    left: 0;
+    position: absolute;
+    right: 0;
     transform-origin: center;
     transition:
       transform var(--motion-base) var(--ease-emphasized),
-      opacity var(--motion-fast) var(--ease-out),
-      width var(--motion-base) var(--ease-out),
-      background-color var(--motion-fast) var(--ease-out);
+      opacity var(--motion-fast) var(--ease-out);
     width: 100%;
+  }
+
+  .plu-global-nav__menu-line:nth-child(1) {
+    top: 0;
   }
 
   .plu-global-nav__menu-line:nth-child(2) {
-    width: 70%;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .plu-global-nav__menu-line:nth-child(3) {
-    width: 85%;
+    bottom: 0;
   }
 
-  .plu-global-nav__menu-button:hover .plu-global-nav__menu-line,
-  .plu-global-nav__menu-button:focus-visible .plu-global-nav__menu-line {
-    width: 100%;
-  }
-
-  .plu-global-nav__menu-button[aria-expanded='true'] {
-    background: color-mix(in srgb, var(--institution-gold) 14%, transparent);
-    border-color: color-mix(in srgb, var(--institution-gold) 38%, transparent);
-    color: var(--institution-text);
-  }
-
-  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line {
-    background: var(--institution-text);
-    width: 100%;
-  }
-
-  /* gap 5 + h 2 → centros a ±7px */
   .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
   }
 
   .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(2) {
     opacity: 0;
-    transform: scaleX(0.3);
   }
 
   .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%) rotate(-45deg);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2416,20 +2454,22 @@
   }
 
   .institutional-hero h1 {
-    font-size: clamp(32px, 10vw, 48px);
+    font-size: clamp(32px, 10vw, 42px);
+    letter-spacing: -0.045em;
     max-width: 13ch;
   }
 
   .institutional-hero__description {
-    font-size: 13.5px;
+    font-size: clamp(15px, 1.5vw, 17px);
     margin-top: 18px;
+    max-width: 54ch;
   }
 
   .institutional-hero__aside {
     border-left: 0;
-    border-top: 1px solid var(--institution-border);
+    border-top: 1px solid var(--color-border-subtle, var(--institution-border));
     min-height: 0;
-    padding: 12px 0 0;
+    padding: 24px 0 0;
   }
 
   .institutional-hero__measure { display: none; }
@@ -2508,6 +2548,7 @@
   .plu-global-nav__link,
   .plu-global-nav__link-icon,
   .plu-global-nav__indicator,
+  .plu-global-nav__login,
   .plu-global-nav__menu-button,
   .plu-global-nav__menu-line,
   .plu-global-nav__emblem,
@@ -2518,69 +2559,80 @@
   .plu-drawer__group-footer:hover svg,
   .plu-global-nav__brand:hover .plu-global-nav__emblem,
   .plu-global-nav__link:hover .plu-global-nav__link-icon,
+  .plu-global-nav__login:active,
   .plu-global-nav__menu-button:active,
   .institutional-button--primary:hover { transform: none; }
   .institutional-footer__action:hover { transform: none; }
 }
 
-/* ── Profile Dropdown Menu ── */
+/* ── Profile Dropdown Menu ──
+   Fondo opaco con tokens institucionales: el header usa isolation/backdrop-filter
+   y un color-mix con --color-surface (inexistente) dejaba el menú transparente. */
 .plu-profile-menu {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: 280px;
-  background: color-mix(in srgb, var(--color-surface) 75%, rgba(0, 0, 0, 0.85));
-  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.12));
+  background: var(--institution-surface-raised);
+  border: 1px solid var(--institution-border-strong);
   border-radius: 12px;
-  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  padding: 6px;
+  box-shadow:
+    0 16px 40px color-mix(in srgb, var(--color-shadow-tint, #000) 55%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--institution-gold) 10%, transparent);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 1000;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
   transform-origin: top right;
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  width: min(280px, calc(100vw - 24px));
+  z-index: var(--z-dropdown);
+}
+
+/* Puente de hit-test: evita que el menú se cierre al cruzar el gap hacia las acciones */
+.plu-profile-menu::before {
+  content: '';
+  height: 10px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: -10px;
 }
 
 [data-theme='light'] .plu-profile-menu {
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+  background: var(--institution-surface);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--color-shadow-tint, #000) 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--institution-border) 80%, transparent);
 }
 
 .plu-profile-menu__header {
-  display: flex;
   align-items: center;
+  border-bottom: 1px solid var(--institution-border);
+  display: flex;
   gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
   margin-bottom: 4px;
-}
-
-[data-theme='light'] .plu-profile-menu__header {
-  border-bottom-color: rgba(0, 0, 0, 0.06);
+  padding: 12px 14px;
 }
 
 .plu-profile-menu__avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--plu-gold-500) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--plu-gold-500) 40%, transparent);
-  color: var(--plu-gold-500);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1.1rem;
-  overflow: hidden;
+  background: color-mix(in srgb, var(--institution-gold) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--institution-gold) 40%, transparent);
+  border-radius: 50%;
+  color: var(--institution-gold);
+  display: flex;
   flex-shrink: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  height: 40px;
+  justify-content: center;
+  overflow: hidden;
+  width: 40px;
 }
 
 .plu-profile-menu__avatar img {
-  width: 100%;
   height: 100%;
   object-fit: cover;
+  width: 100%;
 }
 
 .plu-profile-menu__info {
@@ -2590,23 +2642,23 @@
 }
 
 .plu-profile-menu__name {
-  color: var(--color-text-primary);
+  color: var(--institution-text);
   font-size: 0.9rem;
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.2;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0;
-  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .plu-profile-menu__role {
-  color: var(--color-text-muted);
+  color: var(--institution-text-muted);
   font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   margin: 2px 0 0;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
 }
 
 .plu-profile-menu__actions {
@@ -2616,31 +2668,36 @@
 }
 
 .plu-profile-menu__actions button {
+  align-items: center;
   background: transparent;
   border: none;
-  width: 100%;
-  text-align: left;
-  padding: 10px 14px;
   border-radius: 8px;
-  color: var(--color-text-secondary);
+  color: var(--institution-text-secondary);
+  cursor: pointer;
+  display: flex;
   font-size: 0.85rem;
   font-weight: 500;
-  display: flex;
-  align-items: center;
   gap: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 10px 14px;
+  text-align: left;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+  width: 100%;
 }
 
-.plu-profile-menu__actions button:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-  color: var(--color-text-primary);
+.plu-profile-menu__actions button:hover,
+.plu-profile-menu__actions button:focus-visible {
+  background: var(--institution-blue-soft);
+  color: var(--institution-text);
 }
 
 .plu-profile-menu__actions button.plu-profile-menu__logout {
-  color: var(--status-error);
+  color: var(--color-danger-text);
 }
 
-.plu-profile-menu__actions button.plu-profile-menu__logout:hover {
-  background: color-mix(in srgb, var(--status-error) 8%, transparent);
+.plu-profile-menu__actions button.plu-profile-menu__logout:hover,
+.plu-profile-menu__actions button.plu-profile-menu__logout:focus-visible {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }

@@ -1,0 +1,197 @@
+/* =========================================================
+   PLU tab rail — tabs editoriales compartidos (Shop, Results, …)
+   Quiet shell + label uppercase + hairline oro en activo.
+   ========================================================= */
+
+.plu-tab-rail__shell {
+  --plu-tab-rail-bg: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  --plu-tab-rail-border: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --plu-tab-rail-fg: var(--color-text-muted);
+  --plu-tab-rail-fg-hover: var(--color-text-primary);
+  --plu-tab-rail-active-fg: var(--color-text-primary);
+  --plu-tab-rail-active-bg: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  --plu-tab-rail-active-line: var(--plu-gold-500, var(--color-brand-gold));
+  --plu-tab-rail-radius: 6px;
+  --plu-tab-rail-tab-radius: 4px;
+
+  align-items: center;
+  background: var(--plu-tab-rail-bg);
+  border: 1px solid var(--plu-tab-rail-border);
+  border-radius: var(--plu-tab-rail-radius);
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 3px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.plu-tab-rail__shell::-webkit-scrollbar {
+  display: none;
+}
+
+.plu-tab-rail__tab,
+.plu-tab-rail__shell .filter-pills__item {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--plu-tab-rail-tab-radius);
+  color: var(--plu-tab-rail-fg);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  gap: 7px;
+  justify-content: center;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  min-height: 34px;
+  padding: 0 13px;
+  position: relative;
+  text-transform: uppercase;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+  white-space: nowrap;
+}
+
+.plu-tab-rail__tab:hover,
+.plu-tab-rail__shell .filter-pills__item:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  color: var(--plu-tab-rail-fg-hover);
+}
+
+.plu-tab-rail__tab.is-active,
+.plu-tab-rail__shell .filter-pills__item.is-active {
+  background: var(--plu-tab-rail-active-bg);
+  box-shadow: none;
+  color: var(--plu-tab-rail-active-fg);
+  font-weight: 700;
+}
+
+/* Si hay pill animado, el acento vive ahí (no duplicar) */
+.plu-tab-rail__tab:has(.plu-tab-rail__active-pill).is-active {
+  background: transparent;
+}
+
+.plu-tab-rail__tab.is-active::after,
+.plu-tab-rail__shell .filter-pills__item.is-active::after {
+  background: var(--plu-tab-rail-active-line);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  height: 1.5px;
+  left: 12px;
+  opacity: 0.9;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+}
+
+.plu-tab-rail__tab:has(.plu-tab-rail__active-pill).is-active::after {
+  display: none;
+}
+
+.plu-tab-rail__tab:focus-visible,
+.plu-tab-rail__shell .filter-pills__item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.plu-tab-rail__icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.plu-tab-rail__tab.is-active .plu-tab-rail__icon {
+  color: var(--plu-tab-rail-active-line);
+  opacity: 1;
+}
+
+.plu-tab-rail__active-pill {
+  background: var(--plu-tab-rail-active-bg);
+  border-radius: var(--plu-tab-rail-tab-radius);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.plu-tab-rail__active-pill::after {
+  background: var(--plu-tab-rail-active-line);
+  border-radius: 99px;
+  bottom: 4px;
+  content: '';
+  height: 1.5px;
+  left: 12px;
+  opacity: 0.9;
+  position: absolute;
+  right: 12px;
+}
+
+[data-theme='light'] .plu-tab-rail__shell {
+  --plu-tab-rail-bg: #fff;
+  --plu-tab-rail-border: rgba(15, 17, 23, 0.1);
+  --plu-tab-rail-fg: rgba(15, 17, 23, 0.48);
+  --plu-tab-rail-fg-hover: rgba(15, 17, 23, 0.88);
+  --plu-tab-rail-active-fg: var(--plu-ink-900, #0f1117);
+  --plu-tab-rail-active-bg: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 10%, #fff);
+  box-shadow: 0 6px 18px rgba(15, 17, 23, 0.04);
+}
+
+/* Meta chip — conteo / orden editorial (compañero del tab rail) */
+.plu-meta-chip {
+  align-items: baseline;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  min-height: 34px;
+  padding: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.plu-meta-chip__value {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.plu-meta-chip__unit {
+  color: inherit;
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+.plu-meta-chip--divider {
+  border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  margin-left: 2px;
+  padding-left: 12px;
+}
+
+[data-theme='light'] .plu-meta-chip {
+  color: rgba(15, 17, 23, 0.48);
+}
+
+[data-theme='light'] .plu-meta-chip__value {
+  color: var(--plu-ink-900, #0f1117);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plu-tab-rail__tab,
+  .plu-tab-rail__shell .filter-pills__item {
+    transition: none;
+  }
+}

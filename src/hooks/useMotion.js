@@ -212,9 +212,15 @@ export function useSlidingIndicator(containerRef, deps = [], selector = '.is-act
 /**
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
+ *
+ * @param {React.RefObject<HTMLElement|null>} shellRef
+ * @param {{ range?: number, threshold?: number, autoHide?: boolean }} [options]
+ *   `autoHide` (default true): esconde el header al scrollear hacia abajo.
+ *   El nav institucional flotante lo apaga para quedar siempre usable.
  */
-export function useHeaderScroll(shellRef, { range = 80, threshold = 80 } = {}) {
+export function useHeaderScroll(shellRef, { range = 80, threshold = 80, autoHide = true } = {}) {
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
     const shell = shellRef.current
@@ -222,6 +228,8 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80 } = {}) {
 
     let rafId = null
     let lastScrolled = null
+    let lastHidden = null
+    let lastY = window.scrollY
 
     function tick() {
       rafId = null
@@ -236,6 +244,29 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80 } = {}) {
         lastScrolled = nextScrolled
         setScrolled(nextScrolled)
       }
+
+      if (!autoHide) {
+        if (lastHidden) {
+          lastHidden = false
+          setHidden(false)
+        }
+        lastY = Math.max(0, y)
+        return
+      }
+
+      const isScrollingDown = y > lastY && y > threshold + 20
+      const isScrollingUp = y < lastY || y < threshold
+
+      let nextHidden = lastHidden ?? false
+      if (isScrollingDown) nextHidden = true
+      else if (isScrollingUp) nextHidden = false
+
+      if (nextHidden !== lastHidden) {
+        lastHidden = nextHidden
+        setHidden(nextHidden)
+      }
+
+      lastY = Math.max(0, y)
     }
 
     function onScroll() {
@@ -250,7 +281,7 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80 } = {}) {
       shell.style.removeProperty('--header-scroll-progress')
       shell.style.removeProperty('--header-scroll-y')
     }
-  }, [shellRef, range, threshold])
+  }, [shellRef, range, threshold, autoHide])
 
-  return scrolled
+  return { scrolled, hidden }
 }

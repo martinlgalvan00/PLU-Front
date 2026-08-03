@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
@@ -174,11 +174,32 @@ export default function LoginPage({ onLogin, onNavigate }) {
           : t('login.subtitle')
 
   return (
-    <main className="page auth-immersive-page">
-      <div className="auth-immersive-glass" aria-labelledby="login-heading">
+    <main className="page auth-layout">
+      <aside className="auth-layout__visual" aria-hidden="true">
+        <div className="auth-layout__visual-content">
+          <BrandLogo variant="letterhead" height={40} imgClassName="auth-layout__emblem" />
+          <h2 className="auth-layout__slogan">
+            Elevá tu
+            <span className="auth-layout__slogan-line">estándar.</span>
+          </h2>
+          <p className="auth-layout__lead">
+            Perfil, afiliación e historial competitivo en un solo lugar.
+          </p>
+          <span className="auth-layout__rule" aria-hidden="true" />
+          <ul className="auth-layout__signals">
+            <li>Credencial digital PLU</li>
+            <li>Historial oficial</li>
+            <li>Inscripciones a eventos</li>
+          </ul>
+          <p className="auth-layout__meta">Powerlifting United Argentina</p>
+        </div>
+      </aside>
+      <section className="auth-layout__content">
+        <div className="auth-immersive-page">
+          <div className="auth-immersive-glass" aria-labelledby="login-heading">
         <header className="auth-immersive-glass__header">
-          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={42} />
-          <div>
+          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={36} />
+          <div className="auth-immersive-glass__copy">
             <h1 id="login-heading" className="auth-immersive-glass__title">{cardTitle}</h1>
             <p className="auth-immersive-glass__lead">{cardLead}</p>
           </div>
@@ -203,7 +224,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </span>
                 {fieldErrors.email ? (
                   <span className="login-field__error" role="alert">
-                    {fieldErrors.email}
+                    <AlertCircle size={14} className="error-icon" />
+                    <span>{fieldErrors.email}</span>
                   </span>
                 ) : null}
               </label>
@@ -242,7 +264,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </span>
                 {fieldErrors.password ? (
                   <span className="login-field__error" role="alert">
-                    {fieldErrors.password}
+                    <AlertCircle size={14} className="error-icon" />
+                    <span>{fieldErrors.password}</span>
                   </span>
                 ) : null}
               </div>
@@ -258,7 +281,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
               ) : null}
               {submitError ? (
                 <p className="form-submit-error" role="alert">
-                  {submitError}
+                  <AlertCircle size={14} className="error-icon" />
+                  <span>{submitError}</span>
                 </p>
               ) : null}
             </form>
@@ -283,7 +307,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </span>
                 {fieldErrors.email ? (
                   <span className="login-field__error" role="alert">
-                    {fieldErrors.email}
+                    <AlertCircle size={14} className="error-icon" />
+                    <span>{fieldErrors.email}</span>
                   </span>
                 ) : null}
               </label>
@@ -300,7 +325,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
               {submitError ? (
                 <p className="form-submit-error" role="alert">
-                  {submitError}
+                  <AlertCircle size={14} className="error-icon" />
+                  <span>{submitError}</span>
                 </p>
               ) : null}
             </form>
@@ -345,7 +371,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </span>
                 {fieldErrors.password ? (
                   <span className="login-field__error" role="alert">
-                    {fieldErrors.password}
+                    <AlertCircle size={14} className="error-icon" />
+                    <span>{fieldErrors.password}</span>
                   </span>
                 ) : null}
               </label>
@@ -366,7 +393,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 </span>
                 {fieldErrors.passwordConfirm ? (
                   <span className="login-field__error" role="alert">
-                    {fieldErrors.passwordConfirm}
+                    <AlertCircle size={14} className="error-icon" />
+                    <span>{fieldErrors.passwordConfirm}</span>
                   </span>
                 ) : null}
               </label>
@@ -383,7 +411,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
               {submitError ? (
                 <p className="form-submit-error" role="alert">
-                  {submitError}
+                  <AlertCircle size={14} className="error-icon" />
+                  <span>{submitError}</span>
                 </p>
               ) : null}
             </form>
@@ -415,12 +444,14 @@ export default function LoginPage({ onLogin, onNavigate }) {
           )}
         </div>
         
-        <p className="login-page__footer" style={{ position: 'absolute', bottom: '24px', left: 0, right: 0, textAlign: 'center', zIndex: 20 }}>
+        <p className="login-page__footer auth-layout__footer">
           {t('login.footerNote')} ·{' '}
-          <button type="button" onClick={() => onNavigate('home')} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>
+          <button type="button" onClick={() => onNavigate('home')}>
             {t('login.backToSite')}
           </button>
         </p>
+        </div>
+      </section>
     </main>
   )
 }

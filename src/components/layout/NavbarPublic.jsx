@@ -59,16 +59,21 @@ function SharedActiveIndicator() {
   )
 }
 
-function NavLink({ active, children, icon: Icon, onClick, tone = 'default' }) {
+function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLeave, tone = 'default' }) {
   return (
     <button
       type="button"
       className={`plu-global-nav__link${tone !== 'default' ? ` plu-global-nav__link--${tone}` : ''}${active ? ' is-active' : ''}`}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
     >
-      {Icon ? <Icon className="plu-global-nav__link-icon" size={14} aria-hidden /> : null}
-      {children}
+      {hovered ? <m.span layoutId="plu-nav-hover-pill" className="plu-global-nav__hover-pill" aria-hidden transition={{ type: 'spring', stiffness: 460, damping: 35, mass: 0.8 }} /> : null}
+      <span className="plu-global-nav__link-content">
+        {Icon ? <Icon className="plu-global-nav__link-icon" size={14} aria-hidden /> : null}
+        {children}
+      </span>
       {active ? <SharedActiveIndicator /> : null}
     </button>
   )
@@ -76,9 +81,13 @@ function NavLink({ active, children, icon: Icon, onClick, tone = 'default' }) {
 
 function NavDropdownItem({ active = false, description, icon: Icon, label, onClick, tone = 'default' }) {
   return (
-    <button
+    <m.button
       type="button"
       role="menuitem"
+      variants={{
+        hidden: { opacity: 0, y: 8, filter: 'blur(4px)' },
+        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 350, damping: 25 } }
+      }}
       className={`plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
@@ -86,11 +95,11 @@ function NavDropdownItem({ active = false, description, icon: Icon, label, onCli
       {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
       <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
       <ArrowRight size={14} aria-hidden />
-    </button>
+    </m.button>
   )
 }
 
-function NavDropdown({ active, children, label, menuId, open, onClose, onToggle, variant = 'compact' }) {
+function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuId, open, onClose, onToggle, variant = 'compact' }) {
   const rootRef = useRef(null)
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
@@ -98,63 +107,46 @@ function NavDropdown({ active, children, label, menuId, open, onClose, onToggle,
 
   useEffect(() => {
     if (!open) return undefined
-    function handlePointerDown(event) {
+    function onPointerDown(event) {
       if (!rootRef.current?.contains(event.target)) onClose()
     }
-    function handleFocus(event) {
+    function onFocusIn(event) {
       if (!rootRef.current?.contains(event.target)) onClose()
     }
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('focusin', handleFocus)
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('focusin', onFocusIn)
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('focusin', handleFocus)
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('focusin', onFocusIn)
     }
-  }, [onClose, open])
+  }, [open, onClose])
 
-  function menuItems() {
-    return Array.from(menuRef.current?.querySelectorAll('[role="menuitem"]') ?? [])
+  function handleMenuKeyDown(event) {
+    if (event.key === 'Escape') onClose()
   }
 
   function focusItem(index) {
-    const items = menuItems()
-    if (!items.length) return
-    items[(index + items.length) % items.length]?.focus()
+    const focusable = menuRef.current?.querySelectorAll('[role="menuitem"]')
+    if (!focusable?.length) return
+    if (index === -1) focusable[focusable.length - 1].focus()
+    else focusable[index].focus()
   }
 
   function handleTriggerKeyDown(event) {
-    if (event.key === 'Escape' && open) {
+    if (event.key === 'ArrowDown') {
       event.preventDefault()
-      onClose()
-      return
-    }
-    if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return
-    event.preventDefault()
-    if (!open) onToggle()
-    window.requestAnimationFrame(() => focusItem(event.key === 'ArrowDown' ? 0 : -1))
-  }
-
-  function handleMenuKeyDown(event) {
-    const items = menuItems()
-    const currentIndex = items.indexOf(document.activeElement)
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      onClose()
-      triggerRef.current?.focus()
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      focusItem(currentIndex + 1)
+      if (!open) onToggle()
+      setTimeout(() => focusItem(0), 0)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      focusItem(currentIndex - 1)
+      if (!open) onToggle()
+      setTimeout(() => focusItem(-1), 0)
     } else if (event.key === 'Home') {
       event.preventDefault()
       focusItem(0)
     } else if (event.key === 'End') {
       event.preventDefault()
       focusItem(-1)
-    } else if (event.key === 'Tab') {
-      onClose()
     }
   }
 
@@ -171,8 +163,14 @@ function NavDropdown({ active, children, label, menuId, open, onClose, onToggle,
         ref={triggerRef}
         onClick={onToggle}
         onKeyDown={handleTriggerKeyDown}
+        onMouseEnter={onHover}
+        onMouseLeave={onLeave}
       >
-        {label}<ChevronDown size={13} aria-hidden />{active ? <SharedActiveIndicator /> : null}
+        {hovered ? <m.span layoutId="plu-nav-hover-pill" className="plu-global-nav__hover-pill" aria-hidden transition={{ type: 'spring', stiffness: 460, damping: 35, mass: 0.8 }} /> : null}
+        <span className="plu-global-nav__link-content">
+          {label}<ChevronDown size={13} aria-hidden />
+        </span>
+        {active ? <SharedActiveIndicator /> : null}
       </button>
       <AnimatePresence initial={false}>
         {open ? (
@@ -183,18 +181,23 @@ function NavDropdown({ active, children, label, menuId, open, onClose, onToggle,
             ref={menuRef}
             role="menu"
             aria-labelledby={`${menuId}-trigger`}
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985, filter: 'blur(3px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={reducedMotion
-              ? { opacity: 0, transition: { duration: 0.01 } }
-              : {
-                  opacity: 0,
-                  y: 4,
-                  scale: 0.995,
-                  filter: 'blur(1px)',
-                  transition: { duration: 0.14, ease: [0.2, 0, 0, 1] },
-                }}
-            transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={{
+              hidden: { 
+                opacity: 0, y: 12, scale: 0.985, filter: 'blur(4px)',
+                transition: { duration: reducedMotion ? 0.01 : 0.14, ease: [0.2, 0, 0, 1] }
+              },
+              visible: { 
+                opacity: 1, y: 0, scale: 1, filter: 'blur(0px)',
+                transition: { 
+                  duration: reducedMotion ? 0.08 : 0.25, 
+                  ease: [0.22, 1, 0.36, 1],
+                  staggerChildren: reducedMotion ? 0 : 0.04
+                } 
+              }
+            }}
             onKeyDown={handleMenuKeyDown}
           >
             {children}
@@ -259,12 +262,14 @@ const DRAWER_SECONDARY = [
 export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
+  const [hoveredNav, setHoveredNav] = useState(null)
   const shellRef = useRef(null)
   const drawerRef = useRef(null)
   const closeRef = useRef(null)
   const menuButtonRef = useRef(null)
+  const profileMenuRef = useRef(null)
   const restoreDrawerFocusRef = useRef(true)
-  const scrolled = useHeaderScroll(shellRef)
+  const { scrolled } = useHeaderScroll(shellRef, { autoHide: false })
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
 
@@ -367,6 +372,22 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
     return () => document.removeEventListener('keydown', onEscape)
   }, [])
 
+  useEffect(() => {
+    if (dropdown !== 'profile') return undefined
+    function handlePointerDown(event) {
+      if (!profileMenuRef.current?.contains(event.target)) setDropdown(null)
+    }
+    function handleFocusIn(event) {
+      if (!profileMenuRef.current?.contains(event.target)) setDropdown(null)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('focusin', handleFocusIn)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('focusin', handleFocusIn)
+    }
+  }, [dropdown])
+
   const overHero = ['home', 'pitbull', 'tickets'].includes(activeView)
 
   return (
@@ -393,14 +414,17 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
           <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')}>
             <LayoutGroup id={`plu-public-navigation-${locale}`}>
-              <NavLink active={activeView === 'members'} icon={IdCard} tone="affiliate" onClick={() => go('members')}>
+              <NavLink active={activeView === 'members'} hovered={hoveredNav === 'members'} onHover={() => setHoveredNav('members')} onLeave={() => setHoveredNav(null)} tone="affiliate" onClick={() => go('members')}>
                 {t('nav.members')}
               </NavLink>
-              <NavLink active={activeView === 'events'} onClick={() => go('events')}>
+              <NavLink active={activeView === 'events'} hovered={hoveredNav === 'events'} onHover={() => setHoveredNav('events')} onLeave={() => setHoveredNav(null)} onClick={() => go('events')}>
                 {t('nav.calendarOfficial')}
               </NavLink>
               <NavDropdown
               active={competitionsActive}
+              hovered={hoveredNav === 'competitions'}
+              onHover={() => setHoveredNav('competitions')}
+              onLeave={() => setHoveredNav(null)}
               label={t('nav.competitions')}
               menuId="plu-competitions-menu"
               open={dropdown === 'competitions'}
@@ -427,10 +451,13 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 <span><CalendarDays size={14} aria-hidden />{t('nav.calendarOfficial')}</span><ArrowRight size={14} aria-hidden />
               </button>
               </NavDropdown>
-              <NavLink active={activeView === 'results'} onClick={() => go('results')}>{t('nav.results')}</NavLink>
-              <NavLink active={activeView === 'records'} onClick={() => go('records')}>{t('nav.records')}</NavLink>
+              <NavLink active={activeView === 'results'} hovered={hoveredNav === 'results'} onHover={() => setHoveredNav('results')} onLeave={() => setHoveredNav(null)} onClick={() => go('results')}>{t('nav.results')}</NavLink>
+              <NavLink active={activeView === 'records'} hovered={hoveredNav === 'records'} onHover={() => setHoveredNav('records')} onLeave={() => setHoveredNav(null)} onClick={() => go('records')}>{t('nav.records')}</NavLink>
               <NavDropdown
               active={resourcesActive}
+              hovered={hoveredNav === 'resources'}
+              onHover={() => setHoveredNav('resources')}
+              onLeave={() => setHoveredNav(null)}
               label={t('nav.groupRecursos')}
               menuId="plu-resources-menu"
               open={dropdown === 'resources'}
@@ -468,36 +495,52 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
           <div className="plu-global-nav__actions">
             <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
             {session ? (
-              <div className="plu-global-nav__account" onMouseLeave={() => setDropdown(null)}>
-                <button type="button" className={`plu-global-nav__profile${dropdown === 'profile' ? ' is-active' : ''}`} aria-expanded={dropdown === 'profile'} onClick={() => setDropdown(current => current === 'profile' ? null : 'profile')}>
+              <div className="plu-global-nav__account" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  id="plu-profile-menu-trigger"
+                  className={`plu-global-nav__profile${dropdown === 'profile' ? ' is-active' : ''}`}
+                  aria-controls="plu-profile-menu"
+                  aria-expanded={dropdown === 'profile'}
+                  aria-haspopup="menu"
+                  aria-label={sessionFullName || t('nav.myProfile', { defaultValue: 'Mi Perfil' })}
+                  onClick={() => setDropdown((current) => (current === 'profile' ? null : 'profile'))}
+                >
                   <span aria-hidden>{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</span>
                 </button>
-                <AnimatePresence>
-                  {dropdown === 'profile' && (
-                    <m.div 
+                <AnimatePresence initial={false}>
+                  {dropdown === 'profile' ? (
+                    <m.div
                       className="plu-profile-menu"
-                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985, filter: 'blur(3px)' }}
-                      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: 4, scale: 0.995, filter: 'blur(1px)', transition: { duration: 0.14 } }}
-                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      id="plu-profile-menu"
+                      role="menu"
+                      aria-labelledby="plu-profile-menu-trigger"
+                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={reducedMotion
+                        ? { opacity: 0, transition: { duration: 0.01 } }
+                        : { opacity: 0, y: 4, scale: 0.995, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
+                      transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
                     >
                       <div className="plu-profile-menu__header">
-                        <div className="plu-profile-menu__avatar">{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</div>
+                        <div className="plu-profile-menu__avatar" aria-hidden>
+                          {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                        </div>
                         <div className="plu-profile-menu__info">
                           <p className="plu-profile-menu__name">{sessionFullName}</p>
                           <p className="plu-profile-menu__role">{adminSession ? 'Administrador' : 'Atleta Oficial'}</p>
                         </div>
                       </div>
                       <div className="plu-profile-menu__actions">
-                        <button type="button" onClick={() => go(adminSession ? 'admin' : 'profile')}>
+                        <button type="button" role="menuitem" onClick={() => go(adminSession ? 'admin' : 'profile')}>
                           <User size={14} aria-hidden /> {t('nav.myProfile', { defaultValue: 'Mi Perfil' })}
                         </button>
-                        <button type="button" onClick={onLogout} className="plu-profile-menu__logout">
+                        <button type="button" role="menuitem" onClick={onLogout} className="plu-profile-menu__logout">
                           <LogOut size={14} aria-hidden /> {t('nav.logout')}
                         </button>
                       </div>
                     </m.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
               </div>
             ) : (

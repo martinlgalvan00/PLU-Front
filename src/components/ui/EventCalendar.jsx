@@ -237,29 +237,15 @@ export default function EventCalendar({
                 .join(', ')}`}
             >
               {dayNumber}
-              <span className="event-calendar__chips">
-                {visible.map(({ event, isStart, isEnd, isSpan }) => (
+              <span className="event-calendar__dots">
+                {visible.map(({ event }) => (
                   <span
                     key={event.slug}
-                    className={[
-                      'event-calendar__chip',
-                      `event-calendar__chip--${EVENT_STATUS[event.status]?.tone ?? 'neutral'}`,
-                      isSpan ? 'event-calendar__chip--span' : '',
-                      isSpan && isStart ? 'event-calendar__chip--span-start' : '',
-                      isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <span className="event-calendar__chip-label" aria-hidden>
-                      {isStart || cell.isWeekStart ? event.title : ''}
-                    </span>
-                  </span>
+                    className={`event-calendar__dot event-calendar__dot--${EVENT_STATUS[event.status]?.tone ?? 'neutral'}`}
+                  />
                 ))}
                 {hiddenCount > 0 && (
-                  <span className="event-calendar__chip-more" aria-hidden>
-                    +{hiddenCount}
-                  </span>
+                  <span className="event-calendar__dot event-calendar__dot--more" />
                 )}
               </span>
             </button>

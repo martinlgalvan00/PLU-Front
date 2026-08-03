@@ -251,6 +251,11 @@ export default function PaymentsOperationsSection({
             onChange={setStatus}
             compact
             inline
+            defaultValue=""
+            omitNeutral
+            allLabel={t('admin.filters.showingAll')}
+            clearable
+            hideEmpty
             options={[
               ['', t('admin.paymentOperations.allEvents')],
               ['failed', t('admin.paymentOperations.failed'), summary.events?.failed],

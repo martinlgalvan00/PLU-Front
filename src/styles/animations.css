@@ -230,6 +230,8 @@
 .page-transition {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-transition--enter.page-transition--dir-forward {

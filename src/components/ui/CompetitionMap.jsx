@@ -65,20 +65,12 @@ function MapFallback({ event, state, hidden, t }) {
       aria-live={!hidden && announcesState ? 'polite' : undefined}
       role={!hidden && announcesState ? 'status' : undefined}
     >
-      <div className="competition-map__fallback-mark" aria-hidden>
-        <StateIcon size={24} strokeWidth={1.5} />
-        <span>PLU</span>
+      <div className="competition-map__fallback-icon" aria-hidden>
+        <StateIcon size={18} strokeWidth={1.5} />
       </div>
       <div className="competition-map__fallback-copy">
-        <p className="competition-map__fallback-label">{t('pages.events.map.fallbackLabel')}</p>
         <h3>{title}</h3>
         <p>{copy}</p>
-        {event ? (
-          <p className="competition-map__fallback-place">
-            <strong>{event.venue || event.title}</strong>
-            <span>{event.address || event.location}</span>
-          </p>
-        ) : null}
       </div>
     </div>
   )
