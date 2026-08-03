@@ -1,4 +1,4 @@
-import photoMedals from '../../assets/DSC01606.jpg'
+import photoMedals from '../../assets/DSC01606-display.jpg'
 
 export default function PitbullHeroVisual({ categories = [], date, minimal = false, t, venue }) {
   if (minimal) {

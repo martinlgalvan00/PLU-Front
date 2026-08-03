@@ -1,19 +1,32 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import '../styles/layout/admin-shell.css'
+import '../styles/pages/admin.css'
+import '../styles/pages/admin-institutional.css'
+import '../styles/pages/admin-minimal.css'
+import '../styles/pages/admin-dashboard-bento.css'
+import '../styles/pages/admin-audit.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
-import AthleteDetailSection from './admin/AthleteDetailSection.jsx'
-import AthletesSection from './admin/AthletesSection.jsx'
-import AuditSection from './admin/AuditSection.jsx'
+import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
+// `DashboardSection` es la vista de entrada para casi todos los roles, así
+// que queda eager -- lazy-cargarla solo agregaría un flash de Suspense sin
+// bajar bytes reales. El resto de las secciones se cargan bajo demanda: un
+// operador que solo usa Atletas y Pagos no tiene por qué bajar el código de
+// Roles, Auditoría, Tienda o PLU USA.
 import DashboardSection from './admin/DashboardSection.jsx'
-import EventsSection from './admin/EventsSection.jsx'
-import MembershipsSection from './admin/MembershipsSection.jsx'
-import PlaceholderSection from './admin/PlaceholderSection.jsx'
-import PluUsaSection from './admin/PluUsaSection.jsx'
-import RegistrationsSection from './admin/RegistrationsSection.jsx'
-import PaymentsOperationsSection from './admin/PaymentsOperationsSection.jsx'
-import ShopSection from './admin/ShopSection.jsx'
-import UsersSection from './admin/UsersSection.jsx'
-import RolesSection from './admin/RolesSection.jsx'
 import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
+
+const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx'))
+const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
+const AuditSection = lazy(() => import('./admin/AuditSection.jsx'))
+const EventsSection = lazy(() => import('./admin/EventsSection.jsx'))
+const MembershipsSection = lazy(() => import('./admin/MembershipsSection.jsx'))
+const PlaceholderSection = lazy(() => import('./admin/PlaceholderSection.jsx'))
+const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
+const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
+const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
+const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
+const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
+const RolesSection = lazy(() => import('./admin/RolesSection.jsx'))
 
 export default function AdminPage({
   accessRoles,
@@ -30,7 +43,6 @@ export default function AdminPage({
   enrichedMemberships,
   pendingActions,
   adminNavBadges,
-  recentActivity,
   getAthleteDetail,
   onApprovePayment,
   onApproveTicketPurchase,
@@ -142,7 +154,6 @@ export default function AdminPage({
           dashboardOverview={dashboardOverview}
           pendingActions={pendingActions}
           pendingPayments={pendingPayments}
-          recentActivity={recentActivity}
           onNavigate={handleSectionChange}
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
@@ -317,7 +328,7 @@ export default function AdminPage({
         className="admin-page admin-section-enter"
         key={`${section}-${selectedAthleteId ?? 'list'}`}
       >
-        {renderSection()}
+        <Suspense fallback={<PageLoadFallback />}>{renderSection()}</Suspense>
       </div>
     </AdminShell>
   )

@@ -520,12 +520,12 @@ export default function RegisterPage({
 
   return (
     <main
-      className={`page register-page register-page--design register-page--premium${
+      className={`page auth-immersive-page register-page register-page--design register-page--premium${
         flow === 'profile' ? ' register-page--profile' : ''
       }${flow === 'membership' ? ' register-page--membership' : ''}`.trim()}
     >
       {(flow === 'profile' || flow === 'membership') && onNavigate && (
-        <nav className="register-topbar" aria-label={t('pages.register.navAria')}>
+        <nav className="register-topbar" aria-label={t('pages.register.navAria')} style={{ position: 'absolute', top: '24px', left: '24px', right: '24px', zIndex: 20 }}>
           <button
             type="button"
             className="register-topbar__back"
@@ -543,7 +543,7 @@ export default function RegisterPage({
         </nav>
       )}
 
-      <div className="register-shell">
+      <div className="auth-immersive-glass auth-immersive-glass--wide register-shell">
         <aside className="register-aside register-aside--desktop">
           {registerIntro}
           {flow === 'membership' && !visibleOrder && (

@@ -170,6 +170,7 @@ export default function AthletePaymentOrdersSection({
         label={t('admin.filters.status')}
         value={status}
         onChange={setStatus}
+        compact
         options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
       />
 

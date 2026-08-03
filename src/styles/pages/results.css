@@ -3548,9 +3548,23 @@
 }
 
 .results-event-panel--editorial .results-lifters-table th {
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  padding-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  padding-bottom: 12px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+}
+
+.results-event-panel--editorial .results-lifters-table tbody tr {
+  transition: all var(--motion-fast) ease;
+  position: relative;
+}
+
+.results-event-panel--editorial .results-lifters-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-bg-primary) 80%, transparent);
+  z-index: 2;
 }
 
 .results-event-panel--editorial .results-lifters-table tbody tr:last-child th,
@@ -3559,31 +3573,59 @@
 }
 
 .results-event-panel--editorial .results-lifters-table__place {
-  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
-  font-size: 1.05rem;
+  color: color-mix(in srgb, var(--color-text-primary) 50%, transparent);
+  font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.04em;
-  width: 2.75rem;
+  width: 3rem;
+  text-align: center;
+}
+
+/* Podium Styles */
+.results-event-panel--editorial .results-lifters-table tbody tr:nth-child(1) .results-lifters-table__place {
+  color: #d4af37; /* Gold */
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  font-size: 1.3rem;
+}
+
+.results-event-panel--editorial .results-lifters-table tbody tr:nth-child(2) .results-lifters-table__place {
+  color: #c0c0c0; /* Silver */
+  text-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+  font-size: 1.2rem;
+}
+
+.results-event-panel--editorial .results-lifters-table tbody tr:nth-child(3) .results-lifters-table__place {
+  color: #cd7f32; /* Bronze */
+  text-shadow: 0 0 8px rgba(205, 127, 50, 0.2);
+  font-size: 1.15rem;
 }
 
 .results-event-panel--editorial .results-lifters-table__name {
   font-family: var(--font-display);
-  font-size: 13.5px;
-  letter-spacing: -0.018em;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+.results-event-panel--editorial .results-lifters-table td:not(.results-lifters-table__place):not(.results-lifters-table__total):not(.results-lifters-table__dots) {
+  color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  font-size: 13px;
 }
 
 .results-event-panel--editorial .results-lifters-table__total {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 13.5px;
-  letter-spacing: -0.02em;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .results-event-panel--editorial .results-lifters-table__dots {
-  color: var(--color-text-muted);
+  color: var(--plu-gold-500);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  font-size: 14px;
 }
 
 [data-theme='light'] .results-event-panel--editorial .results-event-panel__group.is-active {

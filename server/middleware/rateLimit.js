@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 
 /**
  * rateLimit.js — PLU ARG
@@ -21,6 +21,10 @@ import rateLimit from 'express-rate-limit'
  * `X-Forwarded-For` crudo si lo es, y por eso no se lee directo. Fuera de
  * Vercel cae en req.ip, que es confiable segun el `trust proxy` de app.js.
  *
+ * `ipKeyGenerator` normaliza IPv6 a subnet (/56 por default) para que un
+ * cliente no evada el límite rotando dentro del mismo prefijo. express-rate-limit
+ * v8 exige esto en keyGenerators custom que caen a IP.
+ *
  * Sin esto -- y sin trust proxy -- todos los clientes compartian una unica
  * clave: el limite se volvia global y alcanzaba con que una sola IP lo agotara
  * para dejar sin login a todo el mundo.
@@ -30,7 +34,9 @@ function clientKey(req) {
     .split(',')[0]
     .trim()
 
-  return vercelClientIp || req.ip || 'desconocido'
+  if (vercelClientIp) return ipKeyGenerator(vercelClientIp)
+  if (req.ip) return ipKeyGenerator(req.ip)
+  return 'desconocido'
 }
 
 function buildLimiter(windowMs, limit, message) {

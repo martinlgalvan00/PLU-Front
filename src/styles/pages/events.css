@@ -5,6 +5,76 @@
 
 /* ── Stats row ──────────────────────────────── */
 
+.events-hero-dossier {
+  display: grid;
+  gap: 10px;
+}
+
+.events-hero-dossier__head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.events-hero-dossier__head > span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.events-hero-dossier__date {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 12px 0 0;
+}
+
+.events-hero-dossier h2 {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 1.8vw, 23px);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.events-hero-dossier__place {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.events-hero-dossier__link {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+  justify-self: start;
+  margin-top: 10px;
+  padding: 6px 0;
+}
+
+.events-hero-dossier__link:hover {
+  color: var(--color-brand-celeste);
+}
+
+.events-hero-dossier__link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
+}
+
 .events-page__stats {
   display: grid;
   gap: var(--space-md);
@@ -3933,4 +4003,7 @@
 [data-theme='light'] .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--today .event-calendar__day {
   background: var(--plu-celeste-600);
   color: #fff;
+}
+.events-page__competition-map {
+  margin-bottom: clamp(34px, 5vw, 64px);
 }

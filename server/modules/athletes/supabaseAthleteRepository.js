@@ -52,12 +52,14 @@ export function createSupabaseAthleteRepository(
       )
       return { ...athlete, password_hash: credentials?.password_hash ?? null }
     },
-    setPassword: (athleteId, passwordHash) => assertSupabaseResult(
-      client.from('athlete_credentials').upsert({
-        athlete_id: athleteId,
-        password_hash: passwordHash,
-        password_updated_at: new Date().toISOString(),
-      }, { onConflict: 'athlete_id' }),
+    // Via RPC y no con un upsert suelto: cambiar la contraseña tiene que
+    // cortar las sesiones abiertas en la misma transaccion. athlete_sessions no
+    // esta expuesta a PostgREST (revocada en 20260716000000), asi que desde
+    // aca no se puede tocar; la RPC lo resuelve del lado de la base.
+    // Devuelve { revokedSessions }.
+    setPassword: (athleteId, passwordHash) => rpc(
+      'set_athlete_password',
+      { p_athlete_id: athleteId, p_password_hash: passwordHash },
       'No se pudo actualizar la credencial del atleta.',
     ),
     credential: (athleteId) => assertSupabaseResult(

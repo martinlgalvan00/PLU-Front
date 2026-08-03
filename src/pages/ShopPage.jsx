@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, CalendarDays, ChevronRight, ClipboardCheck, MapPin, ShoppingBag, Ticket } from 'lucide-react'
-import shopHeroPhoto from '../assets/DSC00392.jpg'
+import shopHeroPhoto from '../assets/DSC00392-display.jpg'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
 import SpotlightCard from '../components/ui/SpotlightCard.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'

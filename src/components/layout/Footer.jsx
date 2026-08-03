@@ -15,12 +15,29 @@ export default function Footer({ onNavigate }) {
   return (
     <footer className="site-footer site-footer--institutional">
       <div className="institutional-footer__rule" aria-hidden>
-        <span />
-        <span />
-        <span />
+        <div className="institutional-footer__glow-line" />
       </div>
 
       <div className="institutional-footer__inner">
+        <div className="institutional-footer__cta">
+          <p className="institutional-footer__kicker">{t('footer.actionEyebrow')}</p>
+          <h2 className="institutional-footer__cta-title">{t('footer.actionTitle')}</h2>
+          
+          <div className="institutional-footer__cta-row">
+            <button
+              type="button"
+              className="institutional-footer__action-editorial motion-icon-shift"
+              onClick={() => onNavigate?.('members')}
+            >
+              <span>{t('footer.actionCta')}</span>
+              <ArrowRight size={20} aria-hidden className="motion-icon-shift__target" />
+            </button>
+            <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail-editorial">
+              hola@pluarg.com.ar
+            </a>
+          </div>
+        </div>
+
         <div className="institutional-footer__lead">
           <div className="institutional-footer__brand">
             <button type="button" aria-label={t('nav.home')} onClick={() => onNavigate?.('home')}>
@@ -33,25 +50,6 @@ export default function Footer({ onNavigate }) {
             </button>
             <span className="institutional-footer__chapter">{t('footer.chapterLine')}</span>
           </div>
-
-          <div className="institutional-footer__cta">
-            <p className="institutional-footer__kicker">{t('footer.actionEyebrow')}</p>
-            <h2>{t('footer.actionTitle')}</h2>
-            <div className="institutional-footer__cta-row">
-              <button
-                type="button"
-                className="institutional-footer__action motion-icon-shift"
-                onClick={() => onNavigate?.('members')}
-              >
-                <span>{t('footer.actionCta')}</span>
-                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-              </button>
-              <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail">
-                hola@pluarg.com.ar
-              </a>
-            </div>
-          </div>
-        </div>
 
         <div className="institutional-footer__directory">
           {FOOTER_GROUPS.map((group) => (
@@ -75,6 +73,7 @@ export default function Footer({ onNavigate }) {
             © {year} {t('brand.name')}
           </span>
           <span>{t('footer.poweredBy')}</span>
+        </div>
         </div>
       </div>
     </footer>

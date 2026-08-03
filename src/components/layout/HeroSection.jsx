@@ -1,10 +1,11 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import heroPhoto from '../../assets/DSC00346.jpg'
+import heroPhoto from '../../assets/DSC00346-display.jpg'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import {
   heroActionsItem,
   heroProofItem,
@@ -27,6 +28,7 @@ export default function HeroSection({ onNavigate }) {
   const titleLines = (
     <>
       <span className="hero__title-line">{t('hero.titleLead')}</span>
+      {' '}
       <span className="hero__title-line hero__title-line--accent">{t('hero.titleAccent')}</span>
     </>
   )
@@ -36,6 +38,7 @@ export default function HeroSection({ onNavigate }) {
       <m.span className="hero__title-line" variants={heroTitleLine}>
         {t('hero.titleLead')}
       </m.span>
+      {' '}
       <m.span className="hero__title-line hero__title-line--accent" variants={heroTitleLine}>
         {t('hero.titleAccent')}
       </m.span>
@@ -48,7 +51,13 @@ export default function HeroSection({ onNavigate }) {
     <m.span
       className="hero__rule motif-rule"
       aria-hidden
-      variants={{ hidden: { scaleX: 0 }, visible: { scaleX: 1, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } }}
+      variants={{
+        hidden: { scaleX: 0 },
+        visible: {
+          scaleX: 1,
+          transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic },
+        },
+      }}
     />
   )
 
@@ -107,10 +116,6 @@ export default function HeroSection({ onNavigate }) {
 
       <div className="hero__copy">
         <div className="hero__shell">
-          <span className="hero__plate motif-plate" aria-hidden />
-          <p className="hero__brand-mark" aria-hidden>
-            PLU
-          </p>
           {reducedMotion ? (
             <div className="hero__copy-inner">
               <div className="hero__main">

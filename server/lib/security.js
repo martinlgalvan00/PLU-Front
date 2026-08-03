@@ -68,7 +68,13 @@ export function requireTrustedMutation(req, _res, next) {
     return
   }
 
-  if (origin && req.get(TRUSTED_BROWSER_HEADER) !== TRUSTED_BROWSER_VALUE) {
+  // El header de mutación confiable se exige siempre, haya o no `Origin`.
+  // Antes la comprobación colgaba de `origin &&`, así que bastaba con omitir
+  // el header `Origin` -- trivial desde cualquier cliente que no sea un
+  // browser -- para saltear el control entero. La cookie es SameSite=Lax, con
+  // lo cual el CSRF clásico por formulario ya estaba cubierto; esto devuelve
+  // la capa de defensa en profundidad que se creía activa.
+  if (req.get(TRUSTED_BROWSER_HEADER) !== TRUSTED_BROWSER_VALUE) {
     next(new HttpError(403, 'Solicitud no confiable'))
     return
   }

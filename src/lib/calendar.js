@@ -33,7 +33,8 @@ const CALENDAR_DEFAULTS_BY_SLUG = {
   'pitbull-classic-2026': {
     startsAt: '2026-12-12T09:00:00-03:00',
     endsAt: '2026-12-13T20:00:00-03:00',
-    description: 'Pitbull Classic · meet oficial PLU Argentina. Maximal Strength Club, Buenos Aires.',
+    description:
+      'Pitbull Classic · meet oficial PLU Argentina. La Troupe Multiespacio, Gallo 148, Banfield.',
   },
 }
 

@@ -1,4 +1,4 @@
-import pitbullVisual from '../../assets/DSC01606.jpg'
+import pitbullVisual from '../../assets/DSC01606-display.jpg'
 import PitbullFeatureVisual from './PitbullFeatureVisual.jsx'
 
 export default {

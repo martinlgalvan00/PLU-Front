@@ -114,7 +114,6 @@
 [data-theme='dark']
   .admin-shell
   :is(
-    .admin-list-shell,
     .admin-payment-ops,
     .admin-kpi-board,
     .admin-command-center__pane,

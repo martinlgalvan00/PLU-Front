@@ -6,6 +6,7 @@ import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { auditLabels } from '../../i18n/adminHelpers.js'
 import { fetchAuditEntries, fetchAuditFacets } from '../../services/auditService.js'
 
 /**
@@ -34,7 +35,7 @@ function formatDateTime(value, locale) {
 }
 
 export default function AuditSection() {
-  const { locale, t } = useI18n()
+  const { locale, messages, t } = useI18n()
   const [entries, setEntries] = useState([])
   const [facets, setFacets] = useState({ actions: [], entityTypes: [], actorTypes: [] })
   const [query, setQuery] = useState('')
@@ -100,25 +101,13 @@ export default function AuditSection() {
     }
   }
 
-  const actionLabel = useCallback(
-    (value) => {
-      const key = `admin.audit.actions.${value}`
-      const label = t(key)
-      // Una RPC nueva que empiece a auditar aparece igual en el listado
-      // aunque todavía no tenga copy, en vez de desaparecer.
-      return label === key ? value : label
-    },
-    [t],
-  )
-
-  const actorLabel = useCallback(
-    (value) => {
-      const key = `admin.audit.actors.${value}`
-      const label = t(key)
-      return label === key ? value : label
-    },
-    [t],
-  )
+  // Las acciones llegan como `membership.activated`: `t()` parte la clave por
+  // puntos, así que estas etiquetas se resuelven contra el diccionario. Una RPC
+  // nueva que empiece a auditar aparece igual en el listado aunque todavía no
+  // tenga copy, en vez de desaparecer.
+  const labels = useMemo(() => auditLabels(messages), [messages])
+  const actionLabel = labels.action
+  const actorLabel = labels.actor
 
   const filterOptions = useMemo(
     () => [
@@ -213,7 +202,7 @@ export default function AuditSection() {
             <dl className="audit-entry__detail">
               {row.summary.map(({ field, value }) => (
                 <div key={field}>
-                  <dt>{t(`admin.audit.fields.${field}`) === `admin.audit.fields.${field}` ? field : t(`admin.audit.fields.${field}`)}</dt>
+                  <dt>{labels.field(field)}</dt>
                   <dd>{String(value)}</dd>
                 </div>
               ))}
@@ -223,7 +212,7 @@ export default function AuditSection() {
           ),
       },
     ],
-    [actionLabel, actorLabel, locale, t],
+    [actionLabel, actorLabel, labels, locale, t],
   )
 
   return (

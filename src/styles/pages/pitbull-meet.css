@@ -1,31 +1,20 @@
 /* =============================================
    PITBULL — PROGRAMA DEL MEET
-   Shell elevado + tres paneles de fase (hora · nombre · dato del día).
-   Tabs tipográficos de jornada. Sin lista estirada ni copy triplicado.
+   Ficha tipográfica: tabs de jornada + filas índice · hora · fase.
+   Un solo acento (dorado en la hora). Sin cards ni íconos.
    ============================================= */
 
 .pitbull-meet {
-  background: var(--pitbull-meet-shell-bg);
-  border: 1px solid var(--pitbull-meet-shell-border);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--pitbull-meet-shell-shadow);
-  /* width:100% evita que margin-inline:auto (centrado) lo encoja a fit-content
-     cuando el padre es display:grid (.pitbull-dossier__body). */
   margin-inline: auto;
   max-width: var(--max-width-content);
-  overflow: hidden;
-  padding: clamp(4px, 0.8vw, 8px) clamp(16px, 2.2vw, 22px) clamp(12px, 1.6vw, 16px);
+  padding: 0;
   width: 100%;
 }
 
 .pitbull-meet__top {
-  align-items: flex-end;
   border-bottom: 1px solid var(--pitbull-meet-head-border);
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  justify-content: space-between;
-  padding-block: clamp(14px, 2vw, 18px);
+  padding-bottom: clamp(12px, 1.6vw, 16px);
 }
 
 .pitbull-meet__days {
@@ -39,33 +28,43 @@
   align-items: flex-start;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   margin-bottom: -1px;
   min-height: 44px;
-  padding: 4px 16px 12px 0;
+  opacity: 0.45;
+  padding: 2px 20px 14px 0;
   text-align: left;
   transition:
-    color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out);
+    opacity var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
 .pitbull-meet__day + .pitbull-meet__day {
   margin-left: 8px;
-  padding-left: 16px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.pitbull-meet__day + .pitbull-meet__day::before {
+  background: var(--pitbull-meet-head-border);
+  content: '';
+  height: 1.6em;
+  left: 0;
+  position: absolute;
+  top: 0.35em;
+  width: 1px;
 }
 
 .pitbull-meet__day.is-active {
-  border-bottom-color: var(--pitbull-meet-day-active);
-  color: var(--pitbull-meet-day-active);
+  opacity: 1;
 }
 
 .pitbull-meet__day:hover:not(.is-active) {
-  color: var(--color-text-secondary);
+  opacity: 0.75;
 }
 
 .pitbull-meet__day:focus-visible {
@@ -75,213 +74,137 @@
 
 .pitbull-meet__day-name {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 }
 
 .pitbull-meet__day-date {
-  font-size: 11.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  opacity: 0.72;
-}
-
-.pitbull-meet__phase {
-  align-items: baseline;
-  color: var(--color-text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 12px;
-  gap: 6px;
-  margin: 0;
-  padding-bottom: 10px;
-}
-
-.pitbull-meet__phase-label {
-  font-weight: 500;
-  opacity: 0.75;
-}
-
-.pitbull-meet__phase-label::after {
-  content: '·';
-  margin-left: 6px;
-  opacity: 0.55;
-}
-
-.pitbull-meet__phase-value {
-  color: var(--color-text-primary);
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
+  opacity: 0.7;
 }
 
 .pitbull-meet__pane {
   display: block;
-  padding-block: clamp(14px, 2vw, 18px);
+  padding-block: clamp(4px, 1vw, 8px) 0;
 }
 
-/* ── Tres paneles de fase ──────────────────── */
+/* ── Filas del cronograma ──────────────────── */
 
-.pitbull-meet__lanes {
+.pitbull-meet__rows {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 24px);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-@media (min-width: 720px) {
-  .pitbull-meet__lanes {
-    gap: 14px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.pitbull-meet__lane {
-  background: var(--pitbull-meet-lane-bg);
-  border: 1px solid var(--pitbull-meet-lane-border);
-  border-radius: calc(var(--border-radius-lg) - 2px);
-  border-top: 2px solid transparent;
-  min-width: 0;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
-}
-
-.pitbull-meet__lane.is-active {
-  background: var(--pitbull-meet-lane-active-bg);
-  border-color: var(--pitbull-meet-lane-active-border);
-  border-top-color: var(--pitbull-meet-lane-accent);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-}
-
-[data-theme='light'] .pitbull-meet__lane.is-active {
-  box-shadow: 0 8px 22px rgba(15, 17, 23, 0.06);
-}
-
-.pitbull-meet__lane-hit {
+.pitbull-meet__row {
   align-items: flex-start;
-  background: none;
-  border: none;
-  cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--color-bg-primary) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 40%, transparent);
+  border-radius: var(--border-radius-lg, 12px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 100%;
-  padding: clamp(16px, 2vw, 22px) clamp(14px, 1.8vw, 18px) clamp(18px, 2.2vw, 24px);
-  text-align: left;
-  width: 100%;
+  gap: 16px;
+  justify-content: flex-end;
+  min-height: clamp(160px, 20vw, 200px);
+  overflow: hidden;
+  padding: clamp(24px, 3.5vw, 32px);
+  position: relative;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms ease;
 }
 
-.pitbull-meet__lane-hit:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: -2px;
+.pitbull-meet__row:hover {
+  background: color-mix(in srgb, var(--color-bg-primary) 50%, transparent);
+  transform: translateY(-6px);
 }
 
-.pitbull-meet__lane-meta {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
+.pitbull-meet__row:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 40%, transparent);
 }
 
-.pitbull-meet__lane-time {
-  color: var(--pitbull-meet-time-fg);
+.pitbull-meet__row-index {
+  color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   font-family: var(--font-display);
-  font-size: clamp(22px, 2.4vw, 28px);
+  font-size: clamp(8rem, 16vw, 13rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.75;
+  pointer-events: none;
+  position: absolute;
+  right: -10px;
+  top: 10px;
+  z-index: 0;
+}
+
+.pitbull-meet__row-time {
+  color: var(--plu-gold-500);
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 32px);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
-  transition: color var(--motion-fast) var(--ease-out);
+  z-index: 1;
 }
 
-.pitbull-meet__lane.is-active .pitbull-meet__lane-time {
-  color: var(--pitbull-meet-time-active);
+.pitbull-meet__row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  z-index: 1;
 }
 
-.pitbull-meet__lane-index {
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.55;
-  transition:
-    color var(--motion-fast) var(--ease-out),
-    opacity var(--motion-fast) var(--ease-out);
-}
-
-.pitbull-meet__lane.is-active .pitbull-meet__lane-index {
-  color: var(--pitbull-meet-lane-accent);
-  opacity: 1;
-}
-
-.pitbull-meet__lane-label {
-  align-items: center;
+.pitbull-meet__row-label {
   color: var(--color-text-primary);
-  display: inline-flex;
-  font-size: 13.5px;
-  font-weight: 700;
-  gap: 7px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
 }
 
-.pitbull-meet__lane-icon {
-  color: var(--color-text-muted);
-  flex: none;
-  opacity: 0.7;
-}
-
-.pitbull-meet__lane.is-active .pitbull-meet__lane-icon {
-  color: var(--pitbull-meet-lane-accent);
-  opacity: 0.9;
-}
-
-.pitbull-meet__lane-desc {
+.pitbull-meet__row-desc {
   color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.45;
-  margin-top: 2px;
-  max-width: 22ch;
+  max-width: 40ch;
 }
 
 .pitbull-meet__exit {
+  border-top: 1px solid var(--pitbull-meet-head-border);
   display: flex;
   justify-content: flex-end;
-  opacity: 0;
-  padding: 4px 2px 2px;
-  transform: translateY(4px);
-  transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.4s var(--ease-out);
-}
-
-.pitbull-meet__exit--in {
-  opacity: 1;
-  transform: translateY(0);
+  margin-top: 2px;
+  padding: 16px 0 2px;
 }
 
 .pitbull-meet__exit-link {
   align-items: center;
   background: none;
   border: none;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
   cursor: pointer;
   display: inline-flex;
   font-size: 13px;
   font-weight: 600;
   gap: 6px;
   padding: 0;
+  transition: color 150ms ease;
 }
 
 .pitbull-meet__exit-link:hover {
+  color: var(--plu-gold-500);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -291,45 +214,35 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 719px) {
-  .pitbull-meet__top {
-    align-items: stretch;
+@media (min-width: 720px) {
+  .pitbull-meet__row-body {
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
   }
+}
 
-  .pitbull-meet__days {
-    width: 100%;
-  }
-
+@media (max-width: 719px) {
   .pitbull-meet__day {
     flex: 1;
-    padding-right: 8px;
+    padding-right: 10px;
   }
 
   .pitbull-meet__day + .pitbull-meet__day {
     margin-left: 0;
+    padding-left: 14px;
   }
 
-  .pitbull-meet__phase {
-    padding-bottom: 4px;
+  .pitbull-meet__row-time {
+    font-size: 22px;
   }
 
-  .pitbull-meet__lane-desc {
+  .pitbull-meet__row-desc {
     max-width: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pitbull-meet__lane,
-  .pitbull-meet__lane-time,
-  .pitbull-meet__lane-index,
-  .pitbull-meet__exit {
+  .pitbull-meet__day {
     transition: none;
-  }
-
-  .pitbull-meet__exit {
-    opacity: 1;
-    transform: none;
   }
 }

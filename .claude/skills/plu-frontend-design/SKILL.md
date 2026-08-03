@@ -1,279 +1,324 @@
 ---
 name: plu-frontend-design
 description: >-
-  Reglas operativas de marca, UX y sistema visual de PLU Argentina. Invocar
-  primero, antes que cualquier otra guía de diseño, para toda tarea de UI,
-  UX, estilos, componentes, responsive o motion en este repo. Establece
-  la jerarquía de autoridad frente a metodologías externas (Impeccable,
-  Emil Kowalski, Taste, Vercel Web Design Guidelines).
+  Autoridad visual y operativa de PLU Argentina para diseñar, auditar o
+  rediseñar interfaces elegantes, minimalistas, premium y coherentes con la
+  marca. Usar primero en este repo ante cualquier tarea de UI, UX, landing
+  page, portada, hero, Quiénes somos, Pitbull Classic, página institucional,
+  conversión, panel administrativo, componente, CSS, responsive, temas,
+  accesibilidad, motion o rendimiento visual. Coordina las skills tácticas y
+  exige implementación y QA sobre el render real.
 ---
 
 # PLU Frontend Design
 
-Skill de marca y producto para PLU Argentina (Powerlifting United Argentina / Maximal).
-Convierte la documentación de marca dispersa del repo en reglas operativas para cualquier
-agente que trabaje en UI, UX, estilos, responsive o motion.
+Diseñar PLU como una federación deportiva seria, contemporánea y humana. Buscar lujo editorial
+mediante proporción, tipografía, ritmo, material real y restricción. No confundir premium con
+agregar efectos.
 
-**Esta skill manda.** Ninguna metodología externa (Impeccable, Taste, Emil Kowalski, Vercel
-Web Design Guidelines) puede pisar lo que dice acá. Ver "Jerarquía de autoridad" abajo.
+## Contrato del agente
 
-## Fuente de verdad — y por qué está fragmentada
+Cumplir siempre estas cuatro obligaciones:
 
-No existe un único `docs/FRONTEND_BRAND_GUIDELINES.md` en este repo. La marca vive repartida en:
+1. Entender el objetivo y la acción principal antes de tocar estilos.
+2. Auditar el render real antes y después. No evaluar calidad visual solo desde el código.
+3. Resolver primero jerarquía, composición y contenido; aplicar color y motion al final.
+4. Entregar evidencia responsive, temática, accesible y técnica proporcional al cambio.
 
-| Documento | Estado | Para qué sirve |
-|---|---|---|
-| `docs/PLU_BRAND_ALIGNMENT.md` | ✅ Vigente, es la fuente **más reciente y autorizada** (jul. 2026) | Qué se toma de Powerlifting United, qué se adapta, decisión de paleta confirmada por PLU USA |
-| `src/styles/tokens/palette.css` | ✅ Vigente — **ground truth de color**, no un doc | Valores hex/oklch reales en uso |
-| `src/styles/variables.css` | ✅ Vigente — **ground truth de tokens** (spacing, radios, motion, elevación) | Valores reales en uso |
-| `docs/UX_UI_GUIDELINES.md` | ⚠️ **Parcialmente desactualizado** — la tabla de paleta todavía dice "CTA principal = `--color-brand-red`", que ya no es cierto | Gramática visual (un solo énfasis por hover), regla de 2 clics, temas |
-| `docs/DESIGN_FACELIFT_SPEC.md` | ⚠️ **Superado** por la auditoría anti-IA de `PLU_BRAND_ALIGNMENT.md` §7 (paleta vieja: dorado apagado `#c9b978`, rojo como acento) | Solo como referencia histórica de por qué se corrigió |
-| `docs/DESIGN_POLISH_CHECKLIST.md` | ✅ Vigente | Checklist anti-"generado por IA" ya usado en las últimas rondas |
-| `docs/MOTION.md` | ✅ Vigente | Sistema de motion real (`motion/react`, tokens, componentes) |
-| `agent-skills/design-system-plu/SKILL.md`, `agent-skills/design-upgrade/SKILL.md` | ⚠️ Tablas de paleta desactualizadas (mismo problema que `UX_UI_GUIDELINES.md`) | Proceso e inventario de componentes, siguen siendo útiles fuera de la tabla de color |
-
-**Regla dura: ante cualquier conflicto entre un documento `.md` y el código real
-(`palette.css`, `variables.css`, `themes/dark.css`, `themes/light.css`), gana el código.**
-Los documentos describen intención pasada; el código es lo que el usuario ve hoy. Si notás
-otro doc desalineado con el código, corregilo o marcalo como superado — no lo repitas.
+No declarar una mejora terminada si únicamente se agregaron overrides CSS o si no se vio la
+pantalla renderizada.
 
 ## Jerarquía de autoridad
 
-1. **Lógica de negocio, permisos, contratos y comportamiento existente** — `src/lib/roles.js`,
-   `src/services/`, contratos de API, Mercado Pago. Nunca se toca por un cambio visual.
-2. **Esta skill** (`plu-frontend-design`) — que a su vez se apoya en el ground truth de
-   `palette.css` / `variables.css` / `PLU_BRAND_ALIGNMENT.md` por encima de docs desactualizados.
-3. **Tokens, componentes y patrones ya aprobados** — `src/styles/variables.css`,
-   `src/styles/tokens/palette.css`, `src/components/ui/*`, `src/components/layout/*`,
-   `src/components/admin/*`. Reutilizar antes de crear.
-4. **Requisitos concretos de la tarea actual** — lo que el usuario pidió explícitamente.
-5. **Recomendaciones de skills externas** (Impeccable, Taste, Emil Kowalski, Vercel Guidelines)
-   — útiles como método y quality gate, nunca como fuente de identidad.
-6. **Preferencias visuales genéricas del agente** — la última palabra, casi nunca decisiva.
+Aplicar este orden ante conflictos:
 
-Ninguna skill externa puede reemplazar la paleta, la tipografía, la identidad o las
-restricciones de PLU. Si Impeccable, Taste o cualquier otra fuente sugiere algo que
-contradice esta skill, se descarta o se adapta — no se aplica literal.
+1. Preservar reglas de negocio, contratos, datos, permisos, rutas y comportamiento existente.
+2. Obedecer esta skill como autoridad visual del proyecto.
+3. Tomar el código vigente como fuente de verdad: `palette.css`, `variables.css`, temas y
+   componentes renderizados.
+4. Respetar el pedido concreto del usuario.
+5. Usar skills externas solo como método. Adaptarlas a PLU, nunca como identidad.
 
-## Identidad buscada / percepción a evitar
+Si un documento contradice el código vigente, seguir el código y señalar o corregir la
+desalineación. `docs/PLU_BRAND_ALIGNMENT.md` es la referencia de marca más reciente, pero los
+tokens ejecutados siguen teniendo prioridad.
 
-**Buscada:** oficial, deportiva, institucional, moderna, premium, clara, humana. Una
-federación real, no una app. Coherente entre sitio público, autenticación y administración.
+## Lectura obligatoria y enrutamiento
 
-**Evitar:**
-- Plantilla genérica de SaaS (heroes centrados con gradiente de fondo, grillas 3-cards
-  perfectamente simétricas, iconos en cuadrados redondeados repetidos).
-- Estética fitness amateur (gradientes neón, tipografía script, folklore exagerado).
-- "Se ve como generado por IA" — ya fue un hallazgo real reportado por PLU USA en jul. 2026
-  (`PLU_BRAND_ALIGNMENT.md` §7). Sus síntomas concretos ya identificados en este repo: drift
-  de color no documentado, glow decorativo sin función, copy aspiracional en vez de factual.
-  No reintroducirlos.
-- Copia literal de `powerliftingunited.com` (assets, layout pixel a pixel). El copy
-  institucional SÍ se traduce/adapta fielmente desde jul. 2026 (`PLU_BRAND_ALIGNMENT.md` §2)
-  — eso ya no es "copiar", es la decisión de producto vigente. No revertirla por criterio propio.
+Leer antes de implementar:
 
-## Paleta y roles semánticos (ground truth: `src/styles/tokens/palette.css`)
+- `docs/ARCHITECTURE.md` y `docs/BUSINESS_RULES.md`.
+- La página, componentes, servicios, contenido, estilos y tests de la superficie en alcance.
+- `src/styles/tokens/palette.css`, `src/styles/variables.css` y los temas cuando se modifiquen
+  decisiones visuales compartidas.
 
-Confirmada por PLU USA en jul. 2026, tomada del logo oficial: **negro/grafito, azul, blanco,
-amarillo/dorado**. El rojo **no es color de marca**.
+Leer recursos de esta skill según la tarea:
 
-| Rol | Token semántico | Uso |
+- Para elegir composición, portada o tratamiento por sección: [playbook de elegancia](references/elegance-playbook.md).
+- Para comprobar el resultado y documentar evidencia: [QA y evidencia](references/qa-evidence.md).
+
+Invocar después las skills tácticas mínimas necesarias:
+
+| Necesidad | Skill |
+|---|---|
+| Proceso completo y QA por pantalla | `agent-skills/design-upgrade/SKILL.md` |
+| Tokens, CSS y componentes existentes | `agent-skills/design-system-plu/SKILL.md` |
+| Refinar una sección puntual | `agent-skills/design-ux-ui/SKILL.md` |
+| TiltCard, showcase o transición de presencia | `agent-skills/motion-premium/SKILL.md` |
+
+No cargar ni aplicar todas por reflejo. Esta skill define marca y criterio; las tácticas aportan
+inventario o procedimiento específico.
+
+## Dirección visual
+
+Buscar estas cualidades:
+
+- **Oficial:** información verificable, estados claros, naming institucional.
+- **Deportiva:** escala, tensión, ritmo y fotografía real cuando exista.
+- **Editorial:** títulos firmes, ancho de lectura controlado, reglas y metadatos útiles.
+- **Premium:** pocos elementos bien resueltos, materiales sobrios y detalle preciso.
+- **Humana:** lenguaje directo, atletas y comunidad reales, sin marketing vacío.
+- **Operativa:** navegación predecible, acciones visibles y estados completos.
+
+Evitar:
+
+- Plantillas SaaS genéricas, heroes centrados por defecto y grillas simétricas de tres cards.
+- Fitness amateur, neón, gradientes decorativos, partículas, fondos animados o falso 3D.
+- Glow, glass, blur, bordes gradiente o sombras apilados para compensar mala jerarquía.
+- Numeración, reglas técnicas, chips o iconos que no comuniquen información real.
+- Copy aspiracional genérico, testimonios, precios, fechas o métricas inventadas.
+- Repetir la misma portada, card o composición en todas las páginas.
+
+## Presupuesto de elegancia
+
+Usar estos límites como gate, no como sugerencia estética:
+
+| Recurso | Límite operativo |
+|---|---|
+| Acción principal | Una por bloque; una secundaria como máximo en el mismo nivel |
+| Acento de color | Uno por bloque visual |
+| Niveles de superficie | Hasta tres por viewport: canvas, surface y elevated |
+| Radios visibles | Hasta dos escalas dominantes por pantalla |
+| Jerarquías tipográficas | Cuatro roles claros por sección como máximo |
+| Efecto atmosférico | Uno, estático y solo si sostiene la composición |
+| Motion de entrada | Una secuencia one-shot por sección |
+| Loop infinito | Ninguno decorativo; uno solo si comunica estado operativo real |
+| Cards anidadas | Cero |
+
+Si una sección necesita superar el presupuesto, justificarlo por contenido o interacción real.
+Antes de sumar un recurso, intentar quitar uno.
+
+## Marca y sistema visual
+
+### Color
+
+Usar alias semánticos, nunca valores sueltos en JSX:
+
+- Grafito y superficies: `--color-bg-*`.
+- Identidad, navegación, links y foco: `--color-brand-celeste`.
+- Acción principal: `--color-brand-action` igual a oro PLU.
+- Distinción, membresía y resultados destacados: `--color-brand-gold`.
+- Rojo: error o peligro real únicamente. Nunca marca, CTA o decoración.
+
+Aplicar como máximo un acento por bloque. Reservar `--gradient-brand` para una firma breve y
+puntual, no como fondo genérico. Crear un token nuevo solo cuando ninguna variable existente
+exprese el rol y definirlo en ambos temas.
+
+### Tipografía
+
+Usar Poppins mediante `--font-family` y `--font-display`. No introducir otra familia sin una
+guía oficial de PLU USA.
+
+- H1: `clamp(28px, 4.2vw, 46px)`, peso 700, línea corta y segura.
+- H2: `clamp(22px, 3.2vw, 36px)`, peso 700.
+- H3: 16 a 18px, peso 600.
+- Body: 14 a 16px, peso 400, ancho de lectura controlado.
+- Eyebrow o badge: 10 a 11px, peso 600 a 700, único uso regular de uppercase.
+
+No usar uppercase o tracking amplio como decoración repetida. La escala, el ancho de línea y el
+espacio deben construir jerarquía antes que el color.
+
+### Superficies y componentes
+
+Reutilizar `src/components/ui`, `src/components/layout` y `src/components/admin` antes de crear.
+Usar cards solo para colecciones comparables, selección o acciones contenidas. Para contenido
+editorial preferir flujo abierto, reglas, listas y columnas.
+
+- No anidar card dentro de card.
+- No convertir automáticamente cada sección en una grilla.
+- No crear una variante nueva si una existente admite una extensión semántica.
+- No mantener dos capas de overrides premium sobre la misma pantalla; consolidar reglas.
+- Usar `lucide-react` para iconografía funcional. No usar emoji en producción.
+
+## Familias de página
+
+Elegir una familia antes de diseñar la portada:
+
+| Familia | Uso | Composición dominante |
 |---|---|---|
-| Estructura / fondo | `--color-bg-primary`, `--color-bg-surface`, `--color-bg-elevated` | Superficies oscuras (default) |
-| Identidad / navegación | `--color-brand-celeste` (`--plu-celeste-*`) | Acento institucional, links, focus, iconografía informativa |
-| Acción principal | `--color-brand-action` (= `--plu-gold-500`) | CTA primario, botón principal |
-| Premium / distinción | `--color-brand-gold` | Membresía, medallas, resultados destacados |
-| Superficie clara | `--plu-warm-50/100`, `--plu-ink-900` | Modo claro |
-| Info secundaria | `--plu-ink-500`, `--color-text-muted` | Texto de apoyo |
-| **Danger — único uso de rojo** | `--plu-red-500` / `--color-brand-red` | Errores de validación, badges de alerta, check-in fallido. **Nunca decorativo, nunca CTA, nunca acento de marca.** |
+| Showcase | Home, Pitbull | Protagonista visual o tipográfico, datos clave y un CTA |
+| Conversión | Afiliación, registro, entradas | Beneficio, condición o precio y acción inmediata |
+| Índice | Eventos, resultados, récords | Título editorial, contexto operativo y acceso al contenido |
+| Institucional | Quiénes somos, comunidad, FAQ, contacto | Copy factual, manifiesto breve y evidencia, con foto solo si aporta |
+| Operativa | Admin, seguridad, reportes | Densidad legible, filtros, estados y acciones por permiso |
 
-**Regla de disciplina** (ya escrita en `DESIGN_FACELIFT_SPEC.md` §2 y sigue vigente): máximo
-un acento de color por bloque visual (card, sección, banner). No mezclar celeste + dorado +
-rojo en el mismo elemento, salvo la línea tricolor de 1.5px (`--gradient-brand`) que ya
-funciona como firma de marca puntual.
+No usar el hero de una familia como plantilla para otra. Compartir tokens y ritmo, no el mismo
+dibujo. Ver recetas y contraejemplos en el [playbook de elegancia](references/elegance-playbook.md).
 
-Antes de escribir un color nuevo: ¿existe ya en `palette.css`/`variables.css`? Si no,
-agregarlo como variable en `:root` primero — nunca hex suelto en `.jsx` (excepción real:
-SVG inline de banderas de idioma, ya así en `LocaleFlag.jsx`).
+## Método obligatorio
 
-## Tipografía — Poppins obligatorio
+### 1. Fijar alcance y preservar comportamiento
 
-Única familia del proyecto (`--font-family`, `--font-display` → ambos Poppins, pesos 300–900).
-No introducir una segunda tipografía (ni siquiera para "un acento editorial") sin guideline
-oficial de PLU USA que lo pida explícitamente — ya se evaluó y descartó una vez.
+- Identificar la superficie exacta, usuario principal, objetivo y acción primaria.
+- Leer el servicio o contrato asociado si existe.
+- Enumerar estados reales: default, loading, empty, error, success, disabled y sin permiso.
+- No ampliar el alcance funcional por una decisión estética.
 
-| Nivel | Tamaño | Peso | Transform |
-|---|---|---|---|
-| H1 hero/página | `clamp(28px,4.2vw,46px)` | 700 | ninguno |
-| H2 sección | `clamp(22px,3.2vw,36px)` | 700 | ninguno |
-| H3 card | 16–18px | 600 | ninguno |
-| Eyebrow/badge | 10–11px | 600–700 | uppercase (único lugar permitido) |
-| Body | 14–15px | 400 | ninguno |
+### 2. Obtener evidencia base
 
-`uppercase` + `letter-spacing-wide` se reserva a eyebrows y badges de estado — no a H3 de
-card ni a labels sueltos; eso ya se identificó como uno de los "tells" más genéricos.
+- Ejecutar la aplicación y abrir el flujo real.
+- Capturar al menos un viewport representativo antes de modificar.
+- Registrar overflow, colisiones, densidad, jerarquía, controles pequeños y errores de consola.
+- Medir el build antes de una ronda amplia o sensible a rendimiento.
 
-## Botones, cards, tablas, fichas, badges, estados
+### 3. Escribir una tesis de diseño
 
-**Botones** (`components/buttons.css`): `.btn`, `.btn--gold` (acción principal), `.btn--secondary`,
-`.btn--small`. Radio `md`. Un solo énfasis en hover/focus: glow de color (`--glow-*-soft`) O
-`translateY`, nunca ambos + `scale`. `type="button"`/`type="submit"` siempre explícito.
-Touch target ≥44px.
+Definir en una frase:
 
-**Cards**: clases semánticas (`benefit-card`, `pricing-card`, `metric-card`), radio `lg`/`xl`.
-Hover = `translateY(-1px a -3px)` + `--elevation-sm`/`md` + cambio de `border-color`. Sin
-borde-gradiente animado, sin glow de ícono, sin `scale`. No anidar card dentro de card.
-No convertir automáticamente toda sección en grid de cards — solo donde el contenido ya es
-una colección de ítems comparables (planes, eventos, resultados).
+> Esta pantalla debe sentirse `[cualidad]` porque ayuda a `[usuario]` a `[objetivo]` mediante
+> `[composición dominante]`.
 
-**Badges/status pills** (`status.css`): color semántico plano, sin sombra ni gradiente,
-separado del acento de marca. Ya es el estándar a imitar en el resto del sistema — no
-inventar una segunda variante.
+Definir además:
 
-**Tablas** (`DataTable`, `tables.css`): scroll horizontal en mobile, no conversión automática
-a cards salvo que la tabla ya sea inmanejable en 375px con scroll (evaluar caso por caso, no
-por regla global).
+- Qué debe verse primero, segundo y tercero.
+- Qué puede eliminarse, agruparse o pasar a segundo plano.
+- Qué familia de página y patrón dominante se usarán.
+- Qué recurso visual no se usará para mantener restricción.
 
-**Fichas técnicas** (evento, membresía, credencial): un acento de color por ficha, jerarquía
-tipográfica antes que capas decorativas. Si una card necesita 3+ efectos superpuestos para
-verse bien, el problema es de jerarquía, no de falta de motion (`design-upgrade` §9c, vigente).
+No implementar hasta poder responder estas decisiones.
 
-## Criterios por sección
+### 4. Resolver por capas
 
-| Sección | Tono | Prioridad de contenido |
-|---|---|---|
-| **Home** | Pública emocional/institucional | Hero → misión/pilares → Pitbull spotlight → afiliación → resultados/reglamento (teasers) → comunidad → FAQ → CTA final. No reordenar sin razón de negocio. |
-| **Afiliaciones** (`MembersPage`) | Conversión | Beneficio, precio ARS, requisitos, CTA claro. Planes **siempre** vía `MembershipCard` — nunca markup genérico (`design-upgrade` §8, regla ya escrita y con motivo documentado: se pierde jerarquía/features/ahorro). |
-| **Pitbull Classic** (`PitbullPage`) | Conversión + institucional | Fecha, lugar, cupos, categorías, precio, CTA inscripción. Barra de capacidad ya animada, no duplicar el patrón con otro widget. |
-| **Pitbull Barbell Club / comunidad** | Institucional | Gimnasios afiliados, historias reales — sin inventar testimonios ni cifras. |
-| **Eventos / Resultados / Records** | Lectura/reportes | `/records` explícitamente separado de `/results` (no mezclar resultado de evento con récord histórico). Podio con medallas, sombra estática por rango (oro/plata/bronce), sin glow pulsante. |
-| **Login** | Conversión mínima | Un formulario, error inline claro, sin fricción decorativa. |
-| **Administración** (`AdminShell`) | Operativa privada | Claridad, velocidad, `StatusBadge`, filtros, acciones por rol. Sin ruido visual, sin motion decorativo. Vista PLU USA = solo lectura, UI orientada a descarga (`canExportPluUsa`, nunca exponer acciones de edición). |
+Aplicar en este orden y detenerse cuando el problema quede resuelto:
 
-## Reglas de tema — light y dark
+1. Contenido y orden de lectura.
+2. Layout, ancho, ritmo y espacio.
+3. Tipografía y contraste.
+4. Componentes, estados y controles.
+5. Color, imagen y tratamiento de superficie.
+6. Motion funcional.
 
-- Dark es el tema **nativo/default** (`:root, [data-theme='dark']`); light es `[data-theme='light']`
-  explícito. Ambos deben cubrir el mismo conjunto de tokens — si agregás un token nuevo,
-  definilo en `dark.css` **y** `light.css` con el mismo nombre, mismo turno.
-- **Hallazgo de esta auditoría**: `light.css` (271 líneas) carga ~95 líneas extra de overrides
-  por selector de componente (`.admin-shell__sidebar`, `.stat-block`, `.faq-item`, etc.) que
-  `dark.css` no necesita — señal de que dark se diseña primero y light se parcha después. Al
-  tocar un componente, verificar el mismo cambio en ambos temas en el mismo commit, no como
-  tarea aparte.
-- Transición de tema: View Transition API (`ThemeProvider.jsx`) con fallback CSS en `base.css`.
-  Componente nuevo con apariencia distinta por tema → agregarlo al selector de fallback de
-  `base.css` (~línea 90).
-- Nunca hex hardcodeado en JSX — el cambio de tema tiene que ser automático vía variable.
+No empezar por sombras, gradientes o animaciones.
 
-## Reglas responsive
+### 5. Implementar el cambio mínimo coherente
 
-Breakpoints reales del proyecto (no inventar otros): **360/390/430 mobile, 768/900/1024
-tablet/drawer, 1152/1280/1366/1440 desktop, 1920+ TV/4K** (`layout/responsive.css`,
-`QA_CHECKLIST.md`). CTAs full-width en mobile, formularios a una columna, touch targets ≥44px,
-navbar colapsable con drawer que atrapa foco y bloquea scroll de fondo.
+- Reutilizar tokens y componentes.
+- Mantener lógica de negocio en `src/services` y UI en componentes.
+- Ubicar CSS exclusivo de ruta junto a su página lazy cuando corresponda.
+- Consolidar reglas heredadas en vez de apilar parches al final de hojas extensas.
+- Preservar contenido, traducciones, rutas y acciones existentes salvo pedido explícito.
 
-## Reglas de accesibilidad
+### 6. Verificar el render final
 
-- Contraste WCAG AA mínimo en texto principal sobre cualquier fondo (dark y light).
-- Foco visible en todo control interactivo — patrón único, no reinventar por componente:
-  ```css
-  .is-focusable:focus-visible {
-    outline: 2px solid var(--color-brand-celeste);
-    outline-offset: 3px;
-    box-shadow: 0 0 0 4px rgba(116, 172, 223, 0.2);
-  }
-  ```
-- Labels asociados a todo input. Nombres accesibles en botones ícono-only.
-- Headings en orden lógico, landmarks (`nav`, `main`, `footer`) reales.
-- Estados que hoy dependen solo de color (badges) llevan además texto o ícono.
-- Modales/drawers: foco atrapado, `Escape` cierra, foco vuelve al disparador.
-- `prefers-reduced-motion` respetado en toda animación nueva (`MotionProvider` + `@media`
-  ya cablea esto — no lo dupliques a mano).
+Seguir la matriz proporcional de [QA y evidencia](references/qa-evidence.md). Como mínimo:
 
-## Reglas de motion
+- Mobile, tablet y desktop.
+- Tema claro y oscuro.
+- Teclado, foco, hover y touch.
+- Movimiento normal y `prefers-reduced-motion`.
+- Sin overflow horizontal, errores de consola ni contenido oculto después del settle.
+- Estados reales que puedan activarse de forma segura.
 
-Sistema real ya implementado con `motion/react` (ver `docs/MOTION.md`) — **no crear tokens
-nuevos que dupliquen los que ya existen en `src/styles/variables.css`**:
+Iterar sobre la captura final. No cerrar con el primer render correcto.
 
-```css
---motion-instant: 100ms;
---motion-fast: 160ms;
---motion-base: 240ms;
---motion-slow: 480ms;
---motion-cinematic: 700ms;
---ease-standard: cubic-bezier(0.2, 0, 0, 1);
---ease-emphasized: var(--ease-design); /* cubic-bezier(0.2, 0.8, 0.2, 1) */
-```
+## Responsive y accesibilidad
 
-Antes de animar cualquier elemento, responder (Emil Kowalski, adaptado):
+Usar los breakpoints reales del proyecto: 360, 390 y 430; 768, 900 y 1024; 1152, 1280,
+1366 y 1440; 1920 cuando la superficie lo justifique.
 
-1. ¿Qué comunica esta animación? (respuesta, continuidad, relación espacial, cambio de
-   estado, jerarquía, confirmación, progreso, apertura/cierre)
-2. ¿Mejora comprensión o feedback, o es decoración?
-3. ¿El usuario la va a ver con demasiada frecuencia (loop, cada carga)?
-4. ¿Se resuelve con CSS (`transition`) en vez de JS/Motion?
-5. ¿Funciona con `prefers-reduced-motion`?
-6. ¿Afecta la velocidad percibida (bloquea interacción, tarda en "sentirse" lista)?
+- Mantener targets táctiles de al menos 44 por 44px.
+- Asegurar contraste WCAG AA para texto y controles en ambos temas.
+- Mantener headings y landmarks en orden lógico.
+- Asociar labels, nombres accesibles y estados además del color.
+- Atrapar y devolver foco en modales o drawers; cerrar con `Escape`.
+- Evitar que mobile sea solo desktop apilado: reordenar prioridad cuando ayude al flujo.
 
-Si la respuesta a (2) es "decoración" y no hay una razón de producto concreta, no se hace.
+## Motion
 
-Obligatorio:
-- `transform` y `opacity` por sobre todo lo demás. No `transition: all`. No animar `width`,
-  `height`, `top`, `left` salvo excepción justificada (ej. FAQ accordion ya migrado a Motion
-  height, no CSS `grid-template-rows`).
-- Máximo **una** animación en loop infinito visible por sección (`design-upgrade` §9c, regla
-  dura ya aplicada al podio de resultados). Loops operativos (pulse-ring en admin/check-in)
-  se aceptan porque comunican estado real, no decoración.
-- Glow/sombra de color con tinte de marca: estático, nunca pulsante.
-- Drawers, menús y popovers conservan relación espacial con su disparador (abren desde donde
-  se los invocó, no aparecen genéricamente).
-- Sin parallax pesado, sin scroll hijacking, sin fondos en movimiento, sin dependencias nuevas
-  si CSS o Motion (ya instalado) alcanzan.
+Animar únicamente para comunicar respuesta, continuidad, ubicación, jerarquía, estado o
+progreso. Usar el sistema existente de `motion/react` y los tokens de `variables.css` y
+`src/motion/tokens.ts`.
 
-### 3D — uso restringido
+- Preferir `transform` y `opacity`.
+- No usar `transition: all`.
+- No animar fondos completos, layout estable o decoración permanente.
+- Mantener entradas entre 240 y 480ms; reservar 700ms para un showcase excepcional.
+- Desactivar desplazamiento, blur y tilt bajo `prefers-reduced-motion`.
+- Restringir 3D a piezas protagonistas, con tilt de hasta 6 grados y sin coarse pointer.
 
-Solo en piezas protagonistas puntuales: card principal de afiliación (credencial con
-`TiltCard`, ya implementado), inscripción a torneo, entrada/credencial digital, elemento
-destacado de membresía. Elegante, minimalista, ≤6° de inclinación (`TILT_MAX_DEG`, ya el
-límite real en `src/motion/tokens.ts`), mouse-only, sin partículas, sin reflejos agresivos,
-desactivado bajo `prefers-reduced-motion`. No aplicar 3D a cards genéricas ni en serie.
+Usar `motion-premium` cuando la pieza requiera tilt, stagger cinematográfico o settle.
+
+## Rendimiento como parte del diseño
+
+- No agregar dependencias si CSS y Motion existentes alcanzan.
+- Cargar eager solo el recurso LCP; usar lazy para imágenes fuera del primer viewport.
+- Declarar dimensiones, `object-position` y formatos optimizados en imágenes.
+- No importar CSS exclusivo de una ruta pesada desde el entry global.
+- Comparar JS, CSS, assets y gzip antes y después de una ronda amplia.
+- Justificar cualquier regresión perceptible; si no aporta al objetivo, revertir complejidad.
 
 ## Restricciones funcionales absolutas
 
-No modificar Mercado Pago, backend, endpoints, contratos de API, modelos de datos, permisos,
-roles (`src/lib/roles.js`), navegación funcional ni rutas. No eliminar validaciones. No
-inventar datos, beneficios, precios, fechas, sedes ni testimonios. No copiar literalmente
-`powerliftingunited.com` (ver excepción de copy institucional en `PLU_BRAND_ALIGNMENT.md` §2).
-No usar rojo como color de marca. No em dash en contenido visible. No convertir todo en cards
-ni todas las tablas en cards mobile por regla ciega. No animaciones infinitas decorativas.
-No glassmorphism generalizado (`backdrop-filter` solo con overlay real detrás, ver
-`UX_UI_GUIDELINES.md`). No agregar dependencias si CSS/Motion ya instalado alcanza.
+No modificar por una mejora visual:
 
-## Proceso de auditoría, implementación y QA
+- Mercado Pago, backend, endpoints, modelos, contratos o confirmación de pagos.
+- Roles, permisos, guards, auditoría o navegación funcional.
+- Precios, fechas, cupos, sedes, beneficios, testimonios o estados de negocio.
+- Separación entre resultados de evento y récords históricos.
+- Copy institucional confirmado, salvo que el usuario pida editar contenido.
 
-1. **Auditar antes de modificar**: leer la pantalla y su servicio asociado (`src/services/`
-   si aplica). Objetivo de la pantalla, usuario principal, acción principal/secundaria,
-   estados (loading/empty/error/success), comportamiento mobile.
-2. **Verificar con evidencia real**, no solo lectura de código: correr el dev server, ver la
-   pantalla renderizada (capturas si el entorno lo permite). Este repo ya tuvo bugs que la
-   lectura de código no detectó (CSS no importado, colisiones de layout mobile) — no repetir
-   ese error asumiendo que el código describe el render.
-3. **Implementar** el cambio mínimo que resuelve el hallazgo, reusando tokens/componentes.
-4. **QA**: desktop angosto/amplio, tablet, mobile estándar/angosto, light, dark, teclado,
-   foco, hover, touch, reduced motion, loading/empty/error/success, sin permisos, overflow
-   horizontal, texto largo.
-5. **Validación técnica real**: `npm run lint`, `npm run typecheck` (si existe script — hoy
-   no hay uno dedicado, TypeScript se valida via build/tsc si aplica), `npm test`,
-   `npm run build`. No declarar algo "OK" sin haberlo corrido.
+No copiar layouts o assets de `powerliftingunited.com`. Adaptar fielmente el copy institucional
+cuando corresponda, según `docs/PLU_BRAND_ALIGNMENT.md`.
 
-## Formato obligatorio de entrega
+## Gates de aceptación
 
-Por cada cambio o tanda de cambios:
+Aceptar el cambio solo si todas son verdaderas:
 
-- **Problema** (con evidencia) → **Solución** → **Archivos modificados**.
-- **Impacto visual** y **impacto funcional** (¿tocó lógica, rutas, permisos? debería ser "no").
-- **Responsive**: qué breakpoints se verificaron.
-- **Light y dark**: confirmación explícita de ambos, no solo el que se ve por default.
-- **Motion**: qué se agregó/sacó, duración, easing, respuesta a `prefers-reduced-motion`.
-- **Validación técnica**: resultado real de lint/typecheck/test/build, nunca asumido.
-- **Pendientes**: solo los reales y verificables, no aspiracionales.
+- La acción principal se entiende en menos de cinco segundos.
+- La pantalla tiene una composición dominante y una jerarquía inequívoca.
+- La mejora se sostiene sin explicar los efectos aplicados.
+- El presupuesto de elegancia se cumple o la excepción está justificada.
+- Light y dark tienen el mismo nivel de terminación.
+- Mobile, tablet y desktop no presentan overflow ni pérdida de funcionalidad.
+- Foco, contraste, labels, estados y reduced motion están cubiertos.
+- No se inventaron datos ni se alteró lógica funcional.
+- El render final fue inspeccionado con evidencia.
+- Lint, tests relevantes y build fueron ejecutados, no supuestos.
+
+## Validación técnica
+
+Ejecutar proporcionalmente al cambio:
+
+```bash
+npm run lint
+npm run test:unit
+npm run test:storybook
+npm run build
+```
+
+Agregar tests de interacción o integración cuando el cambio altere comportamiento observable.
+Ejecutar `git diff --check` antes de cerrar. Reportar warnings preexistentes por separado de
+errores introducidos.
+
+## Formato de entrega
+
+Informar:
+
+1. Problema observado y evidencia.
+2. Solución y tesis de diseño aplicada.
+3. Archivos modificados.
+4. Impacto visual e impacto funcional.
+5. Viewports, temas, interacciones y reduced motion verificados.
+6. Resultado real de lint, tests y build.
+7. Variación de bundle o assets en rondas amplias.
+8. Pendientes reales, sin ideas aspiracionales de relleno.

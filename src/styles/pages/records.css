@@ -3,7 +3,7 @@
 .records-page--plu-ref .records-page__body {
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: 0 clamp(20px, 5vw, 64px) clamp(48px, 6vw, 72px);
+  padding: clamp(48px, 6vw, 72px) clamp(20px, 5vw, 64px);
 }
 
 .records-sheet {

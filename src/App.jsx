@@ -254,7 +254,6 @@ export default function App() {
           enrichedMemberships={app.enrichedMemberships}
           pendingActions={app.pendingActions}
           adminNavBadges={app.adminNavBadges}
-          recentActivity={app.recentActivity}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
           onApproveTicketPurchase={app.approveTicketPurchase}

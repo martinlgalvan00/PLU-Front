@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, XCircle } from 'lucide-react'
 import { BRAND } from '../lib/brand.js'
 import { formatShortDate } from '../lib/format.js'

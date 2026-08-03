@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
-import heroPhoto from '../assets/DSC00392.jpg'
+import heroPhoto from '../assets/DSC00392-display.jpg'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'

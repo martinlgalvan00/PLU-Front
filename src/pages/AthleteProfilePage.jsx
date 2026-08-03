@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import Reveal from '../components/ui/Reveal.jsx'
+import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -84,6 +86,8 @@ export default function AthleteProfilePage({
           onNavigateSection={setActiveTab}
         />
       </Reveal>
+
+      <EmailVerificationBanner athlete={athlete} />
 
       <AccountNav activeId={activeTab} onChange={setActiveTab} />
 

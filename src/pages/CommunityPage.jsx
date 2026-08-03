@@ -29,13 +29,6 @@ export default function CommunityPage({ onNavigate }) {
   return (
     <main className="institutional-page community-page--institutional">
       <InstitutionalPageHero
-        aside={(
-          <div className="community-hero-mark" aria-hidden>
-            <span>ARG</span>
-            <i />
-            <strong>PLU</strong>
-          </div>
-        )}
         breadcrumb={t('pages.community.heroBreadcrumb')}
         description={t('pages.community.heroDesc')}
         eyebrow={t('pages.community.heroEyebrowNew')}

@@ -55,7 +55,7 @@ export default function AdminListSection({
   const bodyRef = useRef(null)
   const hasMountedFilters = useRef(false)
   const shellClass = [
-    'admin-list-shell surface-card surface-card--flat',
+    'admin-list-shell',
     variant ? `admin-list-shell--${variant}` : '',
   ]
     .filter(Boolean)

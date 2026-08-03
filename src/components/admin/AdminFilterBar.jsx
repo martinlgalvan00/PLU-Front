@@ -40,11 +40,14 @@ export default function AdminFilterBar({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const rootRef = useRef(null)
   const hasMountedFilters = useRef(false)
+  /** En listados (inline), los chips van siempre a la vista: el toggle suma un click de más. */
+  const alwaysShowFilters = inline
   const rootClassName = [
     'admin-filters',
     'admin-filters--chips',
     compact ? 'admin-filters--compact' : '',
     inline ? 'admin-filters--inline' : '',
+    alwaysShowFilters ? 'admin-filters--open' : '',
     className,
   ]
     .filter(Boolean)
@@ -53,6 +56,7 @@ export default function AdminFilterBar({
   const activeFilters = filters.filter(isFilterActive)
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
+  const panelOpen = alwaysShowFilters || filtersOpen
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
     [filters, query],
@@ -82,7 +86,7 @@ export default function AdminFilterBar({
       <div className="admin-filters__primary">
         <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
 
-        {filters.length > 0 ? (
+        {!alwaysShowFilters && filters.length > 0 ? (
           <button
             type="button"
             className={`admin-filters__toggle${filtersOpen ? ' is-open' : ''}`}
@@ -117,7 +121,8 @@ export default function AdminFilterBar({
       {filters.length > 0 ? (
         <div
           id={panelId}
-          className={`admin-filters__panel${filtersOpen ? ' is-open' : ''}`}
+          className={`admin-filters__panel${panelOpen ? ' is-open' : ''}`}
+          hidden={panelOpen ? undefined : true}
         >
           <div className="admin-filters__panel-inner">
             <div

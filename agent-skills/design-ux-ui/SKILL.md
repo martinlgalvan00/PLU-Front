@@ -1,8 +1,8 @@
 ---
 name: design-ux-ui
 description: >-
-  Refina secciones UI con UX claro y CSS moderno en PLU ARG (glass, editorial,
-  docks, tokens temáticos). Usar cuando el usuario pida mejorar diseño visual,
+  Refina secciones UI con UX claro y CSS moderno en PLU ARG (editorial,
+  navegación compacta, tokens temáticos). Usar cuando el usuario pida mejorar diseño visual,
   modernizar CSS, pulir componentes, o señale un DOM/componente concreto.
 ---
 
@@ -18,7 +18,7 @@ Skill táctica para **mejorar una sección concreta** (hero, dock, cards, nav, f
 
 - El usuario marca un **DOM path** o componente (`HeroSection`, `HomeQuickBand`, etc.).
 - Pide hacer algo **“más elegante / moderno / premium”** sin rediseñar todo el sitio.
-- Hay que implementar **CSS refinado** (glass, pills, editorial, motion de entrada).
+- Hay que implementar **CSS refinado** (superficies, pills, editorial, motion funcional).
 - Hay que decidir **estructura JSX mínima** antes de estilos.
 
 ## Procedimiento (6 pasos)
@@ -55,9 +55,9 @@ Consultar [css-patterns.md](./css-patterns.md). Elegir **uno dominante** por sec
 
 | Intención | Patrón |
 |-----------|--------|
-| Navegación secundaria bajo hero | **Dock glass** (`home-quick-band--dock`) |
+| Navegación secundaria bajo hero | **Dock de superficie** (`home-quick-band--dock`) |
 | Titular institucional | **Editorial + regla tricolor** (`hero__editorial`) |
-| Credibilidad / stats | **Panel glass** (`hero-status-card`) |
+| Credibilidad / stats | **Ficha de datos** (`hero-status-card`) |
 | Conversión | **CTA primario + outline + barra de acciones** |
 | Listado compacto | **Pills scrollables** dentro de shell |
 | Showcase / credencial / tilt | **Motion premium** → skill [`motion-premium`](../motion-premium/SKILL.md) |
@@ -103,7 +103,8 @@ Reportar siempre:
 
 | Evitar | Hacer |
 |--------|-------|
-| Rojo saturado en todo el titular | Gold/ink para acento; rojo solo en CTA primario |
+| Rojo saturado en titulares o CTAs | Celeste para identidad, oro para acción; rojo solo para error/peligro |
+| Glass o blur como decoración por defecto | Superficie sólida o translúcida solo si hay una capa real detrás |
 | Dividers verticales entre cada link | Shell pill + hover bg |
 | min-height 100vh en bloques internos | Cap con `min(100dvh, …)` |
 | 3+ animaciones simultáneas | Entrada + hover |
@@ -120,7 +121,7 @@ nav.home-quick-band--dock
   span.home-quick-band__stripe   ← tricolor 1px
   div.home-quick-band__inner
     div.home-quick-band__aside → label
-    div.home-quick-band__shell   ← glass pill
+    div.home-quick-band__shell   ← superficie compacta
       div.home-quick-band__track → links scroll
 ```
 

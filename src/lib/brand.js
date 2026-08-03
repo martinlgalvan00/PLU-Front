@@ -3,7 +3,7 @@
  * Colores: usá var(--color-*) en CSS o PLU_CSS_VARS en estilos inline.
  */
 import pluOfficialLogo from '../assets/brand/plu-official-logo.png'
-import pluArgentinaEmblem from '../assets/brand/plu-argentina-emblem.png'
+import pluArgentinaEmblem from '../assets/brand/plu-argentina-emblem-display.png'
 
 export const BRAND = {
   /** Powerlifting United — letterhead horizontal (fondo negro) */

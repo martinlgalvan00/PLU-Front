@@ -80,35 +80,6 @@ const sheetMetaVariants = {
   },
 }
 
-const sheetBodyVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.02,
-    },
-  },
-}
-
-const podiumVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.04,
-    },
-  },
-}
-
-const barVariants = {
-  hidden: { scaleY: 0, opacity: 0.35 },
-  visible: {
-    scaleY: 1,
-    opacity: 1,
-    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
-  },
-}
-
 const ledgerVariants = {
   hidden: {},
   visible: {
@@ -144,15 +115,16 @@ const ghostVariants = {
 
 const ctaVariants = fadeUp(0)
 
+/** Filas ghost: categoría real, total aún no publicado (barra de distinto largo). */
 const GHOST_ROWS = [
-  { place: '01', classKey: 'open83', tone: 'gold' },
-  { place: '02', classKey: 'open74', tone: 'silver' },
-  { place: '03', classKey: 'women63', tone: 'bronze' },
+  { place: '01', classKey: 'open83', tone: 'gold', fill: 'full' },
+  { place: '02', classKey: 'open74', tone: 'silver', fill: 'mid' },
+  { place: '03', classKey: 'women63', tone: 'bronze', fill: 'short' },
 ]
 
 /**
  * Teaser de resultados — empty state editorial (sin inventar rankings).
- * Planilla ghost + podio con entrada cinematográfica y stagger.
+ * Planilla de exportación ghost: evento · categorías · totales pendientes.
  *
  * `orchestrated`: el padre (.home-teaser-duo) dispara whileInView; acá solo
  * respondemos con variants para que Resultados entre antes que Reglamento.
@@ -163,7 +135,6 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
   const { reducedMotion } = useMotionConfig()
 
   const Group = reducedMotion ? 'article' : m.article
-  const Bar = reducedMotion ? 'span' : m.span
   const Eyebrow = reducedMotion ? 'p' : m.p
   const Status = reducedMotion ? 'span' : m.span
   const Title = reducedMotion ? 'h2' : m.h2
@@ -171,8 +142,6 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
   const Sheet = reducedMotion ? 'div' : m.div
   const Rule = reducedMotion ? 'span' : m.span
   const Meta = reducedMotion ? 'div' : m.div
-  const Body = reducedMotion ? 'div' : m.div
-  const Podium = reducedMotion ? 'div' : m.div
   const Ledger = reducedMotion ? 'div' : m.div
   const Row = reducedMotion ? 'div' : m.div
   const Ghost = reducedMotion ? 'span' : m.span
@@ -218,41 +187,26 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
         <Rule {...withVariant(sheetRuleVariants)} className="home-teaser-card__sheet-rule" />
 
         <Meta {...withVariant(sheetMetaVariants)} className="home-teaser-card__sheet-meta">
-          <span>{HOME_RESULTS.metaEvent}</span>
-          <span className="home-teaser-card__sheet-sep" />
-          <span>{HOME_RESULTS.metaExport}</span>
+          <span className="home-teaser-card__sheet-event">{HOME_RESULTS.metaEvent}</span>
+          <span className="home-teaser-card__sheet-export">{HOME_RESULTS.metaExport}</span>
         </Meta>
 
-        <Body {...withVariant(sheetBodyVariants)} className="home-teaser-card__sheet-body">
-          <Podium {...withVariant(podiumVariants)} className="home-teaser-card__podium">
-            <Bar
-              {...withVariant(barVariants)}
-              className="home-teaser-card__podium-bar home-teaser-card__podium-bar--2"
-            />
-            <Bar
-              {...withVariant(barVariants)}
-              className="home-teaser-card__podium-bar home-teaser-card__podium-bar--1"
-            />
-            <Bar
-              {...withVariant(barVariants)}
-              className="home-teaser-card__podium-bar home-teaser-card__podium-bar--3"
-            />
-          </Podium>
-
-          <Ledger {...withVariant(ledgerVariants)} className="home-teaser-card__ledger">
-            {GHOST_ROWS.map((row) => (
-              <Row
-                key={row.place}
-                {...withVariant(rowVariants)}
-                className={`home-teaser-card__ledger-row home-teaser-card__ledger-row--${row.tone}`}
-              >
-                <span className="home-teaser-card__ledger-place">{row.place}</span>
-                <span className="home-teaser-card__ledger-class">{HOME_RESULTS.classes[row.classKey]}</span>
-                <Ghost {...withVariant(ghostVariants)} className="home-teaser-card__ledger-ghost" />
-              </Row>
-            ))}
-          </Ledger>
-        </Body>
+        <Ledger {...withVariant(ledgerVariants)} className="home-teaser-card__ledger">
+          {GHOST_ROWS.map((row) => (
+            <Row
+              key={row.place}
+              {...withVariant(rowVariants)}
+              className={`home-teaser-card__ledger-row home-teaser-card__ledger-row--${row.tone}`}
+            >
+              <span className="home-teaser-card__ledger-place">{row.place}</span>
+              <span className="home-teaser-card__ledger-class">{HOME_RESULTS.classes[row.classKey]}</span>
+              <Ghost
+                {...withVariant(ghostVariants)}
+                className={`home-teaser-card__ledger-ghost home-teaser-card__ledger-ghost--${row.fill}`}
+              />
+            </Row>
+          ))}
+        </Ledger>
       </Sheet>
 
       <Cta

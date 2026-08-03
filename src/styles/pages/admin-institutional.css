@@ -1117,11 +1117,11 @@
 }
 
 .admin-shell .admin-list-shell {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 14px;
-  box-shadow: var(--admin-shadow-soft);
-  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .admin-shell .admin-list-shell__header {
@@ -1300,7 +1300,7 @@
 }
 
 .admin-shell .admin-list-shell__body {
-  background: var(--admin-surface);
+  background: transparent;
 }
 
 /* ---- Tabla de operación ---- */
@@ -1755,7 +1755,7 @@
   }
 
   .admin-shell .admin-list-shell {
-    border-radius: 12px;
+    border-radius: 0;
   }
 
   .admin-shell .admin-list-shell__header {

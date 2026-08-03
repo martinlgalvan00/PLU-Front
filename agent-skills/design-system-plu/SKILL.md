@@ -107,7 +107,9 @@ Import chain: `main.jsx` → `styles/index.css` → partials.
 
 **Cards:** usar clases semánticas (`benefit-card`, `pricing-card`, `metric-card`) — no inline styles.
 
-**Hero:** fondo oscuro + `var(--color-hero-gradient)` + tipografía `--font-weight-black`.
+**Hero:** elegir primero la familia definida en `plu-frontend-design` (showcase, conversión,
+índice o institucional). Priorizar jerarquía editorial y datos útiles; el gradiente, la imagen
+y el peso black no son defaults y solo se usan cuando esa familia los necesita.
 
 ### 5. Diferenciación vs PLU USA
 
