@@ -262,6 +262,10 @@ export default function CheckInAppPage({
                 value={workspace.checkinStatus}
                 onChange={workspace.setCheckinStatus}
                 options={workspace.statusOptions}
+                omitNeutral
+                allLabel={t('admin.filters.showingAll')}
+                clearable
+                hideEmpty
               />
             </div>
 

@@ -365,11 +365,12 @@
 .community-participation__steps li {
   border: 1px solid var(--institution-border);
   border-right: 0;
-  display: grid;
-  gap: 20px;
-  grid-template-columns: auto 1fr;
-  min-height: 300px;
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  justify-content: space-between;
+  min-height: 280px;
+  padding: 24px 24px 22px;
   position: relative;
 }
 
@@ -377,28 +378,16 @@
 
 .community-participation__step {
   color: var(--institution-gold);
-  font-family: var(--font-mono);
-  font-size: 9px;
-}
-
-.community-participation__icon {
-  align-items: center;
-  border: 1px solid var(--institution-border);
-  border-radius: 8px;
-  color: var(--institution-blue);
-  display: inline-flex;
-  height: 44px;
-  justify-content: center;
-  position: absolute;
-  right: 22px;
-  top: 22px;
-  width: 44px;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .community-participation__steps li > div {
-  align-self: end;
   display: grid;
-  grid-column: 1 / -1;
+  gap: 0;
 }
 
 .community-participation__steps h3 { font-size: 19px; font-weight: 690; letter-spacing: -0.025em; margin: 0; }
@@ -662,17 +651,62 @@
   box-shadow: none;
   display: grid;
   gap: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   overflow: hidden;
   padding: 0;
 }
 
-.rulebook-page--institutional .rulebook-doc-panel__meta { padding: 22px 24px; }
-.rulebook-page--institutional .rulebook-doc-panel__glyph { background: var(--institution-blue-soft); border-color: color-mix(in srgb, var(--institution-blue) 22%, transparent); color: var(--institution-blue); }
-.rulebook-page--institutional .rulebook-doc-panel__title { color: var(--institution-text); }
-.rulebook-page--institutional .rulebook-doc-panel__toolbar { border-left: 1px solid var(--institution-border); padding: 18px 22px; }
+.rulebook-page--institutional .rulebook-doc-panel__meta {
+  min-width: 0;
+  padding: 20px 22px;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__glyph {
+  background: var(--institution-blue-soft);
+  border-color: color-mix(in srgb, var(--institution-blue) 22%, transparent);
+  color: var(--institution-blue);
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__title {
+  color: var(--institution-text);
+  overflow-wrap: anywhere;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__toolbar {
+  align-items: center;
+  border-left: 0;
+  border-top: 1px solid var(--institution-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 14px 22px 16px;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__lang {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__toolbar-actions {
+  flex: 1 1 220px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__lang-label {
+  color: var(--institution-text-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
 .rulebook-page--institutional .rulebook-doc-panel__view-btn,
-.rulebook-page--institutional .rulebook-icon-action { min-height: 42px; }
+.rulebook-page--institutional .rulebook-icon-action {
+  min-height: 42px;
+}
 
 .rulebook-page--institutional .rulebook-summary {
   border: 0;
@@ -705,10 +739,8 @@
   align-self: start;
   border: 1px solid var(--institution-border);
   border-radius: var(--institution-radius-surface);
-  max-height: calc(100vh - var(--header-height-scrolled) - 36px);
-  overflow-y: auto;
-  position: sticky;
-  top: calc(var(--header-height-scrolled) + 18px);
+  /* Sin max-height/overflow: el índice scrollea con la página, no con un scroll anidado */
+  position: static;
 }
 
 .rulebook-index__head {
@@ -734,10 +766,10 @@
   border-left: 2px solid transparent;
   color: var(--institution-text-muted);
   display: grid;
-  gap: 9px;
-  grid-template-columns: 25px minmax(0, 1fr);
-  min-height: 46px;
-  padding: 9px 8px;
+  gap: 8px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  min-height: 0;
+  padding: 8px;
   text-align: left;
   transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
   width: 100%;
@@ -830,7 +862,7 @@
   .community-manifesto { grid-template-columns: 60px minmax(0, 1fr); }
   .community-manifesto blockquote { border-left: 0; border-top: 1px solid var(--institution-border); grid-column: 2; }
   .community-participation__steps { grid-template-columns: 1fr; }
-  .community-participation__steps li { border-bottom: 0; border-right: 1px solid var(--institution-border); min-height: 220px; }
+  .community-participation__steps li { border-bottom: 0; border-right: 1px solid var(--institution-border); min-height: 0; }
   .community-participation__steps li:last-child { border-bottom: 1px solid var(--institution-border); }
 
   .rulebook-reading { grid-template-columns: 190px minmax(0, 1fr); }
@@ -871,8 +903,21 @@
   .faq-support-band,
   .rulebook-contact-band { align-items: stretch; flex-direction: column; }
 
-  .rulebook-page--institutional .rulebook-doc-panel { grid-template-columns: 1fr; }
-  .rulebook-page--institutional .rulebook-doc-panel__toolbar { border-left: 0; border-top: 1px solid var(--institution-border); }
+  .rulebook-page--institutional .rulebook-doc-panel__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rulebook-page--institutional .rulebook-doc-panel__lang,
+  .rulebook-page--institutional .rulebook-doc-panel__toolbar-actions {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .rulebook-page--institutional .rulebook-doc-panel__toolbar-actions {
+    justify-content: stretch;
+  }
+
   .rulebook-page--institutional .rulebook-summary__rail { grid-template-columns: 1fr; }
   .rulebook-page--institutional .rulebook-summary__rail > li:nth-child(odd) { border-right: 0; }
   .rulebook-page--institutional .rulebook-summary__card { min-height: 0; padding: 20px 0; }

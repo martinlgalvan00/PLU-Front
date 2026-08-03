@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js 20+
+- Node.js 22 (ver `.nvmrc`; también sirve 24+)
 - npm 10+
 - Un proyecto Supabase y su URL PostgreSQL de Session Pooler
 
@@ -14,6 +14,18 @@ cd PLU-Front
 cp .env.example .env
 npm install
 ```
+
+Si cambiaste `package.json`, **siempre** regenerá y commiteá el lock en el
+mismo cambio:
+
+```bash
+npm install
+npm run lock:check   # misma validación que usa CI antes de npm ci
+git add package.json package-lock.json
+```
+
+CI usa `npm ci` (instalación reproducible). Si el lock está desfasado, el job
+falla a propósito: no reemplaces `npm ci` por `npm install` en el workflow.
 
 ## Desarrollo
 

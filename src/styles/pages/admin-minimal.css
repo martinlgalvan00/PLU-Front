@@ -212,44 +212,8 @@
   letter-spacing: 0.01em;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip {
-  background: transparent;
-  border-color: var(--admin-hairline);
-  border-radius: 999px;
-  font-size: 11.5px;
-  min-height: 32px;
-  padding: 5px 12px;
-}
-
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip:hover {
-  background: var(--admin-row-hover);
-  border-color: var(--admin-hairline-strong, var(--admin-hairline));
-  color: var(--admin-ink);
-}
-
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip.is-active,
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip[aria-pressed='true'] {
-  background: var(--admin-brand-soft);
-  border-color: var(--admin-brand-border);
-  color: var(--admin-ink);
-  font-weight: 650;
-}
-
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip__count {
-  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  min-width: 1.4em;
-  padding: 2px 6px;
-}
-
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip.is-active .admin-filter-chip__count,
-.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
-  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
-  color: var(--admin-brand);
-  opacity: 1;
-}
+/* Los chips de listado usan el segmented underline de más abajo;
+   no forzar pills acá — pelean con la jerarquía compacta. */
 
 .admin-shell .admin-list-section > .admin-list-shell {
   min-width: 0;
@@ -351,6 +315,20 @@
   scrollbar-width: none;
 }
 
+.admin-shell .admin-filters--inline .admin-filters__groups--multi,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi {
+  align-items: center;
+  gap: 0;
+}
+
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+  flex: 0 1 auto;
+  width: auto;
+}
+
 .admin-shell .admin-filters--inline .admin-filters__groups::-webkit-scrollbar {
   display: none;
 }
@@ -358,14 +336,44 @@
 .admin-shell .admin-filters--inline .admin-filter-group--inline {
   align-items: center;
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: row;
-  gap: 0;
+  gap: 8px;
   min-width: 0;
-  width: 100%;
+  width: auto;
 }
 
-.admin-shell .admin-filters--inline .admin-filter-group__label {
+.admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
+.admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filters__select,
+.admin-shell .admin-filters--inline .admin-filters__select + .admin-filter-group--inline,
+.admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filter-group--inline,
+.admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filters__select,
+.admin-shell .admin-filters__panel .admin-filters__select + .admin-filter-group--inline {
+  border-left: 1px solid var(--admin-hairline);
+  margin-left: 10px;
+  padding-left: 12px;
+}
+
+.admin-shell .admin-filters--inline .admin-filter-group__label,
+.admin-shell .admin-filters__panel .admin-filter-group__label {
+  color: var(--admin-muted);
+  display: inline;
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-filters--inline .admin-filter-group--toggle .admin-filter-group__label,
+.admin-shell .admin-filters__panel .admin-filter-group--toggle .admin-filter-group__label {
+  display: inline;
+}
+
+/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice. */
+.admin-shell .admin-filters--inline .admin-filters__groups:not(.admin-filters__groups--multi) .admin-filter-group--inline > .admin-filter-group__label {
   display: none;
 }
 
@@ -1040,7 +1048,7 @@
     min-height: 38px;
   }
 
-  .admin-shell .admin-filters--inline .admin-filter-group__label {
+  .admin-shell .admin-filters--inline .admin-filters__groups:not(.admin-filters__groups--multi) .admin-filter-group--inline > .admin-filter-group__label {
     display: none;
   }
 
@@ -1357,19 +1365,16 @@
 .admin-shell .admin-filters__panel .admin-filter-group--inline {
   align-items: center;
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: row;
-  gap: 0;
+  gap: 8px;
   min-width: 0;
-  width: 100%;
-}
-
-.admin-shell .admin-filters__panel .admin-filter-group__label {
-  display: none;
+  width: auto;
 }
 
 .admin-shell .admin-filters__panel .admin-filter-chips {
   gap: 0;
+  width: auto;
 }
 
 /* Segmented control: tipografía + underline, sin pills ni checks.
@@ -1385,7 +1390,8 @@
   flex-wrap: nowrap;
   gap: 0;
   min-width: 0;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
@@ -1471,6 +1477,58 @@
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip--zero.is-active .admin-filter-chip__label,
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip--zero.is-active .admin-filter-chip__count {
   opacity: 0.75;
+}
+
+/* Toggle secundario (ej. “Vencen en 30 días”): un chip suelto, no otra fila de segmentos. */
+.admin-shell .admin-filter-group--toggle {
+  flex: 0 0 auto;
+}
+
+.admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  gap: 0;
+  min-height: 30px;
+  padding: 5px 11px;
+}
+
+.admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle::after {
+  display: none;
+}
+
+.admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle:hover {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-hairline-strong, var(--admin-hairline));
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle.is-active,
+.admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle[aria-pressed='true'] {
+  background: var(--admin-brand-soft);
+  border-color: var(--admin-brand-border);
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-shell .admin-filters__select {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-shell .admin-filters__select-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .admin-shell .admin-filter-chip:focus-visible,
@@ -2136,8 +2194,12 @@
     width: 100%;
   }
 
-  .admin-shell .admin-filters__panel .admin-filter-group__label {
+  .admin-shell .admin-filters__panel .admin-filters__groups:not(.admin-filters__groups--multi) .admin-filter-group--inline > .admin-filter-group__label {
     display: none;
+  }
+
+  .admin-shell .admin-filters__panel .admin-filter-group--toggle .admin-filter-group__label {
+    display: inline;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-chips {
@@ -3368,18 +3430,18 @@
 }
 
 .admin-shell .admin-list-section--events .admin-list-shell__header {
-  align-items: end;
+  align-items: center;
   display: grid;
-  gap: 12px 20px;
+  gap: 8px 16px;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 0;
-  padding: clamp(16px, 2.4vw, 22px) clamp(14px, 2.4vw, 22px) clamp(14px, 2vw, 18px);
+  padding: 10px clamp(14px, 2.4vw, 22px) 8px;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__intro {
   display: grid;
-  gap: 6px;
-  padding-left: 14px;
+  gap: 2px;
+  padding-left: 12px;
   position: relative;
 }
 
@@ -3396,27 +3458,21 @@
 .admin-shell .admin-list-shell--events .admin-list-shell__eyebrow {
   color: var(--admin-muted);
   display: inline-block;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
-  color: var(--admin-muted);
-  display: block;
-  font-size: 12.5px;
-  font-weight: 400;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 48ch;
+  display: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__title {
-  font-size: clamp(1.4rem, 2.8vw, 1.7rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.35rem);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .admin-shell .admin-list-shell--events .admin-events__refresh-btn.is-spinning svg {
@@ -3432,7 +3488,7 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
-  margin-top: 2px;
+  margin-top: 0;
   padding: 0;
 }
 
@@ -3442,15 +3498,10 @@
 
 .admin-shell .admin-list-shell--events .admin-list-shell__actions {
   align-items: center;
-  align-self: end;
+  align-self: center;
   display: flex;
   gap: 8px;
-  padding-bottom: 2px;
-}
-
-.admin-shell .admin-list-shell--events .admin-list-shell__actions .btn {
-  min-height: 38px;
-  padding-inline: 14px;
+  padding-bottom: 0;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
@@ -3458,11 +3509,26 @@
   background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   border-top: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  grid-template-columns: none;
-  padding: 6px clamp(14px, 2.4vw, 22px) 8px;
+  display: grid;
+  flex-wrap: nowrap;
+  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
+  padding: 4px clamp(14px, 2.4vw, 22px) 8px;
+}
+
+.admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__panel {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  order: 0;
+}
+
+.admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__primary {
+  grid-column: 2 / -1;
+  grid-row: 1;
+  justify-content: flex-end;
+  min-width: 0;
+  order: 1;
 }
 
 .admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search,
@@ -3471,28 +3537,38 @@
   border-color: var(--admin-hairline);
   border-radius: 8px;
   box-shadow: none;
-  flex: 0 1 200px;
-  height: 36px;
-  margin-left: auto;
-  min-height: 36px;
+  flex: 1 1 160px;
+  height: 34px;
+  margin-left: 0;
+  min-height: 34px;
   min-width: 140px;
-  order: 1;
+  order: 0;
+  width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-filters__groups {
   flex: 1 1 auto;
   gap: 0;
   grid-column: auto;
+  max-width: 100%;
   order: 0;
+  overflow-x: auto;
+}
+
+.admin-shell .admin-list-section--events .admin-events__toolbar-actions {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+}
+
+.admin-shell .admin-list-section--events .admin-events__toolbar-actions .btn {
+  min-height: 34px;
+  padding-inline: 12px;
 }
 
 /* El tratamiento del chip ya lo cubre el bloque `:is(.admin-filters--compact,
-   .admin-filter-group--compact)` de más arriba -- Eventos también pasa por
-   AdminListSection, que siempre pone `compact`. Esto solo queda para ocultar
-   la etiqueta "Estado", que sí es específico de esta variante. */
-.admin-shell .admin-list-shell--events .admin-filter-group__label {
-  display: none;
-}
+   .admin-filter-group--compact)` de más arriba. */
 
 .admin-shell .admin-list-shell--events .admin-list-shell__body {
   background: var(--admin-surface);

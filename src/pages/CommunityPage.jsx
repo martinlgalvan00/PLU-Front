@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, CalendarDays, CircleCheck, IdCard, Mail, MapPin, Trophy, UsersRound } from 'lucide-react'
+import { ArrowRight, BookOpen, CalendarDays, CircleCheck, Mail, MapPin, Trophy } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
@@ -20,11 +20,7 @@ function CommunityAction({ description, icon: Icon, label, onClick }) {
 export default function CommunityPage({ onNavigate }) {
   const { t } = useI18n()
 
-  const participation = [
-    { key: 'members', icon: IdCard },
-    { key: 'events', icon: CalendarDays },
-    { key: 'contact', icon: UsersRound },
-  ]
+  const participation = ['members', 'events', 'contact']
 
   return (
     <main className="institutional-page community-page--institutional">
@@ -66,10 +62,11 @@ export default function CommunityPage({ onNavigate }) {
             </div>
           </header>
           <ol className="community-participation__steps">
-            {participation.map(({ key, icon: Icon }, index) => (
+            {participation.map((key, index) => (
               <li key={key}>
-                <span className="community-participation__step">{String(index + 1).padStart(2, '0')}</span>
-                <span className="community-participation__icon"><Icon size={20} aria-hidden /></span>
+                <span className="community-participation__step" aria-hidden>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <div>
                   <h3>{t(`pages.community.participation.${key}Title`)}</h3>
                   <p>{t(`pages.community.participation.${key}Desc`)}</p>

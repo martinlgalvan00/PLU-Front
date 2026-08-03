@@ -46,7 +46,9 @@ Vercel porque `vercel.json` las deshabilita.
 Todo PR hacia `dev` o `main` debe aprobar:
 
 1. `application`
-   - instalación reproducible con `npm ci`;
+   - Node según `.nvmrc`;
+   - instalación reproducible con `npm ci` (falla con mensaje claro si el lock
+     está desfasado; localmente: `npm run lock:check`);
    - lint;
    - tests unitarios y Storybook en Chromium;
    - build de producción;

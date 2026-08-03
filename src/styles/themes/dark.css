@@ -208,14 +208,8 @@
   --institution-grid-line: rgba(255, 255, 255, 0.045);
   --institution-shadow: 0 22px 54px rgba(0, 0, 0, 0.32);
   --institution-focus: #9ec5eb;
-  --institution-hero-bg: var(--institution-surface);
-  --institution-hero-wash: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--institution-blue) 22%, transparent),
-    transparent 35%,
-    transparent 72%,
-    color-mix(in srgb, var(--institution-gold) 16%, transparent)
-  );
+  --institution-hero-bg: var(--plu-page-hero-bg, var(--color-bg-primary));
+  --institution-hero-wash: transparent;
   --institution-on-strong: #f6f6f3;
   --institution-on-strong-muted: rgba(255, 255, 255, 0.58);
   --institution-on-strong-faint: rgba(255, 255, 255, 0.4);

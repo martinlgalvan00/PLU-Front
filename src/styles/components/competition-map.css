@@ -24,9 +24,12 @@
   --plu-map-marker-label-border: color-mix(in srgb, var(--plu-ink-900) 18%, transparent);
   --plu-map-marker-label-text: var(--plu-ink-900);
   animation: competition-map-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  background: var(--color-bg-surface);
-  border-block: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-primary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 12px;
+  box-shadow: none;
   color: var(--color-text-primary);
+  margin: 0;
   overflow: clip;
   position: relative;
 }
@@ -61,11 +64,11 @@
 
 .competition-map__header {
   align-items: end;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: clamp(18px, 4vw, 48px);
-  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.7fr);
-  padding: clamp(24px, 4vw, 48px);
+  gap: 12px 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.65fr);
+  padding: 18px 20px 16px;
 }
 
 .competition-map__header > div {
@@ -74,80 +77,104 @@
 
 .competition-map__eyebrow {
   align-items: center;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   display: flex;
-  font-size: 0.72rem;
-  font-weight: 750;
-  gap: 8px;
-  letter-spacing: 0.13em;
-  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.1em;
+  margin: 0 0 6px;
   text-transform: uppercase;
 }
 
+.competition-map__eyebrow svg {
+  color: var(--color-brand-celeste);
+  opacity: 0.85;
+}
+
 .competition-map__header h2 {
-  font-size: clamp(2rem, 4.4vw, 4rem);
-  letter-spacing: -0.04em;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   margin: 0;
   text-wrap: balance;
 }
 
 .competition-map__header > p {
-  color: var(--color-text-secondary);
-  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
   margin: 0;
-  max-width: 52ch;
+  max-width: 42ch;
   text-wrap: pretty;
 }
 
 .competition-map__layout {
-  display: grid;
-  grid-template-areas:
-    'index stage'
-    'index selection';
-  grid-template-columns: minmax(250px, 0.34fr) minmax(0, 1fr);
+  height: clamp(600px, 80vh, 850px);
+  position: relative;
+  width: 100%;
 }
 
 .competition-map__index {
-  border-right: 1px solid var(--color-border-subtle);
-  grid-area: index;
-  min-width: 0;
+  background: var(--color-bg-surface);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 8px;
+  bottom: 16px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  left: 16px;
+  overflow: hidden;
+  position: absolute;
+  top: 16px;
+  width: clamp(280px, 26vw, 340px);
+  z-index: 10;
 }
 
 .competition-map__index-head {
   align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: flex;
   justify-content: space-between;
-  min-height: 54px;
-  padding: 0 20px;
+  min-height: 44px;
+  padding: 0 14px;
 }
 
 .competition-map__index-head p {
-  font-size: 0.73rem;
-  font-weight: 750;
-  letter-spacing: 0.11em;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   margin: 0;
   text-transform: uppercase;
 }
 
 .competition-map__index-head > span {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .competition-map__index-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .competition-map__event {
   border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   display: grid;
-  gap: 8px 14px;
-  grid-template-columns: minmax(52px, auto) minmax(0, 1fr);
-  min-height: 112px;
-  padding: 18px 20px;
+  gap: 4px 12px;
+  grid-template-columns: minmax(48px, auto) minmax(0, 1fr);
+  min-height: 76px;
+  padding: 12px 14px;
   position: relative;
   text-align: left;
   touch-action: manipulation;
@@ -251,52 +278,25 @@
 }
 
 .competition-map__stage {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-brand-celeste) 5%, transparent),
-      transparent 50%
-    ),
-    var(--color-bg-secondary);
+  background: var(--color-bg-secondary);
   grid-area: stage;
   min-height: clamp(330px, 39vw, 470px);
   overflow: hidden;
   position: relative;
 }
 
-.competition-map__stage::after {
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
-  content: '';
-  inset: 14px;
-  pointer-events: none;
-  position: absolute;
-  z-index: 3;
-}
-
 .competition-map__fallback {
   align-content: center;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background:
-    color-mix(in srgb, var(--color-bg-primary) 70%, transparent)
-      linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
-        transparent 1px
-      ),
-    linear-gradient(
-      color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 44px 44px;
+  background: var(--color-bg-secondary);
   display: grid;
-  gap: 22px;
-  grid-template-columns: auto minmax(0, 420px);
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 36ch);
   inset: 0;
   justify-content: center;
-  padding: clamp(38px, 7vw, 76px);
+  justify-items: start;
+  padding: clamp(24px, 4vw, 48px);
   position: absolute;
-  transition: opacity 180ms ease-out;
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
   z-index: 2;
 }
 
@@ -305,22 +305,14 @@
   pointer-events: none;
 }
 
-.competition-map__fallback-mark {
+.competition-map__fallback-icon {
   align-items: center;
-  align-self: start;
-  background: var(--color-text-primary);
-  color: var(--color-bg-primary);
-  display: grid;
-  height: 72px;
-  justify-items: center;
-  padding: 10px;
-  width: 72px;
-}
-
-.competition-map__fallback-mark span {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  opacity: 0.72;
+  width: 34px;
 }
 
 .competition-map__fallback-copy {
@@ -328,49 +320,25 @@
   display: grid;
   gap: 8px;
   min-width: 0;
-}
-
-.competition-map__fallback-label {
-  color: var(--color-brand-celeste);
-  font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.12em;
-  margin: 0;
-  text-transform: uppercase;
+  padding-top: 4px;
 }
 
 .competition-map__fallback-copy h3 {
-  font-size: clamp(1.35rem, 2.8vw, 2rem);
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
   text-wrap: balance;
 }
 
-.competition-map__fallback-copy
-  > p:not(.competition-map__fallback-label, .competition-map__fallback-place) {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  margin: 0;
-  max-width: 48ch;
-  text-wrap: pretty;
-}
-
-.competition-map__fallback-place {
-  border-top: 1px solid var(--color-border-subtle);
-  display: grid;
-  gap: 2px;
-  margin: 10px 0 0;
-  padding-top: 12px;
-}
-
-.competition-map__fallback-place strong {
-  font-size: 0.82rem;
-}
-
-.competition-map__fallback-place span {
+.competition-map__fallback-copy > p {
   color: var(--color-text-muted);
-  font-size: 0.76rem;
-  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
+  text-wrap: pretty;
 }
 
 .competition-map__canvas-shell,
@@ -507,48 +475,59 @@
 .competition-map__selection {
   align-content: start;
   background: var(--color-bg-surface);
-  border-top: 1px solid var(--color-border-subtle);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 8px;
+  bottom: 16px;
+  box-shadow: none;
   display: grid;
-  gap: 14px;
-  grid-area: selection;
-  padding: clamp(22px, 3.2vw, 34px);
+  gap: 12px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  padding: 18px 18px 20px;
+  position: absolute;
+  right: 16px;
+  width: clamp(300px, 30vw, 380px);
+  z-index: 10;
 }
 
 .competition-map__selection-head {
   align-items: center;
   display: flex;
-  gap: 16px;
+  gap: 12px;
   justify-content: space-between;
 }
 
 .competition-map__selection-head > p {
-  color: var(--color-brand-celeste);
-  font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   margin: 0;
   text-transform: uppercase;
 }
 
 .competition-map__selection h3 {
-  font-size: clamp(1.35rem, 2.8vw, 2.2rem);
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 1.8vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
   margin: 0;
   text-wrap: balance;
 }
 
 .competition-map__selection-role {
-  color: var(--color-brand-celeste);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin: -6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: -4px 0 0;
 }
 
 .competition-map__selection-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px 30px;
+  gap: 12px 24px;
   margin: 0;
 }
 
@@ -559,32 +538,34 @@
 
 .competition-map__selection-meta dt {
   color: var(--color-text-muted);
-  font-size: 0.67rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .competition-map__selection-meta dd {
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   margin: 0;
 }
 
 .competition-map__selection-address {
   align-items: flex-start;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   display: flex;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   gap: 8px;
   margin: 0;
   max-width: 62ch;
 }
 
 .competition-map__selection-address svg {
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   flex: 0 0 auto;
   margin-top: 2px;
+  opacity: 0.8;
 }
 
 .competition-map__actions {
@@ -657,11 +638,11 @@
 }
 
 .competition-map__travel {
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: 12px;
-  margin-top: 4px;
-  padding-top: 18px;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 14px;
 }
 
 .competition-map__travel-head {
@@ -678,10 +659,11 @@
 
 .competition-map__travel-head p {
   align-items: center;
-  color: var(--color-brand-celeste);
+  color: var(--color-text-muted);
   display: flex;
-  font-size: 0.65rem;
-  font-weight: 750;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
   gap: 7px;
   letter-spacing: 0.1em;
   margin: 0;
@@ -690,19 +672,23 @@
 
 .competition-map__travel-head h4 {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
 }
 
 .competition-map__travel-head > span {
-  border: 1px solid var(--color-border-subtle);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 4px;
   color: var(--color-text-muted);
   flex: 0 0 auto;
-  font-size: 0.61rem;
+  font-family: var(--font-display);
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 6px 8px;
+  letter-spacing: 0.08em;
+  padding: 5px 7px;
   text-transform: uppercase;
 }
 
@@ -1049,19 +1035,154 @@
 }
 
 .competition-map--venue .competition-map__layout {
-  grid-template-areas: 'selection stage';
-  grid-template-columns: minmax(285px, 0.42fr) minmax(0, 1fr);
+  height: clamp(400px, 50vh, 550px);
 }
 
 .competition-map--venue .competition-map__selection {
-  border-right: 1px solid var(--color-border-subtle);
-  border-top: 0;
-  min-height: clamp(330px, 36vw, 430px);
-  padding: clamp(26px, 4vw, 46px);
+  bottom: 16px;
+  left: 16px;
+  right: auto;
 }
 
 .competition-map--venue .competition-map__stage {
-  min-height: clamp(330px, 36vw, 430px);
+  height: 100%;
+}
+
+/* Dossier: sin cartografía usable — status strip + lista | detalle */
+.competition-map[data-provider-state='empty'] .competition-map__layout,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__layout,
+.competition-map[data-provider-state='offline'] .competition-map__layout,
+.competition-map[data-provider-state='error'] .competition-map__layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, auto);
+  height: auto;
+  min-height: 0;
+  padding: 12px 12px 14px;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__stage,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__stage,
+.competition-map[data-provider-state='offline'] .competition-map__stage,
+.competition-map[data-provider-state='error'] .competition-map__stage {
+  background: transparent;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: auto;
+  min-height: 0;
+  position: relative;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__fallback,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback,
+.competition-map[data-provider-state='offline'] .competition-map__fallback,
+.competition-map[data-provider-state='error'] .competition-map__fallback {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-secondary) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  grid-template-columns: none;
+  inset: auto;
+  justify-content: flex-start;
+  padding: 10px 14px;
+  position: relative;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__fallback-icon,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-icon,
+.competition-map[data-provider-state='offline'] .competition-map__fallback-icon,
+.competition-map[data-provider-state='error'] .competition-map__fallback-icon {
+  flex-shrink: 0;
+  height: 28px;
+  width: 28px;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__fallback-copy,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-copy,
+.competition-map[data-provider-state='offline'] .competition-map__fallback-copy,
+.competition-map[data-provider-state='error'] .competition-map__fallback-copy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding-top: 0;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__fallback-copy h3,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-copy h3,
+.competition-map[data-provider-state='offline'] .competition-map__fallback-copy h3,
+.competition-map[data-provider-state='error'] .competition-map__fallback-copy h3 {
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__fallback-copy > p,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-copy > p,
+.competition-map[data-provider-state='offline'] .competition-map__fallback-copy > p,
+.competition-map[data-provider-state='error'] .competition-map__fallback-copy > p {
+  font-size: 0.75rem;
+  max-width: none;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__index,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__index,
+.competition-map[data-provider-state='offline'] .competition-map__index,
+.competition-map[data-provider-state='error'] .competition-map__index {
+  bottom: auto;
+  grid-column: 1;
+  grid-row: 2;
+  height: auto;
+  left: auto;
+  max-height: none;
+  position: relative;
+  top: auto;
+  width: auto;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__selection,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__selection,
+.competition-map[data-provider-state='offline'] .competition-map__selection,
+.competition-map[data-provider-state='error'] .competition-map__selection {
+  bottom: auto;
+  grid-column: 2;
+  grid-row: 2;
+  left: auto;
+  max-height: none;
+  position: relative;
+  right: auto;
+  width: auto;
+}
+
+.competition-map[data-provider-state='empty'] .competition-map__index-list,
+.competition-map[data-provider-state='missing_coordinates'] .competition-map__index-list,
+.competition-map[data-provider-state='offline'] .competition-map__index-list,
+.competition-map[data-provider-state='error'] .competition-map__index-list {
+  max-height: min(420px, 55vh);
+}
+
+.competition-map__travel--external-only .competition-map__travel-head h4 {
+  font-size: 0.875rem;
+}
+
+.competition-map__travel--external-only .competition-map__travel-lead {
+  max-width: 52ch;
+}
+
+/* Venue sin coords también usa dossier (sin altura forzada de mapa) */
+.competition-map--venue[data-provider-state='empty'] .competition-map__layout,
+.competition-map--venue[data-provider-state='missing_coordinates'] .competition-map__layout,
+.competition-map--venue[data-provider-state='offline'] .competition-map__layout,
+.competition-map--venue[data-provider-state='error'] .competition-map__layout {
+  height: auto;
+}
+
+.competition-map--venue[data-provider-state='empty'] .competition-map__selection,
+.competition-map--venue[data-provider-state='missing_coordinates'] .competition-map__selection,
+.competition-map--venue[data-provider-state='offline'] .competition-map__selection,
+.competition-map--venue[data-provider-state='error'] .competition-map__selection {
+  left: auto;
 }
 
 @keyframes competition-map-enter {
@@ -1080,31 +1201,113 @@
 @media (max-width: 860px) {
   .competition-map__header {
     align-items: start;
+    gap: 8px;
     grid-template-columns: 1fr;
+    padding: 16px 16px 14px;
   }
 
   .competition-map__layout,
   .competition-map--venue .competition-map__layout {
-    grid-template-areas:
-      'index'
-      'selection'
-      'stage';
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
+    height: auto;
   }
 
-  .competition-map--venue .competition-map__layout {
-    grid-template-areas:
-      'selection'
-      'stage';
+  .competition-map__stage {
+    height: 400px;
+    order: 1;
+    position: relative;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__layout,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__layout,
+  .competition-map[data-provider-state='offline'] .competition-map__layout,
+  .competition-map[data-provider-state='error'] .competition-map__layout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    grid-template-columns: none;
+    grid-template-rows: none;
+    padding: 10px;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__stage,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__stage,
+  .competition-map[data-provider-state='offline'] .competition-map__stage,
+  .competition-map[data-provider-state='error'] .competition-map__stage {
+    height: auto;
+    min-height: 0;
+    order: 1;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__index,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__index,
+  .competition-map[data-provider-state='offline'] .competition-map__index,
+  .competition-map[data-provider-state='error'] .competition-map__index {
+    background: var(--color-bg-surface);
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+    border-radius: 8px;
+    grid-column: auto;
+    grid-row: auto;
+    order: 2;
+    width: 100%;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__index-list,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__index-list,
+  .competition-map[data-provider-state='offline'] .competition-map__index-list,
+  .competition-map[data-provider-state='error'] .competition-map__index-list {
+    max-height: none;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__selection,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__selection,
+  .competition-map[data-provider-state='offline'] .competition-map__selection,
+  .competition-map[data-provider-state='error'] .competition-map__selection {
+    background: var(--color-bg-surface);
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+    border-radius: 8px;
+    grid-column: auto;
+    grid-row: auto;
+    order: 3;
+    width: 100%;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__fallback,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback,
+  .competition-map[data-provider-state='offline'] .competition-map__fallback,
+  .competition-map[data-provider-state='error'] .competition-map__fallback {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__fallback-copy,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-copy,
+  .competition-map[data-provider-state='offline'] .competition-map__fallback-copy,
+  .competition-map[data-provider-state='error'] .competition-map__fallback-copy {
+    flex-direction: column;
+    gap: 4px;
   }
 
   .competition-map__index {
-    border-bottom: 1px solid var(--color-border-subtle);
-    border-right: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    bottom: auto;
+    left: auto;
+    order: 2;
+    position: relative;
+    top: auto;
+    width: 100%;
+    z-index: 1;
   }
 
   .competition-map__index-list {
     display: flex;
+    flex-direction: row;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scrollbar-width: thin;
@@ -1120,16 +1323,53 @@
 
   .competition-map__selection,
   .competition-map--venue .competition-map__selection {
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    bottom: auto;
+    left: auto;
+    order: 3;
+    position: relative;
+    right: auto;
+    width: 100%;
+    z-index: 1;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__index-list,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__index-list,
+  .competition-map[data-provider-state='offline'] .competition-map__index-list,
+  .competition-map[data-provider-state='error'] .competition-map__index-list {
+    flex-direction: column;
+    overflow-x: visible;
+    overflow-y: auto;
+    scroll-snap-type: none;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__event,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__event,
+  .competition-map[data-provider-state='offline'] .competition-map__event,
+  .competition-map[data-provider-state='error'] .competition-map__event {
     border-bottom: 1px solid var(--color-border-subtle);
-    border-right: 0;
-    min-height: 0;
-    transform: none;
+    border-right: none;
+    flex: none;
+    width: 100%;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__selection,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__selection,
+  .competition-map[data-provider-state='offline'] .competition-map__selection,
+  .competition-map[data-provider-state='error'] .competition-map__selection {
+    background: var(--color-bg-surface);
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+    border-radius: 8px;
   }
 }
 
 @media (max-width: 520px) {
   .competition-map__header {
-    padding: 24px 18px;
+    padding: 14px 14px 12px;
   }
 
   .competition-map__stage,
@@ -1137,21 +1377,39 @@
     min-height: 310px;
   }
 
-  .competition-map__fallback {
-    align-content: center;
-    gap: 16px;
-    grid-template-columns: 1fr;
-    padding: 42px 32px;
+  .competition-map[data-provider-state='empty'] .competition-map__stage,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__stage,
+  .competition-map[data-provider-state='offline'] .competition-map__stage,
+  .competition-map[data-provider-state='error'] .competition-map__stage,
+  .competition-map--venue[data-provider-state='empty'] .competition-map__stage,
+  .competition-map--venue[data-provider-state='missing_coordinates'] .competition-map__stage,
+  .competition-map--venue[data-provider-state='offline'] .competition-map__stage,
+  .competition-map--venue[data-provider-state='error'] .competition-map__stage {
+    min-height: 0;
   }
 
-  .competition-map__fallback-mark {
-    height: 58px;
-    width: 58px;
+  .competition-map__fallback {
+    align-content: center;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    padding: 28px 20px;
+  }
+
+  .competition-map[data-provider-state='empty'] .competition-map__fallback,
+  .competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback,
+  .competition-map[data-provider-state='offline'] .competition-map__fallback,
+  .competition-map[data-provider-state='error'] .competition-map__fallback {
+    padding: 10px 14px;
+  }
+
+  .competition-map__fallback-icon {
+    height: 28px;
+    width: 28px;
   }
 
   .competition-map__selection,
   .competition-map--venue .competition-map__selection {
-    padding: 24px 18px;
+    padding: 16px;
   }
 
   .competition-map__actions {

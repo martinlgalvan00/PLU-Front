@@ -1,14 +1,60 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { UserPlus, X } from 'lucide-react'
+import {
+  Ban,
+  CheckCircle2,
+  PauseCircle,
+  Shield,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
+import Pill from '../../components/ui/Pill.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getRoleLabel } from '../../lib/roles.js'
 
 const EMPTY_DRAFT = { name: '', email: '', role: 'plu_arg', eventId: '' }
+
+const STATUS_FILTERS = [
+  ['all', 'admin.users.filterAll'],
+  ['active', 'admin.users.statusActive'],
+  ['invited', 'admin.users.statusInvited'],
+  ['suspended', 'admin.users.statusSuspended'],
+  ['disabled', 'admin.users.statusDisabled'],
+]
+
+function statusTone(status) {
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'invited':
+      return 'info'
+    case 'suspended':
+      return 'warning'
+    case 'disabled':
+      return 'danger'
+    default:
+      return 'neutral'
+  }
+}
+
+function statusLabel(t, status) {
+  switch (status) {
+    case 'active':
+      return t('admin.users.statusActive')
+    case 'invited':
+      return t('admin.users.statusInvited')
+    case 'suspended':
+      return t('admin.users.statusSuspended')
+    case 'disabled':
+      return t('admin.users.statusDisabled')
+    default:
+      return status ?? t('admin.users.statusUnknown')
+  }
+}
 
 export default function UsersSection({
   accessRoles,
@@ -16,13 +62,16 @@ export default function UsersSection({
   canManageUsers,
   onCreateSecurityUser,
   onCreateUser,
+  onNavigateRoles,
   onUpdateRole,
+  onUpdateStatus,
   users,
 }) {
   const { t } = useI18n()
   const formId = useId()
   const formRef = useRef(null)
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [isCreating, setIsCreating] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
@@ -45,16 +94,37 @@ export default function UsersSection({
     [accessRoles],
   )
 
+  const statusCounts = useMemo(() => {
+    const counts = Object.create(null)
+    for (const user of users) {
+      const key = user.status ?? 'active'
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, [users])
+
+  const statusOptions = useMemo(
+    () =>
+      STATUS_FILTERS.map(([value, key]) => [
+        value,
+        t(key),
+        value === 'all' ? users.length : (statusCounts[value] ?? 0),
+      ]),
+    [statusCounts, t, users.length],
+  )
+
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     return users.filter((user) => {
+      const status = user.status ?? 'active'
+      if (statusFilter !== 'all' && status !== statusFilter) return false
       if (!normalizedQuery) return true
       return (
         user.name.toLowerCase().includes(normalizedQuery) ||
         user.email.toLowerCase().includes(normalizedQuery)
       )
     })
-  }, [users, query])
+  }, [users, query, statusFilter])
 
   useEffect(() => {
     if (!isCreating) return undefined
@@ -144,24 +214,54 @@ export default function UsersSection({
     }
   }
 
+  async function handleStatusChange(userId, nextStatus) {
+    if (!onUpdateStatus) return
+    setFormError('')
+    setUpdatingUserId(userId)
+    try {
+      await onUpdateStatus(userId, nextStatus)
+    } catch (error) {
+      setFormError(error?.message ?? t('admin.users.errorStatusUpdate'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  function canMutateUser(row) {
+    return canManageUsers && row.role !== 'admin_maximal' && Boolean(onUpdateStatus)
+  }
+
   const filterActions = canManageUsers ? (
-    <Button
-      type="button"
-      variant={isCreating ? 'secondary' : 'gold'}
-      className="btn--small"
-      aria-controls={formId}
-      aria-expanded={isCreating}
-      onClick={() => {
-        if (isCreating) {
-          if (!isSubmitting) closeCreateForm()
-          return
-        }
-        openCreateForm()
-      }}
-    >
-      {isCreating ? <X size={14} aria-hidden /> : <UserPlus size={14} aria-hidden />}
-      <span>{isCreating ? t('admin.users.cancel') : t('admin.users.newUser')}</span>
-    </Button>
+    <div className="admin-users__toolbar-actions">
+      {onNavigateRoles ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="btn--small"
+          onClick={onNavigateRoles}
+        >
+          <Shield size={14} aria-hidden />
+          <span>{t('admin.users.managePermissions')}</span>
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        variant={isCreating ? 'secondary' : 'gold'}
+        className="btn--small"
+        aria-controls={formId}
+        aria-expanded={isCreating}
+        onClick={() => {
+          if (isCreating) {
+            if (!isSubmitting) closeCreateForm()
+            return
+          }
+          openCreateForm()
+        }}
+      >
+        {isCreating ? <X size={14} aria-hidden /> : <UserPlus size={14} aria-hidden />}
+        <span>{isCreating ? t('admin.users.cancel') : t('admin.users.newUser')}</span>
+      </Button>
+    </div>
   ) : null
 
   return (
@@ -169,6 +269,15 @@ export default function UsersSection({
       variant="users"
       filteredCount={rows.length}
       filterActions={filterActions}
+      filters={[
+        {
+          id: 'status',
+          label: t('admin.filters.status'),
+          value: statusFilter,
+          onChange: setStatusFilter,
+          options: statusOptions,
+        },
+      ]}
       placeholder={t('admin.search.users')}
       query={query}
       showHeader
@@ -308,6 +417,79 @@ export default function UsersSection({
               ) : (
                 <span className="status-pill status-pill--neutral">{getRoleLabel(row)}</span>
               ),
+          },
+          {
+            key: 'status',
+            label: t('admin.columns.status'),
+            mobile: 'badge',
+            sortable: true,
+            sortAccessor: (row) => row.status ?? 'active',
+            render: (row) => (
+              <Pill tone={statusTone(row.status ?? 'active')}>
+                {statusLabel(t, row.status ?? 'active')}
+              </Pill>
+            ),
+          },
+          {
+            key: 'actions',
+            label: t('admin.columns.action'),
+            mobile: 'actions',
+            sortable: false,
+            render: (row) => {
+              if (!canMutateUser(row)) {
+                return <span className="admin-users__actions-empty">—</span>
+              }
+
+              const status = row.status ?? 'active'
+              const busy = updatingUserId === row.id
+
+              return (
+                <div className="admin-users__row-actions" role="group" aria-label={t('admin.users.actionsAria', { name: row.name })}>
+                  {status !== 'active' ? (
+                    <button
+                      type="button"
+                      className="admin-users__action-btn admin-users__action-btn--activate"
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleStatusChange(row.id, 'active')
+                      }}
+                    >
+                      <CheckCircle2 size={14} aria-hidden />
+                      <span>{t('admin.users.actionActivate')}</span>
+                    </button>
+                  ) : null}
+                  {status === 'active' ? (
+                    <button
+                      type="button"
+                      className="admin-users__action-btn"
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleStatusChange(row.id, 'suspended')
+                      }}
+                    >
+                      <PauseCircle size={14} aria-hidden />
+                      <span>{t('admin.users.actionSuspend')}</span>
+                    </button>
+                  ) : null}
+                  {status !== 'disabled' ? (
+                    <button
+                      type="button"
+                      className="admin-users__action-btn admin-users__action-btn--danger"
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleStatusChange(row.id, 'disabled')
+                      }}
+                    >
+                      <Ban size={14} aria-hidden />
+                      <span>{t('admin.users.actionDisable')}</span>
+                    </button>
+                  ) : null}
+                </div>
+              )
+            },
           },
         ]}
         rows={rows}

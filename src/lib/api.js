@@ -131,6 +131,10 @@ export function updateStaffUserRoleRequest(userId, roleKey) {
   return apiPatch(`/api/users/${encodeURIComponent(userId)}/role`, { roleKey })
 }
 
+export function updateStaffUserStatusRequest(userId, status) {
+  return apiPatch(`/api/users/${encodeURIComponent(userId)}/status`, { status })
+}
+
 export function listAccessRolesRequest() {
   return apiGet('/api/access-control/roles')
 }

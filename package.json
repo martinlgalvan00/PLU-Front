@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "node scripts/bootstrap-all.mjs --start",
     "dev:services": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
@@ -15,6 +19,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "oxlint src server",
+    "lock:check": "node scripts/check-lockfile.mjs",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"server/**/*.js\" \"tests/**/*.js\"",
     "test": "npm run test:unit && npm run test:storybook",
     "test:unit": "vitest run --project default",

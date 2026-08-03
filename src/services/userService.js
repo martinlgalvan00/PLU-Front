@@ -17,12 +17,14 @@ const initialUsers = [
     name: 'Admin Demo',
     email: 'demo@pluarg.com.ar',
     role: 'admin_plu_arg',
+    status: 'active',
   },
   {
     id: 'usr-002',
     name: 'Juan Portero',
     email: 'juan.portero@pluarg.com.ar',
     role: 'seguridad_plu_arg',
+    status: 'active',
   },
 ]
 
@@ -31,7 +33,13 @@ export function getInitialUsers(storedUsers) {
 }
 
 export function updateUserRole(users, userId, role) {
-  return users.map((user) => (user.id === userId ? { ...user, role } : user))
+  return users.map((user) =>
+    user.id === userId ? { ...user, role, roleKey: role } : user,
+  )
+}
+
+export function updateUserStatus(users, userId, status) {
+  return users.map((user) => (user.id === userId ? { ...user, status } : user))
 }
 
 export function createUser(users, { name, email, role }) {
@@ -40,6 +48,8 @@ export function createUser(users, { name, email, role }) {
     name: name.trim(),
     email: email.trim().toLowerCase(),
     role,
+    roleKey: role,
+    status: 'active',
   }
   return [user, ...users]
 }

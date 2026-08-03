@@ -786,8 +786,7 @@ export default {
       map: {
         eyebrow: 'PLU territory',
         title: 'Competition map',
-        description:
-          'Explore published venues without losing the calendar’s accessible navigation.',
+        description: 'Published venues with accessible calendar navigation.',
         indexTitle: 'Events & venues',
         featured: 'Featured upcoming event',
         selected: 'Selected event',
@@ -800,15 +799,12 @@ export default {
         originLabel: 'Argentina · open map',
         resetView: 'Overview',
         mapAria: 'Interactive map of PLU Argentina events',
-        fallbackLabel: 'PLU Competition Map',
         loadingTitle: 'Preparing the map',
         loadingCopy: 'Venue information remains available while the provider loads.',
         coordinatesTitle: 'Address confirmed, coordinates pending',
-        coordinatesCopy:
-          'You can view the venue and open its location. The map will activate once verified coordinates are published.',
-        locationTitle: 'Venue published, precise location pending',
-        locationCopy:
-          'The event remains available in the calendar. The map will activate once the venue has a verified address and coordinates.',
+        coordinatesCopy: 'The map activates once the team publishes verified coordinates.',
+        locationTitle: 'Precise location pending',
+        locationCopy: 'The event stays in the calendar; the map activates with a verified address and coordinates.',
         configTitle: 'Interactive map pending activation',
         configCopy: 'The venue remains available even when open mapping cannot initialize.',
         offlineTitle: 'Map unavailable offline',
@@ -823,6 +819,7 @@ export default {
           openData: 'Open data',
           description:
             'Estimate the drive from your current location and review registered parking near the venue.',
+          externalOnlyDescription: 'Open the venue in external maps while coordinates are pending.',
           calculate: 'Calculate from my location',
           calculating: 'Calculating route…',
           minutes: '{{count}} min',

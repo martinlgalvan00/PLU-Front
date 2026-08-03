@@ -4343,22 +4343,26 @@
 }
 
 
-/* ── Pitbull home section — fondo negro limpio ─ */
+/* Pitbull home: atmósfera propia por tema */
 .home-page .home-section.home-section--immersive.home-section--pitbull-home,
-[data-theme='dark'] .home-page .home-section.home-section--immersive.home-section--pitbull-home,
-[data-theme='light'] .home-page .home-section.home-section--immersive.home-section--pitbull-home {
+[data-theme='dark'] .home-page .home-section.home-section--immersive.home-section--pitbull-home {
   background: #08090c;
   color: #fff;
-  /* Bloque siempre cinematográfico: no heredar tokens ink del tema light. */
   --home-spotlight-title: #fff;
   --home-spotlight-desc: rgba(255, 255, 255, 0.68);
   --home-spotlight-meta: rgba(255, 255, 255, 0.88);
   --home-spotlight-meta-muted: rgba(255, 255, 255, 0.52);
 }
 
+/* Light: respeta el tema del usuario (canvas claro + tokens spotlight light) */
+[data-theme='light'] .home-page .home-section.home-section--immersive.home-section--pitbull-home,
 [data-theme='light'] .home-section--pitbull-home.home-section--immersive {
-  background: #08090c;
-  color: #fff;
+  background: var(--home-spotlight-section-bg, var(--color-page-canvas));
+  color: var(--home-spotlight-title, var(--color-text-primary));
+  --home-spotlight-title: var(--plu-ink-900);
+  --home-spotlight-desc: rgba(15, 17, 23, 0.58);
+  --home-spotlight-meta: rgba(15, 17, 23, 0.68);
+  --home-spotlight-meta-muted: rgba(15, 17, 23, 0.42);
 }
 
 [data-theme='dark'] .home-page .home-section.home-section--immersive.home-section--community {
@@ -5572,54 +5576,87 @@
   background: transparent;
   border: none;
   box-shadow: none;
-  /* La sección Pitbull home es siempre cinematográfica oscura:
-     no heredar tokens claros de --home-spotlight-* (quedan ilegibles). */
-  --home-spotlight-title: #fff;
-  --home-spotlight-desc: rgba(255, 255, 255, 0.68);
-  --home-spotlight-meta: rgba(255, 255, 255, 0.88);
-  --home-spotlight-meta-muted: rgba(255, 255, 255, 0.52);
 }
 
-[data-theme='light'] .pitbull-spotlight__home-hero-frame,
-[data-theme='light'] .pitbull-spotlight__home-strip-tile {
-  background: color-mix(in oklab, var(--plu-cool-800) 88%, var(--plu-gold-500));
-  border-color: rgba(255, 255, 255, 0.12);
+/* Desktop split (≥1200): copy sobre canvas claro → tipografía ink */
+@media (min-width: 1200px) {
+  [data-theme='light'] .pitbull-spotlight__home-kicker,
+  [data-theme='light'] .pitbull-spotlight__home-lead,
+  [data-theme='light'] .pitbull-spotlight__home-fact dt {
+    color: var(--home-spotlight-meta-muted, rgba(15, 17, 23, 0.42));
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-title,
+  [data-theme='light'] .pitbull-spotlight__home-fact--date dd {
+    color: var(--home-spotlight-title, var(--plu-ink-900));
+    text-shadow: none;
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-facts {
+    border-left-color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-fact--venue dd,
+  [data-theme='light'] .pitbull-spotlight__home-fact-primary {
+    color: var(--home-spotlight-desc, rgba(15, 17, 23, 0.58));
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-actions {
+    border-color: rgba(15, 17, 23, 0.1);
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-tags li {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 40%, rgba(15, 17, 23, 0.12));
+    color: rgba(15, 17, 23, 0.72);
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-hero-frame,
+  [data-theme='light'] .pitbull-spotlight__home-strip-tile {
+    background: color-mix(in oklab, var(--plu-cool-800) 88%, var(--plu-gold-500));
+    border-color: rgba(15, 17, 23, 0.1);
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-hero-badge {
+    background: rgba(8, 9, 12, 0.55);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #fff;
+  }
 }
 
-[data-theme='light'] .pitbull-spotlight__home-kicker,
-[data-theme='light'] .pitbull-spotlight__home-lead,
-[data-theme='light'] .pitbull-spotlight__home-fact dt {
-  color: rgba(255, 255, 255, 0.58);
-}
+/* ≤1199: copy sobre foto — mantener tipografía clara aunque el theme sea light */
+@media (max-width: 1199px) {
+  [data-theme='light'] .pitbull-spotlight__home-kicker,
+  [data-theme='light'] .pitbull-spotlight__home-lead,
+  [data-theme='light'] .pitbull-spotlight__home-fact dt {
+    color: rgba(255, 255, 255, 0.58);
+  }
 
-[data-theme='light'] .pitbull-spotlight__home-title,
-[data-theme='light'] .pitbull-spotlight__home-fact--date dd {
-  color: #fff;
-}
+  [data-theme='light'] .pitbull-spotlight__home-title,
+  [data-theme='light'] .pitbull-spotlight__home-fact--date dd {
+    color: #fff;
+  }
 
-[data-theme='light'] .pitbull-spotlight__home-facts {
-  border-left-color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
-}
+  [data-theme='light'] .pitbull-spotlight__home-fact--venue dd,
+  [data-theme='light'] .pitbull-spotlight__home-fact-primary {
+    color: rgba(255, 255, 255, 0.68);
+  }
 
-[data-theme='light'] .pitbull-spotlight__home-fact--venue dd,
-[data-theme='light'] .pitbull-spotlight__home-fact-primary {
-  color: rgba(255, 255, 255, 0.68);
-}
+  [data-theme='light'] .pitbull-spotlight__home-actions {
+    border-color: rgba(255, 255, 255, 0.14);
+  }
 
-[data-theme='light'] .pitbull-spotlight__home-actions {
-  border-color: rgba(255, 255, 255, 0.14);
-}
+  [data-theme='light'] .pitbull-spotlight__home-tags li {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 34%, rgba(255, 255, 255, 0.14));
+    color: rgba(255, 255, 255, 0.78);
+  }
 
-[data-theme='light'] .pitbull-spotlight__home-tags li {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 34%, rgba(255, 255, 255, 0.14));
-  color: rgba(255, 255, 255, 0.78);
-}
-
-[data-theme='light'] .pitbull-spotlight__home-hero-badge {
-  background: rgba(8, 9, 12, 0.55);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  [data-theme='light'] .pitbull-spotlight__home-hero-badge {
+    background: rgba(8, 9, 12, 0.55);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #fff;
+  }
 }
 
 /* =============================================

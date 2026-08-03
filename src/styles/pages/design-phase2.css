@@ -1896,11 +1896,48 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
-  margin-top: 2px;
+  margin-top: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.login-field__error .error-icon,
+.form-submit-error .error-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@keyframes slide-down-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-submit-error {
+  background: color-mix(in srgb, var(--color-brand-red, #e35d5d) 8%, transparent);
+  border-left: 2px solid var(--color-brand-red, #e35d5d);
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 80%, #fff);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .login-field.is-invalid .login-field__control {
-  border-bottom-color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 70%, transparent);
+  border-bottom-color: var(--color-brand-red, #e35d5d);
+  background: color-mix(in srgb, var(--color-brand-red, #e35d5d) 4%, transparent);
 }
 
 .login-form__back {
@@ -3041,178 +3078,402 @@
 }
 
 /* =========================================================================
-   AUTH IMMERSIVE REDESIGN (Premium Glassmorphism)
+   AUTH SPLIT-SCREEN LAYOUT (Desktop Minimal, Mobile Modal)
    ========================================================================= */
 
-.auth-immersive-page {
-  position: relative;
-  min-height: 100vh;
+.auth-layout {
   display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-page-canvas);
+  padding: 0;
+}
+
+.auth-layout__visual {
+  display: none;
+}
+
+.auth-layout__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Mobile / tablet: card centrada (base flex es row → form+footer se desalinea) */
+.auth-layout .auth-immersive-page {
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
-              radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
-              var(--color-page-canvas);
-  padding: clamp(24px, 5vw, 40px);
-  overflow: hidden;
-}
-
-.auth-immersive-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.04;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
-.auth-immersive-glass {
-  position: relative;
+  min-height: calc(100dvh - var(--header-height, 62px));
   width: 100%;
-  max-width: 460px;
-  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
-  border-radius: 20px;
-  padding: clamp(32px, 6vw, 48px);
-  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  padding: clamp(20px, 4vw, 32px) clamp(16px, 4vw, 28px) clamp(28px, 5vw, 40px);
 }
 
-.auth-immersive-glass--wide {
-  max-width: 1080px;
-  padding: clamp(24px, 4vw, 40px);
-  flex-direction: column;
-  align-items: stretch;
+.auth-layout .auth-immersive-glass {
+  width: min(100%, 400px);
+  margin-inline: auto;
+  flex: 0 0 auto;
+}
+
+.auth-layout .login-page__footer.auth-layout__footer {
+  position: static;
+  width: min(100%, 400px);
+  margin: 20px auto 0;
+  padding: 0;
+  text-align: center;
+  white-space: normal;
 }
 
 @media (min-width: 900px) {
-  .auth-immersive-glass--wide {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-[data-theme='light'] .auth-immersive-glass {
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
-}
-
-.auth-immersive-glass__header {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.auth-immersive-glass__logo {
-  color: var(--plu-gold-500);
-}
-
-.auth-immersive-glass__title {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  margin: 0;
-  line-height: 1.1;
-}
-
-.auth-immersive-glass__lead {
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin: 0;
-  max-width: 38ch;
-}
-
-/* Campos refinados */
-.auth-immersive-glass .login-field__control input,
-.auth-immersive-glass .register-card input,
-.auth-immersive-glass .register-card select {
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
-  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
-  min-height: 52px;
-  transition: border-color 0.3s ease, background 0.3s ease;
-}
-
-[data-theme='light'] .auth-immersive-glass .login-field__control input,
-[data-theme='light'] .auth-immersive-glass .register-card input,
-[data-theme='light'] .auth-immersive-glass .register-card select {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-.auth-immersive-glass .login-field__control input:focus-visible,
-.auth-immersive-glass .register-card input:focus-visible,
-.auth-immersive-glass .register-card select:focus-visible {
-  border-color: var(--plu-gold-500);
-  background: color-mix(in srgb, var(--plu-gold-500) 4%, transparent);
-  outline: none;
-}
-
-.auth-immersive-glass .login-submit,
-.auth-immersive-glass .register-nav button {
-  border-radius: 10px;
-  min-height: 52px;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background: var(--plu-gold-500);
-  color: var(--color-page-canvas);
-  border: none;
-  display: flex;
-  justify-content: center;
-}
-
-@media (max-width: 900px) {
-  .events-page--design .events-layout-v2,
-  .contact-layout {
-    grid-template-columns: 1fr;
+  body:has(.auth-layout) {
+    overflow: hidden;
   }
 
-  .design-hero__stats:not(.design-hero__stats--strip) {
-    grid-template-columns: 1fr;
+  .app-shell:has(.auth-layout) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
   }
 
-  .design-hero--compact .design-hero__inner {
-    grid-template-columns: 1fr;
-  }
-
-  .design-hero__stats--strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .design-hero__stats--strip.results-hero-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .events-page--design .pitbull-spotlight--design {
-    grid-template-columns: minmax(0, 1fr) minmax(160px, 200px);
-  }
-
-  .events-page--design .pitbull-spotlight--design .pitbull-spotlight__visual {
-    height: clamp(180px, 32vw, 240px);
-    max-height: 240px;
+  .app-shell:has(.auth-layout) > .page-transition {
+    flex: 1;
     min-height: 0;
-    order: 0;
+    overflow: hidden;
   }
 
-  .events-page__stats--design:not(.design-hero__stats) {
-    grid-template-columns: 1fr;
-    padding-inline: var(--space-md);
+  .auth-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    --auth-panel-pad-top: clamp(40px, 7vh, 64px);
+    --auth-panel-pad-x: clamp(40px, 5vw, 72px);
+    --auth-panel-pad-bottom: clamp(48px, 8vh, 72px);
   }
 
-  .events-sidebar-card {
-    position: static;
+  .auth-layout__visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: var(--color-page-canvas);
+    position: relative;
+    isolation: isolate;
+    border-right: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+    overflow: hidden;
+    padding: var(--auth-panel-pad-top) var(--auth-panel-pad-x) var(--auth-panel-pad-bottom);
   }
+
+  /* Un solo efecto atmosférico */
+  .auth-layout__visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(
+        ellipse 48% 36% at 42% 28%,
+        color-mix(in srgb, var(--plu-gold-500) 9%, transparent),
+        transparent 72%
+      );
+  }
+
+  .auth-layout__visual-content {
+    position: relative;
+    z-index: 1;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0;
+    width: 100%;
+    max-width: 400px;
+    margin: 0;
+  }
+
+  .auth-layout__emblem {
+    height: 36px;
+    width: auto;
+    filter: drop-shadow(0 6px 18px color-mix(in srgb, #000 30%, transparent));
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+  }
+
+  .auth-layout__slogan {
+    font-family: var(--font-display);
+    font-size: clamp(2.35rem, 4.2vw, 3.4rem);
+    font-weight: 700;
+    letter-spacing: -0.042em;
+    line-height: 1;
+    text-transform: none;
+    color: var(--color-text-primary);
+    margin: clamp(28px, 4vh, 40px) 0 0;
+    max-width: 8ch;
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 70ms;
+  }
+
+  .auth-layout__slogan-line {
+    display: block;
+    margin-top: 0.02em;
+    color: color-mix(in srgb, var(--plu-gold-500) 78%, var(--color-text-primary));
+  }
+
+  .auth-layout__lead {
+    margin: clamp(16px, 2.4vh, 22px) 0 0;
+    max-width: 28ch;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: color-mix(in srgb, var(--color-text-muted) 94%, var(--color-text-primary));
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 110ms;
+  }
+
+  .auth-layout__rule {
+    display: block;
+    width: 28px;
+    height: 1px;
+    margin-top: clamp(22px, 3.2vh, 32px);
+    background: var(--plu-gold-500);
+    opacity: 0.85;
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 140ms;
+  }
+
+  .auth-layout__signals {
+    list-style: none;
+    margin: clamp(18px, 2.6vh, 26px) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 170ms;
+  }
+
+  .auth-layout__signals li {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--color-text-primary) 78%, transparent);
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .auth-layout__signals li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--plu-gold-500);
+    opacity: 0.7;
+  }
+
+  .auth-layout__meta {
+    margin: clamp(28px, 4vh, 40px) 0 0;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--color-text-muted) 82%, transparent);
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 200ms;
+  }
+
+  .auth-layout__statement,
+  .auth-layout__eyebrow {
+    display: none;
+  }
+
+  .auth-layout__content {
+    justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .auth-layout__content .auth-immersive-page {
+    background: transparent;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    padding: var(--auth-panel-pad-top) var(--auth-panel-pad-x) var(--auth-panel-pad-bottom);
+    overflow: hidden;
+  }
+
+  .auth-layout__content .auth-immersive-page::before {
+    display: none;
+  }
+
+  .auth-layout__content .auth-immersive-glass {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 0 0 auto;
+    gap: 20px;
+  }
+
+    /* Light mode: no tarjeta blanca — el split ya es canvas limpio */
+  [data-theme='light'] .auth-layout__content .auth-immersive-glass {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+
+  .auth-layout__content .auth-immersive-glass::before {
+    display: none;
+  }
+
+  .auth-layout__content .auth-immersive-glass__logo {
+    display: none;
+  }
+
+  .auth-layout__content .auth-immersive-glass__header {
+    align-items: flex-start;
+    text-align: left;
+    gap: 0;
+    margin-bottom: clamp(20px, 3vh, 28px);
+    padding-bottom: clamp(18px, 2.5vh, 24px);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    width: 100%;
+  }
+
+  .auth-layout__content .auth-immersive-glass__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .auth-layout__content .auth-immersive-glass__title {
+    font-size: clamp(1.75rem, 2.8vw, 2.15rem);
+    letter-spacing: -0.038em;
+    line-height: 1.05;
+  }
+
+  .auth-layout__content .auth-immersive-glass__lead {
+    font-size: 14px;
+    line-height: 1.45;
+    max-width: 32ch;
+    color: color-mix(in srgb, var(--color-text-muted) 92%, transparent);
+  }
+
+  .auth-layout__content .login-form {
+    gap: 18px;
+    width: 100%;
+  }
+
+  .auth-layout__content .auth-immersive-glass .login-submit {
+    margin-top: 8px;
+    min-height: 48px;
+  }
+
+  /* Especificidad > .login-page__footer (position: relative) */
+  .auth-layout__content .login-page__footer.auth-layout__footer {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0 clamp(36px, 5vw, 64px);
+    z-index: 20;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .auth-layout__content .login-page__footer.auth-layout__footer button {
+    text-decoration: none;
+    color: color-mix(in srgb, var(--color-text-muted) 92%, #fff);
+    transition: color var(--motion-fast) var(--ease-out);
+  }
+
+  .auth-layout__content .login-page__footer.auth-layout__footer button:hover {
+    color: var(--color-text-primary);
+  }
+
+  /* Pantallas bajas: permitir scroll solo como escape, sin scrollbar permanente */
+  @media (max-height: 680px) {
+    .auth-layout__content {
+      overflow-y: auto;
+    }
+
+    .auth-layout__content .auth-immersive-page {
+      height: auto;
+      min-height: 100%;
+      overflow: visible;
+      padding-bottom: 64px;
+    }
+
+    .auth-layout__content .login-page__footer.auth-layout__footer {
+      position: static;
+      margin-top: 28px;
+      padding-bottom: 8px;
+      white-space: normal;
+    }
+  }
+}
+
+@keyframes auth-visual-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-layout__emblem,
+  .auth-layout__slogan,
+  .auth-layout__lead,
+  .auth-layout__rule,
+  .auth-layout__signals,
+  .auth-layout__meta {
+    animation: none;
+  }
+}
+
+[data-theme='light'] .auth-layout__visual::before {
+  background:
+    radial-gradient(
+      ellipse 48% 36% at 42% 28%,
+      color-mix(in srgb, var(--plu-gold-500) 12%, transparent),
+      transparent 72%
+    );
+}
+
+[data-theme='light'] .auth-layout__visual {
+  border-right-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 /* =========================================================================
@@ -3225,38 +3486,53 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
-              radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
-              var(--color-page-canvas);
+  background: var(--color-page-canvas);
   padding: clamp(24px, 5vw, 40px);
   overflow: hidden;
+  z-index: 0;
 }
 
 .auth-immersive-page::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.04;
-  mix-blend-mode: overlay;
   pointer-events: none;
+  background: 
+    radial-gradient(ellipse 60% 80% at 20% 40%, color-mix(in srgb, var(--plu-gold-500) 8%, transparent), transparent 70%),
+    radial-gradient(ellipse 50% 70% at 80% 20%, color-mix(in srgb, var(--plu-celeste-500) 6%, transparent), transparent 60%);
+  z-index: -1;
 }
 
 .auth-immersive-glass {
   position: relative;
   width: 100%;
-  max-width: 460px;
-  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
-  border-radius: 20px;
-  padding: clamp(32px, 6vw, 48px);
-  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  max-width: 440px;
+  background: rgba(14, 16, 21, 0.45);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  padding: clamp(32px, 6vw, 48px) clamp(24px, 4vw, 40px);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5);
   z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.auth-immersive-glass::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-brand-gold) 45%, transparent) 0%,
+    transparent 100%
+  );
+  content: '';
+  display: block;
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .auth-immersive-glass--wide {
@@ -3283,88 +3559,127 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  width: 100%;
 }
 
 .auth-immersive-glass__logo {
   color: var(--plu-gold-500);
 }
 
+.auth-immersive-glass__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .auth-immersive-glass__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.7rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 .auth-immersive-glass__lead {
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-text-muted) 94%, transparent);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   margin: 0;
-  max-width: 38ch;
+  max-width: 30ch;
 }
 
 /* Campos refinados */
 .auth-immersive-glass .login-field__control input,
 .auth-immersive-glass .register-card input,
 .auth-immersive-glass .register-card select {
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
-  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
-  min-height: 52px;
-  transition: border-color 0.3s ease, background 0.3s ease;
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px 4px 0 0;
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  min-height: 48px;
+  padding: 8px 12px 10px;
+  transition:
+    background 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+  width: 100%;
 }
 
-[data-theme='light'] .auth-immersive-glass .login-field__control input,
-[data-theme='light'] .auth-immersive-glass .register-card input,
-[data-theme='light'] .auth-immersive-glass .register-card select {
-  border-color: rgba(0, 0, 0, 0.08);
+.auth-immersive-glass .login-field__control input:hover:not(:focus) {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.26);
 }
 
 .auth-immersive-glass .login-field__control input:focus-visible,
 .auth-immersive-glass .register-card input:focus-visible,
 .auth-immersive-glass .register-card select:focus-visible {
-  border-color: var(--plu-gold-500);
-  background: color-mix(in srgb, var(--plu-gold-500) 4%, transparent);
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
   outline: none;
 }
 
 .auth-immersive-glass .login-submit,
 .auth-immersive-glass .register-nav button {
-  border-radius: 10px;
-  min-height: 52px;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background: var(--plu-gold-500);
-  color: var(--color-page-canvas);
+  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-400) 100%);
   border: none;
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(242, 183, 5, 0.15);
+  color: #14161c;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  min-height: 52px;
+  text-transform: uppercase;
+  transform: none;
+  transition:
+    background 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 12px;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  width: 100%;
+  margin-top: 16px;
 }
 
 .auth-immersive-glass .login-submit:hover:not(:disabled),
 .auth-immersive-glass .register-nav button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  opacity: 0.9;
+  background: color-mix(in srgb, var(--plu-gold-500) 90%, white);
+  box-shadow: none;
 }
 
 /* Premium Labels & Grid */
+.auth-immersive-glass .login-field__label,
 .auth-immersive-glass .field__label {
-  font-size: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
   margin-bottom: 6px;
   display: block;
+  transition: color 180ms var(--ease-out);
+}
+
+.auth-immersive-glass .login-field:focus-within .login-field__label {
+  color: color-mix(in oklab, var(--plu-gold-500) 72%, var(--color-text-muted));
 }
 
 .auth-immersive-glass .form-grid {
@@ -3382,4 +3697,87 @@
   border: none;
   box-shadow: none;
   padding: 0;
+}
+
+.auth-immersive-glass .login-field {
+  display: grid;
+  gap: 4px;
+}
+
+.auth-immersive-glass .login-field__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auth-immersive-glass .login-field__forgot {
+  background: transparent;
+  border: none;
+  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 0;
+  text-transform: uppercase;
+  transition: color 180ms var(--ease-out);
+}
+
+.auth-immersive-glass .login-field__forgot:hover {
+  color: var(--plu-gold-500);
+}
+
+.auth-immersive-glass .login-field__control {
+  position: relative;
+  display: flex;
+}
+
+.auth-immersive-glass .login-field__toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 180ms var(--ease-out);
+}
+
+.auth-immersive-glass .login-field__toggle:hover {
+  color: var(--plu-gold-500);
+}
+
+.auth-immersive-glass .login-field__error {
+  color: var(--plu-red-500);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.auth-immersive-glass .login-form__back {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.auth-immersive-glass .login-form__back:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
 }

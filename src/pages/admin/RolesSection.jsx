@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Check,
+  Award,
+  Calendar,
+  CheckCheck,
+  CreditCard,
+  Eye,
+  FileSpreadsheet,
   History,
+  Key,
   LockKeyhole,
   Minus,
   Plus,
+  QrCode,
   RotateCcw,
   Save,
+  Search,
+  Settings,
   ShieldCheck,
+  Trash2,
+  Users,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -39,6 +50,92 @@ function formatActivityDate(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(date)
+}
+
+function getModuleIcon(module) {
+  switch (module) {
+    case 'events':
+      return Calendar
+    case 'athletes':
+    case 'users':
+      return Users
+    case 'memberships':
+      return Award
+    case 'payments':
+      return CreditCard
+    case 'checkin':
+      return QrCode
+    case 'exports':
+      return FileSpreadsheet
+    case 'security':
+      return Key
+    default:
+      return Settings
+  }
+}
+
+function formatModuleName(moduleKey, t) {
+  const translated = t(`admin.roles.modules.${moduleKey}`)
+  if (translated && !translated.startsWith('admin.roles.modules.')) {
+    return translated
+  }
+  const MODULE_NAMES = {
+    events: 'Eventos y Competencias',
+    athletes: 'Atletas y Perfiles',
+    memberships: 'Membresías y Carnets',
+    payments: 'Pagos y Transacciones',
+    users: 'Usuarios y Accesos',
+    roles: 'Roles y Permisos',
+    audit: 'Auditoría e Historial',
+    checkin: 'Check-In y Accesos',
+    exports: 'Exportaciones de Datos',
+    security: 'Seguridad y Puertas',
+  }
+  return MODULE_NAMES[moduleKey] ?? moduleKey.toUpperCase()
+}
+
+const ACTION_LABELS = {
+  read: 'Ver',
+  write: 'Crear',
+  approve: 'Aprobar',
+  execute: 'Ejecutar',
+}
+
+function getActionLabel(action) {
+  return ACTION_LABELS[action] ?? action
+}
+
+function getActionText(action, module, permission, t) {
+  const moduleTitle = formatModuleName(module, t)
+  const short = getActionLabel(action)
+
+  switch (action) {
+    case 'read':
+      return {
+        title: short,
+        desc: permission?.description || `Ver y consultar ${moduleTitle}.`,
+      }
+    case 'write':
+      return {
+        title: short,
+        desc: permission?.description || `Crear y modificar ${moduleTitle}.`,
+      }
+    case 'approve':
+      return {
+        title: short,
+        desc: permission?.description || `Aprobar y autorizar ${moduleTitle}.`,
+      }
+    case 'execute':
+      return {
+        title: short,
+        desc: permission?.description || `Acciones avanzadas en ${moduleTitle}.`,
+      }
+    default:
+      return {
+        title: t(`admin.roles.actions.${action}`),
+        desc: permission?.description || '',
+      }
+  }
 }
 
 export default function RolesSection({
@@ -73,6 +170,7 @@ export default function RolesSection({
   const [isCreatingRole, setIsCreatingRole] = useState(false)
   const [roleDraft, setRoleDraft] = useState({ name: '', description: '' })
   const [pendingRoleId, setPendingRoleId] = useState(null)
+  const [permSearch, setPermSearch] = useState('')
 
   const selectedRole =
     orderedRoles.find((role) => role.id === selectedRoleId) ?? orderedRoles[0] ?? null
@@ -109,6 +207,35 @@ export default function RolesSection({
     }
     return [...byModule.values()].sort((a, b) => a.sortOrder - b.sortOrder)
   }, [permissionCatalog])
+
+  const filteredPermissionRows = useMemo(() => {
+    if (!permSearch.trim()) return permissionRows
+    const query = permSearch.toLowerCase().trim()
+
+    return permissionRows
+      .map((row) => {
+        const moduleTranslated = t(`admin.roles.modules.${row.module}`).toLowerCase()
+        const matchesModule = moduleTranslated.includes(query) || row.module.toLowerCase().includes(query)
+
+        const matchedActions = {}
+        let hasActionMatch = false
+
+        for (const [action, permission] of Object.entries(row.actions)) {
+          const actionTranslated = t(`admin.roles.actions.${action}`).toLowerCase()
+          const desc = (permission?.description ?? '').toLowerCase()
+          if (matchesModule || actionTranslated.includes(query) || desc.includes(query)) {
+            matchedActions[action] = permission
+            hasActionMatch = true
+          }
+        }
+
+        if (matchesModule || hasActionMatch) {
+          return { ...row, actions: matchedActions }
+        }
+        return null
+      })
+      .filter(Boolean)
+  }, [permissionRows, permSearch, t])
 
   const editable = Boolean(
     selectedRole && !selectedRole.isProtected && actorCanEditRole(authorization, selectedRole),
@@ -189,6 +316,55 @@ export default function RolesSection({
     const nextRoleId = pendingRoleId
     setPendingRoleId(null)
     if (nextRoleId) setSelectedRoleId(nextRoleId)
+  }
+
+  function handleGrantAll() {
+    if (!editable || !selectedRole) return
+    const allKeys = permissionCatalog
+      .filter((p) => selectedRole.isProtected || !RESERVED_LOWER_PERMISSIONS.has(p.key))
+      .map((p) => p.key)
+    setPermissionDraft(allKeys)
+    setMessage(null)
+  }
+
+  function handleGrantReadOnly() {
+    if (!editable || !selectedRole) return
+    const readKeys = permissionCatalog
+      .filter((p) => p.action === 'read' && (selectedRole.isProtected || !RESERVED_LOWER_PERMISSIONS.has(p.key)))
+      .map((p) => p.key)
+    setPermissionDraft(readKeys)
+    setMessage(null)
+  }
+
+  function handleClearAll() {
+    if (!editable || !selectedRole) return
+    const reservedKeys = permissionCatalog
+      .filter((p) => !selectedRole.isProtected && RESERVED_LOWER_PERMISSIONS.has(p.key))
+      .map((p) => p.key)
+    setPermissionDraft(reservedKeys)
+    setMessage(null)
+  }
+
+  function handleModuleToggle(row, targetChecked) {
+    if (!editable || !selectedRole) return
+
+    const modulePermissions = Object.values(row.actions).filter(Boolean)
+    const keysToToggle = modulePermissions
+      .filter((p) => selectedRole.isProtected || !RESERVED_LOWER_PERMISSIONS.has(p.key))
+      .map((p) => p.key)
+
+    setPermissionDraft((current) => {
+      const next = new Set(current)
+      if (targetChecked) {
+        keysToToggle.forEach((key) => next.add(key))
+      } else {
+        keysToToggle.forEach((key) => next.delete(key))
+      }
+      return permissionCatalog
+        .filter((candidate) => next.has(candidate.key))
+        .map((candidate) => candidate.key)
+    })
+    setMessage(null)
   }
 
   function handlePermissionChange(permission, checked) {
@@ -480,84 +656,195 @@ export default function RolesSection({
               </div>
             </header>
 
+            <div className="admin-roles__toolbar">
+              <div className="admin-roles__search-box">
+                <Search size={14} className="admin-roles__search-icon" aria-hidden />
+                <input
+                  type="search"
+                  className="admin-roles__search-input"
+                  placeholder={t('admin.roles.searchPlaceholder')}
+                  value={permSearch}
+                  onChange={(e) => setPermSearch(e.target.value)}
+                />
+                {permSearch ? (
+                  <button
+                    type="button"
+                    className="admin-roles__search-clear"
+                    onClick={() => setPermSearch('')}
+                    aria-label={t('admin.roles.clearSearch')}
+                  >
+                    <X size={12} aria-hidden />
+                  </button>
+                ) : null}
+              </div>
+
+              {editable ? (
+                <div className="admin-roles__presets" role="group" aria-label={t('admin.roles.presetsAria')}>
+                  <button
+                    type="button"
+                    className="admin-roles__preset-btn"
+                    onClick={handleGrantAll}
+                    title={t('admin.roles.presetAllTitle')}
+                  >
+                    <CheckCheck size={13} aria-hidden />
+                    <span>{t('admin.roles.presetAll')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="admin-roles__preset-btn"
+                    onClick={handleGrantReadOnly}
+                    title={t('admin.roles.presetReadOnlyTitle')}
+                  >
+                    <Eye size={13} aria-hidden />
+                    <span>{t('admin.roles.presetReadOnly')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="admin-roles__preset-btn admin-roles__preset-btn--clear"
+                    onClick={handleClearAll}
+                    title={t('admin.roles.presetClearTitle')}
+                  >
+                    <Trash2 size={13} aria-hidden />
+                    <span>{t('admin.roles.presetClear')}</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
             <div className="admin-roles__matrix-scroll" tabIndex={0}>
-              <table className="admin-roles__matrix">
-                <caption className="visually-hidden">
-                  {t('admin.roles.matrixAria', { role: selectedRole.name })}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{t('admin.roles.module')}</th>
-                    {ACTION_ORDER.map((action) => (
-                      <th key={action} scope="col">
-                        {t(`admin.roles.actions.${action}`)}
+              {filteredPermissionRows.length === 0 ? (
+                <div className="admin-roles__search-empty">
+                  <Search size={22} aria-hidden />
+                  <p>{t('admin.roles.searchEmpty', { query: permSearch })}</p>
+                  <Button variant="outline" className="btn--small" onClick={() => setPermSearch('')}>
+                    {t('admin.roles.clearSearch')}
+                  </Button>
+                </div>
+              ) : (
+                <table className="admin-roles__perm-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="admin-roles__perm-table-module">
+                        Módulo
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {permissionRows.map((row) => (
-                    <tr key={row.module}>
-                      <th scope="row">{t(`admin.roles.modules.${row.module}`)}</th>
-                      {ACTION_ORDER.map((action) => {
-                        const permission = row.actions[action]
-                        if (!permission) {
-                          return (
-                            <td
-                              key={action}
-                              className="admin-roles__empty-cell"
-                              data-label={t(`admin.roles.actions.${action}`)}
-                              aria-label={t('admin.roles.notApplicable')}
-                            >
-                              <span aria-hidden>—</span>
-                            </td>
-                          )
-                        }
-
-                        const checked = permissionDraftSet.has(permission.key)
-                        const reserved =
-                          !selectedRole.isProtected &&
-                          RESERVED_LOWER_PERMISSIONS.has(permission.key)
-
-                        return (
-                          <td key={action} data-label={t(`admin.roles.actions.${action}`)}>
-                            <label
-                              className={`admin-roles__permission${checked ? ' is-checked' : ''}${reserved ? ' is-reserved' : ''}`}
-                              title={
-                                reserved
-                                  ? t('admin.roles.reservedPermission')
-                                  : permission.description
-                              }
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={!editable || reserved}
-                                aria-label={`${t(`admin.roles.modules.${row.module}`)}: ${t(`admin.roles.actions.${action}`)}`}
-                                onChange={(event) =>
-                                  handlePermissionChange(permission, event.target.checked)
-                                }
-                              />
-                              <span aria-hidden>
-                                {reserved ? (
-                                  <LockKeyhole size={12} />
-                                ) : checked ? (
-                                  <Check size={14} />
-                                ) : null}
-                              </span>
-                              <em>
-                                {reserved
-                                  ? t('admin.roles.reserved')
-                                  : t(`admin.roles.actions.${action}`)}
-                              </em>
-                            </label>
-                          </td>
-                        )
-                      })}
+                      {ACTION_ORDER.map((action) => (
+                        <th key={action} scope="col" className="admin-roles__perm-table-action">
+                          {getActionLabel(action)}
+                        </th>
+                      ))}
+                      {editable ? (
+                        <th scope="col" className="admin-roles__perm-table-all">
+                          Todo
+                        </th>
+                      ) : null}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredPermissionRows.map((row) => {
+                      const ModuleIcon = getModuleIcon(row.module)
+                      const modulePermissions = Object.values(row.actions).filter(Boolean)
+                      const moduleTotal = modulePermissions.length
+                      const moduleActive = modulePermissions.filter((p) =>
+                        permissionDraftSet.has(p.key),
+                      ).length
+                      const isAllActive = moduleTotal > 0 && moduleActive === moduleTotal
+                      const isSomeActive = moduleActive > 0 && moduleActive < moduleTotal
+                      const moduleName = formatModuleName(row.module, t)
+
+                      return (
+                        <tr key={row.module}>
+                          <th scope="row" className="admin-roles__perm-table-module">
+                            <span className="admin-roles__perm-table-module-inner">
+                              <span className="admin-roles__perm-table-icon" aria-hidden>
+                                <ModuleIcon size={14} />
+                              </span>
+                              <span className="admin-roles__perm-table-module-copy">
+                                <strong>{moduleName}</strong>
+                                <small>
+                                  {moduleActive}/{moduleTotal}
+                                </small>
+                              </span>
+                            </span>
+                          </th>
+
+                          {ACTION_ORDER.map((action) => {
+                            const permission = row.actions[action]
+                            if (!permission) {
+                              return (
+                                <td key={action} className="admin-roles__perm-table-cell is-empty">
+                                  <span className="admin-roles__perm-na" aria-hidden>
+                                    —
+                                  </span>
+                                </td>
+                              )
+                            }
+
+                            const checked = permissionDraftSet.has(permission.key)
+                            const reserved =
+                              editable &&
+                              !selectedRole.isProtected &&
+                              RESERVED_LOWER_PERMISSIONS.has(permission.key)
+                            const text = getActionText(action, row.module, permission, t)
+
+                            return (
+                              <td
+                                key={action}
+                                className={`admin-roles__perm-table-cell${checked ? ' is-on' : ''}${
+                                  reserved ? ' is-reserved' : ''
+                                }`}
+                              >
+                                <label
+                                  className={`admin-roles__permission admin-roles__permission--cell${
+                                    checked ? ' is-checked' : ''
+                                  }${reserved ? ' is-reserved' : ''}`}
+                                  title={
+                                    reserved
+                                      ? t('admin.roles.reservedPermission')
+                                      : text.desc
+                                  }
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={!editable || reserved}
+                                    aria-label={`${moduleName}: ${text.title}`}
+                                    onChange={(e) =>
+                                      handlePermissionChange(permission, e.target.checked)
+                                    }
+                                  />
+                                  <span aria-hidden />
+                                </label>
+                              </td>
+                            )
+                          })}
+
+                          {editable ? (
+                            <td className="admin-roles__perm-table-cell admin-roles__perm-table-cell--all">
+                              <label
+                                className="admin-roles__master-toggle admin-roles__master-toggle--cell"
+                                title="Acceso completo a este módulo"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isAllActive}
+                                  aria-label={`Todo el módulo ${moduleName}`}
+                                  ref={(el) => {
+                                    if (el) el.indeterminate = isSomeActive
+                                  }}
+                                  onChange={(e) => handleModuleToggle(row, e.target.checked)}
+                                />
+                                <span className="admin-roles__master-switch" aria-hidden />
+                              </label>
+                            </td>
+                          ) : null}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <footer className="admin-roles__matrix-footer">

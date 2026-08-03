@@ -103,6 +103,7 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
           value: expiring,
           onChange: setExpiring,
           options: expiringOptions,
+          variant: 'toggle',
         },
       ]}
       onQueryChange={setQuery}

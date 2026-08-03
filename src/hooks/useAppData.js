@@ -18,6 +18,7 @@ import {
   updateSecurityUserStatusRequest,
   updateAccessRolePermissionsRequest,
   updateStaffUserRoleRequest,
+  updateStaffUserStatusRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
@@ -65,7 +66,7 @@ import {
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
-import { getInitialUsers, updateUserRole } from '../services/userService.js'
+import { getInitialUsers, updateUserRole, updateUserStatus } from '../services/userService.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -889,6 +890,20 @@ export function useAppData() {
     [session, users],
   )
 
+  const updateUserStatusAction = useCallback(
+    async (userId, nextStatus) => {
+      if (isDemoSession(session)) {
+        setUsers((current) => updateUserStatus(current, userId, nextStatus))
+        return users.find((user) => user.id === userId) ?? null
+      }
+
+      const { user } = await updateStaffUserStatusRequest(userId, nextStatus)
+      setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
+      return user
+    },
+    [session, users],
+  )
+
   // Alta real de staff (admin/operador/viewer): pega al backend, que crea la
   // cuenta sin contraseña para que entre por Auth0. Devuelve el usuario creado
   // y lo suma al listado. seguridad_plu_arg no pasa por acá (tiene su propio
@@ -1507,6 +1522,7 @@ export function useAppData() {
     roleActivity,
     permissionCatalog,
     updateUserRoleAction,
+    updateUserStatusAction,
     createUserAction,
     createAccessRoleAction,
     updateAccessRolePermissionsAction,

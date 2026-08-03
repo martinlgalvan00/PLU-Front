@@ -34,27 +34,14 @@
   width: 100%;
 }
 
-.segmented-switch.is-dragging {
-  cursor: grabbing;
-  touch-action: none;
-}
-
 .segmented-switch__thumb {
   background: var(--switch-thumb-bg);
   border: 1px solid var(--switch-thumb-border);
   border-radius: calc(var(--border-radius-pill) - 3px);
   box-shadow: var(--switch-thumb-shadow);
-  height: calc(100% - (var(--switch-pad) * 2));
-  left: var(--switch-pad);
+  inset: 0;
   pointer-events: none;
   position: absolute;
-  top: var(--switch-pad);
-  transform: translateX(calc(var(--switch-active-index) * 100%));
-  transition:
-    transform 320ms var(--switch-ease),
-    box-shadow 220ms ease,
-    border-color 220ms ease;
-  width: calc((100% - (var(--switch-pad) * 2)) / var(--switch-count));
   z-index: 0;
 }
 
@@ -65,14 +52,6 @@
   inset: 1px 2px auto;
   pointer-events: none;
   position: absolute;
-}
-
-.segmented-switch.is-dragging .segmented-switch__thumb {
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.16) inset,
-    0 8px 18px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(116, 172, 223, 0.12);
-  transition: transform 80ms linear, box-shadow 120ms ease;
 }
 
 .segmented-switch__option {
@@ -156,6 +135,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .segmented-switch__thumb {
-    transition: transform 120ms linear;
+    transition: none !important;
   }
 }
