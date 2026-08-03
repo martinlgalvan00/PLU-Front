@@ -174,11 +174,12 @@ export function createAuthRoutes({
         },
       })
 
-      if (
-        !user ||
-        user.status !== 'active' ||
-        !(await verifyPassword(password, user.passwordHash))
-      ) {
+      // La comparación se hace SIEMPRE, incluso sin usuario: si cortáramos por
+      // short-circuit, un email inexistente respondería sin pagar el bcrypt y
+      // el tiempo de respuesta revelaría qué cuentas existen.
+      const passwordMatches = await verifyPassword(password, user?.passwordHash)
+
+      if (!user || user.status !== 'active' || !passwordMatches) {
         next(invalidCredentials())
         return
       }

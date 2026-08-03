@@ -284,7 +284,7 @@ export function useCheckInWorkspace({
         setScanBusy(false)
       }
     },
-    [eventSlug, feedbackPrefs],
+    [canCheckIn, eventSlug, feedbackPrefs],
   )
 
   function handleHistorySelect(item) {

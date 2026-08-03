@@ -3039,3 +3039,347 @@
     position: static;
   }
 }
+
+/* =========================================================================
+   AUTH IMMERSIVE REDESIGN (Premium Glassmorphism)
+   ========================================================================= */
+
+.auth-immersive-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+              var(--color-page-canvas);
+  padding: clamp(24px, 5vw, 40px);
+  overflow: hidden;
+}
+
+.auth-immersive-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.auth-immersive-glass {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
+  border-radius: 20px;
+  padding: clamp(32px, 6vw, 48px);
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-immersive-glass--wide {
+  max-width: 1080px;
+  padding: clamp(24px, 4vw, 40px);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .auth-immersive-glass--wide {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+[data-theme='light'] .auth-immersive-glass {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+}
+
+.auth-immersive-glass__header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-immersive-glass__logo {
+  color: var(--plu-gold-500);
+}
+
+.auth-immersive-glass__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.auth-immersive-glass__lead {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 38ch;
+}
+
+/* Campos refinados */
+.auth-immersive-glass .login-field__control input,
+.auth-immersive-glass .register-card input,
+.auth-immersive-glass .register-card select {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  min-height: 52px;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control input,
+[data-theme='light'] .auth-immersive-glass .register-card input,
+[data-theme='light'] .auth-immersive-glass .register-card select {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.auth-immersive-glass .login-field__control input:focus-visible,
+.auth-immersive-glass .register-card input:focus-visible,
+.auth-immersive-glass .register-card select:focus-visible {
+  border-color: var(--plu-gold-500);
+  background: color-mix(in srgb, var(--plu-gold-500) 4%, transparent);
+  outline: none;
+}
+
+.auth-immersive-glass .login-submit,
+.auth-immersive-glass .register-nav button {
+  border-radius: 10px;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--plu-gold-500);
+  color: var(--color-page-canvas);
+  border: none;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .events-page--design .events-layout-v2,
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .design-hero__stats:not(.design-hero__stats--strip) {
+    grid-template-columns: 1fr;
+  }
+
+  .design-hero--compact .design-hero__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .design-hero__stats--strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .design-hero__stats--strip.results-hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .events-page--design .pitbull-spotlight--design {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 200px);
+  }
+
+  .events-page--design .pitbull-spotlight--design .pitbull-spotlight__visual {
+    height: clamp(180px, 32vw, 240px);
+    max-height: 240px;
+    min-height: 0;
+    order: 0;
+  }
+
+  .events-page__stats--design:not(.design-hero__stats) {
+    grid-template-columns: 1fr;
+    padding-inline: var(--space-md);
+  }
+
+  .events-sidebar-card {
+    position: static;
+  }
+}
+
+/* =========================================================================
+   AUTH IMMERSIVE REDESIGN (Premium Glassmorphism)
+   ========================================================================= */
+
+.auth-immersive-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+              var(--color-page-canvas);
+  padding: clamp(24px, 5vw, 40px);
+  overflow: hidden;
+}
+
+.auth-immersive-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.auth-immersive-glass {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
+  border-radius: 20px;
+  padding: clamp(32px, 6vw, 48px);
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-immersive-glass--wide {
+  max-width: 1080px;
+  padding: clamp(24px, 4vw, 40px);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .auth-immersive-glass--wide {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+[data-theme='light'] .auth-immersive-glass {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+}
+
+.auth-immersive-glass__header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-immersive-glass__logo {
+  color: var(--plu-gold-500);
+}
+
+.auth-immersive-glass__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.auth-immersive-glass__lead {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 38ch;
+}
+
+/* Campos refinados */
+.auth-immersive-glass .login-field__control input,
+.auth-immersive-glass .register-card input,
+.auth-immersive-glass .register-card select {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  min-height: 52px;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control input,
+[data-theme='light'] .auth-immersive-glass .register-card input,
+[data-theme='light'] .auth-immersive-glass .register-card select {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.auth-immersive-glass .login-field__control input:focus-visible,
+.auth-immersive-glass .register-card input:focus-visible,
+.auth-immersive-glass .register-card select:focus-visible {
+  border-color: var(--plu-gold-500);
+  background: color-mix(in srgb, var(--plu-gold-500) 4%, transparent);
+  outline: none;
+}
+
+.auth-immersive-glass .login-submit,
+.auth-immersive-glass .register-nav button {
+  border-radius: 10px;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--plu-gold-500);
+  color: var(--color-page-canvas);
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.auth-immersive-glass .login-submit:hover:not(:disabled),
+.auth-immersive-glass .register-nav button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* Premium Labels & Grid */
+.auth-immersive-glass .field__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.auth-immersive-glass .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.auth-immersive-glass .field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.auth-immersive-glass .register-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}

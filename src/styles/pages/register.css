@@ -28,14 +28,17 @@
 }
 
 .register-shell {
-  align-items: start;
-  display: grid;
-  gap: clamp(20px, 3vw, 32px);
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  margin: 0 auto;
-  max-width: 1040px;
-  position: relative;
-  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 5vw, 64px);
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .register-shell {
+    flex-direction: row;
+    align-items: flex-start;
+  }
 }
 
 .register-topbar {
@@ -74,10 +77,10 @@
 }
 
 .register-aside {
-  display: grid;
-  gap: clamp(20px, 3vw, 28px);
-  position: sticky;
-  top: calc(var(--header-height) + 20px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 32px);
+  width: 100%;
 }
 
 .register-aside-sentinel {
@@ -85,7 +88,16 @@
 }
 
 .register-aside--desktop {
-  display: grid;
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .register-aside--desktop {
+    display: flex;
+    flex: 0 0 clamp(280px, 35%, 340px);
+    position: sticky;
+    top: 24px;
+  }
 }
 
 .register-mobile-context {
@@ -242,69 +254,77 @@
 .register-progress__segment {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--register-section-border);
-  border-radius: 10px;
+  border: none;
+  border-left: 2px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
+  border-radius: 0;
   cursor: pointer;
   display: flex;
   font: inherit;
-  gap: 8px;
-  min-height: 36px;
-  padding: 8px 10px;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 16px;
   text-align: left;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    opacity var(--transition-fast);
+  transition: all var(--transition-fast);
   width: 100%;
+  position: relative;
+}
+
+[data-theme='light'] .register-progress__segment {
+  border-left-color: rgba(0, 0, 0, 0.08);
 }
 
 .register-progress__segment:disabled {
   cursor: default;
-  opacity: 0.72;
+  opacity: 0.6;
 }
 
 .register-progress__segment:not(:disabled):hover {
-  background: var(--register-node-hover, rgba(255, 255, 255, 0.03));
-  border-color: rgba(116, 172, 223, 0.22);
+  background: color-mix(in srgb, var(--color-surface) 10%, transparent);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='light'] .register-progress__segment:not(:disabled):hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-left-color: rgba(0, 0, 0, 0.2);
 }
 
 .register-progress__segment--complete {
-  background: transparent;
-  border-color: rgba(61, 154, 98, 0.22);
+  border-left-color: var(--plu-gold-500);
 }
 
 .register-progress__segment--active {
-  background: transparent;
-  border-color: rgba(116, 172, 223, 0.28);
-  box-shadow: none;
+  background: color-mix(in srgb, var(--plu-gold-500) 5%, transparent);
+  border-left-color: var(--plu-gold-500);
 }
 
 .register-progress__segment-mark {
   align-items: center;
-  background: transparent;
-  border: 1px solid var(--register-step-border);
-  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.12));
+  border-radius: 50%;
   color: var(--color-text-muted);
   display: inline-flex;
   flex: none;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  height: 20px;
+  height: 24px;
   justify-content: center;
-  width: 20px;
+  width: 24px;
+  transition: all 0.3s ease;
 }
 
 .register-progress__segment--complete .register-progress__segment-mark {
-  background: rgba(61, 154, 98, 0.12);
-  border-color: rgba(61, 154, 98, 0.24);
-  color: #3d9a62;
+  background: var(--plu-gold-500);
+  border-color: var(--plu-gold-500);
+  color: var(--color-page-canvas);
 }
 
 .register-progress__segment--active .register-progress__segment-mark {
-  background: rgba(116, 172, 223, 0.1);
-  border-color: rgba(116, 172, 223, 0.24);
-  color: var(--color-brand-celeste);
+  background: color-mix(in srgb, var(--plu-gold-500) 15%, transparent);
+  border-color: var(--plu-gold-500);
+  color: var(--plu-gold-500);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--plu-gold-500) 10%, transparent);
 }
 
 .register-progress__segment-label {

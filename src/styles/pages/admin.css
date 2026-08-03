@@ -2269,6 +2269,12 @@
   display: flex;
   gap: 0;
   margin-inline: -24px;
+  /* `overflow-x: auto` fuerza a `overflow-y` a `auto` por spec (CSS Overflow
+     §3), y eso resetea el alto mínimo automático del ítem a 0 dentro del grid
+     de `.admin-event-form` -- la fila colapsaba a los 2px del borde y el nav
+     de 40px quedaba invisible, aunque funcional (por eso nadie lo veía ni
+     saltaba de sección; el editor se sentía como un scroll largo sin salida). */
+  min-height: min-content;
   overflow-x: auto;
   padding: 0 18px;
   position: sticky;
@@ -10521,6 +10527,14 @@
 .detail-tabs__tab.is-active .detail-tabs__count {
   background: color-mix(in srgb, var(--color-brand-celeste) 16%, transparent);
   color: var(--color-brand-celeste);
+}
+
+.detail-tabs__error-dot {
+  background: var(--admin-status-danger, #e35d5d);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
 }
 
 /* Editorial — underline luxury tabs */

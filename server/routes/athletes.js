@@ -5,7 +5,7 @@ import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { athleteWriteLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { athleteWriteLimiter, authLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
@@ -249,10 +249,17 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     } catch (error) { next(error) }
   })
 
-  router.post('/login', publicWriteLimiter, validateBody(loginSchema), async (req, res, next) => {
+  // authLimiter y no publicWriteLimiter: es un login, y le corresponde el
+  // preset de riesgo de autenticación (20 intentos / 15 min) y no el de
+  // escritura pública (30 / 10 min), que era el más permisivo de los dos.
+  router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
     try {
       const row = await repo().findLogin(req.validatedBody.email)
-      if (!row || row.status === 'bloqueado' || !(await verifyPassword(req.validatedBody.password, row.password_hash))) {
+      // Igual que en el login de staff: bcrypt corre siempre, exista o no la
+      // cuenta, para que el tiempo de respuesta no enumere el padrón.
+      const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
+
+      if (!row || row.status === 'bloqueado' || !passwordMatches) {
         throw new HttpError(401, 'Credenciales invalidas.')
       }
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
@@ -407,7 +414,13 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       if (!credential || !(await verifyPassword(req.validatedBody.currentPassword, credential.password_hash))) {
         throw new HttpError(401, 'La contraseña actual no es correcta.')
       }
+      // setPassword revoca TODAS las sesiones del atleta, incluida ésta: es el
+      // punto del cambio de contraseña (si la cuenta estaba tomada, el atacante
+      // se queda afuera). Para no expulsar también a quien la acaba de cambiar,
+      // se emite una sesión nueva y se pisa la cookie.
       await repo().setPassword(auth.athleteId, await hashPassword(req.validatedBody.newPassword))
+      const session = await createAthleteSession({ client: client(), athleteId: auth.athleteId, req })
+      res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
       res.status(204).end()
     } catch (error) { next(error) }
   })

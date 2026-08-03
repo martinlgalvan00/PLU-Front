@@ -74,9 +74,7 @@ import {
 import {
   buildPendingActions,
   buildDashboardOverview,
-  buildRecentActivity,
   getAdminNavBadges,
-  getAthleteAuditLogs,
 } from '../services/adminService.js'
 import {
   createAdminEvent,
@@ -1408,13 +1406,11 @@ export function useAppData() {
           const result = updateAdminEvent(adminEvents, draft.id, draft)
           if (!result.event) return { error: 'No se encontró el evento.' }
           setAdminEvents(result.events)
-          if (result.auditLog) setAuditLogs((current) => [result.auditLog, ...current])
           return { event: result.event, events: result.events }
         }
 
         const result = createAdminEvent(adminEvents, draft)
         setAdminEvents(result.events)
-        setAuditLogs((current) => [result.auditLog, ...current])
         return { event: result.event, events: result.events }
       }
 

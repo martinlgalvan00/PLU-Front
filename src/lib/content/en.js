@@ -1,4 +1,5 @@
 import { PRICING } from '../constants.js'
+import { PITBULL_VENUE_DATA } from '../events.js'
 
 export const HOME_STATS = [
   { value: '2026', label: 'Current season' },
@@ -22,6 +23,7 @@ export const ABOUT_INTRO = {
     'PLU Argentina connects athletes, gyms and referees with annual membership, an official calendar and PLU USA-aligned results.',
   descriptionLead: 'PLU Argentina connects athletes, gyms and referees.',
   descriptionMeta: 'Annual membership, an official calendar and PLU USA-aligned results.',
+  cta: 'Explore our community',
 }
 
 export const HOME_MEMBERSHIP = {
@@ -55,6 +57,8 @@ export const HOME_RESULTS = {
 export const HOME_RULEBOOK = {
   eyebrow: 'Rulebook',
   title: 'Official PLU competition rules.',
+  description: 'Rules, categories and equipment for competition under one shared standard.',
+  topics: ['Categories', 'Divisions', 'Equipment'],
   cta: 'View categories and divisions',
 }
 
@@ -348,21 +352,15 @@ export const PITBULL_CLASSIC = {
   dateShort: 'Dec 12–13, 2026',
   dateDay: '12–13',
   dateMonth: 'Dec',
-  venue: 'Maximal Strength Club',
-  location: 'Buenos Aires, Argentina',
+  venue: 'La Troupe Multiespacio',
+  location: 'Banfield, Buenos Aires',
   slots: 120,
   registered: 48,
   categories: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
   divisions: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],
 }
 
-export const PITBULL_VENUE = {
-  name: 'Maximal Strength Club',
-  address: 'Buenos Aires, Argentina',
-  mapsUrl: 'https://maps.google.com/?q=Maximal+Strength+Club+Buenos+Aires+Argentina',
-  mapsEmbedUrl:
-    'https://maps.google.com/maps?q=Maximal+Strength+Club+Buenos+Aires+Argentina&output=embed&z=15',
-}
+export const PITBULL_VENUE = PITBULL_VENUE_DATA
 
 export const PITBULL_BENEFITS_ATHLETES = [
   { id: 'standard', icon: 'Globe', title: 'PLU USA results', desc: 'Publishing and export aligned with the international ecosystem.' },
@@ -372,7 +370,7 @@ export const PITBULL_BENEFITS_ATHLETES = [
 ]
 
 export const PITBULL_BENEFITS_SPECTATORS = [
-  { id: 'show', icon: 'Ticket', title: 'General admission', desc: 'Two competition days at Maximal Strength Club.' },
+  { id: 'show', icon: 'Ticket', title: 'General admission', desc: 'Two competition days at La Troupe Multiespacio, Banfield.' },
   { id: 'access', icon: 'Ticket', title: 'No membership', desc: 'ID only. Buy online or at the door on event day.' },
   { id: 'community', icon: 'Users', title: 'PLU ARG calendar', desc: 'Official meet on the local competitive circuit.' },
 ]

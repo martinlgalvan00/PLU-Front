@@ -9,6 +9,11 @@ export default defineConfig({
       '@': path.resolve('./src'),
     },
   },
+  optimizeDeps: {
+    // MapLibre v6 resuelve su worker como un módulo hermano. Mantenerlo fuera
+    // del prebundle preserva esa URL en desarrollo y evita un worker 404.
+    exclude: ['maplibre-gl'],
+  },
   build: {
     rollupOptions: {
       output: {

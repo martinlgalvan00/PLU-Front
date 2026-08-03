@@ -1,0 +1,1242 @@
+/* PLU Competition Map — MapLibre + cartografía vectorial abierta.
+   Los tokens propios silencian el mapa para que el evento sea el protagonista. */
+
+.competition-map {
+  --plu-map-background: #f0eee9;
+  --plu-map-boundary: #8aa8ba;
+  --plu-map-building: #d8d5cf;
+  --plu-map-label: #252a31;
+  --plu-map-label-halo: #f0eee9;
+  --plu-map-land: #f0eee9;
+  --plu-map-motorway: #a8853b;
+  --plu-map-park: #e4e8df;
+  --plu-map-parking: #c5961e;
+  --plu-map-parking-text: #101216;
+  --plu-map-road-major: #aeb2b3;
+  --plu-map-road-minor: #c5c7c5;
+  --plu-map-route: #167cad;
+  --plu-map-route-halo: #f6f4ef;
+  --plu-map-user-location: #167cad;
+  --plu-map-user-location-halo: #fff;
+  --plu-map-water: #d8e7f0;
+  --plu-map-water-line: #8eb7cf;
+  --plu-map-marker-label-bg: color-mix(in srgb, var(--plu-warm-50) 96%, transparent);
+  --plu-map-marker-label-border: color-mix(in srgb, var(--plu-ink-900) 18%, transparent);
+  --plu-map-marker-label-text: var(--plu-ink-900);
+  animation: competition-map-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: var(--color-bg-surface);
+  border-block: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  overflow: clip;
+  position: relative;
+}
+
+[data-theme='dark'] .competition-map {
+  --plu-map-background: var(--color-bg-primary);
+  --plu-map-boundary: #293b49;
+  --plu-map-building: #111317;
+  --plu-map-label: var(--color-text-primary);
+  --plu-map-label-halo: var(--color-bg-primary);
+  --plu-map-land: var(--color-bg-primary);
+  --plu-map-motorway: #6b5723;
+  --plu-map-park: #0c1110;
+  --plu-map-parking: #f2b705;
+  --plu-map-parking-text: #101216;
+  --plu-map-road-major: #30343a;
+  --plu-map-road-minor: #24282e;
+  --plu-map-route: #4aa7d8;
+  --plu-map-route-halo: #07090c;
+  --plu-map-user-location: #4aa7d8;
+  --plu-map-user-location-halo: #f7fafc;
+  --plu-map-water: #000;
+  --plu-map-water-line: #10222c;
+  --plu-map-marker-label-bg: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
+  --plu-map-marker-label-border: color-mix(in srgb, var(--plu-gold-500) 30%, transparent);
+  --plu-map-marker-label-text: var(--plu-gold-500);
+}
+
+.competition-map::before {
+  display: none;
+}
+
+.competition-map__header {
+  align-items: end;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: clamp(18px, 4vw, 48px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.7fr);
+  padding: clamp(24px, 4vw, 48px);
+}
+
+.competition-map__header > div {
+  min-width: 0;
+}
+
+.competition-map__eyebrow {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 750;
+  gap: 8px;
+  letter-spacing: 0.13em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.competition-map__header h2 {
+  font-size: clamp(2rem, 4.4vw, 4rem);
+  letter-spacing: -0.04em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.competition-map__header > p {
+  color: var(--color-text-secondary);
+  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+  margin: 0;
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+
+.competition-map__layout {
+  display: grid;
+  grid-template-areas:
+    'index stage'
+    'index selection';
+  grid-template-columns: minmax(250px, 0.34fr) minmax(0, 1fr);
+}
+
+.competition-map__index {
+  border-right: 1px solid var(--color-border-subtle);
+  grid-area: index;
+  min-width: 0;
+}
+
+.competition-map__index-head {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 20px;
+}
+
+.competition-map__index-head p {
+  font-size: 0.73rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.competition-map__index-head > span {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.competition-map__index-list {
+  display: grid;
+}
+
+.competition-map__event {
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: minmax(52px, auto) minmax(0, 1fr);
+  min-height: 112px;
+  padding: 18px 20px;
+  position: relative;
+  text-align: left;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out;
+  width: 100%;
+}
+
+.competition-map__event:hover {
+  background: color-mix(in srgb, var(--plu-gold-500) 3%, transparent);
+}
+
+.competition-map__event.is-selected {
+  background: color-mix(in srgb, var(--plu-gold-500) 6%, transparent);
+}
+
+.competition-map__event.is-selected::before {
+  background: var(--plu-gold-500);
+  content: '';
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 2px;
+}
+
+.competition-map__event:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: -3px;
+  z-index: 1;
+}
+
+.competition-map__event-date {
+  color: var(--color-brand-gold);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+  text-transform: uppercase;
+}
+
+.competition-map__event-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.competition-map__event-copy strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.competition-map__event-copy > span {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.competition-map__event-state,
+.competition-map__selection-status {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 650;
+  gap: 6px;
+  grid-column: 2;
+  width: fit-content;
+}
+
+.competition-map__event-state > span,
+.competition-map__selection-status > span {
+  background: currentColor;
+  border-radius: var(--border-radius-pill);
+  height: 5px;
+  width: 5px;
+}
+
+.competition-map__event-state[data-tone='success'],
+.competition-map__selection-status[data-tone='success'] {
+  color: var(--color-success, var(--plu-success-500));
+}
+
+.competition-map__event-state[data-tone='warning'],
+.competition-map__selection-status[data-tone='warning'] {
+  color: var(--color-brand-gold);
+}
+
+.competition-map__event-state[data-tone='danger'],
+.competition-map__selection-status[data-tone='danger'] {
+  color: var(--color-brand-red);
+}
+
+.competition-map__event-data {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  grid-column: 2;
+}
+
+.competition-map__stage {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-brand-celeste) 5%, transparent),
+      transparent 50%
+    ),
+    var(--color-bg-secondary);
+  grid-area: stage;
+  min-height: clamp(330px, 39vw, 470px);
+  overflow: hidden;
+  position: relative;
+}
+
+.competition-map__stage::after {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  content: '';
+  inset: 14px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.competition-map__fallback {
+  align-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background:
+    color-mix(in srgb, var(--color-bg-primary) 70%, transparent)
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
+        transparent 1px
+      ),
+    linear-gradient(
+      color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 44px 44px;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: auto minmax(0, 420px);
+  inset: 0;
+  justify-content: center;
+  padding: clamp(38px, 7vw, 76px);
+  position: absolute;
+  transition: opacity 180ms ease-out;
+  z-index: 2;
+}
+
+.competition-map__fallback--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.competition-map__fallback-mark {
+  align-items: center;
+  align-self: start;
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  display: grid;
+  height: 72px;
+  justify-items: center;
+  padding: 10px;
+  width: 72px;
+}
+
+.competition-map__fallback-mark span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.competition-map__fallback-copy {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.competition-map__fallback-label {
+  color: var(--color-brand-celeste);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.competition-map__fallback-copy h3 {
+  font-size: clamp(1.35rem, 2.8vw, 2rem);
+  letter-spacing: -0.035em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.competition-map__fallback-copy
+  > p:not(.competition-map__fallback-label, .competition-map__fallback-place) {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+  max-width: 48ch;
+  text-wrap: pretty;
+}
+
+.competition-map__fallback-place {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 2px;
+  margin: 10px 0 0;
+  padding-top: 12px;
+}
+
+.competition-map__fallback-place strong {
+  font-size: 0.82rem;
+}
+
+.competition-map__fallback-place span {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.competition-map__canvas-shell,
+.competition-map__canvas {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.competition-map__canvas-shell {
+  z-index: 1;
+}
+
+.competition-map__origin {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-weight: 750;
+  gap: 8px;
+  left: 24px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+  top: 24px;
+  z-index: 4;
+}
+
+.competition-map__origin > span {
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-celeste) 0 33%,
+    var(--plu-ink-inverse) 33% 66%,
+    var(--color-brand-celeste) 66% 100%
+  );
+  height: 12px;
+  width: 18px;
+}
+
+.competition-map .maplibregl-map {
+  font-family: var(--font-family);
+}
+
+.competition-map .maplibregl-canvas:focus-visible {
+  outline: 3px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: -5px;
+}
+
+.competition-map .maplibregl-ctrl-top-right {
+  right: 24px;
+  top: 24px;
+}
+
+.competition-map .maplibregl-ctrl-group {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.competition-map .maplibregl-ctrl-group button {
+  height: 44px;
+  width: 44px;
+}
+
+.competition-map .maplibregl-ctrl-group button + button {
+  border-top-color: var(--color-border-subtle);
+}
+
+.competition-map .maplibregl-ctrl-group button:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, var(--color-bg-surface));
+}
+
+.competition-map .maplibregl-ctrl-icon {
+  filter: var(--plu-map-control-filter, none);
+  opacity: 0.76;
+}
+
+[data-theme='dark'] .competition-map {
+  --plu-map-control-filter: invert(1);
+}
+
+.competition-map .maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.58rem;
+}
+
+.competition-map .maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+
+.competition-map .maplibregl-ctrl-attrib-button {
+  background-color: var(--color-bg-surface);
+  filter: var(--plu-map-control-filter, none);
+}
+
+.competition-map__reset {
+  align-items: center;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  bottom: 24px;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 13px;
+  position: absolute;
+  right: 24px;
+  touch-action: manipulation;
+  z-index: 4;
+}
+
+.competition-map__reset:hover {
+  background: var(--color-bg-elevated);
+}
+
+.competition-map__reset:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: 3px;
+}
+
+.competition-map__selection {
+  align-content: start;
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 14px;
+  grid-area: selection;
+  padding: clamp(22px, 3.2vw, 34px);
+}
+
+.competition-map__selection-head {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.competition-map__selection-head > p {
+  color: var(--color-brand-celeste);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.competition-map__selection h3 {
+  font-size: clamp(1.35rem, 2.8vw, 2.2rem);
+  letter-spacing: -0.035em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.competition-map__selection-role {
+  color: var(--color-brand-celeste);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: -6px 0 0;
+}
+
+.competition-map__selection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 30px;
+  margin: 0;
+}
+
+.competition-map__selection-meta > div {
+  display: grid;
+  gap: 3px;
+}
+
+.competition-map__selection-meta dt {
+  color: var(--color-text-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.competition-map__selection-meta dd {
+  font-size: 0.84rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.competition-map__selection-address {
+  align-items: flex-start;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 8px;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.competition-map__selection-address svg {
+  color: var(--color-brand-celeste);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.competition-map__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.competition-map__action {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.77rem;
+  font-weight: 750;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 15px;
+  text-decoration: none;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out,
+    color 160ms ease-out,
+    transform 160ms ease-out;
+}
+
+.competition-map__action--primary {
+  background: var(--color-brand-action);
+  color: var(--color-text-on-light);
+}
+
+.competition-map__action--primary:hover {
+  background: var(--color-brand-action-hover, var(--color-brand-gold));
+  transform: translateY(-1px);
+}
+
+.competition-map__action--secondary {
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.competition-map__action--secondary:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 7%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.competition-map__action--text {
+  color: var(--color-brand-celeste);
+  padding-inline: 8px;
+}
+
+.competition-map__action--text:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.competition-map__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: 3px;
+}
+
+.competition-map__action-arrow {
+  transition: transform 160ms ease-out;
+}
+
+.competition-map__action:hover .competition-map__action-arrow {
+  transform: translateX(2px);
+}
+
+.competition-map__travel {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 18px;
+}
+
+.competition-map__travel-head {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.competition-map__travel-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.competition-map__travel-head p {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: flex;
+  font-size: 0.65rem;
+  font-weight: 750;
+  gap: 7px;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.competition-map__travel-head h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.competition-map__travel-head > span {
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  flex: 0 0 auto;
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.competition-map__travel-lead,
+.competition-map__travel-privacy {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.competition-map__travel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.competition-map__travel-action {
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 0.73rem;
+  font-weight: 750;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 13px;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out,
+    color 160ms ease-out;
+}
+
+.competition-map__travel-action:hover,
+.competition-map__travel-action[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.competition-map__travel-action[data-dominant='true'] {
+  background: var(--color-brand-action);
+  border-color: var(--color-brand-action);
+  color: var(--color-text-on-light);
+}
+
+.competition-map__travel-action[data-dominant='true']:hover {
+  background: var(--color-brand-action-hover, var(--color-brand-gold));
+  border-color: var(--color-brand-action-hover, var(--color-brand-gold));
+}
+
+.competition-map__travel-action:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+.competition-map__travel-action:focus-visible,
+.competition-map__external-travel a:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: 3px;
+}
+
+.competition-map__travel-feedback:empty {
+  display: none;
+}
+
+.competition-map__route-summary {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 7%, transparent);
+  border-inline-start: 2px solid var(--color-brand-celeste);
+  display: flex;
+  gap: 11px;
+  padding: 10px 12px;
+}
+
+.competition-map__route-summary > svg {
+  color: var(--color-brand-celeste);
+  flex: 0 0 auto;
+}
+
+.competition-map__route-summary > span {
+  display: grid;
+  gap: 1px;
+}
+
+.competition-map__route-summary strong {
+  font-size: 0.82rem;
+}
+
+.competition-map__route-summary small,
+.competition-map__parking-results small {
+  color: var(--color-text-muted);
+  font-size: 0.65rem;
+}
+
+.competition-map__travel-message {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+.competition-map__travel-message[data-tone='error'] {
+  color: var(--color-brand-red);
+}
+
+.competition-map__parking-results {
+  border-inline-start: 2px solid var(--color-brand-gold);
+  display: grid;
+  gap: 9px;
+  padding: 2px 0 2px 12px;
+}
+
+.competition-map__parking-results > p {
+  font-size: 0.73rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.competition-map__parking-results ol {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.competition-map__parking-results li {
+  align-items: start;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.competition-map__parking-results li > span:first-child {
+  color: var(--color-brand-gold);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding-top: 2px;
+}
+
+.competition-map__parking-results li > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+
+.competition-map__parking-results li strong {
+  font-size: 0.72rem;
+}
+
+.competition-map__parking-note {
+  line-height: 1.45;
+}
+
+.competition-map__external-travel {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  padding-top: 11px;
+}
+
+.competition-map__external-travel > span {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 0.65rem;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.competition-map__external-travel a {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 750;
+  gap: 6px;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.competition-map__external-travel a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.competition-map__external-travel a > svg:last-child {
+  color: var(--color-text-muted);
+}
+
+/* MapLibre usa este botón DOM como marcador accesible. */
+.plu-map-marker {
+  --plu-map-marker-accent: var(--color-brand-celeste);
+  align-items: center;
+  background: var(--plu-cool-900);
+  border: 1px solid color-mix(in srgb, var(--plu-ink-inverse) 54%, transparent);
+  border-radius: var(--border-radius-pill);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--plu-cool-950) 38%, transparent);
+  color: var(--plu-ink-inverse);
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  min-width: 48px;
+  padding: 5px;
+  position: relative;
+  touch-action: manipulation;
+  transition:
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.plu-map-marker--featured {
+  --plu-map-marker-accent: var(--color-brand-gold);
+}
+
+.plu-map-marker--open {
+  --plu-map-marker-accent: var(--plu-success-400);
+}
+
+.plu-map-marker--limited {
+  --plu-map-marker-accent: var(--plu-warning-500);
+}
+
+.plu-map-marker--closed {
+  --plu-map-marker-accent: var(--plu-ink-500);
+}
+
+.plu-map-marker--completed {
+  --plu-map-marker-accent: var(--plu-celeste-600);
+}
+
+.plu-map-marker__core {
+  align-items: center;
+  background: var(--plu-cool-800);
+  border-radius: var(--border-radius-pill);
+  color: var(--plu-map-marker-accent);
+  display: flex;
+  height: 36px;
+  justify-content: center;
+  transform: translateY(0) scale(1);
+  transition: transform 160ms ease-out;
+  width: 36px;
+}
+
+.plu-map-marker__core svg {
+  display: block;
+}
+
+.plu-map-marker__index {
+  align-items: center;
+  background: var(--plu-map-marker-accent);
+  border: 2px solid var(--plu-cool-900);
+  border-radius: var(--border-radius-pill);
+  bottom: -2px;
+  color: var(--plu-cool-950);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  font-weight: 800;
+  height: 19px;
+  justify-content: center;
+  letter-spacing: -0.03em;
+  position: absolute;
+  right: -3px;
+  width: 19px;
+}
+
+.plu-map-marker__label {
+  background: var(--plu-map-marker-label-bg);
+  border: 1px solid var(--plu-map-marker-label-border);
+  border-block-start: 2px solid var(--plu-map-marker-accent);
+  bottom: calc(100% + 10px);
+  box-shadow: var(--elevation-md);
+  color: var(--plu-map-marker-label-text);
+  display: grid;
+  gap: 2px;
+  left: 50%;
+  max-width: min(230px, calc(100vw - 48px));
+  min-width: 164px;
+  opacity: 0;
+  padding: 9px 11px 8px;
+  pointer-events: none;
+  position: absolute;
+  text-align: left;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease-out,
+    transform 160ms ease-out,
+    visibility 0s linear 160ms;
+  visibility: hidden;
+  white-space: nowrap;
+  width: max-content;
+}
+
+.plu-map-marker__label strong,
+.plu-map-marker__label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plu-map-marker__label strong {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.plu-map-marker__label span {
+  color: color-mix(in srgb, var(--plu-map-marker-label-text) 70%, transparent);
+  font-size: 0.56rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.plu-map-marker:hover,
+.plu-map-marker.is-selected {
+  border-color: var(--plu-map-marker-accent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--plu-cool-950) 54%, transparent);
+  z-index: 5;
+}
+
+.plu-map-marker:hover .plu-map-marker__core,
+.plu-map-marker.is-selected .plu-map-marker__core,
+.plu-map-marker:focus-visible .plu-map-marker__core {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.plu-map-marker:hover .plu-map-marker__label,
+.plu-map-marker.is-selected .plu-map-marker__label,
+.plu-map-marker:focus-visible .plu-map-marker__label {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.plu-map-marker:focus-visible {
+  outline: 3px solid var(--color-focus-ring, var(--color-brand-celeste));
+  outline-offset: 3px;
+}
+
+.competition-map--venue .competition-map__layout {
+  grid-template-areas: 'selection stage';
+  grid-template-columns: minmax(285px, 0.42fr) minmax(0, 1fr);
+}
+
+.competition-map--venue .competition-map__selection {
+  border-right: 1px solid var(--color-border-subtle);
+  border-top: 0;
+  min-height: clamp(330px, 36vw, 430px);
+  padding: clamp(26px, 4vw, 46px);
+}
+
+.competition-map--venue .competition-map__stage {
+  min-height: clamp(330px, 36vw, 430px);
+}
+
+@keyframes competition-map-enter {
+  from {
+    clip-path: inset(8% 0 0 0);
+    opacity: 0.72;
+    transform: translateY(12px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 860px) {
+  .competition-map__header {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .competition-map__layout,
+  .competition-map--venue .competition-map__layout {
+    grid-template-areas:
+      'index'
+      'selection'
+      'stage';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .competition-map--venue .competition-map__layout {
+    grid-template-areas:
+      'selection'
+      'stage';
+  }
+
+  .competition-map__index {
+    border-bottom: 1px solid var(--color-border-subtle);
+    border-right: 0;
+  }
+
+  .competition-map__index-list {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+
+  .competition-map__event {
+    border-bottom: 0;
+    border-right: 1px solid var(--color-border-subtle);
+    flex: 0 0 min(82vw, 330px);
+    scroll-snap-align: start;
+  }
+
+  .competition-map__selection,
+  .competition-map--venue .competition-map__selection {
+    border-bottom: 1px solid var(--color-border-subtle);
+    border-right: 0;
+    min-height: 0;
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .competition-map__header {
+    padding: 24px 18px;
+  }
+
+  .competition-map__stage,
+  .competition-map--venue .competition-map__stage {
+    min-height: 310px;
+  }
+
+  .competition-map__fallback {
+    align-content: center;
+    gap: 16px;
+    grid-template-columns: 1fr;
+    padding: 42px 32px;
+  }
+
+  .competition-map__fallback-mark {
+    height: 58px;
+    width: 58px;
+  }
+
+  .competition-map__selection,
+  .competition-map--venue .competition-map__selection {
+    padding: 24px 18px;
+  }
+
+  .competition-map__actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .competition-map__action {
+    width: 100%;
+  }
+
+  .competition-map__action--text {
+    justify-content: flex-start;
+  }
+
+  .competition-map__travel-head {
+    gap: 12px;
+  }
+
+  .competition-map__travel-tools {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .competition-map__travel-action {
+    width: 100%;
+  }
+
+  .competition-map__external-travel {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .competition-map__external-travel > span {
+    grid-column: 1 / -1;
+  }
+
+  .competition-map__external-travel a {
+    border: 1px solid var(--color-border-subtle);
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .plu-map-marker__label {
+    max-width: 180px;
+    min-width: 148px;
+    white-space: normal;
+  }
+
+  .plu-map-marker.is-selected .plu-map-marker__label {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+    visibility: hidden;
+  }
+
+  .plu-map-marker.is-selected:focus-visible .plu-map-marker__label {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competition-map {
+    animation: none;
+  }
+
+  .competition-map__action,
+  .competition-map__action-arrow,
+  .competition-map__event,
+  .competition-map__fallback,
+  .competition-map__travel-action,
+  .plu-map-marker,
+  .plu-map-marker__core,
+  .plu-map-marker__label {
+    transition-duration: 0.01ms;
+  }
+
+  .competition-map__action:hover,
+  .plu-map-marker:hover .plu-map-marker__core,
+  .plu-map-marker.is-selected .plu-map-marker__core,
+  .plu-map-marker:focus-visible .plu-map-marker__core {
+    transform: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import RecentActivity from './RecentActivity.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { auditLabels } from '../../i18n/adminHelpers.js'
 import { fetchAuditEntries } from '../../services/auditService.js'
 
 /**
@@ -15,7 +16,7 @@ import { fetchAuditEntries } from '../../services/auditService.js'
  * `admin.audit.read`.
  */
 export default function AdminRecentActivity({ limit = 6 }) {
-  const { locale, t } = useI18n()
+  const { locale, messages } = useI18n()
   const [entries, setEntries] = useState([])
   const [visible, setVisible] = useState(true)
 
@@ -33,30 +34,25 @@ export default function AdminRecentActivity({ limit = 6 }) {
     }
   }, [limit])
 
+  const labels = useMemo(() => auditLabels(messages), [messages])
+
   const items = useMemo(
     () =>
-      entries.map((entry) => {
-        const actionKey = `admin.audit.actions.${entry.action}`
-        const actorKey = `admin.audit.actors.${entry.actorType}`
-        const actionLabel = t(actionKey)
-        const actorLabel = t(actorKey)
-
-        return {
-          id: entry.id,
-          action: actionLabel === actionKey ? entry.action : actionLabel,
-          actor: actorLabel === actorKey ? entry.actorType : actorLabel,
-          detail: entry.summary
-            .slice(0, 2)
-            .map(({ value }) => String(value))
-            .join(' · '),
-          createdAt: entry.createdAt,
-          createdAtLabel: new Date(entry.createdAt).toLocaleString(
-            locale === 'en' ? 'en-US' : 'es-AR',
-            { dateStyle: 'short', timeStyle: 'short' },
-          ),
-        }
-      }),
-    [entries, locale, t],
+      entries.map((entry) => ({
+        id: entry.id,
+        action: labels.action(entry.action),
+        actor: labels.actor(entry.actorType),
+        detail: entry.summary
+          .slice(0, 2)
+          .map(({ value }) => String(value))
+          .join(' · '),
+        createdAt: entry.createdAt,
+        createdAtLabel: new Date(entry.createdAt).toLocaleString(
+          locale === 'en' ? 'en-US' : 'es-AR',
+          { dateStyle: 'short', timeStyle: 'short' },
+        ),
+      })),
+    [entries, labels, locale],
   )
 
   if (!visible || items.length === 0) return null

@@ -307,25 +307,6 @@
 
 /* ── Community ──────────────────────────────────── */
 
-.community-hero-mark {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr auto;
-  width: 100%;
-}
-
-.community-hero-mark span,
-.community-hero-mark strong {
-  color: var(--institution-text-secondary);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-
-.community-hero-mark strong { color: var(--institution-gold); font-size: 26px; }
-.community-hero-mark i { background: var(--institution-border-strong); height: 1px; }
-
 .community-institutional__inner {
   display: grid;
   gap: clamp(76px, 10vw, 128px);

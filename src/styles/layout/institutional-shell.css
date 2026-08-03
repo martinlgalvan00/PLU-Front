@@ -290,10 +290,12 @@
 }
 
 .plu-nav-menu {
-  background: var(--institution-surface);
-  border: 1px solid var(--institution-border-strong);
-  border-radius: var(--institution-radius-surface);
-  box-shadow: var(--institution-shadow);
+  background: color-mix(in srgb, var(--institution-surface) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--institution-border-strong) 40%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px color-mix(in srgb, var(--institution-gold) 10%, transparent);
   left: 50%;
   overflow: hidden;
   padding: 8px;
@@ -335,27 +337,25 @@
 .plu-nav-menu__item {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: var(--institution-radius-control);
+  border-radius: 8px;
   color: var(--institution-text-secondary);
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 52px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   text-align: left;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out);
+  transition: all var(--motion-fast) var(--ease-out);
   width: 100%;
 }
 
 .plu-nav-menu__item:hover,
 .plu-nav-menu__item:focus-visible,
 .plu-nav-menu__item.is-active {
-  background: var(--institution-blue-soft);
-  border-color: color-mix(in srgb, var(--institution-blue) 22%, transparent);
+  background: color-mix(in srgb, var(--institution-text) 3%, transparent);
+  border-color: color-mix(in srgb, var(--institution-text) 6%, transparent);
   color: var(--institution-text);
+  transform: translateX(4px);
 }
 
 .plu-nav-menu__item--featured {
@@ -365,14 +365,21 @@
 
 .plu-nav-menu__icon {
   align-items: center;
-  background: var(--institution-surface-raised);
-  border: 1px solid var(--institution-border);
+  background: color-mix(in srgb, var(--institution-surface-raised) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--institution-border) 50%, transparent);
   border-radius: 7px;
-  color: var(--institution-blue);
+  color: var(--institution-text-muted);
   display: inline-flex;
   height: 32px;
   justify-content: center;
   width: 32px;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.plu-nav-menu__item:hover .plu-nav-menu__icon {
+  color: var(--institution-gold);
+  border-color: color-mix(in srgb, var(--institution-gold) 30%, transparent);
+  background: color-mix(in srgb, var(--institution-gold) 5%, transparent);
 }
 
 .plu-nav-menu__item--featured .plu-nav-menu__icon {
@@ -420,42 +427,52 @@
 
 .plu-resources-menu__head {
   align-items: center;
-  background: var(--institution-surface-strong);
-  color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--institution-surface-strong) 80%, transparent), color-mix(in srgb, var(--institution-surface) 60%, transparent));
+  border-bottom: 1px solid color-mix(in srgb, var(--institution-border) 40%, transparent);
+  color: var(--institution-text);
   display: flex;
   gap: 24px;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 18px 24px;
 }
 
 .plu-resources-menu__head > div {
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .plu-resources-menu__head p {
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .plu-resources-menu__head span {
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 10.5px;
+  color: var(--institution-text-muted);
+  font-size: 11.5px;
 }
 
 .plu-resources-menu__head button {
   align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--institution-radius-control);
-  color: var(--plu-gold-400);
+  border: 1px solid color-mix(in srgb, var(--institution-gold) 20%, transparent);
+  background: color-mix(in srgb, var(--institution-gold) 4%, transparent);
+  border-radius: 100px;
+  color: var(--institution-gold);
   display: inline-flex;
   flex: none;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 650;
   gap: 8px;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 0 16px;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.plu-resources-menu__head button:hover {
+  background: color-mix(in srgb, var(--institution-gold) 10%, transparent);
+  transform: translateY(-1px);
 }
 
 .plu-resources-menu__groups {
@@ -1763,31 +1780,32 @@
   color: var(--footer-text, var(--institution-text));
   padding: 0;
   position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--plu-gold-500) 15%, transparent);
+  box-shadow: inset 0 1px 15px color-mix(in srgb, var(--plu-gold-500) 2%, transparent);
 }
 
 .institutional-footer__rule {
-  display: grid;
-  grid-template-columns: 1fr 2.4fr 1fr;
-  height: 1px;
+  display: none !important;
 }
 
-.institutional-footer__rule span:nth-child(1) { background: var(--institution-blue); }
-.institutional-footer__rule span:nth-child(2) {
-  background: color-mix(in srgb, var(--institution-text) 42%, transparent);
+.institutional-footer__glow-line {
+  display: none !important;
 }
-.institutional-footer__rule span:nth-child(3) { background: var(--institution-gold); }
 
 .institutional-footer__inner {
   margin: 0 auto;
   max-width: 1200px;
-  padding: clamp(40px, 5.5vw, 64px) var(--institution-gutter) 24px;
+  padding: clamp(64px, 10vw, 120px) var(--institution-gutter) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(64px, 8vw, 96px);
 }
 
 .institutional-footer__lead {
-  align-items: center;
-  display: grid;
-  gap: clamp(24px, 4vw, 48px);
-  grid-template-columns: minmax(0, 0.7fr) minmax(260px, 1.3fr);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .institutional-footer__brand {
@@ -1821,109 +1839,96 @@
 }
 
 .institutional-footer__cta {
-  padding-left: clamp(16px, 3vw, 36px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   position: relative;
+  width: 100%;
 }
 
 .institutional-footer__cta::before {
-  background: linear-gradient(
-    180deg,
-    var(--institution-gold) 0%,
-    color-mix(in srgb, var(--institution-gold) 35%, var(--institution-blue)) 100%
-  );
-  border-radius: 99px;
-  bottom: 10%;
-  content: '';
-  left: 0;
-  opacity: 0.85;
-  position: absolute;
-  top: 8%;
-  width: 1.5px;
+  display: none;
 }
 
 .institutional-footer__kicker {
-  color: color-mix(in srgb, var(--institution-gold) 82%, var(--institution-text-muted));
-  font-size: 9.5px;
+  color: color-mix(in srgb, var(--institution-gold) 80%, transparent);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 8px;
+  letter-spacing: 0.2em;
+  margin: 0 0 16px;
   text-transform: uppercase;
 }
 
 .institutional-footer__cta h2 {
   color: var(--footer-text-hover, var(--institution-text));
   font-family: var(--font-display, inherit);
-  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
-  font-weight: 700;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 400;
   letter-spacing: -0.04em;
-  line-height: 1.08;
+  line-height: 1;
   margin: 0;
-  max-width: 18ch;
+  max-width: 100%;
   text-wrap: balance;
+  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-600));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme='dark'] .institutional-footer__cta h2 {
+  background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .institutional-footer__cta-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-top: 16px;
+  gap: 32px;
+  margin-top: 32px;
 }
 
-.institutional-footer__action {
+.institutional-footer__action-editorial {
   align-items: center;
-  background: var(--institution-gold);
-  border: 1px solid var(--institution-gold);
-  border-radius: 2px;
-  color: #14161c;
+  background: transparent;
+  border: 0;
+  color: var(--footer-text-hover, var(--institution-text));
   display: inline-flex;
   font-family: var(--font-family);
-  font-size: 12.5px;
-  font-weight: 700;
-  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  gap: 12px;
   justify-content: center;
   letter-spacing: 0.02em;
-  min-height: 42px;
-  padding: 0 18px;
+  padding: 0;
   text-decoration: none;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-out);
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 
-.institutional-footer__action:hover {
-  background: color-mix(in srgb, var(--institution-gold) 86%, white);
-  border-color: color-mix(in srgb, var(--institution-gold) 86%, white);
-  transform: translateY(-1px);
+.institutional-footer__action-editorial:hover {
+  opacity: 0.6;
 }
 
-.institutional-footer__action:focus-visible {
-  outline: 2px solid var(--institution-blue);
-  outline-offset: 3px;
-}
+/* Fallback base if needed */
 
-.institutional-footer__mail {
+.institutional-footer__mail-editorial {
   color: var(--footer-text-muted, var(--institution-text-muted));
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.01em;
-  min-height: 44px;
+  letter-spacing: 0.02em;
   text-decoration: none;
   transition: color var(--motion-fast) var(--ease-out);
 }
 
-.institutional-footer__mail:hover {
+.institutional-footer__mail-editorial:hover {
   color: var(--footer-text-hover, var(--institution-text));
 }
 
 .institutional-footer__directory {
-  border-top: 1px solid var(--footer-border-subtle, var(--institution-border));
   display: grid;
-  gap: clamp(28px, 4vw, 48px);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: clamp(32px, 4.5vw, 48px);
-  padding-top: clamp(24px, 3vw, 32px);
+  gap: clamp(48px, 6vw, 80px);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  width: 100%;
 }
 
 .institutional-footer__directory nav {
@@ -1932,10 +1937,10 @@
 
 .institutional-footer__directory h3 {
   color: var(--footer-heading, var(--institution-text-muted));
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  margin: 0 0 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  margin: 0 0 24px;
   text-transform: uppercase;
 }
 
@@ -1949,31 +1954,32 @@
 }
 
 .institutional-footer__directory button {
-  color: var(--footer-text-muted, var(--institution-text-muted));
-  font-size: 13px;
-  font-weight: 450;
-  letter-spacing: -0.01em;
-  min-height: 26px;
+  color: color-mix(in srgb, var(--footer-text-hover, var(--institution-text)) 70%, transparent);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  min-height: 32px;
   padding: 0;
   text-align: left;
-  transition: color var(--motion-fast) var(--ease-out);
+  transition: color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
 }
 
 .institutional-footer__directory button:hover {
   color: var(--footer-text-hover, var(--institution-text));
+  transform: translateX(4px);
 }
 
 .institutional-footer__bottom {
-  border-top: 1px solid var(--footer-border-subtle, var(--institution-border));
+  border-top: 1px solid color-mix(in srgb, var(--institution-text) 8%, transparent);
   color: var(--footer-heading, var(--institution-text-muted));
   display: flex;
   flex-wrap: wrap;
   font-size: 11px;
-  gap: 10px 28px;
+  gap: 16px 32px;
   justify-content: space-between;
-  letter-spacing: 0.03em;
-  margin-top: clamp(28px, 4vw, 40px);
-  padding-top: 22px;
+  letter-spacing: 0.05em;
+  margin-top: 32px;
+  padding-top: 32px;
 }
 
 /* ── Responsive shell ───────────────────────────── */
@@ -2515,4 +2521,126 @@
   .plu-global-nav__menu-button:active,
   .institutional-button--primary:hover { transform: none; }
   .institutional-footer__action:hover { transform: none; }
+}
+
+/* ── Profile Dropdown Menu ── */
+.plu-profile-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 280px;
+  background: color-mix(in srgb, var(--color-surface) 75%, rgba(0, 0, 0, 0.85));
+  border: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 1000;
+  transform-origin: top right;
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+
+[data-theme='light'] .plu-profile-menu {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+}
+
+.plu-profile-menu__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-neutral, rgba(255, 255, 255, 0.08));
+  margin-bottom: 4px;
+}
+
+[data-theme='light'] .plu-profile-menu__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.plu-profile-menu__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--plu-gold-500) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plu-gold-500) 40%, transparent);
+  color: var(--plu-gold-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.plu-profile-menu__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.plu-profile-menu__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.plu-profile-menu__name {
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.plu-profile-menu__role {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  margin: 2px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.plu-profile-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plu-profile-menu__actions button {
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plu-profile-menu__actions button:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  color: var(--color-text-primary);
+}
+
+.plu-profile-menu__actions button.plu-profile-menu__logout {
+  color: var(--status-error);
+}
+
+.plu-profile-menu__actions button.plu-profile-menu__logout:hover {
+  background: color-mix(in srgb, var(--status-error) 8%, transparent);
 }

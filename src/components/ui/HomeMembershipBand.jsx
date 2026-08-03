@@ -69,7 +69,7 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
   const subtleItemProps = reducedMotion ? {} : { variants: copyItemSubtle }
 
   return (
-    <div className="home-membership-band">
+    <div className="home-membership-band home-membership-band--editorial">
       <CopyShell {...copyProps}>
         <CopyItem {...itemProps} className="home-membership-band__eyebrow">
           {HOME_MEMBERSHIP.eyebrow}
@@ -90,22 +90,22 @@ export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = fal
           <CopyItem {...itemProps}>
             <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
               {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
-                <li key={feature} className="home-membership-band__benefit">
+                <CopyItem key={feature} role="listitem" {...itemProps} className="home-membership-band__benefit">
                   <span className="home-membership-band__benefit-index" aria-hidden>
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="home-membership-band__benefit-text">{feature}</span>
-                </li>
+                </CopyItem>
               ))}
             </ul>
           </CopyItem>
         ) : null}
 
         <CopyItem {...itemProps} className="home-membership-band__actions">
-          <Button variant="gold" className="home-membership-band__cta" onClick={goToAffiliation}>
+          <button type="button" className="home-membership-band__cta" onClick={goToAffiliation}>
             {primaryCta}
             <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
-          </Button>
+          </button>
           <button
             type="button"
             className="home-membership-band__cta-secondary"

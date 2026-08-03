@@ -2,6 +2,10 @@
 
 Skills internas reutilizables para agentes de código que trabajan en este proyecto.
 
+Para cualquier tarea de UI, UX, estilos, responsive o motion, leer primero la autoridad
+visual [plu-frontend-design](../.claude/skills/plu-frontend-design/SKILL.md). Las skills de
+este directorio aportan inventario y procedimientos tácticos sin reemplazar esa dirección.
+
 ## Índice
 
 | # | Skill | Descripción |
@@ -10,7 +14,7 @@ Skills internas reutilizables para agentes de código que trabajan en este proye
 | 2 | [business-analysis](./business-analysis/SKILL.md) | Reglas de negocio, MVP, backlog |
 | 3 | [design-system-plu](./design-system-plu/SKILL.md) | CSS, componentes visuales PLU ARG |
 | 3b | [design-upgrade](./design-upgrade/SKILL.md) | Proceso de mejora visual y QA por pantalla |
-| 3c | [design-ux-ui](./design-ux-ui/SKILL.md) | Refinar secciones con UX + CSS moderno (dock, editorial, glass) |
+| 3c | [design-ux-ui](./design-ux-ui/SKILL.md) | Refinar secciones con UX + CSS moderno y composición editorial |
 | 3d | [motion-premium](./motion-premium/SKILL.md) | Motion elegante: TiltCard, showcases, entradas, reduced-motion |
 | 4 | [auth-rbac](./auth-rbac/SKILL.md) | Roles, permisos, guards |
 | 5 | [database-modeling](./database-modeling/SKILL.md) | Prisma, migraciones, seeds |

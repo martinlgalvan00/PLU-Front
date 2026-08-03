@@ -9,7 +9,7 @@ import {
   getRecentMembers,
 } from '../../services/communityService.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DISTANCE, MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../../motion/tokens'
+import { MOTION_DISTANCE, MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../../motion/tokens.ts'
 import { staggerContainer } from '../../motion/variants.ts'
 
 const FEED_LIMIT = 5
@@ -56,27 +56,24 @@ export default function CommunitySpotlight({ onNavigate }) {
         <h2 className="community-spotlight__title">{HOME_COMMUNITY.title}</h2>
         <p className="community-spotlight__desc">{HOME_COMMUNITY.description}</p>
 
-        <p className="community-spotlight__pulse" aria-label={t('pages.community.statsAria')}>
-          <span>
-            <strong>{stats.activeGymCount}</strong> {t('pages.community.statsActiveGyms')}
-          </span>
-          <span className="community-spotlight__pulse-sep" aria-hidden>
-            ·
-          </span>
-          <span>
-            <strong>{stats.memberCount}</strong> {t('pages.community.statsRecentMembers')}
-          </span>
-          <span className="community-spotlight__pulse-sep" aria-hidden>
-            ·
-          </span>
-          <span>
-            <strong>{stats.provinceCount}</strong> {t('pages.community.statsProvinces')}
-          </span>
-        </p>
+        <ul className="community-spotlight__stats" aria-label={t('pages.community.statsAria')}>
+          <li className="community-spotlight__stat-editorial">
+            <strong>{String(stats.activeGymCount).padStart(2, '0')}</strong>
+            <span>{t('pages.community.statsActiveGyms')}</span>
+          </li>
+          <li className="community-spotlight__stat-editorial">
+            <strong>{String(stats.memberCount).padStart(2, '0')}</strong>
+            <span>{t('pages.community.statsRecentMembers')}</span>
+          </li>
+          <li className="community-spotlight__stat-editorial">
+            <strong>{String(stats.provinceCount).padStart(2, '0')}</strong>
+            <span>{t('pages.community.statsProvinces')}</span>
+          </li>
+        </ul>
 
         <button
           type="button"
-          className="community-spotlight__cta motion-icon-shift"
+          className="community-spotlight__cta-editorial motion-icon-shift"
           onClick={() => onNavigate('community')}
         >
           {HOME_COMMUNITY.cta}
@@ -134,8 +131,6 @@ export default function CommunitySpotlight({ onNavigate }) {
                 key={member.id}
                 className="community-spotlight__row"
                 variants={rosterItem}
-                whileHover={{ x: 4 }}
-                transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
               >
                 <span className="community-spotlight__avatar" aria-hidden>
                   {memberInitials(member.name)}

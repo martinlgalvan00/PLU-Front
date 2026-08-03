@@ -1,21 +1,16 @@
-import { CONFIRMED_REGISTRATION_STATUSES } from '../lib/constants.js'
+import { EVENT_STATUS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { isExpiringSoon } from './membershipService.js'
 
-function isConfirmedRegistration(registration) {
-  return CONFIRMED_REGISTRATION_STATUSES.includes(registration?.status)
-}
-
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
-
-const ACTION_LABELS = {
-  'athlete.registered': 'Atleta registrado',
-  'membership.created': 'Afiliación creada',
-  'registration.created': 'Inscripción creada',
-  'payment.approved': 'Pago aprobado',
-  'event.created': 'Evento creado',
-  'event.updated': 'Evento actualizado',
-}
+const EVENT_BREAKDOWN_STATUSES = [
+  'inscripcion_abierta',
+  'cupos_limitados',
+  'proximamente',
+  'finalizado',
+  'cerrado',
+]
+const EVENT_TONE_BY_STATUS_TONE = { success: 'success', warning: 'warning', danger: 'alert', neutral: 'default' }
 
 export function buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders = [] }) {
   const actions = []
@@ -90,71 +85,6 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
   return actions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 }
 
-export function getAthleteAuditLogs(athleteId, auditLogs, memberships, registrations, payments) {
-  const relatedIds = new Set([athleteId])
-  memberships.filter((item) => item.athleteId === athleteId).forEach((item) => relatedIds.add(item.id))
-  registrations.filter((item) => item.athleteId === athleteId).forEach((item) => relatedIds.add(item.id))
-  payments.filter((item) => item.athleteId === athleteId).forEach((item) => relatedIds.add(item.id))
-
-  return auditLogs
-    .filter((log) => log.actor === athleteId || relatedIds.has(log.entityId))
-    .map((log) => ({
-      ...log,
-      action: ACTION_LABELS[log.action] ?? log.action,
-      createdAtLabel: new Date(log.createdAt).toLocaleString('es-AR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      }),
-    }))
-}
-
-export function buildRecentActivity(
-  { auditLogs, athletes, memberships, registrations, payments, events = [] },
-  limit = 6,
-) {
-  function athleteName(athleteId) {
-    return athletes.find((item) => item.id === athleteId)?.fullName ?? 'Atleta'
-  }
-
-  function resolveDetail(log) {
-    if (log.entityType === 'athlete') return athleteName(log.entityId)
-
-    if (log.entityType === 'membership') {
-      const membership = memberships.find((item) => item.id === log.entityId)
-      return membership ? `${athleteName(membership.athleteId)} · ${membership.memberCode}` : null
-    }
-
-    if (log.entityType === 'registration') {
-      const registration = registrations.find((item) => item.id === log.entityId)
-      return registration ? `${athleteName(registration.athleteId)} · ${registration.event}` : null
-    }
-
-    if (log.entityType === 'payment') {
-      const payment = payments.find((item) => item.id === log.entityId)
-      return payment ? `${athleteName(payment.athleteId)} · ${money(payment.amount)}` : null
-    }
-
-    if (log.entityType === 'event') {
-      const event = events.find((item) => item.id === log.entityId)
-      return event ? `${event.title} · ${event.date}` : null
-    }
-
-    return null
-  }
-
-  return [...auditLogs]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, limit)
-    .map((log) => ({
-      id: log.id,
-      action: ACTION_LABELS[log.action] ?? log.action,
-      detail: resolveDetail(log),
-      actor: log.actor === 'admin' ? 'Panel admin' : log.actor === 'public' ? 'Autogestión' : null,
-      createdAt: log.createdAt,
-      createdAtLabel: new Date(log.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }),
-    }))
-}
-
 export function getAdminNavBadges({ payments, registrations, pendingTicketOrders = [] }) {
   return {
     payments:
@@ -185,7 +115,6 @@ export function buildDashboardOverview({
     PENDING_PAYMENT_STATUSES.includes(payment.status),
   )
   const approvedPayments = payments.filter((payment) => payment.status === 'aprobado')
-  const confirmedRegistrations = registrations.filter(isConfirmedRegistration)
   const observedRegistrations = registrations.filter(
     (registration) => registration.status === 'observada',
   )
@@ -201,7 +130,6 @@ export function buildDashboardOverview({
     (membership) => membership.status === 'cancelada',
   )
   const stableActiveMemberships = activeMemberships.length - expiringMemberships.length
-  const activeEvents = events.filter((event) => event.status !== 'finalizado')
   const openEvents = events.filter((event) =>
     ['inscripcion_abierta', 'cupos_limitados'].includes(event.status),
   )
@@ -271,6 +199,50 @@ export function buildDashboardOverview({
     { status: 'cancelada', value: cancelledMemberships.length, tone: 'default' },
   ]
 
+  const eventBreakdown = countByStatus(events, EVENT_BREAKDOWN_STATUSES).map((item) => ({
+    ...item,
+    tone: EVENT_TONE_BY_STATUS_TONE[EVENT_STATUS[item.status]?.tone] ?? 'default',
+  }))
+
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const newAthletesThisWeek = athletes.filter(
+    (athlete) => athlete.createdAt && new Date(athlete.createdAt) >= oneWeekAgo,
+  ).length
+  const recentAthletes = [...athletes]
+    .filter((athlete) => athlete.createdAt)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5)
+    .map((athlete) => ({
+      id: athlete.id,
+      fullName: athlete.fullName,
+      gym: athlete.gym,
+      createdAt: athlete.createdAt,
+    }))
+
+  const eventLeaderboard = [...events]
+    .filter((event) => event.status !== 'finalizado' && event.slots > 0)
+    .map((event) => ({
+      id: event.id ?? event.slug,
+      title: event.title,
+      registered: event.registered ?? 0,
+      slots: event.slots,
+      fillPercent: Math.min(Math.round(((event.registered ?? 0) / event.slots) * 100), 100),
+      status: event.status,
+    }))
+    .sort((a, b) => b.fillPercent - a.fillPercent)
+    .slice(0, 5)
+
+  const gymCounts = new Map()
+  athletes.forEach((athlete) => {
+    const gym = athlete.gym?.trim()
+    if (!gym) return
+    gymCounts.set(gym, (gymCounts.get(gym) ?? 0) + 1)
+  })
+  const topGyms = [...gymCounts.entries()]
+    .map(([gym, count]) => ({ gym, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
   return {
     primary: [
       {
@@ -279,6 +251,8 @@ export function buildDashboardOverview({
         icon: 'users',
         section: 'athletes',
         tone: 'celeste',
+        hintKey: 'newThisWeek',
+        hintValue: newAthletesThisWeek,
       },
       {
         labelKey: 'activeMemberships',
@@ -307,36 +281,6 @@ export function buildDashboardOverview({
         hintKey: 'pendingAmount',
         hintValue: pendingAmount,
         hintFormat: 'money',
-      },
-    ],
-    secondary: [
-      {
-        labelKey: 'confirmed',
-        value: confirmedRegistrations.length,
-        tone: 'success',
-        section: 'registrations',
-        icon: 'clipboard',
-      },
-      {
-        labelKey: 'observed',
-        value: observedRegistrations.length,
-        tone: 'warning',
-        section: 'registrations',
-        icon: 'shield',
-      },
-      {
-        labelKey: 'activeEvents',
-        value: activeEvents.length,
-        tone: 'celeste',
-        section: 'events',
-        icon: 'badge',
-      },
-      {
-        labelKey: 'expiringSoon',
-        value: expiringMemberships.length,
-        tone: 'gold',
-        section: 'memberships',
-        icon: 'badge',
       },
     ],
     breakdowns: {
@@ -368,6 +312,12 @@ export function buildDashboardOverview({
         pending: pendingPayments.length,
         pendingAmount,
       },
+      events: {
+        total: events.length,
+        section: 'events',
+        items: eventBreakdown,
+        open: openEvents.length,
+      },
     },
     finance: {
       pendingCount: pendingPayments.length,
@@ -388,5 +338,15 @@ export function buildDashboardOverview({
       }),
     },
     spotlightEvent,
+    recentAthletes: {
+      items: recentAthletes,
+      newThisWeek: newAthletesThisWeek,
+    },
+    eventLeaderboard: {
+      items: eventLeaderboard,
+    },
+    topGyms: {
+      items: topGyms,
+    },
   }
 }

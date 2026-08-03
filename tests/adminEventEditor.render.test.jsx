@@ -1,7 +1,3 @@
-// El proyecto "default" de vitest transforma JSX con el runtime clásico, así
-// que React tiene que estar en scope acá aunque el resto del código fuente use
-// el runtime automático vía @vitejs/plugin-react.
-import React from 'react'
 import { render, screen, within } from '@testing-library/react'
 import { beforeAll, describe, expect, it } from 'vitest'
 import AdminEventEditor from '../src/components/admin/AdminEventEditor.jsx'

@@ -71,6 +71,22 @@ const titleIn = {
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
   },
 }
+const descIn = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+  },
+}
+const indexIn = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
+  },
+}
 const ctaIn = {
   hidden: { opacity: 0, y: 8 },
   visible: {
@@ -89,6 +105,8 @@ export default function HomeRulebookTeaser({ onNavigate, orchestrated = false })
   const Line = reducedMotion ? 'span' : m.span
   const Eyebrow = reducedMotion ? 'p' : m.p
   const Title = reducedMotion ? 'h2' : m.h2
+  const Desc = reducedMotion ? 'p' : m.p
+  const Index = reducedMotion ? 'ul' : m.ul
   const Cta = reducedMotion ? 'button' : m.button
 
   const groupProps = reducedMotion
@@ -126,7 +144,25 @@ export default function HomeRulebookTeaser({ onNavigate, orchestrated = false })
         <Title {...withVariant(titleIn)} className="home-teaser-card__title">
           {HOME_RULEBOOK.title}
         </Title>
+        <Desc {...withVariant(descIn)} className="home-teaser-card__desc">
+          {HOME_RULEBOOK.description}
+        </Desc>
       </div>
+
+      {HOME_RULEBOOK.topics?.length ? (
+        <Index
+          {...withVariant(indexIn)}
+          className="home-teaser-card__rulebook-index"
+          aria-label={HOME_RULEBOOK.title}
+        >
+          {HOME_RULEBOOK.topics.map((topic) => (
+            <li key={topic} className="home-teaser-card__rulebook-item">
+              <span>{topic}</span>
+              <span className="home-teaser-card__rulebook-line" aria-hidden />
+            </li>
+          ))}
+        </Index>
+      ) : null}
 
       <Cta {...withVariant(ctaIn)} type="button" className="home-teaser-card__link" onClick={() => onNavigate('rulebook')}>
         {HOME_RULEBOOK.cta}

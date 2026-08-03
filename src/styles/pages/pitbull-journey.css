@@ -1,94 +1,73 @@
 /* =============================================
    PITBULL — CAMINO DEL COMPETIDOR
-   Cada fase (Antes / Día de competencia) es un panel elevado y los pasos son
-   filas de datos: índice, ícono y copy en columnas alineadas. Un solo acento
-   de color por panel (celeste antes, dorado en competencia).
-   Notebook: dos paneles en paralelo. Desktop ancho: foto a la derecha.
+   Spine tipográfico: fases con regla de acento + pasos
+   numerados grandes. Sin paneles, sin íconos decorativos.
+   Desktop ancho: foto a la derecha.
    ============================================= */
 
 .pitbull-journey-layout {
   display: grid;
-  gap: clamp(20px, 2.6vw, 32px);
+  gap: clamp(24px, 3vw, 40px);
   grid-template-columns: minmax(0, 1fr);
-  /* La página usa --premium (max-width: none en .pitbull-page__body) para que el
-     hero pueda ir a sangre completa, pero esta grilla sí necesita un ancho de
-     lectura acotado. */
   margin-inline: auto;
   max-width: var(--max-width-content);
+  width: 100%;
 }
 
 .pitbull-journey {
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 2vw, 22px);
+  gap: clamp(20px, 2.4vw, 28px);
   min-width: 0;
 }
 
-.pitbull-journey__phases {
-  display: grid;
-  gap: clamp(16px, 2vw, 22px);
-  grid-template-columns: minmax(0, 1fr);
+.pitbull-journey__spine {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 3.2vw, 40px);
 }
 
-/* Notebook / tablet: los dos paneles lado a lado */
-@media (min-width: 640px) and (max-width: 1099px) {
-  .pitbull-journey__phases {
-    align-items: start;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ── Panel de fase ─────────────────────────── */
+/* ── Fase ──────────────────────────────────── */
 
 .pitbull-journey__phase {
-  background: var(--pitbull-journey-panel-bg);
-  border: 1px solid var(--pitbull-journey-panel-border);
-  border-radius: var(--border-radius-lg);
-  border-top: 2px solid var(--pitbull-journey-accent-before);
-  box-shadow: var(--pitbull-journey-panel-shadow);
-  min-width: 0;
-  overflow: hidden;
-}
-
-.pitbull-journey__phase[data-phase='meet'] {
-  border-top-color: var(--pitbull-journey-accent-meet);
-}
-
-.pitbull-journey__phase-head {
-  align-items: baseline;
-  background: var(--pitbull-journey-head-bg);
-  border-bottom: 1px solid var(--pitbull-journey-row-divider);
   display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 13px clamp(14px, 1.6vw, 18px);
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
 
 .pitbull-journey__phase-label {
-  color: var(--color-text-secondary);
+  color: var(--pitbull-journey-accent-before);
   font-family: var(--font-family);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0.12em;
   margin: 0;
+  padding-left: 12px;
+  position: relative;
   text-transform: uppercase;
+}
+
+.pitbull-journey__phase-label::before {
+  background: var(--pitbull-journey-accent-before);
+  border-radius: 99px;
+  bottom: 0.1em;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0.1em;
+  width: 2px;
 }
 
 .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label {
   color: var(--pitbull-journey-accent-meet);
 }
 
-.pitbull-journey__phase-range {
-  color: var(--pitbull-journey-index-fg);
-  flex: none;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.pitbull-journey__phase[data-phase='meet'] .pitbull-journey__phase-label::before {
+  background: var(--pitbull-journey-accent-meet);
 }
 
-/* ── Filas de datos ────────────────────────── */
+/* ── Pasos ─────────────────────────────────── */
 
 .pitbull-journey__steps {
   display: flex;
@@ -101,104 +80,81 @@
 .pitbull-journey__step {
   align-items: start;
   display: grid;
-  gap: 0 12px;
-  grid-template-columns: 1.75rem 1.15rem minmax(0, 1fr);
-  padding: 12px clamp(14px, 1.6vw, 18px);
-  transition: background-color var(--motion-fast) var(--ease-out);
+  gap: 0 16px;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  padding: 12px 0;
 }
 
 .pitbull-journey__step + .pitbull-journey__step {
   border-top: 1px solid var(--pitbull-journey-row-divider);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .pitbull-journey__step:hover {
-    background: var(--pitbull-journey-row-hover);
-  }
+.pitbull-journey__num {
+  color: var(--pitbull-journey-index-fg);
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  padding-top: 1px;
 }
 
-.pitbull-journey__num {
-  align-items: center;
-  background: var(--pitbull-journey-index-bg);
-  border: 1px solid var(--pitbull-journey-index-border);
-  border-radius: var(--border-radius-sm, 6px);
-  color: var(--pitbull-journey-index-fg);
-  display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  height: 22px;
-  justify-content: center;
-  letter-spacing: 0.02em;
-  line-height: 1;
+.pitbull-journey__phase:not([data-phase='meet']) .pitbull-journey__num {
+  color: color-mix(in oklab, var(--pitbull-journey-accent-before) 78%, var(--color-text-muted));
 }
 
 .pitbull-journey__phase[data-phase='meet'] .pitbull-journey__num {
-  border-color: color-mix(in oklab, var(--pitbull-journey-accent-meet) 40%, transparent);
-  color: var(--pitbull-journey-accent-meet);
-}
-
-.pitbull-journey__icon {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  height: 22px;
-  justify-content: center;
-  opacity: 0.7;
+  color: color-mix(in oklab, var(--pitbull-journey-accent-meet) 88%, var(--color-text-muted));
 }
 
 .pitbull-journey__copy {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .pitbull-journey__title {
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.6vw, 16px);
   font-weight: 650;
-  letter-spacing: -0.015em;
-  line-height: 1.35;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
   margin: 0;
 }
 
 .pitbull-journey__text {
   color: var(--color-text-muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0;
-  max-width: 42ch;
+  max-width: 40ch;
 }
 
-/* ── Cierre de la ficha ────────────────────── */
+/* ── Cierre ────────────────────────────────── */
 
 .pitbull-journey__arrival {
-  background: var(--pitbull-journey-footer-bg);
-  border: 1px solid var(--pitbull-journey-footer-border);
-  border-radius: var(--border-radius-lg);
+  align-items: center;
   color: var(--color-text-secondary);
+  display: flex;
   font-family: var(--font-display);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 12.5px;
+  font-weight: 650;
+  gap: 12px;
+  letter-spacing: 0.02em;
   margin: 0;
-  overflow: hidden;
-  padding: 14px clamp(14px, 1.6vw, 18px);
-  position: relative;
-  text-transform: uppercase;
+  padding: 4px 0 0;
 }
 
-/* Firma tricolor de marca como remate del bloque. */
 .pitbull-journey__arrival::before {
   background: var(--pitbull-feature-stripe, var(--plu-gradient-stripe));
+  border-radius: 99px;
   content: '';
-  height: 1.5px;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
+  flex: 0 0 28px;
+  height: 2px;
 }
 
 /* ── Foto: solo desktop ancho (≥1100px) ────── */
@@ -214,14 +170,14 @@
 
 .pitbull-journey-visual__img {
   display: block;
-  filter: grayscale(0.28) contrast(1.05);
+  filter: grayscale(0.22) contrast(1.06);
   height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
 .pitbull-journey-visual::after {
-  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.58) 100%);
   content: '';
   inset: 0;
   pointer-events: none;
@@ -230,11 +186,11 @@
 }
 
 .pitbull-journey-visual__caption {
-  bottom: 14px;
-  color: rgba(255, 255, 255, 0.82);
+  bottom: 16px;
+  color: rgba(255, 255, 255, 0.84);
   font-size: 10.5px;
   font-weight: 600;
-  left: 16px;
+  left: 18px;
   letter-spacing: 0.1em;
   position: absolute;
   text-transform: uppercase;
@@ -244,15 +200,9 @@
 @media (min-width: 1100px) {
   .pitbull-journey-layout {
     align-items: stretch;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   }
 
-  .pitbull-journey__phases {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* La foto toma la altura real de la columna de contenido: con aspect-ratio
-     fijo quedaba más alta que las fases y dejaba un hueco debajo del texto. */
   .pitbull-journey-visual {
     align-self: stretch;
     display: block;
@@ -262,17 +212,17 @@
 
 @media (max-width: 639px) {
   .pitbull-journey__step {
-    gap: 0 10px;
-    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0 12px;
+    grid-template-columns: 2rem minmax(0, 1fr);
     padding-block: 11px;
   }
 
-  .pitbull-journey__icon {
-    display: none;
+  .pitbull-journey__num {
+    font-size: 17px;
   }
 
   .pitbull-journey__title {
-    font-size: 14px;
+    font-size: 14.5px;
   }
 
   .pitbull-journey__text {

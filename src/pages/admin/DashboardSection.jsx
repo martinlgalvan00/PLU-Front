@@ -16,7 +16,7 @@ import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { formatDayMonth, money } from '../../lib/format.js'
+import { formatDayMonth, initials, money } from '../../lib/format.js'
 
 const QUEUE_PREVIEW_LIMIT = 6
 
@@ -61,6 +61,8 @@ function mapMetrics(items, t, locale) {
       hint = t('admin.dashboard.kpiHintPendingAmount', {
         amount: money(item.hintValue, locale),
       })
+    } else if (item.hintKey === 'newThisWeek' && item.hintValue > 0) {
+      hint = t('admin.dashboard.kpiHintNewThisWeek', { count: item.hintValue })
     }
 
     return {
@@ -82,7 +84,7 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
       onClick={onClick}
     >
       <span className="admin-ops__kpi-icon" aria-hidden>
-        <Icon size={15} strokeWidth={1.75} />
+        <Icon size={18} strokeWidth={1.65} />
       </span>
       <span className="admin-ops__kpi-body">
         <span className="admin-ops__kpi-value">{value}</span>
@@ -218,6 +220,70 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
   )
 }
 
+function RecentAthletesCard({ athletes, locale, onNavigate, t }) {
+  if (!athletes?.items?.length) return null
+
+  return (
+    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentAthletesTitle')}>
+      <header className="admin-ops__chart-head">
+        <div>
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentAthletesEyebrow')}</p>
+          <h3>{t('admin.dashboard.recentAthletesTitle')}</h3>
+          <p>{t('admin.dashboard.recentAthletesSubtitle')}</p>
+        </div>
+        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('athletes')}>
+          {t('admin.actions.view')}
+          <ArrowRight size={12} aria-hidden />
+        </button>
+      </header>
+
+      <ul className="admin-ops__recent-list">
+        {athletes.items.map((athlete) => (
+          <li key={athlete.id} className="admin-ops__recent-item">
+            <span className="admin-ops__recent-avatar" aria-hidden>
+              {initials(athlete.fullName)}
+            </span>
+            <span className="admin-ops__recent-body">
+              <strong>{athlete.fullName}</strong>
+              <span>{athlete.gym || t('admin.dashboard.recentAthletesNoGym')}</span>
+            </span>
+            <span className="admin-ops__recent-date">
+              {formatDayMonth(athlete.createdAt.slice(0, 10), locale)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function LeaderboardCard({ eyebrow, title, subtitle, items, navigateSection, onNavigate, t, renderItem }) {
+  if (!items?.length) return null
+
+  return (
+    <section className="admin-ops__leaderboard" aria-label={title}>
+      <header className="admin-ops__chart-head">
+        <div>
+          <p className="admin-ops__eyebrow">{eyebrow}</p>
+          <h3>{title}</h3>
+          <p>{subtitle}</p>
+        </div>
+        {navigateSection ? (
+          <button
+            type="button"
+            className="admin-dashboard-link"
+            onClick={() => onNavigate?.(navigateSection)}
+          >
+            {t('admin.actions.view')}
+            <ArrowRight size={12} aria-hidden />
+          </button>
+        ) : null}
+      </header>
+      <ul className="admin-ops__leaderboard-list">{items.map(renderItem)}</ul>
+    </section>
+  )
+}
+
 export default function DashboardSection({
   dashboardOverview,
   pendingActions,
@@ -233,7 +299,8 @@ export default function DashboardSection({
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
 
-  const { breakdowns, finance, primary, spotlightEvent } = dashboardOverview
+  const { breakdowns, eventLeaderboard, finance, primary, recentAthletes, spotlightEvent, topGyms } =
+    dashboardOverview
 
   const primaryMetrics = useMemo(
     () => mapMetrics(primary, t, locale),
@@ -303,14 +370,28 @@ export default function DashboardSection({
 
         <section className="admin-ops__board" aria-label={t('admin.dashboard.analyticsAria')}>
           <header className="admin-ops__board-head">
-            <div>
+            <div className="admin-ops__board-intro">
               <h2>{t('admin.dashboard.analyticsTitle')}</h2>
-              <p>
-                {t('admin.dashboard.financeSubtitleLive', {
+              <ul
+                className="admin-ops__board-stats"
+                aria-label={t('admin.dashboard.financeSubtitleLive', {
                   pending: finance.pendingCount,
                   events: finance.openEvents,
                 })}
-              </p>
+              >
+                <li
+                  className={`admin-ops__board-stat${
+                    finance.pendingCount > 0 ? ' admin-ops__board-stat--alert' : ''
+                  }`}
+                >
+                  <strong>{finance.pendingCount}</strong>
+                  <span>{t('admin.dashboard.boardStatPending')}</span>
+                </li>
+                <li className="admin-ops__board-stat">
+                  <strong>{finance.openEvents}</strong>
+                  <span>{t('admin.dashboard.boardStatEvents')}</span>
+                </li>
+              </ul>
             </div>
             <nav className="admin-ops__links" aria-label={t('admin.dashboard.quickTitle')}>
               {QUICK_ACTIONS.map(({ section, labelKey }) => (
@@ -331,7 +412,7 @@ export default function DashboardSection({
               <header className="admin-ops__chart-head">
                 <div>
                   <h3>{t('admin.dashboard.financeTitle')}</h3>
-                  <p>{t('admin.dashboard.financeRate')}</p>
+                  <p>{t('admin.dashboard.financeSubtitle')}</p>
                 </div>
                 <button
                   type="button"
@@ -351,15 +432,15 @@ export default function DashboardSection({
                   label={t('admin.dashboard.financeRate')}
                 />
                 <dl className="admin-ops__finance-metrics">
-                  <div>
+                  <div className="admin-ops__finance-metric admin-ops__finance-metric--collected">
                     <dt>{t('admin.dashboard.financeCollected')}</dt>
                     <dd>{money(finance.collectedAmount)}</dd>
                   </div>
-                  <div>
+                  <div className="admin-ops__finance-metric admin-ops__finance-metric--pending">
                     <dt>{t('admin.dashboard.financePending')}</dt>
                     <dd>{money(finance.pendingAmount)}</dd>
                   </div>
-                  <div>
+                  <div className="admin-ops__finance-metric admin-ops__finance-metric--operated">
                     <dt>{t('admin.dashboard.financeOperated')}</dt>
                     <dd>{money(finance.totalAmount)}</dd>
                   </div>
@@ -394,11 +475,21 @@ export default function DashboardSection({
               getLabel={breakdownLabel}
               t={t}
             />
+            <StackedBarChart
+              title={t('admin.dashboard.breakdownEvents')}
+              total={breakdowns.events.total}
+              items={breakdowns.events.items}
+              section={breakdowns.events.section}
+              onNavigate={onNavigate}
+              getLabel={breakdownLabel}
+              t={t}
+            />
           </div>
 
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div>
+                <p className="admin-ops__eyebrow">{t('admin.dashboard.priorityEyebrow')}</p>
                 <h3>{t('admin.dashboard.workTitle')}</h3>
                 <p>
                   {hasWork
@@ -406,7 +497,7 @@ export default function DashboardSection({
                         queue: pendingActions.length,
                         payments: finance.pendingCount,
                       })
-                    : t('admin.dashboard.workEmpty')}
+                    : t('admin.dashboard.noUrgency')}
                 </p>
                 <PriorityChips counts={priorityCounts} t={t} />
               </div>
@@ -462,19 +553,71 @@ export default function DashboardSection({
 
             {!hasWork ? (
               <div className="admin-ops__work-idle">
-                {QUICK_ACTIONS.slice(0, 3).map(({ section, labelKey }) => (
-                  <button
-                    key={section}
-                    type="button"
-                    className="admin-ops__work-idle-link"
-                    onClick={() => onNavigate?.(section)}
-                  >
-                    {t(labelKey)}
-                    <ArrowRight size={13} aria-hidden />
-                  </button>
-                ))}
+                <p className="admin-ops__work-idle-copy">{t('admin.dashboard.workEmpty')}</p>
+                <div className="admin-ops__work-idle-links">
+                  {QUICK_ACTIONS.slice(0, 3).map(({ section, labelKey }) => (
+                    <button
+                      key={section}
+                      type="button"
+                      className="admin-ops__work-idle-link"
+                      onClick={() => onNavigate?.(section)}
+                    >
+                      {t(labelKey)}
+                      <ArrowRight size={13} aria-hidden />
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
+          </div>
+
+          <RecentAthletesCard
+            athletes={recentAthletes}
+            locale={locale}
+            onNavigate={onNavigate}
+            t={t}
+          />
+
+          <div className="admin-ops__stats-row">
+            <LeaderboardCard
+              eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
+              title={t('admin.dashboard.eventLeaderboardTitle')}
+              subtitle={t('admin.dashboard.eventLeaderboardSubtitle')}
+              items={eventLeaderboard.items}
+              navigateSection="events"
+              onNavigate={onNavigate}
+              t={t}
+              renderItem={(event) => (
+                <li key={event.id} className="admin-ops__leaderboard-item">
+                  <span className="admin-ops__leaderboard-title">{event.title}</span>
+                  <span className="admin-ops__leaderboard-value">
+                    {event.registered}/{event.slots} · {event.fillPercent}%
+                  </span>
+                  <span className="admin-ops__leaderboard-bar">
+                    <span style={{ width: `${event.fillPercent}%` }} />
+                  </span>
+                </li>
+              )}
+            />
+            <LeaderboardCard
+              eyebrow={t('admin.dashboard.topGymsEyebrow')}
+              title={t('admin.dashboard.topGymsTitle')}
+              subtitle={t('admin.dashboard.topGymsSubtitle')}
+              items={topGyms.items}
+              navigateSection="athletes"
+              onNavigate={onNavigate}
+              t={t}
+              renderItem={(gym, index) => (
+                <li
+                  key={gym.gym}
+                  className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
+                >
+                  <span className="admin-ops__leaderboard-rank">{index + 1}</span>
+                  <span className="admin-ops__leaderboard-title">{gym.gym}</span>
+                  <span className="admin-ops__leaderboard-value">{gym.count}</span>
+                </li>
+              )}
+            />
           </div>
 
           <SpotlightInline

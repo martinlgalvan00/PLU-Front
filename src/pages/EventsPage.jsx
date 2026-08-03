@@ -4,6 +4,7 @@ import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Button from '../components/ui/Button.jsx'
+import CompetitionMap from '../components/ui/CompetitionMap.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
@@ -316,6 +317,18 @@ export default function EventsPage({
     setCalendarFocus(event.dateISO)
   }
 
+  function focusEventFromHero(event) {
+    if (event?.featured) {
+      onNavigate('pitbull')
+      return
+    }
+
+    focusEvent(event)
+    window.requestAnimationFrame(() => {
+      document.querySelector('.events-page__body')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
   const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
 
@@ -325,6 +338,31 @@ export default function EventsPage({
       return
     }
     onSelectEvent?.(event)
+  }
+
+  function resolveMapPrimaryAction(event) {
+    if (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados') {
+      return {
+        label: registerLabel,
+        onClick: () => handleRegister(event),
+      }
+    }
+
+    if (event.status === 'finalizado') {
+      return {
+        label: t('pages.home.viewResults'),
+        onClick: () => onNavigate('results'),
+      }
+    }
+
+    if (event.slug === pitbull?.slug) {
+      return {
+        label: t('pages.events.viewFull'),
+        onClick: () => onNavigate('pitbull'),
+      }
+    }
+
+    return null
   }
 
   const visibleEventCount = listEvents.length + (showPitbull && pitbull ? 1 : 0)
@@ -337,6 +375,29 @@ export default function EventsPage({
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref">
       <PluPageHero
+        aside={
+          nextEvent ? (
+            <div className="events-hero-dossier">
+              <div className="events-hero-dossier__head">
+                <span>{t('pages.events.nextMeet')}</span>
+                <EventStatusBadge status={nextEvent.status} t={t} />
+              </div>
+              <p className="events-hero-dossier__date">{nextEvent.displayDate ?? nextEvent.date}</p>
+              <h2>{nextEvent.title}</h2>
+              <p className="events-hero-dossier__place">
+                {[nextEvent.venue, nextEvent.location].filter(Boolean).join(' · ')}
+              </p>
+              <button
+                className="events-hero-dossier__link motion-icon-shift"
+                onClick={() => focusEventFromHero(nextEvent)}
+                type="button"
+              >
+                {t('pages.events.viewFull')}
+                <ArrowRight aria-hidden className="motion-icon-shift__target" size={15} />
+              </button>
+            </div>
+          ) : null
+        }
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
         chapter={t('pages.events.heroChapter')}
         description={t('pages.events.heroDesc')}
@@ -360,6 +421,14 @@ export default function EventsPage({
             {eventCountLabel}
           </span>
         </div>
+        <CompetitionMap
+          className="events-page__competition-map"
+          events={filteredEvents}
+          featuredEventId={nextEvent?.slug}
+          onSelectEvent={focusEvent}
+          resolvePrimaryAction={resolveMapPrimaryAction}
+          selectedEventId={selected?.slug}
+        />
         <div className="events-layout-v2">
           <MotionContentSwap swapKey={filter} className="events-main-column">
             {showPitbull && pitbull && (

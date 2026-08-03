@@ -18,9 +18,10 @@ Este proyecto usa **agent skills** internas en [`/agent-skills`](./agent-skills/
 |-------|-----|
 | `project-bootstrap` | Inicializar, instalar, validar build |
 | `business-analysis` | Reglas de negocio y backlog |
+| `plu-frontend-design` | Autoridad visual: elegancia, minimalismo, marca, método y evidencia |
 | `design-system-plu` | CSS y componentes visuales |
 | `design-upgrade` | Mejora visual, UX, responsive y QA por pantalla |
-| `design-ux-ui` | Refinar sección concreta: CSS moderno, dock, editorial, glass |
+| `design-ux-ui` | Refinar sección concreta: CSS moderno, navegación y composición editorial |
 | `motion-premium` | Motion de presencia: credencial, TiltCard, stagger, settle |
 | `auth-rbac` | Roles y permisos |
 | `database-modeling` | Prisma schema y migraciones |

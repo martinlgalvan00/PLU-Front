@@ -3,13 +3,19 @@
 Fecha: 2026-08-02 · Rama: `dev` · Alcance: alta de atleta, afiliación, cobro (Mercado Pago
 y transferencia), generación y verificación de credencial QR, y trazabilidad desde el panel.
 
+> **Estado: todos los hallazgos de este informe están implementados.** Ver
+> "Qué se implementó" al final para el mapeo hallazgo → cambio. El texto de cada
+> hallazgo se conserva en pasado porque es la evidencia de por qué se hizo cada
+> cambio.
+
 Método: lectura del código de `src/`, `server/`, `supabase/migrations/` y `prisma/`, más
 ejecución real de la suite de tests. No se ejecutó nada contra la base productiva; los
 hallazgos marcados como "verificar en DEV" son conclusiones del contrato del código que
 conviene confirmar contra Supabase antes de tocar nada.
 
-Estado de la suite: los 48 archivos / 230 tests del proyecto `default` pasan. `npm test`
-tal cual está hoy **no arranca** (ver B2).
+Estado de la suite al momento de la auditoría: los 48 archivos / 230 tests del proyecto
+`default` pasaban, pero `npm test` **no arrancaba** (ver B2). Después de los cambios:
+124 archivos / 450 tests en verde.
 
 ---
 
@@ -20,7 +26,8 @@ firmado, inbox durable con backoff, conciliación y registro global de `external
 El problema no está ahí. Está en los **bordes**: lo que el socio recibe después de pagar, lo
 que el operador puede ver y hacer desde el panel, y lo que queda registrado de todo eso.
 
-Hoy conviven tres cosas que rompen la promesa de "que se registre todo correctamente":
+Al momento de la auditoría convivían tres cosas que rompían la promesa de "que se registre
+todo correctamente":
 
 1. La aprobación manual de pagos (transferencia) parece rota a nivel contrato de la RPC.
 2. La auditoría del panel es local del navegador, no la de la base — y la base sí tiene los
@@ -232,7 +239,46 @@ reenvío por email y rotación de token con auditoría.
 
 ---
 
-## Plan sugerido, en orden
+## Qué se implementó
+
+Migración `supabase/migrations/20260802120000_membership_audit_credential_hardening.sql`
+y el cableado de API/panel correspondiente.
+
+| Hallazgo | Cambio |
+|---|---|
+| B1 | `approve_athlete_payment_order(uuid, text)` sin `auth.uid()`, idempotente y auditada; se elimina la firma de un argumento. Contrato fijado en `tests/membershipAuditMigration.test.js`. |
+| B2 | `.storybook/main.js` y `preview.jsx` restaurados desde `6a7f54b^`. `npm test` vuelve a correr los tres proyectos. |
+| A3 | `GET /api/audit` + `/facets` (`server/routes/audit.js`, `server/modules/audit/supabaseAuditRepository.js`), sección `AuditSection`, pestaña de actividad del atleta (`AdminAthleteActivity`) y actividad reciente del resumen (`AdminRecentActivity`). Se retiró `auditLogs` de localStorage. |
+| A4 | `apply_mercado_pago_payment`, `approve_athlete_payment_order`, `expire_memberships` y `register_athlete_payment_proof` escriben en `domain_audit_logs` con actor y metadata. |
+| A5 | `paymentNotificationService` manda `affiliation_approved` con `memberCode` y vencimiento cuando la acreditación dejó la afiliación activa; `affiliation_started` queda de respaldo. |
+| A6 | `emailVerifiedAt` en el snapshot + `EmailVerificationBanner` con reenvío cableado a `POST /api/athletes/me/resend-verification`. |
+| A7 | `AthletePaymentOrdersSection` dentro de Finanzas, sobre `GET /api/athletes/admin/payment-orders`, con aprobación en línea y foco por `paymentId` desde la cola del resumen. |
+| A8 | Bucket `athlete-payment-proofs`, `register_athlete_payment_proof`, endpoints de subida/registro, subida desde el modal de transferencia y apertura firmada desde el panel. |
+| M9 | La proyección de credencial devuelve el check-in de la inscripción. |
+| M10 | `staff_get_membership_by_code_or_token` (solo `service_role`) expuesta en `GET /api/tickets/credentials/:code`; el scanner la usa con sesión de staff y cae a la pública sin ella. |
+| M11 | La proyección pública dejó de devolver `qr_token`. |
+| M12 | Pestaña Credencial en el detalle del atleta: QR, vigencia, token y reemisión (`staff_rotate_membership_qr_token`) detrás de `admin.memberships.write`. |
+
+### Validación
+
+- `npm run lint`: sin warnings nuevos.
+- `npm test`: 124 archivos, 450 tests, todo en verde (incluye el proyecto `storybook`).
+- `npm run build`: OK.
+- Tests nuevos: `membershipAuditMigration` (23), `api.audit` (8), `credentialScan` (11),
+  `adminAuditSection` (7), más los de `affiliation_approved` en `emailInfrastructure`.
+
+### Pendiente de verificación en DEV
+
+Nada de esto se ejecutó contra una base real. Antes de producción:
+
+1. `supabase db push --dry-run` y `supabase db push` con la migración nueva.
+2. Aprobar una transferencia de afiliación de punta a punta (era el bug B1).
+3. Confirmar que el bucket `athlete-payment-proofs` quedó privado.
+4. Un pago de Mercado Pago de prueba, verificando que llega `affiliation_approved`
+   con el código de socio y que quedan las filas de `domain_audit_logs`.
+
+## Plan original, en orden
+
 
 **Tanda 1 — destrabar (nada nuevo funciona hasta esto)**
 

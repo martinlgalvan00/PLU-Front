@@ -126,6 +126,16 @@
   box-shadow: none;
 }
 
+/* Antes quedaba sin superficie (fondo transparente, sin borde ni sombra) --
+   mismo criterio de card que ya se aplicó al dashboard: tinte real, borde
+   hairline y elevación en reposo, sin usar color de marca. */
+.admin-shell .admin-list-shell {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  box-shadow: var(--elevation-sm);
+}
+
 .admin-shell .btn,
 .admin-shell .export-btn {
   background: var(--admin-action);
@@ -187,8 +197,58 @@
 }
 
 .admin-shell .admin-list-section > .admin-filters--external.admin-filters--inline.admin-filters--compact {
-  border-bottom: 0;
-  padding: 2px 2px 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 10px 14px;
+  margin-bottom: 4px;
+  padding: 4px 2px 12px;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filters__count {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip {
+  background: transparent;
+  border-color: var(--admin-hairline);
+  border-radius: 999px;
+  font-size: 11.5px;
+  min-height: 32px;
+  padding: 5px 12px;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip:hover {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-hairline-strong, var(--admin-hairline));
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip.is-active,
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip[aria-pressed='true'] {
+  background: var(--admin-brand-soft);
+  border-color: var(--admin-brand-border);
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip__count {
+  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 1.4em;
+  padding: 2px 6px;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip.is-active .admin-filter-chip__count,
+.admin-shell .admin-list-section > .admin-filters--external .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
+  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
+  color: var(--admin-brand);
+  opacity: 1;
 }
 
 .admin-shell .admin-list-section > .admin-list-shell {
@@ -984,7 +1044,7 @@
     display: none;
   }
 
-  .admin-shell .admin-filters--compact .admin-filter-chip {
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
     min-height: 32px;
     padding-inline: 9px;
   }
@@ -1312,8 +1372,13 @@
   gap: 0;
 }
 
-/* Segmented control: tipografía + underline, sin pills ni checks. */
-.admin-shell .admin-filters--compact .admin-filter-chips {
+/* Segmented control: tipografía + underline, sin pills ni checks.
+   `:is()` cubre las dos formas en que "compacto" llega al chip -- envuelto en
+   AdminFilterBar (clase `admin-filters--compact` en el padre) o AdminFilterChipGroup
+   usado directo con la prop `compact` (clase `admin-filter-group--compact` en su
+   propia raíz). Antes solo cubría el primer caso, así que Finanzas y Órdenes de
+   atleta quedaban con el pill con borde de admin.css en vez de este tratamiento. */
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips {
   align-items: stretch;
   border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
   display: flex;
@@ -1323,7 +1388,7 @@
   width: 100%;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -1343,7 +1408,7 @@
     background var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip::after {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip::after {
   background: transparent;
   bottom: -1px;
   content: '';
@@ -1354,17 +1419,17 @@
   transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip__indicator {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__indicator {
   display: none;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip:hover {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip:hover {
   background: transparent;
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip.is-active,
-.admin-shell .admin-filters--compact .admin-filter-chip[aria-pressed='true'] {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active,
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true'] {
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -1373,12 +1438,12 @@
   transform: none;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip.is-active::after,
-.admin-shell .admin-filters--compact .admin-filter-chip[aria-pressed='true']::after {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active::after,
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true']::after {
   background: var(--admin-brand);
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip__count {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__count {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -1392,19 +1457,19 @@
   padding: 0;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip.is-active .admin-filter-chip__count,
-.admin-shell .admin-filters--compact .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active .admin-filter-chip__count,
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
   color: var(--admin-text-secondary);
   opacity: 1;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip--zero .admin-filter-chip__label,
-.admin-shell .admin-filters--compact .admin-filter-chip__count.is-zero {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip--zero .admin-filter-chip__label,
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__count.is-zero {
   opacity: 0.42;
 }
 
-.admin-shell .admin-filters--compact .admin-filter-chip--zero.is-active .admin-filter-chip__label,
-.admin-shell .admin-filters--compact .admin-filter-chip--zero.is-active .admin-filter-chip__count {
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip--zero.is-active .admin-filter-chip__label,
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip--zero.is-active .admin-filter-chip__count {
   opacity: 0.75;
 }
 
@@ -3283,8 +3348,10 @@
    ============================================= */
 
 .admin-shell .admin-list-shell--events {
-  border-color: var(--admin-hairline);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
   border-radius: 14px;
+  box-shadow: var(--admin-shadow-soft, none);
   overflow: hidden;
   position: relative;
 }
@@ -3419,62 +3486,10 @@
   order: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-filter-chip {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  color: var(--admin-muted);
-  font-size: 12px;
-  font-weight: 500;
-  min-height: 34px;
-  padding: 6px 11px 8px;
-  position: relative;
-  transform: none;
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip::after {
-  background: transparent;
-  bottom: 0;
-  content: '';
-  height: 2px;
-  left: 10px;
-  position: absolute;
-  right: 10px;
-  transition: background var(--motion-fast) var(--ease-standard, ease);
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip__indicator {
-  display: none;
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip:hover {
-  background: transparent;
-  border-color: transparent;
-  color: var(--admin-ink);
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip.is-active,
-.admin-shell .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  color: var(--admin-ink);
-  font-weight: 600;
-  transform: none;
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip.is-active::after,
-.admin-shell .admin-list-shell--events .admin-filter-chip[aria-pressed='true']::after {
-  background: var(--admin-brand);
-}
-
-.admin-shell .admin-list-shell--events .admin-filter-chip.is-active .admin-filter-chip__count,
-.admin-shell .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
-  background: transparent;
-  color: var(--admin-muted);
-}
-
+/* El tratamiento del chip ya lo cubre el bloque `:is(.admin-filters--compact,
+   .admin-filter-group--compact)` de más arriba -- Eventos también pasa por
+   AdminListSection, que siempre pone `compact`. Esto solo queda para ocultar
+   la etiqueta "Estado", que sí es específico de esta variante. */
 .admin-shell .admin-list-shell--events .admin-filter-group__label {
   display: none;
 }

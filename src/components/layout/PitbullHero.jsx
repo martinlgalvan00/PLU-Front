@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import photoMedals from '../../assets/DSC01606.jpg'
+import photoPlatformCrew from '../../assets/DSC00286-display.jpg'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -15,6 +15,9 @@ function PitbullHeroPanel({
   date,
   venue,
   location,
+  registered,
+  registrationFee,
+  slots,
   ticketsOpen,
   t,
   title,
@@ -58,23 +61,37 @@ function PitbullHeroPanel({
         </Item>
 
         <Item {...itemProps}>
-          <p className="pitbull-hero-masthead__kicker">
-            <time dateTime="2026-12-12/2026-12-13">{date}</time>
-            <span aria-hidden> · </span>
-            <span>
-              {venue}
-              <span className="pitbull-hero-masthead__kicker-loc">
-                {' '}
-                · {location}
-              </span>
-            </span>
-          </p>
-        </Item>
-
-        <Item {...itemProps}>
           <p className="pitbull-hero-masthead__lead">{t('pages.pitbull.heroLead')}</p>
         </Item>
       </header>
+
+      <Item {...itemProps}>
+        <dl className="pitbull-hero-masthead__facts" aria-label={t('pages.pitbull.heroMetricsAria')}>
+          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--date">
+            <dt>{t('pages.pitbull.heroDate')}</dt>
+            <dd>
+              <time dateTime="2026-12-12/2026-12-13">{date}</time>
+            </dd>
+          </div>
+          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--venue">
+            <dt>{t('pages.pitbull.heroVenue')}</dt>
+            <dd>
+              {venue}
+              <span>{location}</span>
+            </dd>
+          </div>
+          <div className="pitbull-hero-masthead__fact">
+            <dt>{t('pages.pitbull.heroSlots')}</dt>
+            <dd>
+              {registered} <span>/ {slots}</span>
+            </dd>
+          </div>
+          <div className="pitbull-hero-masthead__fact pitbull-hero-masthead__fact--accent">
+            <dt>{t('pages.pitbull.heroFee')}</dt>
+            <dd>{registrationFee}</dd>
+          </div>
+        </dl>
+      </Item>
 
       <Item {...itemProps}>
         <div className="pitbull-hero-masthead__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
@@ -103,7 +120,7 @@ function PitbullHeroFrame() {
       <div className="pitbull-hero-masthead__frame-plate">
         <img
           className="pitbull-hero-masthead__frame-img"
-          src={photoMedals}
+          src={photoPlatformCrew}
           alt=""
           width={800}
           height={1200}
@@ -126,6 +143,9 @@ export default function PitbullHero({
   date,
   venue,
   location,
+  registered,
+  registrationFee,
+  slots,
   ticketsOpen,
   title,
 }) {
@@ -142,6 +162,9 @@ export default function PitbullHero({
       date={date}
       venue={venue}
       location={location}
+      registered={registered}
+      registrationFee={registrationFee}
+      slots={slots}
       ticketsOpen={ticketsOpen}
       t={t}
       title={title}

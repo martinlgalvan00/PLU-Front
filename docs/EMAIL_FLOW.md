@@ -45,8 +45,8 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 | `email_verification` | Registro + `POST /api/athletes/me/resend-verification` | no (crítico) |
 | `password_reset` | `POST /api/athletes/forgot-password` | no (crítico) |
 | `security_access` | Alta de cuenta de seguridad | no (crítico) |
-| `affiliation_started` | Pago de membresía acreditado | no |
-| `affiliation_approved` | Aprobación manual de la orden | no |
+| `affiliation_started` | Pago de membresía acreditado que no dejó afiliación activa | no |
+| `affiliation_approved` | Afiliación activada, por Mercado Pago o aprobación manual | no |
 | `membership_renewal` | Job de renovación (30/7/1/0 días) | sí |
 | `payment_approved` | Pago acreditado | no |
 | `payment_receipt` | Pago acreditado (comprobante) | no (crítico) |

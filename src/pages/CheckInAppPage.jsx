@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import '../styles/pages/admin.css'
+import '../styles/pages/checkin-app.css'
 import {
   CalendarDays,
   CheckCircle2,

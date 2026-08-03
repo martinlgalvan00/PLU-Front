@@ -7,7 +7,7 @@ insert into public.events (
   status, published, price, currency,
   ticket_sales_opens_at, ticket_sales_closes_at
 ) values (
-  'pitbull-classic-2026', 'Pitbull Classic', 'Maximal Strength Club', 'Buenos Aires',
+  'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
   'proximamente', true, 45000, 'ARS',
   '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03'

@@ -174,38 +174,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
           : t('login.subtitle')
 
   return (
-    <main className="page login-page--design login-page--editorial">
-      <div className="login-shell login-shell--editorial">
-        <aside className="login-brand" aria-label={t('login.brandAria')}>
-          <div className="login-brand__logos">
-            <BrandLogo variant="argentina" imgClassName="login-brand__emblem" height={64} />
-            <span className="login-brand__logos-rule" aria-hidden />
-            <div className="login-brand__wordmark">
-              <BrandLogo variant="letterhead" imgClassName="login-brand__logo" height={42} />
-              <span className="login-brand__lockup">{t('brand.federationLine')}</span>
-            </div>
+    <main className="page auth-immersive-page">
+      <div className="auth-immersive-glass" aria-labelledby="login-heading">
+        <header className="auth-immersive-glass__header">
+          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={42} />
+          <div>
+            <h1 id="login-heading" className="auth-immersive-glass__title">{cardTitle}</h1>
+            <p className="auth-immersive-glass__lead">{cardLead}</p>
           </div>
-
-          <div className="login-brand__intro">
-            <span className="login-brand__eyebrow">{t('login.eyebrow')}</span>
-            <h1 className="login-brand__title">{cardTitle}</h1>
-            <p className="login-brand__desc">{cardLead}</p>
-          </div>
-
-          <p className="login-brand__secure">{t('login.secureNote')}</p>
-        </aside>
-
-        <section className="login-card login-card--editorial" aria-labelledby="login-heading">
-          <span className="login-card__stripe" aria-hidden />
-          <header className="login-card__header">
-            <div className="login-card__logos">
-              <BrandLogo variant="argentina" imgClassName="login-card__emblem" height={40} />
-              <BrandLogo variant="letterhead" imgClassName="login-card__logo" height={28} />
-            </div>
-            <span className="login-card__eyebrow">{t('login.eyebrow')}</span>
-            <h1 id="login-heading">{cardTitle}</h1>
-            <p className="login-card__lead">{cardLead}</p>
-          </header>
+        </header>
 
           {mode === 'login' && (
             <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
@@ -436,15 +413,14 @@ export default function LoginPage({ onLogin, onNavigate }) {
               </button>
             </p>
           )}
-        </section>
-      </div>
-
-      <p className="login-page__footer">
-        {t('login.footerNote')} ·{' '}
-        <button type="button" onClick={() => onNavigate('home')}>
-          {t('login.backToSite')}
-        </button>
-      </p>
+        </div>
+        
+        <p className="login-page__footer" style={{ position: 'absolute', bottom: '24px', left: 0, right: 0, textAlign: 'center', zIndex: 20 }}>
+          {t('login.footerNote')} ·{' '}
+          <button type="button" onClick={() => onNavigate('home')} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>
+            {t('login.backToSite')}
+          </button>
+        </p>
     </main>
   )
 }

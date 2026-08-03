@@ -25,7 +25,9 @@ export function normalizeStoredData(data) {
     createdOrder: data.createdOrder
       ? normalizeEntity(data.createdOrder, ['status'])
       : data.createdOrder,
-    auditLogs: data.auditLogs ?? [],
+    // `auditLogs` salió de acá: la bitácora vive en `domain_audit_logs` y se
+    // lee por /api/audit. Guardarla en el navegador daba un historial por
+    // dispositivo que no coincidía con lo ocurrido en la base.
     adminEvents: data.adminEvents ?? [],
     shopProducts: data.shopProducts ?? [],
   }

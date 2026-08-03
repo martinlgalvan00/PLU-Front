@@ -11,7 +11,6 @@
 @import './effects.css';
 @import './layout/header.css';
 @import './performance.css';
-@import './layout/admin-shell.css';
 @import './layout/sections.css';
 @import './components/buttons.css';
 @import './components/cards.css';
@@ -25,11 +24,8 @@
 @import './components/segmented-switch.css';
 @import './pages/home.css';
 @import './pages/page.css';
-@import './pages/admin.css';
-@import './pages/checkin-app.css';
 @import './pages/register.css';
 @import './pages/design-phase2.css';
-@import './pages/account.css';
 @import './pages/rulebook.css';
 @import './pages/faq.css';
 @import './pages/results.css';
@@ -44,13 +40,9 @@
 @import url('/src/styles/pages/members.css');
 @import './layout/design-page-notebook.css';
 @import url('/src/styles/components/event-share-card.css');
-@import url('/src/styles/pages/credential.css');
 @import url('/src/styles/components/ticket-purchase.css');
 @import url('/src/styles/components/ticket-pass-preview.css');
 @import url('/src/styles/components/home-membership-artifacts.css');
-@import url('/src/styles/pages/admin-institutional.css');
-@import url('/src/styles/pages/admin-minimal.css');
-@import url('/src/styles/pages/admin-dashboard-bento.css');
 @import url('/src/styles/layout/institutional-shell.css');
 @import url('/src/styles/pages/institutional-pages.css');
 @import './themes/dark-atmosphere.css';

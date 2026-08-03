@@ -31,6 +31,9 @@ export default function DetailTabs({ tabs, activeTab, onChange, variant = 'defau
                 {tab.count}
               </span>
             ) : null}
+            {tab.hasError ? (
+              <span className="detail-tabs__error-dot" aria-hidden />
+            ) : null}
           </button>
         )
       })}

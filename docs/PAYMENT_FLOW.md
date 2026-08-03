@@ -63,6 +63,14 @@ contrato de aplicación fuera de sincronía. La versión de integridad vigente e
 organización, registro global de IDs externos, asociación orden-plan, snapshot
 económico de suscripciones y preparación/cobro recurrente atómicos.
 
+Sobre esa base, `20260802120000_membership_audit_credential_hardening.sql` corrige
+la aprobación manual —dejó de decidir permisos con `auth.uid()`, que con
+`service_role` siempre daba falso y hacía imposible acreditar una
+transferencia—, audita todo el ciclo de cobro en `domain_audit_logs`
+(acreditación, activación, revocación, vencimiento, comprobante) y separa la
+proyección de credencial en dos: la pública sin PII ni `qr_token` y una de staff
+con documento.
+
 Antes del despliegue se revisa el historial y se hace un dry run:
 
 ```bash

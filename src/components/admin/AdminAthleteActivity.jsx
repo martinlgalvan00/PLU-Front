@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AuditTimeline from '../ui/AuditTimeline.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { auditLabels } from '../../i18n/adminHelpers.js'
 import { fetchAuditEntries, relatedEntityIds } from '../../services/auditService.js'
 
 /**
@@ -21,7 +22,7 @@ export default function AdminAthleteActivity({
   registrations = [],
   payments = [],
 }) {
-  const { locale, t } = useI18n()
+  const { locale, messages, t } = useI18n()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -57,33 +58,24 @@ export default function AdminAthleteActivity({
     }
   }, [entityIds, t])
 
+  const labels = useMemo(() => auditLabels(messages), [messages])
+
   const items = useMemo(
     () =>
-      entries.map((entry) => {
-        const actionKey = `admin.audit.actions.${entry.action}`
-        const actorKey = `admin.audit.actors.${entry.actorType}`
-        const actionLabel = t(actionKey)
-        const actorLabel = t(actorKey)
-
-        return {
-          id: entry.id,
-          action: actionLabel === actionKey ? entry.action : actionLabel,
-          actor: actorLabel === actorKey ? entry.actorType : actorLabel,
-          detail: entry.summary
-            .map(({ field, value }) => {
-              const fieldKey = `admin.audit.fields.${field}`
-              const fieldLabel = t(fieldKey)
-              return `${fieldLabel === fieldKey ? field : fieldLabel}: ${value}`
-            })
-            .join(' · '),
-          createdAt: entry.createdAt,
-          createdAtLabel: new Date(entry.createdAt).toLocaleString(
-            locale === 'en' ? 'en-US' : 'es-AR',
-            { dateStyle: 'short', timeStyle: 'short' },
-          ),
-        }
-      }),
-    [entries, locale, t],
+      entries.map((entry) => ({
+        id: entry.id,
+        action: labels.action(entry.action),
+        actor: labels.actor(entry.actorType),
+        detail: entry.summary
+          .map(({ field, value }) => `${labels.field(field)}: ${value}`)
+          .join(' · '),
+        createdAt: entry.createdAt,
+        createdAtLabel: new Date(entry.createdAt).toLocaleString(
+          locale === 'en' ? 'en-US' : 'es-AR',
+          { dateStyle: 'short', timeStyle: 'short' },
+        ),
+      })),
+    [entries, labels, locale],
   )
 
   if (loading) return <p className="data-table__empty">{t('admin.audit.loading')}</p>

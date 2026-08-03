@@ -15,6 +15,7 @@ import {
   Trophy,
   UsersRound,
   X,
+  User,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
 import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
@@ -467,11 +468,37 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
           <div className="plu-global-nav__actions">
             <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
             {session ? (
-              <div className="plu-global-nav__account">
-                <button type="button" className="plu-global-nav__profile" aria-label={sessionFullName} title={sessionFullName} onClick={() => go(adminSession ? 'admin' : 'profile')}>
+              <div className="plu-global-nav__account" onMouseLeave={() => setDropdown(null)}>
+                <button type="button" className={`plu-global-nav__profile${dropdown === 'profile' ? ' is-active' : ''}`} aria-expanded={dropdown === 'profile'} onClick={() => setDropdown(current => current === 'profile' ? null : 'profile')}>
                   <span aria-hidden>{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</span>
                 </button>
-                <button type="button" className="plu-global-nav__logout" aria-label={t('nav.logout')} title={t('nav.logout')} onClick={onLogout}><LogOut size={15} aria-hidden /></button>
+                <AnimatePresence>
+                  {dropdown === 'profile' && (
+                    <m.div 
+                      className="plu-profile-menu"
+                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985, filter: 'blur(3px)' }}
+                      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: 4, scale: 0.995, filter: 'blur(1px)', transition: { duration: 0.14 } }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <div className="plu-profile-menu__header">
+                        <div className="plu-profile-menu__avatar">{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</div>
+                        <div className="plu-profile-menu__info">
+                          <p className="plu-profile-menu__name">{sessionFullName}</p>
+                          <p className="plu-profile-menu__role">{adminSession ? 'Administrador' : 'Atleta Oficial'}</p>
+                        </div>
+                      </div>
+                      <div className="plu-profile-menu__actions">
+                        <button type="button" onClick={() => go(adminSession ? 'admin' : 'profile')}>
+                          <User size={14} aria-hidden /> {t('nav.myProfile', { defaultValue: 'Mi Perfil' })}
+                        </button>
+                        <button type="button" onClick={onLogout} className="plu-profile-menu__logout">
+                          <LogOut size={14} aria-hidden /> {t('nav.logout')}
+                        </button>
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <button
@@ -544,11 +571,11 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               role="dialog"
               aria-modal="true"
               aria-label={t('nav.mobileMenu')}
-              initial={reducedMotion ? { opacity: 0 } : { opacity: 0.85, scale: 0.995, x: '100%' }}
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 0.85, scale: 0.995, x: '105%' }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={reducedMotion
                 ? { opacity: 0, transition: { duration: 0.01 } }
-                : { opacity: 0, x: '100%', transition: { duration: 0.26, ease: [0.76, 0, 0.24, 1] } }}
+                : { opacity: 0, x: '105%', transition: { duration: 0.26, ease: [0.76, 0, 0.24, 1] } }}
               transition={{ duration: reducedMotion ? 0.01 : 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
             <m.header

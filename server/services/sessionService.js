@@ -29,7 +29,14 @@ function secureCookieEnabled(env = process.env) {
 export function getSessionCookieOptions(env = process.env) {
   return {
     httpOnly: true,
-    sameSite: 'lax',
+    // 'strict' y no 'lax': esta cookie abre el panel operativo, y con 'lax'
+    // viaja en cualquier navegación top-level entrante (un link en un mail, un
+    // posteo), que es la ventana que aprovecha un CSRF por navegación.
+    //
+    // No rompe el acceso por link porque el frontend es una SPA: la navegación
+    // inicial solo trae index.html -- no necesita la cookie -- y el `fetch` de
+    // /api/auth/me que corre después ya es same-site y sí la manda.
+    sameSite: 'strict',
     secure: secureCookieEnabled(env),
     path: '/',
     maxAge: SESSION_DURATION_MS,
@@ -125,4 +132,21 @@ export async function revokeSession({ prisma, token, now = new Date() }) {
     where: { tokenHash: hashToken(token), revokedAt: null },
     data: { revokedAt: now },
   })
+}
+
+/**
+ * Corta todas las sesiones abiertas de un usuario. Se usa al cambiarle el rol:
+ * los permisos se resuelven al leer la sesión, así que sin esto el usuario
+ * sigue operando con la matriz vieja hasta que su cookie venza -- hasta 8 horas
+ * de más para alguien a quien justamente se le acaban de recortar permisos.
+ */
+export async function revokeSessionsForUser({ prisma, userId, now = new Date() }) {
+  if (!userId || typeof prisma.session?.updateMany !== 'function') return 0
+
+  const result = await prisma.session.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: now },
+  })
+
+  return result?.count ?? 0
 }

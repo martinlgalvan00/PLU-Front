@@ -11,9 +11,20 @@ export default defineConfig({
   test: {
     projects: [{
       extends: true,
+      // Sin esto, los .jsx de src/ que renderiza un test se transforman con el
+      // runtime clásico y fallan con "React is not defined".
+      esbuild: {
+        jsx: 'automatic'
+      },
       test: {
         name: 'default',
         environment: 'jsdom',
+        // Los tests de API montan la app y hacen bcrypt de coste 12 (~250 ms
+        // por hash, varios por test). Con el default de 5 s pasaban solos pero
+        // caían por timeout al competir con el proyecto `storybook`, que corre
+        // en paralelo sobre un Chromium headless. El límite acompaña el coste
+        // real del hashing en vez de depender de cuán cargada esté la máquina.
+        testTimeout: 20000,
         include: ['tests/**/*.test.{js,jsx}', 'src/**/*.test.{js,jsx}'],
         exclude: ['tests/integration/**']
       }

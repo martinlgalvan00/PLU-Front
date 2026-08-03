@@ -9,7 +9,7 @@ import {
   ACCESS_ROLE_INCLUDE,
   resolveAssignableRole,
 } from '../services/accessControlService.js'
-import { serializeUser } from '../services/sessionService.js'
+import { revokeSessionsForUser, serializeUser } from '../services/sessionService.js'
 
 // Los roles configurables conservan uno de estos roles base para Auth y las
 // integraciones existentes. Seguridad se administra por evento en /api/auth.
@@ -165,6 +165,10 @@ export function createUserRoutes({ getPrisma }) {
           beforeRoleKey,
           afterRoleKey: accessRole.key,
         })
+
+        // El rol nuevo tiene que valer ya: se cortan las sesiones abiertas del
+        // usuario para que su próximo request se resuelva con la matriz nueva.
+        await revokeSessionsForUser({ prisma: prismaClient, userId: target.id })
 
         res.json({
           user: serializeUser(updated.accessRole?.key ? updated : { ...updated, accessRole }),
