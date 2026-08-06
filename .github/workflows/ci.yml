@@ -85,5 +85,51 @@ jobs:
             echo "::error title=Lockfile desincronizado::package.json y package-lock.json no coinciden. Con Node $(cat .nvmrc): npm install && npm run lock:check && git add package-lock.json"
             exit 1
           fi
+      - name: Assert Supabase connectivity
+        run: npm run supabase:assert
       - run: npm run test:integration
       - run: npm run db:verify:payments
+
+  integrations-live:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          if ! npm ci; then
+            echo "::error title=Lockfile desincronizado::package.json y package-lock.json no coinciden. Con Node $(cat .nvmrc): npm install && npm run lock:check && git add package-lock.json"
+            exit 1
+          fi
+      - name: Require live integration secrets
+        env:
+          MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${MERCADO_PAGO_ACCESS_TOKEN:-}" ]] || missing+=("MERCADO_PAGO_ACCESS_TOKEN")
+          [[ -n "${BREVO_API_KEY:-}" ]] || missing+=("BREVO_API_KEY")
+          [[ -n "${BREVO_SENDER_EMAIL:-}" ]] || missing+=("BREVO_SENDER_EMAIL")
+          if ((${#missing[@]})); then
+            echo "::error title=Secrets faltantes::Cargá en GitHub Secrets: ${missing[*]}"
+            exit 1
+          fi
+      - name: Mercado Pago connectivity
+        env:
+          MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}
+        run: npm run mercado-pago:doctor
+      - name: Brevo connectivity
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+        run: npm run email:doctor

@@ -1,7 +1,9 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { createConnection } from 'node:net'
-import { dirname, resolve } from 'node:path'
+import os from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
@@ -10,6 +12,16 @@ const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
 const prismaCli = resolve(projectRoot, 'node_modules/prisma/build/index.js')
 const supabaseCli = resolve(projectRoot, 'node_modules/supabase/dist/supabase.js')
+const requireFromScript = createRequire(import.meta.url)
+
+const SUPABASE_CLI_PLATFORMS = {
+  darwin: { arm64: ['darwin-arm64'], x64: ['darwin-x64'] },
+  linux: {
+    arm64: ['linux-arm64', 'linux-arm64-musl'],
+    x64: ['linux-x64', 'linux-x64-musl'],
+  },
+  win32: { arm64: ['windows-arm64'], x64: ['windows-x64'] },
+}
 
 export const REQUIRED_ENVIRONMENT = [
   'SUPABASE_URL',
@@ -26,6 +38,47 @@ export function findMissingEnvironment(env = process.env) {
 
 export function parsePendingMigrations(output = '') {
   return [...output.matchAll(/[•]\s+(\d{14}_[^\r\n]+\.sql)/g)].map((match) => match[1])
+}
+
+export function scrubSecrets(value = '') {
+  return String(value)
+    .replace(/postgresql:\/\/[^\s"'`]+/gi, 'postgresql://***')
+    .replace(/postgres:\/\/[^\s"'`]+/gi, 'postgres://***')
+}
+
+export function isRetryableSpawnError(errorOrOutput = '') {
+  const text =
+    typeof errorOrOutput === 'string'
+      ? errorOrOutput
+      : `${errorOrOutput?.message ?? ''}\n${errorOrOutput?.code ?? ''}\n${errorOrOutput?.syscall ?? ''}`
+  return /uv_spawn|EUNKNOWN|UNKNOWN.*spawn/i.test(text)
+}
+
+export function shouldSkipMigrations(env = process.env) {
+  return /^(1|true|yes)$/i.test(String(env.BOOTSTRAP_SKIP_MIGRATIONS ?? '').trim())
+}
+
+export function resolveSupabaseBinary({
+  platform = process.platform,
+  arch = os.arch(),
+  env = process.env,
+} = {}) {
+  if (env.SUPABASE_CLI_BINARY_OVERRIDE?.trim()) return env.SUPABASE_CLI_BINARY_OVERRIDE.trim()
+
+  const candidates = SUPABASE_CLI_PLATFORMS[platform]?.[arch]
+  if (!candidates) return null
+
+  const ext = platform === 'win32' ? '.exe' : ''
+  for (const suffix of candidates) {
+    try {
+      const pkgPath = dirname(requireFromScript.resolve(`@supabase/cli-${suffix}/package.json`))
+      const binary = join(pkgPath, 'bin', `supabase${ext}`)
+      if (existsSync(binary)) return binary
+    } catch {
+      // optional dependency ausente en esta plataforma
+    }
+  }
+  return null
 }
 
 export function assertBrowserKeyIsPublic(key) {
@@ -64,24 +117,46 @@ function heading(message) {
   console.log(`\n=== ${message} ===`)
 }
 
-function run(command, args, { capture = false, env = process.env } = {}) {
-  const result = spawnSync(command, args, {
-    cwd: projectRoot,
-    env,
-    encoding: 'utf8',
-    stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-  })
+function describeCommand(command, args) {
+  return scrubSecrets([command, ...args].join(' '))
+}
 
-  if (result.error) throw result.error
+function run(command, args, { capture = false, env = process.env, retries = 0 } = {}) {
+  let attempt = 0
+  let lastFailure
 
-  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
-  if (capture && output.trim()) process.stdout.write(output)
+  while (attempt <= retries) {
+    const result = spawnSync(command, args, {
+      cwd: projectRoot,
+      env,
+      encoding: 'utf8',
+      stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    })
 
-  if (result.status !== 0) {
-    throw new Error(`Falló: ${args.join(' ')} (exit ${result.status ?? 'desconocido'}).`)
+    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
+    if (capture && output.trim()) process.stdout.write(scrubSecrets(output))
+
+    if (!result.error && result.status === 0) return output
+
+    const failureText = result.error
+      ? `${result.error.message}\n${result.error.code ?? ''}`
+      : output || `exit ${result.status ?? 'desconocido'}`
+    lastFailure = result.error ?? new Error(failureText)
+
+    if (attempt < retries && isRetryableSpawnError(failureText)) {
+      attempt += 1
+      console.warn(`Reintento ${attempt}/${retries} tras fallo intermitente del CLI…`)
+      continue
+    }
+
+    throw new Error(
+      scrubSecrets(
+        `Falló: ${describeCommand(command, args)} (exit ${result.status ?? 'desconocido'}). ${failureText.split('\n')[0]}`,
+      ),
+    )
   }
 
-  return output
+  throw lastFailure
 }
 
 function runNode(script, args = [], options) {
@@ -92,8 +167,11 @@ function runPrisma(args, options) {
   return runNode(prismaCli, args, options)
 }
 
-function runSupabase(args, options) {
-  return runNode(supabaseCli, args, options)
+function runSupabase(args, options = {}) {
+  const binary = resolveSupabaseBinary()
+  const retries = options.retries ?? 2
+  if (binary) return run(binary, args, { ...options, retries })
+  return runNode(supabaseCli, args, { ...options, retries })
 }
 
 function ensureFilesExist() {
@@ -130,13 +208,18 @@ function loadEnvironment() {
   process.env.DATABASE_URL = buildPrismaDatabaseUrl(process.env.SUPABASE_DATABASE_URL)
 }
 
-function setupPrisma() {
+function setupPrisma({ skipMigrations = false } = {}) {
   heading('Supabase PostgreSQL: Prisma (schema plu_prisma)')
   console.log('Prisma usa Supabase remoto; Docker no es necesario.')
 
   runPrisma(['validate'])
   runPrisma(['generate'])
-  runPrisma(['migrate', 'deploy'])
+
+  if (skipMigrations) {
+    console.log('Migraciones Prisma omitidas (BOOTSTRAP_SKIP_MIGRATIONS=1).')
+  } else {
+    runPrisma(['migrate', 'deploy'])
+  }
 
   if (process.env.SEED_ADMIN_EMAIL?.trim() && process.env.SEED_ADMIN_PASSWORD) {
     runNode(resolve(projectRoot, 'prisma/seed.js'))
@@ -145,8 +228,13 @@ function setupPrisma() {
   }
 }
 
-function setupSupabase() {
+function setupSupabase({ skipMigrations = false } = {}) {
   heading('Supabase remoto: migraciones transaccionales')
+  if (skipMigrations) {
+    console.log('Migraciones Supabase omitidas (BOOTSTRAP_SKIP_MIGRATIONS=1).')
+    return
+  }
+
   const dryRun = runSupabase([
     'db',
     'push',
@@ -307,11 +395,12 @@ async function startDevelopment() {
 
 export async function main(args = process.argv.slice(2)) {
   const shouldStart = args.includes('--start')
+  const skipMigrations = shouldSkipMigrations()
   ensureFilesExist()
   loadEnvironment()
   await assertPortsAvailable(shouldStart)
-  setupPrisma()
-  setupSupabase()
+  setupPrisma({ skipMigrations })
+  setupSupabase({ skipMigrations })
   await verifySupabase()
   verifyPayments()
 
@@ -323,7 +412,7 @@ const currentFile = resolve(fileURLToPath(import.meta.url))
 const executedFile = process.argv[1] ? resolve(process.argv[1]) : ''
 if (currentFile === executedFile) {
   main().catch((error) => {
-    console.error(`\nERROR: ${error.message}`)
+    console.error(`\nERROR: ${scrubSecrets(error.message)}`)
     process.exitCode = 1
   })
 }

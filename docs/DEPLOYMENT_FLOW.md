@@ -57,9 +57,20 @@ Todo PR hacia `dev` o `main` debe aprobar:
    - Supabase local limpio;
    - aplicación completa de migraciones y seed;
    - lint de schemas;
+   - assert de conectividad (`npm run supabase:assert`);
    - tests de integración contra la base real;
    - smoke transaccional de pagos.
 3. Revisión humana y resolución de conversaciones.
+
+En `push` a `dev`/`main` (y `workflow_dispatch`) corre además `integrations-live`:
+
+- Secrets requeridos en el repo: `MERCADO_PAGO_ACCESS_TOKEN`, `BREVO_API_KEY`,
+  `BREVO_SENDER_EMAIL` (sandbox/DEV; no reutilizar prod si hay dos entornos).
+- `npm run mercado-pago:doctor` — valida el token contra `/users/me` (sin cobrar).
+- `npm run email:doctor` — valida API key y remitente Brevo (sin `--send`).
+
+El workflow `Deployment smoke` exige `/api/health` **y** `/api/ready`
+(`checks.prisma` + `checks.supabase`) sobre la URL del deploy.
 
 Las ejecuciones anteriores de la misma rama se cancelan cuando llega un commit
 nuevo. Si un push a `dev` también sincroniza el PR permanente `dev -> main`,
