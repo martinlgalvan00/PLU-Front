@@ -3,8 +3,11 @@ import {
   assertBrowserKeyIsPublic,
   buildPrismaDatabaseUrl,
   findMissingEnvironment,
+  isRetryableSpawnError,
   parsePendingMigrations,
   REQUIRED_ENVIRONMENT,
+  scrubSecrets,
+  shouldSkipMigrations,
 } from '../scripts/bootstrap-all.mjs'
 
 describe('bootstrap all', () => {
@@ -45,5 +48,24 @@ Would push these migrations:
     expect(() => buildPrismaDatabaseUrl('postgresql://user:pass@127.0.0.1:5433/local')).toThrow(
       /remoto de Supabase/,
     )
+  })
+
+  it('oculta connection strings en mensajes de error', () => {
+    const scrubbed = scrubSecrets(
+      'Falló: db push --db-url postgresql://postgres.project:secret@host:5432/postgres --dry-run',
+    )
+    expect(scrubbed).toContain('postgresql://***')
+    expect(scrubbed).not.toContain('secret')
+  })
+
+  it('detecta fallos intermitentes de spawn del CLI', () => {
+    expect(isRetryableSpawnError('EUNKNOWN: unknown error, uv_spawn')).toBe(true)
+    expect(isRetryableSpawnError('Remote database is up to date.')).toBe(false)
+  })
+
+  it('interpreta BOOTSTRAP_SKIP_MIGRATIONS', () => {
+    expect(shouldSkipMigrations({ BOOTSTRAP_SKIP_MIGRATIONS: '1' })).toBe(true)
+    expect(shouldSkipMigrations({ BOOTSTRAP_SKIP_MIGRATIONS: 'true' })).toBe(true)
+    expect(shouldSkipMigrations({ BOOTSTRAP_SKIP_MIGRATIONS: '' })).toBe(false)
   })
 })

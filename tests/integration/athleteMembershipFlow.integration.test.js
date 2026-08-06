@@ -36,7 +36,7 @@ function buildAthletePayload(suffix) {
   }
 }
 
-async function registerAthlete(baseUrl, suffix) {
+async function registerAthlete(baseUrl, suffix, { verifyEmail = false, admin } = {}) {
   const response = await fetch(`${baseUrl}/api/athletes/register`, {
     method: 'POST',
     headers: mutationHeaders,
@@ -48,6 +48,17 @@ async function registerAthlete(baseUrl, suffix) {
       `No se pudo registrar el atleta de prueba: ${response.status} ${JSON.stringify(body)}`,
     )
   }
+
+  // membership-orders exige email_verified_at (assertEmailVerified → 403).
+  if (verifyEmail) {
+    if (!admin) throw new Error('registerAthlete(verifyEmail) requiere el client admin.')
+    const { error } = await admin
+      .from('athletes')
+      .update({ email_verified_at: new Date().toISOString() })
+      .eq('id', body.athlete.id)
+    if (error) throw new Error(`No se pudo verificar el email de prueba: ${error.message}`)
+  }
+
   return { athlete: body.athlete, cookie: sessionCookie(response) }
 }
 
@@ -78,7 +89,10 @@ describe('flujo de atleta: idempotencia de orden y aislamiento entre atletas', (
   it('create_membership_order_v2 es idempotente: la misma clave no duplica la orden', async () => {
     const target = listen(createApp({ supabaseAdmin }))
     try {
-      const { athlete, cookie } = await registerAthlete(target.url, 1)
+      const { athlete, cookie } = await registerAthlete(target.url, 1, {
+        verifyEmail: true,
+        admin: supabaseAdmin,
+      })
       createdAthleteIds.push(athlete.id)
 
       const idempotencyKey = randomUUID()
@@ -90,7 +104,7 @@ describe('flujo de atleta: idempotencia de orden y aislamiento entre atletas', (
         body: JSON.stringify(payload),
       })
       const firstBody = await first.json()
-      expect(first.status).toBe(201)
+      expect(first.status, JSON.stringify(firstBody)).toBe(201)
 
       const second = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -98,7 +112,7 @@ describe('flujo de atleta: idempotencia de orden y aislamiento entre atletas', (
         body: JSON.stringify(payload),
       })
       const secondBody = await second.json()
-      expect(second.status).toBe(201)
+      expect(second.status, JSON.stringify(secondBody)).toBe(201)
 
       expect(secondBody.order.id).toBe(firstBody.order.id)
 

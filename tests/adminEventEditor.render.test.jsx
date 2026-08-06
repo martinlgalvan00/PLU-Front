@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import AdminEventEditor from '../src/components/admin/AdminEventEditor.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
@@ -7,9 +7,8 @@ import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
 /**
  * Render real del editor (jsdom). Complementa a eventAdminService.test.js, que
  * cubre la lógica pura: acá se verifica que la reestructuración del editor
- * llegue efectivamente al DOM — que los dos cierres queden visibles sin abrir
- * ningún <details>, y que las claves de i18n nuevas existan de verdad (un
- * `t()` sin traducción devuelve la clave cruda y este test lo detecta).
+ * llegue efectivamente al DOM — tabs editoriales, cierres visibles en Ventas,
+ * y avisos de consistencia en Publicación.
  */
 beforeAll(() => {
   // jsdom no implementa IntersectionObserver, que el editor usa para resaltar
@@ -18,6 +17,12 @@ beforeAll(() => {
     observe() {}
     disconnect() {}
   }
+})
+
+afterEach(() => {
+  // Sin cleanup cada render se acumula en el body y aparecen tablists/dialogs
+  // duplicados (mismo patrón que adminAuditSection.test.jsx).
+  cleanup()
 })
 
 function renderEditor(overrides = {}, { sourceEvent = null } = {}) {
@@ -51,23 +56,32 @@ function renderEditor(overrides = {}, { sourceEvent = null } = {}) {
   )
 }
 
+function editorTablist() {
+  return screen.getByRole('tablist', { name: /secciones del detalle/i })
+}
+
+function activateEditorTab(name) {
+  fireEvent.click(within(editorTablist()).getByRole('tab', { name }))
+}
+
 describe('AdminEventEditor — estructura del formulario', () => {
-  it('muestra las cuatro secciones numeradas, sin bloques huérfanos', () => {
+  it('muestra las cuatro secciones como tabs editoriales', () => {
     renderEditor()
-    const nav = screen.getByRole('navigation', { name: /secciones del editor/i })
-    const items = within(nav).getAllByRole('button')
+    const items = within(editorTablist()).getAllByRole('tab')
 
     expect(items.map((item) => item.textContent)).toEqual([
-      '1Datos',
-      '2Ventas y cupos',
-      '3Publicación',
-      '4Operación',
+      'Datos',
+      'Ventas y cupos',
+      'Publicación',
+      'Operación',
     ])
   })
 
   it('expone inicio y fin como única fuente de fecha, sin un campo "Fecha" aparte', () => {
     renderEditor()
-    const basics = document.querySelector('#event-section-basics').closest('section')
+    const basics = within(
+      screen.getByRole('dialog', { name: /pitbull classic/i }),
+    ).getByRole('tabpanel', { name: /^datos$/i })
 
     expect(basics.querySelector('[name="startsAt"]')).not.toBeNull()
     expect(basics.querySelector('[name="endsAt"]')).not.toBeNull()
@@ -76,8 +90,9 @@ describe('AdminEventEditor — estructura del formulario', () => {
 
   // El motivo del rediseño: las dos palancas de cierre estaban a distinta
   // profundidad y una ni figuraba en la navegación.
-  it('deja los dos cierres visibles sin abrir ningún desplegable', () => {
+  it('deja los dos cierres visibles en Ventas sin abrir ningún desplegable', () => {
     renderEditor()
+    activateEditorTab(/ventas y cupos/i)
 
     const ids = ['#event-reg-opens', '#event-reg-closes', '#event-ticket-opens', '#event-ticket-closes']
     for (const id of ids) {
@@ -96,6 +111,7 @@ describe('AdminEventEditor — estructura del formulario', () => {
 
   it('agrupa el cupo de atletas junto a su ventana de inscripción', () => {
     renderEditor()
+    activateEditorTab(/ventas y cupos/i)
     const lane = document.querySelector('#event-section-sales .admin-event-form__lane')
 
     expect(lane.querySelector('[name="slots"]')).not.toBeNull()
@@ -106,12 +122,14 @@ describe('AdminEventEditor — estructura del formulario', () => {
 describe('AdminEventEditor — avisos de consistencia', () => {
   it('no muestra avisos cuando el estado coincide con la configuración', () => {
     renderEditor({ registrationClosesAt: '2099-01-01T00:00:00.000Z' })
+    activateEditorTab(/publicación/i)
 
     expect(screen.queryByText(/el estado público no coincide/i)).toBeNull()
   })
 
   it('avisa cuando el cupo está lleno y el estado sigue en inscripción abierta', () => {
     renderEditor({}, { sourceEvent: { registered: 120, slots: 120 } })
+    activateEditorTab(/publicación/i)
 
     expect(screen.getByText(/el estado público no coincide/i)).toBeDefined()
     expect(screen.getByText(/no quedan cupos/i)).toBeDefined()
@@ -119,6 +137,7 @@ describe('AdminEventEditor — avisos de consistencia', () => {
 
   it('avisa cuando la inscripción figura abierta con la ventana ya vencida', () => {
     renderEditor({ registrationClosesAt: '2020-01-01T00:00:00.000Z' })
+    activateEditorTab(/publicación/i)
 
     expect(screen.getByText(/la fecha de cierre ya pasó/i)).toBeDefined()
   })

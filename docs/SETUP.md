@@ -35,10 +35,20 @@ npm run dev
 
 # Opcional: sólo preparar/migrar/verificar, sin dejar servidores abiertos
 npm run setup:all
+
+# Día a día (DB ya migrada): saltea migrate/db push, verifica y arranca
+# BOOTSTRAP_SKIP_MIGRATIONS=1 npm run dev
+# o sólo procesos, sin bootstrap:
+npm run dev:services
 ```
 
+En Windows, el CLI de Supabase a veces falla con `uv_spawn`: el bootstrap
+reintenta automáticamente y **nunca imprime** la connection string completa.
+Si el stack ya está al día, preferí `dev:services` o `BOOTSTRAP_SKIP_MIGRATIONS=1`.
+
 Frontend: http://localhost:5173  
-API: http://localhost:3001/health
+API: http://localhost:3001/health  
+Ready: http://localhost:3001/ready
 
 ## Scripts
 
@@ -46,11 +56,17 @@ API: http://localhost:3001/health
 |---------|-------------|
 | `npm run dev` | Migra Prisma y Supabase, verifica y levanta Vite + Express |
 | `npm run setup:all` | Migra y verifica ambas bases sin levantar la app |
+| `npm run dev:services` | Levanta Vite + Express sin migrar |
 | `npm run build` | Build producción |
 | `npm run lint` | Oxlint |
 | `npm run test` | Vitest |
+| `npm run test:integration` | Integración contra Supabase (local en CI) |
 | `npm run db:migrate` | Migraciones de datos sobre Supabase |
 | `npm run db:seed` | Seeds (cuando existan) |
+| `npm run db:verify:payments` | Smoke SQL de la state machine de pagos |
+| `npm run supabase:assert` | Ping rápido admin a `events` |
+| `npm run email:doctor` | Diagnóstico live Brevo (sin `--send`) |
+| `npm run mercado-pago:doctor` | Ping live del Access Token de Mercado Pago |
 
 ## Por qué existe la API
 
