@@ -3916,21 +3916,19 @@
     grid-template-columns: 1fr;
   }
 
+  /* Notebook: el calendario deja de compartir columna con el detalle
+     (quedaba aplastado a ~half width). Stack limpio + bento interno. */
   .events-page--plu-ref .events-sidebar-card {
     display: grid;
     gap: 0;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    grid-template-columns: 1fr;
     position: static;
     top: auto;
   }
 
-  .events-page--plu-ref .events-sidebar-card .events-countdown-chip {
-    grid-column: 1 / -1;
-  }
-
   .events-page--plu-ref .events-sidebar-card__calendar {
-    border-bottom: none;
-    border-right: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+    border-right: none;
   }
 
   .events-page--plu-ref .events-sidebar-card .event-calendar {
@@ -3946,6 +3944,52 @@
   .events-page--plu-ref .events-sidebar-card .events-detail {
     flex: 1;
     padding: clamp(16px, 2vw, 22px);
+  }
+
+  /* Bento interno del calendario: mes full + leyenda | próximo meet */
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: clamp(18px, 2.4vw, 24px);
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__header {
+    margin-bottom: 0;
+    padding-bottom: 4px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__weekdays {
+    margin-bottom: 0;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell {
+    font-size: 13px;
+    min-height: clamp(44px, 5.2vw, 54px);
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__footer {
+    align-items: center;
+    border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+    display: grid;
+    gap: 12px 16px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    margin-top: 4px;
+    padding-top: 14px;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__legend {
+    align-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0;
+  }
+
+  .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__jump {
+    margin: 0;
+    min-height: 52px;
+    width: 100%;
   }
 }
 
@@ -4246,13 +4290,13 @@
   padding-left: 12px;
 }
 
-/* ── 3. Mapa de Competencias ── */
+/* ── 3. Mapa de Competencias — marco editorial, sin card SaaS ── */
 .events-page__competition-map {
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 12px;
+  box-shadow: none;
   margin-bottom: clamp(36px, 5vw, 64px);
-  overflow: hidden;
+  overflow: clip;
   position: relative;
 }
 

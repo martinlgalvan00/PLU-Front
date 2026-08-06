@@ -85,7 +85,11 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     )
   }
 
-  if (status === 'not_found' || !data?.athlete || !data?.membership) {
+  // La afiliación ya no es condición para que la credencial exista: un atleta
+  // inscripto a un evento que no la exige también tiene QR, y su veredicto lo
+  // da la inscripción. Lo único imprescindible es que el código resuelva a
+  // alguien.
+  if (status === 'not_found' || !data?.athlete) {
     const { Icon, label, className } = VERDICT_META.invalid
     return (
       <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
@@ -94,15 +98,20 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     )
   }
 
-  const { athlete, membership, registration } = data
+  const { athlete, membership, registration, registrations = [] } = data
   // El status de la membresía en la base puede estar desactualizado si el
   // cron que la pasa a "vencida" no corrió (ver expire_memberships()) --
   // no confiamos solo en el campo cacheado, comparamos la fecha en vivo
   // contra "ahora" para que el veredicto en la puerta sea siempre correcto.
   const membershipExpiredLive =
-    Boolean(membership.expirationDate) && new Date(membership.expirationDate) < new Date()
-  const membershipMeta = getStatusMeta(membershipExpiredLive ? 'vencida' : membership.status)
+    Boolean(membership?.expirationDate) && new Date(membership.expirationDate) < new Date()
+  const membershipMeta = membership
+    ? getStatusMeta(membershipExpiredLive ? 'vencida' : membership.status)
+    : null
   const registrationMeta = registration ? getStatusMeta(registration.status) : null
+  // Inscripciones a mostrar cuando el QR se escaneó sin `?evento=`: antes ese
+  // caso no traía ninguna y la puerta se quedaba sin nada que hacer.
+  const otherRegistrations = eventSlug ? [] : registrations
 
   // Veredicto general que se muestra arriba de todo, grande, para un
   // vistazo rápido. Para inscripciones a eventos, una membresía vencida
@@ -111,28 +120,42 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   let verdict = 'unknown'
   if (eventSlug) {
     const registrationOk = registration && registrationMeta.tone === 'success'
-    verdict = registrationOk && membershipMeta.tone !== 'danger' ? 'valid' : registration ? 'warning' : 'unknown'
+    // Sin afiliación no se penaliza: puede ser un evento que no la exige, y en
+    // ese caso la inscripción confirmada alcanza.
+    const membershipBlocks = membershipMeta?.tone === 'danger'
+    verdict = registrationOk && !membershipBlocks ? 'valid' : registration ? 'warning' : 'unknown'
+  } else if (membershipMeta?.tone === 'success') {
+    verdict = 'valid'
+  } else if (otherRegistrations.some((item) => getStatusMeta(item.status).tone === 'success')) {
+    verdict = 'valid'
   } else {
-    verdict = membershipMeta.tone === 'success' ? 'valid' : 'warning'
+    verdict = 'warning'
   }
 
   const { Icon, label: verdictLabel, className: verdictClass } = VERDICT_META[verdict]
 
-  const canCheckIn =
-    Boolean(onCheckIn) &&
-    Boolean(registration) &&
-    !registration.checkedInAt &&
-    ['pagada', 'confirmada'].includes(registration.status)
+  const isCheckInable = (item) =>
+    Boolean(onCheckIn) && Boolean(item) && !item.checkedInAt &&
+    ['pagada', 'confirmada'].includes(item.status)
+  const canCheckIn = isCheckInable(registration)
 
-  async function handleCheckIn() {
+  async function handleCheckIn(target = registration) {
     setCheckingIn(true)
-    const result = await onCheckIn(registration.id)
+    const result = await onCheckIn(target.id)
     setCheckingIn(false)
 
     if (result?.outcome === 'ok') {
       setData((current) => ({
         ...current,
-        registration: { ...current.registration, checkedInAt: result.registration.checkedInAt },
+        registration:
+          current.registration?.id === target.id
+            ? { ...current.registration, checkedInAt: result.registration.checkedInAt }
+            : current.registration,
+        registrations: (current.registrations ?? []).map((item) =>
+          item.id === target.id
+            ? { ...item, checkedInAt: result.registration.checkedInAt }
+            : item,
+        ),
       }))
       return
     }
@@ -147,17 +170,27 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
       <div className="credential-page__body">
         <p className="credential-page__athlete-name">{athlete.fullName}</p>
-        <p className="credential-page__athlete-code">{membership.memberCode}</p>
+        {membership?.memberCode && (
+          <p className="credential-page__athlete-code">{membership.memberCode}</p>
+        )}
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">
             <dt>Afiliación PLU ARG</dt>
             <dd>
-              <span className={`status-pill status-pill--${membershipMeta.tone}`}>{membershipMeta.label}</span>
-              {membership.expirationDate && (
-                <span className="credential-page__row-meta">
-                  Vigente hasta {formatShortDate(membership.expirationDate)}
-                </span>
+              {membership ? (
+                <>
+                  <span className={`status-pill status-pill--${membershipMeta.tone}`}>
+                    {membershipMeta.label}
+                  </span>
+                  {membership.expirationDate && (
+                    <span className="credential-page__row-meta">
+                      Vigente hasta {formatShortDate(membership.expirationDate)}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="credential-page__row-meta">Sin afiliación registrada.</span>
               )}
             </dd>
           </div>
@@ -184,6 +217,44 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             </div>
           )}
 
+          {/* Escaneo sin evento en la URL: se listan las inscripciones vigentes
+              para que el operador vea a cuál corresponde el ingreso. */}
+          {otherRegistrations.map((item) => {
+            const meta = getStatusMeta(item.status)
+            return (
+              <div className="credential-page__row" key={item.id}>
+                <dt>{item.event ?? 'Inscripción'}</dt>
+                <dd>
+                  <span className={`status-pill status-pill--${meta.tone}`}>{meta.label}</span>
+                  {(item.category || item.division) && (
+                    <span className="credential-page__row-meta">
+                      {[item.category, item.division].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                  {item.checkedInAt ? (
+                    <span className="credential-page__row-meta">
+                      Ingreso registrado{' '}
+                      {new Intl.DateTimeFormat('es-AR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      }).format(new Date(item.checkedInAt))}
+                    </span>
+                  ) : isCheckInable(item) ? (
+                    <button
+                      type="button"
+                      className="credential-page__checkin-btn credential-page__checkin-btn--inline"
+                      onClick={() => handleCheckIn(item)}
+                      disabled={checkingIn}
+                    >
+                      <CheckCircle2 size={15} aria-hidden />
+                      {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
+                    </button>
+                  ) : null}
+                </dd>
+              </div>
+            )
+          })}
+
           {registration?.checkedInAt && (
             <div className="credential-page__row">
               <dt>Ingreso registrado</dt>
@@ -202,7 +273,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
           <button
             type="button"
             className="credential-page__checkin-btn"
-            onClick={handleCheckIn}
+            onClick={() => handleCheckIn(registration)}
             disabled={checkingIn}
           >
             <CheckCircle2 size={16} aria-hidden />

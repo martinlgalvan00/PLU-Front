@@ -10,6 +10,7 @@ import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { getFeaturedEvent } from '../lib/eventNavigation.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { hasCurrentMembership } from '../services/membershipService.js'
 
 const teaserDuoVariants = {
   hidden: {},
@@ -25,9 +26,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
   const { reducedMotion } = useMotionConfig()
   const pitbullEvent = getFeaturedEvent(events)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
-  const hasActiveMembership = isLoggedInAthlete && memberships.some(
-    (membership) => membership.athleteId === session.athleteId && membership.status === 'activa',
-  )
+  const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
 
   function handlePitbullRegister() {
     if (!isLoggedInAthlete) {

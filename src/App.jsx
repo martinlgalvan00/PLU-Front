@@ -406,7 +406,10 @@ export default function App() {
             onApprovePayment={app.handleApprovePayment}
             onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
             onUpdateForm={app.updateForm}
-            total={flow === 'membership' ? PRICING.membership : PRICING.event}
+            // El precio de la inscripción sale del evento: la RPC cobra
+            // `events.price`, así que la constante fija mostraba un total que no
+            // era el que se iba a cobrar apenas el panel tocaba el precio.
+            total={flow === 'membership' ? PRICING.membership : (selectedEvent?.price ?? PRICING.event)}
           />
         </Suspense>
       </PrivateLayout>

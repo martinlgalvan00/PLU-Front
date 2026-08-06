@@ -27,7 +27,12 @@ export default function EmailVerificationNotice() {
     let cancelled = false
     verifyAthleteEmail(token)
       .then(() => {
-        if (!cancelled) setState('confirmado')
+        if (cancelled) return
+        setState('confirmado')
+        // El snapshot en memoria todavía dice que el correo está sin
+        // confirmar; sin este aviso el banner de la cuenta seguía pidiendo la
+        // verificación que el atleta acababa de hacer.
+        window.dispatchEvent(new CustomEvent('plu:email-verified'))
       })
       .catch(() => {
         if (!cancelled) setState('error')

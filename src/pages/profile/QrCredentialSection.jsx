@@ -5,35 +5,46 @@ import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { formatShortDate } from '../../lib/format.js'
 
-export default function QrCredentialSection({ athlete, membership, onNavigateSection }) {
+export default function QrCredentialSection({
+  athlete,
+  membership,
+  registrations = [],
+  onNavigateSection,
+}) {
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
   const [qrSrc, setQrSrc] = useState(null)
   const memberCode = membership?.memberCode
-  const qrToken = membership?.qrToken
-  const hasActiveCredential = membership?.status === 'activa' && Boolean(memberCode)
+  // El QR sale del token de la persona, que es estable de por vida: renovar la
+  // afiliación ya no invalida la card impresa. Los otros dos quedan de fallback
+  // para una cuenta cuyo snapshot todavía no trae el token nuevo.
+  const credentialCode = athlete?.credentialToken ?? membership?.qrToken ?? memberCode
+  const isMemberActive = membership?.status === 'activa'
+  // Un inscripto a un evento que no exige afiliación también necesita su
+  // credencial en la puerta; antes esa persona no tenía ninguna.
+  const hasCredential = Boolean(credentialCode) && (isMemberActive || registrations.length > 0)
   const validUntil = membership?.expirationDate
     ? formatShortDate(membership.expirationDate, locale)
     : null
 
   useEffect(() => {
-    if (!hasActiveCredential) {
+    if (!hasCredential) {
       setQrSrc(null)
       return undefined
     }
     let cancelled = false
-    generateCredentialQr(buildCredentialUrl({ code: qrToken ?? memberCode }))
+    generateCredentialQr(buildCredentialUrl({ code: credentialCode }))
       .then((dataUrl) => { if (!cancelled) setQrSrc(dataUrl) })
       .catch(() => { if (!cancelled) setQrSrc(null) })
     return () => { cancelled = true }
-  }, [hasActiveCredential, memberCode, qrToken])
+  }, [credentialCode, hasCredential])
 
-  const cardData = hasActiveCredential
+  const cardData = hasCredential
     ? {
         athleteName: athlete.fullName,
         athleteCode: memberCode,
         athletePhotoUrl: athlete.photoUrl,
-        qrCode: qrToken,
+        qrCode: credentialCode,
         membershipExpiration: validUntil,
         variant: 'membership',
         eventSlug: 'afiliacion',
@@ -47,7 +58,7 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
         <div><span>{t('account.qr.eyebrow')}</span><h2>{t('account.qr.title')}</h2></div>
       </div>
 
-      {hasActiveCredential ? (
+      {hasCredential ? (
         <>
           <p className="account-section__lead">{t('account.qr.lead')}</p>
 
@@ -56,8 +67,8 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
               <div className="account-qr__chip">
                 {qrSrc && <img src={qrSrc} alt={t('account.qr.imageAlt')} />}
               </div>
-              <p className="account-qr__code-label">{memberCode}</p>
-              {validUntil && (
+              <p className="account-qr__code-label">{memberCode ?? athlete.fullName}</p>
+              {isMemberActive && validUntil && (
                 <p className="account-qr__code-meta">{t('account.qr.validUntil', { date: validUntil })}</p>
               )}
             </div>
@@ -70,16 +81,28 @@ export default function QrCredentialSection({ athlete, membership, onNavigateSec
                   <span>{t('account.qr.scanPreviewVerdict')}</span>
                 </div>
                 <p className="account-qr__preview-name">{athlete.fullName}</p>
-                <p className="account-qr__preview-code">{memberCode}</p>
+                {memberCode && <p className="account-qr__preview-code">{memberCode}</p>}
                 <dl className="account-qr__preview-rows">
                   <div>
                     <dt>{t('account.qr.scanPreviewMembership')}</dt>
-                    <dd>{t('account.membershipActive')}</dd>
+                    <dd>
+                      {isMemberActive
+                        ? t('account.membershipActive')
+                        : t('account.qr.scanPreviewNoMembership')}
+                    </dd>
                   </div>
-                  {validUntil && (
+                  {isMemberActive && validUntil && (
                     <div>
                       <dt>{t('account.credential.expiration')}</dt>
                       <dd>{validUntil}</dd>
+                    </div>
+                  )}
+                  {/* Sin afiliación, lo que habilita el ingreso es la
+                      inscripción: es el dato que el operador necesita ver. */}
+                  {!isMemberActive && registrations.length > 0 && (
+                    <div>
+                      <dt>{t('account.qr.scanPreviewRegistration')}</dt>
+                      <dd>{registrations[0].event ?? t('account.qr.scanPreviewRegistered')}</dd>
                     </div>
                   )}
                 </dl>

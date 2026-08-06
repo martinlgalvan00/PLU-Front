@@ -1,19 +1,22 @@
 import { ChevronDown } from 'lucide-react'
 
-export function Field({ className = '', error, hideLabel = false, label, ...props }) {
+export function Field({ className = '', error, hideLabel = false, icon: Icon, label, ...props }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', className, hideLabel ? 'field--headless' : '', error ? 'is-invalid' : '']
+  const fieldClass = ['field', className, hideLabel ? 'field--headless' : '', error ? 'is-invalid' : '', Icon ? 'field--has-icon' : '']
     .filter(Boolean)
     .join(' ')
   return (
     <label className={fieldClass}>
       {!hideLabel ? <span className="field__label">{label}</span> : null}
-      <input
-        {...props}
-        aria-label={hideLabel ? label : undefined}
-        aria-describedby={error ? errorId : undefined}
-        aria-invalid={Boolean(error)}
-      />
+      <span className="field__control-shell">
+        {Icon ? <Icon size={16} className="field__icon" aria-hidden /> : null}
+        <input
+          {...props}
+          aria-label={hideLabel ? label : undefined}
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={Boolean(error)}
+        />
+      </span>
       {error ? (
         <span className="field__error" id={errorId} role="alert" title={error}>
           {error}
@@ -31,6 +34,7 @@ export function DateField({
   className = '',
   error,
   hideLabel = false,
+  icon: Icon,
   label,
   max,
   min = '1920-01-01',
@@ -43,6 +47,7 @@ export function DateField({
     className,
     hideLabel ? 'field--headless' : '',
     error ? 'is-invalid' : '',
+    Icon ? 'field--has-icon' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -53,6 +58,7 @@ export function DateField({
     <label className={fieldClass}>
       {!hideLabel ? <span className="field__label">{label}</span> : null}
       <span className={`field__date${empty ? ' is-empty' : ''}`.trim()}>
+        {Icon ? <Icon size={16} className="field__icon" aria-hidden /> : null}
         <input
           {...props}
           type="date"
@@ -72,9 +78,9 @@ export function DateField({
   )
 }
 
-export function Select({ className = '', error, label, options, ...props }) {
+export function Select({ className = '', error, icon: Icon, label, options, ...props }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', 'field--select', className, error ? 'is-invalid' : '']
+  const fieldClass = ['field', 'field--select', className, error ? 'is-invalid' : '', Icon ? 'field--has-icon' : '']
     .filter(Boolean)
     .join(' ')
   const emptySelected = props.value === '' || props.value == null
@@ -83,6 +89,7 @@ export function Select({ className = '', error, label, options, ...props }) {
     <label className={fieldClass}>
       <span className="field__label">{label}</span>
       <span className={`field__select${emptySelected ? ' is-empty' : ''}`.trim()}>
+        {Icon ? <Icon size={16} className="field__icon" aria-hidden /> : null}
         <select
           {...props}
           aria-describedby={error ? errorId : undefined}

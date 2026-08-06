@@ -50,10 +50,28 @@ function buildLimiter(windowMs, limit, message) {
   })
 }
 
-// Login y /oauth/session -- ventana larga, límite bajo, ya calibrado.
+// Login de staff y /oauth/session -- ventana larga, límite bajo, ya calibrado.
 export const authLimiter = buildLimiter(
   15 * 60 * 1000,
   20,
+  'Demasiados intentos. Proba de nuevo en unos minutos.',
+)
+
+/**
+ * Login de atleta. Limiter propio y NO `authLimiter`: el cliente prueba
+ * primero el login de staff y recién ante un 401 cae al de atleta
+ * (useAppData.login), así que compartir la instancia hacía que cada intento
+ * legítimo gastara dos cupos del mismo contador -- unos 10 logins por IP cada
+ * 15 minutos para todo el padrón. Detrás del NAT de un gimnasio o del wifi de
+ * un venue eso dejaba gente afuera, y el 429 se mostraba como "credenciales
+ * inválidas".
+ *
+ * El volumen es más alto que el de staff porque la superficie es distinta: son
+ * atletas compartiendo salida a internet, no un puñado de cuentas operativas.
+ */
+export const athleteAuthLimiter = buildLimiter(
+  15 * 60 * 1000,
+  40,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
 )
 
