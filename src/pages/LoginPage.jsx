@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
@@ -100,7 +100,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
     try {
       await enter({ email: normalizeEmail(email), password })
     } catch (error) {
-      setSubmitError(error?.status === 0 ? error.message : t('login.errorInvalid'))
+      // Un 429 no es una credencial mal puesta: mostrarlo como tal hacía que
+      // el atleta cambiara una contraseña que estaba bien. Se propaga el
+      // mensaje real del servidor (incluye cuánto esperar).
+      const showsServerMessage = error?.status === 0 || error?.status === 429
+      setSubmitError(showsServerMessage ? error.message : t('login.errorInvalid'))
     } finally {
       setIsSubmitting(false)
     }
@@ -196,8 +200,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
         <div className="auth-immersive-page">
           <div className="auth-immersive-glass" aria-labelledby="login-heading">
         <header className="auth-immersive-glass__header">
-          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={36} />
+          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
           <div className="auth-immersive-glass__copy">
+            <span className="auth-immersive-glass__eyebrow">PLU ARGENTINA · FICHA DE ATLETA</span>
             <h1 id="login-heading" className="auth-immersive-glass__title">{cardTitle}</h1>
             <p className="auth-immersive-glass__lead">{cardLead}</p>
           </div>
@@ -208,6 +213,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
                 <span className="login-field__label">{t('login.email')}</span>
                 <span className="login-field__control">
+                  <Mail size={16} className="login-field__icon" aria-hidden />
                   <input
                     type="text"
                     name="email"
@@ -240,6 +246,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                   </button>
                 </span>
                 <span className="login-field__control">
+                  <Lock size={16} className="login-field__icon" aria-hidden />
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}

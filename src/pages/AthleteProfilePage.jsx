@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { isMembershipCurrent } from '../services/membershipService.js'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
@@ -32,8 +33,15 @@ export default function AthleteProfilePage({
 
   if (!athlete) return null
 
-  const storedMembership = memberships.find((item) => item.athleteId === athlete.id)
-  const membership = storedMembership?.status === 'activa' ? storedMembership : undefined
+  // La afiliación que cubre HOY, no la primera del array. El snapshot llega
+  // ordenado por created_at desc, así que apenas el socio arrancaba una
+  // renovación (fila nueva en pendiente_pago) `.find()` devolvía esa y el QR
+  // desaparecía de la cuenta pese a tener la afiliación anterior vigente.
+  const athleteMemberships = memberships.filter((item) => item.athleteId === athlete.id)
+  const membership = athleteMemberships.find((item) => isMembershipCurrent(item))
+  // Para la sección de pago sí interesa la más reciente: es la que el atleta
+  // está por pagar o renovar.
+  const storedMembership = membership ?? athleteMemberships[0]
   const athleteRegistrations = registrations.filter((item) => item.athleteId === athlete.id)
   const availableEvents = UPCOMING_EVENTS.filter((event) => event.status !== 'finalizado')
   const nextEvent = availableEvents[0]
@@ -44,7 +52,14 @@ export default function AthleteProfilePage({
   // en vez de scrollear, porque las otras secciones ni siquiera están
   // montadas mientras no son la activa.
   const tabContent = {
-    'account-qr': <QrCredentialSection athlete={athlete} membership={membership} onNavigateSection={setActiveTab} />,
+    'account-qr': (
+      <QrCredentialSection
+        athlete={athlete}
+        membership={membership}
+        registrations={athleteRegistrations}
+        onNavigateSection={setActiveTab}
+      />
+    ),
     'account-events': (
       <UpcomingEventsSection
         availableEvents={availableEvents}

@@ -992,22 +992,19 @@
 }
 
 .register-page--profile .register-card__submit {
-  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-400) 100%);
+  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-600) 100%);
   border: none;
-  border-radius: 4px;
-  box-shadow: 0 4px 14px rgba(242, 183, 5, 0.15);
-  color: #14161c;
-  font-family: var(--font-display);
-  font-size: 13px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.35);
+  color: #0d0f14;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  min-height: 52px;
-  text-transform: uppercase;
-  transform: none;
-  transition:
-    background 180ms var(--ease-out),
-    box-shadow 180ms var(--ease-out),
-    color 180ms var(--ease-out);
+  letter-spacing: 0.02em;
+  min-height: 50px;
+  text-transform: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .register-page--profile .register-card__submit-arrow {
@@ -1015,45 +1012,40 @@
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-brand-gold) 90%, white);
-  box-shadow: none;
-  filter: none;
-  transform: none;
+  background: linear-gradient(135deg, var(--plu-gold-400) 0%, var(--plu-gold-500) 100%);
+  box-shadow: 0 12px 32px -4px rgba(242, 183, 5, 0.5);
+  transform: translateY(-1px);
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) .register-card__submit-arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 .register-page--profile .register-card__submit:active:not(:disabled) {
-  box-shadow: none;
-  transform: none;
+  box-shadow: 0 4px 16px -2px rgba(242, 183, 5, 0.3);
+  transform: translateY(0);
 }
 
 .register-page--profile .register-card__submit--ready,
 .register-page--profile .register-card__submit--ready:hover:not(:disabled) {
-  box-shadow: none;
+  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.35);
 }
 
 .register-page--profile .register-card__back.btn--outline {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition:
-    border-color 180ms var(--ease-out),
-    background 180ms var(--ease-out),
-    color 180ms var(--ease-out);
+  min-height: 50px;
+  transition: all 0.2s ease;
 }
 
-.register-page--profile .register-card__back.btn--outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #fff;
+.register-page--profile .register-card__back.btn--outline:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-text-primary);
 }
 
 .register-page--profile .register-progress--rail .register-progress__segments {
@@ -1421,6 +1413,12 @@
   .register-page--profile .register-mobile-context {
     margin-inline: 0;
     padding-inline: 0;
+    margin-bottom: 12px;
+  }
+
+  .register-page--profile .register-card {
+    padding: clamp(18px, 4vw, 24px) clamp(14px, 3.5vw, 20px);
+    border-radius: 12px;
   }
 
   .register-page--profile .register-card .form-grid {
@@ -1433,16 +1431,25 @@
   }
 
   .register-page--profile .register-card__footer--wizard-back {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    align-items: center;
   }
 
   .register-page--profile .register-card__footer--wizard-back .register-card__submit,
   .register-page--premium .register-card__footer--wizard-back .register-card__submit {
-    grid-column: 1;
+    grid-column: 2;
+    width: 100%;
+    min-height: 46px;
   }
 
   .register-page--profile .register-card__back {
+    grid-column: 1;
     width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 0 10px;
   }
 
   .register-page--profile .register-progress--rail .register-progress__segment {
@@ -2112,6 +2119,15 @@
   font-size: 13px;
   line-height: 1.45;
   margin: 0;
+}
+
+/* La dirección a la que se mandó el enlace: es el dato que el atleta necesita
+   para saber en qué bandeja buscar (o darse cuenta de que la tipeó mal). */
+.register-eligibility-alert__email {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .register-eligibility-alert .btn {
@@ -3257,5 +3273,174 @@
 }
 
 .register-page--membership .register-intro--membership .register-intro__desc {
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+/* =============================================
+   REGISTER LIVE CREDENTIAL & PASSWORD STRENGTH
+   ============================================= */
+
+.register-live-credential {
+  background: linear-gradient(135deg, rgba(20, 22, 28, 0.9) 0%, rgba(14, 16, 20, 0.95) 100%);
+  border: 1px solid rgba(242, 183, 5, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(242, 183, 5, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  padding: 16px 18px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.register-live-credential__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.register-live-credential__brand {
+  color: var(--color-brand-gold);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.register-live-credential__badge {
+  background: rgba(242, 183, 5, 0.12);
+  border: 1px solid rgba(242, 183, 5, 0.3);
+  border-radius: 99px;
+  color: var(--color-brand-gold);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+}
+
+.register-live-credential__body {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.register-live-credential__avatar {
+  align-items: center;
+  background: rgba(242, 183, 5, 0.12);
+  border: 1px solid rgba(242, 183, 5, 0.28);
+  border-radius: 50%;
+  color: var(--color-brand-gold);
+  display: flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.register-live-credential__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-live-credential__name {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.register-live-credential__doc {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.register-live-credential__meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 11px;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.password-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.password-strength__bar {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  height: 4px;
+}
+
+.password-strength__segment {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+
+.password-strength__segment.is-active-1 {
+  background: #ef4444;
+}
+.password-strength__segment.is-active-2 {
+  background: #f59e0b;
+}
+.password-strength__segment.is-active-3 {
+  background: #eab308;
+}
+.password-strength__segment.is-active-4 {
+  background: #10b981;
+}
+
+.password-strength__meta {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.password-strength__label {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.password-strength__hint {
+  color: var(--color-text-muted);
+}
+
+.password-strength__hint--valid {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.field--has-icon .field__control-shell,
+.field--has-icon .field__date,
+.field--has-icon .field__select {
+  position: relative;
+}
+
+.field--has-icon input,
+.field--has-icon select {
+  padding-left: 40px !important;
+}
+
+.field--has-icon .field__icon {
+  color: rgba(255, 255, 255, 0.38);
+  left: 14px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.field--has-icon:focus-within .field__icon {
+  color: var(--color-brand-gold);
 }

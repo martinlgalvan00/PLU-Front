@@ -18,15 +18,20 @@ function buildAthleteProfileSchema(t) {
 
   return z.object({
     fullName: z.string().trim().min(3, msg('fullName') ?? 'Ingresá tu nombre y apellido.'),
+    // El alta de la API exige 7 u 8 dígitos (registerSchema en
+    // server/routes/athletes.js). Antes acá también pasaban documentos
+    // alfanuméricos de 6 a 20 caracteres: el wizard los daba por buenos y el
+    // rechazo aparecía recién al enviar los dos pasos completos. Los
+    // separadores sí se aceptan -- todo DNI físico se lee con puntos -- y el
+    // servidor los limpia con el mismo criterio antes de validar.
     documentId: z
       .string()
       .trim()
-      .min(6, msg('documentId') ?? 'Ingresá un documento válido.')
-      .refine((value) => {
-        const compact = value.replace(/[.\-\s]/g, '')
-        if (/^\d+$/.test(compact)) return compact.length >= 7 && compact.length <= 8
-        return compact.length >= 6 && compact.length <= 20
-      }, msg('documentIdFormat') ?? 'Documento inválido. DNI: 7 u 8 dígitos.'),
+      .min(1, msg('documentId') ?? 'Ingresá un documento válido.')
+      .refine(
+        (value) => /^\d{7,8}$/.test(value.replace(/[.\-\s]/g, '')),
+        msg('documentIdFormat') ?? 'Documento inválido. DNI: 7 u 8 dígitos.',
+      ),
     birthDate: isoDate,
     email: z.string().trim().email(msg('email') ?? 'Ingresá un correo electrónico válido.'),
     password: z.string().min(12, msg('password') ?? 'Usá al menos 12 caracteres.'),

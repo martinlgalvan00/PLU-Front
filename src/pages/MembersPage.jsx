@@ -8,6 +8,7 @@ import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { hasCurrentMembership } from '../services/membershipService.js'
 
 export default function MembersPage({ memberships = [], onNavigate, session }) {
   const {
@@ -22,9 +23,9 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
   const validityNotes = messages.pages.members.validityNotes
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
-  const hasActiveMembership = isLoggedInAthlete && memberships.some(
-    (membership) => membership.athleteId === session.athleteId && membership.status === 'activa',
-  )
+  // Vigencia, no solo estado: una afiliación marcada activa pero vencida
+  // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
+  const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
   const affiliationCta = isLoggedInAthlete
     ? hasActiveMembership
       ? t('pages.members.ctaAlreadyAffiliated')

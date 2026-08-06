@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronRight, ImageDown } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ImageDown,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Lock,
+  Hash,
+  Globe,
+  MapPin,
+  Dumbbell,
+} from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
 import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
@@ -11,6 +25,8 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
 import { getStatusMeta } from '../lib/status.js'
+import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
+import { resendAthleteVerification } from '../services/athleteApi.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -18,6 +34,70 @@ import {
   validateCompetitionForm,
   validateMembershipForm,
 } from '../lib/validation.js'
+
+function PasswordStrengthMeter({ password }) {
+  const str = String(password ?? '')
+  if (!str) return null
+
+  let score = 0
+  if (str.length >= 8) score += 1
+  if (str.length >= 12) score += 1
+  if (/[A-Z]/.test(str) || /[0-9]/.test(str)) score += 1
+  if (/[^A-Za-z0-9]/.test(str)) score += 1
+
+  const labels = ['Muy corta', 'Aceptable', 'Segura', 'Excelente']
+  const label = labels[Math.max(0, score - 1)] ?? ''
+
+  return (
+    <div className="password-strength" aria-live="polite">
+      <div className="password-strength__bar">
+        {[1, 2, 3, 4].map((step) => (
+          <span
+            key={step}
+            className={`password-strength__segment${step <= score ? ` is-active-${score}` : ''}`}
+          />
+        ))}
+      </div>
+      <div className="password-strength__meta">
+        <small className="password-strength__label">{label}</small>
+        {str.length < 12 ? (
+          <small className="password-strength__hint">Requerido: mínimo 12 caracteres</small>
+        ) : (
+          <small className="password-strength__hint password-strength__hint--valid">✓ Cumple requisito de seguridad</small>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RegisterLiveCredential({ form, t }) {
+  const name = form.fullName && form.fullName.trim() ? form.fullName.trim() : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
+  const doc = form.documentId && form.documentId.trim() ? `DNI ${form.documentId.trim()}` : 'DNI —'
+  const location = [form.city, form.province, form.country].filter(Boolean).map((s) => s.trim()).join(', ') || 'Argentina'
+  const gym = form.gym && form.gym.trim() ? form.gym.trim() : 'Gimnasio / Club'
+
+  return (
+    <div className="register-live-credential" aria-hidden="true">
+      <div className="register-live-credential__header">
+        <span className="register-live-credential__brand">PLU ARGENTINA</span>
+        <span className="register-live-credential__badge">NUEVA FICHA</span>
+      </div>
+      <div className="register-live-credential__body">
+        <div className="register-live-credential__avatar">
+          <User size={22} />
+        </div>
+        <div className="register-live-credential__info">
+          <strong className="register-live-credential__name">{name}</strong>
+          <span className="register-live-credential__doc">{doc}</span>
+        </div>
+      </div>
+      <div className="register-live-credential__meta">
+        <span className="register-live-credential__gym">{gym}</span>
+        <span className="register-live-credential__location">{location}</span>
+      </div>
+    </div>
+  )
+}
 
 function getProfileSteps(t) {
   return [
@@ -48,7 +128,9 @@ function isFieldFilled(form, field) {
     case 'fullName':
       return str.length >= 3
     case 'documentId':
-      return str.length >= 6
+      // Mismo umbral que la validación real (7 u 8 dígitos): con 6 la barra de
+      // progreso daba el paso por completo y el error salía al continuar.
+      return /^\d{7,8}$/.test(str.replace(/[.\-\s]/g, ''))
     case 'birthDate':
       return /^\d{4}-\d{2}-\d{2}$/.test(str)
     case 'password':
@@ -201,6 +283,11 @@ export default function RegisterPage({
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  // El checkout se corta si el correo no está confirmado. La acción de reenvío
+  // vivía solo en el banner del perfil, así que acá el atleta leía "confirmá tu
+  // correo" y no tenía nada que tocar.
+  const [emailBlocked, setEmailBlocked] = useState(false)
+  const [resendState, setResendState] = useState('idle')
   const [cardOpen, setCardOpen] = useState(false)
   const [profileStepIndex, setProfileStepIndex] = useState(0)
   const [wizardDirection, setWizardDirection] = useState(1)
@@ -236,9 +323,21 @@ export default function RegisterPage({
   }[flow]
 
   const visibleOrder = flow === 'profile' ? null : createdOrder?.type === flow ? createdOrder : null
-  const activeMembership = memberships.find((item) => item.athleteId === visibleOrder?.athleteId)
+  // La vigente primero; si todavía no hay ninguna (la afiliación recién
+  // creada está pendiente de pago) cae a la más reciente, que es la de esta
+  // misma orden. Antes tomaba la primera del array sin mirar el estado, así
+  // que tras una renovación la card salía con el código del período anterior.
+  const orderMemberships = memberships.filter((item) => item.athleteId === visibleOrder?.athleteId)
+  const activeMembership =
+    orderMemberships.find((item) => isMembershipCurrent(item)) ?? orderMemberships[0]
   const memberCode = activeMembership?.memberCode
-  const hasActiveMembership = memberships.some((item) => item.athleteId === athlete?.id && item.status === 'activa')
+  // El QR de la card apunta a la persona, no al período: la credencial no se
+  // vence ni cambia al renovar.
+  const credentialCode = athlete?.credentialToken ?? activeMembership?.qrToken
+  // Vigencia y no solo `status === 'activa'`: es la misma condición que exige
+  // la RPC de inscripción, así que una afiliación activa pero con fechas
+  // vencidas ahora se frena acá en vez de fallar con PLU05 al enviar.
+  const hasActiveMembership = hasCurrentMembership(memberships, athlete?.id)
   const competitionBlocked = flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
   const stepErrorsVisible =
     flow === 'profile' &&
@@ -258,7 +357,7 @@ export default function RegisterPage({
           athleteName: visibleOrder.athleteName,
           athleteCode: memberCode,
           athletePhotoUrl: athlete?.photoUrl,
-          qrCode: activeMembership?.qrToken,
+          qrCode: credentialCode,
           eventTitle: event?.title,
           eventDate: event?.date,
           eventVenue: event?.venue,
@@ -273,7 +372,7 @@ export default function RegisterPage({
             athleteName: visibleOrder.athleteName,
             athleteCode: memberCode,
             athletePhotoUrl: athlete?.photoUrl,
-            qrCode: activeMembership?.qrToken,
+            qrCode: credentialCode,
             membershipExpiration: formatShortDate(activeMembership?.expirationDate, locale),
             variant: 'membership',
             eventSlug: 'afiliacion',
@@ -285,6 +384,7 @@ export default function RegisterPage({
     onUpdateForm(event)
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
+    setEmailBlocked(false)
   }
 
   function blurField(event) {
@@ -414,8 +514,21 @@ export default function RegisterPage({
     }
 
     const result = await onSubmit(eventObject, event)
-    if (result?.error) setSubmitError(result.error)
-    else if (flow === 'profile') onNavigate?.('profile')
+    if (result?.error) {
+      setSubmitError(result.error)
+      setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
+      setResendState('idle')
+    } else if (flow === 'profile') onNavigate?.('profile')
+  }
+
+  async function resendVerification() {
+    setResendState('sending')
+    try {
+      const result = await resendAthleteVerification()
+      setResendState(result?.alreadyVerified ? 'verified' : 'sent')
+    } catch {
+      setResendState('error')
+    }
   }
 
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
@@ -538,7 +651,7 @@ export default function RegisterPage({
             {flow === 'profile' && (
               <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
                 {t('pages.register.haveAccount')}
-                <ChevronRight size={14} aria-hidden />
+                <ArrowRight size={14} aria-hidden />
               </button>
             )}
           </nav>
@@ -546,6 +659,7 @@ export default function RegisterPage({
 
         <aside className="register-aside register-aside--desktop">
           {registerIntro}
+          {flow === 'profile' && !visibleOrder && <RegisterLiveCredential form={form} t={t} />}
           {flow === 'membership' && !visibleOrder && (
             <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
           )}
@@ -556,6 +670,7 @@ export default function RegisterPage({
         <div className="register-main">
           <div className="register-mobile-context">
             {registerIntro}
+            {flow === 'profile' && !visibleOrder && <RegisterLiveCredential form={form} t={t} />}
             {flow === 'membership' && !visibleOrder && (
               <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
             )}
@@ -613,6 +728,7 @@ export default function RegisterPage({
                         autoComplete="name"
                         className="field--span-2"
                         error={visibleErrors.fullName}
+                        icon={User}
                         label={t('pages.register.fullName')}
                         name="fullName"
                         placeholder={t('pages.register.fullNamePlaceholder')}
@@ -622,6 +738,7 @@ export default function RegisterPage({
                       />
                       <Field
                         error={visibleErrors.documentId}
+                        icon={Hash}
                         inputMode="numeric"
                         label={t('pages.register.documentIdLabel')}
                         name="documentId"
@@ -632,6 +749,7 @@ export default function RegisterPage({
                       />
                       <DateField
                         error={visibleErrors.birthDate}
+                        icon={Calendar}
                         label={t('pages.register.birthDate')}
                         name="birthDate"
                         value={form.birthDate}
@@ -641,6 +759,7 @@ export default function RegisterPage({
                       <Field
                         autoComplete="email"
                         error={visibleErrors.email}
+                        icon={Mail}
                         label={t('pages.register.email')}
                         name="email"
                         placeholder={t('pages.register.emailPlaceholder')}
@@ -652,6 +771,7 @@ export default function RegisterPage({
                       <Field
                         autoComplete="tel"
                         error={visibleErrors.phone}
+                        icon={Phone}
                         inputMode="tel"
                         label={t('pages.register.phone')}
                         name="phone"
@@ -660,17 +780,20 @@ export default function RegisterPage({
                         onBlur={blurField}
                         onChange={changeField}
                       />
-                      <Field
-                        autoComplete="new-password"
-                        className="field--span-2"
-                        error={visibleErrors.password}
-                        label={t('login.password')}
-                        name="password"
-                        type="password"
-                        value={form.password}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
+                      <div className="field--span-2">
+                        <Field
+                          autoComplete="new-password"
+                          error={visibleErrors.password}
+                          icon={Lock}
+                          label={t('login.password')}
+                          name="password"
+                          type="password"
+                          value={form.password}
+                          onBlur={blurField}
+                          onChange={changeField}
+                        />
+                        <PasswordStrengthMeter password={form.password} />
+                      </div>
                     </div>
                   </FormSection>
                 )}
@@ -684,6 +807,7 @@ export default function RegisterPage({
                     <div className="form-grid">
                       <Select
                         error={visibleErrors.country}
+                        icon={Globe}
                         label={t('pages.register.country')}
                         name="country"
                         value={form.country}
@@ -693,6 +817,7 @@ export default function RegisterPage({
                       />
                       <Field
                         error={visibleErrors.province}
+                        icon={MapPin}
                         label={t('pages.register.province')}
                         name="province"
                         placeholder={t('pages.register.provincePlaceholder')}
@@ -702,6 +827,7 @@ export default function RegisterPage({
                       />
                       <Field
                         error={visibleErrors.city}
+                        icon={MapPin}
                         label={t('pages.register.city')}
                         name="city"
                         placeholder={t('pages.register.cityPlaceholder')}
@@ -711,6 +837,7 @@ export default function RegisterPage({
                       />
                       <Field
                         error={visibleErrors.gym}
+                        icon={Dumbbell}
                         label={t('pages.register.gym')}
                         name="gym"
                         placeholder={t('pages.register.gymPlaceholder')}
@@ -736,7 +863,7 @@ export default function RegisterPage({
             {flow === 'competition' && (
               <FormSection
                 step="01"
-                title={event.title}
+                title={event?.title ?? ''}
                 description={t('pages.register.competitionDataDesc')}
               >
                 {competitionBlocked && (
@@ -817,7 +944,34 @@ export default function RegisterPage({
                 </FormSection>
             )}
 
-            {submitError && (
+            {submitError && emailBlocked && (
+              <div className="register-eligibility-alert" role="alert">
+                <strong>{t('pages.register.emailVerificationTitle')}</strong>
+                <p>{submitError}</p>
+                <p className="register-eligibility-alert__email">{athlete?.email}</p>
+                {resendState === 'sent' || resendState === 'verified' ? (
+                  <p role="status">
+                    {resendState === 'sent'
+                      ? t('pages.register.emailVerificationSent')
+                      : t('pages.register.emailVerificationAlready')}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    disabled={resendState === 'sending'}
+                    onClick={resendVerification}
+                  >
+                    {resendState === 'sending'
+                      ? t('pages.register.emailVerificationSending')
+                      : t('pages.register.emailVerificationResend')}
+                  </button>
+                )}
+                {resendState === 'error' && <p>{t('pages.register.emailVerificationError')}</p>}
+              </div>
+            )}
+
+            {submitError && !emailBlocked && (
               <p className="form-submit-error" role="alert">
                 {submitError}
               </p>

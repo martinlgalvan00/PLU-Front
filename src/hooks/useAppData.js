@@ -306,12 +306,20 @@ export function useAppData() {
     setSession({ ...session, photoUrl: nextPhoto })
   }, [athletes, session, setSession])
 
+  // `plu:email-verified` lo dispara EmailVerificationNotice al consumir el
+  // deep link del mail. Sin esto el cache local seguía con emailVerifiedAt en
+  // null y el aviso de "confirmá tu correo" quedaba pegado hasta recargar,
+  // aunque el gate del servidor ya estuviera abierto.
   useEffect(() => {
-    const refreshAfterPayment = () => {
+    const refreshFromServer = () => {
       void refreshAthleteData()
     }
-    window.addEventListener('plu:payment-updated', refreshAfterPayment)
-    return () => window.removeEventListener('plu:payment-updated', refreshAfterPayment)
+    window.addEventListener('plu:payment-updated', refreshFromServer)
+    window.addEventListener('plu:email-verified', refreshFromServer)
+    return () => {
+      window.removeEventListener('plu:payment-updated', refreshFromServer)
+      window.removeEventListener('plu:email-verified', refreshFromServer)
+    }
   }, [refreshAthleteData])
 
   useEffect(() => {
@@ -534,7 +542,6 @@ export function useAppData() {
           athleteId: athlete.id,
           paymentId: order.id,
           paymentMethod: order.method,
-          checkoutUrl: checkout?.preference?.initPoint ?? checkout?.initPoint ?? null,
           preferenceId: checkout?.preference?.id ?? null,
           paymentMode: plan?.collectionMode === 'recurring' ? 'subscription' : 'payment',
           plan,
@@ -543,7 +550,10 @@ export function useAppData() {
         setCreatedOrder(createdOrder)
         return { membership, payment, plan, createdOrder }
       } catch (error) {
-        if (error instanceof ApiError) return { error: error.message }
+        // El `code` viaja para que la pantalla que quedó bloqueada pueda
+        // ofrecer la acción correcta (ej. reenviar el mail de verificación) en
+        // vez de solo mostrar un texto.
+        if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
         throw error
       }
     },
@@ -618,7 +628,6 @@ export function useAppData() {
           athleteId: athlete.id,
           paymentId: order.id,
           paymentMethod: order.method,
-          checkoutUrl: checkout?.preference?.initPoint ?? null,
           preferenceId: checkout?.preference?.id ?? null,
           paymentMode: 'payment',
           ...payment,
@@ -629,7 +638,7 @@ export function useAppData() {
         // El servidor es la autoridad para el gate de membresía activa
         // (PLU05) y de inscripción duplicada (PLU08) -- antes esos dos
         // checks vivían solo del lado del cliente.
-        if (error instanceof ApiError) return { error: error.message }
+        if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
         throw error
       }
     },
@@ -692,7 +701,6 @@ export function useAppData() {
           status: order.status,
           paymentProofPath: order.paymentProofPath,
           paymentProofUploadedAt: order.paymentProofUploadedAt,
-          checkoutUrl: checkout?.preference?.initPoint ?? null,
           preferenceId: checkout?.preference?.id ?? null,
           paymentMode: 'payment',
           createdAt: order.createdAt,
@@ -1215,7 +1223,11 @@ export function useAppData() {
         await establishSupabaseSession(supabaseAuth)
         return user
       } catch (error) {
-        if (error?.status !== 401) throw error
+        // 429 además de 401: el login de staff se prueba primero en cada
+        // intento, así que si su limiter se agota (por ejemplo, muchos atletas
+        // detrás del mismo NAT) no puede bloquear el login de atleta, que
+        // tiene su propio cupo.
+        if (error?.status !== 401 && error?.status !== 429) throw error
         const { user } = await loginAthleteSession(credentialsOrAccountType)
         setSession(user)
         return user

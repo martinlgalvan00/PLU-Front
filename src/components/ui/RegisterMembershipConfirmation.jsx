@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
+import TransferProofUpload from './TransferProofUpload.jsx'
 
 export default function RegisterMembershipConfirmation({
   order,
@@ -86,7 +87,13 @@ export default function RegisterMembershipConfirmation({
         )}
 
         {isManual && !isActive && (
-          <p className="register-membership-confirmation__manual">{t('pages.register.manualNote')}</p>
+          <>
+            <p className="register-membership-confirmation__manual">{t('pages.register.manualNote')}</p>
+            {/* Sin esto la pantalla daba los datos bancarios y terminaba ahí:
+                el comprobante solo se podía adjuntar entrando después a la
+                cuenta, y Finanzas aprobaba sin evidencia. */}
+            {order.paymentId && <TransferProofUpload orderId={order.paymentId} />}
+          </>
         )}
 
         {onNavigate && (

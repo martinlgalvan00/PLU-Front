@@ -1,0 +1,77 @@
+/*
+ * transfer-proof.css — Comprobante de transferencia
+ *
+ * Vivía dentro de `pages/account.css`, que se importa solo desde
+ * AthleteProfilePage (lazy). Cuando el mismo control pasó a usarse también en
+ * la confirmación de afiliación del alta, ahí quedaba sin estilos salvo que el
+ * atleta hubiera visitado el perfil antes en la misma sesión.
+ *
+ * Lo importa `TransferProofUpload.jsx`, así que el CSS viaja en el chunk del
+ * componente y llega a las dos pantallas que lo montan.
+ */
+
+.account-transfer-proof {
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+/* El input nativo queda fuera de flujo pero accesible: el label es el control
+   visible y conserva foco de teclado a través del `for`. */
+.account-transfer-proof__input {
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 0.1px;
+}
+
+.account-transfer-proof__label {
+  align-items: center;
+  align-self: flex-start;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+.account-transfer-proof__label:hover {
+  border-color: var(--color-brand-celeste);
+}
+
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__label,
+.account-transfer-proof__label:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.account-transfer-proof__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.account-transfer-proof__error {
+  color: var(--color-brand-red);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.account-transfer-proof__done {
+  align-items: center;
+  color: var(--color-success-text);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  margin: var(--space-md) 0 0;
+}

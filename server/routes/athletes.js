@@ -5,7 +5,7 @@ import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { athleteWriteLimiter, authLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { athleteAuthLimiter, athleteWriteLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
@@ -36,10 +36,22 @@ import {
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
 
+// El email se guarda SIEMPRE en minúsculas. `findLogin` busca por
+// `email.toLowerCase()`, así que una cuenta dada de alta con cualquier
+// mayúscula (el autocompletado del teléfono las mete solo) quedaba
+// inalcanzable: no podía loguearse ni recuperar la contraseña, y el índice
+// único sobre lower(email) tampoco la dejaba registrarse de nuevo.
 const registerSchema = z.object({
   fullName: z.string().trim().min(3),
-  documentId: z.string().trim().regex(/^\d{7,8}$/),
-  email: z.string().trim().email(),
+  // Los separadores se limpian antes de validar: el documento se muestra con
+  // puntos en cualquier DNI físico y rechazarlo por eso obligaba a rehacer los
+  // dos pasos del alta sin explicar qué estaba mal.
+  documentId: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/[.\-\s]/g, ''))
+    .pipe(z.string().regex(/^\d{7,8}$/, 'El documento debe tener 7 u 8 dígitos.')),
+  email: z.string().trim().toLowerCase().email(),
   birthDate: z.string().trim().min(8),
   phone: z.string().trim().min(6),
   country: z.string().trim().min(2),
@@ -52,7 +64,10 @@ const registerSchema = z.object({
   estimatedWeight: z.union([z.string(), z.number()]).optional().nullable(),
   password: z.string().min(12).max(72),
 })
-const loginSchema = z.object({ email: z.string().trim().email(), password: z.string().min(1).max(72) })
+const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(1).max(72),
+})
 const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
 })
@@ -64,7 +79,9 @@ const resetPasswordSchema = z.object({
     .max(72, 'La contraseña es demasiado larga.'),
 })
 const updateSchema = z.object({
-  email: z.string().trim().email(), phone: z.string().trim().min(6), city: z.string().trim().min(2),
+  // Misma normalización que el alta: editar el perfil con una mayúscula dejaba
+  // sin login a una cuenta que venía funcionando.
+  email: z.string().trim().toLowerCase().email(), phone: z.string().trim().min(6), city: z.string().trim().min(2),
   province: z.string().trim().min(2), gym: z.string().trim().optional().default(''),
 })
 const orderSchema = z.object({
@@ -201,7 +218,10 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   async function assertEmailVerified(athleteId) {
     const contact = await repo().findContact(athleteId)
     if (contact && !contact.email_verified_at) {
-      throw new HttpError(403, 'Confirmá tu correo antes de continuar. Te reenviamos el enlace desde tu cuenta.', {
+      // El texto no promete un reenvío que nadie dispara: el enlace sale solo
+      // si el atleta lo pide, y el `code` es lo que habilita ese botón en la
+      // pantalla donde se cortó el checkout.
+      throw new HttpError(403, 'Confirmá tu correo antes de continuar. Revisá tu bandeja o pedí un enlace nuevo.', {
         code: 'EMAIL_NOT_VERIFIED',
       })
     }
@@ -213,8 +233,16 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const row = await repo().register(form, await hashPassword(password))
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
-      await sendOnboardingEmails(row)
+      // Se responde ANTES de mandar los mails. Son dos envíos secuenciales, con
+      // hasta 3 intentos de 10s cada uno: en el peor caso superaban el
+      // maxDuration de la función y el alta se cortaba con el atleta ya creado
+      // en la base. El browser veía un error de red y al reintentar recibía
+      // PLU07 ("ya existe"), sin manera de salir. La lambda sigue viva hasta
+      // que el handler resuelve, así que los mails salen igual.
       res.status(201).json({ athlete: row })
+      await sendOnboardingEmails(row).catch((error) =>
+        console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error),
+      )
     } catch (error) { next(error) }
   })
 
@@ -249,10 +277,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     } catch (error) { next(error) }
   })
 
-  // authLimiter y no publicWriteLimiter: es un login, y le corresponde el
-  // preset de riesgo de autenticación (20 intentos / 15 min) y no el de
-  // escritura pública (30 / 10 min), que era el más permisivo de los dos.
-  router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
+  // Preset de riesgo de autenticación (no el de escritura pública, que era más
+  // permisivo), pero con instancia propia: `authLimiter` lo comparte el login
+  // de staff, que el cliente prueba primero en cada intento (ver
+  // athleteAuthLimiter en middleware/rateLimit.js).
+  router.post('/login', athleteAuthLimiter, validateBody(loginSchema), async (req, res, next) => {
     try {
       const row = await repo().findLogin(req.validatedBody.email)
       // Igual que en el login de staff: bcrypt corre siempre, exista o no la
@@ -558,6 +587,15 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const membershipId = z.string().uuid().safeParse(req.params.membershipId)
       if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
       res.json({ membership: await repo().membershipCredential(membershipId.data) })
+    } catch (error) { next(error) }
+  })
+  // Rota la credencial de la persona. Es la que hay que usar cuando un token
+  // se filtró: la de afiliación solo alcanza a las cards del modelo viejo.
+  router.post('/admin/:athleteId/rotate-credential', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+      if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+      res.json(await repo().rotateAthleteCredentialToken(athleteId.data, actorLabel(req)))
     } catch (error) { next(error) }
   })
   router.post('/admin/memberships/:membershipId/rotate-qr', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {

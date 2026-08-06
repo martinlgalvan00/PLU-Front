@@ -40,6 +40,10 @@ function toCamelAthlete(row) {
     // cuenta no podía avisar por qué el checkout se bloqueaba ni ofrecer el
     // reenvío del enlace.
     emailVerifiedAt: row.email_verified_at ?? null,
+    // Credencial de la persona: estable de por vida, a diferencia del
+    // `qrToken` de cada afiliación (que cambia con cada renovación y no existe
+    // para un inscripto a un evento que no exige afiliación).
+    credentialToken: row.credential_token ?? null,
   }
 }
 
@@ -293,7 +297,9 @@ export async function approveAthletePaymentOrder(orderId) {
 function toCredentialResult(result, eventSlug) {
   return {
     athlete: toCamelAthlete(result.athlete),
-    membership: toCamelMembership(result.membership),
+    // Puede venir null: un inscripto a un evento que no exige afiliación
+    // también tiene credencial, y su veredicto lo da la inscripción.
+    membership: result.membership ? toCamelMembership(result.membership) : null,
     registration: result.registration
       ? toCamelRegistrationEntry({
           registration: result.registration,
@@ -304,6 +310,16 @@ function toCredentialResult(result, eventSlug) {
           checkIn: result.registration.check_in ?? null,
         })
       : null,
+    // Inscripciones vigentes del atleta. Se usan cuando el QR se escanea sin
+    // `?evento=`: antes ese caso no devolvía ninguna y la puerta se quedaba
+    // sin acción posible.
+    registrations: (result.registrations ?? []).map((row) =>
+      toCamelRegistrationEntry({
+        registration: row,
+        event: { slug: row.event_slug, title: row.event_title },
+        checkIn: row.check_in ?? null,
+      }),
+    ),
   }
 }
 
@@ -386,6 +402,12 @@ export async function getMembershipCredential(membershipId) {
 export async function rotateMembershipQrToken(membershipId) {
   const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/rotate-qr`, {})
   return { membership: toCamelMembership(membership) }
+}
+
+/** Rota la credencial de la persona: invalida la card impresa de ese atleta. */
+export async function rotateAthleteCredentialToken(athleteId) {
+  const { athlete } = await apiPost(`/api/athletes/admin/${athleteId}/rotate-credential`, {})
+  return { athlete: toCamelAthlete(athlete) }
 }
 
 export async function registerAthletePhoto(_athleteId, photoPath) {

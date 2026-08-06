@@ -263,6 +263,13 @@ export function createSupabaseAthleteRepository(
       p_actor: actor,
     }, 'No se pudo rotar el código de la credencial.'),
 
+    // La credencial vigente cuelga del atleta, no del período de afiliación
+    // (ver 20260806140000): rotar acá es lo que invalida la card impresa.
+    rotateAthleteCredentialToken: (athleteId, actor) => rpc('staff_rotate_athlete_credential_token', {
+      p_athlete_id: athleteId,
+      p_actor: actor,
+    }, 'No se pudo rotar la credencial del atleta.'),
+
     /**
      * Proyección de credencial para el scanner de staff: la pública no trae
      * documento (el member_code es enumerable), pero en la puerta el operador
