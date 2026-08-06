@@ -7363,34 +7363,42 @@
    ============================================= */
 
 .pitbull-ticket-invite {
-  align-items: flex-end;
-  border-bottom: 1px solid var(--pitbull-chapter-border, color-mix(in srgb, var(--color-text-primary) 12%, transparent));
+  align-items: end;
+  border: none;
   border-top: 1px solid var(--pitbull-chapter-border, color-mix(in srgb, var(--color-text-primary) 12%, transparent));
-  border-inline: 0;
-  border-radius: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px 32px;
-  justify-content: space-between;
-  margin-top: clamp(12px, 2vw, 20px);
-  padding: clamp(22px, 3vw, 32px) 0;
+  display: grid;
+  gap: 20px 40px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: clamp(16px, 2.4vw, 28px);
+  padding: clamp(22px, 3vw, 30px) 0 4px;
+  position: relative;
   width: 100%;
+}
+
+.pitbull-ticket-invite::before {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  top: -1px;
+  width: 2rem;
 }
 
 .pitbull-ticket-invite__copy {
   display: grid;
-  gap: 6px;
-  max-width: 46ch;
+  gap: 8px;
+  max-width: 42ch;
   min-width: 0;
 }
 
 .pitbull-ticket-invite__hook {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(15px, 1.5vw, 17px);
-  font-weight: 650;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
   margin: 0;
 }
 
@@ -7398,18 +7406,44 @@
   color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 400;
-  letter-spacing: 0.01em;
-  line-height: 1.5;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
   margin: 0;
+}
+
+.pitbull-ticket-invite__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.pitbull-ticket-invite__facts li {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pitbull-ticket-invite__facts li + li::before {
+  color: var(--color-text-muted);
+  content: '·';
+  margin-right: 14px;
+  opacity: 0.55;
 }
 
 .pitbull-ticket-invite__cta {
   align-items: center;
-  align-self: flex-start;
-  background: var(--color-brand-gold);
-  border: 1px solid var(--color-brand-gold);
+  align-self: end;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
   border-radius: 4px;
-  color: var(--plu-ink-inverse, #12141a);
+  color: var(--color-brand-action-text);
   cursor: pointer;
   display: inline-flex;
   flex: none;
@@ -7429,8 +7463,9 @@
 }
 
 .pitbull-ticket-invite__cta:hover {
-  background: color-mix(in srgb, var(--color-brand-gold) 88%, white);
-  border-color: color-mix(in srgb, var(--color-brand-gold) 88%, white);
+  background: var(--color-brand-action-hover, var(--color-brand-gold));
+  border-color: var(--color-brand-action-hover, var(--color-brand-gold));
+  color: var(--color-brand-action-text);
 }
 
 .pitbull-ticket-invite__cta:active {
@@ -7443,7 +7478,7 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__lead {
-  max-width: 46ch;
+  max-width: 48ch;
 }
 
 .pitbull-ticket-pass--cta {
@@ -7465,13 +7500,13 @@
 
 @media (max-width: 899px) {
   .pitbull-ticket-invite {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
+    align-items: start;
+    gap: 18px;
+    grid-template-columns: 1fr;
   }
 
   .pitbull-ticket-invite__cta {
-    align-self: flex-start;
+    align-self: start;
     justify-content: center;
     width: fit-content;
   }
@@ -7804,9 +7839,7 @@
 
 .pitbull-hero-masthead::before {
   background:
-    linear-gradient(180deg, transparent 72%, var(--color-page-canvas) 100%),
-    radial-gradient(ellipse 70% 55% at 88% 18%, rgba(242, 183, 5, 0.08), transparent 62%),
-    radial-gradient(ellipse 55% 48% at 8% 72%, rgba(116, 172, 223, 0.07), transparent 58%),
+    linear-gradient(180deg, transparent 78%, var(--color-page-canvas) 100%),
     var(--design-hero-surface, var(--design-hero-bg, #181a1f));
   content: '';
   inset: 0;
@@ -7845,6 +7878,7 @@
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
   margin: 0;
   max-width: none;
+  min-height: 0;
   position: relative;
   width: 100%;
 }
@@ -7854,6 +7888,7 @@
   border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
   border-radius: calc(var(--border-radius-lg) + 4px);
   box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.5);
+  isolation: isolate;
   overflow: hidden;
   position: relative;
 }
@@ -7863,12 +7898,16 @@
   box-shadow: 0 20px 40px -28px rgba(15, 17, 23, 0.28);
 }
 
+/* Absolute cover: la img 800×1200 no aporta altura intrínseca al layout. */
 .pitbull-hero-masthead__frame-img {
   display: block;
   filter: grayscale(0.05) contrast(1.08) saturate(1.05);
   height: 100%;
+  inset: 0;
+  max-height: 100%;
   object-fit: cover;
   object-position: center 36%;
+  position: absolute;
   width: 100%;
 }
 
@@ -7881,6 +7920,7 @@
   inset: 0;
   pointer-events: none;
   position: absolute;
+  z-index: 1;
 }
 
 [data-theme='light'] .pitbull-hero-masthead__frame-scrim {
@@ -7907,9 +7947,8 @@
   color: var(--color-text-muted);
 }
 
-/* Mobile: texto encima de la foto (overlay), anclado arriba bajo el nav.
-   Evitar 88–92svh + align-end: el panel quedaba abajo y el bloque pasaba
-   de 1200px cuando facts+CTA crecían. */
+/* Mobile: overlay corto a sangre. Cap duro evita que el intrínseco 800×1200
+   o el panel con CTA inflen el hero por encima del viewport. */
 @media (max-width: 767px) {
   .pitbull-hero-masthead--bleed {
     padding: 0;
@@ -7918,18 +7957,21 @@
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
     gap: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
+    grid-template-rows: minmax(0, auto);
+    max-height: min(78svh, 640px);
     min-height: 0;
+    overflow: hidden;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
     grid-area: 1 / 1;
+    min-height: 0;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
     height: 100%;
-    min-height: 100%;
+    max-height: min(78svh, 640px);
     z-index: 0;
   }
 
@@ -7939,124 +7981,141 @@
     border-radius: 0;
     box-shadow: none;
     height: 100%;
-    min-height: 100%;
+    max-height: min(78svh, 640px);
+    min-height: 0;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background:
-      linear-gradient(
-        180deg,
-        rgba(8, 9, 12, 0.82) 0%,
-        rgba(8, 9, 12, 0.55) 28%,
-        rgba(8, 9, 12, 0.42) 58%,
-        rgba(8, 9, 12, 0.88) 100%
-      );
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--plu-cool-950) 72%, transparent) 0%,
+      color-mix(in oklab, var(--plu-cool-950) 42%, transparent) 42%,
+      color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 100%
+    );
   }
 
   [data-theme='light'] .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background:
-      linear-gradient(
-        180deg,
-        rgba(15, 17, 23, 0.78) 0%,
-        rgba(15, 17, 23, 0.48) 30%,
-        rgba(15, 17, 23, 0.38) 58%,
-        rgba(15, 17, 23, 0.82) 100%
-      );
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--plu-cool-950) 70%, transparent) 0%,
+      color-mix(in oklab, var(--plu-cool-950) 40%, transparent) 44%,
+      color-mix(in oklab, var(--plu-cool-950) 76%, transparent) 100%
+    );
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
     align-self: stretch;
     display: flex;
     flex-direction: column;
-    gap: clamp(12px, 3vw, 16px);
+    gap: 10px;
     justify-content: flex-start;
+    max-height: min(78svh, 640px);
     max-width: none;
-    min-height: min(62svh, 520px);
+    min-height: 0;
     padding:
-      calc(var(--header-height) + 10px)
+      calc(var(--header-height) + 8px)
       var(--layout-gutter-lg)
-      clamp(22px, 5vw, 32px);
+      clamp(18px, 4vw, 28px);
     position: relative;
     z-index: 2;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel::before {
-    opacity: 0.95;
+    opacity: 0;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
-    gap: 8px;
+    gap: 6px;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    color: #fff;
-    font-size: clamp(2rem, 8.5vw, 2.55rem);
+    color: var(--plu-warm-50);
+    font-size: clamp(1.85rem, 7.5vw, 2.35rem);
     max-width: 11ch;
-    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 1px 18px color-mix(in oklab, var(--plu-cool-950) 45%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb {
-    color: rgba(255, 255, 255, 0.62);
+    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
+    font-size: 11px;
     opacity: 1;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb span:last-child {
-    color: rgba(255, 255, 255, 0.82);
+    color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker {
-    color: rgba(255, 255, 255, 0.78);
+    color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker time {
-    color: #fff;
+    color: var(--plu-warm-50);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
-    color: rgba(255, 255, 255, 0.62);
+    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
-    color: rgba(255, 255, 255, 0.72);
-    max-width: 32ch;
+    color: color-mix(in oklab, var(--plu-warm-50) 72%, transparent);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    max-width: 34ch;
+    overflow: hidden;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
-    border-top-color: rgba(255, 255, 255, 0.16);
+    border-top-color: color-mix(in oklab, var(--plu-warm-50) 16%, transparent);
+    margin-top: auto;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link {
     align-self: flex-start;
-    color: rgba(255, 255, 255, 0.92);
+    color: color-mix(in oklab, var(--plu-warm-50) 92%, transparent);
     min-height: 44px;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link:hover {
-    color: #fff;
+    color: var(--plu-warm-50);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge {
     background: transparent;
     backdrop-filter: none;
-    color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
+    color: color-mix(in oklab, var(--plu-warm-50) 72%, transparent);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
+    border-color: color-mix(in oklab, var(--plu-warm-50) 18%, transparent);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta::before {
+    background: var(--plu-gold-400);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__dateline {
-    border-color: color-mix(in oklab, var(--plu-warm-50) 22%, transparent);
     color: var(--plu-warm-50);
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__dateline-sep,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__dateline-loc {
-    color: color-mix(in oklab, var(--plu-warm-50) 62%, transparent);
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__venue,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__venue-name,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__loc {
+    color: color-mix(in oklab, var(--plu-warm-50) 64%, transparent);
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots {
-    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-label {
+    color: color-mix(in oklab, var(--plu-warm-50) 52%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-value {
-    color: var(--plu-warm-50);
+    color: var(--plu-gold-400);
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-sep {
+    color: color-mix(in oklab, var(--plu-warm-50) 42%, transparent);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-label {
@@ -8069,7 +8128,7 @@
 }
 
 /* Notebook+: texto a la izquierda anclado al content-grid, foto a sangre
-   derecha. Especificidad alta vs. la regla base `__layout { 1fr }`. */
+   derecha. Altura fija del bloque: la img no puede recuperar intrínseco. */
 @media (min-width: 768px) {
   .pitbull-hero-masthead--bleed {
     padding-right: 0;
@@ -8078,26 +8137,23 @@
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
     align-items: stretch;
     column-gap: clamp(28px, 3.5vw, 48px);
-    /* Altura fija del bloque (no min-height): si el plate no tiene altura
-       concreta, la img 800×1200 recupera su intrínseco y el hero se va a
-       +1200px. */
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 46%);
-    height: clamp(400px, 58vh, 520px);
+    grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
+    height: clamp(420px, 56vh, 560px);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
     display: flex;
     flex-direction: column;
-    gap: clamp(16px, 2vw, 22px);
+    gap: clamp(12px, 1.6vw, 18px);
     justify-content: center;
     margin-left: max(0px, calc((100vw - var(--max-width-content) - var(--layout-gutter-lg)) / 2));
-    max-width: min(34rem, 100%);
+    max-width: min(36rem, 100%);
     min-height: 0;
     padding-block: clamp(4px, 1vw, 12px);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
-    gap: clamp(10px, 1.2vw, 14px);
+    gap: clamp(8px, 1vw, 12px);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
@@ -8107,23 +8163,36 @@
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
     aspect-ratio: auto;
-    border-radius: calc(var(--border-radius-lg) + 4px) 0 0 calc(var(--border-radius-lg) + 4px);
+    border-radius: calc(var(--border-radius-lg) + 2px) 0 0 calc(var(--border-radius-lg) + 2px);
     border-right: none;
     box-shadow: none;
     height: 100%;
     min-height: 0;
   }
 
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-page-canvas) 32%, transparent),
+      transparent 40%
+    );
+  }
+
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2rem, 3.6vw, 2.85rem);
+    font-size: clamp(2.1rem, 3.4vw, 3.2rem);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
     max-width: 38ch;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc,
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__loc {
     display: none;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
+    padding-top: 16px;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
@@ -8137,12 +8206,12 @@
 @media (min-width: 1100px) {
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
     column-gap: clamp(40px, 4.5vw, 64px);
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 48%);
-    height: clamp(440px, 62vh, 560px);
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+    height: clamp(440px, 56vh, 560px);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2.6rem, 3.8vw, 3.6rem);
+    font-size: clamp(2.4rem, 3.6vw, 3.6rem);
   }
 }
 
@@ -8226,72 +8295,108 @@
   color: var(--color-text-primary);
 }
 
-.pitbull-hero-masthead__dateline {
-  align-items: baseline;
-  border-bottom: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
+.pitbull-hero-masthead__meta {
+  align-items: end;
+  border: none;
   border-top: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
-  color: var(--color-text-primary);
-  display: flex;
-  flex-wrap: wrap;
-  font-family: var(--font-display);
-  font-size: clamp(13px, 1.3vw, 15px);
-  font-weight: 650;
-  gap: 6px 10px;
-  letter-spacing: -0.018em;
-  line-height: 1.4;
+  display: grid;
+  gap: 10px 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
   margin: 0;
-  padding: 12px 0;
+  padding: 14px 0 2px;
+  position: relative;
 }
 
-.pitbull-hero-masthead__dateline time {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.pitbull-hero-masthead__meta::before {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  top: -1px;
+  width: 2rem;
 }
 
-.pitbull-hero-masthead__dateline-sep {
-  color: var(--color-text-muted);
-  font-weight: 500;
-  opacity: 0.55;
-}
-
-.pitbull-hero-masthead__dateline-venue {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+.pitbull-hero-masthead__meta-copy {
+  display: grid;
+  gap: 5px;
   min-width: 0;
 }
 
-.pitbull-hero-masthead__dateline-loc {
+.pitbull-hero-masthead__dateline {
+  border: none;
+  color: var(--color-text-primary);
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 1.7vw, 19px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-hero-masthead__venue {
+  color: var(--color-text-secondary);
+  display: block;
+  font-family: var(--font-family);
+  font-size: clamp(12.5px, 1.2vw, 14px);
+  font-weight: 550;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.pitbull-hero-masthead__venue-name {
+  color: inherit;
+}
+
+.pitbull-hero-masthead__loc {
   color: var(--color-text-muted);
   font-family: var(--font-family);
-  font-size: 0.85em;
+  font-size: clamp(11.5px, 1.05vw, 12.5px);
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .pitbull-hero-masthead__slots {
-  align-items: baseline;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  flex-wrap: wrap;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 600;
-  gap: 8px;
-  letter-spacing: 0.1em;
-  margin: 8px 0 0;
-  text-transform: uppercase;
+  align-items: end;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  margin: 0;
+  text-align: right;
 }
 
 .pitbull-hero-masthead__slots-label {
-  opacity: 0.78;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .pitbull-hero-masthead__slots-value {
-  color: var(--color-text-primary);
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.1vw, 1.55rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.pitbull-hero-masthead__slots-sep {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin-inline: 0.2em;
+  opacity: 0.55;
 }
 
 .pitbull-hero-masthead__cta-group {
@@ -8948,7 +9053,7 @@
   color: var(--color-text-primary);
 }
 
-[data-theme='light'] .pitbull-hero-masthead--text .pitbull-hero-masthead__dateline {
+[data-theme='light'] .pitbull-hero-masthead--text .pitbull-hero-masthead__meta {
   border-color: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
 }
 
@@ -10064,40 +10169,35 @@
 /* Portada showcase */
 .pitbull-page--premium .pitbull-hero-masthead {
   min-height: 0;
-  padding-bottom: clamp(36px, 5vw, 64px);
+  padding-bottom: clamp(28px, 4vw, 48px);
 }
 
 .pitbull-page--premium .pitbull-hero-masthead::before {
   background:
-    linear-gradient(180deg, transparent 72%, var(--color-page-canvas) 100%),
-    radial-gradient(
-      ellipse 62% 52% at 74% 14%,
-      color-mix(in oklab, var(--plu-gold-500) 9%, transparent),
-      transparent 64%
-    ),
+    linear-gradient(180deg, transparent 78%, var(--color-page-canvas) 100%),
     var(--design-hero-surface, var(--design-hero-bg));
 }
 
 .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-  gap: clamp(14px, 1.6vw, 20px);
-  max-width: min(39rem, 100%);
+  gap: clamp(12px, 1.4vw, 18px);
+  max-width: min(38rem, 100%);
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__head {
-  gap: clamp(10px, 1.25vw, 15px);
+  gap: clamp(8px, 1.1vw, 12px);
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__title {
-  font-size: clamp(2.7rem, 5.3vw, 4.8rem);
-  letter-spacing: -0.052em;
-  line-height: 0.98;
-  max-width: 10ch;
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  max-width: 11ch;
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__lead {
-  font-size: clamp(14px, 1.25vw, 16px);
-  line-height: 1.6;
-  max-width: 42ch;
+  font-size: clamp(14px, 1.2vw, 15.5px);
+  line-height: 1.55;
+  max-width: 40ch;
 }
 
 .pitbull-hero-masthead__facts {
@@ -10174,13 +10274,14 @@
 .pitbull-page--premium .pitbull-hero-masthead__frame-img {
   filter: grayscale(0.08) contrast(1.08) saturate(0.92);
   object-position: center 38%;
-  transform: scale(1.015);
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__frame-scrim {
-  background:
-    linear-gradient(90deg, color-mix(in oklab, var(--color-page-canvas) 28%, transparent), transparent 36%),
-    linear-gradient(180deg, transparent 58%, color-mix(in oklab, var(--plu-cool-950) 58%, transparent) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-page-canvas) 28%, transparent),
+    transparent 38%
+  );
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__actions {
@@ -10636,11 +10737,16 @@
   padding-bottom: clamp(8px, 1.5vw, 16px);
 }
 
+.pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__title {
+  font-size: clamp(1.75rem, 3.4vw, 2.55rem);
+  letter-spacing: -0.045em;
+  max-width: 16ch;
+}
+
 .pitbull-ticket-invite {
   background: transparent;
   border-color: var(--pitbull-chapter-border);
   border-radius: 0;
-  border-inline: 0;
 }
 
 .pitbull-page--premium .pitbull-inscription-shell__actions .pitbull-inscription__cta--primary,
@@ -10648,7 +10754,7 @@
   background: var(--color-brand-gold, #f2b705);
   border: 1px solid var(--color-brand-gold, #f2b705);
   border-radius: 4px;
-  color: #14181f;
+  color: var(--color-brand-action-text, #14181f);
   flex: none;
   padding: 0 20px;
   width: fit-content;
@@ -10661,7 +10767,7 @@
 }
 
 .pitbull-page--premium .pitbull-ticket-invite__cta {
-  align-self: flex-start;
+  align-self: end;
   flex: none;
   width: fit-content;
 }
@@ -10714,9 +10820,9 @@
 
 @media (min-width: 768px) {
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    column-gap: clamp(42px, 5vw, 76px);
-    grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
-    height: clamp(500px, 68vh, 620px);
+    column-gap: clamp(36px, 4.5vw, 64px);
+    grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+    height: clamp(420px, 56vh, 560px);
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
@@ -10724,7 +10830,7 @@
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(3.2rem, 5.5vw, 4.8rem);
+    font-size: clamp(2.4rem, 3.8vw, 3.6rem);
   }
 
   .pitbull-location,
@@ -10770,35 +10876,35 @@
 @media (max-width: 767px) {
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed,
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
+  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate,
+  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    max-height: min(78svh, 640px);
     min-height: 0;
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 0%,
-        color-mix(in oklab, var(--plu-cool-950) 48%, transparent) 28%,
-        color-mix(in oklab, var(--plu-cool-950) 36%, transparent) 56%,
-        var(--plu-cool-950) 100%
-      );
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--plu-cool-950) 72%, transparent) 0%,
+      color-mix(in oklab, var(--plu-cool-950) 42%, transparent) 42%,
+      color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 100%
+    );
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    gap: 12px;
+    gap: 10px;
     justify-content: flex-start;
-    min-height: min(62svh, 520px);
-    padding-bottom: clamp(22px, 5vw, 32px);
+    padding-bottom: clamp(18px, 4vw, 28px);
   }
 
-  .pitbull-page--premium .pitbull-hero-masthead__dateline {
-    border-color: color-mix(in oklab, var(--plu-warm-50) 20%, transparent);
-    padding-block: 10px;
+  .pitbull-page--premium .pitbull-hero-masthead__meta {
+    border-color: color-mix(in oklab, var(--plu-warm-50) 16%, transparent);
+    gap: 8px 18px;
+    padding-block: 12px 0;
   }
 
-  .pitbull-page--premium .pitbull-hero-masthead__slots {
-    margin-top: 4px;
+  .pitbull-page--premium .pitbull-hero-masthead__slots-value {
+    font-size: clamp(1.15rem, 5.5vw, 1.35rem);
   }
 
   .pitbull-section-nav__inner {
@@ -10854,7 +10960,18 @@
 
 @media (max-width: 430px) {
   .pitbull-page--premium .pitbull-hero-masthead__title {
-    font-size: clamp(2.35rem, 11vw, 3rem);
+    font-size: clamp(1.9rem, 9vw, 2.35rem);
+  }
+
+  .pitbull-hero-masthead__meta {
+    align-items: start;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-hero-masthead__slots {
+    justify-items: start;
+    text-align: left;
   }
 
   .pitbull-hero-masthead__fact--date dd,

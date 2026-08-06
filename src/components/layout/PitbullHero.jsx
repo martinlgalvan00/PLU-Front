@@ -66,24 +66,27 @@ function PitbullHeroPanel({
       </header>
 
       <Item {...itemProps}>
-        <p className="pitbull-hero-masthead__dateline" aria-label={t('pages.pitbull.heroMetricsAria')}>
-          <time dateTime="2026-12-12/2026-12-13">{date}</time>
-          <span className="pitbull-hero-masthead__dateline-sep" aria-hidden>
-            ·
-          </span>
-          <span className="pitbull-hero-masthead__dateline-venue">
-            {venue}
-            {location ? <span className="pitbull-hero-masthead__dateline-loc">{location}</span> : null}
-          </span>
-        </p>
-        <p className="pitbull-hero-masthead__slots">
-          <span className="pitbull-hero-masthead__slots-label">{t('pages.pitbull.heroSlots')}</span>
-          <span className="pitbull-hero-masthead__slots-value">
-            {registered}
-            <span aria-hidden> / </span>
-            {slots}
-          </span>
-        </p>
+        <div className="pitbull-hero-masthead__meta" aria-label={t('pages.pitbull.heroMetricsAria')}>
+          <div className="pitbull-hero-masthead__meta-copy">
+            <time className="pitbull-hero-masthead__dateline" dateTime="2026-12-12/2026-12-13">
+              {date}
+            </time>
+            <p className="pitbull-hero-masthead__venue">
+              <span className="pitbull-hero-masthead__venue-name">{venue}</span>
+            </p>
+            {location ? <p className="pitbull-hero-masthead__loc">{location}</p> : null}
+          </div>
+          <p className="pitbull-hero-masthead__slots">
+            <span className="pitbull-hero-masthead__slots-label">{t('pages.pitbull.heroSlots')}</span>
+            <span className="pitbull-hero-masthead__slots-value">
+              {registered}
+              <span className="pitbull-hero-masthead__slots-sep" aria-hidden>
+                /
+              </span>
+              {slots}
+            </span>
+          </p>
+        </div>
       </Item>
 
       <Item {...itemProps}>

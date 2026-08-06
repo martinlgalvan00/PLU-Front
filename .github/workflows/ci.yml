@@ -97,19 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          if ! npm ci; then
-            echo "::error title=Lockfile desincronizado::package.json y package-lock.json no coinciden. Con Node $(cat .nvmrc): npm install && npm run lock:check && git add package-lock.json"
-            exit 1
-          fi
-      - name: Require live integration secrets
+      - name: Check live integration secrets
+        id: secrets
         env:
           MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
@@ -121,14 +110,33 @@ jobs:
           [[ -n "${BREVO_API_KEY:-}" ]] || missing+=("BREVO_API_KEY")
           [[ -n "${BREVO_SENDER_EMAIL:-}" ]] || missing+=("BREVO_SENDER_EMAIL")
           if ((${#missing[@]})); then
-            echo "::error title=Secrets faltantes::Cargá en GitHub Secrets: ${missing[*]}"
+            echo "::warning title=Secrets de integraciones ausentes::Faltan ${missing[*]}. Se omite el smoke live de MP/Brevo; el resto del CI sigue. Cargalos en Settings → Secrets and variables → Actions cuando estén listos."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: actions/setup-node@v5
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          if ! npm ci; then
+            echo "::error title=Lockfile desincronizado::package.json y package-lock.json no coinciden. Con Node $(cat .nvmrc): npm install && npm run lock:check && git add package-lock.json"
             exit 1
           fi
       - name: Mercado Pago connectivity
+        if: steps.secrets.outputs.ready == 'true'
         env:
           MERCADO_PAGO_ACCESS_TOKEN: ${{ secrets.MERCADO_PAGO_ACCESS_TOKEN }}
         run: npm run mercado-pago:doctor
       - name: Brevo connectivity
+        if: steps.secrets.outputs.ready == 'true'
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}

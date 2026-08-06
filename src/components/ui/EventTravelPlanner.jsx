@@ -39,11 +39,50 @@ function errorMessage(errorCode, t) {
   return t(`pages.events.map.travel.${messages[errorCode] ?? 'providerUnavailable'}`)
 }
 
-function ExternalTravelLink({ href, icon, label }) {
+/** Marcas simplificadas para reconocimiento; no reemplazan assets oficiales. */
+function GoogleMapsMark() {
+  return (
+    <svg className="competition-map__brand-mark" viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+      <path
+        fill="#EA4335"
+        d="M12 2c-3.9 0-7 3.1-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.9-3.1-7-7-7z"
+      />
+      <circle fill="#fff" cx="12" cy="9" r="2.6" />
+      <path fill="#FBBC04" d="M12 2v4.2a2.8 2.8 0 0 1 0 5.6V22s7-7.75 7-13c0-3.9-3.1-7-7-7z" opacity=".9" />
+      <path fill="#34A853" d="M12 2C8.1 2 5 5.1 5 9c0 2.4 1.5 5.4 3.4 8.1L12 9.2V2z" opacity=".85" />
+      <path fill="#4285F4" d="M12 2v7.2l3.6 7.9C17.5 14.4 19 11.4 19 9c0-3.9-3.1-7-7-7z" opacity=".75" />
+    </svg>
+  )
+}
+
+function WazeMark() {
+  return (
+    <svg className="competition-map__brand-mark" viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+      <path
+        fill="#33CCFF"
+        d="M12.1 2.2c-4.7 0-8.6 3.5-8.6 8.1 0 2.5 1.1 4.7 2.9 6.2v2.7c0 .4.5.6.8.4l2.4-1.5c.8.2 1.6.3 2.5.3 4.7 0 8.6-3.5 8.6-8.1s-3.9-8.1-8.6-8.1z"
+      />
+      <circle fill="#1A1A1A" cx="9.2" cy="10.2" r="1.35" />
+      <circle fill="#1A1A1A" cx="14.6" cy="10.2" r="1.35" />
+      <path
+        d="M9.1 13.4c.7.7 1.7 1.1 2.9 1.1s2.2-.4 2.9-1.1"
+        fill="none"
+        stroke="#1A1A1A"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <circle fill="#FF3B5C" cx="18.2" cy="8.4" r="1.55" />
+    </svg>
+  )
+}
+
+function ExternalTravelLink({ href, brand, label }) {
   if (!href) return null
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer">
-      {icon}
+    <a className="competition-map__external-link" href={href} target="_blank" rel="noopener noreferrer">
+      <span className="competition-map__external-link-brand" data-brand={brand} aria-hidden>
+        {brand === 'google' ? <GoogleMapsMark /> : <WazeMark />}
+      </span>
       <span>{label}</span>
       <ExternalLink size={13} aria-hidden />
     </a>
@@ -209,16 +248,8 @@ export default function EventTravelPlanner({
           <MapPinned size={14} aria-hidden />
           {t('pages.events.map.travel.openWith')}
         </span>
-        <ExternalTravelLink
-          href={googleUrl}
-          icon={<MapPinned size={15} aria-hidden />}
-          label="Google Maps"
-        />
-        <ExternalTravelLink
-          href={wazeUrl}
-          icon={<Navigation size={15} aria-hidden />}
-          label="Waze"
-        />
+        <ExternalTravelLink href={googleUrl} brand="google" label="Google Maps" />
+        <ExternalTravelLink href={wazeUrl} brand="waze" label="Waze" />
       </nav>
 
       <p className="competition-map__travel-privacy">
