@@ -195,11 +195,10 @@ export default function PitbullSpotlight({
                   onClick={() => primaryAction?.()}
                 >
                   <picture>
-                    {/* Tablet/notebook (640-1199): foto landscape, encaja mejor en
-                        la caja apaisada de esos anchos. Mobile chico y desktop
-                        amplio usan el retrato de medallas. */}
+                    {/* Tablet/notebook (640-1599): foto landscape para la caja
+                        apaisada / overlay. Desktop amplio (≥1600) usa medallas. */}
                     <source
-                      media="(min-width: 640px) and (max-width: 1199px)"
+                      media="(min-width: 640px) and (max-width: 1599px)"
                       srcSet={photoLift}
                     />
                     <img

@@ -1,72 +1,70 @@
 /* =============================================
-   SHOP PAGE — store navegable (dock + catálogo ancho)
-   Eventos nuevos aparecen solos; sin CSS por evento.
+   SHOP PAGE — store navegable (dock + catálogo)
+   Hero: PluPageHero (mismo contrato que Eventos/Récords)
    ============================================= */
 
-.shop-page {
+.shop-page.shop-page--plu-ref {
   box-sizing: border-box;
-  gap: clamp(28px, 4vw, 44px);
-  margin-inline: auto;
-  max-width: min(var(--max-width-content), 100%);
-  padding-block: clamp(28px, 4vw, 48px) clamp(56px, 8vw, 96px);
-  padding-inline: max(16px, env(safe-area-inset-left, 0px), clamp(16px, 3vw, 32px))
-    max(16px, env(safe-area-inset-right, 0px), clamp(16px, 3vw, 32px));
+  gap: 0;
+  margin: 0;
+  max-width: none;
+  padding: 0;
   width: 100%;
 }
 
-/* —— Masthead compacto —— */
-
-.shop-masthead {
+.shop-page__body {
   display: grid;
-  gap: 16px;
-  padding-block: clamp(40px, 6vw, 80px) clamp(20px, 4vw, 40px);
-  justify-content: center;
+  gap: clamp(22px, 3.2vw, 36px);
+  margin: 0 auto;
+  max-width: var(--max-width-content);
+  padding:
+    clamp(24px, 4vw, 40px)
+    clamp(20px, 5vw, 64px)
+    clamp(56px, 8vw, 96px);
+  width: 100%;
 }
 
-.shop-masthead__copy {
-  display: grid;
-  gap: 16px;
-  max-width: 50rem;
-  text-align: center;
-  justify-items: center;
+/* Compactar un poco el hero de tienda en notebook */
+.shop-page--plu-ref .shop-page__hero.plu-page-hero {
+  padding-bottom: clamp(28px, 4vw, 48px);
 }
 
-.shop-masthead__eyebrow {
-  color: var(--color-brand-celeste);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.shop-page--plu-ref .shop-page__hero .plu-page-hero__breadcrumb {
+  margin-bottom: clamp(16px, 2.4vw, 28px);
 }
 
-.shop-masthead__title {
-  font-family: var(--font-display);
-  font-size: clamp(42px, 7vw, 72px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  margin: 0;
+.shop-page--plu-ref .shop-page__hero .plu-page-hero__desc {
+  margin-top: 12px;
+  max-width: 44ch;
 }
 
-.shop-masthead__lead {
-  color: var(--color-text-secondary);
-  font-size: clamp(14px, 1.5vw, 16px);
-  line-height: 1.45;
-  margin: 0;
-  max-width: 40rem;
+@supports (container-type: inline-size) {
+  @container plu-page-hero (max-width: 900px) {
+    .shop-page--plu-ref .shop-page__hero .plu-page-hero__breadcrumb {
+      margin-bottom: 14px;
+    }
+
+    .shop-page--plu-ref .shop-page__hero .plu-page-hero__title {
+      font-size: clamp(30px, 7.5vw, 40px);
+      max-width: 12ch;
+    }
+
+    .shop-page--plu-ref .shop-page__hero .plu-page-hero__desc {
+      font-size: 14.5px;
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+  }
 }
 
 /* —— Dock sticky de categorías (visual: plu-tab-rail) —— */
 
 .shop-dock {
-  background: color-mix(in srgb, var(--color-page-canvas, var(--color-bg)) 88%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  margin-inline: -4px;
-  padding-block: 8px;
-  position: sticky;
-  top: var(--header-height-scrolled, var(--header-height));
-  z-index: 40;
+  background: transparent;
+  margin: 0;
+  padding-block: 0;
+  position: static;
+  z-index: auto;
 }
 
 .shop-dock__shell {
@@ -84,7 +82,7 @@
 }
 
 [data-theme='light'] .shop-dock {
-  background: color-mix(in srgb, var(--color-page-canvas, #f4f5f7) 92%, transparent);
+  background: transparent;
 }
 
 /* —— Catálogo del departamento activo —— */
@@ -339,22 +337,10 @@
 }
 
 .shop-section__header {
-  align-items: end;
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 18px;
-}
-
-@media (min-width: 720px) {
-  .shop-section__header {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 16px 24px;
-  }
-
-  .shop-section__lead {
-    justify-self: end;
-    text-align: right;
-  }
+  max-width: 40rem;
 }
 
 .shop-section__title {
@@ -366,21 +352,36 @@
 }
 
 .shop-section__title::before {
-  background: linear-gradient(90deg, var(--color-brand-gold), transparent);
+  background: linear-gradient(90deg, var(--plu-gold-500, var(--color-brand-gold)), transparent);
   content: '';
   display: block;
   height: 1px;
   margin: 0 0 10px;
-  opacity: 0.8;
-  width: 32px;
+  opacity: 0.85;
+  width: 28px;
 }
 
 .shop-section__lead {
   color: var(--color-text-muted);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   margin: 0;
-  max-width: 36rem;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+
+@media (min-width: 960px) {
+  .shop-section__header {
+    align-items: end;
+    gap: 10px 28px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    max-width: none;
+  }
+
+  .shop-section__lead {
+    justify-self: end;
+    text-align: right;
+  }
 }
 
 /* —— Event cards —— */
@@ -511,21 +512,55 @@
 /* —— Empty —— */
 
 .shop-empty {
-  align-items: center;
-  border: 1px dashed var(--color-border-subtle);
-  border-radius: var(--border-radius-lg);
+  align-items: start;
+  background: transparent;
+  border: none;
+  border-left: 2px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 70%, transparent);
+  border-radius: 0;
   color: var(--color-text-muted);
-  display: flex;
-  gap: 12px;
-  min-height: 120px;
-  padding: 28px 24px;
+  display: grid;
+  gap: 12px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 0;
+  padding: 4px 4px 4px 16px;
   width: 100%;
 }
 
-.shop-empty__text {
-  font-size: 14px;
-  line-height: 1.45;
+.shop-empty__icon {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 72%, var(--color-text-muted));
+  display: flex;
+  flex-shrink: 0;
+  height: 32px;
+  justify-content: center;
+  margin-top: 2px;
+  width: 32px;
+}
+
+.shop-empty__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shop-empty__eyebrow {
+  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 78%, var(--color-text-muted));
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   margin: 0;
+  text-transform: uppercase;
+}
+
+.shop-empty__text {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 48ch;
+  text-wrap: pretty;
 }
 
 /* —— Paneles de departamento full-width —— */
@@ -1129,8 +1164,11 @@
 }
 
 .shop-empty--products-pending {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 34%, var(--color-border-subtle));
-  color: var(--color-brand-gold);
+  border-left-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 80%, transparent);
+}
+
+.shop-empty--products-pending .shop-empty__icon {
+  color: var(--plu-gold-500, var(--color-brand-gold));
 }
 
 @media (max-width: 640px) {

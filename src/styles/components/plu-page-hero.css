@@ -25,6 +25,9 @@
 .plu-page-hero {
   background: var(--plu-page-hero-bg);
   border-bottom: 1px solid var(--plu-page-hero-border);
+  /* Stack del aside según el ancho real del hero (notebook/IDE), no solo el viewport. */
+  container-name: plu-page-hero;
+  container-type: inline-size;
   margin-top: calc(-1 * var(--header-height));
   overflow: hidden;
   padding: calc(var(--header-height) + clamp(42px, 6vw, 76px)) clamp(20px, 5vw, 64px)
@@ -156,7 +159,34 @@
   font-size: clamp(32px, 4.2vw, 46px);
 }
 
-@media (max-width: 760px) {
+/* Contenedor angosto: una columna editorial (copy → próximo meet) */
+@supports (container-type: inline-size) {
+  @container plu-page-hero (max-width: 900px) {
+    .plu-page-hero--with-aside .plu-page-hero__inner {
+      align-items: start;
+      gap: clamp(24px, 4vw, 32px);
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .plu-page-hero__copy {
+      max-width: none;
+    }
+
+    .plu-page-hero__title {
+      max-width: 16ch;
+    }
+
+    .plu-page-hero__aside {
+      border-left: 0;
+      border-top: 1px solid var(--color-border);
+      max-width: 28rem;
+      padding: clamp(20px, 3vw, 28px) 0 0;
+    }
+  }
+}
+
+/* Fallback sin container queries + phones */
+@media (max-width: 900px) {
   .plu-page-hero {
     padding: calc(var(--header-height) + 30px) 20px 40px;
   }
@@ -166,7 +196,8 @@
   }
 
   .plu-page-hero--with-aside .plu-page-hero__inner {
-    gap: 30px;
+    align-items: start;
+    gap: 28px;
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -183,6 +214,7 @@
   .plu-page-hero__aside {
     border-left: 0;
     border-top: 1px solid var(--color-border);
+    max-width: 28rem;
     padding: 24px 0 0;
   }
 }

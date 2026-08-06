@@ -380,6 +380,7 @@ export default function EventsPage({
   return (
     <main className="page page--design page--plu-ref events-page--design events-page--plu-ref">
       <PluPageHero
+        className="events-page__hero"
         aside={
           nextEvent ? (
             <div className="events-hero-dossier">
