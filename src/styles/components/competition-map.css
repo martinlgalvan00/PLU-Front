@@ -596,11 +596,12 @@
 
 .competition-map__action--primary {
   background: var(--color-brand-action);
-  color: var(--color-text-on-light);
+  color: var(--color-brand-action-text);
 }
 
 .competition-map__action--primary:hover {
   background: var(--color-brand-action-hover, var(--color-brand-gold));
+  color: var(--color-brand-action-text);
   transform: translateY(-1px);
 }
 
@@ -734,12 +735,14 @@
 .competition-map__travel-action[data-dominant='true'] {
   background: var(--color-brand-action);
   border-color: var(--color-brand-action);
-  color: var(--color-text-on-light);
+  color: var(--color-brand-action-text);
+  font-weight: 750;
 }
 
 .competition-map__travel-action[data-dominant='true']:hover {
   background: var(--color-brand-action-hover, var(--color-brand-gold));
   border-color: var(--color-brand-action-hover, var(--color-brand-gold));
+  color: var(--color-brand-action-text);
 }
 
 .competition-map__travel-action:disabled {
@@ -748,7 +751,7 @@
 }
 
 .competition-map__travel-action:focus-visible,
-.competition-map__external-travel a:focus-visible {
+.competition-map__external-link:focus-visible {
   outline: 2px solid var(--color-focus-ring, var(--color-brand-celeste));
   outline-offset: 3px;
 }
@@ -850,7 +853,7 @@
   border-top: 1px solid var(--color-border-subtle);
   display: flex;
   flex-wrap: wrap;
-  gap: 7px 14px;
+  gap: 8px 10px;
   padding-top: 11px;
 }
 
@@ -861,25 +864,56 @@
   font-size: 0.65rem;
   font-weight: 700;
   gap: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.competition-map__external-travel a {
+.competition-map__external-link {
   align-items: center;
-  color: var(--color-brand-celeste);
+  background: color-mix(in oklab, var(--color-surface-elevated, var(--color-bg-elevated, transparent)) 88%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-primary);
   display: inline-flex;
-  font-size: 0.7rem;
-  font-weight: 750;
-  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  gap: 8px;
   min-height: 44px;
+  padding: 0 12px 0 8px;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out,
+    color 160ms ease-out;
+}
+
+.competition-map__external-link:hover {
+  border-color: color-mix(in oklab, var(--color-brand-celeste) 42%, var(--color-border-subtle));
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
-.competition-map__external-travel a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.competition-map__external-link-brand {
+  align-items: center;
+  background: #fff;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
 }
 
-.competition-map__external-travel a > svg:last-child {
+.competition-map__external-link-brand[data-brand='waze'] {
+  background: color-mix(in oklab, #33ccff 18%, #fff);
+}
+
+.competition-map__brand-mark {
+  display: block;
+  flex: none;
+}
+
+.competition-map__external-link > svg:last-child {
   color: var(--color-text-muted);
 }
 
@@ -1450,10 +1484,11 @@
     grid-column: 1 / -1;
   }
 
-  .competition-map__external-travel a {
-    border: 1px solid var(--color-border-subtle);
+  .competition-map__external-link {
+    border-radius: 10px;
     justify-content: center;
     min-height: 44px;
+    padding-inline: 10px;
   }
 
   .plu-map-marker__label {

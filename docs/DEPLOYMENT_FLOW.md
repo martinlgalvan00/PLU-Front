@@ -64,10 +64,11 @@ Todo PR hacia `dev` o `main` debe aprobar:
 
 En `push` a `dev`/`main` (y `workflow_dispatch`) corre además `integrations-live`:
 
-- Secrets requeridos en el repo: `MERCADO_PAGO_ACCESS_TOKEN`, `BREVO_API_KEY`,
-  `BREVO_SENDER_EMAIL` (sandbox/DEV; no reutilizar prod si hay dos entornos).
-- `npm run mercado-pago:doctor` — valida el token contra `/users/me` (sin cobrar).
-- `npm run email:doctor` — valida API key y remitente Brevo (sin `--send`).
+- Secrets opcionales por ahora: `MERCADO_PAGO_ACCESS_TOKEN`, `BREVO_API_KEY`,
+  `BREVO_SENDER_EMAIL` (sandbox/DEV). Si faltan, el job emite **warning** y
+  omite el smoke live; no bloquea el CI.
+- Con secrets cargados: `npm run mercado-pago:doctor` (ping `/users/me`, sin
+  cobrar) y `npm run email:doctor` (sin `--send`).
 
 El workflow `Deployment smoke` exige `/api/health` **y** `/api/ready`
 (`checks.prisma` + `checks.supabase`) sobre la URL del deploy.

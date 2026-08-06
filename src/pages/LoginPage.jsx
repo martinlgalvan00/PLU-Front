@@ -179,19 +179,17 @@ export default function LoginPage({ onLogin, onNavigate }) {
         <div className="auth-layout__visual-content">
           <BrandLogo variant="letterhead" height={40} imgClassName="auth-layout__emblem" />
           <h2 className="auth-layout__slogan">
-            Elevá tu
-            <span className="auth-layout__slogan-line">estándar.</span>
+            {t('login.visualSlogan')}
+            <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
           </h2>
-          <p className="auth-layout__lead">
-            Perfil, afiliación e historial competitivo en un solo lugar.
-          </p>
+          <p className="auth-layout__lead">{t('login.visualLead')}</p>
           <span className="auth-layout__rule" aria-hidden="true" />
           <ul className="auth-layout__signals">
-            <li>Credencial digital PLU</li>
-            <li>Historial oficial</li>
-            <li>Inscripciones a eventos</li>
+            <li>{t('login.featureProfile')}</li>
+            <li>{t('login.featureMembership')}</li>
+            <li>{t('login.featureEvents')}</li>
           </ul>
-          <p className="auth-layout__meta">Powerlifting United Argentina</p>
+          <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>
       </aside>
       <section className="auth-layout__content">

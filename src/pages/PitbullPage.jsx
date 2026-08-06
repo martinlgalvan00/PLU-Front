@@ -286,6 +286,10 @@ function PitbullTicketPass({ onOpen, t }) {
       <div className="pitbull-ticket-invite__copy">
         <p className="pitbull-ticket-invite__hook">{t('pages.pitbull.ticketsHook')}</p>
         <p className="pitbull-ticket-invite__note">{t('pages.pitbull.ticketsNote')}</p>
+        <ul className="pitbull-ticket-invite__facts" aria-label={t('pages.pitbull.ticketsFactsAria')}>
+          <li>{t('pages.pitbull.ticketsFactId')}</li>
+          <li>{t('pages.pitbull.ticketsFactMembership')}</li>
+        </ul>
       </div>
       <button type="button" className="pitbull-ticket-invite__cta" onClick={onOpen}>
         {t('pages.pitbull.ticketPassCta')}
