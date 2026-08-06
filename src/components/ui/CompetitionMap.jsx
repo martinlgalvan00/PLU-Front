@@ -55,22 +55,37 @@ function MapFallback({ event, state, hidden, t }) {
     loading: [t('pages.events.map.loadingTitle'), t('pages.events.map.loadingCopy')],
     ready: [t('pages.events.map.loadingTitle'), t('pages.events.map.loadingCopy')],
   }
+  const eyebrows = {
+    empty: t('pages.events.map.fallbackEyebrowEmpty'),
+    missing_coordinates: t('pages.events.map.fallbackEyebrowPending'),
+    offline: t('pages.events.map.fallbackEyebrowOffline'),
+    error: t('pages.events.map.fallbackEyebrowError'),
+    idle: t('pages.events.map.fallbackEyebrowLoading'),
+    loading: t('pages.events.map.fallbackEyebrowLoading'),
+    ready: t('pages.events.map.fallbackEyebrowLoading'),
+  }
   const [title, copy] = content[state] ?? content.error
+  const eyebrow = eyebrows[state] ?? eyebrows.error
   const StateIcon = state === 'offline' ? WifiOff : MapPin
+  const venueLine = [event?.venue, event?.location].filter(Boolean).join(' · ')
+  const showVenueMeta = state === 'missing_coordinates' && Boolean(venueLine)
 
   return (
     <div
       className={`competition-map__fallback${hidden ? ' competition-map__fallback--hidden' : ''}`}
+      data-state={state}
       aria-hidden={hidden || undefined}
       aria-live={!hidden && announcesState ? 'polite' : undefined}
       role={!hidden && announcesState ? 'status' : undefined}
     >
       <div className="competition-map__fallback-icon" aria-hidden>
-        <StateIcon size={18} strokeWidth={1.5} />
+        <StateIcon size={16} strokeWidth={1.6} />
       </div>
       <div className="competition-map__fallback-copy">
+        <p className="competition-map__fallback-eyebrow">{eyebrow}</p>
         <h3>{title}</h3>
         <p>{copy}</p>
+        {showVenueMeta ? <p className="competition-map__fallback-meta">{venueLine}</p> : null}
       </div>
     </div>
   )

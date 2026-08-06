@@ -7,7 +7,7 @@
 
 .events-hero-dossier {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .events-hero-dossier__head {
@@ -32,7 +32,7 @@
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.1;
-  margin: 12px 0 0;
+  margin: 4px 0 0;
 }
 
 .events-hero-dossier h2 {
@@ -2467,7 +2467,152 @@
   gap: clamp(20px, 3vw, 32px);
   margin: 0 auto;
   max-width: var(--max-width-content);
-  padding: 0 clamp(20px, 5vw, 64px) clamp(48px, 7vw, 72px);
+  /* Aire entre el hero y el toolbar (antes quedaba pegado) */
+  padding:
+    clamp(28px, 4.5vw, 48px)
+    clamp(20px, 5vw, 64px)
+    clamp(48px, 7vw, 72px);
+}
+
+/* Hero Eventos: más compacto y editorial en notebook */
+.events-page--plu-ref .events-page__hero.plu-page-hero {
+  padding-bottom: clamp(28px, 4vw, 48px);
+}
+
+.events-page--plu-ref .events-page__hero .plu-page-hero__breadcrumb {
+  margin-bottom: clamp(16px, 2.4vw, 28px);
+}
+
+.events-page--plu-ref .events-page__hero .plu-page-hero__chapter {
+  margin-bottom: 10px;
+}
+
+.events-page--plu-ref .events-page__hero .plu-page-hero__desc {
+  margin-top: 12px;
+  max-width: 42ch;
+}
+
+.events-page--plu-ref .events-page__hero .events-hero-dossier__link {
+  margin-top: 6px;
+  padding-block: 4px;
+}
+
+@supports (container-type: inline-size) {
+  @container plu-page-hero (max-width: 900px) {
+    .events-page--plu-ref .events-page__hero .plu-page-hero__inner {
+      gap: clamp(18px, 3vw, 24px);
+    }
+
+    .events-page--plu-ref .events-page__hero .plu-page-hero__breadcrumb {
+      margin-bottom: 14px;
+    }
+
+    .events-page--plu-ref .events-page__hero .plu-page-hero__title {
+      font-size: clamp(30px, 7.5vw, 40px);
+      max-width: 14ch;
+    }
+
+    .events-page--plu-ref .events-page__hero .plu-page-hero__desc {
+      font-size: 14.5px;
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+
+    .events-page--plu-ref .events-page__hero .plu-page-hero__aside {
+      max-width: none;
+      padding-top: 18px;
+    }
+
+    /* Próximo meet: franja densa, una sola lectura */
+    .events-page--plu-ref .events-page__hero .events-hero-dossier {
+      column-gap: 16px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      row-gap: 4px;
+    }
+
+    .events-page--plu-ref .events-page__hero .events-hero-dossier__head {
+      grid-column: 1 / -1;
+      margin-bottom: 2px;
+    }
+
+    .events-page--plu-ref .events-page__hero .events-hero-dossier__date {
+      align-self: start;
+      font-size: clamp(20px, 4.5vw, 26px);
+      grid-column: 1;
+      grid-row: 2 / 4;
+      margin: 0;
+      padding-right: 4px;
+    }
+
+    .events-page--plu-ref .events-page__hero .events-hero-dossier h2 {
+      font-size: clamp(16px, 3.2vw, 19px);
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .events-page--plu-ref .events-page__hero .events-hero-dossier__place {
+      grid-column: 2;
+      grid-row: 3;
+    }
+
+    .events-page--plu-ref .events-page__hero .events-hero-dossier__link {
+      grid-column: 1 / -1;
+      grid-row: 4;
+      margin-top: 8px;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .events-page--plu-ref .events-page__hero.plu-page-hero {
+    padding-bottom: 28px;
+  }
+
+  .events-page--plu-ref .events-page__hero .plu-page-hero__breadcrumb {
+    margin-bottom: 14px;
+  }
+
+  .events-page--plu-ref .events-page__hero .plu-page-hero__desc {
+    font-size: 14.5px;
+    margin-top: 10px;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier {
+    column-gap: 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier__head {
+    grid-column: 1 / -1;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier__date {
+    align-self: start;
+    font-size: clamp(20px, 4.5vw, 26px);
+    grid-column: 1;
+    grid-row: 2 / 4;
+    margin: 0;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier h2 {
+    font-size: clamp(16px, 3.2vw, 19px);
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier__place {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .events-page--plu-ref .events-page__hero .events-hero-dossier__link {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 8px;
+  }
 }
 
 .events-page--plu-ref .events-page__toolbar {
@@ -2551,8 +2696,18 @@
 }
 
 .events-page--plu-ref .events-page__count {
-  /* Hereda .plu-meta-chip */
+  /* Meta editorial (como Results): sin pill, alineado al rail de filtros */
+  align-items: center;
+  align-self: center;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   margin-left: auto;
+  min-height: 34px;
+  padding: 0 0 0 12px;
 }
 
 [data-theme='light'] .events-page--plu-ref .events-page__toolbar {
@@ -3865,7 +4020,10 @@
   }
 
   .events-page--plu-ref .events-page__count {
-    align-self: flex-end;
+    align-self: flex-start;
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0;
   }
 
   .events-page--plu-ref .events-sidebar-card {
@@ -4020,56 +4178,72 @@
 
 /* ═══════════════════════════════════════════════════════
    PLU ARGENTINA — REDISEÑO EDITORIAL Y LUJO PARA EVENTOS
-   Elegancia, minimalismo, presencia de marca y motion
+   Nota: el dossier del hero y el conteo vuelven al lenguaje
+   editorial (regla + meta), sin glass/pill genéricos.
    ═══════════════════════════════════════════════════════ */
 
-/* ── 1. Hero Dossier de Próxima Competencia ── */
+/* ── 1. Hero Dossier — ficha editorial, no card glass ── */
 .events-hero-dossier {
-  background: color-mix(in srgb, var(--color-bg-surface) 85%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 25%, transparent);
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  padding: 20px 24px;
-  backdrop-filter: blur(16px);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
+  transition: none;
 }
 
 .events-hero-dossier:hover {
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.26), 0 0 24px color-mix(in srgb, var(--color-brand-celeste) 15%, transparent);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .events-hero-dossier__date {
-  background: linear-gradient(135deg, var(--color-brand-celeste, #4a9fe0), #ffffff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: unset;
+  color: var(--color-brand-celeste);
   font-family: var(--font-display);
-  font-size: clamp(26px, 2.8vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
 }
 
-/* ── 2. Toolbar & Filtros con presencia de marca ── */
+[data-theme='dark'] .events-hero-dossier__date {
+  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 88%, #fff);
+}
+
+/* ── 2. Toolbar: conteo meta (no pill celeste) ── */
 .events-page__toolbar {
   align-items: center;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 60%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px 20px;
   justify-content: space-between;
-  margin-bottom: clamp(24px, 3.5vw, 40px);
-  padding-bottom: 16px;
+  margin-bottom: 0;
+  padding-bottom: 14px;
 }
 
 .events-page__count {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 25%, transparent);
-  border-radius: 999px;
-  color: var(--color-brand-celeste);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 5px 14px;
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  min-height: 34px;
+  padding: 0;
+}
+
+/* Divider del meta-chip (borde izquierdo) cuando aplica la clase */
+.events-page__count.plu-meta-chip--divider {
+  border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  padding-left: 12px;
 }
 
 /* ── 3. Mapa de Competencias ── */

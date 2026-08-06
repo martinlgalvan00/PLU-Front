@@ -4334,7 +4334,7 @@
 }
 
 /* Pitbull home: atmósfera propia (no void negro transparente) */
-@media (min-width: 1200px) {
+@media (min-width: 1600px) {
   [data-theme='dark'] .home-section--pitbull-home .pitbull-spotlight--home {
     background: transparent;
     border: none;
@@ -4832,8 +4832,7 @@
   }
 
   /* En overlay el lead y las categorías empujan el CTA fuera de la foto */
-  .pitbull-spotlight__home-lead,
-  .pitbull-spotlight__home-tags {
+  .pitbull-spotlight__home-lead {
     display: none;
   }
 
@@ -4898,10 +4897,6 @@
   .pitbull-spotlight__home-fact--date dd {
     font-size: 15px;
     text-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
-  }
-
-  .pitbull-spotlight__home-tags {
-    display: none;
   }
 
   .pitbull-spotlight__home-panel::before {
@@ -5027,7 +5022,8 @@
 }
 
 .pitbull-spotlight__home-tags {
-  display: flex;
+  /* Oculto por defecto: mobile/tablet/notebook son overlay. Solo desktop split. */
+  display: none;
   flex-wrap: wrap;
   gap: 8px;
   list-style: none;
@@ -5208,10 +5204,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   NOTEBOOK 960–1199 — una sola composición cinematográfica
+   NOTEBOOK / MONITOR MEDIO 960–1599 — una sola composición
+   cinematográfica. Cubría 960–1199, pero notebooks reales
+   (1366, 1440, 1512, 1536 CSS) caían en el split desktop y
+   dejaban un vacío negro a la izquierda con el copy a la derecha.
    Foto landscape full-bleed + copy overlay. Sin strip.
    ═══════════════════════════════════════════════════════ */
-@media (min-width: 960px) and (max-width: 1199px) {
+@media (min-width: 960px) and (max-width: 1599px) {
   .home-section--pitbull-home {
     padding-block: clamp(40px, 5.5vw, 72px);
   }
@@ -5367,10 +5366,6 @@
     color: rgba(255, 255, 255, 0.7);
   }
 
-  .pitbull-spotlight__home-tags {
-    display: none;
-  }
-
   .pitbull-spotlight__home-actions {
     border: none;
     margin-top: 6px;
@@ -5416,8 +5411,26 @@
   }
 }
 
-/* Desktop: media | copy — medallas portrait en columna */
-@media (min-width: 1200px) {
+/* Notebooks con poca altura: menos padding vertical en el overlay */
+@media (min-width: 960px) and (max-width: 1599px) and (max-height: 800px) {
+  .home-section--pitbull-home {
+    padding-block: clamp(28px, 4vh, 44px);
+  }
+
+  .pitbull-spotlight__home-hero-img {
+    max-height: clamp(260px, 48vh, 380px);
+    min-height: 220px;
+  }
+
+  .pitbull-spotlight__home-panel {
+    gap: 10px;
+    padding-block-start: clamp(40px, 8vh, 72px);
+    padding-block-end: clamp(20px, 3vh, 28px);
+  }
+}
+
+/* Desktop amplio: media | copy — medallas portrait en columna */
+@media (min-width: 1600px) {
   .pitbull-spotlight__home-stage {
     align-items: center;
     gap: clamp(32px, 4vw, 60px);
@@ -5457,6 +5470,10 @@
     max-width: 28rem;
   }
 
+  .pitbull-spotlight__home-tags {
+    display: flex;
+  }
+
   .pitbull-spotlight__home-strip {
     gap: 8px;
     max-height: none;
@@ -5470,23 +5487,8 @@
   }
 }
 
-/* Desktop medio / monitores con escala: preservar aire sin sumar filmstrip. */
-@media (min-width: 1200px) and (max-width: 1599px) {
-  .pitbull-spotlight__home-strip {
-    display: none;
-  }
-
-  .pitbull-spotlight__home-media {
-    gap: 0;
-  }
-
-  .pitbull-spotlight__home-title {
-    font-size: clamp(2.65rem, 4vw, 3.65rem);
-  }
-}
-
-/* Viewports bajos (notebook o monitor con zoom): versión vertical compacta. */
-@media (min-width: 1200px) and (max-height: 800px) {
+/* Viewports bajos en desktop amplio: versión vertical compacta. */
+@media (min-width: 1600px) and (max-height: 800px) {
   .home-section--pitbull-home {
     padding-block: clamp(28px, 4vh, 40px);
   }
@@ -5578,8 +5580,8 @@
   box-shadow: none;
 }
 
-/* Desktop split (≥1200): copy sobre canvas claro → tipografía ink */
-@media (min-width: 1200px) {
+/* Desktop split (≥1600): copy sobre canvas claro → tipografía ink */
+@media (min-width: 1600px) {
   [data-theme='light'] .pitbull-spotlight__home-kicker,
   [data-theme='light'] .pitbull-spotlight__home-lead,
   [data-theme='light'] .pitbull-spotlight__home-fact dt {
@@ -5624,8 +5626,8 @@
   }
 }
 
-/* ≤1199: copy sobre foto — mantener tipografía clara aunque el theme sea light */
-@media (max-width: 1199px) {
+/* ≤1599: copy sobre foto — mantener tipografía clara aunque el theme sea light */
+@media (max-width: 1599px) {
   [data-theme='light'] .pitbull-spotlight__home-kicker,
   [data-theme='light'] .pitbull-spotlight__home-lead,
   [data-theme='light'] .pitbull-spotlight__home-fact dt {
