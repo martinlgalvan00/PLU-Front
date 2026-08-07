@@ -15,11 +15,22 @@ describe('Vercel deployment contract', () => {
 
   it('mantiene una sola función Express y enruta /api antes del fallback SPA', () => {
     expect(Object.keys(config.functions)).toEqual(['api/index.js'])
-    expect(config.rewrites[0]).toEqual({
+    expect(config.rewrites).toContainEqual({
+      source: '/map-tiles/:path*',
+      destination: 'https://tiles.openfreemap.org/:path*',
+    })
+    expect(config.rewrites).toContainEqual({
       source: '/api/:path*',
       destination: '/api/index',
     })
-    expect(config.rewrites.at(-1).destination).toBe('/index.html')
+    const apiIndex = config.rewrites.findIndex((rule) => rule.source === '/api/:path*')
+    const spaIndex = config.rewrites.findIndex((rule) => rule.destination === '/index.html')
+    expect(apiIndex).toBeGreaterThanOrEqual(0)
+    expect(spaIndex).toBeGreaterThan(apiIndex)
+    expect(config.rewrites.at(-1)).toEqual({
+      source: '/((?!api(?:/|$)|map-tiles(?:/|$)).*)',
+      destination: '/index.html',
+    })
   })
 
   it('programa como máximo una ejecución diaria por job para Vercel Hobby', () => {

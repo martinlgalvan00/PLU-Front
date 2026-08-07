@@ -13,7 +13,11 @@ describe('flujo de despliegue', () => {
       '*': false,
     })
     expect(vercelConfig.rewrites).toContainEqual({
-      source: '/((?!api(?:/|$)).*)',
+      source: '/map-tiles/:path*',
+      destination: 'https://tiles.openfreemap.org/:path*',
+    })
+    expect(vercelConfig.rewrites).toContainEqual({
+      source: '/((?!api(?:/|$)|map-tiles(?:/|$)).*)',
       destination: '/index.html',
     })
   })
