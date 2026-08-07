@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import '../styles/pages/credential.css'
-import { AlertTriangle, CheckCircle2, HelpCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } from 'lucide-react'
 import { BRAND } from '../lib/brand.js'
 import { formatShortDate } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
-import { getStatusMeta } from '../lib/status.js'
+import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
+import { useCredentialVerification } from '../hooks/useCredentialVerification.js'
+import { formatCacheAge } from '../services/credentialCache.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 
@@ -14,6 +16,14 @@ const VERDICT_META = {
   unknown: { Icon: HelpCircle, label: 'Sin datos suficientes', className: 'credential-page__verdict--warning' },
   invalid: { Icon: XCircle, label: 'Credencial no válida', className: 'credential-page__verdict--invalid' },
   used: { Icon: AlertTriangle, label: 'Entrada ya utilizada', className: 'credential-page__verdict--invalid' },
+  // Sin respuesta del backend. Deliberadamente NO es "inválida": el estado de
+  // esta credencial es desconocido, y decir otra cosa hace que la puerta
+  // rechace a alguien por un problema de red.
+  offline: {
+    Icon: WifiOff,
+    label: 'No se pudo verificar',
+    className: 'credential-page__verdict--offline',
+  },
 }
 
 const dateTime = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' })
@@ -94,30 +104,16 @@ function ScheduleBlock({ registration }) {
 }
 
 function MembershipCredential({ code, eventSlug, onCheckIn }) {
-  const [status, setStatus] = useState('loading') // 'loading' | 'found' | 'not_found'
-  const [data, setData] = useState(null)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [checkInError, setCheckInError] = useState(null)
 
-  useEffect(() => {
-    let cancelled = false
-    setStatus('loading')
+  const verify = useCallback((value) => getMembershipByCodeOrToken(value, eventSlug), [eventSlug])
+  const { phase, data, cache, retry, retrying, patchData } = useCredentialVerification(verify, {
+    code,
+    eventSlug,
+  })
 
-    getMembershipByCodeOrToken(code, eventSlug)
-      .then((result) => {
-        if (cancelled) return
-        setData(result)
-        setStatus('found')
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('not_found')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [code, eventSlug])
-
-  if (status === 'loading') {
+  if (phase === 'loading') {
     return (
       <CredentialShell
         verdictIcon={HelpCircle}
@@ -129,11 +125,23 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     )
   }
 
+  // Sin respuesta del backend y sin nada cacheado. No sabemos si la credencial
+  // vale: decir "inválida" acá haría que la puerta rechace a alguien por un
+  // problema de red, así que se ofrece el código para cotejar a mano.
+  if (phase === 'unverifiable') {
+    const { Icon, label, className } = VERDICT_META.offline
+    return (
+      <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
+        <UnverifiableBody code={code} onRetry={retry} retrying={retrying} />
+      </CredentialShell>
+    )
+  }
+
   // La afiliación ya no es condición para que la credencial exista: un atleta
   // inscripto a un evento que no la exige también tiene QR, y su veredicto lo
   // da la inscripción. Lo único imprescindible es que el código resuelva a
   // alguien.
-  if (status === 'not_found' || !data?.athlete) {
+  if (phase === 'not_found' || !data?.athlete) {
     const { Icon, label, className } = VERDICT_META.invalid
     return (
       <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
@@ -142,6 +150,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     )
   }
 
+  const isStale = phase === 'stale'
   const { athlete, membership, registration, registrations = [] } = data
   // El status de la membresía en la base puede estar desactualizado si el
   // cron que la pasa a "vencida" no corrió (ver expire_memberships()) --
@@ -176,20 +185,33 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     verdict = 'warning'
   }
 
-  const { Icon, label: verdictLabel, className: verdictClass } = VERDICT_META[verdict]
+  // Con datos diferidos el veredicto no puede presentarse como fresco: se
+  // baja a "revisar" y la franja de arriba explica por qué.
+  const { Icon, label: verdictLabel, className: verdictClass } = isStale
+    ? VERDICT_META.offline
+    : VERDICT_META[verdict]
 
+  // Marcar ingreso escribe en el backend. Sin verificación fresca no se ofrece:
+  // aceptar el toque y perderlo es peor que decir que ahora no se puede.
   const isCheckInable = (item) =>
-    Boolean(onCheckIn) && Boolean(item) && !item.checkedInAt &&
-    ['pagada', 'confirmada'].includes(item.status)
+    Boolean(onCheckIn) && !isStale && Boolean(item) && !item.checkedInAt &&
+    isRegistrationAdmitted(item.status)
   const canCheckIn = isCheckInable(registration)
 
   async function handleCheckIn(target = registration) {
     setCheckingIn(true)
-    const result = await onCheckIn(target.id)
+    setCheckInError(null)
+
+    let result
+    try {
+      result = await onCheckIn(target.id)
+    } catch {
+      result = null
+    }
     setCheckingIn(false)
 
     if (result?.outcome === 'ok') {
-      setData((current) => ({
+      patchData((current) => ({
         ...current,
         registration:
           current.registration?.id === target.id
@@ -206,17 +228,32 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
 
     // El backend es la autoridad -- si otro dispositivo lo escaneó primero
     // (o cualquier otro desacuerdo), volvemos a pedir el estado real en vez
-    // de asumir nada del lado del cliente.
-    getMembershipByCodeOrToken(code, eventSlug).then((fresh) => setData(fresh))
+    // de asumir nada del lado del cliente. Si tampoco se puede releer, se dice:
+    // un ingreso que quizá no quedó registrado tiene que verse.
+    setCheckInError(result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.')
+    void retry()
   }
 
   return (
     <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
       <div className="credential-page__body">
+        {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
+
         <p className="credential-page__athlete-name">{athlete.fullName}</p>
-        {membership?.memberCode && (
-          <p className="credential-page__athlete-code">{membership.memberCode}</p>
-        )}
+        {/* Datos para cotejar contra el documento físico. La proyección solo
+            los manda cuando el código escaneado era un token no adivinable. */}
+        <p className="credential-page__athlete-code">
+          {[
+            athlete.documentId && `DNI ${athlete.documentId}`,
+            athlete.birthDate && formatShortDate(String(athlete.birthDate).slice(0, 10)),
+            membership?.memberCode,
+          ]
+            .filter(Boolean)
+            // Cada dato es una unidad que se lee entera para cotejar contra el
+            // documento: se envuelve para que el renglón no parta un DNI ni un
+            // número de socio al medio.
+            .map((value) => <span key={value}>{value}</span>)}
+        </p>
 
         {/* Escaneo con evento: la grilla de esa inscripción manda. */}
         {eventSlug && registration && <ScheduleBlock registration={registration} />}
@@ -282,7 +319,9 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             para que el operador vea a cuál corresponde el ingreso. */}
         {otherRegistrations.length > 0 && (
           <>
-            <p className="credential-page__section-label">Inscripciones vigentes</p>
+            <p className="credential-page__section-label">
+              {otherRegistrations.some((item) => item.upcoming) ? 'Próximos torneos' : 'Último torneo'}
+            </p>
             <div className="credential-page__rows">
               {otherRegistrations.map((item) => {
                 const meta = getStatusMeta(item.status)
@@ -320,6 +359,12 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
           </>
         )}
 
+        {checkInError && (
+          <p className="credential-page__alert" role="alert">
+            {checkInError}
+          </p>
+        )}
+
         {canCheckIn && (
           <button
             type="button"
@@ -336,31 +381,74 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   )
 }
 
+/**
+ * Franja de datos diferidos. Va arriba de todo y con su antigüedad explícita:
+ * el operador tiene que poder juzgar si ese dato todavía sirve, y saber que
+ * lo que ve no se acaba de confirmar contra el backend.
+ */
+function StaleNotice({ cache, onRetry, retrying }) {
+  return (
+    <div className="credential-page__notice" role="status">
+      <WifiOff size={16} aria-hidden />
+      <div>
+        <p className="credential-page__notice-title">Sin conexión con PLU ARG</p>
+        <p className="credential-page__notice-text">
+          Última verificación {formatCacheAge(cache?.ageMs ?? 0)}. Puede haber cambiado.
+        </p>
+      </div>
+      <button
+        type="button"
+        className="credential-page__retry"
+        onClick={onRetry}
+        disabled={retrying}
+      >
+        <RefreshCw size={14} aria-hidden className={retrying ? 'is-spinning' : undefined} />
+        {retrying ? 'Reintentando…' : 'Reintentar'}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * No hubo respuesta y no había nada cacheado. El estado de la credencial es
+ * desconocido, no inválido: se da el código completo para cotejar contra la
+ * planilla y se deja el reintento a mano.
+ */
+function UnverifiableBody({ code, onRetry, retrying }) {
+  return (
+    <div className="credential-page__body">
+      <p className="credential-page__empty-title">No pudimos contactar al servidor</p>
+      <p className="credential-page__empty-text">
+        Esto <strong>no</strong> significa que la credencial sea inválida: no se pudo comprobar.
+        Verificá este código contra la planilla del evento antes de decidir.
+      </p>
+
+      <p className="credential-page__code-callout">{code}</p>
+
+      <button
+        type="button"
+        className="credential-page__checkin-btn"
+        onClick={onRetry}
+        disabled={retrying}
+      >
+        <RefreshCw size={16} aria-hidden className={retrying ? 'is-spinning' : undefined} />
+        {retrying ? 'Reintentando…' : 'Reintentar'}
+      </button>
+    </div>
+  )
+}
+
 function TicketCredential({ code, onCheckIn }) {
-  const [status, setStatus] = useState('loading') // 'loading' | 'found' | 'not_found'
-  const [ticket, setTicket] = useState(null)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [checkInError, setCheckInError] = useState(null)
 
-  useEffect(() => {
-    let cancelled = false
-    setStatus('loading')
+  const verify = useCallback(async (value) => (await verifyTicketByQrToken(value)).ticket, [])
+  const { phase, data: ticket, cache, retry, retrying, patchData } = useCredentialVerification(
+    verify,
+    { code },
+  )
 
-    verifyTicketByQrToken(code)
-      .then(({ ticket: fetched }) => {
-        if (cancelled) return
-        setTicket(fetched)
-        setStatus('found')
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('not_found')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [code])
-
-  if (status === 'loading') {
+  if (phase === 'loading') {
     return (
       <CredentialShell
         verdictIcon={HelpCircle}
@@ -372,7 +460,16 @@ function TicketCredential({ code, onCheckIn }) {
     )
   }
 
-  if (status === 'not_found' || !ticket) {
+  if (phase === 'unverifiable') {
+    const { Icon, label, className } = VERDICT_META.offline
+    return (
+      <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
+        <UnverifiableBody code={code} onRetry={retry} retrying={retrying} />
+      </CredentialShell>
+    )
+  }
+
+  if (phase === 'not_found' || !ticket) {
     const { Icon, label, className } = VERDICT_META.invalid
     return (
       <CredentialShell verdictIcon={Icon} verdictLabel={label} verdictClass={className}>
@@ -381,31 +478,48 @@ function TicketCredential({ code, onCheckIn }) {
     )
   }
 
+  const isStale = phase === 'stale'
   const checkedInAt = ticket.checkIn?.scannedAt ?? null
   const effectiveStatus = checkedInAt ? 'usada' : ticket.status
   const ticketMeta = getStatusMeta(effectiveStatus)
   const verdictKey = effectiveStatus === 'pagada' ? 'valid' : effectiveStatus === 'usada' ? 'used' : 'warning'
-  const { Icon, label: verdictLabel, className: verdictClass } = VERDICT_META[verdictKey]
+  const { Icon, label: verdictLabel, className: verdictClass } = isStale
+    ? VERDICT_META.offline
+    : VERDICT_META[verdictKey]
 
   async function handleCheckIn() {
     setCheckingIn(true)
-    const result = await onCheckIn(ticket.qrToken)
+    setCheckInError(null)
+
+    let result
+    try {
+      result = await onCheckIn(ticket.qrToken)
+    } catch {
+      result = null
+    }
     setCheckingIn(false)
 
     if (result?.outcome === 'ok') {
-      setTicket((current) => ({ ...current, status: result.ticket.status, checkIn: { scannedAt: result.ticket.checkedInAt } }))
+      patchData((current) => ({
+        ...current,
+        status: result.ticket.status,
+        checkIn: { scannedAt: result.ticket.checkedInAt },
+      }))
       return
     }
 
     // El backend es la autoridad — si otro dispositivo lo escaneó primero
     // (o cualquier otro desacuerdo), volvemos a pedir el estado real en vez
-    // de asumir nada del lado del cliente.
-    verifyTicketByQrToken(code).then(({ ticket: fresh }) => setTicket(fresh))
+    // de asumir nada del lado del cliente. Si tampoco se puede releer, se dice.
+    setCheckInError(result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.')
+    void retry()
   }
 
   return (
     <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
       <div className="credential-page__body">
+        {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
+
         <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
         <p className="credential-page__athlete-code">
           {ticket.ticketCode} · DNI {ticket.attendeeDni}
@@ -442,7 +556,15 @@ function TicketCredential({ code, onCheckIn }) {
           )}
         </dl>
 
-        {ticket.status === 'pagada' && !checkedInAt && onCheckIn && (
+        {checkInError && (
+          <p className="credential-page__alert" role="alert">
+            {checkInError}
+          </p>
+        )}
+
+        {/* Sin verificación fresca no se ofrece marcar: aceptar el toque y
+            perderlo es peor que decir que ahora no se puede. */}
+        {ticket.status === 'pagada' && !checkedInAt && onCheckIn && !isStale && (
           <button
             type="button"
             className="credential-page__checkin-btn"

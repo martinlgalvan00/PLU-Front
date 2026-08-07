@@ -98,6 +98,9 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     checkedInAt: checkIn?.scanned_at ?? null,
     // Día y tanda asignados. null mientras la organización no armó la grilla.
     schedule: toCamelSchedule(schedule ?? registration.schedule),
+    // El torneo todavía no terminó. Lo calcula la proyección contra el reloj,
+    // no contra `events.status`, que se edita a mano y queda viejo.
+    upcoming: registration.upcoming ?? null,
     notes: '',
   }
 }
@@ -303,6 +306,9 @@ export async function approveAthletePaymentOrder(orderId) {
 
 function toCredentialResult(result, eventSlug) {
   return {
+    // La proyección solo trae documento y fecha de nacimiento cuando el
+    // código era un token no adivinable: por member_code, que es correlativo,
+    // devolverlos permitiría cosechar el padrón iterando números de socio.
     athlete: toCamelAthlete(result.athlete),
     // Puede venir null: un inscripto a un evento que no exige afiliación
     // también tiene credencial, y su veredicto lo da la inscripción.

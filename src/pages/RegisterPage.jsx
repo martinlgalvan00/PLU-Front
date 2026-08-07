@@ -24,7 +24,7 @@ import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
-import { getStatusMeta } from '../lib/status.js'
+import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { resendAthleteVerification } from '../services/athleteApi.js'
 import {
@@ -273,6 +273,7 @@ export default function RegisterPage({
   onNavigate,
   onSubmit,
   onUpdateForm,
+  registrations = [],
   total,
 }) {
   const { locale, t } = useI18n()
@@ -328,8 +329,8 @@ export default function RegisterPage({
   // misma orden. Antes tomaba la primera del array sin mirar el estado, así
   // que tras una renovación la card salía con el código del período anterior.
   const orderMemberships = memberships.filter((item) => item.athleteId === visibleOrder?.athleteId)
-  const activeMembership =
-    orderMemberships.find((item) => isMembershipCurrent(item)) ?? orderMemberships[0]
+  const currentMembership = orderMemberships.find((item) => isMembershipCurrent(item))
+  const activeMembership = currentMembership ?? orderMemberships[0]
   const memberCode = activeMembership?.memberCode
   // El QR de la card apunta a la persona, no al período: la credencial no se
   // vence ni cambia al renovar.
@@ -351,8 +352,16 @@ export default function RegisterPage({
     )
   }, [errors, flow, stepErrorsVisible, touched])
 
+  // La inscripción que pagó esta orden. Mismo criterio que la afiliación: la
+  // credencial del torneo se emite cuando el ingreso ya está habilitado, no
+  // cuando existe la orden.
+  const orderRegistration = registrations.find(
+    (item) => visibleOrder?.paymentId && item.paymentOrderId === visibleOrder.paymentId,
+  )
+  const registrationAdmitted = isRegistrationAdmitted(orderRegistration?.status)
+
   const cardData =
-    visibleOrder && flow === 'competition'
+    visibleOrder && flow === 'competition' && registrationAdmitted
       ? {
           athleteName: visibleOrder.athleteName,
           athleteCode: memberCode,
@@ -367,13 +376,18 @@ export default function RegisterPage({
           eventSlug: event?.slug,
           variant: 'event',
         }
-      : visibleOrder && flow === 'membership'
+      : // La credencial se emite recién cuando la afiliación cubre HOY, no
+        // cuando existe la orden. `credentialToken` nace con la cuenta, así que
+        // sin este gate la pantalla de confirmación ofrecía "Ver credencial"
+        // con un QR funcional mientras la orden seguía en `pendiente`: por
+        // transferencia eso son días entre el alta y la acreditación.
+        visibleOrder && flow === 'membership' && currentMembership
         ? {
             athleteName: visibleOrder.athleteName,
             athleteCode: memberCode,
             athletePhotoUrl: athlete?.photoUrl,
             qrCode: credentialCode,
-            membershipExpiration: formatShortDate(activeMembership?.expirationDate, locale),
+            membershipExpiration: formatShortDate(currentMembership.expirationDate, locale),
             variant: 'membership',
             eventSlug: 'afiliacion',
           }

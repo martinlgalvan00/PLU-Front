@@ -727,6 +727,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['events', 'admin.nav.events', 'Calendar'],
       ['registrations', 'admin.nav.registrations', 'ClipboardList'],
+      ['grid', 'admin.nav.grid', 'LayoutGrid'],
       ['checkin', 'admin.nav.checkin', 'ScanLine'],
       ['results', 'admin.nav.results', 'Trophy'],
     ],

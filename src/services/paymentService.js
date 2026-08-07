@@ -16,6 +16,28 @@ export function getPaymentStatusForMethod(method) {
   return method === 'mercado_pago' ? 'pendiente' : 'validacion_manual'
 }
 
+/**
+ * Pone al día el estado de la orden que la pantalla de confirmación viene
+ * mostrando, contra las órdenes que trae el snapshot del atleta.
+ *
+ * `createdOrder` se arma en el momento del alta y se queda con el estado de
+ * ese instante. Cuando Mercado Pago acredita, el snapshot se refresca (lo
+ * dispara `plu:payment-updated`) pero la confirmación seguía anunciando
+ * "pendiente de pago" —con el checkout montado abajo, invitando a pagar de
+ * nuevo algo ya pagado— hasta que el atleta recargaba la página.
+ *
+ * Devuelve el mismo objeto si no hay nada que cambiar, para no re-renderizar
+ * de gusto en cada refresco.
+ */
+export function reconcileCreatedOrder(createdOrder, payments = []) {
+  if (!createdOrder?.paymentId) return createdOrder
+
+  const order = payments.find((payment) => payment.id === createdOrder.paymentId)
+  if (!order || order.status === createdOrder.status) return createdOrder
+
+  return { ...createdOrder, status: order.status }
+}
+
 export async function createPreference({ paymentId, orderAccessToken }) {
   return apiPost('/api/payments/preferences', { paymentOrderId: paymentId, orderAccessToken })
 }

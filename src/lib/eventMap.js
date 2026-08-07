@@ -11,6 +11,9 @@ export function getMapMarkerKind(event = {}) {
       return 'open'
     case 'cupos_limitados':
       return 'limited'
+    // Un evento con el cupo lleno ya no toma inscripciones: en el mapa se lee
+    // igual que uno cerrado.
+    case 'agotado':
     case 'cerrado':
       return 'closed'
     case 'finalizado':

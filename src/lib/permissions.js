@@ -283,6 +283,7 @@ export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   memberships: ['admin.memberships.read'],
   events: ['admin.events.read'],
   registrations: ['admin.registrations.read'],
+  grid: ['admin.registrations.read'],
   checkin: ['admin.checkin.execute'],
   results: ['admin.results.read'],
   shop: ['admin.shop.read'],

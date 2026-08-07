@@ -23,6 +23,7 @@ export const STATUS_LABELS = {
   proximamente: 'Próximamente',
   inscripcion_abierta: 'Inscripción abierta',
   cupos_limitados: 'Cupos limitados',
+  agotado: 'Cupo lleno',
   cerrado: 'Cerrado',
   finalizado: 'Finalizado',
   usada: 'Ingresó ✓',
@@ -40,7 +41,10 @@ const SUCCESS = new Set([
 
 const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'observada', 'borrador', 'creado', 'cupos_limitados'])
 
-const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado'])
+// `agotado` no es un error, pero para la organización significa lo mismo que
+// `cerrado`: ya no entra nadie más. Comparte el tono para que en un listado
+// largo se distinga de un vistazo de los eventos que siguen tomando gente.
+const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado', 'agotado'])
 
 const INFO = new Set(['pre_registrado', 'registrado', 'proximamente'])
 
@@ -67,6 +71,13 @@ export function getStatusMeta(value, t) {
  * en EventCard, EventsPage y PitbullPage. */
 export function isRegistrationOpen(status) {
   return status === 'inscripcion_abierta' || status === 'cupos_limitados'
+}
+
+/** Único punto de verdad para "¿esta inscripción habilita el ingreso?" — es la
+ * condición que aplica la puerta al escanear (CredentialPage), y por lo tanto
+ * la única que puede decidir si corresponde emitir la credencial. */
+export function isRegistrationAdmitted(status) {
+  return status === 'pagada' || status === 'confirmada'
 }
 
 const LEGACY_STATUS_MAP = {

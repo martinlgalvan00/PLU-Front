@@ -5,6 +5,7 @@ import { PRICING } from '../../lib/constants.js'
 import { formatShortDate, money } from '../../lib/format.js'
 import { env } from '../../config/env.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
+import { isMembershipCurrent, isMembershipExpired } from '../../services/membershipService.js'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import TransferProofUpload from '../../components/ui/TransferProofUpload.jsx'
@@ -60,13 +61,22 @@ export default function MembershipPurchaseSection({
   const [plans, setPlans] = useState([])
   const [planCode, setPlanCode] = useState('plu-annual')
   const [cardOpen, setCardOpen] = useState(false)
-  const membershipActive = membership?.status === 'activa'
+  // Vigencia y no `status === 'activa'`: es la condición que exige la RPC de
+  // inscripción y la que responde la puerta al escanear. Una fila marcada
+  // activa con fechas vencidas daba acá una afiliación "al día", escondía el
+  // botón de renovar —única salida del atleta— y ofrecía una credencial con
+  // una fecha ya pasada como si sirviera.
+  const membershipActive = isMembershipCurrent(membership)
+  const membershipExpired = isMembershipExpired(membership)
   const cardData = membershipActive
     ? {
         athleteName: athlete.fullName,
         athleteCode: membership.memberCode,
         athletePhotoUrl: athlete.photoUrl,
-        qrCode: membership.qrToken,
+        // El QR apunta a la persona, no al período: la credencial impresa
+        // sobrevive a la renovación. `qrToken` queda de fallback para una
+        // cuenta cuyo snapshot todavía no trae el token nuevo.
+        qrCode: athlete.credentialToken ?? membership.qrToken,
         membershipExpiration: membership.expirationDate
           ? formatShortDate(membership.expirationDate, locale)
           : undefined,
@@ -172,17 +182,28 @@ export default function MembershipPurchaseSection({
       <div className={`account-membership-status account-membership-status--${membershipActive ? 'active' : 'pending'}`}>
         <div className="account-membership-status__copy">
           <span className="account-membership-status__label">
-            {membershipActive ? t('account.membership.statusActive') : t('account.membership.statusPending')}
+            {membershipActive
+              ? t('account.membership.statusActive')
+              : membershipExpired
+                ? t('account.membership.statusExpired')
+                : t('account.membership.statusPending')}
           </span>
           <span className="account-membership-status__value">
             {membershipActive
               ? membership.memberCode
-              : t('account.membership.statusNoPayment')}
+              : membershipExpired
+                ? t('account.membership.statusExpiredValue')
+                : t('account.membership.statusNoPayment')}
           </span>
         </div>
         {membershipActive && membership.expirationDate && (
           <span className="account-membership-status__meta">
             {t('account.membership.validUntil', { date: formatShortDate(membership.expirationDate, locale) })}
+          </span>
+        )}
+        {membershipExpired && membership.expirationDate && (
+          <span className="account-membership-status__meta">
+            {t('account.membership.expiredOn', { date: formatShortDate(membership.expirationDate, locale) })}
           </span>
         )}
       </div>

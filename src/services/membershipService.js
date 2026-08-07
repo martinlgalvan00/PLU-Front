@@ -39,6 +39,37 @@ export function hasCurrentMembership(memberships = [], athleteId, today = new Da
   )
 }
 
+/**
+ * Cobertura que ya terminó, distinta de una afiliación que nunca se pagó.
+ *
+ * `isMembershipCurrent` colapsa los dos casos en "no vigente", y la cuenta los
+ * mostraba a ambos como "Pendiente de pago": a un socio cuya afiliación venció
+ * eso lo manda a buscar un pago que sí hizo. Lo que corresponde ofrecerle es
+ * renovar.
+ *
+ * Una renovación programada (alta con `startDate` futuro sobre una cobertura
+ * que todavía corre) tampoco es vigente, pero no está vencida: por eso se mira
+ * la fecha de vencimiento y no el resultado de `isMembershipCurrent`.
+ */
+export function isMembershipExpired(membership, today = new Date()) {
+  if (!membership) return false
+  if (!['activa', 'vencida'].includes(membership.status)) return false
+
+  const day = new Date(today)
+  day.setHours(0, 0, 0, 0)
+
+  const expirationTime = membership.expirationDate
+    ? Date.parse(`${membership.expirationDate}T00:00:00`)
+    : null
+  if (!Number.isFinite(expirationTime)) {
+    // Sin fecha, el servidor la trata como no vigente (coalesce a ayer). Una
+    // fila marcada 'vencida' sin fecha sigue siendo una afiliación vencida.
+    return membership.status === 'vencida'
+  }
+
+  return expirationTime < day.getTime()
+}
+
 export function isExpiringSoon(expirationDate, withinDays = 30) {
   const expiration = new Date(expirationDate)
   const now = new Date()

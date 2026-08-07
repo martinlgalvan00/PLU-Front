@@ -33,30 +33,57 @@ const ok = (msg) => console.log(`  ${OK}    ${msg}`)
 console.log('\n=== Diagnóstico Mercado Pago · PLU ARG ===\n')
 console.log('Credenciales')
 
+// Las dos credenciales se evalúan antes de cortar: son problemas
+// independientes, y salir en la primera obligaba a correr el doctor dos veces
+// para enterarse de la segunda.
 const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim()
+let tokenUsable = true
+
 if (!accessToken) {
+  tokenUsable = false
   fail(
     'MERCADO_PAGO_ACCESS_TOKEN no está definida.',
     'Cargala en GitHub Secrets / Vercel (sandbox o prod).',
   )
-  console.log(`\n=== ${problems} problema(s) bloqueante(s) ===\n`)
-  process.exit(1)
-}
-
-if (PLACEHOLDER_PATTERN.test(accessToken) || accessToken === 'TEST-xxxx') {
+} else if (PLACEHOLDER_PATTERN.test(accessToken) || accessToken === 'TEST-xxxx') {
+  tokenUsable = false
   fail(
     'MERCADO_PAGO_ACCESS_TOKEN parece un placeholder.',
     'Reemplazá TEST-xxxx / replace… por un Access Token real de sandbox.',
   )
-  console.log(`\n=== ${problems} problema(s) bloqueante(s) ===\n`)
-  process.exit(1)
+} else {
+  ok('Access Token presente')
 }
 
-ok('Access Token presente')
+// El secreto del webhook se chequea acá y no en el arranque porque su ausencia
+// no rompe nada visible: el checkout funciona, el atleta paga, y recién la
+// notificación muere con 503. La afiliación queda pendiente para siempre y
+// nadie se entera hasta que el socio reclama que no le llegó la credencial.
+const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET?.trim()
+if (!webhookSecret) {
+  fail(
+    'MERCADO_PAGO_WEBHOOK_SECRET no está definida.',
+    'Sin esto ningún pago se acredita: el webhook responde 503 y la afiliación nunca se activa.',
+  )
+} else if (PLACEHOLDER_PATTERN.test(webhookSecret)) {
+  fail(
+    'MERCADO_PAGO_WEBHOOK_SECRET parece un placeholder.',
+    'Copiá la clave secreta del panel de MP > Webhooks.',
+  )
+} else {
+  ok('Secreto de webhook presente')
+}
 
 console.log('\nAPI')
 const controller = new AbortController()
 const timer = setTimeout(() => controller.abort(), 10_000)
+
+if (!tokenUsable) {
+  console.log('  --    Sin token usable: no se consulta la API.')
+  clearTimeout(timer)
+  console.log(`\n=== ${problems} problema(s) bloqueante(s) ===\n`)
+  process.exit(1)
+}
 
 try {
   const response = await fetch('https://api.mercadopago.com/users/me', {
