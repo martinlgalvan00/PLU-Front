@@ -128,12 +128,26 @@
 
 /* Antes quedaba sin superficie (fondo transparente, sin borde ni sombra) --
    mismo criterio de card que ya se aplicó al dashboard: tinte real, borde
-   hairline y elevación en reposo, sin usar color de marca. */
+   hairline y elevación en reposo, sin usar color de marca.
+   En listados mobile las cards individuales son la superficie; el shell
+   queda transparente para no anidar “card dentro de card”. */
 .admin-shell .admin-list-shell {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-shell .data-table-card--admin {
   background: var(--admin-surface);
   border: 1px solid var(--admin-hairline);
-  border-radius: 14px;
-  box-shadow: var(--elevation-sm);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.admin-shell .data-table-card--admin.data-table-card--compact {
+  border-left-width: 1px;
+  border-left-color: var(--admin-hairline);
 }
 
 .admin-shell .btn,
@@ -179,6 +193,24 @@
   gap: 10px;
 }
 
+.admin-shell .admin-list-section--rails > .admin-list-section__header,
+.admin-shell .admin-list-section--rails > .admin-list-shell__header {
+  gap: 12px;
+  margin-bottom: 2px;
+  padding: 2px 2px 8px;
+}
+
+.admin-shell .admin-list-section--rails > .admin-list-shell__header .admin-list-shell__title {
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  letter-spacing: -0.03em;
+}
+
+.admin-shell .admin-list-section--rails > .admin-list-shell__header .admin-list-shell__subtitle {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  max-width: 52ch;
+}
+
 /* Cabecera + filtros fuera del card; la shell queda para datos. */
 .admin-shell .admin-list-section > .admin-list-section__header,
 .admin-shell .admin-list-section > .admin-list-shell__header {
@@ -197,11 +229,16 @@
 }
 
 .admin-shell .admin-list-section > .admin-filters--external.admin-filters--inline.admin-filters--compact {
-  align-items: center;
-  border-bottom: 1px solid var(--admin-hairline);
-  gap: 10px 14px;
+  align-items: stretch;
+  border-bottom: 0;
+  gap: 8px;
   margin-bottom: 4px;
-  padding: 4px 2px 12px;
+  padding: 2px 2px 6px;
+  position: relative;
+}
+
+.admin-shell .admin-list-section > .admin-filters--external.admin-filters--inline.admin-filters--compact::after {
+  content: none;
 }
 
 .admin-shell .admin-list-section > .admin-filters--external .admin-filters__count {
@@ -210,10 +247,8 @@
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: 0.01em;
+  margin-left: auto;
 }
-
-/* Los chips de listado usan el segmented underline de más abajo;
-   no forzar pills acá — pelean con la jerarquía compacta. */
 
 .admin-shell .admin-list-section > .admin-list-shell {
   min-width: 0;
@@ -243,62 +278,88 @@
 
 .admin-shell .admin-list-shell__stats-strip {
   background: transparent;
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 0;
+  padding: 4px 0 10px;
 }
 
 .admin-shell .admin-list-stat {
-  min-height: 58px;
-  padding: 10px 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 0;
+  padding: 8px 14px 8px 0;
+}
+
+.admin-shell .admin-list-stat + .admin-list-stat {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 14px;
 }
 
 .admin-shell .admin-list-stat__value {
-  font-size: 18px;
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.admin-shell .admin-list-stat__label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 1100px) {
   .admin-shell .admin-list-stat {
     min-height: 0;
-    padding: 7px 10px;
+    padding: 6px 10px 6px 0;
   }
 
   .admin-shell .admin-list-stat__value {
-    font-size: 14px;
+    font-size: 1rem;
   }
 }
 
-/* Busqueda + chips + meta en una sola fila operativa (hijos directos del grid). */
+/* Toolbar: búsqueda + CTA arriba; rieles de filtro debajo (mobile-first). */
 .admin-shell .admin-filters--inline.admin-filters--compact {
-  align-items: center;
-  display: grid;
-  gap: 10px 14px;
-  grid-template-columns: minmax(200px, 220px) minmax(0, 1fr) auto;
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 8px 14px;
 }
 
 .admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__primary {
-  grid-column: 1;
-  grid-row: 1;
+  align-items: center;
+  display: flex;
+  gap: 8px;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__panel {
-  grid-column: 2;
-  grid-row: 1;
   min-width: 0;
+  width: 100%;
 }
 
-.admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__count {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: end;
+.admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__count,
+.admin-shell .admin-filters--inline.admin-filters--compact .admin-filters__primary > .admin-filters__count {
+  align-self: center;
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .admin-shell .admin-filters--inline .admin-filters__search,
 .admin-shell .admin-list-section--events .admin-filters__search {
   align-self: center;
   flex: 1 1 auto;
-  height: 36px;
+  height: 40px;
   margin: 0;
-  min-height: 36px;
+  min-height: 40px;
   min-width: 0;
   order: 0;
   width: 100%;
@@ -306,41 +367,74 @@
 
 .admin-shell .admin-filters--inline .admin-filters__groups,
 .admin-shell .admin-list-section--events .admin-filters__groups {
-  align-items: center;
+  align-items: stretch;
   display: flex;
+  flex-direction: column;
   flex-wrap: nowrap;
-  gap: 0;
+  gap: 12px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi {
   align-items: center;
-  gap: 0;
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  grid-template-columns: none;
+}
+
+.admin-shell .admin-filters--inline .admin-filters__groups--multi.admin-filters__groups--secondary-only,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi.admin-filters__groups--secondary-only {
+  align-items: stretch;
+  display: grid !important;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
-.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
-.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group,
-.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
-  flex: 0 1 auto;
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
+  flex: 1 1 0;
+  min-width: 0;
   width: auto;
+}
+
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--toggle {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+  flex: 1 1 160px;
+  min-width: min(100%, 160px);
+  width: auto;
+}
+
+@media (min-width: 640px) {
+  .admin-shell .admin-filters--inline .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
+  .admin-shell .admin-filters__panel .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+    flex-wrap: nowrap;
+  }
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups::-webkit-scrollbar {
   display: none;
 }
 
-.admin-shell .admin-filters--inline .admin-filter-group--inline {
-  align-items: center;
+.admin-shell .admin-filters--inline .admin-filter-group--rail,
+.admin-shell .admin-filters__panel .admin-filter-group--rail {
+  align-items: stretch;
   display: flex;
-  flex: 0 1 auto;
-  flex-direction: row;
-  gap: 8px;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
-  width: auto;
+  width: 100%;
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
@@ -349,19 +443,19 @@
 .admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filter-group--inline,
 .admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filters__select,
 .admin-shell .admin-filters__panel .admin-filters__select + .admin-filter-group--inline {
-  border-left: 1px solid var(--admin-hairline);
-  margin-left: 10px;
-  padding-left: 12px;
+  border-left: 0;
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group__label,
 .admin-shell .admin-filters__panel .admin-filter-group__label {
   color: var(--admin-muted);
-  display: inline;
+  display: block;
   flex: none;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 650;
+  letter-spacing: 0.1em;
   line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
@@ -369,7 +463,7 @@
 
 .admin-shell .admin-filters--inline .admin-filter-group--toggle .admin-filter-group__label,
 .admin-shell .admin-filters__panel .admin-filter-group--toggle .admin-filter-group__label {
-  display: inline;
+  display: block;
 }
 
 /* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice. */
@@ -378,7 +472,7 @@
 }
 
 .admin-shell .admin-filters__clear {
-  min-height: 32px;
+  min-height: 36px;
   white-space: nowrap;
 }
 
@@ -411,16 +505,6 @@
 
 .admin-shell .data-table-card__meta--inline .data-table-card__meta-value {
   overflow-wrap: normal;
-}
-
-.admin-shell .data-table-card--admin {
-  background: transparent;
-  border-color: var(--admin-hairline);
-}
-
-.admin-shell .data-table-card--admin.data-table-card--compact {
-  border-left-width: 1px;
-  border-left-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card__meta {
@@ -781,6 +865,7 @@
 
 /* El editor conserva preview lateral en desktop y prioriza edición limpia en pantallas compactas. */
 .admin-event-editor-modal__panel .admin-event-form--editor > *,
+.admin-event-editor-modal__panel .admin-event-form__body > *,
 .admin-event-form__head > div,
 .admin-event-form__head-copy {
   max-width: 100%;
@@ -831,8 +916,7 @@
     height: 100%;
     max-height: 100%;
     min-width: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
     width: 100%;
   }
 
@@ -842,8 +926,20 @@
 }
 
 @media (max-width: 599px) {
-  .admin-event-editor-modal__panel .admin-event-form--editor {
-    padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  .admin-event-editor-modal__panel .admin-event-form__head {
+    padding: 18px 16px 14px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-editor__toolbar {
+    padding-inline: 16px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__body {
+    padding: 14px 16px 20px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__actions {
+    padding-inline: 16px;
   }
 
   .admin-event-form__grid--pricing {
@@ -887,15 +983,204 @@
 /* ---- Formularios y paneles de dominio ---- */
 
 .admin-shell .admin-payment-ops {
-  padding: 18px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  box-shadow: none;
+  overflow: hidden;
+  padding: 0;
 }
 
 .admin-shell .admin-payment-ops__header {
-  padding-bottom: 15px;
+  align-items: end;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  justify-content: space-between;
+  padding: 18px clamp(14px, 2.4vw, 22px) 16px;
+}
+
+.admin-shell .admin-payment-ops__intro {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .admin-shell .admin-payment-ops__header h2 {
-  font-size: clamp(24px, 2vw, 30px);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  margin: 0;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.admin-shell .admin-payment-ops__subtitle {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.admin-shell .admin-payment-ops__worker {
+  background: color-mix(in srgb, var(--admin-status-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-status-warning) 28%, transparent);
+  border-radius: 999px;
+  color: var(--admin-status-warning);
+  font-size: 11px;
+  font-weight: 650;
+  gap: 7px;
+  min-height: 30px;
+  padding: 4px 10px 4px 8px;
+  width: fit-content;
+}
+
+.admin-shell .admin-payment-ops__worker.is-active {
+  background: color-mix(in srgb, var(--admin-status-success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--admin-status-success) 28%, transparent);
+  color: var(--admin-status-success);
+}
+
+.admin-shell .admin-payment-ops__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell .admin-payment-ops__ledger {
+  background: color-mix(in srgb, var(--admin-surface-muted) 55%, transparent);
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 719px) {
+  .admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 720px) {
+  .admin-shell .admin-payment-ops__ledger {
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .admin-shell .admin-payment-ops__ledger {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--admin-hairline);
+  border-bottom: 1px solid var(--admin-hairline);
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric strong {
+  color: var(--admin-ink);
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric--success strong {
+  color: var(--admin-status-success);
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric--danger strong {
+  color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-payment-ops__ledger .admin-payment-ops__metric--warning strong {
+  color: var(--admin-status-warning);
+}
+
+.admin-shell .admin-payment-ops__filter {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: space-between;
+  padding: 12px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-shell .admin-payment-ops__filter .admin-filter-group--rail {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell .admin-payment-ops__filter .admin-filter-group__label {
+  display: none;
+}
+
+.admin-shell .admin-payment-ops__filter-meta {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-empty--payment-ops {
+  background: transparent;
+  gap: 12px;
+  justify-items: start;
+  min-height: 200px;
+  padding: 28px clamp(16px, 2.4vw, 24px) 32px;
+  text-align: left;
+}
+
+.admin-shell .admin-empty--payment-ops .admin-empty__title {
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.admin-shell .admin-empty--payment-ops .admin-empty__lead {
+  color: var(--admin-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+@media (max-width: 1024px) {
+  .admin-shell .admin-payment-ops__header {
+    flex-direction: column;
+  }
+
+  .admin-shell .admin-payment-ops__intro {
+    display: grid;
+  }
+
+  .admin-shell .admin-payment-ops__toolbar {
+    justify-content: space-between;
+    width: 100%;
+  }
 }
 
 /* ---- Tablet ---- */
@@ -945,7 +1230,7 @@
 
 @media (max-width: 1100px) {
   .admin-shell .admin-filters--inline.admin-filters--compact {
-    grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr) auto;
+    gap: 10px;
   }
 
   .admin-shell .admin-event-row {
@@ -983,6 +1268,17 @@
   .admin-shell .admin-list-shell__eyebrow,
   .admin-shell .admin-list-shell__subtitle,
   .admin-shell .admin-list-shell__title {
+    display: none;
+  }
+
+  /* En rails, título oculto + solo "N registros" = franja muerta. Si hay
+     acciones en el header, se mantienen. */
+  .admin-shell
+    .admin-list-section--rails
+    > .admin-list-shell__header:not(:has(.admin-list-shell__actions)),
+  .admin-shell
+    .admin-list-section--rails
+    > .admin-list-section__header:not(:has(.admin-list-shell__actions)) {
     display: none;
   }
 
@@ -1035,17 +1331,17 @@
 
   .admin-shell .admin-filters--inline.admin-filters--compact,
   .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
-    align-items: center;
-    display: grid;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 8px 10px;
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 10px 12px;
   }
 
   .admin-shell .admin-filters--inline .admin-filters__search,
   .admin-shell .admin-list-section--events .admin-filters__search {
-    height: 38px;
-    min-height: 38px;
+    height: 42px;
+    min-height: 42px;
   }
 
   .admin-shell .admin-filters--inline .admin-filters__groups:not(.admin-filters__groups--multi) .admin-filter-group--inline > .admin-filter-group__label {
@@ -1053,8 +1349,15 @@
   }
 
   .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
-    min-height: 32px;
-    padding-inline: 9px;
+    min-height: 34px;
+    padding: 6px 12px;
+  }
+
+  .admin-shell .admin-list-section > .admin-filters--external {
+    background: var(--admin-bg, var(--color-bg-canvas));
+    position: sticky;
+    top: 0;
+    z-index: 4;
   }
 
   .admin-shell .data-table-cards--admin {
@@ -1064,7 +1367,6 @@
   }
 
   .admin-shell .data-table-card--admin {
-    background: transparent;
     border-radius: 8px;
   }
 
@@ -1163,13 +1465,13 @@
    ============================================= */
 
 .admin-shell .admin-filters--inline.admin-filters--compact {
-  align-items: center;
+  align-items: stretch;
   background: transparent;
-  border-bottom: 1px solid var(--admin-hairline);
-  display: grid;
-  gap: 10px 16px;
-  grid-template-columns: minmax(200px, 220px) minmax(0, 1fr) auto;
-  padding: 6px 16px 10px;
+  border-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 16px 8px;
 }
 
 .admin-shell .admin-filters__primary {
@@ -1177,6 +1479,7 @@
   display: flex;
   gap: 8px;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__actions {
@@ -1196,33 +1499,11 @@
   white-space: nowrap;
 }
 
-.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact > .admin-filters__primary {
-  grid-column: 1;
-}
-
-.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact > .admin-filters__count {
-  grid-column: 2;
-}
-
-.admin-shell .admin-filters--users .admin-filters__primary {
-  width: 100%;
-}
-
-.admin-shell .admin-filters--users .admin-filters__primary .admin-filters__search {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: auto;
-}
-
 .admin-shell .admin-filters__primary .admin-filters__search {
   align-items: center;
-  background: var(--admin-control-bg);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--admin-control-bg) 92%, var(--admin-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
+  border-radius: 9px;
   color: var(--admin-muted);
   display: flex;
   flex: 1 1 auto;
@@ -1232,6 +1513,10 @@
   min-height: 36px;
   min-width: 0;
   padding: 0 10px 0 12px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
   width: auto;
 }
 
@@ -1330,9 +1615,10 @@
   color: var(--admin-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 550;
   letter-spacing: 0.01em;
   line-height: 1.2;
+  margin-left: auto;
   white-space: nowrap;
 }
 
@@ -1342,87 +1628,164 @@
 
 .admin-shell .admin-filters__panel {
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__panel-inner {
   min-height: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups {
-  align-items: center;
+  align-items: stretch;
   display: flex;
+  flex-direction: column;
   flex-wrap: nowrap;
-  gap: 0;
+  gap: 8px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
+}
+
+/* Multi después del panel column: chips + toggle (o selects) en fila. */
+.admin-shell .admin-filters__panel .admin-filters__groups--multi {
+  align-items: center;
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.admin-shell .admin-filters__panel .admin-filters__groups--multi.admin-filters__groups--secondary-only {
+  align-items: stretch;
+  display: grid !important;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--toggle {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+  flex: 1 1 160px;
+  min-width: min(100%, 160px);
+  width: auto;
+}
+
+@media (min-width: 640px) {
+  .admin-shell .admin-filters__panel .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+    flex-wrap: nowrap;
+  }
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups::-webkit-scrollbar {
   display: none;
 }
 
-.admin-shell .admin-filters__panel .admin-filter-group--inline {
-  align-items: center;
+.admin-shell .admin-filters__panel .admin-filter-group--rail {
+  align-items: stretch;
   display: flex;
-  flex: 0 1 auto;
-  flex-direction: row;
-  gap: 8px;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--rail {
   width: auto;
 }
 
 .admin-shell .admin-filters__panel .admin-filter-chips {
   gap: 0;
-  width: auto;
+  width: 100%;
 }
 
-/* Segmented control: tipografía + underline, sin pills ni checks.
-   `:is()` cubre las dos formas en que "compacto" llega al chip -- envuelto en
-   AdminFilterBar (clase `admin-filters--compact` en el padre) o AdminFilterChipGroup
-   usado directo con la prop `compact` (clase `admin-filter-group--compact` en su
-   propia raíz). Antes solo cubría el primer caso, así que Finanzas y Órdenes de
-   atleta quedaban con el pill con borde de admin.css en vez de este tratamiento. */
+/* Rail: scroll horizontal con fade suave. */
+.admin-shell .admin-filter-chips-rail {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 18px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 18px),
+    transparent 100%
+  );
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filter-chips-rail:focus-within {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Track premium: cápsula activa + count quieto. Sin subrayado ni línea de barra. */
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips {
   align-items: stretch;
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--admin-control-bg) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
+  border-radius: 10px;
   display: flex;
   flex-wrap: nowrap;
-  gap: 0;
-  min-width: 0;
-  width: auto;
+  gap: 2px;
   max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 3px;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
   background: transparent;
   border: 0;
-  border-radius: 0;
+  border-radius: 7px;
   box-shadow: none;
   color: var(--admin-muted);
   flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 550;
   gap: 6px;
   letter-spacing: -0.01em;
-  min-height: 34px;
-  padding: 6px 11px 8px;
+  min-height: 32px;
+  padding: 5px 11px;
   position: relative;
+  scroll-snap-align: start;
   transform: none;
   transition:
     color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease);
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip::after {
-  background: transparent;
-  bottom: -1px;
-  content: '';
-  height: 2px;
-  left: 10px;
-  position: absolute;
-  right: 10px;
-  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+  display: none;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__indicator {
@@ -1430,15 +1793,17 @@
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip:hover {
-  background: transparent;
+  background: color-mix(in srgb, var(--admin-surface-raised) 72%, transparent);
   color: var(--admin-ink);
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active,
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true'] {
-  background: transparent;
+  background: color-mix(in srgb, var(--admin-surface-raised) 88%, var(--admin-brand) 12%);
   border: 0;
-  box-shadow: none;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--admin-ink) 8%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 28%, transparent);
   color: var(--admin-ink);
   font-weight: 650;
   transform: none;
@@ -1446,26 +1811,30 @@
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active::after,
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true']::after {
-  background: var(--admin-brand);
+  display: none;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__count {
-  background: transparent;
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
   border: 0;
-  border-radius: 0;
+  border-radius: 999px;
   color: var(--admin-muted);
-  font-size: 11px;
+  display: inline-flex;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
+  font-weight: 650;
+  justify-content: center;
   letter-spacing: 0.01em;
-  min-width: 0;
-  opacity: 0.85;
-  padding: 0;
+  min-width: 1.3em;
+  opacity: 1;
+  padding: 1px 5px;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active .admin-filter-chip__count,
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip[aria-pressed='true'] .admin-filter-chip__count {
-  color: var(--admin-text-secondary);
+  background: color-mix(in srgb, var(--admin-brand) 14%, transparent);
+  color: var(--admin-ink);
   opacity: 1;
 }
 
@@ -1479,21 +1848,29 @@
   opacity: 0.75;
 }
 
-/* Toggle secundario (ej. “Vencen en 30 días”): un chip suelto, no otra fila de segmentos. */
+.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+/* Toggle: misma familia, compacto, sin label de grupo. */
 .admin-shell .admin-filter-group--toggle {
-  flex: 0 0 auto;
+  flex: none;
+  width: auto;
 }
 
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
-  background: transparent;
-  border: 1px solid var(--admin-hairline);
+  background: color-mix(in srgb, var(--admin-control-bg) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
   border-radius: 999px;
+  box-shadow: none;
   color: var(--admin-muted);
-  font-size: 11.5px;
-  font-weight: 500;
-  gap: 0;
-  min-height: 30px;
-  padding: 5px 11px;
+  font-size: 12.5px;
+  font-weight: 550;
+  justify-content: center;
+  min-height: 34px;
+  padding: 5px 13px;
+  width: fit-content;
 }
 
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle::after {
@@ -1501,72 +1878,138 @@
 }
 
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle:hover {
-  background: var(--admin-row-hover);
-  border-color: var(--admin-hairline-strong, var(--admin-hairline));
+  border-color: color-mix(in srgb, var(--admin-brand) 32%, var(--admin-hairline));
   color: var(--admin-ink);
 }
 
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle.is-active,
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle[aria-pressed='true'] {
-  background: var(--admin-brand-soft);
-  border-color: var(--admin-brand-border);
+  background: color-mix(in srgb, var(--admin-brand) 12%, var(--admin-surface-raised));
+  border-color: color-mix(in srgb, var(--admin-brand) 40%, var(--admin-hairline));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 16%, transparent);
   color: var(--admin-ink);
   font-weight: 650;
 }
 
 .admin-shell .admin-filters__select {
-  align-items: center;
-  display: inline-flex;
+  align-items: stretch;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  cursor: default;
+  display: flex;
   flex: 0 0 auto;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
   min-width: 0;
+  padding: 0 !important;
+  position: relative;
+  width: auto;
+}
+
+.admin-shell .admin-filters--compact .admin-filters__select,
+.admin-shell .admin-filters--compact .admin-filters__select:hover,
+.admin-shell .admin-filters--compact .admin-filters__select:focus-within,
+[data-theme='light'] .admin-shell .admin-filters--compact .admin-filters__select,
+[data-theme='light'] .admin-shell .admin-filters--compact .admin-filters__select:hover,
+[data-theme='light'] .admin-shell .admin-filters--compact .admin-filters__select:focus-within {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .admin-shell .admin-filters__select-label {
   color: var(--admin-muted);
+  display: block;
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  pointer-events: none;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
+.admin-shell .admin-filters__select-control {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-control-bg) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 40px;
+  overflow: hidden;
+  padding: 0 10px 0 12px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-filters__select:hover .admin-filters__select-control {
+  border-color: color-mix(in srgb, var(--admin-brand) 28%, var(--admin-hairline));
+}
+
+.admin-shell .admin-filters__select:focus-within .admin-filters__select-control {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-brand-border);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+}
+
+.admin-shell .admin-filters__select.is-active .admin-filters__select-label {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--admin-muted));
+}
+
+.admin-shell .admin-filters__select.is-active .admin-filters__select-control {
+  background: color-mix(in oklab, var(--plu-gold-500) 8%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 36%, var(--admin-hairline));
+}
+
+.admin-shell .admin-filters__select.is-active select {
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
 .admin-shell .admin-filter-chip:focus-visible,
 .admin-shell .admin-filters__toggle:focus-visible,
-.admin-shell .admin-filters__search-clear:focus-visible {
+.admin-shell .admin-filters__search-clear:focus-visible,
+.admin-shell .admin-filters__select select:focus-visible {
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
   outline: 1px solid var(--admin-focus);
   outline-offset: 1px;
 }
 
-.admin-shell .admin-filters__select {
-  align-items: center;
-  background: var(--admin-control-bg);
-  border-color: var(--admin-hairline);
-  border-radius: 9px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 38px;
-  padding: 5px 9px 5px 11px;
-  position: relative;
-}
-
-.admin-shell .admin-filters__select-label {
-  grid-column: 1 / -1;
-}
-
-.admin-shell .admin-filters__select select {
-  background-image: none;
+.admin-shell .admin-filters__select select,
+.admin-shell .admin-filters--compact .admin-filters__select select,
+[data-theme='light'] .admin-shell .admin-filters--compact .admin-filters__select select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
+  background-image: none !important;
+  border: 0;
   color: var(--admin-ink);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 550;
   grid-column: 1;
-  padding-right: 8px;
+  height: auto;
+  line-height: 1.3;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 6px 0 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__select-icon {
   color: var(--admin-muted);
+  flex-shrink: 0;
   grid-column: 2;
-  grid-row: 2;
+  height: 14px;
   pointer-events: none;
+  width: 14px;
 }
 
 /* Tabla: jerarquía tipográfica, densidad, columnas semánticas. */
@@ -1832,7 +2275,8 @@
 
 /* Membresías / fechas: lectura editorial, menos columnas. */
 .admin-shell .admin-data-table .data-table__column--code {
-  max-width: 220px;
+  max-width: 132px;
+  width: 1%;
 }
 
 .admin-shell .admin-data-table .data-table__column--code .data-table__mono {
@@ -1890,16 +2334,72 @@
   letter-spacing: 0.04em;
 }
 
-.admin-shell .admin-data-table--memberships.data-table--columns-4 table {
-  min-width: 720px;
+.admin-shell .admin-data-table--memberships.data-table--columns-5 table {
+  min-width: 760px;
 }
 
 .admin-shell .admin-data-table--memberships .data-table__column--period {
-  min-width: 168px;
+  min-width: 148px;
 }
 
 .admin-shell .admin-data-table--memberships .data-table__column--status {
-  padding-inline-end: 20px;
+  padding-inline-end: 12px;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.admin-shell .admin-data-table--memberships .data-table__column--actions {
+  width: 1%;
+}
+
+.admin-shell .admin-data-table--memberships .admin-membership-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.admin-shell .admin-data-table--memberships .admin-membership-actions .admin-icon-btn {
+  flex: none;
+}
+
+.admin-shell .admin-list-shell--users .data-table__column--actions,
+.admin-shell .admin-list-shell--users .data-table__column--action {
+  width: 1%;
+}
+
+.admin-shell .admin-list-shell--users .data-table__column--role {
+  min-width: 11.5rem;
+  width: 12.5rem;
+}
+
+.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact {
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.admin-shell .admin-filters--users .admin-filters__actions .btn {
+  min-height: 36px;
+}
+
+.admin-shell .admin-users__role-select select {
+  background-color: var(--admin-control-bg);
+  border-color: var(--admin-hairline);
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-users__role-select select:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--admin-brand) 42%, var(--admin-hairline));
+}
+
+.admin-shell .admin-users__role-select select:focus-visible {
+  border-color: var(--admin-brand-border);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+}
+
+.admin-shell .admin-users__role-pill {
+  color: var(--admin-text-secondary);
 }
 
 .admin-shell .data-table-mobile-toolbar {
@@ -2061,51 +2561,43 @@
 @media (max-width: 720px) {
   .admin-shell .admin-filters--inline.admin-filters--compact {
     background: transparent;
-    display: grid;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 8px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 12px 12px;
   }
 
   .admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__primary {
-    grid-column: 1;
-    grid-row: 1;
     min-width: 0;
+    order: 1;
+    width: 100%;
   }
 
   .admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__count {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: center;
-    justify-self: end;
-  }
-
-  .admin-shell .admin-filters--inline.admin-filters--compact:not(:has(> .admin-filters__count))
-    > .admin-filters__primary {
-    grid-column: 1 / -1;
+    align-self: flex-start;
+    order: 3;
   }
 
   .admin-shell .admin-filters--inline.admin-filters--compact > .admin-filters__panel {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    order: 2;
+    width: 100%;
   }
 
   .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
     background: transparent;
-    padding: 6px 12px 8px;
+    padding: 6px 12px 12px;
   }
 
   .admin-shell .admin-filters__primary {
-    display: grid;
-    gap: 7px;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .admin-shell .admin-filters__primary .admin-filters__search {
-    grid-column: 1;
-    grid-row: 1;
-    height: 40px;
-    min-height: 40px;
+    flex: 1 1 160px;
+    height: 42px;
+    min-height: 42px;
   }
 
   .admin-shell .admin-filters__toggle {
@@ -2129,12 +2621,10 @@
     margin-left: 0;
   }
 
-  .admin-shell .admin-filters--users .admin-filters__primary {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .admin-shell .admin-filters--users .admin-filters__actions {
-    grid-column: 2;
+  .admin-shell .admin-filters__primary > .admin-filters__count {
+    grid-column: 5;
+    grid-row: 1;
+    margin-left: 0;
   }
 
   .admin-shell .admin-filters__actions .btn {
@@ -2203,15 +2693,15 @@
   }
 
   .admin-shell .admin-filters__panel .admin-filter-chips {
-    margin-inline: -9px;
-    padding: 0 9px 1px;
+    margin-inline: 0;
+    padding: 0;
   }
 
-  .admin-shell .admin-filter-chip {
-    font-size: 11px;
-    gap: 4px;
-    min-height: 28px;
-    padding: 3px 9px;
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
+    font-size: 12.5px;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px 12px 10px;
   }
 
   .admin-shell .admin-filter-chip__indicator {
@@ -2230,7 +2720,6 @@
   }
 
   .admin-shell .data-table-card--admin {
-    background: transparent;
     border-radius: 11px;
   }
 }
@@ -3410,23 +3899,16 @@
    ============================================= */
 
 .admin-shell .admin-list-shell--events {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 14px;
-  box-shadow: var(--admin-shadow-soft, none);
-  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
   position: relative;
 }
 
 .admin-shell .admin-list-shell--events::before {
-  background: var(--gradient-brand);
-  content: '';
-  height: 1px;
-  inset: 0 0 auto;
-  opacity: 0.72;
-  pointer-events: none;
-  position: absolute;
-  z-index: 2;
+  display: none;
 }
 
 .admin-shell .admin-list-section--events .admin-list-shell__header {
@@ -3441,18 +3923,12 @@
 .admin-shell .admin-list-shell--events .admin-list-shell__intro {
   display: grid;
   gap: 2px;
-  padding-left: 12px;
+  padding-left: 0;
   position: relative;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__intro::before {
-  background: color-mix(in srgb, var(--admin-brand) 70%, transparent);
-  bottom: 2px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 2px;
-  width: 2px;
+  display: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__eyebrow {
@@ -3505,54 +3981,51 @@
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
-  align-items: center;
+  align-items: stretch;
   background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   border-top: 0;
-  display: grid;
-  flex-wrap: nowrap;
-  gap: 8px 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
-  padding: 4px clamp(14px, 2.4vw, 22px) 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px clamp(14px, 2.4vw, 22px) 14px;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__panel {
-  grid-column: 1;
-  grid-row: 1;
   min-width: 0;
-  order: 0;
+  order: 2;
+  width: 100%;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__primary {
-  grid-column: 2 / -1;
-  grid-row: 1;
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-width: 0;
   order: 1;
+  width: 100%;
 }
 
 .admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search,
 .admin-shell .admin-list-section--events .admin-filters__search {
   background: transparent;
   border-color: var(--admin-hairline);
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: none;
-  flex: 1 1 160px;
-  height: 34px;
+  flex: 1 1 auto;
+  height: 36px;
   margin-left: 0;
-  min-height: 34px;
-  min-width: 140px;
+  min-height: 36px;
+  min-width: 0;
   order: 0;
   width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-filters__groups {
-  flex: 1 1 auto;
-  gap: 0;
-  grid-column: auto;
+  flex: none;
+  gap: 12px;
   max-width: 100%;
   order: 0;
-  overflow-x: auto;
+  overflow: visible;
+  width: 100%;
 }
 
 .admin-shell .admin-list-section--events .admin-events__toolbar-actions {
@@ -3563,50 +4036,113 @@
 }
 
 .admin-shell .admin-list-section--events .admin-events__toolbar-actions .btn {
-  min-height: 34px;
-  padding-inline: 12px;
+  min-height: 40px;
+  padding-inline: 14px;
 }
 
 /* El tratamiento del chip ya lo cubre el bloque `:is(.admin-filters--compact,
    .admin-filter-group--compact)` de más arriba. */
 
 .admin-shell .admin-list-shell--events .admin-list-shell__body {
-  background: var(--admin-surface);
+  background: transparent;
+}
+
+/* KPI strip fuera del shell: ledger tipográfico entre filtros y lista. */
+.admin-shell .admin-list-section--events .admin-events-kpis {
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  grid-template-columns: none;
+  margin: 0 0 10px;
+  overflow: visible;
+  padding: 2px clamp(14px, 2.4vw, 22px) 12px;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi {
+  align-items: baseline;
+  display: inline-flex;
+  flex: 1 1 0;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 8px 14px 8px 0;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 14px;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi__label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  order: 0;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi__value {
+  color: var(--admin-ink);
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin-left: auto;
+}
+
+.admin-shell .admin-list-shell--events .admin-events-workspace {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-list {
   display: grid;
-  gap: 22px;
-  max-height: min(68vh, 720px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 4px 0 8px;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  scrollbar-width: thin;
+  gap: 0;
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+  padding: 0 0 8px;
+  scrollbar-width: auto;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-group {
   display: grid;
   gap: 0;
   list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group + .admin-event-group {
+  margin-top: 20px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-group--finished {
-  opacity: 0.78;
+  opacity: 0.72;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-group__label {
   align-items: baseline;
   border-bottom: 1px solid var(--admin-hairline);
-  color: var(--admin-text-secondary, var(--admin-muted));
+  color: var(--admin-muted);
   display: flex;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 650;
   gap: 8px;
-  letter-spacing: -0.01em;
-  margin: 0 clamp(14px, 2.4vw, 22px);
-  padding: 14px 2px 8px;
-  text-transform: none;
+  letter-spacing: 0.12em;
+  margin: 0;
+  padding: 8px 2px 8px;
+  text-transform: uppercase;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-group__label strong {
@@ -3628,12 +4164,15 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row {
-  border-bottom-color: color-mix(in srgb, var(--admin-hairline) 80%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   border-radius: 0;
-  gap: 2px 16px;
-  grid-template-columns: 56px minmax(0, 1fr) minmax(88px, 120px) auto auto;
-  min-height: 64px;
-  padding: 12px clamp(14px, 2.4vw, 22px);
+  gap: 4px 16px;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(64px, 96px) auto auto;
+  min-height: 0;
+  padding: 12px 2px;
+  transition:
+    background var(--motion-fast) var(--ease-standard, ease),
+    box-shadow var(--motion-fast) var(--ease-standard, ease);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__badge {
@@ -3643,24 +4182,29 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__date {
-  border-right-color: color-mix(in srgb, var(--admin-hairline) 85%, transparent);
-  gap: 3px;
-  padding-right: 14px;
+  border-right: 0;
+  gap: 2px;
+  justify-items: start;
+  padding-right: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__day {
   color: var(--admin-ink);
   font-size: 20px;
-  letter-spacing: -0.04em;
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__month {
   color: var(--admin-muted);
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row--selected .admin-event-row__day {
-  color: color-mix(in srgb, var(--admin-brand) 72%, var(--admin-ink));
+  color: color-mix(in srgb, var(--admin-brand) 78%, var(--admin-ink));
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__slug {
@@ -3688,7 +4232,7 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row--selected,
 .admin-shell .admin-list-shell--events .admin-event-row--selected:hover {
-  background: color-mix(in srgb, var(--admin-brand) 8%, var(--admin-surface));
+  background: color-mix(in srgb, var(--admin-brand) 7%, var(--admin-surface));
   box-shadow: inset 2px 0 0 var(--admin-brand);
 }
 
@@ -3697,7 +4241,7 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__body {
-  gap: 4px;
+  gap: 5px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__title-wrap {
@@ -3706,15 +4250,16 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row__title {
   font-size: 14.5px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta {
   color: var(--admin-muted);
-  font-size: 11.5px;
+  font-size: 12px;
   gap: 4px 12px;
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta svg {
@@ -3774,8 +4319,9 @@
 .admin-shell .admin-list-shell--events .admin-event-preview--panel {
   background: transparent;
   border-color: var(--admin-hairline);
+  border-left: 1px solid var(--admin-hairline);
   gap: 0;
-  padding: 0 0 16px;
+  padding: 0 0 12px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
@@ -3783,11 +4329,11 @@
   border-bottom-color: var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 10px 16px;
   justify-content: space-between;
   letter-spacing: 0;
   margin: 0;
-  padding: 16px clamp(14px, 2.4vw, 22px) 14px;
+  padding: 4px 0 14px 18px;
   text-transform: none;
 }
 
@@ -3805,9 +4351,9 @@
 .admin-shell .admin-list-shell--events .admin-event-preview__selected-title {
   color: var(--admin-ink);
   display: block;
-  font-size: clamp(15px, 1.8vw, 18px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: clamp(16px, 1.8vw, 19px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0;
 }
@@ -3815,32 +4361,32 @@
 .admin-shell .admin-list-shell--events .admin-event-preview__meta-line {
   color: var(--admin-muted);
   font-size: 12px;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
   align-items: center;
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
-  min-height: 34px;
+  min-height: 36px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__detail {
-  padding-inline: clamp(14px, 2.4vw, 22px);
+  padding-inline: 18px 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__detail-label {
   color: var(--admin-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin: 14px 0 0;
-  text-transform: none;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 16px 0 0;
+  text-transform: uppercase;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__detail {
@@ -4089,26 +4635,51 @@
     width: 58px;
   }
 
-  /* El strip de estados scrollea con la barra oculta: el degradado avisa
-     que hay más filtros a la derecha. */
+  /* Fade de overflow vive en .admin-filter-chips-rail (sistema compartido). */
   .admin-shell .admin-list-section--events .admin-filters__groups {
-    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: none;
   }
 }
 
-@media (max-width: 899px) {
+@media (max-width: 900px) {
+  .admin-shell .admin-list-section--events .admin-events-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 8px;
+    padding-bottom: 10px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi {
+    padding: 8px 12px 8px 0;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
+    border-left: 1px solid var(--admin-hairline);
+    padding-left: 12px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--admin-hairline);
+    padding-top: 10px;
+  }
+
   /* El panel pasa a estar debajo de la lista, así que el scroll interno
      sobra: partía la última fila al medio y sumaba un segundo scroll. */
   .admin-shell .admin-list-shell--events .admin-event-list {
     max-height: none;
     overflow: visible;
-    padding: 5px 6px 12px;
+    padding: 0 0 8px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-row {
-    border-radius: 7px;
-    min-height: 68px;
-    padding: 11px 10px;
+    border-radius: 0;
+    min-height: 0;
+    padding: 10px 2px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-row__actions {
@@ -4118,13 +4689,14 @@
 
   .admin-shell .admin-list-shell--events .admin-event-preview--panel {
     background: transparent;
+    border-left: 0;
     border-top: 1px solid var(--admin-hairline);
-    padding: 0 0 14px;
+    padding: 0 0 12px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
     margin: 0;
-    padding: 14px 14px 12px;
+    padding: 14px 2px 12px;
   }
 
   .admin-shell
@@ -4135,11 +4707,19 @@
     border-radius: 0;
     margin-top: 0;
   }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+    padding: 2px 0;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__detail {
+    padding-inline: 2px;
+  }
 }
 
 @media (max-width: 720px) {
   .admin-shell .admin-list-shell--events {
-    border-radius: 12px;
+    border-radius: 0;
   }
 
   /* Sin este bloque la regla de 5 columnas de --events (más específica que la
@@ -4242,22 +4822,20 @@
    ficha concentra sus accesos operativos.
    ============================================= */
 
-/* Banda de estado del evento: abrir, cerrar y publicar. Comparte gutter y
-   hairline con la barra de accesos de abajo -- son dos bandas del mismo panel,
-   no dos tarjetas apiladas. */
+/* Banda de estado: chips planos tipo segmented control editorial */
 .admin-shell .admin-list-shell--events .admin-event-state {
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px var(--admin-events-gutter);
+  gap: 6px;
+  padding: 10px 0 10px 18px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__controls {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px 12px;
   justify-content: space-between;
 }
 
@@ -4266,46 +4844,72 @@
   min-width: 0;
 }
 
-/* Cada chip de esta banda escribe en la base -- no filtra una tabla --, así
-   que respeta el target táctil de 44px aunque el resto de los chips del panel
-   sean más chicos. */
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
-  min-height: 44px;
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-/* Los chips envuelven en vez de scrollear. En un filtro, una opción que queda
-   fuera de la tira se sigue leyendo desde la tabla; acá la tira ES el estado
-   del evento, y en 390px el chip activo caía fuera de pantalla -- el operador
-   abría el panel sin poder ver si el evento estaba abierto o cerrado. */
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 550;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip:hover {
+  background: transparent;
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip.is-active,
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip[aria-pressed='true'] {
+  background: transparent;
+  border-bottom-color: var(--admin-brand);
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip__indicator {
+  display: none;
+}
+
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
   flex-wrap: wrap;
+  gap: 0;
   overflow-x: visible;
-  row-gap: 2px;
+  row-gap: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__visibility {
   align-items: center;
-  background: var(--admin-control-bg);
-  border: 1px solid var(--admin-hairline-strong);
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--admin-muted);
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
   font: inherit;
   font-size: 12px;
-  font-weight: 600;
-  gap: 7px;
-  min-height: 44px;
-  padding: 0 15px;
-  transition:
-    color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out),
-    background-color var(--motion-fast) var(--ease-out);
+  font-weight: 550;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px;
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__visibility:hover:not(:disabled) {
-  background: var(--admin-control-hover);
+  background: transparent;
   color: var(--admin-ink);
 }
 
@@ -4319,12 +4923,11 @@
   opacity: 0.55;
 }
 
-/* Publicado usa el celeste de identidad, no verde de éxito: es visibilidad,
-   no un estado de negocio resuelto. */
 .admin-shell .admin-list-shell--events .admin-event-state__visibility.is-published {
-  background: var(--admin-brand-soft);
-  border-color: var(--admin-brand-border);
+  background: transparent;
+  border-color: transparent;
   color: var(--admin-brand);
+  font-weight: 650;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__spinner {
@@ -4386,7 +4989,7 @@
   gap: 0;
   grid-template-columns: none;
   margin-inline: 0;
-  padding: 0 clamp(14px, 2.4vw, 22px);
+  padding: 0 0 0 18px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
@@ -4404,9 +5007,10 @@
   font-weight: 500;
   gap: 8px;
   justify-content: flex-start;
-  min-height: 44px;
+  min-height: 40px;
   min-width: 0;
   padding: 8px 10px 8px 0;
+  transition: color var(--motion-fast) var(--ease-standard, ease);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button + button {
@@ -4449,8 +5053,8 @@
   font-size: 12px;
   font-weight: 550;
   justify-content: flex-start;
-  min-height: 36px;
-  padding: 4px clamp(14px, 2.4vw, 22px) 10px;
+  min-height: 32px;
+  padding: 8px 0 4px 18px;
 }
 
 .admin-ticket-orders-anchor {
@@ -4468,8 +5072,9 @@
 
 .admin-event-editor-modal__panel .admin-event-form__head {
   align-items: flex-start;
+  flex: 0 0 auto;
   gap: 16px;
-  padding-bottom: 14px;
+  padding: 20px 24px 14px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__head h3 {
@@ -4554,20 +5159,49 @@
 .admin-event-editor-modal__panel .admin-event-form__actions {
   background: color-mix(in srgb, var(--admin-surface-raised) 94%, var(--admin-surface));
   border-top: 1px solid var(--admin-hairline);
-  box-shadow: 0 -8px 20px color-mix(in srgb, var(--color-bg-primary) 8%, transparent);
+  box-shadow: none;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-editor__toolbar {
+  background: var(--admin-surface);
+  border-bottom-color: var(--admin-hairline);
+  flex: 0 0 auto;
+  margin: 0;
+  padding-inline: 24px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 24px 22px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section {
   border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
+  border-bottom: 0;
   border-radius: 0;
-  gap: 16px;
-  padding: 18px 0 22px;
+  gap: 18px;
+  padding: 4px 0 8px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-head h4 {
-  font-size: 14px;
-  letter-spacing: -0.02em;
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__lane {
+  background: color-mix(in srgb, var(--admin-ink) 2%, transparent);
+  border-color: var(--admin-hairline);
+  border-radius: 12px;
+  gap: 18px;
+  padding: 20px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__rate-cards {
@@ -4583,7 +5217,7 @@
   border-left: 1px solid var(--admin-hairline);
   border-radius: 0;
   box-shadow: none;
-  padding: 13px;
+  padding: 14px 16px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__rate-card:first-child {
@@ -4592,6 +5226,47 @@
 
 .admin-event-editor-modal__panel .admin-event-form__rate-card--featured {
   background: color-mix(in srgb, var(--admin-premium) 5%, transparent);
+}
+
+.admin-event-editor-modal__panel .admin-event-security {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-security > legend {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+  padding: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-security__flow {
+  gap: 8px;
+  margin: 0;
+}
+
+.admin-event-editor-modal__panel .admin-event-security__flow li {
+  background: color-mix(in srgb, var(--admin-ink) 2%, transparent);
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.admin-event-editor-modal__panel .admin-event-security__command {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-brand) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-brand) 18%, var(--admin-hairline));
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: space-between;
+  padding: 10px 12px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section > .admin-event-form__toggle {
@@ -4772,8 +5447,8 @@
 }
 
 @media (max-width: 720px) {
-  .admin-event-editor-modal__panel .admin-event-form--editor {
-    scroll-padding-bottom: 88px;
+  .admin-event-editor-modal__panel .admin-event-form__body {
+    scroll-padding-bottom: 8px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
@@ -4803,12 +5478,13 @@
     margin-top: 8px;
   }
 
-  .admin-event-editor-modal__panel .admin-event-form__save-state {
-    display: none;
+  .admin-event-editor-modal__panel .admin-event-form__save-state--toolbar {
+    display: inline-flex;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__actions {
-    grid-template-columns: minmax(0, 1fr);
-    padding-block: 10px;
+    display: flex;
+    justify-content: stretch;
+    padding-block: 12px;
   }
 }

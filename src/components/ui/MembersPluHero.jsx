@@ -84,6 +84,7 @@ export default function MembersPluHero({
             <aside className="members-cred__stack" aria-label={t('pages.members.credentialPreviewLabel')}>
               <span className="members-cred__glow" aria-hidden />
               <span className="members-cred__grain" aria-hidden />
+              <span className="members-cred__frame" aria-hidden />
               <span className="members-cred__watermark" aria-hidden>
                 PLU
               </span>
@@ -91,15 +92,22 @@ export default function MembersPluHero({
 
               <div className="members-cred__layer members-cred__layer--front">
                 <header className="members-cred__head">
-                  <span className="members-cred__mark">PLU</span>
+                  <div className="members-cred__brand">
+                    <span className="members-cred__mark">PLU</span>
+                    <span className="members-cred__mark-sub">Argentina</span>
+                  </div>
                   <span className="members-cred__chip" aria-hidden>
                     <span className="members-cred__chip-shine" />
                   </span>
                 </header>
 
                 <div className="members-cred__identity">
+                  <p className="members-cred__eyebrow">{t('pages.members.credentialAthleteLabel')}</p>
                   <p className="members-cred__name">{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</p>
-                  <p className="members-cred__code">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</p>
+                  <p className="members-cred__code">
+                    <span className="members-cred__code-label">{t('pages.members.credentialCodeLabel')}</span>
+                    <span className="members-cred__code-value">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</span>
+                  </p>
                 </div>
 
                 <footer className="members-cred__foot">

@@ -27,6 +27,7 @@ function useIsNarrow(query = COMPACT_STATS_MQ) {
 export default function AdminListSection({
   actions,
   beforeFilters,
+  beforeShell = null,
   children,
   filteredCount,
   filterActions = null,
@@ -77,9 +78,15 @@ export default function AdminListSection({
   )
 
   const statsAreRedundant = isNarrow && showFilterBar && filtersCarryCounts
+  // Si los chips ya traen conteo, el "N registros" del header es ruido
+  // (y en ≤1024 el título se oculta: queda una franja vacía solo con el meta).
+  const headerMeta = filtersCarryCounts ? null : meta
   const showStatsStrip = showStats && !statsAreRedundant && (stats.length > 0 || totalCount != null)
   const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
+  // Conteo en la barra cuando no hay título de sección, o en viewport angosto.
+  const filterCount =
+    filtersCarryCounts && (isNarrow || !showHeader) ? resultLabel : null
 
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
@@ -111,7 +118,7 @@ export default function AdminListSection({
         .join(' ')}
       compact
       inline
-      count={statsAreRedundant ? resultLabel : null}
+      count={filterCount}
       filters={filters}
       placeholder={searchPlaceholder}
       query={query}
@@ -119,20 +126,34 @@ export default function AdminListSection({
     />
   ) : null
 
-  const hasExternalHeader = showHeader && (Boolean(title) || Boolean(eyebrow) || Boolean(subtitle) || Boolean(meta) || Boolean(actions))
-  const hasExternalToolbar = !showHeader && (Boolean(actions) || Boolean(meta))
+  const hasExternalHeader =
+    showHeader &&
+    (Boolean(title) ||
+      Boolean(eyebrow) ||
+      Boolean(subtitle) ||
+      Boolean(headerMeta) ||
+      Boolean(actions))
+  const hasExternalToolbar = !showHeader && (Boolean(actions) || Boolean(headerMeta))
 
   return (
-    <div className={`admin-list-section${variant ? ` admin-list-section--${variant}` : ''}`}>
+    <div
+      className={[
+        'admin-list-section',
+        'admin-list-section--rails',
+        variant ? `admin-list-section--${variant}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {hasExternalHeader ? (
         <header className="admin-list-section__header admin-list-shell__header">
           <div className="admin-list-shell__intro">
             {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
             {title && <h1 className="admin-list-shell__title">{title}</h1>}
             {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
-            {meta && (
+            {headerMeta && (
               <span className="admin-list-shell__meta" aria-live="polite">
-                {meta}
+                {headerMeta}
               </span>
             )}
           </div>
@@ -142,9 +163,9 @@ export default function AdminListSection({
 
       {hasExternalToolbar ? (
         <div className="admin-list-section__toolbar admin-list-shell__toolbar">
-          {meta && (
+          {headerMeta && (
             <span className="admin-list-shell__meta" aria-live="polite">
-              {meta}
+              {headerMeta}
             </span>
           )}
           {actions && <div className="admin-list-shell__actions">{actions}</div>}
@@ -153,6 +174,7 @@ export default function AdminListSection({
 
       {beforeFilters}
       {filterBar}
+      {beforeShell}
 
       <section className={shellClass}>
         {showStatsStrip && (

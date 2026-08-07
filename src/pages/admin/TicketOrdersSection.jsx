@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { BadgeCheck, ExternalLink, LoaderCircle } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
@@ -186,29 +186,34 @@ export default function TicketOrdersSection({
               key: 'actions',
               label: t('admin.columns.action'),
               mobile: 'action',
-              render: (row) => (
-                <AdminTableActions>
-                  {row.paymentProofPath ? (
-                    <AdminIconButton
-                      label={t('admin.ticketOrders.viewProof')}
-                      onClick={() => handleOpenProof(row)}
-                      disabled={openingProofId === row.id}
-                    >
-                      <ExternalLink size={14} aria-hidden />
-                    </AdminIconButton>
-                  ) : null}
-                  {canEdit ? (
-                    <button
-                      type="button"
-                      className="btn btn--small"
-                      disabled={approvingId === row.id}
-                      onClick={() => handleApprove(row.id)}
-                    >
-                      {t('admin.actions.validate')}
-                    </button>
-                  ) : null}
-                </AdminTableActions>
-              ),
+              className: 'data-table__column--actions',
+              render: (row) => {
+                const opening = openingProofId === row.id
+                const approving = approvingId === row.id
+
+                return (
+                  <AdminTableActions>
+                    {row.paymentProofPath ? (
+                      <AdminIconButton
+                        disabled={opening}
+                        icon={opening ? LoaderCircle : ExternalLink}
+                        label={t('admin.ticketOrders.viewProof')}
+                        onClick={() => handleOpenProof(row)}
+                        variant="ghost"
+                      />
+                    ) : null}
+                    {canEdit ? (
+                      <AdminIconButton
+                        disabled={approving}
+                        icon={approving ? LoaderCircle : BadgeCheck}
+                        label={t('admin.actions.validate')}
+                        onClick={() => handleApprove(row.id)}
+                        variant="celeste"
+                      />
+                    ) : null}
+                  </AdminTableActions>
+                )
+              },
             },
           ]}
           rows={rows}

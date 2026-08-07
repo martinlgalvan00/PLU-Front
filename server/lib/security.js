@@ -36,14 +36,26 @@ export function getAllowedOrigins(env = process.env) {
     env.VERCEL_PROJECT_PRODUCTION_URL,
     ...configuredOrigins,
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
   ]
     .map(asOrigin)
     .filter(Boolean)
     .filter((origin, index, origins) => origins.indexOf(origin) === index)
 }
 
+// Vite salta a 5174/5175 si el puerto default está ocupado. En local (sin
+// Vercel) aceptamos cualquier puerto de loopback para no romper el login.
+const LOCAL_DEV_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/i
+
+export function isAllowedOrigin(origin, env = process.env) {
+  if (!origin) return true
+  if (getAllowedOrigins(env).includes(origin)) return true
+  if (!env.VERCEL && LOCAL_DEV_ORIGIN.test(origin)) return true
+  return false
+}
+
 export function corsOrigin(origin, callback) {
-  if (!origin || getAllowedOrigins().includes(origin)) {
+  if (isAllowedOrigin(origin)) {
     callback(null, true)
     return
   }
@@ -58,7 +70,7 @@ export function requireTrustedMutation(req, _res, next) {
   }
 
   const origin = req.get('origin')
-  if (origin && !getAllowedOrigins().includes(origin)) {
+  if (origin && !isAllowedOrigin(origin)) {
     next(new HttpError(403, 'Origen no permitido'))
     return
   }

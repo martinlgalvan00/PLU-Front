@@ -140,13 +140,13 @@ export default {
 
 /** Armado en curso: cinco sin ubicar y dos días con tandas cargadas. */
 export const EnArmado = {
-  args: { adminEvents, canEdit: true },
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
   decorators: [withBoard(FULL_BOARD)],
 }
 
 /** Todo repartido: la bolsa de pendientes queda vacía. */
 export const TodoRepartido = {
-  args: { adminEvents, canEdit: true },
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
   decorators: [
     withBoard({
       ...FULL_BOARD,
@@ -156,9 +156,22 @@ export const TodoRepartido = {
   ],
 }
 
-/** El evento todavía no tiene tandas: hay que cargarlas desde el editor. */
+/** El evento no tiene días: hay que cargarlos desde el editor. */
+export const SinDias = {
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
+  decorators: [
+    withBoard({
+      event: FULL_BOARD.event,
+      totals: { registered: 5, assigned: 0, unassigned: 5 },
+      days: [],
+      unassigned: POOL,
+    }),
+  ],
+}
+
+/** El evento tiene días pero todavía no tiene tandas. */
 export const SinTandas = {
-  args: { adminEvents, canEdit: true },
+  args: { adminEvents, canEdit: true, onGoToEvents: () => undefined },
   decorators: [
     withBoard({
       ...FULL_BOARD,
@@ -180,6 +193,6 @@ export const SinTandas = {
 
 /** Solo lectura: se ve el reparto pero no se puede mover a nadie. */
 export const SoloLectura = {
-  args: { adminEvents, canEdit: false },
+  args: { adminEvents, canEdit: false, onGoToEvents: () => undefined },
   decorators: [withBoard(FULL_BOARD)],
 }

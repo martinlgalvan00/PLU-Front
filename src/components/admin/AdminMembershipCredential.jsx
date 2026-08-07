@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { QrCode, RefreshCcw, ShieldAlert } from 'lucide-react'
+import { Check, Copy, QrCode, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { formatShortDate } from '../../lib/format.js'
@@ -18,8 +18,14 @@ import StatusBadge from '../ui/StatusBadge.jsx'
  *
  * La rotación invalida el QR viejo en el acto, así que va detrás de una
  * confirmación explícita y queda auditada (`athlete.credential_rotated`).
+ *
+ * `layout`: "panel" (ficha del atleta) | "modal" (overlay desde Afiliaciones).
  */
-export default function AdminMembershipCredential({ membershipId, canRotate = false }) {
+export default function AdminMembershipCredential({
+  membershipId,
+  canRotate = false,
+  layout = 'panel',
+}) {
   const { locale, t } = useI18n()
   const [credential, setCredential] = useState(null)
   const [qrSrc, setQrSrc] = useState(null)
@@ -28,15 +34,20 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
   const [confirmingRotation, setConfirmingRotation] = useState(false)
   const [rotating, setRotating] = useState(false)
   const [rotatedAt, setRotatedAt] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
     if (!membershipId) return
     setLoading(true)
     setError('')
+    setConfirmingRotation(false)
+    setRotatedAt(null)
+    setCopied(false)
     try {
       setCredential(await getMembershipCredential(membershipId))
     } catch (loadError) {
       setError(loadError?.message ?? t('admin.credential.loadError'))
+      setCredential(null)
     } finally {
       setLoading(false)
     }
@@ -84,18 +95,40 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
     }
   }
 
+  async function copyToken() {
+    if (!qrToken) return
+    try {
+      await navigator.clipboard.writeText(qrToken)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Sin clipboard el token ya queda visible para copiar a mano.
+    }
+  }
+
   if (!membershipId) {
-    return <p className="data-table__empty">{t('admin.credential.none')}</p>
+    return <p className="admin-credential__empty">{t('admin.credential.none')}</p>
   }
 
   if (loading) {
-    return <p className="data-table__empty">{t('admin.credential.loading')}</p>
+    return <p className="admin-credential__empty">{t('admin.credential.loading')}</p>
+  }
+
+  if (!credential?.membership && error) {
+    return (
+      <p className="admin-credential__error" role="alert">
+        {error}
+      </p>
+    )
   }
 
   const membership = credential?.membership
+  const athlete = credential?.athlete
+  const rootClass =
+    layout === 'modal' ? 'admin-credential admin-credential--modal' : 'admin-credential'
 
   return (
-    <div className="admin-credential">
+    <div className={rootClass}>
       <div className="admin-credential__qr">
         {qrSrc ? (
           <img src={qrSrc} alt={t('admin.credential.qrAlt')} />
@@ -107,6 +140,15 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
       </div>
 
       <div className="admin-credential__data">
+        {athlete?.fullName && layout === 'panel' ? (
+          <div className="admin-credential__identity">
+            <p className="admin-credential__name">{athlete.fullName}</p>
+            {athlete.documentId ? (
+              <p className="admin-credential__meta data-table__mono">{athlete.documentId}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         <dl className="admin-credential__rows">
           <div>
             <dt>{t('admin.columns.code')}</dt>
@@ -124,11 +166,35 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
                 : '—'}
             </dd>
           </div>
-          <div>
-            <dt>{t('admin.credential.token')}</dt>
-            <dd className="data-table__mono admin-credential__token">{qrToken ?? '—'}</dd>
-          </div>
+          {athlete?.documentId && layout === 'modal' ? (
+            <div>
+              <dt>{t('admin.columns.document')}</dt>
+              <dd className="data-table__mono">{athlete.documentId}</dd>
+            </div>
+          ) : null}
         </dl>
+
+        {qrToken ? (
+          <div className="admin-credential__token-row">
+            <div className="admin-credential__token-copy">
+              <span className="admin-credential__token-label">{t('admin.credential.token')}</span>
+              <code className="admin-credential__token" title={qrToken}>
+                {qrToken}
+              </code>
+            </div>
+            <button
+              type="button"
+              className="admin-credential__copy-btn"
+              onClick={copyToken}
+              aria-label={
+                copied ? t('admin.credential.copied') : t('admin.credential.copyToken')
+              }
+            >
+              {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+              <span>{copied ? t('admin.credential.copied') : t('admin.credential.copyToken')}</span>
+            </button>
+          </div>
+        ) : null}
 
         {error ? (
           <p className="admin-credential__error" role="alert">

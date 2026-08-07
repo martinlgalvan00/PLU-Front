@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shop product modal fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #0b0d10;
+        font-family: var(--font-family, system-ui);
+      }
+      .admin-shop-modal {
+        position: relative;
+        inset: auto;
+        min-height: 100dvh;
+      }
+      .admin-shop-modal__backdrop {
+        position: absolute;
+      }
+      .admin-shop-modal__panel {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: none;
+        margin: 24px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shop-modal">
+      <button type="button" class="admin-shop-modal__backdrop" aria-label="Cancelar"></button>
+      <div class="admin-shop-modal__panel" role="dialog" aria-modal="true" aria-labelledby="shop-modal-title">
+        <header class="admin-shop-modal__head">
+          <div class="admin-shop-modal__head-copy">
+            <span class="admin-shop-modal__eyebrow">Alta</span>
+            <h2 id="shop-modal-title">Nueva pieza</h2>
+            <p class="admin-shop-modal__lead">
+              Creá el producto, cargá foto y stock, y publicalo. La tienda pública lo muestra al instante.
+            </p>
+          </div>
+          <button type="button" class="admin-shop-modal__close" aria-label="Cancelar">×</button>
+        </header>
+        <form class="admin-shop-modal__form">
+          <div class="admin-shop-modal__layout">
+            <aside class="admin-shop-modal__stage">
+              <div class="admin-shop-modal__preview" aria-label="Vista previa">
+                <div class="admin-shop-modal__preview-empty">
+                  <span class="admin-shop-modal__preview-icon" aria-hidden>+</span>
+                </div>
+                <div class="admin-shop-modal__preview-meta">
+                  <span class="admin-shop-modal__preview-title">Remera Pitbull Classic</span>
+                  <span class="admin-shop-modal__preview-price">$ 18.500</span>
+                </div>
+              </div>
+            </aside>
+            <div class="admin-shop-modal__fields">
+              <fieldset class="admin-shop-modal__group">
+                <legend>Identidad</legend>
+                <label><span>Nombre</span><input value="Remera Pitbull Classic" /></label>
+                <label><span>Descripción</span><textarea rows="3">Detalle corto para la ficha</textarea></label>
+                <label><span>URL de imagen</span><input placeholder="https://…" /></label>
+              </fieldset>
+              <fieldset class="admin-shop-modal__group">
+                <legend>Comercial</legend>
+                <div class="admin-shop-modal__row">
+                  <label><span>Precio (ARS)</span><input type="number" value="18500" /></label>
+                  <label><span>Stock</span><input type="number" value="40" /></label>
+                </div>
+                <div class="admin-shop-modal__row">
+                  <label><span>Categoría</span><select><option>Prendas</option></select></label>
+                  <label><span>Estado</span><select><option>Borrador</option></select></label>
+                </div>
+              </fieldset>
+              <fieldset class="admin-shop-modal__group admin-shop-modal__group--publish">
+                <legend>Publicación</legend>
+                <label class="admin-shop-modal__check is-on">
+                  <input type="checkbox" checked />
+                  <span class="admin-shop-modal__check-copy">
+                    <span class="admin-shop-modal__check-title">Destacar en la tienda</span>
+                    <span class="admin-shop-modal__check-hint">Destacado</span>
+                  </span>
+                </label>
+              </fieldset>
+            </div>
+          </div>
+          <footer class="admin-shop-modal__footer">
+            <button type="button">Cancelar</button>
+            <button type="submit">Publicar en catálogo</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

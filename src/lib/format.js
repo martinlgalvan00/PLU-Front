@@ -80,6 +80,38 @@ export function formatDayMonth(iso, locale = 'es') {
     .replace('.', '')
 }
 
+/** Mes + año editorial (ej. "diciembre 2026") para grupos de calendario. */
+export function formatMonthYear(isoOrYm, locale = 'es') {
+  if (!isoOrYm) return ''
+  const raw = String(isoOrYm).trim()
+  const ym = raw.length >= 7 ? raw.slice(0, 7) : raw
+  const date = new Date(`${ym}-01T12:00:00`)
+  if (Number.isNaN(date.getTime())) return raw
+  const label = date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+      month: 'long',
+      year: 'numeric',
+    })
+    .replace('.', '')
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+/**
+ * Abreviatura visual de códigos PLU-ARG-… para tablas densas.
+ * El valor completo se muestra vía title/tooltip; no altera el código real.
+ */
+export function formatShortMemberCode(code, { keepTail = 8 } = {}) {
+  const value = String(code ?? '').trim()
+  if (!value) return ''
+  if (value.length <= keepTail + 1) return value
+  const segments = value.split('-').filter(Boolean)
+  if (segments.length >= 2) {
+    const tail = segments.slice(-2).join('-')
+    if (tail.length <= keepTail + 4) return `…${tail}`
+  }
+  return `…${value.slice(-keepTail)}`
+}
+
 /** Tiempo relativo corto para listas live (inscriptos recientes). */
 export function formatRelativeTime(iso, locale = 'es', now = Date.now()) {
   if (!iso) return ''

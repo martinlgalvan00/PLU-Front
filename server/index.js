@@ -25,6 +25,17 @@ const server = app.listen(port, () => {
   console.info(`API PLU ARG en http://localhost:${port}`)
 })
 
+server.on('error', (error) => {
+  if (error?.code === 'EADDRINUSE') {
+    console.error(
+      `El puerto ${port} está ocupado. Liberá ese proceso o definí otro en PORT (ej. PORT=3003) y reiniciá.`,
+    )
+    process.exit(1)
+  }
+  console.error('No se pudo iniciar la API:', error)
+  process.exit(1)
+})
+
 applyServerRuntimeDefaults(server)
 startEmailDispatchJob({ client: getSupabaseAdmin() })
 startMembershipRenewalJob({ client: getSupabaseAdmin() })

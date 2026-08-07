@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { QrCode } from 'lucide-react'
+import { Ban, CircleCheck, LoaderCircle, QrCode } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
 import {
   AdminIdentityCell,
   AdminMonoCell,
@@ -11,6 +12,7 @@ import {
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { MEMBERSHIP_EXPIRING_FILTER_OPTIONS, MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
+import { formatShortMemberCode } from '../../lib/format.js'
 import { filterMemberships, getMembershipStats } from '../../services/membershipService.js'
 
 export default function MembershipsSection({
@@ -23,9 +25,9 @@ export default function MembershipsSection({
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [expiring, setExpiring] = useState('all')
-  // Credencial abierta en el panel lateral. El id vive acá y no dentro de la
-  // fila para que solo haya una abierta a la vez.
-  const [credentialId, setCredentialId] = useState(null)
+  // Credencial abierta en modal. Guardamos id + nombre para el encabezado
+  // sin esperar al fetch; solo una abierta a la vez.
+  const [credentialTarget, setCredentialTarget] = useState(null)
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState('')
 
@@ -162,7 +164,11 @@ export default function MembershipsSection({
             className: 'data-table__column--mono data-table__column--code',
             sortable: true,
             mobileSortable: false,
-            render: (row) => <AdminMonoCell>{row.memberCode}</AdminMonoCell>,
+            render: (row) => (
+              <AdminMonoCell title={row.memberCode}>
+                {formatShortMemberCode(row.memberCode)}
+              </AdminMonoCell>
+            ),
           },
           {
             key: 'expirationDate',
@@ -194,7 +200,7 @@ export default function MembershipsSection({
           {
             key: 'actions',
             label: t('admin.columns.action'),
-            mobile: 'default',
+            mobile: 'action',
             sortable: false,
             mobileSortable: false,
             className: 'data-table__column--actions',
@@ -206,37 +212,40 @@ export default function MembershipsSection({
                 onClick={(event) => event.stopPropagation()}
                 role="presentation"
               >
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--small"
-                  onClick={() => setCredentialId(credentialId === row.id ? null : row.id)}
-                >
-                  <QrCode size={14} aria-hidden />
-                  {t('admin.sections.memberships.viewCredential')}
-                </button>
+                <AdminIconButton
+                  className={credentialTarget?.id === row.id ? 'is-active' : ''}
+                  icon={QrCode}
+                  label={t('admin.sections.memberships.viewCredential')}
+                  onClick={() =>
+                    setCredentialTarget({ id: row.id, athleteName: row.athlete })
+                  }
+                  variant="ghost"
+                />
                 {canManage && row.status !== 'activa' && (
-                  <button
-                    type="button"
-                    className="btn btn--small"
+                  <AdminIconButton
                     disabled={pendingId === row.id}
+                    icon={pendingId === row.id ? LoaderCircle : CircleCheck}
+                    label={
+                      pendingId === row.id
+                        ? t('admin.sections.memberships.applying')
+                        : t('admin.sections.memberships.activate')
+                    }
                     onClick={() => applyStatus(row.id, 'activa')}
-                  >
-                    {pendingId === row.id
-                      ? t('admin.sections.memberships.applying')
-                      : t('admin.sections.memberships.activate')}
-                  </button>
+                    variant="celeste"
+                  />
                 )}
                 {canManage && row.status === 'activa' && (
-                  <button
-                    type="button"
-                    className="btn btn--secondary btn--small"
+                  <AdminIconButton
                     disabled={pendingId === row.id}
+                    icon={pendingId === row.id ? LoaderCircle : Ban}
+                    label={
+                      pendingId === row.id
+                        ? t('admin.sections.memberships.applying')
+                        : t('admin.sections.memberships.cancel')
+                    }
                     onClick={() => applyStatus(row.id, 'cancelada')}
-                  >
-                    {pendingId === row.id
-                      ? t('admin.sections.memberships.applying')
-                      : t('admin.sections.memberships.cancel')}
-                  </button>
+                    variant="ghost"
+                  />
                 )}
               </div>
             ),
@@ -254,11 +263,13 @@ export default function MembershipsSection({
         </p>
       ) : null}
 
-      {credentialId ? (
-        <div className="admin-membership-credential-panel">
-          <h3>{t('admin.sections.memberships.credentialTitle')}</h3>
-          <AdminMembershipCredential membershipId={credentialId} canRotate={canManage} />
-        </div>
+      {credentialTarget ? (
+        <MembershipCredentialModal
+          athleteName={credentialTarget.athleteName}
+          canRotate={canManage}
+          membershipId={credentialTarget.id}
+          onClose={() => setCredentialTarget(null)}
+        />
       ) : null}
     </AdminListSection>
   )

@@ -84,28 +84,31 @@ const SHOP_CATEGORIES = [
 
 /**
  * Panel full-width cuando el departamento no tiene catálogo propio
- * (merch vacío / inscripciones). Llena el canvas en lugar de una card chica.
+ * (merch vacío / inscripciones). Composición editorial, no card de catálogo.
  */
-function ShopDepartmentPanel({ icon: Icon, badge, title, titleId, text, action }) {
+function ShopDepartmentPanel({ badge, title, titleId, text, action }) {
+  const variant = action ? 'action' : 'soon'
+
   return (
-    <article className="shop-department-panel">
-      <div className="shop-department-panel__main">
-        <span className="shop-department-panel__icon" aria-hidden>
-          <Icon size={22} aria-hidden />
-        </span>
-        <div className="shop-department-panel__copy">
-          {badge ? <span className="shop-department-panel__badge">{badge}</span> : null}
-          <h2 id={titleId} className="shop-department-panel__title">
-            {title}
-          </h2>
-          <p className="shop-department-panel__text">{text}</p>
-        </div>
+    <article className={`shop-department-panel shop-department-panel--${variant}`}>
+      <div className="shop-department-panel__copy">
+        {badge ? (
+          <div className="shop-department-panel__meta">
+            <span className="shop-department-panel__badge">{badge}</span>
+          </div>
+        ) : null}
+        <h2 id={titleId} className="shop-department-panel__title">
+          {title}
+        </h2>
+        <p className="shop-department-panel__text">{text}</p>
       </div>
       {action ? (
-        <button type="button" className="btn shop-department-panel__action" onClick={action.onClick}>
-          {action.label}
-          <ArrowRight size={15} aria-hidden />
-        </button>
+        <div className="shop-department-panel__aside">
+          <button type="button" className="btn shop-department-panel__action" onClick={action.onClick}>
+            {action.label}
+            <ArrowRight size={15} aria-hidden />
+          </button>
+        </div>
       ) : null}
     </article>
   )
@@ -453,7 +456,6 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                 </div>
               ) : (
                 <ShopDepartmentPanel
-                  icon={ShoppingBag}
                   badge={t('pages.shop.merchSoon')}
                   title={t('pages.shop.merchTitle')}
                   titleId="shop-merch-panel-title"
@@ -466,7 +468,6 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
           {activeCategory === 'registrations' ? (
             <section className="shop-section shop-department" aria-labelledby="shop-registrations-title" key="registrations">
               <ShopDepartmentPanel
-                icon={ClipboardCheck}
                 title={t('pages.shop.registrationsTitle')}
                 titleId="shop-registrations-title"
                 text={t('pages.shop.registrationsText')}

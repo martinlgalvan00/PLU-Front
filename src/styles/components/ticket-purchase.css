@@ -781,7 +781,7 @@
   background: var(--color-brand-action, var(--plu-gold-500));
   border: none;
   border-radius: 999px;
-  color: var(--plu-ink-inverse, #14181f);
+  color: var(--color-brand-action-text, #14181f);
   cursor: pointer;
   display: inline-flex;
   flex: none;
@@ -803,7 +803,7 @@
 .ticket-purchase--editorial .ticket-purchase__submit--primary:hover {
   background: color-mix(in oklab, var(--plu-gold-500) 88%, #fff);
   box-shadow: none;
-  color: var(--plu-ink-inverse, #14181f);
+  color: var(--color-brand-action-text, #14181f);
   gap: 8px;
   transform: none;
 }

@@ -57,7 +57,13 @@ function columnClassName(column, index) {
 function AdminCompactCard({ columns, row, className, interactionProps }) {
   const primary = columns.filter((col) => col.mobile === 'primary')
   const badges = columns.filter((col) => col.mobile === 'badge')
-  const actions = columns.filter((col) => col.mobile === 'action' || col.key === 'action')
+  // `key === 'action'` es fallback legacy; si `mobile` está definido, esa
+  // colocación gana (evita duplicar badge + footer cuando key es "action").
+  const actions = columns.filter((col) => {
+    if (col.mobile === 'action') return true
+    if (col.mobile != null) return false
+    return col.key === 'action'
+  })
   const usedKeys = new Set([...primary, ...badges, ...actions].map((col) => col.key))
 
   const primaryCols = primary.length

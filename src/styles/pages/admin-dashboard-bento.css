@@ -231,10 +231,16 @@
 }
 
 .admin-ops__links {
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-ops__links-track {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .admin-ops__link {
@@ -243,10 +249,12 @@
   border-radius: 999px;
   color: var(--admin-text-secondary);
   cursor: pointer;
+  flex: none;
   font-size: 12px;
   font-weight: 600;
-  min-height: 34px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  scroll-snap-align: start;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
@@ -274,75 +282,115 @@
   text-transform: uppercase;
 }
 
-/* ---- Charts (card con firma de marca) ---- */
+/* ---- Charts (superficie editorial, ritmo Apple-like PLU) ---- */
 
 .admin-ops__charts {
-  background: color-mix(in srgb, var(--admin-ink) 2%, transparent);
+  background: var(--admin-surface, color-mix(in srgb, var(--admin-ink) 1.5%, transparent));
   border: 1px solid var(--admin-hairline);
-  border-radius: 16px;
-  box-shadow: var(--elevation-sm);
+  border-radius: 20px;
+  box-shadow: none;
   display: grid;
-  gap: 4px 0;
+  gap: 0;
   grid-template-columns: minmax(0, 1fr);
-  padding: 6px 18px;
+  overflow: hidden;
+  padding: 4px 20px 8px;
   position: relative;
 }
 
-/* Única firma tricolor de la pantalla -- no se repite en cada card. */
 .admin-ops__charts::before {
   background: var(--gradient-brand);
-  border-radius: 16px 16px 0 0;
   content: '';
-  height: 2px;
+  height: 1px;
   left: 0;
+  opacity: 0.85;
   position: absolute;
   right: 0;
   top: 0;
 }
 
-.admin-ops__chart {
-  border-top: 1px solid var(--admin-hairline);
+.admin-ops__breakdowns {
   display: grid;
-  gap: 12px;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  padding: 18px 0;
 }
 
-.admin-ops__chart:first-child {
+.admin-ops__chart {
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 22px 0;
+}
+
+.admin-ops__charts > .admin-ops__chart:first-child {
   border-top: 0;
+  padding-top: 22px;
+}
+
+.admin-ops__breakdowns > .admin-ops__chart:first-child {
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
 }
 
 .admin-ops__chart-head {
   align-items: flex-start;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: space-between;
 }
 
+.admin-ops__chart-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
 .admin-ops__chart-head h3 {
-  color: var(--admin-ink);
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  color: var(--admin-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
-.admin-ops__chart-head p {
+.admin-ops__chart-total-wrap {
+  margin: 0;
+}
+
+.admin-ops__chart-total {
+  color: var(--admin-ink);
+  display: block;
+  font-family: var(--font-family);
+  font-size: clamp(28px, 6vw, 36px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.admin-ops__chart-copy > p {
   color: var(--admin-muted);
-  font-size: 11px;
-  line-height: 1.35;
-  margin: 3px 0 0;
-  max-width: 28ch;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 36ch;
 }
 
 .admin-ops__chart--finance {
-  gap: 14px;
+  gap: 18px;
+}
+
+.admin-ops__chart--finance .admin-ops__chart-head h3 {
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.028em;
 }
 
 .admin-ops__finance-visual {
   align-items: center;
   display: grid;
-  gap: 18px 22px;
+  gap: 20px 28px;
   grid-template-columns: auto minmax(0, 1fr);
 }
 
@@ -355,13 +403,13 @@
 
 .admin-ops__finance-metric {
   display: grid;
-  gap: 2px;
-  padding: 9px 0 9px 12px;
+  gap: 3px;
+  padding: 11px 0 11px 14px;
   position: relative;
 }
 
 .admin-ops__finance-metric + .admin-ops__finance-metric {
-  border-top: 1px solid var(--admin-hairline);
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
 }
 
 .admin-ops__finance-metric::before {
@@ -403,7 +451,7 @@
 }
 
 .admin-ops__stack {
-  background: color-mix(in srgb, var(--admin-ink) 7%, transparent);
+  background: color-mix(in srgb, var(--admin-ink) 5%, transparent);
   border-radius: 999px;
   display: flex;
   height: 10px;
@@ -414,7 +462,23 @@
 .admin-ops__stack-seg {
   display: block;
   height: 100%;
-  min-width: 2px;
+  min-width: 3px;
+  opacity: 0;
+  transform: scaleX(0.92);
+  transform-origin: left center;
+  animation: admin-ops-stack-in var(--motion-slow, 420ms) var(--ease-standard, ease) forwards;
+}
+
+.admin-ops__stack-seg:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.admin-ops__stack-seg:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.admin-ops__stack-seg:nth-child(4) {
+  animation-delay: 120ms;
 }
 
 .admin-ops__stack-seg--success {
@@ -442,15 +506,26 @@
 }
 
 .admin-ops__stack-seg--empty {
+  animation: none;
   background: transparent;
+  min-width: 0;
+  opacity: 1;
+  transform: none;
   width: 100%;
+}
+
+@keyframes admin-ops-stack-in {
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 
 .admin-ops__chart-legend {
   display: grid;
-  gap: 6px;
+  gap: 2px;
   list-style: none;
-  margin: 0;
+  margin: 2px 0 0;
   padding: 0;
 }
 
@@ -459,7 +534,8 @@
   display: grid;
   gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  min-height: 20px;
+  min-height: 40px;
+  padding: 2px 0;
 }
 
 .admin-ops__chart-legend-item:has(small) {
@@ -468,9 +544,9 @@
 
 .admin-ops__chart-legend-item span {
   color: var(--admin-text-secondary);
-  font-size: 11px;
+  font-size: 12px;
   overflow: hidden;
-  padding-left: 10px;
+  padding-left: 12px;
   position: relative;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -479,12 +555,12 @@
 .admin-ops__chart-legend-item span::before {
   border-radius: 50%;
   content: '';
-  height: 6px;
+  height: 7px;
   left: 0;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 6px;
+  width: 7px;
 }
 
 .admin-ops__chart-legend-item--success span::before {
@@ -514,7 +590,7 @@
 .admin-ops__chart-legend-item strong,
 .admin-ops__chart-legend-item em,
 .admin-ops__chart-legend-item small {
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -536,7 +612,9 @@
 .admin-ops__chart-empty {
   color: var(--admin-muted);
   font-size: 12px;
+  line-height: 1.4;
   margin: 0;
+  padding: 4px 0 2px;
 }
 
 /* ---- Pendientes (card) ---- */
@@ -844,7 +922,7 @@
   border-radius: 16px;
   box-shadow: var(--elevation-sm);
   display: grid;
-  gap: 14px;
+  gap: 16px;
   padding: 20px;
 }
 
@@ -860,10 +938,10 @@
   align-items: center;
   border-top: 1px solid var(--admin-hairline);
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 52px;
-  padding: 10px 0;
+  min-height: 56px;
+  padding: 14px 0;
 }
 
 .admin-ops__recent-item:first-child {
@@ -889,7 +967,7 @@
 
 .admin-ops__recent-body {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -911,10 +989,41 @@
 }
 
 .admin-ops__recent-date {
+  align-items: flex-end;
   color: var(--admin-muted);
+  display: flex;
+  flex-direction: column;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  gap: 6px;
+  justify-content: center;
+  text-align: right;
   white-space: nowrap;
+}
+
+.admin-ops__recent-date time {
+  color: var(--admin-muted);
+  font-size: 11px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+@container admin-ops (max-width: 560px) {
+  .admin-ops__recent-item {
+    align-items: start;
+    gap: 10px 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-ops__recent-date {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    grid-column: 2;
+    justify-content: flex-start;
+    text-align: left;
+  }
 }
 
 /* ---- Estadísticas adicionales (cupos por evento, top gimnasios) ---- */
@@ -1094,27 +1203,67 @@
   }
 }
 
-@container admin-ops (min-width: 900px) {
+@container admin-ops (min-width: 700px) {
   .admin-ops__charts {
-    column-gap: 0;
-    grid-template-columns: minmax(220px, 0.95fr) repeat(4, minmax(0, 1fr));
-    padding: 22px 20px;
-    row-gap: 0;
+    padding: 8px 24px 12px;
   }
 
-  .admin-ops__chart {
-    border-left: 1px solid var(--admin-hairline);
-    border-top: 0;
-    padding: 0 20px;
+  .admin-ops__breakdowns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .admin-ops__chart:first-child {
-    border-left: 0;
+  .admin-ops__breakdowns > .admin-ops__chart {
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
+    padding: 22px 18px;
+  }
+
+  .admin-ops__breakdowns > .admin-ops__chart:nth-child(odd) {
+    border-right: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
     padding-left: 0;
   }
 
-  .admin-ops__chart:last-child {
+  .admin-ops__breakdowns > .admin-ops__chart:nth-child(even) {
     padding-right: 0;
+  }
+
+  .admin-ops__breakdowns > .admin-ops__chart:nth-child(-n + 2) {
+    border-top: 0;
+    padding-top: 8px;
+  }
+
+  .admin-ops__stack {
+    height: 7px;
+  }
+
+  .admin-ops__chart-legend-item {
+    min-height: 36px;
+  }
+}
+
+@container admin-ops (min-width: 1100px) {
+  .admin-ops__charts {
+    align-items: start;
+    column-gap: 0;
+    grid-template-columns: minmax(240px, 1.1fr) minmax(0, 2fr);
+    padding: 22px 24px 20px;
+  }
+
+  .admin-ops__charts > .admin-ops__chart--finance {
+    border-right: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
+    border-top: 0;
+    padding: 4px 28px 4px 4px;
+  }
+
+  .admin-ops__breakdowns {
+    border-top: 0;
+  }
+
+  .admin-ops__breakdowns > .admin-ops__chart:nth-child(-n + 2) {
+    padding-top: 4px;
+  }
+
+  .admin-ops__breakdowns > .admin-ops__chart:nth-child(odd) {
+    padding-left: 22px;
   }
 
   .admin-ops__finance-visual {
@@ -1130,6 +1279,10 @@
 
   .admin-ops__board-head {
     align-items: flex-end;
+  }
+
+  .admin-ops__chart-total {
+    font-size: clamp(28px, 2.4vw, 34px);
   }
 }
 
@@ -1148,6 +1301,21 @@
     margin-left: 0;
     width: 100%;
   }
+
+  .admin-ops__links-track {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .admin-ops__links-track::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @container admin-ops (max-width: 420px) {
@@ -1160,6 +1328,10 @@
   .admin-ops__finance-metric {
     padding-left: 0;
     text-align: left;
+  }
+
+  .admin-ops__chart-legend-item {
+    min-height: 44px;
   }
 }
 
@@ -1190,5 +1362,11 @@
   .admin-ops__work-idle-link,
   .admin-ops__pending-action {
     transition: none;
+  }
+
+  .admin-ops__stack-seg {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

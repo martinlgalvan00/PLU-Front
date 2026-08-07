@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef } from 'react'
-import { Check } from 'lucide-react'
 
 function resolveNeutralValue(options, defaultValue) {
   if (defaultValue !== undefined && defaultValue !== null) return defaultValue
@@ -50,11 +49,6 @@ export default function AdminFilterChipGroup({
   const neutral = useMemo(
     () => resolveNeutralValue(options, defaultValue),
     [defaultValue, options],
-  )
-
-  const neutralOption = useMemo(
-    () => options.find(([optionValue]) => optionValue === neutral) ?? null,
-    [neutral, options],
   )
 
   const visibleOptions = useMemo(() => {
@@ -127,14 +121,13 @@ export default function AdminFilterChipGroup({
   }
 
   const showAllChip = omitNeutral && Boolean(allLabel)
-  const allCount = neutralOption?.[2]
-  const showAllCount = allCount !== undefined && allCount !== null && allCount !== ''
   const allActive = value === neutral
 
   return (
     <div
       className={[
         'admin-filter-group',
+        'admin-filter-group--rail',
         compact ? 'admin-filter-group--compact' : '',
         inline ? 'admin-filter-group--inline' : '',
         allActive ? 'admin-filter-group--all' : '',
@@ -150,14 +143,15 @@ export default function AdminFilterChipGroup({
           {label}
         </span>
       )}
-      <div
-        ref={chipsRef}
-        className="admin-filter-chips"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
+      <div className="admin-filter-chips-rail">
+        <div
+          ref={chipsRef}
+          className="admin-filter-chips"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
         {showAllChip ? (
           <button
             type="button"
@@ -165,7 +159,6 @@ export default function AdminFilterChipGroup({
               'admin-filter-chip',
               'admin-filter-chip--all',
               allActive ? 'is-active' : '',
-              showAllCount ? 'admin-filter-chip--counted' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -173,17 +166,7 @@ export default function AdminFilterChipGroup({
             disabled={disabled}
             onClick={() => onChange(neutral)}
           >
-            {!compact ? (
-              <span className="admin-filter-chip__indicator" aria-hidden>
-                {allActive ? <Check size={10} strokeWidth={2.5} /> : null}
-              </span>
-            ) : null}
             <span className="admin-filter-chip__label">{allLabel}</span>
-            {showAllCount ? (
-              <span className="admin-filter-chip__count" aria-hidden>
-                {allCount}
-              </span>
-            ) : null}
           </button>
         ) : null}
 
@@ -210,11 +193,6 @@ export default function AdminFilterChipGroup({
               disabled={disabled}
               onClick={() => handleChipClick(optionValue)}
             >
-              {!compact ? (
-                <span className="admin-filter-chip__indicator" aria-hidden>
-                  {active ? <Check size={10} strokeWidth={2.5} /> : null}
-                </span>
-              ) : null}
               <span className="admin-filter-chip__label">{optionLabel}</span>
               {showCount ? (
                 <span
@@ -227,6 +205,7 @@ export default function AdminFilterChipGroup({
             </button>
           )
         })}
+        </div>
       </div>
     </div>
   )

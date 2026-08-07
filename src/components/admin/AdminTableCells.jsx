@@ -109,6 +109,24 @@ export function AdminPaymentCell({ amount, status }) {
   )
 }
 
-export function AdminTableActions({ children }) {
-  return <div className="admin-table-actions">{children}</div>
+export function AdminTableActions({ children, 'aria-label': ariaLabel, onClick }) {
+  return (
+    <div
+      className="admin-table-actions"
+      role={ariaLabel ? 'group' : undefined}
+      aria-label={ariaLabel}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** Placeholder tipográfico cuando la fila no tiene acciones disponibles. */
+export function AdminTableActionsEmpty() {
+  return (
+    <span className="admin-table-actions__empty" aria-hidden>
+      —
+    </span>
+  )
 }

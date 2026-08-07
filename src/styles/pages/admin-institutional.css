@@ -163,19 +163,20 @@
 }
 
 .admin-shell .admin-shell__footer {
-  background: color-mix(in srgb, var(--admin-sidebar-surface) 88%, transparent);
+  background: color-mix(in srgb, var(--admin-sidebar-surface) 92%, transparent);
   border-top-color: var(--admin-sidebar-border);
-  gap: 6px;
-  padding: 10px 12px max(14px, env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 10px;
+  padding: 12px 12px max(14px, env(safe-area-inset-bottom, 0px));
 }
 
 .admin-shell__account {
   align-items: center;
   display: grid;
-  gap: 8px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
   min-width: 0;
-  padding: 2px 0 4px;
+  padding: 2px 2px 0;
   width: 100%;
 }
 
@@ -184,8 +185,8 @@
   border-radius: 50%;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-success-500) 14%, transparent);
   flex: none;
-  height: 6px;
-  width: 6px;
+  height: 7px;
+  width: 7px;
 }
 
 .admin-shell__account-copy {
@@ -196,9 +197,9 @@
 
 .admin-shell .admin-shell__account-role {
   color: color-mix(in srgb, var(--admin-sidebar-text) 94%, transparent);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,78 +210,90 @@
   color: var(--admin-sidebar-muted);
   font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Prefs: toolbar compacta alineada al rol */
+/* Prefs: barra de controles full-width */
 .admin-shell .admin-shell__prefs {
   align-items: center;
-  display: inline-flex;
+  background: color-mix(in srgb, var(--admin-sidebar-text) 3.5%, transparent);
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 12px;
+  display: grid;
   flex: none;
-  gap: 5px;
-  justify-content: flex-end;
-  width: auto;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: stretch;
+  min-height: 44px;
+  padding: 6px 8px;
+  width: 100%;
 }
 
 .admin-shell .admin-shell__prefs .pref-toggle,
 .admin-shell .admin-shell__prefs .pref-toggle--compact {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
   box-shadow: none;
   color: var(--admin-sidebar-muted);
   display: inline-flex;
   flex: none;
-  height: 30px;
+  height: 32px;
   justify-content: center;
-  min-width: 30px;
+  min-width: 32px;
   padding: 0;
   transform: none;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
     color var(--motion-fast) var(--ease-out);
-  width: 30px;
+  width: 32px;
 }
 
 .admin-shell .admin-shell__prefs .pref-toggle:hover,
 .admin-shell .admin-shell__prefs .pref-toggle--compact:hover {
   background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
-  border-color: color-mix(in srgb, var(--admin-accent) 28%, transparent);
+  border-color: color-mix(in srgb, var(--admin-accent) 24%, transparent);
   box-shadow: none;
   color: var(--admin-sidebar-text);
   transform: none;
 }
 
+.admin-shell .admin-shell__prefs .pref-toggle:focus-visible,
+.admin-shell .admin-shell__prefs .pref-toggle--compact:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
 .admin-shell .admin-shell__prefs .pref-toggle svg {
-  height: 14px;
-  width: 14px;
+  height: 15px;
+  width: 15px;
 }
 
 .admin-shell .admin-shell__prefs .locale-switch,
 .admin-shell .admin-shell__prefs .locale-switch--compact,
 .admin-shell .admin-shell__prefs .locale-switch--segment {
   --locale-segment-pad: 2px;
-  --locale-track-bg: color-mix(in srgb, var(--admin-sidebar-text) 5%, transparent);
-  --locale-track-border: var(--admin-sidebar-border);
+  --locale-track-bg: color-mix(in srgb, var(--admin-sidebar-text) 4%, transparent);
+  --locale-track-border: color-mix(in srgb, var(--admin-sidebar-border) 90%, transparent);
   --locale-track-shadow: none;
-  --locale-thumb-bg: color-mix(in srgb, var(--admin-premium) 18%, var(--admin-sidebar-surface));
-  --locale-thumb-border: color-mix(in srgb, var(--admin-premium) 40%, transparent);
+  --locale-thumb-bg: color-mix(in srgb, var(--admin-premium) 22%, var(--admin-sidebar-surface));
+  --locale-thumb-border: color-mix(in srgb, var(--admin-premium) 42%, transparent);
   --locale-thumb-shadow: none;
   --locale-hover-border: color-mix(in srgb, var(--admin-premium) 36%, transparent);
   --locale-focus-ring: color-mix(in srgb, var(--admin-premium) 28%, transparent);
   flex: none;
-  height: 30px;
-  justify-content: stretch;
+  height: 32px;
+  justify-self: end;
   margin-left: 0;
   max-width: none;
-  min-height: 30px;
-  width: 64px;
+  min-height: 32px;
+  width: 76px;
 }
 
 .admin-shell .admin-shell__prefs .locale-switch--segment {
@@ -323,10 +336,10 @@
   color: color-mix(in srgb, var(--admin-sidebar-text) 42%, transparent);
   display: inline-flex;
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   justify-content: center;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   min-height: 0;
   min-width: 0;
   padding: 0;
@@ -336,7 +349,7 @@
 
 .admin-shell .admin-shell__prefs .locale-switch__segment-option.is-active {
   background: transparent;
-  color: color-mix(in srgb, var(--admin-premium) 78%, var(--admin-sidebar-text));
+  color: color-mix(in srgb, var(--admin-premium) 82%, var(--admin-sidebar-text));
   font-weight: 700;
 }
 
@@ -349,42 +362,57 @@
 }
 
 .admin-shell .admin-shell__exit {
+  align-items: center;
   background: transparent;
-  border: 0;
-  border-radius: 8px;
-  border-top: 1px solid var(--admin-sidebar-border);
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 10px;
   color: var(--admin-sidebar-muted);
-  gap: 7px;
-  margin-top: 2px;
-  min-height: 36px;
-  padding: 8px 6px 2px;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 0;
+  min-height: 40px;
+  padding: 0 12px;
   transition:
     background-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out);
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  width: 100%;
 }
 
 .admin-shell .admin-shell__exit:hover {
-  background: transparent;
-  border-color: var(--admin-sidebar-border);
+  background: color-mix(in srgb, var(--admin-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-sidebar-border));
   color: var(--admin-sidebar-text);
 }
 
 .admin-shell .admin-shell__exit:hover svg {
   color: var(--admin-accent);
-  transform: translateX(-1px);
+  transform: translateX(-2px);
+}
+
+.admin-shell .admin-shell__exit:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-shell__exit:active {
+  transform: scale(0.985);
 }
 
 .admin-shell .admin-shell__exit svg {
   color: var(--admin-sidebar-muted);
+  flex: none;
   transition:
     color var(--motion-fast) var(--ease-out),
     transform var(--motion-fast) var(--ease-out);
 }
 
 .admin-shell .admin-shell__exit-label {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .admin-shell .admin-shell__collapse-toggle {
@@ -402,36 +430,32 @@
 }
 
 .admin-shell--collapsed .admin-shell__account {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr;
-  justify-items: center;
-  padding: 0;
-}
-
-.admin-shell--collapsed .admin-shell__account-mark,
-.admin-shell--collapsed .admin-shell__account-copy {
   display: none;
 }
 
 .admin-shell--collapsed .admin-shell__prefs {
   align-items: center;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  min-height: 0;
+  padding: 8px 6px;
   width: 100%;
 }
 
 .admin-shell--collapsed .admin-shell__prefs .locale-switch,
 .admin-shell--collapsed .admin-shell__prefs .locale-switch--compact,
 .admin-shell--collapsed .admin-shell__prefs .locale-switch--segment {
-  height: 28px;
-  min-height: 28px;
-  width: 52px;
+  height: 30px;
+  justify-self: center;
+  min-height: 30px;
+  width: 56px;
 }
 
 @media (min-width: 768px) {
   .admin-shell--collapsed .admin-shell__exit {
-    border-top: 0;
+    border: 1px solid var(--admin-sidebar-border);
     height: 42px;
     justify-content: center;
     margin-inline: auto;
@@ -1278,8 +1302,7 @@
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-filters__search,
-.admin-shell .admin-filters__select {
+.admin-shell .admin-filters__search {
   background: var(--admin-surface-raised);
   border-color: var(--admin-hairline);
   border-radius: 9px;
@@ -1287,8 +1310,7 @@
   min-height: 38px;
 }
 
-.admin-shell .admin-filters__search:focus-within,
-.admin-shell .admin-filters__select:focus-within {
+.admin-shell .admin-filters__search:focus-within {
   border-color: color-mix(in srgb, var(--admin-focus) 45%, transparent);
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
 }
@@ -1461,31 +1483,34 @@
   background: var(--admin-surface);
   border: 1px solid var(--admin-hairline);
   border-radius: 14px;
-  box-shadow: var(--admin-shadow-soft);
-  padding: 26px;
+  box-shadow: none;
+  overflow: hidden;
+  padding: 0;
 }
 
 .admin-shell .admin-payment-ops__header {
   align-items: end;
   border-bottom: 1px solid var(--admin-hairline);
-  gap: 22px;
-  padding-bottom: 22px;
+  gap: 18px 22px;
+  padding: 20px clamp(16px, 2.4vw, 24px) 18px;
 }
 
 @media (max-width: 1024px) {
   .admin-shell .admin-payment-ops__header {
-    align-items: center;
-    border-bottom: 0;
-    padding-bottom: 0;
+    align-items: stretch;
+  }
+
+  .admin-shell .admin-payment-ops__intro {
+    display: grid;
   }
 }
 
 .admin-shell .admin-payment-ops__eyebrow {
-  color: var(--admin-accent);
-  font-size: 9.5px;
+  color: var(--admin-brand);
+  font-size: 10px;
   font-weight: 700;
   gap: 6px;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   margin-bottom: 8px;
   text-transform: uppercase;
 }
@@ -1498,17 +1523,19 @@
 .admin-shell .admin-payment-ops__header h2 {
   color: var(--admin-ink);
   font-family: var(--font-family);
-  font-size: clamp(25px, 2.5vw, 34px);
+  font-size: clamp(22px, 2.4vw, 30px);
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin: 0;
 }
 
 .admin-shell .admin-payment-ops__subtitle {
   color: var(--admin-muted);
-  font-size: 11.5px;
-  line-height: 1.55;
-  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-width: 48ch;
 }
 
 .admin-shell .admin-payment-ops__actions .btn {
@@ -1516,45 +1543,18 @@
   min-height: 38px;
 }
 
-.admin-shell .admin-payment-ops__signal .admin-payment-ops__metric {
-  background: var(--admin-surface-muted);
-  border-color: var(--admin-hairline);
-}
-
-.admin-shell .admin-payment-ops__metrics-panel {
-  background: var(--admin-surface-muted);
-  border-color: var(--admin-hairline);
-}
-
 .admin-shell .admin-payment-ops__filter {
-  background: var(--admin-surface-muted);
-  border: 1px solid var(--admin-hairline);
-  border-radius: 12px;
-  padding: 12px 14px;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  gap: 12px 16px;
+  padding: 12px clamp(14px, 2.4vw, 22px);
 }
 
 .admin-shell .admin-payment-ops__filter .admin-filter-group__label {
   color: var(--admin-muted);
-}
-
-.admin-shell .admin-payment-ops__filter .admin-filter-chip {
-  background: var(--admin-surface-raised);
-  border-color: var(--admin-hairline);
-  border-radius: 999px;
-  color: var(--admin-muted);
-  min-height: 34px;
-  padding: 6px 12px;
-}
-
-.admin-shell .admin-payment-ops__filter .admin-filter-chip:hover {
-  border-color: var(--admin-hairline-strong);
-  color: var(--admin-ink);
-}
-
-.admin-shell .admin-payment-ops__filter .admin-filter-chip.is-active {
-  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
-  border-color: color-mix(in srgb, var(--admin-accent) 34%, transparent);
-  color: var(--admin-ink);
 }
 
 .admin-shell .admin-payment-ops__filter-meta {
@@ -1778,7 +1778,6 @@
   }
 
   .admin-shell .data-table-card--admin {
-    background: transparent;
     border: 1px solid var(--admin-hairline);
     border-radius: 10px;
     box-shadow: none;
@@ -1787,7 +1786,7 @@
   .admin-shell .data-table-cards--admin {
     background: transparent;
     gap: 9px;
-    padding: 10px;
+    padding: 10px 0;
   }
 }
 

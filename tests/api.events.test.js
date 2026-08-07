@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
@@ -248,17 +248,44 @@ describe('migración de guardado seguro de eventos', () => {
 })
 
 describe('migración requiresMembership configurable', () => {
-  it('deja de hardcodear requires_membership y lee el payload', () => {
+  // La regresión de 20260806230000 pasó porque este test leía la migración que
+  // introdujo el fix, no la definición vigente: cualquier migración posterior
+  // que recree `staff_upsert_event` desde una rama vieja lo pisa sin que nada
+  // falle. Se asserta sobre la ÚLTIMA migración que define la función.
+  it('la definición vigente no hardcodea requires_membership y lee el payload', () => {
+    const migrationsDir = resolve('supabase/migrations')
+    const latest = readdirSync(migrationsDir)
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+      .map((name) => ({
+        name,
+        sql: readFileSync(resolve(migrationsDir, name), 'utf8'),
+      }))
+      .filter(({ sql }) => sql.includes('create or replace function public.staff_upsert_event'))
+      .at(-1)
+
+    expect(latest).toBeDefined()
+    expect(latest.sql).toContain("coalesce((p_event ->> 'requiresMembership')::boolean, true)")
+    expect(latest.sql).not.toMatch(
+      /coalesce\(\(p_event ->> 'published'\)::boolean, false\),\s*true,/,
+    )
+    expect(latest.sql).toContain('grant execute on function public.staff_upsert_event(jsonb, text)')
+    expect(latest.sql).toContain('to service_role')
+  })
+})
+
+describe('migración 20260807160000 (endurecimiento de estado)', () => {
+  it('statusOverridden compara contra el estado esperado, no solo contra p_status', () => {
     const migration = readFileSync(
-      resolve('supabase/migrations/20260801150000_staff_upsert_event_requires_membership.sql'),
+      resolve('supabase/migrations/20260807160000_event_state_hardening.sql'),
       'utf8',
     )
 
-    expect(migration).toContain("coalesce((p_event ->> 'requiresMembership')::boolean, true)")
-    expect(migration).not.toMatch(
-      /coalesce\(\(p_event ->> 'published'\)::boolean, false\),\s*true,/,
+    expect(migration).toContain(
+      "'statusOverridden', v_event.status <> coalesce(p_status, v_before.status)",
     )
-    expect(migration).toContain('grant execute on function public.staff_upsert_event(jsonb, text)')
+    expect(migration).toContain('select * into v_event from public.events where id = v_event.id')
+    expect(migration).toContain('grant execute on function public.staff_set_event_state(text, text, boolean, text)')
     expect(migration).toContain('to service_role')
   })
 })

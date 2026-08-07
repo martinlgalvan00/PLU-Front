@@ -80,11 +80,10 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
   return (
     <div className="admin-event-state" role="group" aria-label={t('admin.eventState.label')}>
       <div className="admin-event-state__controls">
-        {/* Sin `compact` a propósito: la variante compacta del panel es una
-            tira de pestañas de 34px pensada para filtrar. Acá cada chip
-            escribe en la base, así que va la variante con borde y check —
-            target táctil de 44px para la tablet de la sede. */}
+        {/* Compacto visual: la operación diaria sigue siendo writable, pero
+            sin chips con borde/pill. El CSS del shell mantiene 36px+. */}
         <AdminFilterChipGroup
+          compact
           inline
           disabled={!canEdit || busy}
           id={`event-state-${event?.id ?? 'none'}`}

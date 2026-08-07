@@ -40,8 +40,8 @@ const gridMotion = {
 const cellMotion = {
   hidden: (index = 0) => ({
     opacity: 0,
-    x: index % 2 === 0 ? -14 : 14,
-    y: 18,
+    y: 14,
+    x: index % 2 === 0 ? -8 : 8,
   }),
   show: {
     opacity: 1,
@@ -49,24 +49,14 @@ const cellMotion = {
     y: 0,
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
   },
-  hover: {
-    y: -5,
-    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
-  },
 }
 
 const iconMotion = {
-  hidden: { opacity: 0, scale: 0.84, rotate: -6 },
+  hidden: { opacity: 0, scale: 0.9 },
   show: {
     opacity: 1,
     scale: 1,
-    rotate: 0,
     transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.emphasized },
-  },
-  hover: {
-    scale: 1.08,
-    rotate: 3,
-    transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
   },
 }
 
@@ -154,8 +144,7 @@ export default function MembersRequirementsCarousel({
               className="members-req__cell"
               custom={index}
               variants={cellMotion}
-              whileHover="hover"
-              onPointerMove={handleCellPointer}
+              onPointerMove={reducedMotion ? undefined : handleCellPointer}
             >
               {content}
             </m.li>

@@ -6699,9 +6699,10 @@
   display: grid;
   gap: 18px;
   margin-top: clamp(32px, 4.5vw, 48px);
-  max-width: min(36rem, 100%);
+  max-width: none;
   padding-top: clamp(22px, 3vw, 30px);
   position: relative;
+  width: 100%;
 }
 
 .pitbull-recent::before {
@@ -6769,28 +6770,30 @@
 }
 
 .pitbull-recent__empty {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   display: grid;
-  gap: 8px;
-  max-width: 34ch;
-  padding: 2px 0 4px;
+  gap: 10px;
+  max-width: 42ch;
+  padding: 22px 0 10px;
 }
 
 .pitbull-recent__empty-lead {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(0.98rem, 1.5vw, 1.1rem);
-  font-weight: 550;
-  letter-spacing: -0.02em;
-  line-height: 1.35;
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
   margin: 0;
 }
 
 .pitbull-recent__empty-note {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 0.875rem;
   letter-spacing: -0.01em;
   line-height: 1.5;
   margin: 0;
+  max-width: 36ch;
 }
 
 .pitbull-recent__list {

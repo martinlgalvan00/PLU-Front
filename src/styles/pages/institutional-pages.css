@@ -979,8 +979,10 @@
 }
 
 .contact-page--institutional :is(.contact-form, .contact-sidebar) {
-  border-color: var(--institution-border);
-  box-shadow: var(--institution-shadow);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .contact-page--institutional .contact-hero__email {

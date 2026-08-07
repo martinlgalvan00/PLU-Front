@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Star,
   Ticket,
-  TrendingUp,
   Users,
 } from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
@@ -28,8 +27,8 @@ import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import Button from '../../components/ui/Button.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { formatRecordCount, translateFilterOptions } from '../../i18n/adminHelpers.js'
-import { formatDayMonth } from '../../lib/format.js'
+import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { getStatusMeta } from '../../lib/status.js'
@@ -51,6 +50,16 @@ function sortByDate(list, direction) {
     const right = b.dateISO ?? ''
     return direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left)
   })
+}
+
+function groupByMonthKey(list) {
+  const byMonth = new Map()
+  for (const row of list) {
+    const key = row.dateISO?.slice(0, 7) || 'sin-fecha'
+    if (!byMonth.has(key)) byMonth.set(key, [])
+    byMonth.get(key).push(row)
+  }
+  return byMonth
 }
 
 function EventListRow({
@@ -215,38 +224,44 @@ export default function EventsSection({
 
   const eventGroups = useMemo(() => {
     const upcoming = []
-    const finishedByYear = new Map()
+    const finished = []
 
     for (const row of rows) {
-      if (!isFinishedEvent(row)) {
-        upcoming.push(row)
-        continue
-      }
-      const year = row.dateISO?.slice(0, 4) ?? ''
-      if (!finishedByYear.has(year)) finishedByYear.set(year, [])
-      finishedByYear.get(year).push(row)
+      if (isFinishedEvent(row)) finished.push(row)
+      else upcoming.push(row)
     }
 
+    const upcomingByMonth = [...groupByMonthKey(upcoming).entries()].sort(([left], [right]) =>
+      left.localeCompare(right),
+    )
+    const finishedByMonth = [...groupByMonthKey(finished).entries()].sort(([left], [right]) =>
+      right.localeCompare(left),
+    )
+
     const finishedLabel = t('admin.sections.events.groupFinished')
-    const finishedGroups = [...finishedByYear.entries()]
-      .sort(([left], [right]) => right.localeCompare(left))
-      .map(([year, list]) => ({
-        id: `finished-${year || 'sin-fecha'}`,
-        label: year ? `${finishedLabel} · ${year}` : finishedLabel,
-        rows: sortByDate(list, 'desc'),
-      }))
+    const upcomingGroups = upcomingByMonth.map(([monthKey, list]) => ({
+      id: `upcoming-${monthKey}`,
+      tone: 'upcoming',
+      label:
+        upcomingByMonth.length === 1
+          ? t('admin.sections.events.groupUpcoming')
+          : formatMonthYear(monthKey, locale),
+      rows: sortByDate(list, 'asc'),
+    }))
 
-    return [
-      {
-        id: 'upcoming',
-        label: t('admin.sections.events.groupUpcoming'),
-        rows: sortByDate(upcoming, 'asc'),
-      },
-      ...finishedGroups,
-    ].filter((group) => group.rows.length > 0)
-  }, [rows, t])
+    const finishedGroups = finishedByMonth.map(([monthKey, list]) => ({
+      id: `finished-${monthKey}`,
+      tone: 'finished',
+      label:
+        monthKey === 'sin-fecha'
+          ? finishedLabel
+          : `${finishedLabel} · ${formatMonthYear(monthKey, locale)}`,
+      rows: sortByDate(list, 'desc'),
+    }))
 
-  const resultMeta = formatRecordCount(t, rows.length, adminEvents.length)
+    return [...upcomingGroups, ...finishedGroups].filter((group) => group.rows.length > 0)
+  }, [locale, rows, t])
+
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
   const activeTicketTypeCount =
     selectedEvent?.ticketTypes?.filter((ticketType) => ticketType.active !== false).length ?? 0
@@ -335,7 +350,7 @@ export default function EventsSection({
   }
 
   function renderEventGroup(group) {
-    const isFinishedGroup = group.id.startsWith('finished')
+    const isFinishedGroup = group.tone === 'finished'
     return (
       <li
         className={['admin-event-group', isFinishedGroup ? 'admin-event-group--finished' : '']
@@ -402,12 +417,36 @@ export default function EventsSection({
     </div>
   )
 
+  const eventsKpis = (
+    <div
+      className="admin-events-kpis"
+      role="group"
+      aria-label={t('admin.sections.events.kpisAria')}
+    >
+      <div className="admin-events-kpi">
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+        <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+      </div>
+      <div className="admin-events-kpi">
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiRegistered')}</span>
+        <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+      </div>
+      <div className="admin-events-kpi">
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
+        <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+      </div>
+      <div className="admin-events-kpi">
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
+        <strong className="admin-events-kpi__value">{adminEvents.length}</strong>
+      </div>
+    </div>
+  )
+
   return (
     <AdminListSection
       eyebrow={t('admin.sections.events.eyebrow')}
       filteredCount={rows.length}
       filterActions={filterActions}
-      meta={resultMeta}
       placeholder={t('admin.search.event')}
       query={query}
       showHeader
@@ -415,6 +454,7 @@ export default function EventsSection({
       title={t('admin.sections.events.title')}
       totalCount={adminEvents.length}
       variant="events"
+      beforeShell={eventsKpis}
       filters={[
         {
           id: 'status',
@@ -446,48 +486,6 @@ export default function EventsSection({
           {message.text}
         </p>
       ) : null}
-
-      <div className="admin-events-kpis">
-        <div className="admin-events-kpi">
-          <div className="admin-events-kpi__icon admin-events-kpi__icon--upcoming">
-            <CalendarDays size={16} aria-hidden />
-          </div>
-          <div className="admin-events-kpi__content">
-            <span className="admin-events-kpi__label">Eventos Próximos</span>
-            <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
-          </div>
-        </div>
-
-        <div className="admin-events-kpi">
-          <div className="admin-events-kpi__icon admin-events-kpi__icon--athletes">
-            <Users size={16} aria-hidden />
-          </div>
-          <div className="admin-events-kpi__content">
-            <span className="admin-events-kpi__label">Inscriptos Totales</span>
-            <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
-          </div>
-        </div>
-
-        <div className="admin-events-kpi">
-          <div className="admin-events-kpi__icon admin-events-kpi__icon--fill">
-            <TrendingUp size={16} aria-hidden />
-          </div>
-          <div className="admin-events-kpi__content">
-            <span className="admin-events-kpi__label">Ocupación Promedio</span>
-            <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
-          </div>
-        </div>
-
-        <div className="admin-events-kpi">
-          <div className="admin-events-kpi__icon admin-events-kpi__icon--catalog">
-            <Ticket size={16} aria-hidden />
-          </div>
-          <div className="admin-events-kpi__content">
-            <span className="admin-events-kpi__label">Total Eventos</span>
-            <strong className="admin-events-kpi__value">{adminEvents.length}</strong>
-          </div>
-        </div>
-      </div>
 
       <div className="admin-events-workspace">
         <div className="admin-events-workspace__main">

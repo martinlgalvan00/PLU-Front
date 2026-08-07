@@ -62,12 +62,12 @@ export function createSupabaseAthleteRepository(
       { p_athlete_id: athleteId, p_password_hash: passwordHash },
       'No se pudo actualizar la credencial del atleta.',
     ),
-    credential: (athleteId) => assertSupabaseResult(
-      client.from('athlete_credentials').select('password_hash').eq('athlete_id', athleteId).maybeSingle(),
+    credential: async (athleteId) => assertSupabaseResult(
+      await client.from('athlete_credentials').select('password_hash').eq('athlete_id', athleteId).maybeSingle(),
       'No se pudo validar la credencial.',
     ),
-    createPasswordResetToken: (athleteId, tokenHash, expiresAt) => assertSupabaseResult(
-      client.from('athlete_password_reset_tokens').insert({
+    createPasswordResetToken: async (athleteId, tokenHash, expiresAt) => assertSupabaseResult(
+      await client.from('athlete_password_reset_tokens').insert({
         athlete_id: athleteId,
         token_hash: tokenHash,
         expires_at: expiresAt.toISOString(),
@@ -193,7 +193,9 @@ export function createSupabaseAthleteRepository(
       if (method) query = query.eq('method', method)
       if (concept) query = query.eq('concept', concept)
 
-      return assertSupabaseResult(query, 'No se pudieron leer las órdenes de pago.')
+      // Mismo patrón que auditoría: el builder de PostgREST hay que awaitedarlo
+      // antes de assertSupabaseResult, si no `data` queda undefined.
+      return assertSupabaseResult(await query, 'No se pudieron leer las órdenes de pago.')
     },
 
     /**

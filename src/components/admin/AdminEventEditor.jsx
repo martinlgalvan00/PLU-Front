@@ -25,6 +25,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
+  EVENT_QUICK_STATUS_VALUES,
   getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
   withEventStart,
@@ -237,18 +238,25 @@ export default function AdminEventEditor({
   const formRef = useRef(null)
   const panelRef = useRef(null)
   const activePanelRef = useRef(null)
+  const formBodyRef = useRef(null)
   const previousFocusRef = useRef(null)
   const initialDraftSignatureRef = useRef(draftSignature(draft))
   const dirty = draftSignature(draft) !== initialDraftSignatureRef.current
   onCancelRef.current = onCancel
 
+  // `agotado` lo pone y lo saca la base según el cupo; solo se ofrece como
+  // opción cuando el evento ya está en ese estado (mismo criterio que el
+  // control rápido de la lista).
   const statusOptions = useMemo(
     () =>
       translateFilterOptions(
-        ADMIN_EVENT_STATUS_OPTIONS.filter(([value]) => value !== 'all'),
+        ADMIN_EVENT_STATUS_OPTIONS.filter(
+          ([value]) =>
+            EVENT_QUICK_STATUS_VALUES.includes(value) || value === draft.status,
+        ),
         t,
       ),
-    [t],
+    [t, draft.status],
   )
 
   const tabsWithErrors = useMemo(() => {
@@ -374,7 +382,7 @@ export default function AdminEventEditor({
   function handleTabChange(nextTab) {
     if (nextTab === activeTab) return
     setActiveTab(nextTab)
-    formRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
+    formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
     requestAnimationFrame(() => activePanelRef.current?.focus?.())
   }
 
@@ -497,15 +505,14 @@ export default function AdminEventEditor({
               <div
                 className={`admin-event-form__save-state admin-event-form__save-state--toolbar ${saveStateModifier}`}
                 aria-live="polite"
+                title={t('admin.eventEditor.backendHint')}
               >
                 <span className={saveStateModifier} aria-hidden />
-                <div>
-                  <strong>{saveStateLabel}</strong>
-                  <small>{t('admin.eventEditor.backendHint')}</small>
-                </div>
+                <strong>{saveStateLabel}</strong>
               </div>
             </div>
 
+            <div ref={formBodyRef} className="admin-event-form__body">
             <details className="admin-event-form__mobile-preview">
               <summary>
                 <Eye size={14} aria-hidden />
@@ -1159,6 +1166,7 @@ export default function AdminEventEditor({
                 </div>
               </div>
             ) : null}
+            </div>
 
             <div className="admin-event-form__actions">
               <div className="admin-event-form__action-buttons">
