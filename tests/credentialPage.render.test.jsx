@@ -37,11 +37,18 @@ const EVENT = 'pitbull-classic-2026'
 
 function credential(overrides = {}) {
   return {
-    athlete: { id: 'ath-1', fullName: 'Ana Torres' },
+    athlete: {
+      id: 'ath-1',
+      fullName: 'Ana Torres',
+      documentId: '30111222',
+      birthDate: '1995-01-01',
+    },
     membership: {
       id: 'mem-1',
       status: 'activa',
+      year: 2026,
       memberCode: 'PLU-ARG-2026-014',
+      startDate: '2026-01-01',
       expirationDate: '2026-12-31',
     },
     registration: {
@@ -82,6 +89,39 @@ describe('verificación de credencial en la puerta', () => {
     expect(await screen.findByText('Credencial válida')).toBeTruthy()
     expect(screen.getByText('Ana Torres')).toBeTruthy()
     expect(screen.getByText('Día 2 · sáb 14 nov · Tanda B')).toBeTruthy()
+  })
+
+  it('etiqueta documento, nacimiento y socio para cotejar en la puerta', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(credential())
+    renderPage()
+
+    expect(await screen.findByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('Documento')).toBeTruthy()
+    expect(screen.getByText('30111222')).toBeTruthy()
+    expect(screen.getByText('Nacimiento')).toBeTruthy()
+    expect(screen.getByText(/01 de ene de 1995/i)).toBeTruthy()
+    expect(screen.getByText(/\d+ años/)).toBeTruthy()
+    expect(screen.getByText('Nº de socio')).toBeTruthy()
+    expect(screen.getByText('PLU-ARG-2026-014')).toBeTruthy()
+    expect(screen.getByText(/Período 2026/)).toBeTruthy()
+    expect(screen.getByText(/Desde/)).toBeTruthy()
+    expect(screen.getByText(/Hasta/)).toBeTruthy()
+  })
+
+  it('sin documento ni nacimiento (member_code) igual muestra el socio', async () => {
+    // La proyección pública solo manda PII cuando el QR era un token.
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        athlete: { id: 'ath-1', fullName: 'Ana Torres' },
+      }),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('Nº de socio')).toBeTruthy()
+    expect(screen.getByText('PLU-ARG-2026-014')).toBeTruthy()
+    expect(screen.queryByText('Documento')).toBeNull()
+    expect(screen.queryByText('Nacimiento')).toBeNull()
   })
 
   it('sin conexión NO dice que la credencial es inválida', async () => {

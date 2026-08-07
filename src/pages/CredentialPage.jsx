@@ -28,6 +28,18 @@ const VERDICT_META = {
 
 const dateTime = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' })
 
+/** Edad civil a hoy, para cotejar el documento sin forzar cálculo mental. */
+function ageFromBirthDate(iso) {
+  if (!iso) return null
+  const birth = new Date(`${String(iso).slice(0, 10)}T12:00:00`)
+  if (Number.isNaN(birth.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - birth.getFullYear()
+  const monthDelta = now.getMonth() - birth.getMonth()
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < birth.getDate())) age -= 1
+  return age >= 0 && age < 130 ? age : null
+}
+
 /**
  * CredentialPage — PLU ARG
  *
@@ -39,9 +51,9 @@ const dateTime = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyl
  * fila en la puerta.
  *
  * El orden de lectura está fijado por lo que se resuelve en la puerta:
- * veredicto → persona → cuándo compite → estados de soporte → acción. El
- * bloque de grilla es el único con escala propia porque es el dato por el que
- * se escanea.
+ * veredicto → persona → identidad etiquetada → cuándo compite → estados →
+ * acción. El bloque de grilla es el único con escala propia porque es el dato
+ * por el que se escanea.
  *
  * Tanto las entradas (tickets) como las credenciales de socio/inscripción
  * hablan con el backend real (Supabase, ver athleteApi.js/ticketApi.js), así
@@ -65,6 +77,58 @@ export default function CredentialPage({ code, eventSlug, type, onCheckIn, onChe
   }
 
   return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+}
+
+/**
+ * Hechos de identidad para cotejar contra el documento físico.
+ * Cada dato va etiquetado en su propia fila: un DNI o un número de socio
+ * metido en una línea mono no se lee bien con el celular a contraluz.
+ * Documento y nacimiento solo llegan cuando el QR era un token no adivinable.
+ */
+function IdentityFacts({ facts }) {
+  if (!facts.length) return null
+
+  return (
+    <dl className="credential-page__identity">
+      {facts.map(({ label, value, hint, mono = true }) => (
+        <div className="credential-page__identity-item" key={label}>
+          <dt>{label}</dt>
+          <dd>
+            <span
+              className={
+                mono
+                  ? 'credential-page__identity-value credential-page__identity-value--mono'
+                  : 'credential-page__identity-value'
+              }
+            >
+              {value}
+            </span>
+            {hint ? <span className="credential-page__identity-hint">{hint}</span> : null}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function buildAthleteIdentityFacts(athlete, membership) {
+  const facts = []
+  if (athlete?.documentId) {
+    facts.push({ label: 'Documento', value: athlete.documentId })
+  }
+  if (athlete?.birthDate) {
+    const age = ageFromBirthDate(athlete.birthDate)
+    facts.push({
+      label: 'Nacimiento',
+      value: formatShortDate(String(athlete.birthDate).slice(0, 10)),
+      hint: age != null ? `${age} años` : null,
+      mono: false,
+    })
+  }
+  if (membership?.memberCode) {
+    facts.push({ label: 'Nº de socio', value: membership.memberCode })
+  }
+  return facts
 }
 
 /**
@@ -198,6 +262,16 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     isRegistrationAdmitted(item.status)
   const canCheckIn = isCheckInable(registration)
 
+  const membershipMetaLine = membership
+    ? [
+        membership.year ? `Período ${membership.year}` : null,
+        membership.startDate ? `Desde ${formatShortDate(membership.startDate)}` : null,
+        membership.expirationDate ? `Hasta ${formatShortDate(membership.expirationDate)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
+
   async function handleCheckIn(target = registration) {
     setCheckingIn(true)
     setCheckInError(null)
@@ -240,20 +314,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
         <p className="credential-page__athlete-name">{athlete.fullName}</p>
-        {/* Datos para cotejar contra el documento físico. La proyección solo
-            los manda cuando el código escaneado era un token no adivinable. */}
-        <p className="credential-page__athlete-code">
-          {[
-            athlete.documentId && `DNI ${athlete.documentId}`,
-            athlete.birthDate && formatShortDate(String(athlete.birthDate).slice(0, 10)),
-            membership?.memberCode,
-          ]
-            .filter(Boolean)
-            // Cada dato es una unidad que se lee entera para cotejar contra el
-            // documento: se envuelve para que el renglón no parta un DNI ni un
-            // número de socio al medio.
-            .map((value) => <span key={value}>{value}</span>)}
-        </p>
+        <IdentityFacts facts={buildAthleteIdentityFacts(athlete, membership)} />
 
         {/* Escaneo con evento: la grilla de esa inscripción manda. */}
         {eventSlug && registration && <ScheduleBlock registration={registration} />}
@@ -267,11 +328,9 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
                   <span className={`status-pill status-pill--${membershipMeta.tone}`}>
                     {membershipMeta.label}
                   </span>
-                  {membership.expirationDate && (
-                    <span className="credential-page__row-meta">
-                      Hasta {formatShortDate(membership.expirationDate)}
-                    </span>
-                  )}
+                  {membershipMetaLine ? (
+                    <span className="credential-page__row-meta">{membershipMetaLine}</span>
+                  ) : null}
                 </>
               ) : (
                 <span className="credential-page__row-meta">Sin afiliación registrada</span>
@@ -521,9 +580,12 @@ function TicketCredential({ code, onCheckIn }) {
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
         <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
-        <p className="credential-page__athlete-code">
-          {ticket.ticketCode} · DNI {ticket.attendeeDni}
-        </p>
+        <IdentityFacts
+          facts={[
+            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
+            ticket.ticketCode ? { label: 'Entrada', value: ticket.ticketCode } : null,
+          ].filter(Boolean)}
+        />
 
         {/* La entrada es un pase de un solo uso, no una identidad: lo que
             manda es a qué da acceso, y por eso ocupa el lugar que en la
@@ -601,12 +663,15 @@ function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictCla
     <main className="credential-page">
       <div className="credential-page__panel">
         <header className="credential-page__brand">
-          <img src={BRAND.logoArgentinaUrl} alt="PLU Argentina" className="credential-page__logo" />
-          <span>PLU Argentina · Verificación</span>
+          <img src={BRAND.logoArgentinaUrl} alt="" className="credential-page__logo" />
+          <div className="credential-page__brand-text">
+            <span className="credential-page__brand-name">PLU Argentina</span>
+            <span className="credential-page__brand-mark">Verificación</span>
+          </div>
         </header>
 
         <p className={`credential-page__verdict ${verdictClass}`} role="status">
-          <Icon size={20} aria-hidden />
+          <Icon size={18} aria-hidden />
           <span>{verdictLabel}</span>
         </p>
 
