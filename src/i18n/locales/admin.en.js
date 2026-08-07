@@ -953,7 +953,7 @@ export default {
       emptyTitle: 'Build the entry team',
       apiUnavailableTitle: 'The administration service is disconnected',
       apiUnavailableLead: 'No data was lost. Try again when the connection is restored.',
-      apiUnavailableDev: 'In development, start the frontend and API together with “npm run dev”.',
+      apiUnavailableDev: 'In development, start the frontend and API together with “npm run dev:services”.',
       retry: 'Retry',
       retrying: 'Connecting…',
       copyLink: 'Copy link',

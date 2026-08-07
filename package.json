@@ -8,13 +8,13 @@
     "npm": ">=10"
   },
   "scripts": {
-    "dev": "node scripts/bootstrap-all.mjs --start",
-    "dev:services": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev": "vite",
     "dev:web": "vite",
     "dev:api": "node server/index.js",
-    "dev:all": "npm run dev",
+    "dev:services": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:all": "node scripts/bootstrap-all.mjs --start",
     "setup:all": "node scripts/bootstrap-all.mjs",
-    "start:all": "npm run dev",
+    "start:all": "npm run dev:all",
     "postinstall": "prisma generate",
     "build": "vite build",
     "preview": "vite preview",

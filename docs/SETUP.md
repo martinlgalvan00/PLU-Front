@@ -30,21 +30,26 @@ falla a propósito: no reemplaces `npm ci` por `npm install` en el workflow.
 ## Desarrollo
 
 ```bash
-# Único comando: prepara ambas bases, verifica y levanta toda la aplicación
+# Día a día UI: solo frontend (Vite). Habla con Supabase; /api necesita Express.
 npm run dev
 
-# Opcional: sólo preparar/migrar/verificar, sin dejar servidores abiertos
+# Frontend + API sin migrar (login, pagos, admin)
+npm run dev:services
+
+# Primera vez o tras cambios de schema: migra, verifica y levanta todo
+npm run dev:all
+
+# Sólo preparar/migrar/verificar, sin dejar servidores abiertos
 npm run setup:all
 
-# Día a día (DB ya migrada): saltea migrate/db push, verifica y arranca
-# BOOTSTRAP_SKIP_MIGRATIONS=1 npm run dev
-# o sólo procesos, sin bootstrap:
-npm run dev:services
+# Día a día con bootstrap pero sin migrate/db push:
+# BOOTSTRAP_SKIP_MIGRATIONS=1 npm run dev:all
 ```
 
 En Windows, el CLI de Supabase a veces falla con `uv_spawn`: el bootstrap
 reintenta automáticamente y **nunca imprime** la connection string completa.
-Si el stack ya está al día, preferí `dev:services` o `BOOTSTRAP_SKIP_MIGRATIONS=1`.
+Si el stack ya está al día, preferí `dev` / `dev:services` o
+`BOOTSTRAP_SKIP_MIGRATIONS=1 npm run dev:all`.
 
 Frontend: http://localhost:5173  
 API: http://localhost:3001/health  
@@ -54,9 +59,10 @@ Ready: http://localhost:3001/ready
 
 | Comando | Descripción |
 |---------|-------------|
-| `npm run dev` | Migra Prisma y Supabase, verifica y levanta Vite + Express |
+| `npm run dev` | Solo frontend (Vite) |
 | `npm run setup:all` | Migra y verifica ambas bases sin levantar la app |
 | `npm run dev:services` | Levanta Vite + Express sin migrar |
+| `npm run dev:all` | Migra Prisma y Supabase, verifica y levanta Vite + Express |
 | `npm run build` | Build producción |
 | `npm run lint` | Oxlint |
 | `npm run test` | Vitest |
@@ -83,8 +89,9 @@ React/Vite -> API Express -> Supabase
                     |-> Brevo
 ```
 
-`npm run dev` mantiene ambos procesos visibles bajo un solo comando y
-`Ctrl+C` los cierra juntos.
+`npm run dev:services` o `npm run dev:all` mantienen ambos procesos visibles
+bajo un solo comando y `Ctrl+C` los cierra juntos. Para UI sin API alcanza
+`npm run dev`.
 
 No se inicia PostgreSQL local ni se necesita Docker. Las tablas transaccionales
 viven en `public`; Prisma comparte la misma base Supabase en el schema aislado

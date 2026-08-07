@@ -47,7 +47,7 @@ export async function apiRequest(path, options = {}) {
         body: {
           apiUrl: env.apiUrl,
           cause: error instanceof Error ? error.message : String(error),
-          developmentCommand: 'npm run dev',
+          developmentCommand: 'npm run dev:services',
         },
       },
     )

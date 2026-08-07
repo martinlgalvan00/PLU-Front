@@ -60,7 +60,9 @@ describe('inscripción a competencia respeta el cupo del evento (RPC create_comp
         status: 'inscripcion_abierta',
         capacity: CAPACITY,
         // El gate de afiliación es otra regla y ya tiene su propio camino en el
-        // RPC; acá lo que se ejercita es exclusivamente el cupo.
+        // RPC; acá lo que se ejercita es exclusivamente el cupo. Al llenarse,
+        // el trigger de event_state_control pasa el evento a `agotado` y el
+        // RPC debe responder PLU04 (no PLU03 de inscripción cerrada).
         requires_membership: false,
       })
       .select('id')
