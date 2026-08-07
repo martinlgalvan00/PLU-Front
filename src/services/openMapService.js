@@ -1,8 +1,14 @@
 import openMapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
+/** Upstream de cartografía libre. El browser nunca lo llama directo: pasa por `/map-tiles`. */
+export const OPEN_FREE_MAP_ORIGIN = 'https://tiles.openfreemap.org'
+
+/** Prefijo same-origin (Vite proxy + rewrite Vercel) para satisfacer CSP `connect-src 'self'`. */
+export const OPEN_FREE_MAP_PROXY_PREFIX = '/map-tiles'
+
 const OPEN_FREE_MAP_STYLES = {
-  dark: 'https://tiles.openfreemap.org/styles/dark',
-  light: 'https://tiles.openfreemap.org/styles/positron',
+  dark: `${OPEN_FREE_MAP_ORIGIN}/styles/dark`,
+  light: `${OPEN_FREE_MAP_ORIGIN}/styles/positron`,
 }
 
 const MAP_PALETTE_TOKENS = {
@@ -37,6 +43,30 @@ function normalizeMapLibreColor(value) {
 
 export function getOpenMapStyleUrl(theme) {
   return theme === 'light' ? OPEN_FREE_MAP_STYLES.light : OPEN_FREE_MAP_STYLES.dark
+}
+
+/**
+ * Reescribe requests de OpenFreeMap al proxy same-origin.
+ * Así el worker de MapLibre no viola CSP aunque `connect-src` no liste el upstream.
+ */
+export function createOpenMapTransformRequest(
+  proxyPrefix = OPEN_FREE_MAP_PROXY_PREFIX,
+  upstreamOrigin = OPEN_FREE_MAP_ORIGIN,
+) {
+  const prefix = String(proxyPrefix || OPEN_FREE_MAP_PROXY_PREFIX).replace(/\/$/, '')
+  const upstream = String(upstreamOrigin || OPEN_FREE_MAP_ORIGIN).replace(/\/$/, '')
+
+  return (url) => {
+    if (typeof url !== 'string' || !url.startsWith(upstream)) {
+      return { url }
+    }
+    const proxiedPath = `${prefix}${url.slice(upstream.length)}`
+    // Absoluto same-origin: el worker de MapLibre resuelve mal algunos paths relativos.
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return { url: `${window.location.origin}${proxiedPath}` }
+    }
+    return { url: proxiedPath }
+  }
 }
 
 export function importOpenMapLibrary() {

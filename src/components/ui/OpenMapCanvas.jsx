@@ -12,6 +12,7 @@ import {
 import { getMapMarkerKind } from '../../lib/eventMap.js'
 import {
   applyPluMapStyle,
+  createOpenMapTransformRequest,
   getOpenMapStyleUrl,
   importOpenMapLibrary,
   syncOperationalMapLayers,
@@ -228,6 +229,9 @@ export default function OpenMapCanvas({
           pitchWithRotate: false,
           renderWorldCopies: false,
           style: getOpenMapStyleUrl(themeRef.current),
+          // Estilo/tiles/sprites/glifos salen por /map-tiles (same-origin) para
+          // no depender de connect-src al upstream de OpenFreeMap.
+          transformRequest: createOpenMapTransformRequest(),
           touchPitch: false,
           zoom: initialEvents.length === 1 ? 14.8 : 5,
         })

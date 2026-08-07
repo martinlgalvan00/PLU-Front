@@ -74,17 +74,20 @@ no ofrece SLA. Por eso el mapa:
 
 ### Content Security Policy
 
-Los tiles, estilos, sprites y glifos salen de `https://tiles.openfreemap.org`. El CSP del
-documento (en [`vercel.json`](../vercel.json)) debe incluir ese origen en `connect-src`,
-`img-src` y `font-src`, más `worker-src 'self' blob:` para el worker de MapLibre.
+Los tiles, estilos, sprites y glifos de OpenFreeMap **no se piden directo al browser**.
+MapLibre usa `transformRequest` y todo pasa por el proxy same-origin `/map-tiles`
+(Vite en local, rewrite en Vercel). Así `connect-src 'self'` alcanza aunque un CSP
+viejo o duplicado no liste `tiles.openfreemap.org`.
 
-Si el mapa falla con “violates Content Security Policy / connect-src”, casi siempre hay:
+El `vercel.json` igual mantiene OpenFreeMap en el allowlist como red de seguridad.
+`worker-src 'self' blob:` sigue siendo obligatorio para el worker de MapLibre.
 
-1. Un deploy con un `vercel.json` viejo (sin OpenFreeMap), o
-2. Un header CSP duplicado en el dashboard de Vercel / otro proxy: el browser **intersecta**
-   políticas y gana la más restrictiva.
+Si el mapa falla con “violates Content Security Policy / connect-src” apuntando a
+`tiles.openfreemap.org`, el proxy no está activo (deploy sin el rewrite `/map-tiles`
+o Vite sin el proxy). No hace falta abrir el upstream en CSP para que el mapa funcione.
 
-No configures un segundo CSP en Project Settings si ya vive en `vercel.json`.
+No configures un segundo CSP en Project Settings si ya vive en `vercel.json`: el browser
+intersecta políticas y gana la más restrictiva.
 
 Si el tráfico o la operación futura exige control total, se puede servir un archivo PMTiles propio
 desde storage/CDN y conservar MapLibre, los estilos PLU y todos los componentes.

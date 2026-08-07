@@ -43,7 +43,11 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/map-tiles/:path*",
+      "destination": "https://tiles.openfreemap.org/:path*"
+    },
     { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    { "source": "/((?!api(?:/|$)|map-tiles(?:/|$)).*)", "destination": "/index.html" }
   ]
 }

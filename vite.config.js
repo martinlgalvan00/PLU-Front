@@ -39,6 +39,23 @@ export default defineConfig(({ mode }) => {
           target: `http://localhost:${apiPort}`,
           changeOrigin: true,
         },
+        // Cartografía OpenFreeMap por same-origin (CSP connect-src 'self').
+        '/map-tiles': {
+          target: 'https://tiles.openfreemap.org',
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/map-tiles/, ''),
+          secure: true,
+        },
+      },
+    },
+    preview: {
+      proxy: {
+        '/map-tiles': {
+          target: 'https://tiles.openfreemap.org',
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/map-tiles/, ''),
+          secure: true,
+        },
       },
     },
   }
