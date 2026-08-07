@@ -43,6 +43,7 @@ import {
   loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
+  setMembershipStatus as setMembershipStatusRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
@@ -1307,6 +1308,42 @@ export function useAppData() {
     [session],
   )
 
+  // Activación/baja manual desde el panel. El servidor vuelve a validar el
+  // permiso y audita al responsable; este chequeo solo evita ofrecer una
+  // acción que iba a rebotar.
+  const setMembershipStatusAction = useCallback(
+    async (membershipId, status) => {
+      if (!hasPermission(session, 'admin.memberships.write')) {
+        return { error: 'Sin permisos para editar afiliaciones.' }
+      }
+      try {
+        const { membership } = await setMembershipStatusRequest(membershipId, status)
+        setMemberships((current) =>
+          current.map((item) => (item.id === membership.id ? { ...item, ...membership } : item)),
+        )
+        // El estado del atleta lo recalcula la RPC (afiliado_activo/registrado),
+        // así que se refleja el padrón entero en vez de adivinarlo acá.
+        void refreshAthleteData()
+        return { membership }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        throw error
+      }
+    },
+    [refreshAthleteData, session],
+  )
+
+  /**
+   * Post-asignación de grilla. El día y la tanda viven en la inscripción y
+   * salen en el snapshot del panel, que es la misma proyección que alimenta la
+   * columna de grilla y lo que ve seguridad al escanear el QR: se relee entero
+   * en vez de parchear las filas tocadas, porque la RPC descarta las canceladas
+   * y las de otro evento y el resultado real puede no ser el pedido.
+   */
+  const handleScheduleAssigned = useCallback(() => {
+    void refreshAthleteData()
+  }, [refreshAthleteData])
+
   const activateDemoMembership = useCallback(
     (athleteId) => {
       const athlete = athletes.find((item) => item.id === athleteId)
@@ -1507,6 +1544,7 @@ export function useAppData() {
     saveShopProduct,
     deleteShopProductAction,
     filteredRegistrations,
+    handleScheduleAssigned,
     enrichedMemberships,
     pendingActions,
     adminNavBadges,
@@ -1521,6 +1559,7 @@ export function useAppData() {
     submitCompetition,
     activateDemoMembership,
     cancelDemoMembership,
+    setMembershipStatusAction,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,

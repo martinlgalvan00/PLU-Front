@@ -1,5 +1,6 @@
 import { callRpc } from '../lib/rpcErrors.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { toCamelSchedule } from '../lib/eventSchedule.js'
 
 /**
  * athleteApi.js — PLU ARG
@@ -79,18 +80,24 @@ function toCamelPaymentOrder(row) {
   }
 }
 
-function toCamelRegistrationEntry({ registration, event, checkIn }) {
+function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
   return {
     id: registration.id,
     athleteId: registration.athlete_id,
-    event: event?.title,
-    eventSlug: event?.slug,
+    event: event?.title ?? registration.event_title,
+    eventSlug: event?.slug ?? registration.event_slug,
+    // La fecha del evento ya viajaba en la proyección y se descartaba acá, así
+    // que la credencial no tenía con qué decir cuándo se compite.
+    eventStartsAt: event?.starts_at ?? registration.event_starts_at ?? null,
+    eventEndsAt: event?.ends_at ?? registration.event_ends_at ?? null,
     category: registration.category,
     division: registration.division,
     bodyweight: registration.bodyweight_kg,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
     checkedInAt: checkIn?.scanned_at ?? null,
+    // Día y tanda asignados. null mientras la organización no armó la grilla.
+    schedule: toCamelSchedule(schedule ?? registration.schedule),
     notes: '',
   }
 }
@@ -303,7 +310,12 @@ function toCredentialResult(result, eventSlug) {
     registration: result.registration
       ? toCamelRegistrationEntry({
           registration: result.registration,
-          event: { slug: eventSlug },
+          event: {
+            slug: eventSlug ?? result.registration.event_slug,
+            title: result.registration.event_title,
+            starts_at: result.registration.event_starts_at,
+            ends_at: result.registration.event_ends_at,
+          },
           // La proyección ahora incluye el ingreso ya registrado: sin esto una
           // credencial usada volvía a mostrarse como válida y el rechazo
           // aparecía recién al apretar "marcar ingreso".
@@ -316,7 +328,12 @@ function toCredentialResult(result, eventSlug) {
     registrations: (result.registrations ?? []).map((row) =>
       toCamelRegistrationEntry({
         registration: row,
-        event: { slug: row.event_slug, title: row.event_title },
+        event: {
+          slug: row.event_slug,
+          title: row.event_title,
+          starts_at: row.event_starts_at,
+          ends_at: row.event_ends_at,
+        },
         checkIn: row.check_in ?? null,
       }),
     ),
@@ -394,6 +411,7 @@ export async function getMembershipCredential(membershipId) {
           fullName: membership.athlete.full_name,
           documentId: membership.athlete.document_id,
           email: membership.athlete.email,
+          credentialToken: membership.athlete.credential_token ?? null,
         }
       : null,
   }
@@ -401,6 +419,15 @@ export async function getMembershipCredential(membershipId) {
 
 export async function rotateMembershipQrToken(membershipId) {
   const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/rotate-qr`, {})
+  return { membership: toCamelMembership(membership) }
+}
+
+/** Activa o da de baja una afiliación a mano. Queda auditada con el actor. */
+export async function setMembershipStatus(membershipId, status) {
+  const { membership } = await apiPost(
+    `/api/athletes/admin/memberships/${membershipId}/status`,
+    { status },
+  )
   return { membership: toCamelMembership(membership) }
 }
 

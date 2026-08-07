@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
+import { QrCode } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import {
   AdminIdentityCell,
   AdminMonoCell,
@@ -9,13 +11,31 @@ import {
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { MEMBERSHIP_EXPIRING_FILTER_OPTIONS, MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
-import { filterMemberships } from '../../services/membershipService.js'
+import { filterMemberships, getMembershipStats } from '../../services/membershipService.js'
 
-export default function MembershipsSection({ memberships, onSelectAthlete }) {
+export default function MembershipsSection({
+  memberships,
+  onSelectAthlete,
+  onSetMembershipStatus,
+  canManage = false,
+}) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [expiring, setExpiring] = useState('all')
+  // Credencial abierta en el panel lateral. El id vive acá y no dentro de la
+  // fila para que solo haya una abierta a la vez.
+  const [credentialId, setCredentialId] = useState(null)
+  const [pendingId, setPendingId] = useState(null)
+  const [actionError, setActionError] = useState('')
+
+  async function applyStatus(membershipId, nextStatus) {
+    setPendingId(membershipId)
+    setActionError('')
+    const result = await onSetMembershipStatus?.(membershipId, nextStatus)
+    setPendingId(null)
+    if (result?.error) setActionError(result.error)
+  }
 
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)
@@ -56,25 +76,36 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
     [memberships, query, status, expiring],
   )
 
+  // Métricas de gestión, no un recuento de estados: lo que el admin necesita
+  // saber de un vistazo es cuántos socios cubre hoy la afiliación, cuántos
+  // entraron este mes, a quiénes hay que ir a renovar y cuánto quedó trabado
+  // esperando pago.
+  const metrics = useMemo(() => getMembershipStats(memberships), [memberships])
+
   const stats = useMemo(
     () => [
       {
         label: t('admin.sections.memberships.statActive'),
-        value: statusCounts.activa ?? 0,
+        value: metrics.active,
         tone: 'success',
       },
       {
-        label: t('admin.sections.memberships.statExpired'),
-        value: statusCounts.vencida ?? 0,
+        label: t('admin.sections.memberships.statNewThisMonth'),
+        value: metrics.newThisMonth,
+        tone: 'default',
+      },
+      {
+        label: t('admin.sections.memberships.statExpiringSoon'),
+        value: metrics.expiringSoon,
         tone: 'warning',
       },
       {
-        label: t('admin.sections.memberships.statCancelled'),
-        value: statusCounts.cancelada ?? 0,
-        tone: 'default',
+        label: t('admin.sections.memberships.statPendingPayment'),
+        value: metrics.pendingPayment,
+        tone: metrics.pendingPayment > 0 ? 'warning' : 'default',
       },
     ],
-    [statusCounts, t],
+    [metrics, t],
   )
 
   return (
@@ -160,12 +191,75 @@ export default function MembershipsSection({ memberships, onSelectAthlete }) {
             mobileSortable: false,
             render: (row) => <StatusBadge value={row.status} />,
           },
+          {
+            key: 'actions',
+            label: t('admin.columns.action'),
+            mobile: 'default',
+            sortable: false,
+            mobileSortable: false,
+            className: 'data-table__column--actions',
+            render: (row) => (
+              // stopPropagation: la fila entera navega a la ficha del atleta, y
+              // estas acciones no deberían arrastrar al operador con ellas.
+              <div
+                className="admin-membership-actions"
+                onClick={(event) => event.stopPropagation()}
+                role="presentation"
+              >
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--small"
+                  onClick={() => setCredentialId(credentialId === row.id ? null : row.id)}
+                >
+                  <QrCode size={14} aria-hidden />
+                  {t('admin.sections.memberships.viewCredential')}
+                </button>
+                {canManage && row.status !== 'activa' && (
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    disabled={pendingId === row.id}
+                    onClick={() => applyStatus(row.id, 'activa')}
+                  >
+                    {pendingId === row.id
+                      ? t('admin.sections.memberships.applying')
+                      : t('admin.sections.memberships.activate')}
+                  </button>
+                )}
+                {canManage && row.status === 'activa' && (
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--small"
+                    disabled={pendingId === row.id}
+                    onClick={() => applyStatus(row.id, 'cancelada')}
+                  >
+                    {pendingId === row.id
+                      ? t('admin.sections.memberships.applying')
+                      : t('admin.sections.memberships.cancel')}
+                  </button>
+                )}
+              </div>
+            ),
+          },
         ]}
         rows={rows}
         emptyMessage={t('admin.sections.memberships.empty')}
         onRowClick={(row) => row.athleteId && onSelectAthlete?.(row.athleteId)}
         rowClassName="data-table__row--clickable"
       />
+
+      {actionError ? (
+        <p className="form-submit-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+
+      {credentialId ? (
+        <div className="admin-membership-credential-panel">
+          <h3>{t('admin.sections.memberships.credentialTitle')}</h3>
+          <AdminMembershipCredential membershipId={credentialId} canRotate={canManage} />
+        </div>
+      ) : null}
     </AdminListSection>
   )
 }

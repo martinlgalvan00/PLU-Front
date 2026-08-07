@@ -80,6 +80,23 @@ export function formatDayMonth(iso, locale = 'es') {
     .replace('.', '')
 }
 
+/** Tiempo relativo corto para listas live (inscriptos recientes). */
+export function formatRelativeTime(iso, locale = 'es', now = Date.now()) {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const diffMs = date.getTime() - now
+  const absSeconds = Math.abs(Math.round(diffMs / 1000))
+  const rtf = new Intl.RelativeTimeFormat(locale === 'en' ? 'en' : 'es', { numeric: 'auto' })
+
+  if (absSeconds < 45) return locale === 'en' ? 'just now' : 'ahora'
+  if (absSeconds < 3600) return rtf.format(Math.round(diffMs / 60_000), 'minute')
+  if (absSeconds < 86_400) return rtf.format(Math.round(diffMs / 3_600_000), 'hour')
+  if (absSeconds < 86_400 * 7) return rtf.format(Math.round(diffMs / 86_400_000), 'day')
+  return formatShortDate(String(iso).slice(0, 10), locale)
+}
+
 export function generateId(prefix, index) {
   return `${prefix}-${String(index).padStart(3, '0')}`
 }

@@ -6,10 +6,12 @@ export default function EventVenueMap({ event, role, venue }) {
     address: venue.address,
     addressVenue: venue.name,
     coordinateVenue: venue.name,
+    id: event?.slug ?? event?.id ?? 'pitbull-classic-2026',
     latitude: venue.latitude ?? event?.latitude,
     location: venue.locality ?? event?.location,
     longitude: venue.longitude ?? event?.longitude,
     mapsUrl: venue.mapsUrl,
+    slug: event?.slug ?? event?.id ?? 'pitbull-classic-2026',
     title: event?.title,
     venue: venue.name,
     venueRole: role,
@@ -19,9 +21,10 @@ export default function EventVenueMap({ event, role, venue }) {
     <CompetitionMap
       className="event-venue-map"
       events={[venueEvent]}
-      selectedEventId={venueEvent.slug ?? venueEvent.id}
+      selectedEventId={venueEvent.slug}
       showHeader={false}
       showList={false}
+      showSelection={false}
       variant="venue"
     />
   )

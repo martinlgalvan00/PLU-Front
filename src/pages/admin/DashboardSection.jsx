@@ -12,6 +12,7 @@ import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import AdminRecentActivity from '../../components/admin/AdminRecentActivity.jsx'
+import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
@@ -257,6 +258,49 @@ function RecentAthletesCard({ athletes, locale, onNavigate, t }) {
   )
 }
 
+/**
+ * Afiliaciones recientes. Separada de `RecentAthletesCard` a propósito: esa
+ * lista son altas de cuenta, y registrarse no afilia a nadie. Acá se ve quién
+ * quedó cubierto, con qué código y desde cuándo.
+ */
+function RecentMembershipsCard({ memberships, locale, onNavigate, t }) {
+  if (!memberships?.items?.length) return null
+
+  return (
+    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentMembershipsTitle')}>
+      <header className="admin-ops__chart-head">
+        <div>
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentMembershipsEyebrow')}</p>
+          <h3>{t('admin.dashboard.recentMembershipsTitle')}</h3>
+          <p>{t('admin.dashboard.recentMembershipsSubtitle')}</p>
+        </div>
+        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('memberships')}>
+          {t('admin.actions.view')}
+          <ArrowRight size={12} aria-hidden />
+        </button>
+      </header>
+
+      <ul className="admin-ops__recent-list">
+        {memberships.items.map((membership) => (
+          <li key={membership.id} className="admin-ops__recent-item">
+            <span className="admin-ops__recent-avatar" aria-hidden>
+              {initials(membership.fullName)}
+            </span>
+            <span className="admin-ops__recent-body">
+              <strong>{membership.fullName}</strong>
+              <span className="data-table__mono">{membership.memberCode ?? '—'}</span>
+            </span>
+            <span className="admin-ops__recent-date">
+              <StatusBadge value={membership.status} />
+              {membership.startDate ? formatDayMonth(membership.startDate.slice(0, 10), locale) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function LeaderboardCard({ eyebrow, title, subtitle, items, navigateSection, onNavigate, t, renderItem }) {
   if (!items?.length) return null
 
@@ -299,8 +343,16 @@ export default function DashboardSection({
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
 
-  const { breakdowns, eventLeaderboard, finance, primary, recentAthletes, spotlightEvent, topGyms } =
-    dashboardOverview
+  const {
+    breakdowns,
+    eventLeaderboard,
+    finance,
+    primary,
+    recentAthletes,
+    recentMemberships,
+    spotlightEvent,
+    topGyms,
+  } = dashboardOverview
 
   const primaryMetrics = useMemo(
     () => mapMetrics(primary, t, locale),
@@ -573,6 +625,13 @@ export default function DashboardSection({
 
           <RecentAthletesCard
             athletes={recentAthletes}
+            locale={locale}
+            onNavigate={onNavigate}
+            t={t}
+          />
+
+          <RecentMembershipsCard
+            memberships={recentMemberships}
             locale={locale}
             onNavigate={onNavigate}
             t={t}

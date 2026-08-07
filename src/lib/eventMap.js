@@ -181,3 +181,24 @@ export function getMapAvailability({ events = [], online = true } = {}) {
   if (!online) return 'offline'
   return 'ready'
 }
+
+export function canUseMapWebGL() {
+  if (typeof document === 'undefined') return false
+  try {
+    const canvas = document.createElement('canvas')
+    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'))
+  } catch {
+    return false
+  }
+}
+
+/** Embed OSM estático (sin WebGL) para sedes cuando MapLibre no puede cargar. */
+export function buildOpenStreetMapEmbedUrl(event, { delta = 0.014 } = {}) {
+  const coordinates = event?.coordinates ?? getEventCoordinates(event)
+  if (!coordinates) return ''
+  const { lat, lng } = coordinates
+  const bbox = [lng - delta, lat - delta, lng + delta, lat + delta]
+    .map((value) => value.toFixed(6))
+    .join('%2C')
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lng.toFixed(6)}`
+}

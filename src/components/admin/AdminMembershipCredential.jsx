@@ -3,7 +3,10 @@ import { QrCode, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { formatShortDate } from '../../lib/format.js'
-import { getMembershipCredential, rotateMembershipQrToken } from '../../services/athleteApi.js'
+import {
+  getMembershipCredential,
+  rotateAthleteCredentialToken,
+} from '../../services/athleteApi.js'
 import StatusBadge from '../ui/StatusBadge.jsx'
 
 /**
@@ -14,7 +17,7 @@ import StatusBadge from '../ui/StatusBadge.jsx'
  * filtraba, la única salida era editar la fila en la base.
  *
  * La rotación invalida el QR viejo en el acto, así que va detrás de una
- * confirmación explícita y queda auditada (`membership.qr_rotated`).
+ * confirmación explícita y queda auditada (`athlete.credential_rotated`).
  */
 export default function AdminMembershipCredential({ membershipId, canRotate = false }) {
   const { locale, t } = useI18n()
@@ -43,7 +46,11 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
     void load()
   }, [load])
 
-  const qrToken = credential?.membership?.qrToken
+  // El QR que el socio realmente tiene cuelga de la persona, no del período:
+  // apuntar al `qrToken` de la afiliación mostraba en el panel un código
+  // distinto al de la card del atleta, y rotar ese no invalidaba nada.
+  const athleteId = credential?.athlete?.id
+  const qrToken = credential?.athlete?.credentialToken ?? credential?.membership?.qrToken
   useEffect(() => {
     if (!qrToken) {
       setQrSrc(null)
@@ -66,8 +73,8 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
     setRotating(true)
     setError('')
     try {
-      const { membership } = await rotateMembershipQrToken(membershipId)
-      setCredential((current) => ({ ...current, membership }))
+      const { athlete } = await rotateAthleteCredentialToken(athleteId)
+      setCredential((current) => ({ ...current, athlete: { ...current.athlete, ...athlete } }))
       setRotatedAt(new Date().toISOString())
       setConfirmingRotation(false)
     } catch (rotateError) {
@@ -119,7 +126,7 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
           </div>
           <div>
             <dt>{t('admin.credential.token')}</dt>
-            <dd className="data-table__mono admin-credential__token">{membership?.qrToken ?? '—'}</dd>
+            <dd className="data-table__mono admin-credential__token">{qrToken ?? '—'}</dd>
           </div>
         </dl>
 
@@ -135,7 +142,7 @@ export default function AdminMembershipCredential({ membershipId, canRotate = fa
           </p>
         ) : null}
 
-        {canRotate ? (
+        {canRotate && athleteId ? (
           <div className="admin-credential__actions">
             {confirmingRotation ? (
               <>

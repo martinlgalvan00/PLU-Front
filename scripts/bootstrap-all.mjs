@@ -316,14 +316,23 @@ function isPortOpen(port, host) {
   })
 }
 
-async function assertPortsAvailable(includeWeb) {
+/**
+ * Los puertos solo se exigen cuando el bootstrap va a levantar los servicios
+ * (`--start`). Antes el 3001 se chequeaba siempre, así que tener el dev server
+ * abierto bloqueaba `npm run setup:all` -- que solo migra y siembra, y no usa
+ * ese puerto para nada. Migrar con el API corriendo es válido: ni Prisma ni
+ * `supabase db push` necesitan que nadie suelte la conexión.
+ */
+async function assertPortsAvailable(includeServices) {
+  if (!includeServices) return
+
   const apiIpv4 = await isPortOpen(3001, '127.0.0.1')
   const apiLocalhost = await isPortOpen(3001, 'localhost')
   if (apiIpv4 || apiLocalhost) {
     throw new Error('El puerto 3001 está ocupado. Cerrá el API/dev anterior con Ctrl+C y reintentá.')
   }
 
-  if (includeWeb) {
+  if (includeServices) {
     const webIpv4 = await isPortOpen(5173, '127.0.0.1')
     const webLocalhost = await isPortOpen(5173, 'localhost')
     if (webIpv4 || webLocalhost) {

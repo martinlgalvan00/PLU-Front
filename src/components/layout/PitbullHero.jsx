@@ -1,10 +1,40 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import photoPlatformCrew from '../../assets/DSC00286-display.jpg'
+import photoMeetFloor from '../../assets/DSC00346-display.jpg'
+import photoMedals from '../../assets/DSC01606-display.jpg'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
+
+const HERO_COLLAGE = [
+  {
+    id: 'crew',
+    src: photoPlatformCrew,
+    className: 'pitbull-hero-masthead__plate--primary',
+    width: 800,
+    height: 1200,
+    eager: true,
+  },
+  {
+    id: 'platform',
+    src: photoMeetFloor,
+    className: 'pitbull-hero-masthead__plate--secondary',
+    width: 800,
+    height: 1200,
+    eager: false,
+  },
+  {
+    id: 'medals',
+    src: photoMedals,
+    className: 'pitbull-hero-masthead__plate--accent',
+    width: 800,
+    height: 1200,
+    eager: false,
+  },
+]
 
 function PitbullHeroPanel({
   canRegister,
@@ -67,15 +97,17 @@ function PitbullHeroPanel({
 
       <Item {...itemProps}>
         <div className="pitbull-hero-masthead__meta" aria-label={t('pages.pitbull.heroMetricsAria')}>
-          <div className="pitbull-hero-masthead__meta-copy">
-            <time className="pitbull-hero-masthead__dateline" dateTime="2026-12-12/2026-12-13">
-              {date}
-            </time>
-            <p className="pitbull-hero-masthead__venue">
-              <span className="pitbull-hero-masthead__venue-name">{venue}</span>
-            </p>
-            {location ? <p className="pitbull-hero-masthead__loc">{location}</p> : null}
-          </div>
+          <p className="pitbull-hero-masthead__kicker">
+            <time dateTime="2026-12-12/2026-12-13">{date}</time>
+            <span aria-hidden> · </span>
+            <span className="pitbull-hero-masthead__kicker-venue">{venue}</span>
+            {location ? (
+              <span className="pitbull-hero-masthead__kicker-loc">
+                <span aria-hidden> · </span>
+                {location}
+              </span>
+            ) : null}
+          </p>
           <p className="pitbull-hero-masthead__slots">
             <span className="pitbull-hero-masthead__slots-label">{t('pages.pitbull.heroSlots')}</span>
             <span className="pitbull-hero-masthead__slots-value">
@@ -114,23 +146,42 @@ function PitbullHeroPanel({
   )
 }
 
-/** Foto a sangre: sin ficha encima. En desktop corta al borde derecho;
- * en mobile el texto se superpone a la foto (scrim). */
-function PitbullHeroFrame() {
+/** Collage editorial a sangre: 1 dominante + 2 secundarias (desktop). Mobile: solo LCP. */
+function PitbullHeroFrame({ reducedMotion = false }) {
+  const Plate = reducedMotion ? 'div' : m.div
+
   return (
     <div className="pitbull-hero-masthead__frame" aria-hidden>
-      <div className="pitbull-hero-masthead__frame-plate">
-        <img
-          className="pitbull-hero-masthead__frame-img"
-          src={photoPlatformCrew}
-          alt=""
-          width={800}
-          height={1200}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-        />
-        <div className="pitbull-hero-masthead__frame-scrim" />
+      <div className="pitbull-hero-masthead__collage">
+        {HERO_COLLAGE.map((plate, index) => (
+          <Plate
+            key={plate.id}
+            className={`pitbull-hero-masthead__frame-plate ${plate.className}`}
+            {...(reducedMotion
+              ? {}
+              : {
+                  initial: { opacity: 0, y: 14 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: {
+                    duration: MOTION_DURATION.slow,
+                    ease: MOTION_EASE.out,
+                    delay: 0.12 + index * 0.08,
+                  },
+                })}
+          >
+            <img
+              className="pitbull-hero-masthead__frame-img"
+              src={plate.src}
+              alt=""
+              width={plate.width}
+              height={plate.height}
+              loading={plate.eager ? 'eager' : 'lazy'}
+              decoding="async"
+              fetchPriority={plate.eager ? 'high' : 'low'}
+            />
+            <div className="pitbull-hero-masthead__frame-scrim" />
+          </Plate>
+        ))}
       </div>
     </div>
   )
@@ -174,10 +225,10 @@ export default function PitbullHero({
     />
   )
 
-  const frame = <PitbullHeroFrame />
+  const frame = <PitbullHeroFrame reducedMotion={reducedMotion} />
 
   const className =
-    'pitbull-hero-masthead pitbull-hero-masthead--text pitbull-hero-masthead--bleed' +
+    'pitbull-hero-masthead pitbull-hero-masthead--bleed' +
     (reducedMotion ? '' : ' pitbull-hero-masthead--motion')
 
   if (reducedMotion) {

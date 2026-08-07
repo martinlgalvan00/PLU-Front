@@ -1,6 +1,7 @@
 import { ScanLine } from 'lucide-react'
 import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
+import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 export default function CheckInScanResult({
@@ -22,6 +23,12 @@ export default function CheckInScanResult({
   if (!scanResult || !scanVerdict) return null
 
   const ScanVerdictIcon = scanVerdict.Icon
+  const isAthleteScan = scanResult.kind === 'registration' && scanResult.row?.type === 'atleta'
+  const scheduleSummary = formatScheduleSummary(scanResult.row?.schedule, locale)
+  const sessionDetail = formatSessionDetail(scanResult.row?.schedule, locale, {
+    weighIn: t('admin.checkin.weighIn'),
+    starts: t('admin.checkin.sessionStarts'),
+  })
 
   return (
     <div
@@ -60,6 +67,26 @@ export default function CheckInScanResult({
               </dd>
             </div>
           )}
+          {/* Qué día compite: es lo que seguridad necesita resolver en la
+              puerta, y sin asignar se dice explícitamente en vez de omitirse. */}
+          {isAthleteScan && (
+            <div>
+              <dt>{t('admin.checkin.scheduleLabel')}</dt>
+              <dd>
+                {scheduleSummary ? (
+                  <>
+                    <strong>{scheduleSummary}</strong>
+                    {sessionDetail && (
+                      <span className="admin-checkin-result__schedule-detail">{sessionDetail}</span>
+                    )}
+                  </>
+                ) : (
+                  t('admin.checkin.scheduleUnassigned')
+                )}
+              </dd>
+            </div>
+          )}
+
           {scanResult.kind === 'registration' && scanResult.row?.membershipStatus && (
             <div>
               <dt>{t('admin.checkin.membershipLabel')}</dt>

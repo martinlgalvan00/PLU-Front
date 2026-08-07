@@ -249,7 +249,10 @@ export function createSupabaseAthleteRepository(
       const membership = assertSupabaseResult(
         await client
           .from('memberships')
-          .select('*, athlete:athletes(id, full_name, document_id, email)')
+          // `credential_token` viaja acá porque es el QR que el socio tiene de
+          // verdad: el `qr_token` de la afiliación quedó solo para las cards
+          // emitidas con el modelo anterior.
+          .select('*, athlete:athletes(id, full_name, document_id, email, credential_token)')
           .eq('id', membershipId)
           .eq('organization_id', organizationId)
           .maybeSingle(),
@@ -262,6 +265,14 @@ export function createSupabaseAthleteRepository(
       p_membership_id: membershipId,
       p_actor: actor,
     }, 'No se pudo rotar el código de la credencial.'),
+
+    // Activación/baja manual: los casos sin cobro (cortesía, canje, corrección)
+    // no pasan por la aprobación de una orden de pago.
+    setMembershipStatus: (membershipId, status, actor) => rpc('staff_set_membership_status', {
+      p_membership_id: membershipId,
+      p_status: status,
+      p_actor: actor,
+    }, 'No se pudo actualizar el estado de la afiliación.'),
 
     // La credencial vigente cuelga del atleta, no del período de afiliación
     // (ver 20260806140000): rotar acá es lo que invalida la card impresa.

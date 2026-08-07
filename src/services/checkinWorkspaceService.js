@@ -1,4 +1,4 @@
-import { registrationCheckinStatus } from './checkinScanService.js'
+import { registrationCheckinStatus, scheduleDayIndexes } from './checkinScanService.js'
 
 function belongsToEvent(record, eventSlug) {
   if (!eventSlug) return true
@@ -6,7 +6,8 @@ function belongsToEvent(record, eventSlug) {
 }
 
 /** Días a los que da acceso un ticket, resueltos vía su tipo de entrada.
- * 'all' = la inscripción de un atleta cubre el evento completo (todos los días). */
+ * 'all' = sin restricción de día (un atleta al que todavía no le asignaron
+ * grilla entra en cualquiera; ver scheduleDayIndexes). */
 function ticketDayIndexes(ticket, ticketTypes) {
   const type = ticketTypes.find((item) => item.id === ticket.ticketTypeId)
   return type?.dayIndexes ?? []
@@ -39,7 +40,10 @@ export function buildCheckinRows({ athletes = [], registrations = [], tickets = 
         name: athlete?.fullName,
         document: athlete?.documentId,
         meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-        dayIndexes: 'all',
+        // Antes todos los atletas iban a 'all' y aparecían en la pestaña de
+        // cada día. Con la grilla asignada el roster de un día es el de ese día.
+        dayIndexes: scheduleDayIndexes(registration.schedule),
+        schedule: registration.schedule ?? null,
         status: registrationCheckinStatus(registration),
         checkedInAt: registration.checkedInAt,
       }

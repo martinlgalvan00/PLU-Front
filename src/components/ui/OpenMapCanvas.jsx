@@ -243,8 +243,19 @@ export default function OpenMapCanvas({
         map.once('load', () => {
           if (!active) return
           clearTimeout(loadTimer)
-          setInitialized(true)
-          onStatusChange('loaded')
+          map.resize()
+          requestAnimationFrame(() => {
+            if (!active) return
+            map.resize()
+            setInitialized(true)
+            onStatusChange('loaded')
+          })
+        })
+
+        map.on('error', (event) => {
+          // Errores de tile puntuales no invalidan el mapa; solo fallas de estilo/fuente.
+          const fatal = event?.error?.status >= 400 && /style|source/i.test(String(event?.error?.url ?? event?.error?.message ?? ''))
+          if (fatal && active && !map.loaded()) onStatusChange('error')
         })
 
         loadTimer = window.setTimeout(() => {

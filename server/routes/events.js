@@ -4,7 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { staffLimiter } from '../middleware/rateLimit.js'
+import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 
 const EVENT_SELECT = `
   *,
@@ -183,6 +183,45 @@ export const eventSchema = z
     }
   })
 
+/** Tandas de un evento: el grupo con el que un atleta entra a plataforma. */
+const eventSessionSchema = z.object({
+  id: z.string().uuid().optional(),
+  dayIndex: z.coerce.number().int().min(0).max(30),
+  name: z.string().trim().min(1).max(80),
+  platform: z.string().trim().max(80).optional(),
+  weighInAt: optionalDateTime,
+  startsAt: optionalDateTime,
+  sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
+})
+
+const eventSessionsSchema = z.object({
+  sessions: z.array(eventSessionSchema).max(60),
+})
+
+/**
+ * Asignación de grilla. `dayIndex`/`sessionId` en null limpian la asignación:
+ * es cómo se deshace un reparto equivocado sin tener que borrar la inscripción.
+ */
+const assignScheduleSchema = z
+  .object({
+    registrationIds: z.array(z.string().uuid()).min(1).max(500),
+    dayIndex: z.coerce.number().int().min(0).max(30).nullable().optional(),
+    sessionId: z.string().uuid().nullable().optional(),
+  })
+  .transform((body) => ({
+    registrationIds: body.registrationIds,
+    dayIndex: body.dayIndex ?? null,
+    sessionId: body.sessionId ?? null,
+  }))
+
+function parseEventSlug(value) {
+  const slug = String(value ?? '').trim()
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new HttpError(400, 'Slug de evento inválido.')
+  }
+  return slug
+}
+
 async function readEvents(client) {
   return assertSupabaseResult(
     await client.from('events').select(EVENT_SELECT).order('starts_at'),
@@ -195,12 +234,31 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   const prisma = getPrisma()
   const editGuard = requirePermission('admin.events.write', { prisma })
   const viewGuard = requirePermission('admin.events.read', { prisma })
+  // La grilla es dato de inscripciones, no de configuración del evento: quien
+  // arma el reparto de atletas no necesariamente puede editar precios y fechas.
+  const registrationsViewGuard = requirePermission('admin.registrations.read', { prisma })
+  const registrationsEditGuard = requirePermission('admin.registrations.write', { prisma })
 
   router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
     try {
       const client = requireSupabaseClient(getSupabaseAdmin())
       const events = await readEvents(client)
       res.json({ events })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/:eventSlug/registration-summary', publicReadLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const summary = assertSupabaseResult(
+        await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
+        'No se pudo consultar el cupo de inscripción.',
+      )
+      res.json({ summary })
     } catch (error) {
       next(error)
     }
@@ -229,6 +287,85 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         }
 
         res.status(mode === 'created' ? 201 : 200).json({ event, events, mode })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Grilla del evento: días, tandas y cuántos atletas hay en cada una. El
+   * conteo es lo que hace usable la asignación masiva -- sin él no se ve si una
+   * tanda quedó con 4 atletas o con 40.
+   */
+  router.get(
+    '/:eventSlug/schedule',
+    ...registrationsViewGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const schedule = assertSupabaseResult(
+          await client.rpc('staff_get_event_schedule', { p_event_slug: slug }),
+          'No se pudo leer la grilla del evento.',
+        )
+        res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Alta/edición de tandas. Reemplaza el set completo del evento. */
+  router.post(
+    '/:eventSlug/sessions',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventSessionsSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const schedule = assertSupabaseResult(
+          await client.rpc('staff_save_event_sessions', {
+            p_event_slug: slug,
+            p_sessions: req.validatedBody.sessions,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudieron guardar las tandas.',
+        )
+        res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Asignación masiva: se filtra en el panel (por ejemplo, todas las Open Raw),
+   * se selecciona y se manda el lote entero al mismo día/tanda.
+   */
+  router.post(
+    '/:eventSlug/registrations/schedule',
+    ...registrationsEditGuard,
+    staffLimiter,
+    validateBody(assignScheduleSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_assign_registration_schedule', {
+            p_event_slug: slug,
+            p_registration_ids: req.validatedBody.registrationIds,
+            p_day_index: req.validatedBody.dayIndex,
+            p_session_id: req.validatedBody.sessionId,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo asignar la grilla.',
+        )
+        res.json(result)
       } catch (error) {
         next(error)
       }

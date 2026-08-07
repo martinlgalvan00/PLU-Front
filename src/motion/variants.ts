@@ -158,11 +158,11 @@ export const sectionHeaderRule: Variants = {
 }
 
 export const heroSequenceItem: Variants = {
-  hidden: { opacity: 0, y: MOTION_DISTANCE.lg },
+  hidden: { opacity: 0, y: MOTION_DISTANCE.md },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.out },
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
   },
 }
 

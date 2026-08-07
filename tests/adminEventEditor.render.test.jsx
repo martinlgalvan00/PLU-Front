@@ -65,14 +65,17 @@ function activateEditorTab(name) {
 }
 
 describe('AdminEventEditor — estructura del formulario', () => {
-  it('muestra las cuatro secciones como tabs editoriales', () => {
+  it('muestra las cinco secciones como tabs editoriales', () => {
     renderEditor()
     const items = within(editorTablist()).getAllByRole('tab')
 
+    // "Grilla" y "Operación" solo existen para un evento ya guardado: las
+    // tandas cuelgan de los días, que recién existen después del alta.
     expect(items.map((item) => item.textContent)).toEqual([
       'Datos',
       'Ventas y cupos',
       'Publicación',
+      'Grilla',
       'Operación',
     ])
   })

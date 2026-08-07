@@ -15,6 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import AdminEventSessionsEditor from './AdminEventSessionsEditor.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import DetailTabs from './DetailTabs.jsx'
 import Button from '../ui/Button.jsx'
@@ -262,6 +263,9 @@ export default function AdminEventEditor({
         { id: 'basics', label: t('admin.eventEditor.navBasics') },
         { id: 'sales', label: t('admin.eventEditor.navSales') },
         { id: 'visibility', label: t('admin.eventEditor.navVisibility') },
+        // Las tandas cuelgan de los días del evento, que recién existen una vez
+        // que está guardado -- igual que la pestaña de seguridad.
+        draft.id ? { id: 'grid', label: t('admin.eventEditor.navGrid') } : null,
         draft.id ? { id: 'security', label: t('admin.eventEditor.navSecurity') } : null,
       ]
         .filter(Boolean)
@@ -1091,6 +1095,18 @@ export default function AdminEventEditor({
                     </div>
                   </div>
                 </div>
+              </section>
+            )}
+
+            {activeTab === 'grid' && draft.id && (
+              <section
+                ref={activePanelRef}
+                className="admin-event-form__section"
+                role="tabpanel"
+                aria-label={t('admin.eventEditor.navGrid')}
+                tabIndex={-1}
+              >
+                <AdminEventSessionsEditor canEdit={canEdit} eventSlug={sourceEvent?.slug} />
               </section>
             )}
 

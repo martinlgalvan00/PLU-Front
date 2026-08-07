@@ -46,6 +46,53 @@ export function isExpiringSoon(expirationDate, withinDays = 30) {
   return diffDays >= 0 && diffDays <= withinDays
 }
 
+/**
+ * Métricas de afiliación para el panel. Se calculan sobre el padrón que ya
+ * llega en el snapshot admin: no hay endpoint aparte porque el dataset de
+ * afiliados de PLU ARG es chico y viaja entero, mismo criterio que el resto
+ * del panel.
+ */
+export function getMembershipStats(memberships = [], today = new Date()) {
+  const day = new Date(today)
+  day.setHours(0, 0, 0, 0)
+  const monthStart = new Date(day.getFullYear(), day.getMonth(), 1).getTime()
+
+  let active = 0
+  let newThisMonth = 0
+  let expiringSoon = 0
+  let pendingPayment = 0
+
+  for (const membership of memberships) {
+    const isCurrent = isMembershipCurrent(membership, day)
+    if (isCurrent) active += 1
+
+    // Altas del mes: la fecha de inicio es la que marca desde cuándo el socio
+    // está cubierto, que es lo que se reporta.
+    const startTime = membership.startDate
+      ? Date.parse(`${membership.startDate}T00:00:00`)
+      : null
+    if (Number.isFinite(startTime) && startTime >= monthStart && startTime <= day.getTime()) {
+      newThisMonth += 1
+    }
+
+    if (isCurrent && isExpiringSoon(membership.expirationDate)) expiringSoon += 1
+    if (membership.status === 'pendiente_pago') pendingPayment += 1
+  }
+
+  return { active, newThisMonth, expiringSoon, pendingPayment }
+}
+
+/** Últimas afiliaciones por fecha de alta, para el vistazo del panel. */
+export function getRecentMemberships(memberships = [], limit = 6) {
+  return [...memberships]
+    .sort((a, b) => {
+      const timeA = Date.parse(`${a.startDate ?? ''}T00:00:00`)
+      const timeB = Date.parse(`${b.startDate ?? ''}T00:00:00`)
+      return (Number.isFinite(timeB) ? timeB : 0) - (Number.isFinite(timeA) ? timeA : 0)
+    })
+    .slice(0, limit)
+}
+
 export function filterMemberships(items, filters = {}) {
   const query = filters.query?.trim().toLowerCase() ?? ''
 

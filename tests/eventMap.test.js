@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildDirectionsUrl,
   buildExternalMapUrl,
+  buildOpenStreetMapEmbedUrl,
   buildWazeUrl,
   getEventCoordinates,
   getMapAvailability,
@@ -106,6 +107,19 @@ describe('eventMap', () => {
 
     expect(getMapAvailability({ events, online: true })).toBe('ready')
   })
+
+  it('arma un embed OSM usable cuando MapLibre no puede inicializar', () => {
+    const event = {
+      coordinates: { lat: -34.7505701, lng: -58.3937578 },
+      title: 'Pitbull Classic',
+    }
+
+    const url = buildOpenStreetMapEmbedUrl(event)
+    expect(url).toContain('openstreetmap.org/export/embed.html')
+    expect(url).toContain('marker=-34.750570%2C-58.393758')
+    expect(buildOpenStreetMapEmbedUrl({})).toBe('')
+  })
+
   it('asigna un tratamiento de marcador por jerarquia y estado', () => {
     expect(getMapMarkerKind({ featured: true, status: 'proximamente' })).toBe('featured')
     expect(getMapMarkerKind({ status: 'inscripcion_abierta' })).toBe('open')

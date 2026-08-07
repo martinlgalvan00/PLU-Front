@@ -1,56 +1,25 @@
-import { useState } from 'react'
 import {
   ArrowRight,
   FileText,
-  Medal,
-  ShieldCheck,
-  Trophy,
-  Users,
 } from 'lucide-react'
 import { m } from 'motion/react'
 import photoMeetFloor from '../assets/DSC00346-display.jpg'
+import photoCrowd from '../assets/DSC00392-display.jpg'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
+import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { money } from '../lib/format.js'
+import { formatRelativeTime, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
-import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
 import { staggerContainer, staggerItem } from '../motion/variants.ts'
-
-const BENEFIT_ICONS = {
-  record: Trophy,
-  standard: ShieldCheck,
-  ranking: Medal,
-  community: Users,
-}
-
-/** Fila editorial — numeral e ícono funcional, mismo lenguaje visual que
- * el numerado de "Camino del competidor" (sin card, sin hover reactivo). */
-function PitbullValueRow({ index, Icon, label, text }) {
-  const num = String(index + 1).padStart(2, '0')
-  return (
-    <li className="pitbull-value-row__item">
-      <span className="pitbull-value-row__index motif-num" aria-hidden>
-        {num}
-      </span>
-      <div className="pitbull-value-row__copy">
-        <h4 className="pitbull-value-row__label">
-          {Icon ? <Icon size={15} strokeWidth={1.75} aria-hidden className="pitbull-value-row__icon" /> : null}
-          {label}
-        </h4>
-        <p className="pitbull-value-row__text">{text}</p>
-      </div>
-    </li>
-  )
-}
 
 function scrollToSection(id) {
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -58,10 +27,6 @@ function scrollToSection(id) {
     behavior: reducedMotion ? 'auto' : 'smooth',
     block: 'start',
   })
-}
-
-function scrollToInscription() {
-  scrollToSection('inscripcion')
 }
 
 function PitbullDossierSection({
@@ -122,7 +87,9 @@ function PitbullSectionNav({ items, t }) {
               className="pitbull-section-nav__item"
               onClick={() => scrollToSection(item.id)}
             >
-              <span aria-hidden>{item.index}</span>
+              <span className="pitbull-section-nav__index" aria-hidden>
+                {item.index}
+              </span>
               {item.label}
             </button>
           ))}
@@ -187,49 +154,106 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
   )
 }
 
-function PitbullBentoExperience({ t }) {
+function PitbullExperienceSection({ t }) {
+  const { reducedMotion } = useMotionConfig()
+  const items = [
+    {
+      id: 'equipment',
+      label: t('pages.pitbull.experienceItemEquipment'),
+      text: t('pages.pitbull.experienceItemEquipmentDesc'),
+    },
+    {
+      id: 'judges',
+      label: t('pages.pitbull.experienceItemJudges'),
+      text: t('pages.pitbull.experienceItemJudgesDesc'),
+    },
+    {
+      id: 'media',
+      label: t('pages.pitbull.experienceItemMedia'),
+      text: t('pages.pitbull.experienceItemMediaDesc'),
+    },
+    {
+      id: 'warmup',
+      label: t('pages.pitbull.experienceItemWarmup'),
+      text: t('pages.pitbull.experienceItemWarmupDesc'),
+    },
+  ]
+
+  const StageTag = reducedMotion ? 'div' : m.div
+  const PillarsTag = reducedMotion ? 'ul' : m.ul
+  const PillarTag = reducedMotion ? 'li' : m.li
+  const stageMotion = reducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 18 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: MOTION_VIEWPORT,
+        transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+      }
+  const pillarsMotion = reducedMotion
+    ? {}
+    : {
+        variants: staggerContainer,
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: MOTION_VIEWPORT,
+      }
+  const pillarMotion = reducedMotion ? {} : { variants: staggerItem }
+
   return (
-    <PitbullDossierSection
+    <section
       id="experiencia"
-      className="pitbull-dossier__section--bento"
-      eyebrow="02"
-      index="02"
-      lead="Diseñado para elevar tu rendimiento. Un entorno que respeta tu esfuerzo y empuja tus límites."
-      title="Experiencia Premium"
-      titleId="pitbull-bento-title"
+      className="pitbull-dossier__section pitbull-dossier__section--experience"
+      aria-labelledby="pitbull-experience-title"
     >
-      <div className="pitbull-bento">
-        <div className="pitbull-bento__card pitbull-bento__card--large">
-          <span className="pitbull-bento__watermark" aria-hidden>PLU</span>
-          <div className="pitbull-bento__content">
-            <h3 className="pitbull-bento__title">Equipamiento Oficial</h3>
-            <p className="pitbull-bento__desc">Plataforma y discos calibrados bajo estándares internacionales. Todo pensado para que logres tu mejor total en las condiciones más óptimas.</p>
-          </div>
+      <Reveal as="div" direction="up" className="pitbull-dossier__reveal">
+        <div className="pitbull-experience pitbull-experience--stage">
+          <StageTag className="pitbull-experience__stage" {...stageMotion}>
+            <figure className="pitbull-experience__media">
+              <img
+                className="pitbull-experience__img"
+                src={photoMeetFloor}
+                alt=""
+                width={800}
+                height={1200}
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="pitbull-experience__scrim" aria-hidden />
+            </figure>
+            <header className="pitbull-experience__masthead">
+              <p className="pitbull-experience__kicker">
+                <span className="pitbull-experience__index" aria-hidden>
+                  {t('pages.pitbull.experienceIndex')}
+                </span>
+                <span>{t('pages.pitbull.experienceEyebrow')}</span>
+              </p>
+              <h2 id="pitbull-experience-title" className="pitbull-experience__title">
+                {t('pages.pitbull.experienceTitle')}
+              </h2>
+              <p className="pitbull-experience__lead">{t('pages.pitbull.experienceLead')}</p>
+            </header>
+          </StageTag>
+
+          <PillarsTag
+            className="pitbull-experience__pillars"
+            aria-label={t('pages.pitbull.experienceListAria')}
+            {...pillarsMotion}
+          >
+            {items.map((item) => (
+              <PillarTag key={item.id} className="pitbull-experience__pillar" {...pillarMotion}>
+                <h3 className="pitbull-experience__label">{item.label}</h3>
+                <p className="pitbull-experience__text">{item.text}</p>
+              </PillarTag>
+            ))}
+          </PillarsTag>
         </div>
-        <div className="pitbull-bento__card">
-          <div className="pitbull-bento__content">
-            <h3 className="pitbull-bento__title">Jueces Certificados</h3>
-            <p className="pitbull-bento__desc">Reglamento estricto, transparente y sin favoritismos.</p>
-          </div>
-        </div>
-        <div className="pitbull-bento__card">
-          <div className="pitbull-bento__content">
-            <h3 className="pitbull-bento__title">Media Coverage</h3>
-            <p className="pitbull-bento__desc">Fotografía y video de primer nivel para documentar tus marcas.</p>
-          </div>
-        </div>
-        <div className="pitbull-bento__card pitbull-bento__card--wide">
-          <div className="pitbull-bento__content">
-            <h3 className="pitbull-bento__title">Warm-up VIP</h3>
-            <p className="pitbull-bento__desc">Área de calentamiento exclusiva con racks profesionales y discos calibrados, asegurando que llegues a la plataforma en tu punto máximo de activación.</p>
-          </div>
-        </div>
-      </div>
-    </PitbullDossierSection>
+      </Reveal>
+    </section>
   )
 }
 
-function PitbullWeighInSnapshot({ t }) {
+function PitbullWeighInSnapshot() {
   return (
     <PitbullDossierSection
       id="pesajes"
@@ -261,51 +285,157 @@ function PitbullWeighInSnapshot({ t }) {
 }
 
 function PitbullLocationSection({ event, venue, t }) {
+  const locality = venue.locality?.replace(/^B\d+\s*/, '') || ''
+  const lead = venue.street
+    ? [venue.street, locality].filter(Boolean).join(' · ')
+    : t('pages.pitbull.locationLead')
+
   return (
     <PitbullDossierSection
       id="lugar"
       className="pitbull-dossier__section--location"
       eyebrow={t('pages.pitbull.locationEyebrow')}
       index={t('pages.pitbull.locationIndex')}
-      lead={t('pages.pitbull.locationLead')}
-      title={t('pages.pitbull.locationTitle')}
+      lead={lead}
+      title={venue.name || t('pages.pitbull.locationTitle')}
       titleId="pitbull-location-title"
     >
-      <EventVenueMap
-        event={event}
-        role={t('pages.pitbull.locationOfficialRole')}
-        venue={venue}
-      />
+      <div className="pitbull-venue">
+        <div className="pitbull-venue__map">
+          <EventVenueMap
+            event={event}
+            role={t('pages.pitbull.locationOfficialRole')}
+            venue={venue}
+          />
+          <div className="pitbull-venue__dock">
+            <div className="pitbull-venue__dock-copy">
+              <p className="pitbull-venue__role">{t('pages.pitbull.locationOfficialRole')}</p>
+              {venue.street ? <p className="pitbull-venue__street">{venue.street}</p> : null}
+              {locality ? <p className="pitbull-venue__locality">{locality}</p> : null}
+            </div>
+            {venue.mapsUrl ? (
+              <a
+                className="pitbull-venue__directions motion-icon-shift"
+                href={venue.mapsUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {t('pages.pitbull.locationDirectionsCta')}
+                <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </PitbullDossierSection>
   )
 }
 
-function PitbullTicketPass({ onOpen, t }) {
+function PitbullTicketsBand({ onOpen, t }) {
   return (
-    <div className="pitbull-ticket-invite">
-      <div className="pitbull-ticket-invite__copy">
-        <p className="pitbull-ticket-invite__hook">{t('pages.pitbull.ticketsHook')}</p>
-        <p className="pitbull-ticket-invite__note">{t('pages.pitbull.ticketsNote')}</p>
-        <ul className="pitbull-ticket-invite__facts" aria-label={t('pages.pitbull.ticketsFactsAria')}>
-          <li>{t('pages.pitbull.ticketsFactId')}</li>
-          <li>{t('pages.pitbull.ticketsFactMembership')}</li>
-        </ul>
+    <section
+      id="entradas"
+      className="pitbull-tickets-band"
+      aria-labelledby="pitbull-tickets-title"
+    >
+      <div className="pitbull-tickets-band__media" aria-hidden>
+        <img
+          className="pitbull-tickets-band__img"
+          src={photoCrowd}
+          alt=""
+          width={800}
+          height={1200}
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="pitbull-tickets-band__scrim" />
       </div>
-      <button type="button" className="pitbull-ticket-invite__cta" onClick={onOpen}>
-        {t('pages.pitbull.ticketPassCta')}
-        <ArrowRight size={14} aria-hidden />
-      </button>
+      <div className="pitbull-tickets-band__content">
+        <p className="pitbull-tickets-band__kicker">
+          <span className="pitbull-tickets-band__index" aria-hidden>
+            {t('pages.pitbull.ticketsIndex')}
+          </span>
+          <span className="pitbull-tickets-band__eyebrow">{t('pages.pitbull.ticketsEyebrow')}</span>
+        </p>
+        <h2 id="pitbull-tickets-title" className="pitbull-tickets-band__title">
+          {t('pages.pitbull.ticketsTitle')}
+        </h2>
+        <p className="pitbull-tickets-band__lead">{t('pages.pitbull.ticketsLead')}</p>
+        <p className="pitbull-tickets-band__facts" aria-label={t('pages.pitbull.ticketsFactsAria')}>
+          <span>{t('pages.pitbull.ticketsFactId')}</span>
+          <span aria-hidden>·</span>
+          <span>{t('pages.pitbull.ticketsFactMembership')}</span>
+          <span aria-hidden>·</span>
+          <span>{t('pages.pitbull.ticketsNote')}</span>
+        </p>
+        <button
+          type="button"
+          className="pitbull-tickets-band__cta motion-icon-shift"
+          onClick={onOpen}
+        >
+          {t('pages.pitbull.ticketPassCta')}
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
+  const isEmpty = recent.length === 0
+  const isLive = capacityStatus === 'live'
+
+  return (
+    <div
+      className={`pitbull-recent${isEmpty ? ' pitbull-recent--empty' : ''}`}
+      aria-label={t('pages.pitbull.recentRegistrantsAria')}
+    >
+      <div className="pitbull-recent__head">
+        <h3 className="pitbull-recent__title">{t('pages.pitbull.recentRegistrantsTitle')}</h3>
+        {isLive ? (
+          <p className="pitbull-recent__hint pitbull-recent__hint--live">
+            <span className="pitbull-recent__hint-dot" aria-hidden />
+            {t('pages.pitbull.recentRegistrantsLiveHint')}
+          </p>
+        ) : null}
+      </div>
+
+      {isEmpty ? (
+        <div className="pitbull-recent__empty" role="status">
+          <p className="pitbull-recent__empty-lead">{t('pages.pitbull.recentRegistrantsEmpty')}</p>
+          {!isLive ? (
+            <p className="pitbull-recent__empty-note">{t('pages.pitbull.recentRegistrantsFallbackHint')}</p>
+          ) : null}
+        </div>
+      ) : (
+        <ol className="pitbull-recent__list">
+          {recent.map((item, index) => {
+            const line = [item.displayName, item.gym].filter(Boolean).join(' · ')
+            return (
+              <li key={`${item.displayName}-${item.registeredAt ?? index}`} className="pitbull-recent__row">
+                <span className="pitbull-recent__name">{line}</span>
+                <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
+                  {formatRelativeTime(item.registeredAt, locale)}
+                </time>
+              </li>
+            )
+          })}
+        </ol>
+      )}
     </div>
   )
 }
 
 function PitbullInscriptionSection({
   canRegister,
+  capacityStatus,
   eventStatus,
   locale,
   onNavigate,
-  pitbullClassic,
   pricing,
+  recent,
+  registered,
+  slots,
   t,
 }) {
   const { reducedMotion } = useMotionConfig()
@@ -337,8 +467,8 @@ function PitbullInscriptionSection({
     >
       <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
         <PitbullInscriptionCounter
-          registered={pitbullClassic.registered}
-          slots={pitbullClassic.slots}
+          registered={registered}
+          slots={slots}
           statusLabel={statusLabel}
           statusTone={statusTone}
           t={t}
@@ -404,6 +534,13 @@ function PitbullInscriptionSection({
           </Footer>
         </Body>
       </div>
+
+      <PitbullRecentRegistrants
+        capacityStatus={capacityStatus}
+        locale={locale}
+        recent={recent}
+        t={t}
+      />
     </PitbullDossierSection>
   )
 }
@@ -518,7 +655,7 @@ export default function PitbullPage({
     PITBULL_CLASSIC,
     PITBULL_VENUE,
   } = useContent()
-  const { locale, messages, t } = useI18n()
+  const { locale, t } = useI18n()
 
   const pitbullEvent = events.find((event) => event.featured)
   const pitbullMapEvent = {
@@ -534,6 +671,18 @@ export default function PitbullPage({
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const ticketsOpen = eventPricing.ticketsEnabled !== false
+  const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
+  const {
+    status: capacityStatus,
+    registered: liveRegistered,
+    slots: liveSlots,
+    recent: recentRegistrants,
+  } = useEventRegistrationCapacity(eventSlug, {
+    enabled: true,
+    observeRoot: 'inscripcion',
+    fallbackRegistered: PITBULL_CLASSIC.registered,
+    fallbackSlots: PITBULL_CLASSIC.slots,
+  })
   const sectionNavItems = [
     { id: 'experiencia', index: '02', label: 'Experiencia' },
     { id: 'pesajes', index: '03', label: 'Pesajes' },
@@ -578,9 +727,9 @@ export default function PitbullPage({
         date={PITBULL_CLASSIC.date}
         venue={PITBULL_CLASSIC.venue}
         location={PITBULL_CLASSIC.location}
-        registered={PITBULL_CLASSIC.registered}
+        registered={liveRegistered}
         registrationFee={money(eventPricing.registration, locale)}
-        slots={PITBULL_CLASSIC.slots}
+        slots={liveSlots}
         ticketsOpen={ticketsOpen}
         title={PITBULL_CLASSIC.title}
       />
@@ -589,10 +738,10 @@ export default function PitbullPage({
 
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
-          <PitbullBentoExperience t={t} />
+          <PitbullExperienceSection t={t} />
           
-          <PitbullWeighInSnapshot t={t} />
-          
+          <PitbullWeighInSnapshot />
+
           <PitbullCategoriesSection
             pitbullClassic={PITBULL_CLASSIC}
             onNavigate={onNavigate}
@@ -607,26 +756,21 @@ export default function PitbullPage({
 
           <PitbullInscriptionSection
             canRegister={canRegister}
+            capacityStatus={capacityStatus}
             eventStatus={eventStatus}
             locale={locale}
             onNavigate={onNavigate}
-            pitbullClassic={PITBULL_CLASSIC}
             pricing={eventPricing}
+            recent={recentRegistrants}
+            registered={liveRegistered}
+            slots={liveSlots}
             t={t}
           />
 
           {ticketsOpen ? (
-            <PitbullDossierSection
-              id="entradas"
-              className="pitbull-dossier__section--tickets pitbull-tickets"
-              eyebrow={t('pages.pitbull.ticketsEyebrow')}
-              index={t('pages.pitbull.ticketsIndex')}
-              lead={t('pages.pitbull.ticketsLead')}
-              title={t('pages.pitbull.ticketsTitle')}
-              titleId="pitbull-tickets-title"
-            >
-              <PitbullTicketPass onOpen={goToTicketsPage} t={t} />
-            </PitbullDossierSection>
+            <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">
+              <PitbullTicketsBand onOpen={goToTicketsPage} t={t} />
+            </Reveal>
           ) : (
             <Reveal
               as="section"
