@@ -65,3 +65,74 @@ export async function assignRegistrationSchedule(
     schedule: toCamelEventSchedule(result?.schedule),
   }
 }
+
+/** Fila de atleta en el tablero de armado de grilla. */
+function toCamelBoardAthlete(row) {
+  return {
+    registrationId: row.registrationId ?? row.registration_id,
+    athleteId: row.athleteId ?? row.athlete_id,
+    fullName: row.fullName ?? row.full_name ?? '',
+    gym: row.gym ?? '',
+    division: row.division ?? '',
+    category: row.category ?? '',
+    bodyweightKg: row.bodyweightKg ?? row.bodyweight_kg ?? null,
+    status: row.status,
+    checkedIn: Boolean(row.checkedIn ?? row.checked_in),
+  }
+}
+
+function toCamelBoardSession(row) {
+  return {
+    id: row.id,
+    name: row.name ?? '',
+    platform: row.platform ?? '',
+    weighInAt: row.weighInAt ?? row.weigh_in_at ?? null,
+    startsAt: row.startsAt ?? row.starts_at ?? null,
+    sortOrder: row.sortOrder ?? row.sort_order ?? 0,
+    athletes: (row.athletes ?? []).map(toCamelBoardAthlete),
+  }
+}
+
+export function toCamelEventBoard(payload) {
+  return {
+    event: payload?.event ?? null,
+    totals: {
+      registered: Number(payload?.totals?.registered ?? 0),
+      assigned: Number(payload?.totals?.assigned ?? 0),
+      unassigned: Number(payload?.totals?.unassigned ?? 0),
+    },
+    days: (payload?.days ?? []).map((day) => ({
+      id: day.id,
+      dayIndex: day.dayIndex ?? day.day_index,
+      label: day.label ?? '',
+      date: day.date ?? null,
+      assignedCount: Number(day.assignedCount ?? day.assigned_count ?? 0),
+      sessions: (day.sessions ?? []).map(toCamelBoardSession),
+      // Con día pero sin tanda: estado intermedio legítimo del armado.
+      withoutSession: (day.withoutSession ?? day.without_session ?? []).map(toCamelBoardAthlete),
+    })),
+    unassigned: (payload?.unassigned ?? []).map(toCamelBoardAthlete),
+  }
+}
+
+/** Tablero completo: días, tandas con su roster y los que faltan ubicar. */
+export async function fetchEventBoard(eventSlug) {
+  const { board } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/board`)
+  return toCamelEventBoard(board)
+}
+
+/**
+ * Reparto sugerido de un día. Solo ubica a los que todavía no tienen día:
+ * nunca mueve a alguien que la organización ya puso a mano.
+ */
+export async function autofillEventDay(eventSlug, { dayIndex, maxPerSession }) {
+  const result = await apiPost(
+    `/api/events/${encodeURIComponent(eventSlug)}/schedule/autofill`,
+    { dayIndex, maxPerSession },
+  )
+  return {
+    placed: Number(result?.placed ?? 0),
+    remaining: Number(result?.remaining ?? 0),
+    board: toCamelEventBoard(result?.board),
+  }
+}

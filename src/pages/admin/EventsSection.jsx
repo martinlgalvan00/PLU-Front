@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ClipboardList,
   CreditCard,
+  EyeOff,
   MapPin,
   Pencil,
   Plus,
@@ -19,6 +20,7 @@ import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
 import AdminEventEditor, {
   AdminEventLivePreview,
 } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventStateControl from '../../components/admin/AdminEventStateControl.jsx'
 import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -108,6 +110,17 @@ function EventListRow({
             </span>
           ) : null}
           <strong className="admin-event-row__title">{row.title}</strong>
+          {/* Un evento despublicado se veía idéntico a uno visible: el único
+              dato que lo distinguía vivía dentro del editor. */}
+          {row.published === false ? (
+            <span
+              className="admin-event-row__hidden-mark"
+              title={t('admin.eventState.hiddenBadge')}
+              aria-label={t('admin.eventState.hiddenBadge')}
+            >
+              <EyeOff size={12} aria-hidden />
+            </span>
+          ) : null}
         </div>
 
         {venueLine ? (
@@ -170,6 +183,7 @@ export default function EventsSection({
   onManageRegistrations,
   onRefresh,
   onSaveEvent,
+  onSetEventState,
   onUpdateSecurityUserStatus,
   tickets = [],
 }) {
@@ -556,6 +570,17 @@ export default function EventsSection({
                 ) : null}
               </div>
             </div>
+
+            {/* Abrir, cerrar y publicar son la operación diaria del evento:
+                van antes que los accesos a entradas y pagos, y sin pasar por
+                el editor -- que reescribe días y tipos de entrada enteros. */}
+            {onSetEventState ? (
+              <AdminEventStateControl
+                canEdit={canEdit}
+                event={selectedEvent}
+                onSetState={onSetEventState}
+              />
+            ) : null}
 
             <div
               className="admin-event-preview__command-bar"

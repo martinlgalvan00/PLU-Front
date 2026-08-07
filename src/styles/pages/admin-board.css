@@ -1,0 +1,418 @@
+/* ═══════════════════════════════════════════════════════════════════
+   admin-board.css — PLU ARG
+   Armado de la grilla del torneo (sección Grilla del panel)
+
+   Familia operativa, composición de workspace denso: la bolsa de inscriptos
+   sin ubicar enfrentada a los días de competencia. El orden de lectura es
+   cuánto falta repartir → los días con su carga → el roster de cada tanda.
+
+   Las tandas van como bloques reglados dentro del panel del día, no como
+   cards: el panel ya es una superficie, y anidar otra aplanaría la jerarquía
+   en vez de construirla.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.admin-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.admin-board__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.admin-board__eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__title {
+  margin: 4px 0 0;
+  font-size: clamp(22px, 3.2vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+}
+
+.admin-board__event-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.admin-board__event-picker > span,
+.admin-board__movebar-field > span,
+.admin-board__autofill-field > span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__event-picker select,
+.admin-board__movebar-field select,
+.admin-board__autofill-field input {
+  min-height: 38px;
+  padding: 7px 10px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  transition: border-color var(--transition-fast);
+}
+
+.admin-board__event-picker select:focus-visible,
+.admin-board__movebar-field select:focus-visible,
+.admin-board__autofill-field input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+/* ── Totales: lo primero que se lee ─────────────────────────────────
+   El pendiente es el trabajo, así que es el único con escala. */
+.admin-board__totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  margin: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+}
+
+.admin-board__total dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__total dd {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.admin-board__total--lead dd {
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+/* ── Barra de movimiento ────────────────────────────────────────────── */
+.admin-board__movebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+  padding: 12px var(--space-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-brand-celeste);
+  border-radius: var(--border-radius-lg);
+}
+
+.admin-board__movebar-count {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.admin-board__movebar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.admin-board__text-btn {
+  align-self: center;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.admin-board__text-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-board__text-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────
+   Pendientes a la izquierda, días a la derecha. En mobile la bolsa va
+   primero: es el trabajo, no un accesorio. */
+.admin-board__layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.admin-board__pool,
+.admin-board__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+}
+
+.admin-board__pool {
+  position: sticky;
+  top: var(--space-md);
+  max-height: calc(100vh - var(--space-2xl));
+  overflow-y: auto;
+}
+
+.admin-board__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.admin-board__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-board__panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--border-radius-sm);
+  background: var(--plu-celeste-alpha-18);
+  color: var(--color-brand-celeste);
+}
+
+.admin-board__panel-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__count {
+  flex: none;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-pill);
+  background: var(--color-bg-elevated);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* ── Reparto sugerido ───────────────────────────────────────────────── */
+.admin-board__autofill {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.admin-board__autofill-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-board__autofill-field input {
+  width: 84px;
+}
+
+/* ── Tandas ─────────────────────────────────────────────────────────
+   Bloques reglados, no cards: el panel del día ya es la superficie. */
+.admin-board__session {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__session--pending {
+  border-top-color: var(--color-brand-gold);
+}
+
+.admin-board__session-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-board__session-name {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__session-detail {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Atletas ────────────────────────────────────────────────────────── */
+.admin-board__list {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-board__athlete {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  /* 44px de alto real: esto se opera desde una tablet en la sede. */
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.admin-board__athlete:hover {
+  background: var(--color-bg-elevated);
+}
+
+.admin-board__athlete:focus-within {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
+}
+
+.admin-board__athlete input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-brand-celeste);
+  cursor: pointer;
+}
+
+.admin-board__athlete-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-board__athlete-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__athlete-meta {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__athlete-flag {
+  display: inline-flex;
+  flex: none;
+  color: var(--plu-success-500);
+}
+
+/* El estado no puede quedar solo en el color del ícono: se nombra para quien
+   usa lector de pantalla. `institutional-shell.css` no se carga en el panel,
+   así que la utilidad se define acá. */
+.admin-board .visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ── Estados ────────────────────────────────────────────────────────── */
+.admin-board__empty {
+  margin: 0;
+  padding: var(--space-md);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.admin-board__empty--inline {
+  padding: var(--space-sm) 0;
+}
+
+.admin-board__alert,
+.admin-board__notice {
+  margin: 0;
+  padding: 10px var(--space-md);
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+}
+
+.admin-board__alert {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.admin-board__notice {
+  background: var(--plu-celeste-alpha-18);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 1024px) {
+  .admin-board__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-board__pool {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-board__movebar-field,
+  .admin-board__event-picker {
+    min-width: 100%;
+  }
+}

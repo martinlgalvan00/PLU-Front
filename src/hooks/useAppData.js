@@ -54,7 +54,10 @@ import {
   demoRegistrations,
   isDemoSession,
 } from '../services/demoAthleteSeed.js'
-import { createPreference as createPreferenceRequest } from '../services/paymentService.js'
+import {
+  createPreference as createPreferenceRequest,
+  reconcileCreatedOrder,
+} from '../services/paymentService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
   approveTicketOrder as approveTicketOrderRequest,
@@ -83,7 +86,10 @@ import {
   fetchAdminEvents,
   fetchPublishedEvents,
   getInitialAdminEvents,
+  isEventFull,
+  OPEN_REGISTRATION_STATUSES,
   saveAdminEventRequest,
+  setEventStateRequest,
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
@@ -228,6 +234,10 @@ export function useAppData() {
         setMemberships(snapshot.memberships)
         setRegistrations(snapshot.registrations)
         setPayments(snapshot.payments)
+        // El snapshot es la fuente autoritativa del estado de la orden y ya
+        // viajó: sin esto la confirmación de afiliación seguía anunciando
+        // "pendiente de pago" después de que Mercado Pago acreditara.
+        setCreatedOrder((current) => reconcileCreatedOrder(current, snapshot.payments))
       } catch (error) {
         console.error('refreshAthleteData:', error)
       }
@@ -1489,6 +1499,65 @@ export function useAppData() {
     [adminEvents, session],
   )
 
+  /**
+   * Habilitar/deshabilitar y cambiar el estado desde la lista, sin abrir el
+   * editor. Va por `setEventStateRequest` y no por `saveAdminEvent` porque el
+   * upsert completo recrea días y tipos de entrada en cada pasada.
+   *
+   * La base puede devolver un estado distinto al pedido (reabrir un evento que
+   * sigue lleno lo deja en `agotado`); se propaga `statusOverridden` para que
+   * la pantalla lo explique en vez de mostrar un badge que no coincide con lo
+   * que el operador acaba de elegir.
+   */
+  const setAdminEventState = useCallback(
+    async (slug, changes) => {
+      if (!hasPermission(session, 'admin.events.write')) {
+        return { error: 'Sin permisos para editar eventos.' }
+      }
+      if (!slug) return { error: 'Falta el slug del evento.' }
+
+      if (isDemoSession(session)) {
+        let updated = null
+        const events = adminEvents.map((event) => {
+          if (event.slug !== slug) return event
+          const next = {
+            ...event,
+            status: changes.status ?? event.status,
+            published: changes.published ?? event.published,
+            updatedAt: new Date().toISOString(),
+          }
+          // El demo replica la regla de la base: sin esto el cupo lleno se
+          // vería distinto según haya o no backend detrás.
+          if (isEventFull(next) && OPEN_REGISTRATION_STATUSES.includes(next.status)) {
+            next.status = 'agotado'
+          } else if (next.status === 'agotado' && !isEventFull(next)) {
+            next.status = 'inscripcion_abierta'
+          }
+          updated = next
+          return next
+        })
+
+        if (!updated) return { error: 'No se encontró el evento.' }
+        setAdminEvents(events)
+        return {
+          event: updated,
+          events,
+          statusOverridden: Boolean(changes.status) && changes.status !== updated.status,
+        }
+      }
+
+      try {
+        const result = await setEventStateRequest(slug, changes)
+        setAdminEvents(result.events)
+        setAdminEventsError(null)
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cambiar el estado del evento.' }
+      }
+    },
+    [adminEvents, session],
+  )
+
   const saveShopProduct = useCallback(
     (draft) => {
       if (!hasPermission(session, 'admin.shop.write')) {
@@ -1541,6 +1610,7 @@ export function useAppData() {
     refreshAdminEvents,
     shopProducts,
     saveAdminEvent,
+    setAdminEventState,
     saveShopProduct,
     deleteShopProductAction,
     filteredRegistrations,

@@ -23,6 +23,7 @@ const MembershipsSection = lazy(() => import('./admin/MembershipsSection.jsx'))
 const PlaceholderSection = lazy(() => import('./admin/PlaceholderSection.jsx'))
 const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
 const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
+const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx'))
 const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
 const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
 const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
@@ -62,6 +63,7 @@ export default function AdminPage({
   onSaveEvent,
   onSaveShopProduct,
   onScheduleAssigned,
+  onSetEventState,
   onSetFilters,
   onUpdateUserRole,
   onUpdateUserStatus,
@@ -218,6 +220,15 @@ export default function AdminPage({
       )
     }
 
+    if (section === 'grid') {
+      return (
+        <ScheduleBoardSection
+          adminEvents={adminEvents}
+          canEdit={hasPermission(authorization, 'admin.registrations.write')}
+        />
+      )
+    }
+
     if (section === 'events') {
       return (
         <EventsSection
@@ -239,6 +250,7 @@ export default function AdminPage({
           }
           onRefresh={onRefreshAdminEvents}
           onSaveEvent={onSaveEvent}
+          onSetEventState={onSetEventState}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           tickets={tickets}
         />

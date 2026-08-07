@@ -10,6 +10,7 @@ import {
   Download,
   Eye,
   LayoutDashboard,
+  LayoutGrid,
   KeyRound,
   Menu,
   ScanLine,
@@ -26,8 +27,12 @@ import BrandLogo from '../ui/BrandLogo.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 
+// Cada `icon` de ADMIN_NAV_GROUPS tiene que estar acá: el lookup no tiene
+// fallback, y una clave faltante devuelve undefined, que React rechaza como
+// tipo de elemento y tira toda la shell del panel, no solo ese ítem.
 const ICONS = {
   LayoutDashboard,
+  LayoutGrid,
   Users,
   BadgeCheck,
   Calendar,

@@ -138,7 +138,7 @@ function parseLocalDateTime(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-const OPEN_REGISTRATION_STATUSES = ['inscripcion_abierta', 'cupos_limitados']
+export const OPEN_REGISTRATION_STATUSES = ['inscripcion_abierta', 'cupos_limitados']
 const CLOSED_REGISTRATION_STATUSES = ['cerrado', 'finalizado']
 
 /**
@@ -381,9 +381,31 @@ export const ADMIN_EVENT_STATUS_OPTIONS = [
   ['proximamente', 'status'],
   ['inscripcion_abierta', 'status'],
   ['cupos_limitados', 'status'],
+  ['agotado', 'status'],
   ['cerrado', 'status'],
   ['finalizado', 'status'],
 ]
+
+/**
+ * Estados que el operador puede fijar desde la lista, en orden de ciclo de
+ * vida. `agotado` queda afuera a propósito: lo pone y lo saca la base según el
+ * cupo (`sync_event_capacity_status`), y ofrecerlo como opción manual invitaría
+ * a marcar lleno un evento que todavía acepta gente -- o peor, a "reabrir" uno
+ * lleno y que el cambio se revierta solo un segundo después.
+ */
+export const EVENT_QUICK_STATUS_VALUES = [
+  'proximamente',
+  'inscripcion_abierta',
+  'cupos_limitados',
+  'cerrado',
+  'finalizado',
+]
+
+/** Un evento con cupo definido y todos los lugares tomados. */
+export function isEventFull(event) {
+  const slots = Number(event?.slots) || 0
+  return slots > 0 && (event?.registered ?? 0) >= slots
+}
 
 export const ADMIN_EVENT_FORM_DEFAULT = {
   title: '',
@@ -586,4 +608,29 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
 export async function fetchAdminEvents() {
   const { events } = await apiGet('/api/events')
   return events.map(mapAdminEventRow)
+}
+
+/**
+ * Habilitar/deshabilitar y cambiar el estado público sin reescribir el evento.
+ * `saveAdminEventRequest` recrea días y tipos de entrada en cada guardado, así
+ * que para tocar una columna se usa este camino.
+ *
+ * `statusOverridden` viene en true cuando la base corrigió el estado pedido
+ * (reabrir un evento que sigue lleno lo devuelve a `agotado`). El panel lo
+ * necesita para explicar por qué el badge no dice lo que el operador eligió.
+ */
+export async function setEventStateRequest(slug, { status, published } = {}) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+
+  const payload = {}
+  if (status !== undefined) payload.status = status
+  if (published !== undefined) payload.published = published
+
+  const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
+
+  return {
+    event: mapAdminEventRow(response.event),
+    events: (response.events ?? [response.event]).map(mapAdminEventRow),
+    statusOverridden: response.statusOverridden === true,
+  }
 }

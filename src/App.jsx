@@ -276,6 +276,7 @@ export default function App() {
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
+          onSetEventState={app.setAdminEventState}
           onSaveShopProduct={app.saveShopProduct}
           onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
@@ -406,8 +407,15 @@ export default function App() {
             form={app.form}
             memberships={app.memberships}
             onApprovePayment={app.handleApprovePayment}
+            // Faltaban los dos. Sin `onNavigate`, la confirmación de afiliación
+            // se quedaba sin su CTA ("Ir a mi perfil") y sin la barra para
+            // volver a planes: el atleta terminaba de pagar y la pantalla no
+            // ofrecía a dónde seguir. Sin `registrations`, la credencial del
+            // torneo no podía saber si la inscripción ya habilita el ingreso.
+            onNavigate={navigate}
             onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
             onUpdateForm={app.updateForm}
+            registrations={app.registrations}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.

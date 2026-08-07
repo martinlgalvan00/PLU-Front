@@ -2,6 +2,7 @@ export const EVENT_STATUS = {
   proximamente: { label: 'Próximamente', tone: 'neutral' },
   inscripcion_abierta: { label: 'Inscripción abierta', tone: 'success' },
   cupos_limitados: { label: 'Cupos limitados', tone: 'warning' },
+  agotado: { label: 'Cupo lleno', tone: 'danger' },
   cerrado: { label: 'Cerrado', tone: 'danger' },
   finalizado: { label: 'Finalizado', tone: 'neutral' },
 }

@@ -6,6 +6,7 @@ const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_man
 const EVENT_BREAKDOWN_STATUSES = [
   'inscripcion_abierta',
   'cupos_limitados',
+  'agotado',
   'proximamente',
   'finalizado',
   'cerrado',

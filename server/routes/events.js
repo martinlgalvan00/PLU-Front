@@ -18,6 +18,20 @@ const EVENT_SELECT = `
   )
 `
 
+/**
+ * Vocabulario de estados públicos del evento. `agotado` lo mantiene la base
+ * (20260807140000): entra acá porque el editor igual puede mandarlo de vuelta
+ * al guardar un evento que ya estaba lleno.
+ */
+const EVENT_STATUSES = [
+  'proximamente',
+  'inscripcion_abierta',
+  'cupos_limitados',
+  'agotado',
+  'cerrado',
+  'finalizado',
+]
+
 const boundedMoney = z.coerce.number().finite().int().min(0).max(10_000_000)
 const optionalDate = z
   .string()
@@ -95,13 +109,7 @@ export const eventSchema = z
       .string()
       .trim()
       .refine((value) => !Number.isNaN(Date.parse(value)), 'Fin inválido.'),
-    status: z.enum([
-      'proximamente',
-      'inscripcion_abierta',
-      'cupos_limitados',
-      'cerrado',
-      'finalizado',
-    ]),
+    status: z.enum(EVENT_STATUSES),
     published: z.boolean(),
     requiresMembership: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
@@ -183,6 +191,22 @@ export const eventSchema = z
     }
   })
 
+/**
+ * Cambio de estado sin pasar por el upsert completo. Los dos campos son
+ * opcionales e independientes -- se puede despublicar sin tocar el estado --
+ * pero mandar el body vacío no tiene sentido y se rechaza acá en vez de gastar
+ * un viaje a la base.
+ */
+const eventStateSchema = z
+  .object({
+    status: z.enum(EVENT_STATUSES).optional(),
+    published: z.boolean().optional(),
+  })
+  .refine(
+    (body) => body.status !== undefined || body.published !== undefined,
+    'No hay ningún cambio para aplicar.',
+  )
+
 /** Tandas de un evento: el grupo con el que un atleta entra a plataforma. */
 const eventSessionSchema = z.object({
   id: z.string().uuid().optional(),
@@ -213,6 +237,16 @@ const assignScheduleSchema = z
     dayIndex: body.dayIndex ?? null,
     sessionId: body.sessionId ?? null,
   }))
+
+/**
+ * Reparto sugerido. El tope por tanda es lo que decide el operador: en
+ * powerlifting una tanda suele ir de 10 a 14 atletas, pero depende de la sede
+ * y de cuántas plataformas haya.
+ */
+const autofillSchema = z.object({
+  dayIndex: z.coerce.number().int().min(0).max(30),
+  maxPerSession: z.coerce.number().int().min(1).max(100),
+})
 
 function parseEventSlug(value) {
   const slug = String(value ?? '').trim()
@@ -294,6 +328,48 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   )
 
   /**
+   * Habilitar, deshabilitar y cambiar el estado público de un evento. Es el
+   * mismo permiso que editar el evento, pero sin reescribirlo entero: el upsert
+   * recrea días y tipos de entrada en cada pasada, y para prender o apagar un
+   * evento eso es un efecto colateral que no queremos.
+   *
+   * Devuelve la colección completa porque el panel mantiene la lista en memoria
+   * y una fila desincronizada acá se nota enseguida (la barra de ocupación y el
+   * badge salen del mismo objeto).
+   */
+  router.post(
+    '/:eventSlug/state',
+    ...editGuard,
+    staffLimiter,
+    validateBody(eventStateSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_set_event_state', {
+            p_event_slug: slug,
+            p_status: req.validatedBody.status ?? null,
+            p_published: req.validatedBody.published ?? null,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo cambiar el estado del evento.',
+        )
+
+        const events = await readEvents(client)
+        const event = events.find((candidate) => candidate.id === result.event?.id)
+        if (!event) {
+          throw new HttpError(503, 'El estado se guardó, pero no se pudo volver a leer.')
+        }
+
+        res.json({ event, events, statusOverridden: result.statusOverridden === true })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
    * Grilla del evento: días, tandas y cuántos atletas hay en cada una. El
    * conteo es lo que hace usable la asignación masiva -- sin él no se ve si una
    * tanda quedó con 4 atletas o con 40.
@@ -336,6 +412,55 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           'No se pudieron guardar las tandas.',
         )
         res.json({ schedule })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Tablero de armado de grilla: días, tandas con su roster completo y la
+   * bolsa de inscriptos sin ubicar. Es lo que alimenta la sección Grilla.
+   */
+  router.get(
+    '/:eventSlug/board',
+    ...registrationsViewGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const board = assertSupabaseResult(
+          await client.rpc('staff_get_event_board', { p_event_slug: slug }),
+          'No se pudo leer el tablero del evento.',
+        )
+        res.json({ board })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /** Reparto sugerido: llena las tandas de un día en orden de competencia. */
+  router.post(
+    '/:eventSlug/schedule/autofill',
+    ...registrationsEditGuard,
+    staffLimiter,
+    validateBody(autofillSchema),
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const result = assertSupabaseResult(
+          await client.rpc('staff_autofill_event_day', {
+            p_event_slug: slug,
+            p_day_index: req.validatedBody.dayIndex,
+            p_max_per_session: req.validatedBody.maxPerSession,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          }),
+          'No se pudo repartir a los atletas.',
+        )
+        res.json(result)
       } catch (error) {
         next(error)
       }

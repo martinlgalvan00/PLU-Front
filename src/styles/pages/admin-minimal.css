@@ -4242,6 +4242,141 @@
    ficha concentra sus accesos operativos.
    ============================================= */
 
+/* Banda de estado del evento: abrir, cerrar y publicar. Comparte gutter y
+   hairline con la barra de accesos de abajo -- son dos bandas del mismo panel,
+   no dos tarjetas apiladas. */
+.admin-shell .admin-list-shell--events .admin-event-state {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px var(--admin-events-gutter);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+/* Cada chip de esta banda escribe en la base -- no filtra una tabla --, así
+   que respeta el target táctil de 44px aunque el resto de los chips del panel
+   sean más chicos. */
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+  min-height: 44px;
+}
+
+/* Los chips envuelven en vez de scrollear. En un filtro, una opción que queda
+   fuera de la tira se sigue leyendo desde la tabla; acá la tira ES el estado
+   del evento, y en 390px el chip activo caía fuera de pantalla -- el operador
+   abría el panel sin poder ver si el evento estaba abierto o cerrado. */
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__visibility {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: 999px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 15px;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:hover:not(:disabled) {
+  background: var(--admin-control-hover);
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Publicado usa el celeste de identidad, no verde de éxito: es visibilidad,
+   no un estado de negocio resuelto. */
+.admin-shell .admin-list-shell--events .admin-event-state__visibility.is-published {
+  background: var(--admin-brand-soft);
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__spinner {
+  animation: admin-event-state-spin 900ms linear infinite;
+}
+
+@keyframes admin-event-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-list-shell--events .admin-event-state__spinner {
+    animation: none;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+    transition: none;
+  }
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__note {
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__note--full,
+.admin-shell .admin-list-shell--events .admin-event-state__note--info {
+  color: var(--admin-status-warning);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__note--success {
+  color: var(--admin-status-success);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__note--error {
+  color: var(--admin-status-danger);
+}
+
+/* Marca de evento sin publicar en la fila: mismo peso visual que la estrella
+   de destacado, tono apagado porque comunica ausencia, no distinción. */
+.admin-shell .admin-list-shell--events .admin-event-row__hidden-mark {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
 .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
   background: transparent;
   border-bottom: 1px solid var(--admin-hairline);

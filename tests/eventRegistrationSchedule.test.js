@@ -301,3 +301,158 @@ describe('escaneo de un inscripto sin afiliación', () => {
     expect(result.outcome).toBe('not_found')
   })
 })
+
+/**
+ * Identidad en la credencial y acotado de torneos
+ * (migración 20260806250000).
+ */
+describe('identidad y torneos visibles en la credencial', () => {
+  const identity = readFileSync(
+    resolve(
+      process.cwd(),
+      'supabase/migrations/20260806250000_credential_identity_and_upcoming.sql',
+    ),
+    'utf8',
+  )
+
+  const lookup = functionBody(
+    identity,
+    'create or replace function plu_private.get_membership_by_code_or_token(',
+  )
+
+  it('devuelve documento y fecha de nacimiento para cotejar en la puerta', () => {
+    expect(lookup).toContain("'document_id', v_athlete.document_id")
+    expect(lookup).toContain("'birth_date', v_athlete.birth_date")
+  })
+
+  it('pero solo cuando el código era un token no adivinable', () => {
+    // El member_code es correlativo: devolver PII por esa vía dejaría cosechar
+    // el padrón iterando números de socio.
+    expect(lookup).toContain('v_by_token boolean := false')
+    expect(lookup).toContain('if v_by_token then')
+
+    const byCodeBranch = lookup.slice(
+      lookup.indexOf('where m.member_code = p_code'),
+      lookup.indexOf('if v_athlete.id is null'),
+    )
+    expect(byCodeBranch).not.toContain('v_by_token := true')
+  })
+
+  it('la resolución por token sí habilita la identidad', () => {
+    expect(lookup).toContain('v_by_token := v_athlete.id is not null')
+  })
+
+  it('lista los torneos vigentes contra el reloj, no contra events.status', () => {
+    // `events.status` se edita a mano y queda viejo; la fecha no miente.
+    const visible = functionBody(
+      identity,
+      'create or replace function plu_private.athlete_visible_registrations(',
+    )
+    expect(visible).toContain('(e.ends_at >= now()) as upcoming')
+    expect(visible).not.toContain("e.status <> 'finalizado'")
+  })
+
+  it('acota la cantidad y ordena por proximidad', () => {
+    const visible = functionBody(
+      identity,
+      'create or replace function plu_private.athlete_visible_registrations(',
+    )
+    expect(visible).toContain('order by event_starts_at limit p_limit')
+    expect(lookup).toContain('plu_private.athlete_visible_registrations(v_athlete.id, 3)')
+  })
+
+  it('sin torneos vigentes devuelve el último, no una credencial muda', () => {
+    const visible = functionBody(
+      identity,
+      'create or replace function plu_private.athlete_visible_registrations(',
+    )
+    expect(visible).toContain('where not exists (select 1 from ranked where upcoming)')
+    expect(visible).toContain('order by event_starts_at desc')
+  })
+
+  it('la proyección de staff ve la identidad aunque resuelva por member_code', () => {
+    const staff = functionBody(
+      identity,
+      'create or replace function public.staff_get_membership_by_code_or_token(',
+    )
+    expect(staff).toContain("'document_id', v_athlete.document_id")
+    expect(staff).toContain("'birth_date', v_athlete.birth_date")
+  })
+})
+
+/**
+ * Tablero de armado y reparto sugerido (migración 20260806260000).
+ */
+describe('tablero de armado de grilla', () => {
+  const boardSql = readFileSync(
+    resolve(process.cwd(), 'supabase/migrations/20260806260000_event_schedule_board.sql'),
+    'utf8',
+  )
+
+  it('devuelve el roster de cada tanda, no solo el conteo', () => {
+    // Contar no dice si la Tanda G quedó con tres y la F con veintidós.
+    const board = functionBody(boardSql, 'create or replace function public.staff_get_event_board(')
+    expect(board).toContain("'athletes', (")
+    expect(board).toContain("'unassigned', (")
+  })
+
+  it('muestra a los que tienen día pero todavía no tienen tanda', () => {
+    // Si no se mostraran, esa gente desaparecería del tablero.
+    const board = functionBody(boardSql, 'create or replace function public.staff_get_event_board(')
+    expect(board).toContain("'withoutSession', (")
+    expect(board).toContain('rows.event_day_id = d.id and rows.event_session_id is null')
+  })
+
+  it('ordena por competencia: categoría, división y después peso', () => {
+    expect(boardSql).toContain(
+      'order by rows.category, rows.division, rows.bodyweight_kg nulls last, rows.full_name',
+    )
+  })
+
+  it('el tablero no expone PII: armar tandas no necesita documento', () => {
+    const rows = functionBody(
+      boardSql,
+      'create or replace function plu_private.board_registration_rows(',
+    )
+    expect(rows).not.toContain('document_id')
+    expect(rows).not.toContain('a.email')
+  })
+
+  it('el reparto sugerido solo toca a los que no tienen día', () => {
+    // Pisar una decisión que la organización ya tomó a mano sería una trampa.
+    const autofill = functionBody(
+      boardSql,
+      'create or replace function public.staff_autofill_event_day(',
+    )
+    expect(autofill).toContain('and r.event_day_id is null')
+  })
+
+  it('respeta lo que cada tanda ya tiene, así correrlo dos veces no desborda', () => {
+    const autofill = functionBody(
+      boardSql,
+      'create or replace function public.staff_autofill_event_day(',
+    )
+    expect(autofill).toContain('v_room := p_max_per_session - v_taken')
+    expect(autofill).toContain('if v_room <= 0 then continue; end if')
+  })
+
+  it('reporta cuántos quedaron sin lugar en vez de dar el reparto por completo', () => {
+    const autofill = functionBody(
+      boardSql,
+      'create or replace function public.staff_autofill_event_day(',
+    )
+    expect(autofill).toContain("'placed', v_placed")
+    expect(autofill).toContain("'remaining', (")
+    expect(autofill).toContain("'registration.schedule_autofilled'")
+  })
+
+  it('las RPC del tablero son solo para service_role', () => {
+    for (const signature of [
+      'public.staff_get_event_board(text)',
+      'public.staff_autofill_event_day(text, int, int, text)',
+    ]) {
+      expect(boardSql).toContain(`revoke all on function ${signature}`)
+      expect(boardSql).toContain(`grant execute on function ${signature} to service_role`)
+    }
+  })
+})
