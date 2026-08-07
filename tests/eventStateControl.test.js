@@ -212,3 +212,28 @@ describe('migración 20260807140000', () => {
     )
   })
 })
+
+describe('migración 20260807150000', () => {
+  const registrationFix = readFileSync(
+    resolve(process.cwd(), 'supabase/migrations/20260807150000_registration_agotado_returns_plu04.sql'),
+    'utf8',
+  )
+
+  // Sin este mapeo el overflow del cupo llega como PLU03 ("no abierta") porque
+  // el trigger ya pasó el evento a `agotado` antes del siguiente alta.
+  it('mapea status=agotado a PLU04 antes del gate de inscripción abierta', () => {
+    const body = functionBody(
+      registrationFix,
+      'function public.create_competition_registration_v2',
+    )
+    const agotadoAt = body.indexOf("v_event.status = 'agotado'")
+    const openGateAt = body.indexOf(
+      "v_event.status not in ('inscripcion_abierta', 'cupos_limitados')",
+    )
+    expect(agotadoAt).toBeGreaterThan(-1)
+    expect(openGateAt).toBeGreaterThan(agotadoAt)
+    expect(body).toMatch(
+      /status = 'agotado'[\s\S]*?No quedan cupos para este evento\.[\s\S]*?errcode = 'PLU04'/,
+    )
+  })
+})

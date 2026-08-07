@@ -958,7 +958,7 @@ export default {
       apiUnavailableTitle: 'El servicio de administración está desconectado',
       apiUnavailableLead:
         'No se perdió ningún dato. Volvé a intentar cuando se restablezca la conexión.',
-      apiUnavailableDev: 'En desarrollo, iniciá frontend y API juntos con “npm run dev”.',
+      apiUnavailableDev: 'En desarrollo, iniciá frontend y API juntos con “npm run dev:services”.',
       retry: 'Reintentar',
       retrying: 'Conectando…',
       copyLink: 'Copiar link',

@@ -361,7 +361,7 @@ async function startDevelopment() {
   heading('Aplicación: Vite + Express')
   const npmCli = process.env.npm_execpath
   if (!npmCli || !existsSync(npmCli)) {
-    throw new Error('No se encontró npm-cli. Ejecutá este flujo mediante npm run dev.')
+    throw new Error('No se encontró npm-cli. Ejecutá este flujo mediante npm run dev:all.')
   }
 
   const child = spawn(process.execPath, [npmCli, 'run', 'dev:services'], {

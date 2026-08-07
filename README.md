@@ -20,7 +20,8 @@ Plataforma web de gestión para **Powerlifting United Argentina**, integrada con
 ```bash
 cp .env.example .env
 npm install
-npm run dev          # migra Supabase y levanta frontend + API
+npm run dev          # solo frontend (Vite → Supabase)
+npm run dev:all      # migra Supabase y levanta frontend + API
 ```
 
 La base es el PostgreSQL remoto de Supabase. No hace falta Docker. El dominio
@@ -267,9 +268,11 @@ tests/          Tests unitarios e integración API
 
 | Comando | Descripción |
 |---------|-------------|
-| `npm run dev` | Migra/verifica Supabase y levanta frontend + API |
+| `npm run dev` | Solo frontend (Vite). Datos vía Supabase; `/api` requiere Express |
+| `npm run dev:web` | Alias de `npm run dev` |
 | `npm run dev:api` | Solo API Express |
-| `npm run dev:all` | Alias de `npm run dev` |
+| `npm run dev:services` | Vite + Express sin migrar |
+| `npm run dev:all` | Migra/verifica Supabase y levanta frontend + API |
 | `npm run build` | Build de producción |
 | `npm run preview` | Preview del build |
 | `npm run test` | Tests (Vitest) |
