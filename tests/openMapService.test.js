@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   applyPluMapStyle,
+  createOpenMapTransformRequest,
   getOpenMapStyleUrl,
   syncOperationalMapLayers,
 } from '../src/services/openMapService.js'
@@ -31,6 +32,22 @@ describe('openMapService', () => {
     expect(getOpenMapStyleUrl('light')).toBe('https://tiles.openfreemap.org/styles/positron')
     expect(getOpenMapStyleUrl('dark')).toBe('https://tiles.openfreemap.org/styles/dark')
     expect(getOpenMapStyleUrl('dark')).not.toContain('key=')
+  })
+
+  it('reescribe assets de OpenFreeMap al proxy same-origin', () => {
+    const transformRequest = createOpenMapTransformRequest()
+    const origin = window.location.origin
+    expect(transformRequest('https://tiles.openfreemap.org/styles/dark')).toEqual({
+      url: `${origin}/map-tiles/styles/dark`,
+    })
+    expect(
+      transformRequest('https://tiles.openfreemap.org/planet/20260802_080001_pt/14/5534/9880.pbf'),
+    ).toEqual({
+      url: `${origin}/map-tiles/planet/20260802_080001_pt/14/5534/9880.pbf`,
+    })
+    expect(transformRequest('https://router.project-osrm.org/route/v1/driving/0,0;1,1')).toEqual({
+      url: 'https://router.project-osrm.org/route/v1/driving/0,0;1,1',
+    })
   })
 
   it('aplica la paleta PLU y localiza etiquetas sobre el estilo vectorial', () => {
