@@ -32,7 +32,14 @@ export function createApp(deps = {}) {
   // un X-Forwarded-For inesperado.
   const trustedProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? (process.env.VERCEL ? 1 : 0))
   if (trustedProxyHops > 0) app.set('trust proxy', trustedProxyHops)
-  app.use(helmet())
+  // CSP del documento lo define vercel.json (incluye OpenFreeMap / MapLibre).
+  // Helmet no debe emitir otra política: si se combinan, el browser intersecta
+  // y puede bloquear tiles aunque vercel.json los permita.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    }),
+  )
   app.use(cors({ origin: corsOrigin, credentials: true }))
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())

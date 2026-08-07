@@ -18,6 +18,9 @@ describe('api security baseline', () => {
 
     expect(response.headers.get('x-powered-by')).toBeNull()
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    // El CSP del documento vive en vercel.json (OpenFreeMap). La API no debe
+    // emitir otra política que el browser intersecte y bloquee tiles.
+    expect(response.headers.get('content-security-policy')).toBeNull()
 
     await target.close()
   })
