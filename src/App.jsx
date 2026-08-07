@@ -256,6 +256,7 @@ export default function App() {
           adminNavBadges={app.adminNavBadges}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
+          onSetMembershipStatus={app.setMembershipStatusAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
@@ -276,6 +277,7 @@ export default function App() {
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
           onSaveShopProduct={app.saveShopProduct}
+          onScheduleAssigned={app.handleScheduleAssigned}
           onSetFilters={app.setFilters}
           onUpdateUserRole={app.updateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}

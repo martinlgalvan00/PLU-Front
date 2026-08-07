@@ -219,6 +219,26 @@ export function buildDashboardOverview({
       createdAt: athlete.createdAt,
     }))
 
+  // Afiliaciones recientes, distintas de `recentAthletes`: esa lista son altas
+  // de cuenta, y crear la cuenta no afilia a nadie. Lo que el panel necesita
+  // ver es quién quedó efectivamente cubierto y desde cuándo.
+  const recentMemberships = [...memberships]
+    .filter((membership) => membership.startDate)
+    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+    .slice(0, 5)
+    .map((membership) => {
+      const athlete = athletes.find((item) => item.id === membership.athleteId)
+      return {
+        id: membership.id,
+        athleteId: membership.athleteId,
+        fullName: athlete?.fullName ?? '—',
+        memberCode: membership.memberCode,
+        status: membership.status,
+        startDate: membership.startDate,
+        expirationDate: membership.expirationDate,
+      }
+    })
+
   const eventLeaderboard = [...events]
     .filter((event) => event.status !== 'finalizado' && event.slots > 0)
     .map((event) => ({
@@ -341,6 +361,9 @@ export function buildDashboardOverview({
     recentAthletes: {
       items: recentAthletes,
       newThisWeek: newAthletesThisWeek,
+    },
+    recentMemberships: {
+      items: recentMemberships,
     },
     eventLeaderboard: {
       items: eventLeaderboard,

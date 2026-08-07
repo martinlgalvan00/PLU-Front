@@ -589,6 +589,19 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       res.json({ membership: await repo().membershipCredential(membershipId.data) })
     } catch (error) { next(error) }
   })
+  router.post('/admin/memberships/:membershipId/status', ...membershipWriteGuard, staffLimiter, validateBody(
+    z.object({ status: z.enum(['activa', 'cancelada']) }),
+  ), async (req, res, next) => {
+    try {
+      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+      res.json(await repo().setMembershipStatus(
+        membershipId.data,
+        req.validatedBody.status,
+        actorLabel(req),
+      ))
+    } catch (error) { next(error) }
+  })
   // Rota la credencial de la persona. Es la que hay que usar cuando un token
   // se filtró: la de afiliación solo alcanza a las cards del modelo viejo.
   router.post('/admin/:athleteId/rotate-credential', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {

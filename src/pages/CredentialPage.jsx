@@ -3,6 +3,7 @@ import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, XCircle } from 'lucide-react'
 import { BRAND } from '../lib/brand.js'
 import { formatShortDate } from '../lib/format.js'
+import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
 import { getStatusMeta } from '../lib/status.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
@@ -15,6 +16,8 @@ const VERDICT_META = {
   used: { Icon: AlertTriangle, label: 'Entrada ya utilizada', className: 'credential-page__verdict--invalid' },
 }
 
+const dateTime = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' })
+
 /**
  * CredentialPage — PLU ARG
  *
@@ -24,6 +27,11 @@ const VERDICT_META = {
  * login, y vea de un vistazo si la credencial es válida — y, en el caso de
  * entradas o inscripciones, para marcar el ingreso ahí mismo y agilizar la
  * fila en la puerta.
+ *
+ * El orden de lectura está fijado por lo que se resuelve en la puerta:
+ * veredicto → persona → cuándo compite → estados de soporte → acción. El
+ * bloque de grilla es el único con escala propia porque es el dato por el que
+ * se escanea.
  *
  * Tanto las entradas (tickets) como las credenciales de socio/inscripción
  * hablan con el backend real (Supabase, ver athleteApi.js/ticketApi.js), así
@@ -47,6 +55,42 @@ export default function CredentialPage({ code, eventSlug, type, onCheckIn, onChe
   }
 
   return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+}
+
+/**
+ * Cuándo compite esa persona — el dato por el que se escanea, así que es la
+ * única pieza de la pantalla con escala propia.
+ *
+ * Mientras la organización no arma la grilla se dice explícitamente "a
+ * confirmar" y se cae a la fecha del evento: dejar el renglón vacío haría
+ * parecer que la credencial está incompleta cuando en realidad está al día.
+ */
+function ScheduleBlock({ registration }) {
+  const summary = formatScheduleSummary(registration.schedule)
+  const eventDate = registration.eventStartsAt
+    ? formatShortDate(String(registration.eventStartsAt).slice(0, 10))
+    : ''
+
+  if (!summary) {
+    return (
+      <div className="credential-page__schedule-block credential-page__schedule-block--pending">
+        <span className="credential-page__schedule-eyebrow">Compite</span>
+        <p className="credential-page__schedule-day">
+          Día a confirmar{eventDate ? ` · ${eventDate}` : ''}
+        </p>
+      </div>
+    )
+  }
+
+  const detail = formatSessionDetail(registration.schedule)
+
+  return (
+    <div className="credential-page__schedule-block">
+      <span className="credential-page__schedule-eyebrow">Compite</span>
+      <p className="credential-page__schedule-day">{summary}</p>
+      {detail && <p className="credential-page__schedule-detail">{detail}</p>}
+    </div>
+  )
 }
 
 function MembershipCredential({ code, eventSlug, onCheckIn }) {
@@ -174,9 +218,12 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
           <p className="credential-page__athlete-code">{membership.memberCode}</p>
         )}
 
+        {/* Escaneo con evento: la grilla de esa inscripción manda. */}
+        {eventSlug && registration && <ScheduleBlock registration={registration} />}
+
         <dl className="credential-page__rows">
           <div className="credential-page__row">
-            <dt>Afiliación PLU ARG</dt>
+            <dt>Afiliación</dt>
             <dd>
               {membership ? (
                 <>
@@ -185,19 +232,19 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
                   </span>
                   {membership.expirationDate && (
                     <span className="credential-page__row-meta">
-                      Vigente hasta {formatShortDate(membership.expirationDate)}
+                      Hasta {formatShortDate(membership.expirationDate)}
                     </span>
                   )}
                 </>
               ) : (
-                <span className="credential-page__row-meta">Sin afiliación registrada.</span>
+                <span className="credential-page__row-meta">Sin afiliación registrada</span>
               )}
             </dd>
           </div>
 
           {eventSlug && (
             <div className="credential-page__row">
-              <dt>Inscripción al evento</dt>
+              <dt>Inscripción</dt>
               <dd>
                 {registration ? (
                   <>
@@ -205,69 +252,73 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
                       {registrationMeta.label}
                     </span>
                     <span className="credential-page__row-meta">
-                      {registration.event}
-                      {(registration.category || registration.division) &&
-                        ` · ${[registration.category, registration.division].filter(Boolean).join(' · ')}`}
+                      {[registration.event, registration.category, registration.division]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </>
                 ) : (
-                  <span className="credential-page__row-meta">Sin inscripción registrada a este evento.</span>
+                  <span className="credential-page__row-meta">
+                    Sin inscripción registrada a este evento
+                  </span>
                 )}
               </dd>
             </div>
           )}
 
-          {/* Escaneo sin evento en la URL: se listan las inscripciones vigentes
-              para que el operador vea a cuál corresponde el ingreso. */}
-          {otherRegistrations.map((item) => {
-            const meta = getStatusMeta(item.status)
-            return (
-              <div className="credential-page__row" key={item.id}>
-                <dt>{item.event ?? 'Inscripción'}</dt>
-                <dd>
-                  <span className={`status-pill status-pill--${meta.tone}`}>{meta.label}</span>
-                  {(item.category || item.division) && (
-                    <span className="credential-page__row-meta">
-                      {[item.category, item.division].filter(Boolean).join(' · ')}
-                    </span>
-                  )}
-                  {item.checkedInAt ? (
-                    <span className="credential-page__row-meta">
-                      Ingreso registrado{' '}
-                      {new Intl.DateTimeFormat('es-AR', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      }).format(new Date(item.checkedInAt))}
-                    </span>
-                  ) : isCheckInable(item) ? (
-                    <button
-                      type="button"
-                      className="credential-page__checkin-btn credential-page__checkin-btn--inline"
-                      onClick={() => handleCheckIn(item)}
-                      disabled={checkingIn}
-                    >
-                      <CheckCircle2 size={15} aria-hidden />
-                      {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
-                    </button>
-                  ) : null}
-                </dd>
-              </div>
-            )
-          })}
-
           {registration?.checkedInAt && (
             <div className="credential-page__row">
-              <dt>Ingreso registrado</dt>
+              <dt>Ingreso</dt>
               <dd>
-                <span className="credential-page__row-meta">
-                  {new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(
-                    new Date(registration.checkedInAt),
-                  )}
+                <span className="credential-page__row-value">
+                  {dateTime.format(new Date(registration.checkedInAt))}
                 </span>
               </dd>
             </div>
           )}
         </dl>
+
+        {/* Escaneo sin evento en la URL: se listan las inscripciones vigentes
+            para que el operador vea a cuál corresponde el ingreso. */}
+        {otherRegistrations.length > 0 && (
+          <>
+            <p className="credential-page__section-label">Inscripciones vigentes</p>
+            <div className="credential-page__rows">
+              {otherRegistrations.map((item) => {
+                const meta = getStatusMeta(item.status)
+                return (
+                  <div className="credential-page__entry" key={item.id}>
+                    <div className="credential-page__entry-head">
+                      <p className="credential-page__entry-title">{item.event ?? 'Inscripción'}</p>
+                      <span className={`status-pill status-pill--${meta.tone}`}>{meta.label}</span>
+                    </div>
+                    {(item.category || item.division) && (
+                      <p className="credential-page__row-meta">
+                        {[item.category, item.division].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    <ScheduleBlock registration={item} />
+                    {item.checkedInAt ? (
+                      <p className="credential-page__row-meta">
+                        Ingreso registrado {dateTime.format(new Date(item.checkedInAt))}
+                      </p>
+                    ) : isCheckInable(item) ? (
+                      <button
+                        type="button"
+                        className="credential-page__checkin-btn credential-page__checkin-btn--inline"
+                        onClick={() => handleCheckIn(item)}
+                        disabled={checkingIn}
+                      >
+                        <CheckCircle2 size={15} aria-hidden />
+                        {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         {canCheckIn && (
           <button
@@ -276,7 +327,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             onClick={() => handleCheckIn(registration)}
             disabled={checkingIn}
           >
-            <CheckCircle2 size={16} aria-hidden />
+            <CheckCircle2 size={17} aria-hidden />
             {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
           </button>
         )}
@@ -360,30 +411,31 @@ function TicketCredential({ code, onCheckIn }) {
           {ticket.ticketCode} · DNI {ticket.attendeeDni}
         </p>
 
+        {/* La entrada es un pase de un solo uso, no una identidad: lo que
+            manda es a qué da acceso, y por eso ocupa el lugar que en la
+            credencial de atleta ocupa la grilla. */}
+        <div className="credential-page__schedule-block">
+          <span className="credential-page__schedule-eyebrow">Acceso</span>
+          <p className="credential-page__schedule-day">{ticket.ticketTypeName ?? 'Entrada general'}</p>
+          {ticket.event?.title && (
+            <p className="credential-page__schedule-detail">{ticket.event.title}</p>
+          )}
+        </div>
+
         <dl className="credential-page__rows">
           <div className="credential-page__row">
-            <dt>Entrada general</dt>
+            <dt>Estado</dt>
             <dd>
               <span className={`status-pill status-pill--${ticketMeta.tone}`}>{ticketMeta.label}</span>
-              <span className="credential-page__row-meta">{ticket.event?.title}</span>
-            </dd>
-          </div>
-
-          <div className="credential-page__row">
-            <dt>Tipo de entrada</dt>
-            <dd>
-              <span className="credential-page__row-meta">{ticket.ticketTypeName ?? '—'}</span>
             </dd>
           </div>
 
           {checkedInAt && (
             <div className="credential-page__row">
-              <dt>Ingreso registrado</dt>
+              <dt>Ingreso</dt>
               <dd>
-                <span className="credential-page__row-meta">
-                  {new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(
-                    new Date(checkedInAt),
-                  )}
+                <span className="credential-page__row-value">
+                  {dateTime.format(new Date(checkedInAt))}
                 </span>
               </dd>
             </div>
@@ -397,13 +449,13 @@ function TicketCredential({ code, onCheckIn }) {
             onClick={handleCheckIn}
             disabled={checkingIn}
           >
-            <CheckCircle2 size={16} aria-hidden />
+            <CheckCircle2 size={17} aria-hidden />
             {checkingIn ? 'Marcando…' : 'Marcar ingreso'}
           </button>
         )}
 
         {ticket.status === 'pendiente_pago' && (
-          <p className="credential-page__empty-text">Esta entrada todavía no tiene el pago acreditado.</p>
+          <p className="credential-page__row-meta">Esta entrada todavía no tiene el pago acreditado.</p>
         )}
       </div>
     </CredentialShell>
@@ -431,10 +483,10 @@ function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictCla
           <span>PLU Argentina · Verificación</span>
         </header>
 
-        <div className={`credential-page__verdict ${verdictClass}`}>
-          <Icon size={40} aria-hidden />
+        <p className={`credential-page__verdict ${verdictClass}`} role="status">
+          <Icon size={20} aria-hidden />
           <span>{verdictLabel}</span>
-        </div>
+        </p>
 
         {children}
 

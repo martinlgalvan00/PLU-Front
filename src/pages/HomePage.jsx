@@ -8,6 +8,8 @@ import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
+import { useContent } from '../hooks/useContent.js'
+import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { getFeaturedEvent } from '../lib/eventNavigation.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -24,9 +26,17 @@ const teaserDuoVariants = {
 
 export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
   const { reducedMotion } = useMotionConfig()
+  const { PITBULL_CLASSIC } = useContent()
   const pitbullEvent = getFeaturedEvent(events)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  const { registered: liveRegistered, slots: liveSlots } = useEventRegistrationCapacity(
+    pitbullEvent?.slug ?? 'pitbull-classic-2026',
+    {
+      fallbackRegistered: PITBULL_CLASSIC.registered,
+      fallbackSlots: PITBULL_CLASSIC.slots,
+    },
+  )
 
   function handlePitbullRegister() {
     if (!isLoggedInAthlete) {
@@ -66,6 +76,8 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onResults={() => onNavigate?.('results')}
+            registered={liveRegistered}
+            slots={liveSlots}
           />
         </div>
       </section>

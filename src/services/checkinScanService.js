@@ -9,6 +9,15 @@ export function registrationCheckinStatus(registration) {
   return registration.status
 }
 
+/**
+ * Días en los que esa persona figura. Sin grilla asignada devuelve 'all': un
+ * atleta todavía sin día tiene que seguir apareciendo en la puerta, no
+ * desaparecer del roster hasta que la organización arme el reparto.
+ */
+export function scheduleDayIndexes(schedule) {
+  return typeof schedule?.dayIndex === 'number' ? [schedule.dayIndex] : 'all'
+}
+
 function buildAthleteRow(registration, athlete, membership) {
   return {
     id: `reg-${registration.id}`,
@@ -17,7 +26,8 @@ function buildAthleteRow(registration, athlete, membership) {
     name: athlete?.fullName,
     document: athlete?.documentId,
     meta: [registration.category, registration.division].filter(Boolean).join(' · '),
-    day: 'both',
+    dayIndexes: scheduleDayIndexes(registration.schedule),
+    schedule: registration.schedule ?? null,
     status: registrationCheckinStatus(registration),
     checkedInAt: registration.checkedInAt,
     membershipStatus: membership?.status ?? null,
@@ -26,12 +36,15 @@ function buildAthleteRow(registration, athlete, membership) {
 
 function buildMembershipOnlyRow(athlete, membership) {
   return {
-    id: `mem-${membership.id}`,
+    // La afiliación puede no existir (evento sin `requires_membership`), así
+    // que la fila se identifica por la persona, que siempre está.
+    id: `ath-${athlete.id}`,
     type: 'atleta',
     name: athlete?.fullName,
     document: athlete?.documentId,
     meta: '',
-    day: 'both',
+    dayIndexes: 'all',
+    schedule: null,
     status: null,
     membershipStatus: membership?.status ?? null,
   }
@@ -82,7 +95,12 @@ export async function resolveRegistrationScan({ code, eventSlug }, ctx) {
 
   try {
     const { athlete, membership, registration } = await readCredential(code, slug, staff)
-    if (!membership || !athlete) return { kind: 'registration', outcome: 'not_found' }
+    // La afiliación dejó de ser condición para que la credencial exista: un
+    // atleta inscripto y pagado a un evento con `requires_membership = false`
+    // no tiene fila en `memberships`, y exigirla acá lo hacía rebotar en la
+    // puerta como "credencial no encontrada". Lo único imprescindible es que el
+    // código resuelva a alguien.
+    if (!athlete) return { kind: 'registration', outcome: 'not_found' }
 
     if (!registration) {
       return {

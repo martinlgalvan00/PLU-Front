@@ -156,6 +156,28 @@
   opacity: 0.6;
 }
 
+/* ---------- Acciones de afiliación en la tabla ---------- */
+
+.admin-membership-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* La credencial se abre debajo de la tabla y no en un modal: el operador la
+   coteja contra la fila que acaba de tocar, y un overlay taparía justamente
+   eso. */
+.admin-membership-credential-panel {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+}
+
+.admin-membership-credential-panel h3 {
+  font-size: 15px;
+  margin: 0 0 var(--space-md);
+}
+
 /* ---------- Credencial en el detalle del atleta ---------- */
 
 .athlete-detail__credential {

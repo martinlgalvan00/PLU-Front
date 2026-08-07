@@ -291,11 +291,22 @@ export default function CheckInAppPage({
                   label: t('admin.checkin.dayLabel'),
                   mobile: 'default',
                   render: (row) => {
-                    if (row.dayIndexes === 'all' || !eventDays.length) return t('admin.checkin.bothDays')
+                    if (row.dayIndexes === 'all' || !eventDays.length) {
+                      // Un atleta sin grilla asignada sigue entrando en
+                      // cualquier día -- no se lo saca del roster -- pero se
+                      // dice que todavía no tiene día, que no es lo mismo que
+                      // "compite los dos".
+                      return row.type === 'atleta'
+                        ? t('admin.checkin.scheduleUnassigned')
+                        : t('admin.checkin.bothDays')
+                    }
                     const labels = row.dayIndexes
                       .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)
                       .filter(Boolean)
-                    return labels.length ? labels.join(' · ') : '—'
+                    const dayLabel = labels.length ? labels.join(' · ') : '—'
+                    return row.schedule?.sessionName
+                      ? `${dayLabel} · ${row.schedule.sessionName}`
+                      : dayLabel
                   },
                 },
                 {

@@ -1,8 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ArrowRight, MapPin, WifiOff } from 'lucide-react'
+import { ArrowRight, MapPin, RotateCcw, WifiOff } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import useEventTravelPlanner from '../../hooks/useEventTravelPlanner.js'
-import { getMapAvailability, normalizeMapEvents } from '../../lib/eventMap.js'
+import {
+  buildExternalMapUrl,
+  buildOpenStreetMapEmbedUrl,
+  canUseMapWebGL,
+  getMapAvailability,
+  normalizeMapEvents,
+} from '../../lib/eventMap.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { useTheme } from '../../providers/ThemeProvider.jsx'
 import '../../styles/components/competition-map.css'
@@ -10,9 +16,9 @@ import EventTravelPlanner from './EventTravelPlanner.jsx'
 
 const OpenMapCanvas = lazy(() => import('./OpenMapCanvas.jsx'))
 
-function useNearViewport(rootMargin = '360px') {
+function useNearViewport(rootMargin = '360px', { eager = false } = {}) {
   const ref = useRef(null)
-  const [nearViewport, setNearViewport] = useState(false)
+  const [nearViewport, setNearViewport] = useState(eager)
 
   useEffect(() => {
     const node = ref.current
@@ -38,7 +44,22 @@ function useNearViewport(rootMargin = '360px') {
   return [ref, nearViewport]
 }
 
-function MapFallback({ event, state, hidden, t }) {
+function VenueMapEmbed({ event, title }) {
+  const src = buildOpenStreetMapEmbedUrl(event)
+  if (!src) return null
+
+  return (
+    <iframe
+      className="competition-map__embed"
+      title={title}
+      src={src}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    />
+  )
+}
+
+function MapFallback({ event, state, hidden, onRetry, showRetry, t }) {
   const announcesState = state === 'loading' || state === 'error' || state === 'offline'
   const locationPendingTitle = event?.address
     ? t('pages.events.map.coordinatesTitle')
@@ -68,7 +89,11 @@ function MapFallback({ event, state, hidden, t }) {
   const eyebrow = eyebrows[state] ?? eyebrows.error
   const StateIcon = state === 'offline' ? WifiOff : MapPin
   const venueLine = [event?.venue, event?.location].filter(Boolean).join(' · ')
-  const showVenueMeta = state === 'missing_coordinates' && Boolean(venueLine)
+  const directionsUrl = event ? event.mapsUrl || buildExternalMapUrl(event) : ''
+  const showUsefulMeta =
+    !hidden &&
+    Boolean(event) &&
+    ['missing_coordinates', 'idle', 'loading', 'error', 'offline'].includes(state)
 
   return (
     <div
@@ -85,7 +110,29 @@ function MapFallback({ event, state, hidden, t }) {
         <p className="competition-map__fallback-eyebrow">{eyebrow}</p>
         <h3>{title}</h3>
         <p>{copy}</p>
-        {showVenueMeta ? <p className="competition-map__fallback-meta">{venueLine}</p> : null}
+        {showUsefulMeta && venueLine ? (
+          <p className="competition-map__fallback-meta">{venueLine}</p>
+        ) : null}
+        {showUsefulMeta && event?.address ? (
+          <p className="competition-map__fallback-address">{event.address}</p>
+        ) : null}
+        {showUsefulMeta && showRetry && typeof onRetry === 'function' ? (
+          <button type="button" className="competition-map__fallback-link" onClick={onRetry}>
+            {t('pages.events.map.retry')}
+            <RotateCcw size={14} aria-hidden />
+          </button>
+        ) : null}
+        {showUsefulMeta && directionsUrl ? (
+          <a
+            className="competition-map__fallback-link"
+            href={directionsUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {t('pages.events.map.directions')}
+            <ArrowRight size={14} aria-hidden />
+          </a>
+        ) : null}
       </div>
     </div>
   )
@@ -251,6 +298,7 @@ export default function CompetitionMap({
   selectedEventId,
   showHeader = true,
   showList = true,
+  showSelection = true,
   title,
   travelService,
   variant = 'calendar',
@@ -278,14 +326,32 @@ export default function CompetitionMap({
   const [online, setOnline] = useState(() => navigator.onLine !== false)
   const [providerState, setProviderState] = useState('idle')
   const [selectionIntent, setSelectionIntent] = useState('pointer')
-  const [rootRef, nearViewport] = useNearViewport()
+  const [canvasKey, setCanvasKey] = useState(0)
+  const [webglAvailable] = useState(() => canUseMapWebGL())
+  const [rootRef, nearViewport] = useNearViewport(variant === 'venue' ? '720px' : '360px', {
+    eager: variant === 'venue',
+  })
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
   const availability = getMapAvailability({ events: normalizedEvents, online })
-  const shouldLoad = nearViewport && availability === 'ready'
-  const fallbackState = availability === 'ready' ? providerState : availability
+  const isVenue = variant === 'venue'
+  const canUseInteractiveMap = webglAvailable || !isVenue
+  const interactiveFailed = canUseInteractiveMap && providerState === 'error'
+  const shouldLoad =
+    nearViewport && availability === 'ready' && canUseInteractiveMap && !interactiveFailed
+  const fallbackState =
+    availability === 'ready'
+      ? canUseInteractiveMap
+        ? providerState
+        : 'error'
+      : availability
   const mapVisible = shouldLoad && providerState === 'loaded'
+  const fallbackEvent = selected ?? normalizedEvents[0] ?? null
+  const venueEmbedVisible =
+    isVenue &&
+    Boolean(fallbackEvent?.coordinates) &&
+    (interactiveFailed || fallbackState === 'offline' || !canUseInteractiveMap)
   const travelPlanner = useEventTravelPlanner({
-    event: selected,
+    event: showSelection ? selected : null,
     online,
     service: travelService,
   })
@@ -309,6 +375,10 @@ export default function CompetitionMap({
   )
 
   const handleStatusChange = useCallback((state) => setProviderState(state), [])
+  const handleRetry = useCallback(() => {
+    setProviderState('idle')
+    setCanvasKey((value) => value + 1)
+  }, [])
   const primaryAction = selected ? resolvePrimaryAction?.(selected.source) : null
 
   return (
@@ -316,8 +386,9 @@ export default function CompetitionMap({
       ref={rootRef}
       className={`competition-map competition-map--${variant} ${className}`.trim()}
       aria-labelledby={showHeader ? titleId : undefined}
-      data-map-provider="openfreemap"
+      data-map-provider={venueEmbedVisible ? 'openstreetmap-embed' : 'openfreemap'}
       data-provider-state={fallbackState}
+      data-venue-embed={venueEmbedVisible ? 'true' : undefined}
     >
       {showHeader ? (
         <header className="competition-map__header">
@@ -350,10 +421,21 @@ export default function CompetitionMap({
           aria-label={t('pages.events.map.mapAria')}
           role="region"
         >
-          <MapFallback event={selected} state={fallbackState} hidden={mapVisible} t={t} />
+          <MapFallback
+            event={fallbackEvent}
+            state={fallbackState}
+            hidden={mapVisible || venueEmbedVisible}
+            onRetry={handleRetry}
+            showRetry={isVenue && fallbackState === 'error' && canUseInteractiveMap}
+            t={t}
+          />
+          {venueEmbedVisible ? (
+            <VenueMapEmbed event={fallbackEvent} title={t('pages.events.map.mapAria')} />
+          ) : null}
           {shouldLoad ? (
             <Suspense fallback={null}>
               <OpenMapCanvas
+                key={canvasKey}
                 events={mappedEvents}
                 instantSelection={selectionIntent === 'keyboard'}
                 language={locale === 'en' ? 'en' : 'es'}
@@ -372,13 +454,15 @@ export default function CompetitionMap({
           ) : null}
         </div>
 
-        <SelectedEventPanel
-          event={selected}
-          locale={locale}
-          primaryAction={primaryAction}
-          t={t}
-          travelPlanner={travelPlanner}
-        />
+        {showSelection ? (
+          <SelectedEventPanel
+            event={selected}
+            locale={locale}
+            primaryAction={primaryAction}
+            t={t}
+            travelPlanner={travelPlanner}
+          />
+        ) : null}
       </div>
     </section>
   )

@@ -6694,6 +6694,141 @@
   }
 }
 
+/* Últimos inscriptos — vacío editorial / lista tipográfica */
+.pitbull-recent {
+  display: grid;
+  gap: 18px;
+  margin-top: clamp(32px, 4.5vw, 48px);
+  max-width: min(36rem, 100%);
+  padding-top: clamp(22px, 3vw, 30px);
+  position: relative;
+}
+
+.pitbull-recent::before {
+  background: var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.pitbull-recent::after {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 2rem;
+}
+
+.pitbull-recent__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: space-between;
+}
+
+.pitbull-recent__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.pitbull-recent__hint {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  gap: 7px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-recent__hint--live {
+  color: color-mix(in oklab, var(--color-brand-celeste) 82%, var(--color-text-primary));
+}
+
+.pitbull-recent__hint-dot {
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  height: 5px;
+  width: 5px;
+}
+
+.pitbull-recent__empty {
+  display: grid;
+  gap: 8px;
+  max-width: 34ch;
+  padding: 2px 0 4px;
+}
+
+.pitbull-recent__empty-lead {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: clamp(0.98rem, 1.5vw, 1.1rem);
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.pitbull-recent__empty-note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pitbull-recent__list {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pitbull-recent__row {
+  align-items: baseline;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.pitbull-recent__name {
+  color: var(--color-text-primary);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  min-width: 0;
+}
+
+.pitbull-recent__time {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 /* =============================================
    PITBULL — INSCRIPTION SHELL
    ============================================= */
@@ -7322,9 +7457,192 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__title {
+  font-size: clamp(2.1rem, 4.4vw, 3.2rem);
   grid-column: 1 / -1;
-  max-width: none;
+  letter-spacing: -0.055em;
+  max-width: 12ch;
   width: 100%;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__lead {
+  max-width: 34ch;
+}
+
+/* SEDE editorial: mapa cinematográfico + dock de dirección */
+.pitbull-venue {
+  display: grid;
+  gap: 0;
+  margin-top: clamp(8px, 1.5vw, 16px);
+}
+
+.pitbull-venue__map {
+  border: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
+  isolation: isolate;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-venue__map .competition-map--venue,
+.pitbull-venue__map .event-venue-map {
+  margin: 0;
+}
+
+.pitbull-venue__map .competition-map--venue .competition-map__layout,
+.pitbull-venue__map .competition-map--venue[data-provider-state='error'] .competition-map__layout,
+.pitbull-venue__map .competition-map--venue[data-provider-state='offline'] .competition-map__layout,
+.pitbull-venue__map .competition-map--venue[data-provider-state='idle'] .competition-map__layout,
+.pitbull-venue__map .competition-map--venue[data-provider-state='loading'] .competition-map__layout {
+  border-radius: 0;
+  display: block;
+  height: clamp(320px, 48vw, 520px);
+  min-height: 320px;
+}
+
+.pitbull-venue__map .competition-map--venue .competition-map__stage,
+.pitbull-venue__map .competition-map--venue[data-provider-state] .competition-map__stage {
+  border: none;
+  height: 100%;
+  min-height: 320px;
+  position: relative;
+}
+
+.pitbull-venue__map .competition-map--venue[data-venue-embed='true'] .competition-map__fallback,
+.pitbull-venue__map .competition-map--venue[data-provider-state='loaded'] .competition-map__fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pitbull-venue__dock {
+  align-items: end;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--plu-cool-950, #0f1218) 72%, transparent) 38%,
+      color-mix(in oklab, var(--plu-cool-950, #0f1218) 92%, transparent) 100%
+    );
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  justify-content: space-between;
+  left: 0;
+  padding: clamp(48px, 7vw, 72px) clamp(16px, 2.4vw, 28px) clamp(16px, 2.4vw, 24px);
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 4;
+}
+
+.pitbull-venue__dock-copy {
+  display: grid;
+  gap: 4px;
+  max-width: min(36ch, 100%);
+  pointer-events: none;
+}
+
+.pitbull-venue__role {
+  color: color-mix(in oklab, var(--plu-warm-50, #f5f1e8) 68%, transparent);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-venue__street {
+  color: var(--plu-warm-50, #f5f1e8);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0;
+  text-shadow: 0 1px 16px color-mix(in oklab, var(--plu-cool-950) 45%, transparent);
+}
+
+.pitbull-venue__locality {
+  color: color-mix(in oklab, var(--plu-warm-50, #f5f1e8) 72%, transparent);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pitbull-venue__directions {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 4px;
+  color: var(--color-brand-action-text);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  padding: 0 18px;
+  pointer-events: auto;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.pitbull-venue__directions:hover {
+  background: var(--color-brand-action-hover, var(--color-brand-gold));
+  border-color: var(--color-brand-action-hover, var(--color-brand-gold));
+  color: var(--color-brand-action-text);
+}
+
+.pitbull-venue__directions:active {
+  transform: translateY(1px);
+}
+
+.pitbull-venue__directions:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+[data-theme='light'] .pitbull-venue__map {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-venue__dock {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in oklab, var(--plu-cool-950, #14181f) 58%, transparent) 42%,
+      color-mix(in oklab, var(--plu-cool-950, #14181f) 88%, transparent) 100%
+    );
+}
+
+@media (max-width: 640px) {
+  .pitbull-venue__dock {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pitbull-venue__directions {
+    justify-content: center;
+    width: fit-content;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-venue__directions {
+    transition: none;
+  }
+
+  .pitbull-venue__directions:active {
+    transform: none;
+  }
 }
 
 @media (min-width: 1100px) {
@@ -7360,17 +7678,20 @@
 
 /* =============================================
    PITBULL — TICKET INVITE (espectadores)
+   Conversión mínima: condición + CTA. El título/lead
+   de la sección ya persuaden.
    ============================================= */
 
 .pitbull-ticket-invite {
-  align-items: end;
+  align-items: center;
   border: none;
   border-top: 1px solid var(--pitbull-chapter-border, color-mix(in srgb, var(--color-text-primary) 12%, transparent));
-  display: grid;
-  gap: 20px 40px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: clamp(16px, 2.4vw, 28px);
-  padding: clamp(22px, 3vw, 30px) 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  justify-content: space-between;
+  margin-top: clamp(22px, 3vw, 34px);
+  padding: clamp(22px, 3.2vw, 32px) 0 4px;
   position: relative;
   width: 100%;
 }
@@ -7385,61 +7706,27 @@
   width: 2rem;
 }
 
-.pitbull-ticket-invite__copy {
-  display: grid;
-  gap: 8px;
-  max-width: 42ch;
-  min-width: 0;
-}
-
-.pitbull-ticket-invite__hook {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.pitbull-ticket-invite__note {
+.pitbull-ticket-invite__kicker {
   color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.45;
-  margin: 0;
-}
-
-.pitbull-ticket-invite__facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-}
-
-.pitbull-ticket-invite__facts li {
-  color: var(--color-text-secondary);
   font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  line-height: 1.2;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 42ch;
 }
 
-.pitbull-ticket-invite__facts li + li::before {
-  color: var(--color-text-muted);
-  content: '·';
-  margin-right: 14px;
-  opacity: 0.55;
+.pitbull-ticket-invite__kicker span[aria-hidden] {
+  color: color-mix(in oklab, var(--color-text-muted) 70%, transparent);
+  font-weight: 500;
 }
 
 .pitbull-ticket-invite__cta {
   align-items: center;
-  align-self: end;
   background: var(--color-brand-action);
   border: 1px solid var(--color-brand-action);
   border-radius: 4px;
@@ -7448,12 +7735,12 @@
   display: inline-flex;
   flex: none;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   gap: 8px;
   letter-spacing: 0.04em;
-  min-height: 44px;
-  padding: 0 20px;
+  min-height: 48px;
+  padding: 0 22px;
   text-transform: uppercase;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
@@ -7478,7 +7765,7 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__lead {
-  max-width: 48ch;
+  max-width: 46ch;
 }
 
 .pitbull-ticket-pass--cta {
@@ -7500,14 +7787,12 @@
 
 @media (max-width: 899px) {
   .pitbull-ticket-invite {
-    align-items: start;
-    gap: 18px;
-    grid-template-columns: 1fr;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .pitbull-ticket-invite__cta {
-    align-self: start;
-    justify-content: center;
     width: fit-content;
   }
 
@@ -7521,6 +7806,192 @@
 [data-theme='light'] .pitbull-ticket-invite {
   background: transparent;
   border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+/* =============================================
+   PITBULL — TICKETS BAND (espectadores, full-bleed)
+   ============================================= */
+
+.pitbull-tickets-band-wrap {
+  left: 50%;
+  margin-left: -50vw;
+  margin-top: clamp(8px, 1.5vw, 16px);
+  max-width: 100vw;
+  position: relative;
+  scroll-margin-top: var(--pitbull-scroll-offset);
+  width: 100vw;
+}
+
+.pitbull-tickets-band {
+  isolation: isolate;
+  min-height: clamp(320px, 52vw, 440px);
+  overflow: hidden;
+  position: relative;
+  scroll-margin-top: var(--pitbull-scroll-offset);
+  width: 100%;
+}
+
+.pitbull-tickets-band__media {
+  inset: 0;
+  position: absolute;
+  z-index: 0;
+}
+
+.pitbull-tickets-band__img {
+  display: block;
+  filter: grayscale(0.1) contrast(1.08) saturate(1.02);
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  width: 100%;
+}
+
+[data-theme='light'] .pitbull-tickets-band__img {
+  filter: grayscale(0.16) contrast(1.05) saturate(0.95);
+}
+
+.pitbull-tickets-band__scrim {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklab, var(--plu-cool-950) 82%, transparent) 0%,
+    color-mix(in oklab, var(--plu-cool-950) 52%, transparent) 42%,
+    color-mix(in oklab, var(--plu-cool-950) 28%, transparent) 72%,
+    color-mix(in oklab, var(--plu-cool-950) 40%, transparent) 100%
+  );
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.pitbull-tickets-band__content {
+  display: grid;
+  gap: clamp(12px, 1.8vw, 18px);
+  justify-items: start;
+  max-width: min(36rem, 100%);
+  padding:
+    clamp(36px, 5vw, 56px)
+    var(--layout-gutter-lg);
+  position: relative;
+  z-index: 2;
+}
+
+.pitbull-tickets-band__kicker {
+  align-items: baseline;
+  color: color-mix(in oklab, var(--plu-warm-50) 62%, transparent);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 10px;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-tickets-band__index {
+  color: var(--plu-gold-400, var(--color-brand-gold));
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.pitbull-tickets-band__eyebrow {
+  color: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.pitbull-tickets-band__title {
+  color: var(--plu-warm-50);
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.2vw, 2.85rem);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 0;
+  max-width: 14ch;
+  text-shadow: 0 1px 18px color-mix(in oklab, var(--plu-cool-950) 40%, transparent);
+}
+
+.pitbull-tickets-band__lead {
+  color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 40ch;
+}
+
+.pitbull-tickets-band__facts {
+  color: color-mix(in oklab, var(--plu-warm-50) 68%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 4px 0 0;
+}
+
+.pitbull-tickets-band__facts span[aria-hidden] {
+  color: color-mix(in oklab, var(--plu-warm-50) 40%, transparent);
+  font-weight: 500;
+}
+
+.pitbull-tickets-band__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 4px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+  min-height: 48px;
+  padding: 0 22px;
+  text-transform: uppercase;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.pitbull-tickets-band__cta:hover {
+  background: var(--color-brand-action-hover, var(--color-brand-gold));
+  border-color: var(--color-brand-action-hover, var(--color-brand-gold));
+}
+
+.pitbull-tickets-band__cta:active {
+  transform: translateY(1px);
+}
+
+.pitbull-tickets-band__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+@media (min-width: 900px) {
+  .pitbull-tickets-band__content {
+    padding-inline: max(
+      var(--layout-gutter-lg),
+      calc((100vw - var(--max-width-content)) / 2 + var(--layout-gutter-lg))
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-tickets-band__cta {
+    transition: none;
+  }
+
+  .pitbull-tickets-band__cta:active {
+    transform: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -7848,11 +8319,27 @@
   z-index: -1;
 }
 
-/* ── Bleed editorial: texto anclado al grid + foto al borde derecho.
-   Mobile: el panel se superpone a la foto (misma celda de grid + scrim). ── */
+/* ── Bleed cinematográfico full-width.
+   La fotografía ocupa todo el ancho; el copy flota sobre scrim a la izquierda.
+   ≥900px: collage asimétrico edge-to-edge. <900px: una sola foto LCP. ── */
 .pitbull-hero-masthead--bleed {
   isolation: isolate;
   overflow: hidden;
+  padding: 0;
+}
+
+/* Gana a la grilla legacy 2-col (≥860px) del masthead no-text. */
+.pitbull-hero-masthead.pitbull-hero-masthead--bleed
+  .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: min(78svh, 760px);
+  max-height: min(78svh, 760px);
+  min-height: min(520px, 78svh);
+  overflow: hidden;
+  width: 100%;
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__shell {
@@ -7863,39 +8350,85 @@
   z-index: 1;
 }
 
-.pitbull-hero-masthead__layout--bleed {
-  display: grid;
-  gap: clamp(22px, 3vw, 32px);
-  grid-template-columns: 1fr;
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: stretch;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-  max-width: min(36rem, 100%);
-  width: 100%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.6vw, 16px);
+  justify-content: flex-end;
+  max-width: none;
+  padding:
+    calc(var(--header-height) + 12px)
+    var(--layout-gutter-lg)
+    clamp(22px, 3.5vw, 40px);
+  position: relative;
+  z-index: 2;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel::before {
+  opacity: 0;
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
+  height: 100%;
   margin: 0;
   max-width: none;
+  position: relative;
+  width: 100%;
+  z-index: 0;
+}
+
+.pitbull-hero-masthead__collage {
+  display: grid;
+  gap: 0;
+  height: 100%;
+  isolation: isolate;
   min-height: 0;
+  overflow: hidden;
   position: relative;
   width: 100%;
 }
 
+/* Scrim de lectura sobre todo el collage (izquierda → derecha). */
+.pitbull-hero-masthead__collage::after {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 0%,
+    color-mix(in oklab, var(--plu-cool-950) 48%, transparent) 34%,
+    color-mix(in oklab, var(--plu-cool-950) 18%, transparent) 58%,
+    transparent 78%
+  );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+[data-theme='light'] .pitbull-hero-masthead__collage::after {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklab, var(--plu-cool-950) 74%, transparent) 0%,
+    color-mix(in oklab, var(--plu-cool-950) 42%, transparent) 36%,
+    color-mix(in oklab, var(--plu-cool-950) 16%, transparent) 58%,
+    transparent 78%
+  );
+}
+
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
-  aspect-ratio: 16 / 10;
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-  border-radius: calc(var(--border-radius-lg) + 4px);
-  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.5);
   isolation: isolate;
   overflow: hidden;
   position: relative;
-}
-
-[data-theme='light'] .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 20px 40px -28px rgba(15, 17, 23, 0.28);
 }
 
 /* Absolute cover: la img 800×1200 no aporta altura intrínseca al layout. */
@@ -7911,12 +8444,20 @@
   width: 100%;
 }
 
+.pitbull-hero-masthead__plate--secondary .pitbull-hero-masthead__frame-img {
+  object-position: center 42%;
+}
+
+.pitbull-hero-masthead__plate--accent .pitbull-hero-masthead__frame-img {
+  object-position: center 48%;
+}
+
 [data-theme='light'] .pitbull-hero-masthead__frame-img {
   filter: grayscale(0.12) contrast(1.06) saturate(0.95) brightness(1.02);
 }
 
 .pitbull-hero-masthead__frame-scrim {
-  background: linear-gradient(180deg, transparent 55%, rgba(8, 9, 12, 0.42) 100%);
+  background: linear-gradient(180deg, transparent 60%, rgba(8, 9, 12, 0.28) 100%);
   inset: 0;
   pointer-events: none;
   position: absolute;
@@ -7924,55 +8465,146 @@
 }
 
 [data-theme='light'] .pitbull-hero-masthead__frame-scrim {
-  background: linear-gradient(180deg, transparent 55%, rgba(15, 17, 23, 0.22) 100%);
+  background: linear-gradient(180deg, transparent 60%, rgba(15, 17, 23, 0.14) 100%);
 }
 
-/* Kicker: fecha · sede en una sola línea (no la grilla de hechos). */
+/* Kicker: fecha · sede en una sola línea. */
 .pitbull-hero-masthead__kicker {
   color: var(--color-text-secondary);
-  font-size: clamp(14px, 1.4vw, 15.5px);
+  font-size: clamp(13.5px, 1.35vw, 15px);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.4;
   margin: 0;
-  max-width: 40ch;
+  max-width: 42ch;
+  min-width: 0;
 }
 
 .pitbull-hero-masthead__kicker time {
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.pitbull-hero-masthead__kicker-venue {
+  color: inherit;
 }
 
 .pitbull-hero-masthead__kicker-loc {
   color: var(--color-text-muted);
 }
 
-/* Mobile: overlay corto a sangre. Cap duro evita que el intrínseco 800×1200
-   o el panel con CTA inflen el hero por encima del viewport. */
-@media (max-width: 767px) {
-  .pitbull-hero-masthead--bleed {
-    padding: 0;
-  }
+/* Tipografía sobre foto (todos los anchos del bleed). */
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
+  gap: 8px;
+}
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    gap: 0;
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, auto);
-    max-height: min(78svh, 640px);
-    min-height: 0;
-    overflow: hidden;
-  }
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
+  color: var(--plu-warm-50);
+  font-size: clamp(2rem, 6.2vw, 3rem);
+  max-width: 12ch;
+  text-shadow: 0 1px 18px color-mix(in oklab, var(--plu-cool-950) 45%, transparent);
+}
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    grid-area: 1 / 1;
-    min-height: 0;
-  }
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb {
+  color: color-mix(in oklab, var(--plu-warm-50) 55%, transparent);
+  font-size: 11px;
+  opacity: 1;
+}
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb span:last-child {
+  color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge {
+  background: transparent;
+  backdrop-filter: none;
+  color: color-mix(in oklab, var(--plu-warm-50) 70%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge--warning {
+  color: var(--plu-gold-400);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
+  color: color-mix(in oklab, var(--plu-warm-50) 74%, transparent);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  max-width: 42ch;
+  overflow: hidden;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
+  border-color: color-mix(in oklab, var(--plu-warm-50) 18%, transparent);
+  max-width: min(40rem, 100%);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta::before {
+  background: var(--plu-gold-400);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker {
+  color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker time {
+  color: var(--plu-warm-50);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
+  color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-label {
+  color: color-mix(in oklab, var(--plu-warm-50) 52%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-value {
+  color: var(--plu-gold-400);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-sep {
+  color: color-mix(in oklab, var(--plu-warm-50) 42%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
+  border-top: none;
+  margin-top: 4px;
+  max-width: min(36rem, 100%);
+  padding-top: 0;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link {
+  align-self: flex-start;
+  color: color-mix(in oklab, var(--plu-warm-50) 92%, transparent);
+  min-height: 44px;
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link:hover {
+  color: var(--plu-warm-50);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-label {
+  color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-value {
+  color: var(--plu-gold-400);
+}
+
+/* <900: una sola imagen LCP a sangre. */
+@media (max-width: 899px) {
+  .pitbull-hero-masthead__plate--primary {
     height: 100%;
-    max-height: min(78svh, 640px);
-    z-index: 0;
+  }
+
+  .pitbull-hero-masthead__plate--secondary,
+  .pitbull-hero-masthead__plate--accent {
+    display: none;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
@@ -7981,335 +8613,141 @@
     border-radius: 0;
     box-shadow: none;
     height: 100%;
-    max-height: min(78svh, 640px);
     min-height: 0;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-img {
+    object-position: center 32%;
+  }
+
+  /* En mobile el scrim del collage se refuerza verticalmente. */
+  .pitbull-hero-masthead__collage::after {
     background: linear-gradient(
       180deg,
-      color-mix(in oklab, var(--plu-cool-950) 72%, transparent) 0%,
-      color-mix(in oklab, var(--plu-cool-950) 42%, transparent) 42%,
-      color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 100%
+      color-mix(in oklab, var(--plu-cool-950) 68%, transparent) 0%,
+      color-mix(in oklab, var(--plu-cool-950) 38%, transparent) 40%,
+      color-mix(in oklab, var(--plu-cool-950) 82%, transparent) 100%
     );
   }
 
-  [data-theme='light'] .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
+  [data-theme='light'] .pitbull-hero-masthead__collage::after {
     background: linear-gradient(
       180deg,
-      color-mix(in oklab, var(--plu-cool-950) 70%, transparent) 0%,
-      color-mix(in oklab, var(--plu-cool-950) 40%, transparent) 44%,
-      color-mix(in oklab, var(--plu-cool-950) 76%, transparent) 100%
+      color-mix(in oklab, var(--plu-cool-950) 66%, transparent) 0%,
+      color-mix(in oklab, var(--plu-cool-950) 36%, transparent) 42%,
+      color-mix(in oklab, var(--plu-cool-950) 80%, transparent) 100%
     );
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    justify-content: flex-start;
-    max-height: min(78svh, 640px);
-    max-width: none;
-    min-height: 0;
-    padding:
-      calc(var(--header-height) + 8px)
-      var(--layout-gutter-lg)
-      clamp(18px, 4vw, 28px);
-    position: relative;
-    z-index: 2;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel::before {
-    opacity: 0;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
-    gap: 6px;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    color: var(--plu-warm-50);
-    font-size: clamp(1.85rem, 7.5vw, 2.35rem);
-    max-width: 11ch;
-    text-shadow: 0 1px 18px color-mix(in oklab, var(--plu-cool-950) 45%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb {
-    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
-    font-size: 11px;
-    opacity: 1;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__breadcrumb span:last-child {
-    color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker {
-    color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker time {
-    color: var(--plu-warm-50);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
-    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
-    color: color-mix(in oklab, var(--plu-warm-50) 72%, transparent);
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    max-width: 34ch;
-    overflow: hidden;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
-    border-top-color: color-mix(in oklab, var(--plu-warm-50) 16%, transparent);
-    margin-top: auto;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link {
-    align-self: flex-start;
-    color: color-mix(in oklab, var(--plu-warm-50) 92%, transparent);
-    min-height: 44px;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link:hover {
-    color: var(--plu-warm-50);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge {
-    background: transparent;
-    backdrop-filter: none;
-    color: color-mix(in oklab, var(--plu-warm-50) 72%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
-    border-color: color-mix(in oklab, var(--plu-warm-50) 18%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta::before {
-    background: var(--plu-gold-400);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__dateline {
-    color: var(--plu-warm-50);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__venue,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__venue-name,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__loc {
-    color: color-mix(in oklab, var(--plu-warm-50) 64%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-label {
-    color: color-mix(in oklab, var(--plu-warm-50) 52%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-value {
-    color: var(--plu-gold-400);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__slots-sep {
-    color: color-mix(in oklab, var(--plu-warm-50) 42%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-label {
-    color: color-mix(in oklab, var(--plu-warm-50) 58%, transparent);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-value {
-    color: var(--plu-gold-400);
   }
 }
 
-/* Notebook (768–1099): una columna editorial.
-   El split 2-col + height fija de ≥768 aplastaba el copy (~380px) junto a la foto. */
 @media (min-width: 768px) and (max-width: 1099px) {
-  .pitbull-hero-masthead--bleed {
-    padding-inline: var(--layout-gutter-lg);
-    padding-bottom: clamp(24px, 3.5vw, 40px);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    align-items: start;
-    display: grid;
-    gap: clamp(18px, 2.8vw, 28px);
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
-    height: auto;
-    order: 1;
-    width: 100%;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
-    aspect-ratio: 2.15 / 1;
-    border-radius: calc(var(--border-radius-lg) + 2px);
-    border-right: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.1));
-    box-shadow: none;
-    height: auto;
-    max-height: clamp(220px, 34vw, 340px);
-    min-height: 200px;
-  }
-
-  [data-theme='light'] .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
-    border-right-color: rgba(15, 17, 23, 0.1);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background:
-      linear-gradient(
-        180deg,
-        transparent 48%,
-        color-mix(in oklab, var(--color-page-canvas) 55%, transparent) 100%
-      );
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(12px, 1.8vw, 18px);
-    justify-content: flex-start;
-    margin-left: 0;
-    max-width: min(40rem, 100%);
-    order: 2;
-    padding-block: 0;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
-    gap: 8px;
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed
+    .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
+    height: min(74svh, 720px);
+    max-height: min(74svh, 720px);
+    min-height: min(500px, 74svh);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2rem, 4.6vw, 2.75rem);
+    font-size: clamp(2.35rem, 5vw, 3.25rem);
     max-width: 12ch;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
-    max-width: 42ch;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__loc {
-    display: block;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
-    align-items: start;
-    gap: 12px 20px;
-    max-width: min(36rem, 100%);
-    padding-top: 14px;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
-    border-top: none;
-    flex-wrap: wrap;
-    gap: 12px 16px;
-    margin-top: 2px;
-    max-width: min(32rem, 100%);
-    padding-top: 0;
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta-group {
-    flex-wrap: wrap;
+    max-width: 46ch;
   }
 }
 
-/* Desktop amplio: texto a la izquierda anclado al content-grid, foto a sangre
-   derecha. Altura fija del bloque: la img no puede recuperar intrínseco. */
-@media (min-width: 1100px) {
-  .pitbull-hero-masthead--bleed {
-    padding-right: 0;
+/* ≥900: collage full-bleed edge-to-edge (dominante + stack). */
+@media (min-width: 900px) {
+  .pitbull-hero-masthead__collage {
+    background: var(--color-page-canvas);
+    gap: 2px;
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 0.9fr);
+    grid-template-rows: minmax(0, 1.2fr) minmax(0, 0.8fr);
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    align-items: stretch;
-    column-gap: clamp(28px, 3.5vw, 48px);
-    grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
-    height: clamp(420px, 56vh, 560px);
+  .pitbull-hero-masthead__plate--primary {
+    grid-column: 1;
+    grid-row: 1 / -1;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(12px, 1.6vw, 18px);
-    justify-content: center;
-    margin-left: max(0px, calc((100vw - var(--max-width-content) - var(--layout-gutter-lg)) / 2));
-    max-width: min(36rem, 100%);
-    min-height: 0;
-    order: 0;
-    padding-block: clamp(4px, 1vw, 12px);
+  .pitbull-hero-masthead__plate--secondary {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__head {
-    gap: clamp(8px, 1vw, 12px);
-  }
-
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame {
-    height: 100%;
-    min-height: 0;
-    order: 0;
+  .pitbull-hero-masthead__plate--accent {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate {
     aspect-ratio: auto;
-    border-radius: calc(var(--border-radius-lg) + 2px) 0 0 calc(var(--border-radius-lg) + 2px);
-    border-right: none;
+    border: none;
+    border-radius: 0;
     box-shadow: none;
     height: 100%;
     max-height: none;
     min-height: 0;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background: linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--color-page-canvas) 32%, transparent),
-      transparent 40%
-    );
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    justify-content: center;
+    max-width: none;
+    padding-block: clamp(16px, 2vw, 28px);
+    padding-inline: max(var(--layout-gutter-lg), calc((100vw - var(--max-width-content)) / 2 + var(--layout-gutter-lg)));
+    width: 100%;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2.1rem, 3.4vw, 3.2rem);
+    font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+    max-width: 11ch;
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__lead {
-    max-width: 38ch;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    max-width: 40ch;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc,
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__loc {
-    display: none;
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-img {
+    object-position: center 34%;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed
+    .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
+    height: clamp(540px, 72vh, 780px);
+    max-height: none;
+    min-height: 540px;
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__meta {
-    padding-top: 16px;
+  .pitbull-hero-masthead__collage {
+    grid-template-columns: minmax(0, 1.9fr) minmax(220px, 0.85fr);
   }
 
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
-    border-top: none;
-    margin-top: 2px;
-    max-width: min(28rem, 100%);
-    padding-top: 0;
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    max-width: none;
+    width: 100%;
+  }
+
+  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__kicker-loc {
+    display: inline;
   }
 }
 
 @media (min-width: 1280px) {
-  .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    column-gap: clamp(40px, 4.5vw, 64px);
-    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
-    height: clamp(440px, 56vh, 560px);
+  .pitbull-hero-masthead.pitbull-hero-masthead--bleed
+    .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
+    height: clamp(560px, 74vh, 820px);
   }
 
   .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2.4rem, 3.6vw, 3.6rem);
+    font-size: clamp(2.6rem, 3.8vw, 3.9rem);
   }
 }
 
@@ -8398,7 +8836,7 @@
   border: none;
   border-top: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
   display: grid;
-  gap: 10px 28px;
+  gap: 10px 24px;
   grid-template-columns: minmax(0, 1fr) auto;
   margin: 0;
   padding: 14px 0 2px;
@@ -8475,7 +8913,7 @@
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -8483,7 +8921,7 @@
 .pitbull-hero-masthead__slots-value {
   color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.1vw, 1.55rem);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -9223,21 +9661,27 @@
 }
 
 @media (min-width: 860px) {
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__layout {
+  /* Legacy split (panel | visual). No aplicar al bleed cinematográfico. */
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text):not(.pitbull-hero-masthead--bleed)
+    .pitbull-hero-masthead__layout {
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
     min-height: clamp(300px, 36vw, 400px);
   }
 
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__visual {
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text):not(.pitbull-hero-masthead--bleed)
+    .pitbull-hero-masthead__visual {
     min-height: 100%;
   }
 
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__media,
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__img {
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text):not(.pitbull-hero-masthead--bleed)
+    .pitbull-hero-masthead__media,
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text):not(.pitbull-hero-masthead--bleed)
+    .pitbull-hero-masthead__img {
     min-height: 100%;
   }
 
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__panel {
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text):not(.pitbull-hero-masthead--bleed)
+    .pitbull-hero-masthead__panel {
     border-left: 1px solid var(--pitbull-control-rail-border, rgba(255, 255, 255, 0.08));
   }
 
@@ -9825,6 +10269,10 @@
     padding-inline: var(--layout-gutter-sm);
   }
 
+  .pitbull-hero-masthead--bleed {
+    padding-inline: 0;
+  }
+
   .pitbull-hero-masthead--text .pitbull-hero-masthead__title {
     font-size: clamp(2rem, 9vw, 2.75rem);
     max-width: 14ch;
@@ -10270,6 +10718,16 @@
   padding-bottom: clamp(28px, 4vw, 48px);
 }
 
+@media (max-width: 1099px) {
+  .pitbull-page--premium .pitbull-hero-masthead--bleed {
+    padding-bottom: 0;
+  }
+
+  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
+    max-width: none;
+  }
+}
+
 .pitbull-page--premium .pitbull-hero-masthead::before {
   background:
     linear-gradient(180deg, transparent 78%, var(--color-page-canvas) 100%),
@@ -10278,7 +10736,8 @@
 
 .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
   gap: clamp(12px, 1.4vw, 18px);
-  max-width: min(38rem, 100%);
+  max-width: none;
+  width: 100%;
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__head {
@@ -10374,12 +10833,14 @@
   object-position: center 38%;
 }
 
-.pitbull-page--premium .pitbull-hero-masthead__frame-scrim {
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--color-page-canvas) 28%, transparent),
-    transparent 38%
-  );
+@media (min-width: 1100px) {
+  .pitbull-page--premium .pitbull-hero-masthead__frame-scrim {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-page-canvas) 28%, transparent),
+      transparent 38%
+    );
+  }
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__actions {
@@ -10401,7 +10862,7 @@
   min-width: 44px;
 }
 
-/* Índice de recorrido — no sticky: scrollea con la página */
+/* Índice de recorrido — puente tipográfico con el masthead; no sticky. */
 .pitbull-section-nav {
   background: var(--color-page-canvas);
   border-bottom: 1px solid var(--pitbull-chapter-border);
@@ -10420,7 +10881,7 @@
 .pitbull-section-nav__inner {
   align-items: center;
   display: grid;
-  gap: 8px 24px;
+  gap: 8px 28px;
   grid-template-columns: auto minmax(0, 1fr);
   margin-inline: auto;
   max-width: var(--max-width-content);
@@ -10430,9 +10891,11 @@
 
 .pitbull-section-nav__label {
   color: var(--color-text-muted);
+  font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -10453,16 +10916,17 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 1px solid transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
   flex: none;
   font-family: var(--font-family);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  gap: 7px;
-  min-height: 54px;
+  gap: 8px;
+  letter-spacing: -0.01em;
+  min-height: 48px;
   padding: 0 14px;
   transition:
     border-color var(--motion-fast) var(--ease-standard),
@@ -10470,16 +10934,27 @@
   white-space: nowrap;
 }
 
-.pitbull-section-nav__item span {
+.pitbull-section-nav__item:first-child {
+  padding-left: 0;
+}
+
+.pitbull-section-nav__index {
   color: var(--color-text-muted);
+  font-family: var(--font-display);
   font-size: 9px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
 }
 
 .pitbull-section-nav__item:hover {
-  border-bottom-color: color-mix(in oklab, var(--color-brand-celeste) 42%, transparent);
+  border-bottom-color: var(--color-brand-gold);
   color: var(--color-text-primary);
+}
+
+.pitbull-section-nav__item:hover .pitbull-section-nav__index {
+  color: var(--color-brand-gold);
 }
 
 .pitbull-section-nav__item:focus-visible {
@@ -10830,21 +11305,9 @@
   font-size: clamp(1.35rem, 2.7vw, 2rem);
 }
 
-/* Invitación a espectadores */
-.pitbull-dossier--minimal .pitbull-dossier__section--tickets {
-  padding-bottom: clamp(8px, 1.5vw, 16px);
-}
-
-.pitbull-dossier--minimal .pitbull-dossier__section--tickets .pitbull-dossier__title {
-  font-size: clamp(1.75rem, 3.4vw, 2.55rem);
-  letter-spacing: -0.045em;
-  max-width: 16ch;
-}
-
-.pitbull-ticket-invite {
-  background: transparent;
-  border-color: var(--pitbull-chapter-border);
-  border-radius: 0;
+/* Invitación a espectadores — banda full-bleed (markup nuevo) */
+.pitbull-page--premium .pitbull-tickets-band-wrap {
+  margin-bottom: clamp(8px, 1.5vw, 20px);
 }
 
 .pitbull-page--premium .pitbull-inscription-shell__actions .pitbull-inscription__cta--primary,
@@ -10862,12 +11325,6 @@
   background: transparent;
   border-color: var(--pitbull-chapter-border, color-mix(in srgb, var(--color-text-primary) 14%, transparent));
   color: var(--color-text-secondary);
-}
-
-.pitbull-page--premium .pitbull-ticket-invite__cta {
-  align-self: end;
-  flex: none;
-  width: fit-content;
 }
 
 /* Cierre: banda editorial, no tarjeta flotante */
@@ -10917,19 +11374,13 @@
 }
 
 @media (min-width: 768px) and (max-width: 1099px) {
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    column-gap: 0;
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
-  }
-
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
     margin-left: 0;
-    max-width: min(40rem, 100%);
+    max-width: none;
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2rem, 4.6vw, 2.75rem);
+    font-size: clamp(2.35rem, 5vw, 3.15rem);
   }
 
   .pitbull-location,
@@ -10947,18 +11398,22 @@
 }
 
 @media (min-width: 1100px) {
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed {
-    column-gap: clamp(36px, 4.5vw, 64px);
-    grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
-    height: clamp(420px, 56vh, 560px);
+  .pitbull-page--premium.pitbull-page
+    .pitbull-hero-masthead.pitbull-hero-masthead--bleed
+    .pitbull-hero-masthead__layout.pitbull-hero-masthead__layout--bleed {
+    height: clamp(560px, 74vh, 820px);
+    max-height: none;
+    min-height: 560px;
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    margin-left: max(0px, calc((100vw - var(--max-width-content) - var(--layout-gutter-lg)) / 2));
+    margin-left: 0;
+    max-width: none;
+    width: 100%;
   }
 
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__title {
-    font-size: clamp(2.4rem, 3.8vw, 3.6rem);
+    font-size: clamp(2.5rem, 3.9vw, 3.8rem);
   }
 
   .pitbull-location,
@@ -11001,28 +11456,11 @@
   }
 }
 
-@media (max-width: 767px) {
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__layout--bleed,
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame,
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-plate,
+@media (max-width: 1099px) {
   .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    max-height: min(78svh, 640px);
-    min-height: 0;
-  }
-
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__frame-scrim {
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--plu-cool-950) 72%, transparent) 0%,
-      color-mix(in oklab, var(--plu-cool-950) 42%, transparent) 42%,
-      color-mix(in oklab, var(--plu-cool-950) 78%, transparent) 100%
-    );
-  }
-
-  .pitbull-page--premium .pitbull-hero-masthead--bleed .pitbull-hero-masthead__panel {
-    gap: 10px;
-    justify-content: flex-start;
-    padding-bottom: clamp(18px, 4vw, 28px);
+    gap: clamp(10px, 1.6vw, 14px);
+    justify-content: flex-end;
+    padding-bottom: clamp(20px, 3.5vw, 36px);
   }
 
   .pitbull-page--premium .pitbull-hero-masthead__meta {
@@ -11032,8 +11470,11 @@
   }
 
   .pitbull-page--premium .pitbull-hero-masthead__slots-value {
-    font-size: clamp(1.15rem, 5.5vw, 1.35rem);
+    font-size: clamp(1.05rem, 3.2vw, 1.3rem);
   }
+}
+
+@media (max-width: 767px) {
 
   .pitbull-section-nav__inner {
     display: block;
@@ -11045,8 +11486,12 @@
   }
 
   .pitbull-section-nav__item {
-    min-height: 50px;
+    min-height: 48px;
     padding-inline: 12px;
+  }
+
+  .pitbull-section-nav__item:first-child {
+    padding-left: 12px;
   }
 
   .pitbull-page--premium .pitbull-page__body {
@@ -11122,99 +11567,215 @@
 }
 
 /* =========================================================================
-   NUEVO FLUJO (Bento & Pesajes)
+   EXPERIENCIA — stage cinematográfico + pilares tipográficos
    ========================================================================= */
 
-/* ── Bento Experience ── */
-.pitbull-dossier__section--bento {
-  padding-block: clamp(60px, 8vw, 100px);
+.pitbull-dossier__section--experience {
+  border-top: 0;
+  padding-block: clamp(36px, 5vw, 64px) clamp(56px, 8vw, 96px);
 }
 
-.pitbull-bento {
+.pitbull-dossier--minimal > .pitbull-dossier__section--experience {
+  display: block;
+  grid-template-columns: none;
+}
+
+.pitbull-experience--stage {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: clamp(12px, 2vw, 16px);
-  margin-top: clamp(24px, 4vw, 40px);
+  gap: 0;
+  margin: 0;
 }
 
-.pitbull-bento__card {
-  background: var(--color-surface);
-  border: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.05));
-  border-radius: 14px;
-  padding: clamp(24px, 3.5vw, 36px);
-  position: relative;
+.pitbull-experience__stage {
+  isolation: isolate;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 220px;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.4s ease,
-              border-color 0.4s ease;
-}
-
-.pitbull-bento__card:hover {
-  background: color-mix(in srgb, var(--color-surface) 95%, white);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px);
-}
-
-/* Variantes de Card en Desktop */
-@media (min-width: 900px) {
-  .pitbull-bento {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .pitbull-bento__card--large {
-    grid-column: span 2;
-    grid-row: span 2;
-    min-height: 460px;
-  }
-  
-  .pitbull-bento__card--wide {
-    grid-column: span 2;
-  }
-}
-
-.pitbull-bento__watermark {
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  font-family: var(--font-display);
-  font-size: 14rem;
-  font-weight: 700;
-  line-height: 0.8;
-  letter-spacing: -0.06em;
-  color: rgba(255, 255, 255, 0.02);
-  pointer-events: none;
-  transition: color 0.4s ease;
-}
-
-.pitbull-bento__card:hover .pitbull-bento__watermark {
-  color: rgba(212, 175, 55, 0.04); /* Un dorado súper sutil en hover */
-}
-
-.pitbull-bento__content {
   position: relative;
+  width: 100%;
+}
+
+.pitbull-experience__media {
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.pitbull-experience__img {
+  display: block;
+  filter: grayscale(0.1) contrast(1.08) saturate(1.02);
+  height: clamp(340px, 58vw, 560px);
+  object-fit: cover;
+  object-position: center 38%;
+  width: 100%;
+}
+
+[data-theme='light'] .pitbull-experience__img {
+  filter: grayscale(0.16) contrast(1.05) saturate(0.94);
+}
+
+.pitbull-experience__scrim {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-cool-950, #0f1218) 18%, transparent) 0%,
+    color-mix(in oklab, var(--plu-cool-950, #0f1218) 28%, transparent) 42%,
+    color-mix(in oklab, var(--plu-cool-950, #0f1218) 88%, transparent) 100%
+  );
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
   z-index: 1;
 }
 
-.pitbull-bento__title {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin: 0 0 12px;
+.pitbull-experience__masthead {
+  bottom: 0;
+  display: grid;
+  gap: clamp(10px, 1.5vw, 16px);
+  justify-items: start;
+  left: 0;
+  max-width: min(34rem, 100%);
+  padding: clamp(28px, 4vw, 44px) clamp(16px, 2.4vw, 28px);
+  position: absolute;
+  right: 0;
+  z-index: 2;
 }
 
-.pitbull-bento__desc {
-  color: var(--color-text-muted);
-  font-size: clamp(0.9rem, 1vw, 1rem);
-  line-height: 1.6;
+.pitbull-experience__kicker {
+  align-items: baseline;
+  color: color-mix(in oklab, var(--plu-warm-50, #f5f1e8) 66%, transparent);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 650;
+  gap: 10px;
+  letter-spacing: 0.12em;
   margin: 0;
-  max-width: 45ch;
+  text-transform: uppercase;
+}
+
+.pitbull-experience__index {
+  color: var(--plu-gold-400, var(--color-brand-gold));
+  font-variant-numeric: tabular-nums;
+}
+
+.pitbull-experience__title {
+  color: var(--plu-warm-50, #f5f1e8);
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5.4vw, 3.6rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  margin: 0;
+  max-width: 12ch;
+  text-shadow: 0 1px 22px color-mix(in oklab, var(--plu-cool-950) 42%, transparent);
+}
+
+.pitbull-experience__lead {
+  color: color-mix(in oklab, var(--plu-warm-50, #f5f1e8) 78%, transparent);
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.pitbull-experience__pillars {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.pitbull-experience__pillars::before {
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  top: -1px;
+  width: 2.5rem;
+}
+
+.pitbull-experience__pillar {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: clamp(18px, 2.4vw, 26px) 0;
+}
+
+.pitbull-experience__pillar:first-child {
+  border-top: 0;
+}
+
+.pitbull-experience__label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.pitbull-experience__text {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 28ch;
+}
+
+@media (min-width: 720px) {
+  .pitbull-experience__pillars {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-experience__pillar {
+    border-top: 0;
+    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+    padding: clamp(22px, 2.8vw, 30px) clamp(16px, 2vw, 24px);
+  }
+
+  .pitbull-experience__pillar:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .pitbull-experience__pillar:nth-child(-n + 2) {
+    border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  }
+}
+
+@media (min-width: 1100px) {
+  .pitbull-experience__pillars {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .pitbull-experience__pillar,
+  .pitbull-experience__pillar:nth-child(odd) {
+    border-bottom: 0;
+    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+    padding: clamp(24px, 2.8vw, 32px) clamp(14px, 1.6vw, 22px);
+  }
+
+  .pitbull-experience__pillar:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .pitbull-experience__text {
+    max-width: 22ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-experience__stage {
+    transform: none;
+  }
 }
 
 /* ── Pesajes Snapshot ── */

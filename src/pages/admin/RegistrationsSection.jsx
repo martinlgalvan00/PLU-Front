@@ -1,14 +1,17 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { BadgeCheck, ClipboardList } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
+import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
 import { AdminIdentityCell, AdminPaymentCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import { formatScheduleSummary } from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
 
 function findRegistrationPayment(payments, athleteId) {
@@ -28,6 +31,7 @@ function countRegistrationsByFilter(registrations, payments, filter) {
 }
 
 export default function RegistrationsSection({
+  canAssignSchedule = false,
   canEdit,
   filters,
   filteredRegistrations,
@@ -38,10 +42,12 @@ export default function RegistrationsSection({
   onExportAdmin,
   onExportPluUsa,
   onGoToEvents,
+  onScheduleAssigned,
   onSetFilters,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const total = registrationsCount ?? registrations.length
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 
@@ -81,7 +87,9 @@ export default function RegistrationsSection({
           athlete: reg.athlete?.fullName,
           document: reg.athlete?.documentId,
           event: reg.event,
+          eventSlug: reg.eventSlug,
           category: `${reg.category} · ${reg.division}`,
+          schedule: reg.schedule ?? null,
           status: reg.status,
           paymentStatus: payment?.status,
           amount: payment ? money(payment.amount) : '—',
@@ -90,6 +98,69 @@ export default function RegistrationsSection({
       }),
     [filteredRegistrations, payments],
   )
+
+  // La selección se limita a las filas que el filtro deja a la vista: seguir
+  // arrastrando ids ocultos haría que "asignar 40" tocara gente que el
+  // operador ya no está mirando.
+  const visibleSelectedRows = useMemo(
+    () => registrationRows.filter((row) => selectedIds.has(row.id)),
+    [registrationRows, selectedIds],
+  )
+
+  const selectedEventSlugs = useMemo(
+    () => new Set(visibleSelectedRows.map((row) => row.eventSlug).filter(Boolean)),
+    [visibleSelectedRows],
+  )
+  // La RPC de asignación trabaja sobre un evento por vez.
+  const mixedEvents = selectedEventSlugs.size > 1
+  const targetEventSlug = selectedEventSlugs.size === 1 ? [...selectedEventSlugs][0] : null
+
+  const {
+    assign,
+    assigning,
+    days,
+    sessions,
+    status: scheduleStatus,
+  } = useEventSchedule(targetEventSlug, { enabled: canAssignSchedule && Boolean(targetEventSlug) })
+
+  const allVisibleSelected =
+    registrationRows.length > 0 && visibleSelectedRows.length === registrationRows.length
+
+  const toggleRow = useCallback((rowId) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(rowId)) next.delete(rowId)
+      else next.add(rowId)
+      return next
+    })
+  }, [])
+
+  const toggleAllVisible = useCallback(() => {
+    setSelectedIds((current) => {
+      const visibleIds = registrationRows.map((row) => row.id)
+      const everySelected = visibleIds.every((id) => current.has(id))
+      const next = new Set(current)
+      for (const id of visibleIds) {
+        if (everySelected) next.delete(id)
+        else next.add(id)
+      }
+      return next
+    })
+  }, [registrationRows])
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
+
+  async function handleAssign({ dayIndex, sessionId }) {
+    const result = await assign({
+      registrationIds: visibleSelectedRows.map((row) => row.id),
+      dayIndex,
+      sessionId,
+    })
+    clearSelection()
+    // El snapshot del panel es el que alimenta la columna de grilla y el QR:
+    // sin releerlo, la tabla seguiría mostrando la asignación vieja.
+    onScheduleAssigned?.(result)
+  }
 
   function handleQueryChange(value) {
     onSetFilters((current) => ({ ...current, query: value }))
@@ -212,60 +283,116 @@ export default function RegistrationsSection({
           </button>
         </div>
       ) : (
-        <AdminDataTable
-          columns={[
-            {
-              key: 'athlete',
-              label: t('admin.columns.athlete'),
-              mobile: 'primary',
-              sortable: true,
-              render: (row) => (
-                <AdminIdentityCell name={row.athlete} sub={row.document} subMono />
-              ),
-            },
-            {
-              key: 'event',
-              label: t('admin.columns.event'),
-              mobile: 'default',
-              sortable: true,
-              render: (row) => [row.event, row.category].filter(Boolean).join(' · '),
-            },
-            { key: 'category', label: t('admin.columns.category'), mobile: 'hidden', sortable: true },
-            {
-              key: 'status',
-              label: t('admin.columns.status'),
-              mobile: 'badge',
-              sortable: true,
-              render: (row) => <StatusBadge value={row.status} />,
-            },
-            {
-              key: 'payment',
-              label: t('admin.columns.payment'),
-              mobile: 'badge',
-              sortable: true,
-              sortAccessor: (row) => row.amount,
-              render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
-            },
-            {
-              key: 'action',
-              label: t('admin.columns.action'),
-              mobile: 'action',
-              render: (row) => (
-                <AdminTableActions>
-                  <AdminIconButton
-                    disabled={!canEdit || row.paymentStatus === 'aprobado'}
-                    icon={BadgeCheck}
-                    label={t('admin.actions.validate')}
-                    onClick={() => onApprovePayment(row.paymentId)}
-                    variant="celeste"
-                  />
-                </AdminTableActions>
-              ),
-            },
-          ]}
-          rows={registrationRows}
-          emptyMessage={t('admin.sections.registrations.empty')}
-        />
+        <>
+          {canAssignSchedule && (
+            <AdminScheduleAssigner
+              assigning={assigning}
+              days={days}
+              sessions={sessions}
+              mixedEvents={mixedEvents}
+              onAssign={handleAssign}
+              onClearSelection={clearSelection}
+              scheduleStatus={scheduleStatus}
+              selectedCount={visibleSelectedRows.length}
+            />
+          )}
+          <AdminDataTable
+            columns={[
+              ...(canAssignSchedule
+                ? [
+                    {
+                      key: 'select',
+                      mobile: 'default',
+                      mobileLabel: '',
+                      label: (
+                        <label className="admin-schedule-select">
+                          <input
+                            type="checkbox"
+                            checked={allVisibleSelected}
+                            onChange={toggleAllVisible}
+                            aria-label={t('admin.schedule.selectAll')}
+                          />
+                        </label>
+                      ),
+                      render: (row) => (
+                        <label className="admin-schedule-select">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(row.id)}
+                            onChange={() => toggleRow(row.id)}
+                            aria-label={t('admin.schedule.selectRow', { name: row.athlete ?? '' })}
+                          />
+                        </label>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                key: 'athlete',
+                label: t('admin.columns.athlete'),
+                mobile: 'primary',
+                sortable: true,
+                render: (row) => (
+                  <AdminIdentityCell name={row.athlete} sub={row.document} subMono />
+                ),
+              },
+              {
+                key: 'event',
+                label: t('admin.columns.event'),
+                mobile: 'default',
+                sortable: true,
+                render: (row) => [row.event, row.category].filter(Boolean).join(' · '),
+              },
+              { key: 'category', label: t('admin.columns.category'), mobile: 'hidden', sortable: true },
+              {
+                // Qué día compite. Ordena por el resumen, así las no asignadas
+                // quedan juntas y se ven de un vistazo las que faltan repartir.
+                key: 'schedule',
+                label: t('admin.columns.schedule'),
+                mobile: 'default',
+                sortable: true,
+                sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
+                render: (row) =>
+                  formatScheduleSummary(row.schedule, locale) || (
+                    <span className="admin-muted-text">{t('admin.schedule.unassignedShort')}</span>
+                  ),
+              },
+              {
+                key: 'status',
+                label: t('admin.columns.status'),
+                mobile: 'badge',
+                sortable: true,
+                render: (row) => <StatusBadge value={row.status} />,
+              },
+              {
+                key: 'payment',
+                label: t('admin.columns.payment'),
+                mobile: 'badge',
+                sortable: true,
+                sortAccessor: (row) => row.amount,
+                render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
+              },
+              {
+                key: 'action',
+                label: t('admin.columns.action'),
+                mobile: 'action',
+                render: (row) => (
+                  <AdminTableActions>
+                    <AdminIconButton
+                      disabled={!canEdit || row.paymentStatus === 'aprobado'}
+                      icon={BadgeCheck}
+                      label={t('admin.actions.validate')}
+                      onClick={() => onApprovePayment(row.paymentId)}
+                      variant="celeste"
+                    />
+                  </AdminTableActions>
+                ),
+              },
+            ]}
+            rows={registrationRows}
+            emptyMessage={t('admin.sections.registrations.empty')}
+          />
+        </>
       )}
     </AdminListSection>
   )

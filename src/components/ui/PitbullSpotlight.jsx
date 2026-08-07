@@ -38,6 +38,8 @@ export default function PitbullSpotlight({
   onJoin,
   onResults,
   registerLabel,
+  registered,
+  slots,
 }) {
   const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
@@ -46,6 +48,8 @@ export default function PitbullSpotlight({
   const isHome = variant === 'home'
   const isEvents = variant === 'events'
   const dateMonthLabel = `${PITBULL_CLASSIC.dateMonth} 2026`
+  const capacityRegistered = registered ?? PITBULL_CLASSIC.registered
+  const capacitySlots = slots ?? PITBULL_CLASSIC.slots
 
   if (isEvents) {
     // Todo lo visible sale de `event` (el próximo evento real, resuelto por
@@ -341,8 +345,8 @@ export default function PitbullSpotlight({
 
         <div className="pitbull-spotlight__capacity">
           <CapacityBar
-            current={PITBULL_CLASSIC.registered}
-            total={PITBULL_CLASSIC.slots}
+            current={capacityRegistered}
+            total={capacitySlots}
             label={t('pages.pitbull.spotlight.slotsOccupied')}
           />
         </div>

@@ -1369,6 +1369,48 @@
   color: rgba(15, 17, 23, 0.8);
 }
 
+/* Auth immersive login: una superficie underline también en light */
+[data-theme='light'] .auth-immersive-glass .login-field__control {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(15, 17, 23, 0.18);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control:hover:not(:focus-within) {
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.32);
+  box-shadow: none;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control:focus-within {
+  background: transparent;
+  border-bottom-color: rgba(15, 17, 23, 0.12);
+  box-shadow: none;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control input {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  caret-color: var(--plu-gold-500);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field__control input:hover:not(:focus),
+[data-theme='light'] .auth-immersive-glass .login-field__control input:focus,
+[data-theme='light'] .auth-immersive-glass .login-field__control input:focus-visible {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+[data-theme='light'] .auth-immersive-glass .login-field.is-invalid .login-field__control {
+  background: transparent;
+  border-bottom-color: var(--color-brand-red, #c0392b);
+}
+
 [data-theme='light'] .login-separator::before,
 [data-theme='light'] .login-separator::after {
   background: rgba(15, 17, 23, 0.1);

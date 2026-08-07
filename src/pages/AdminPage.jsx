@@ -45,6 +45,7 @@ export default function AdminPage({
   adminNavBadges,
   getAthleteDetail,
   onApprovePayment,
+  onSetMembershipStatus,
   onApproveTicketPurchase,
   onRefreshPendingTicketOrders,
   onRefreshAdminEvents,
@@ -60,6 +61,7 @@ export default function AdminPage({
   onExportPluUsa,
   onSaveEvent,
   onSaveShopProduct,
+  onScheduleAssigned,
   onSetFilters,
   onUpdateUserRole,
   onUpdateUserStatus,
@@ -187,6 +189,8 @@ export default function AdminPage({
         <MembershipsSection
           memberships={enrichedMemberships}
           onSelectAthlete={handleSelectAthlete}
+          onSetMembershipStatus={onSetMembershipStatus}
+          canManage={hasPermission(authorization, 'admin.memberships.write')}
         />
       )
     }
@@ -194,6 +198,7 @@ export default function AdminPage({
     if (section === 'registrations') {
       return (
         <RegistrationsSection
+          canAssignSchedule={hasPermission(authorization, 'admin.registrations.write')}
           canEdit={hasAnyPermission(authorization, [
             'admin.registrations.write',
             'admin.payments.approve',
@@ -207,6 +212,7 @@ export default function AdminPage({
           onExportAdmin={onExportAdmin}
           onExportPluUsa={onExportPluUsa}
           onGoToEvents={() => setSection('events')}
+          onScheduleAssigned={onScheduleAssigned}
           onSetFilters={onSetFilters}
         />
       )
