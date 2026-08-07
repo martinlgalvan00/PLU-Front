@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Award,
   Calendar,
@@ -6,7 +6,6 @@ import {
   CreditCard,
   Eye,
   FileSpreadsheet,
-  History,
   Key,
   LockKeyhole,
   Minus,
@@ -16,13 +15,12 @@ import {
   Save,
   Search,
   Settings,
-  ShieldCheck,
   Trash2,
   Users,
-  UsersRound,
   X,
 } from 'lucide-react'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
+import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
@@ -147,7 +145,6 @@ export default function RolesSection({
   roles = [],
 }) {
   const { locale, t } = useI18n()
-  const roleListRef = useRef(null)
 
   const orderedRoles = useMemo(
     () =>
@@ -188,10 +185,15 @@ export default function RolesSection({
     setPendingRoleId(null)
   }, [selectedRole])
 
-  useEffect(() => {
-    const selectedButton = roleListRef.current?.querySelector(`[data-role-id="${selectedRoleId}"]`)
-    selectedButton?.scrollIntoView({ block: 'nearest', inline: 'center' })
-  }, [selectedRoleId])
+  const roleTabs = useMemo(
+    () =>
+      orderedRoles.map((role) => ({
+        id: role.id,
+        label: role.name,
+        count: typeof role.userCount === 'number' ? role.userCount : undefined,
+      })),
+    [orderedRoles],
+  )
 
   const permissionRows = useMemo(() => {
     const byModule = new Map()
@@ -274,11 +276,10 @@ export default function RolesSection({
 
     return {
       modules: new Set(selectedPermissions.map((permission) => permission.module)).size,
-      elevated: selectedPermissions.filter((permission) => permission.action !== 'read').length,
     }
   }, [permissionCatalog, permissionDraftSet])
   const selectedActivity = useMemo(
-    () => activity.filter((item) => item.roleId === selectedRole?.id).slice(0, 6),
+    () => activity.filter((item) => item.roleId === selectedRole?.id).slice(0, 3),
     [activity, selectedRole?.id],
   )
 
@@ -456,6 +457,139 @@ export default function RolesSection({
     }
   }
 
+  const toolbar = selectedRole ? (
+    <div className="admin-roles__toolbar">
+      <div className="admin-roles__search-box">
+        <Search size={14} className="admin-roles__search-icon" aria-hidden />
+        <input
+          type="search"
+          className="admin-roles__search-input"
+          placeholder={t('admin.roles.searchPlaceholder')}
+          value={permSearch}
+          onChange={(e) => setPermSearch(e.target.value)}
+        />
+        {permSearch ? (
+          <button
+            type="button"
+            className="admin-roles__search-clear"
+            onClick={() => setPermSearch('')}
+            aria-label={t('admin.roles.clearSearch')}
+          >
+            <X size={12} aria-hidden />
+          </button>
+        ) : null}
+      </div>
+
+      {editable ? (
+        <div className="admin-roles__presets" role="group" aria-label={t('admin.roles.presetsAria')}>
+          <button
+            type="button"
+            className="admin-roles__preset-btn"
+            onClick={handleGrantAll}
+            title={t('admin.roles.presetAllTitle')}
+          >
+            <CheckCheck size={13} aria-hidden />
+            <span>{t('admin.roles.presetAll')}</span>
+          </button>
+
+          <button
+            type="button"
+            className="admin-roles__preset-btn"
+            onClick={handleGrantReadOnly}
+            title={t('admin.roles.presetReadOnlyTitle')}
+          >
+            <Eye size={13} aria-hidden />
+            <span>{t('admin.roles.presetReadOnly')}</span>
+          </button>
+
+          <button
+            type="button"
+            className="admin-roles__preset-btn admin-roles__preset-btn--clear"
+            onClick={handleClearAll}
+            title={t('admin.roles.presetClearTitle')}
+          >
+            <Trash2 size={13} aria-hidden />
+            <span>{t('admin.roles.presetClear')}</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  ) : null
+
+  const activitySection =
+    canViewAudit && selectedRole ? (
+      <section className="admin-roles__activity" aria-labelledby="admin-role-activity-title">
+        <header className="admin-roles__activity-head">
+          <h2 id="admin-role-activity-title">{t('admin.roles.activityTitle')}</h2>
+        </header>
+
+        {selectedActivity.length > 0 ? (
+          <ol className="admin-roles__activity-list">
+            {selectedActivity.map((item) => {
+              const addedPermissions = item.addedPermissions ?? []
+              const removedPermissions = item.removedPermissions ?? []
+              const hasPermissionDetails =
+                addedPermissions.length > 0 || removedPermissions.length > 0
+              const actionLabel =
+                item.action === 'access_role.created'
+                  ? t('admin.roles.activityCreated')
+                  : item.action === 'access_role.permissions_updated'
+                    ? t('admin.roles.activityUpdated')
+                    : t('admin.roles.activityConfigured')
+
+              return (
+                <li key={item.id}>
+                  <div className="admin-roles__activity-body">
+                    <div className="admin-roles__activity-title">
+                      <strong>{actionLabel}</strong>
+                      <span className="admin-roles__activity-meta">
+                        {t('admin.roles.activityActor', {
+                          actor: item.actorName || t('admin.roles.systemActor'),
+                        })}
+                        <span aria-hidden="true">·</span>
+                        <time dateTime={item.createdAt}>
+                          {formatActivityDate(item.createdAt, locale)}
+                        </time>
+                      </span>
+                    </div>
+                    {hasPermissionDetails ? (
+                      <details className="admin-roles__activity-details">
+                        <summary>
+                          {t('admin.roles.activitySummary', {
+                            added: addedPermissions.length,
+                            removed: removedPermissions.length,
+                          })}
+                        </summary>
+                        <ul>
+                          {addedPermissions.map((permissionKey) => (
+                            <li key={`activity-added-${item.id}-${permissionKey}`}>
+                              <Plus size={12} aria-hidden />
+                              {permissionLabel(permissionKey)}
+                            </li>
+                          ))}
+                          {removedPermissions.map((permissionKey) => (
+                            <li
+                              key={`activity-removed-${item.id}-${permissionKey}`}
+                              className="is-removed"
+                            >
+                              <Minus size={12} aria-hidden />
+                              {permissionLabel(permissionKey)}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        ) : (
+          <p className="admin-roles__activity-empty">{t('admin.roles.activityEmpty')}</p>
+        )}
+      </section>
+    ) : null
+
   return (
     <section className="admin-roles">
       <AdminPageHeader
@@ -474,123 +608,88 @@ export default function RolesSection({
         </p>
       )}
 
+      <div className="admin-roles__tabs-bar">
+        <DetailTabs
+          tabs={roleTabs}
+          activeTab={selectedRole?.id}
+          onChange={handleRoleSelect}
+          variant="editorial"
+        />
+        {canCreateRole ? (
+          <button
+            type="button"
+            className="admin-roles__add"
+            aria-controls="admin-role-create"
+            aria-expanded={isCreating}
+            onClick={() => {
+              if (dirty) {
+                setMessage({
+                  tone: 'warning',
+                  text: t('admin.roles.finishChangesFirst'),
+                })
+                return
+              }
+              setIsCreating((current) => !current)
+              setMessage(null)
+            }}
+          >
+            {isCreating ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
+            <span>{isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}</span>
+          </button>
+        ) : null}
+      </div>
+
+      {isCreating ? (
+        <form
+          id="admin-role-create"
+          className="admin-roles__create"
+          onSubmit={handleCreateRole}
+        >
+          <label>
+            <span>{t('admin.roles.roleName')}</span>
+            <input
+              type="text"
+              value={roleDraft.name}
+              minLength={3}
+              maxLength={64}
+              autoComplete="off"
+              required
+              autoFocus
+              onChange={(event) =>
+                setRoleDraft((current) => ({ ...current, name: event.target.value }))
+              }
+            />
+          </label>
+          <label>
+            <span>{t('admin.roles.roleDescription')}</span>
+            <textarea
+              value={roleDraft.description}
+              maxLength={180}
+              rows={3}
+              placeholder={t('admin.roles.descriptionPlaceholder')}
+              onChange={(event) =>
+                setRoleDraft((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <Button
+            type="submit"
+            className="btn--small"
+            disabled={roleDraft.name.trim().length < 3 || isCreatingRole}
+          >
+            <Plus size={14} aria-hidden />
+            {isCreatingRole ? t('admin.roles.creating') : t('admin.roles.create')}
+          </Button>
+          <p>{t('admin.roles.createHint')}</p>
+        </form>
+      ) : null}
+
+      {toolbar}
+
       <div className="admin-roles__workspace">
-        <aside className="admin-roles__list" aria-label={t('admin.roles.listAria')}>
-          <div className="admin-roles__list-head">
-            <span className="admin-roles__list-label">{t('admin.roles.hierarchy')}</span>
-            {canCreateRole ? (
-              <button
-                type="button"
-                className="admin-roles__add"
-                aria-controls="admin-role-create"
-                aria-expanded={isCreating}
-                onClick={() => {
-                  if (dirty) {
-                    setMessage({
-                      tone: 'warning',
-                      text: t('admin.roles.finishChangesFirst'),
-                    })
-                    return
-                  }
-                  setIsCreating((current) => !current)
-                  setMessage(null)
-                }}
-              >
-                {isCreating ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
-                <span>{isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}</span>
-              </button>
-            ) : null}
-          </div>
-
-          {isCreating ? (
-            <form
-              id="admin-role-create"
-              className="admin-roles__create"
-              onSubmit={handleCreateRole}
-            >
-              <label>
-                <span>{t('admin.roles.roleName')}</span>
-                <input
-                  type="text"
-                  value={roleDraft.name}
-                  minLength={3}
-                  maxLength={64}
-                  autoComplete="off"
-                  required
-                  autoFocus
-                  onChange={(event) =>
-                    setRoleDraft((current) => ({ ...current, name: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                <span>{t('admin.roles.roleDescription')}</span>
-                <textarea
-                  value={roleDraft.description}
-                  maxLength={180}
-                  rows={3}
-                  placeholder={t('admin.roles.descriptionPlaceholder')}
-                  onChange={(event) =>
-                    setRoleDraft((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <Button
-                type="submit"
-                className="btn--small"
-                disabled={roleDraft.name.trim().length < 3 || isCreatingRole}
-              >
-                <Plus size={14} aria-hidden />
-                {isCreatingRole ? t('admin.roles.creating') : t('admin.roles.create')}
-              </Button>
-              <p>{t('admin.roles.createHint')}</p>
-            </form>
-          ) : null}
-
-          <ol ref={roleListRef}>
-            {orderedRoles.map((role) => {
-              const level = getRoleHierarchyLevel(role)
-              const roleEditable = !role.isProtected && actorCanEditRole(authorization, role)
-
-              return (
-                <li key={role.id}>
-                  <button
-                    type="button"
-                    data-role-id={role.id}
-                    className={role.id === selectedRole?.id ? 'is-active' : ''}
-                    aria-pressed={role.id === selectedRole?.id}
-                    onClick={() => handleRoleSelect(role.id)}
-                  >
-                    <span className="admin-roles__level" aria-hidden>
-                      {role.isSystem ? level : t('admin.roles.customBadge')}
-                    </span>
-                    <span className="admin-roles__list-copy">
-                      <strong>{role.name}</strong>
-                      <small>
-                        {role.isProtected
-                          ? t('admin.roles.protectedShort')
-                          : !role.isSystem
-                            ? t('admin.roles.customShort')
-                            : roleEditable
-                              ? t('admin.roles.configurableShort')
-                              : t('admin.roles.usersCount', {
-                                  count: role.userCount ?? 0,
-                                })}
-                      </small>
-                    </span>
-                    <span className="admin-roles__list-status" aria-hidden>
-                      {role.isProtected ? <LockKeyhole size={14} /> : <ShieldCheck size={14} />}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
-        </aside>
-
         {selectedRole ? (
           <div className="admin-roles__matrix-panel">
             <header className="admin-roles__matrix-head">
@@ -616,104 +715,31 @@ export default function RolesSection({
                 <p>{selectedRole.description || t('admin.roles.noDescription')}</p>
               </div>
 
-              <div className="admin-roles__matrix-actions">
-                <dl className="admin-roles__impact">
-                  <div>
-                    <dt>{t('admin.roles.impactUsers')}</dt>
-                    <dd>
-                      <UsersRound size={13} aria-hidden />
-                      {selectedRole.userCount ?? 0}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('admin.roles.impactModules')}</dt>
-                    <dd>{roleStats.modules}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('admin.roles.impactElevated')}</dt>
-                    <dd>{roleStats.elevated}</dd>
-                  </div>
-                </dl>
-                <div
-                  className="admin-roles__coverage"
-                  aria-label={t('admin.roles.activeCount', {
-                    active: activePermissionCount,
-                    total: permissionCatalog.length,
-                  })}
-                >
-                  <span className="admin-roles__permission-count">
+              <div
+                className="admin-roles__matrix-meta"
+                aria-label={t('admin.roles.activeCount', {
+                  active: activePermissionCount,
+                  total: permissionCatalog.length,
+                })}
+              >
+                <p className="admin-roles__meta-line">
+                  <span>{t('admin.roles.usersCount', { count: selectedRole.userCount ?? 0 })}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{t('admin.roles.modulesCount', { count: roleStats.modules })}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>
                     {t('admin.roles.activeCount', {
                       active: activePermissionCount,
                       total: permissionCatalog.length,
                     })}
                   </span>
-                  <progress
-                    className="admin-roles__coverage-bar"
-                    max={permissionCatalog.length || 1}
-                    value={activePermissionCount}
-                  />
-                </div>
+                </p>
               </div>
             </header>
 
-            <div className="admin-roles__toolbar">
-              <div className="admin-roles__search-box">
-                <Search size={14} className="admin-roles__search-icon" aria-hidden />
-                <input
-                  type="search"
-                  className="admin-roles__search-input"
-                  placeholder={t('admin.roles.searchPlaceholder')}
-                  value={permSearch}
-                  onChange={(e) => setPermSearch(e.target.value)}
-                />
-                {permSearch ? (
-                  <button
-                    type="button"
-                    className="admin-roles__search-clear"
-                    onClick={() => setPermSearch('')}
-                    aria-label={t('admin.roles.clearSearch')}
-                  >
-                    <X size={12} aria-hidden />
-                  </button>
-                ) : null}
-              </div>
+            {activitySection}
 
-              {editable ? (
-                <div className="admin-roles__presets" role="group" aria-label={t('admin.roles.presetsAria')}>
-                  <button
-                    type="button"
-                    className="admin-roles__preset-btn"
-                    onClick={handleGrantAll}
-                    title={t('admin.roles.presetAllTitle')}
-                  >
-                    <CheckCheck size={13} aria-hidden />
-                    <span>{t('admin.roles.presetAll')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="admin-roles__preset-btn"
-                    onClick={handleGrantReadOnly}
-                    title={t('admin.roles.presetReadOnlyTitle')}
-                  >
-                    <Eye size={13} aria-hidden />
-                    <span>{t('admin.roles.presetReadOnly')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="admin-roles__preset-btn admin-roles__preset-btn--clear"
-                    onClick={handleClearAll}
-                    title={t('admin.roles.presetClearTitle')}
-                  >
-                    <Trash2 size={13} aria-hidden />
-                    <span>{t('admin.roles.presetClear')}</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="admin-roles__matrix-scroll" tabIndex={0}>
+            <div className="admin-roles__matrix-scroll">
               {filteredPermissionRows.length === 0 ? (
                 <div className="admin-roles__search-empty">
                   <Search size={22} aria-hidden />
@@ -928,89 +954,6 @@ export default function RolesSection({
           <p className="admin-roles__empty">{t('admin.roles.empty')}</p>
         )}
       </div>
-
-      {canViewAudit && selectedRole ? (
-        <section className="admin-roles__activity" aria-labelledby="admin-role-activity-title">
-          <header className="admin-roles__activity-head">
-            <span className="admin-roles__activity-icon" aria-hidden>
-              <History size={16} />
-            </span>
-            <div>
-              <h2 id="admin-role-activity-title">{t('admin.roles.activityTitle')}</h2>
-              <p>{t('admin.roles.activitySubtitle', { role: selectedRole.name })}</p>
-            </div>
-          </header>
-
-          {selectedActivity.length > 0 ? (
-            <ol className="admin-roles__activity-list">
-              {selectedActivity.map((item) => {
-                const addedPermissions = item.addedPermissions ?? []
-                const removedPermissions = item.removedPermissions ?? []
-                const hasPermissionDetails =
-                  addedPermissions.length > 0 || removedPermissions.length > 0
-
-                return (
-                  <li key={item.id}>
-                    <span className="admin-roles__activity-dot" aria-hidden />
-                    <div className="admin-roles__activity-body">
-                      <div className="admin-roles__activity-title">
-                        <strong>
-                          {item.action === 'access_role.created'
-                            ? t('admin.roles.activityCreated')
-                            : item.action === 'access_role.permissions_updated'
-                              ? t('admin.roles.activityUpdated')
-                              : t('admin.roles.activityConfigured')}
-                        </strong>
-                        <time dateTime={item.createdAt}>
-                          {formatActivityDate(item.createdAt, locale)}
-                        </time>
-                      </div>
-                      <p>
-                        {t('admin.roles.activityActor', {
-                          actor: item.actorName || t('admin.roles.systemActor'),
-                        })}
-                      </p>
-                      {hasPermissionDetails ? (
-                        <details className="admin-roles__activity-details">
-                          <summary>
-                            {t('admin.roles.activitySummary', {
-                              added: addedPermissions.length,
-                              removed: removedPermissions.length,
-                            })}
-                          </summary>
-                          <ul>
-                            {addedPermissions.map((permissionKey) => (
-                              <li key={`activity-added-${item.id}-${permissionKey}`}>
-                                <Plus size={12} aria-hidden />
-                                {permissionLabel(permissionKey)}
-                              </li>
-                            ))}
-                            {removedPermissions.map((permissionKey) => (
-                              <li
-                                key={`activity-removed-${item.id}-${permissionKey}`}
-                                className="is-removed"
-                              >
-                                <Minus size={12} aria-hidden />
-                                {permissionLabel(permissionKey)}
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      ) : (
-                        <span className="admin-roles__activity-no-detail">
-                          {t('admin.roles.activityNoPermissionChanges')}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
-          ) : (
-            <p className="admin-roles__activity-empty">{t('admin.roles.activityEmpty')}</p>
-          )}
-        </section>
-      ) : null}
     </section>
   )
 }

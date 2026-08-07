@@ -55,6 +55,9 @@ Frontend: http://localhost:5173
 API: http://localhost:3001/health  
 Ready: http://localhost:3001/ready
 
+Si el 3001 está ocupado por otro proyecto, definí `PORT=3003` (u otro libre)
+en `.env`. Vite proxyea `/api` al mismo `PORT`.
+
 ## Scripts
 
 | Comando | Descripción |

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin ops board fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-dashboard-bento.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--color-bg-canvas, #0b0d10);
+        color: var(--admin-ink);
+        font-family: var(--font-family, system-ui);
+        padding: 24px;
+      }
+      .admin-dashboard--ops {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .admin-dashboard-link {
+        background: transparent;
+        border: 0;
+        color: var(--admin-accent);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        min-height: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-dashboard admin-dashboard--ops">
+      <div class="admin-ops">
+        <section class="admin-ops__board" aria-label="Análisis operativo">
+          <header class="admin-ops__board-head">
+            <div class="admin-ops__board-intro">
+              <h2>Análisis operativo</h2>
+              <ul class="admin-ops__board-stats">
+                <li class="admin-ops__board-stat"><strong>0</strong><span>pagos pendientes</span></li>
+                <li class="admin-ops__board-stat"><strong>0</strong><span>meets abiertos</span></li>
+              </ul>
+            </div>
+            <nav class="admin-ops__links" aria-label="Accesos">
+              <div class="admin-ops__links-track">
+                <button type="button" class="admin-ops__link">Inscripciones</button>
+                <button type="button" class="admin-ops__link">Pagos</button>
+                <button type="button" class="admin-ops__link">Atletas</button>
+                <button type="button" class="admin-ops__link">Eventos</button>
+                <button type="button" class="admin-ops__link">Afiliaciones</button>
+              </div>
+            </nav>
+          </header>
+
+          <div class="admin-ops__charts">
+            <section class="admin-ops__chart admin-ops__chart--finance">
+              <header class="admin-ops__chart-head">
+                <div class="admin-ops__chart-copy">
+                  <h3>Estado de cobros</h3>
+                  <p>Cobros y pendientes del ciclo actual</p>
+                </div>
+                <button type="button" class="admin-dashboard-link">Pagos →</button>
+              </header>
+              <div class="admin-ops__finance-visual">
+                <div class="admin-donut" aria-hidden="true" style="background: color-mix(in srgb, var(--admin-ink) 6%, transparent); border-radius: 50%"></div>
+                <dl class="admin-ops__finance-metrics">
+                  <div class="admin-ops__finance-metric admin-ops__finance-metric--collected">
+                    <dt>Cobrado</dt>
+                    <dd>$120.000</dd>
+                  </div>
+                  <div class="admin-ops__finance-metric admin-ops__finance-metric--pending">
+                    <dt>Pendiente</dt>
+                    <dd>$40.000</dd>
+                  </div>
+                  <div class="admin-ops__finance-metric admin-ops__finance-metric--operated">
+                    <dt>Operado</dt>
+                    <dd>$160.000</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+
+            <div class="admin-ops__breakdowns">
+              <section class="admin-ops__chart">
+                <header class="admin-ops__chart-head">
+                  <div class="admin-ops__chart-copy">
+                    <h3>Inscripciones</h3>
+                    <div class="admin-ops__chart-total-wrap">
+                      <strong class="admin-ops__chart-total" aria-label="0 en total">0</strong>
+                    </div>
+                  </div>
+                  <button type="button" class="admin-dashboard-link">Ver →</button>
+                </header>
+                <div class="admin-ops__stack" role="img" aria-label="Inscripciones vacías">
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--empty"></span>
+                </div>
+                <p class="admin-ops__chart-empty">Sin datos en este corte</p>
+              </section>
+
+              <section class="admin-ops__chart">
+                <header class="admin-ops__chart-head">
+                  <div class="admin-ops__chart-copy">
+                    <h3>Afiliaciones</h3>
+                    <div class="admin-ops__chart-total-wrap">
+                      <strong class="admin-ops__chart-total" aria-label="3 en total">3</strong>
+                    </div>
+                  </div>
+                  <button type="button" class="admin-dashboard-link">Ver →</button>
+                </header>
+                <div class="admin-ops__stack" role="img" aria-label="Afiliaciones">
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--alert" style="width: 100%"></span>
+                </div>
+                <ul class="admin-ops__chart-legend">
+                  <li class="admin-ops__chart-legend-item admin-ops__chart-legend-item--alert">
+                    <span>Cancelada</span><strong>3</strong><em>100%</em>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="admin-ops__chart">
+                <header class="admin-ops__chart-head">
+                  <div class="admin-ops__chart-copy">
+                    <h3>Pagos</h3>
+                    <div class="admin-ops__chart-total-wrap">
+                      <strong class="admin-ops__chart-total" aria-label="3 en total">3</strong>
+                    </div>
+                  </div>
+                  <button type="button" class="admin-dashboard-link">Ver →</button>
+                </header>
+                <div class="admin-ops__stack" role="img" aria-label="Pagos">
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--default" style="width: 100%"></span>
+                </div>
+                <ul class="admin-ops__chart-legend">
+                  <li class="admin-ops__chart-legend-item admin-ops__chart-legend-item--default">
+                    <span>Otros</span><strong>3</strong><em>100%</em>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="admin-ops__chart">
+                <header class="admin-ops__chart-head">
+                  <div class="admin-ops__chart-copy">
+                    <h3>Eventos</h3>
+                    <div class="admin-ops__chart-total-wrap">
+                      <strong class="admin-ops__chart-total" aria-label="4 en total">4</strong>
+                    </div>
+                  </div>
+                  <button type="button" class="admin-dashboard-link">Ver →</button>
+                </header>
+                <div class="admin-ops__stack" role="img" aria-label="Eventos">
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--celeste" style="width: 50%"></span>
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--success" style="width: 25%"></span>
+                  <span class="admin-ops__stack-seg admin-ops__stack-seg--warning" style="width: 25%"></span>
+                </div>
+                <ul class="admin-ops__chart-legend">
+                  <li class="admin-ops__chart-legend-item admin-ops__chart-legend-item--celeste">
+                    <span>Abiertos</span><strong>2</strong><em>50%</em>
+                  </li>
+                  <li class="admin-ops__chart-legend-item admin-ops__chart-legend-item--success">
+                    <span>Cerrados</span><strong>1</strong><em>25%</em>
+                  </li>
+                  <li class="admin-ops__chart-legend-item admin-ops__chart-legend-item--warning">
+                    <span>Borrador</span><strong>1</strong><em>25%</em>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

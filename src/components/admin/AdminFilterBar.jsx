@@ -37,8 +37,9 @@ function AdminFilterToggle({ id, label, value, onChange, options = [], defaultVa
 
   return (
     <div
-      className="admin-filter-group admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle"
+      className="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle"
       role="group"
+      aria-label={!label ? optionLabel : undefined}
       aria-labelledby={labelId}
     >
       {label ? (
@@ -77,18 +78,6 @@ export default function AdminFilterBar({
   const hasMountedFilters = useRef(false)
   /** En listados (inline), los chips van siempre a la vista: el toggle suma un click de más. */
   const alwaysShowFilters = inline
-  const rootClassName = [
-    'admin-filters',
-    'admin-filters--chips',
-    compact ? 'admin-filters--compact' : '',
-    inline ? 'admin-filters--inline' : '',
-    alwaysShowFilters ? 'admin-filters--open' : '',
-    filters.some((filter) => isFilterActive(filter)) ? 'admin-filters--has-active' : '',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   const activeFilters = filters.filter(isFilterActive)
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
@@ -96,7 +85,20 @@ export default function AdminFilterBar({
   const chipGroupCount = filters.filter(
     (filter) => filter.variant !== 'select' && filter.variant !== 'toggle',
   ).length
-  const showGroupLabels = filters.length > 1 || filters.some((filter) => filter.showLabel)
+  const isMultiGroup = filters.length > 1
+  const rootClassName = [
+    'admin-filters',
+    'admin-filters--chips',
+    'admin-filters--rails',
+    compact ? 'admin-filters--compact' : '',
+    inline ? 'admin-filters--inline' : '',
+    alwaysShowFilters ? 'admin-filters--open' : '',
+    isMultiGroup ? 'admin-filters--multi' : '',
+    filters.some((filter) => isFilterActive(filter)) ? 'admin-filters--has-active' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
     [filters, query],
@@ -122,10 +124,14 @@ export default function AdminFilterBar({
   }
 
   function renderFilter(filter) {
+    // Labels visibles solo si se piden o si es select (campo etiquetado).
+    // En multi-chip/toggle el copy del control ya alcanza — evita "ESTADO / VENCIMIENTO".
     const sharedLabel =
-      showGroupLabels || filter.showLabel || filter.variant === 'select'
-        ? filter.label
-        : undefined
+      filter.showLabel === false
+        ? undefined
+        : filter.showLabel === true || filter.variant === 'select'
+          ? filter.label
+          : undefined
 
     if (filter.variant === 'select') {
       return (
@@ -133,6 +139,7 @@ export default function AdminFilterBar({
           key={filter.id}
           id={filter.id}
           label={sharedLabel}
+          ariaLabel={filter.label}
           value={filter.value}
           onChange={filter.onChange}
           options={filter.options}
@@ -211,6 +218,12 @@ export default function AdminFilterBar({
         ) : null}
 
         {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+
+        {count ? (
+          <span className="admin-filters__count" aria-live="polite">
+            <span className="admin-filters__count-label">{count}</span>
+          </span>
+        ) : null}
       </div>
 
       {filters.length > 0 ? (
@@ -223,7 +236,7 @@ export default function AdminFilterBar({
             <div
               className={[
                 'admin-filters__groups',
-                filters.length > 1 ? 'admin-filters__groups--multi' : '',
+                isMultiGroup ? 'admin-filters__groups--multi' : '',
                 chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
               ]
                 .filter(Boolean)
@@ -233,12 +246,6 @@ export default function AdminFilterBar({
             </div>
           </div>
         </div>
-      ) : null}
-
-      {count ? (
-        <span className="admin-filters__count" aria-live="polite">
-          <span className="admin-filters__count-label">{count}</span>
-        </span>
       ) : null}
     </div>
   )

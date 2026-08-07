@@ -7,6 +7,34 @@
 
 /* ---------- Auditoría ---------- */
 
+/* Filtros: tres selects etiquetados en fila (acción / origen / entidad).
+   Las opciones de auditoría son muchas y con labels largos: el select compacto
+   escala mejor que rieles de chips apilados. */
+.admin-shell .admin-filters--audit.admin-filters--inline.admin-filters--compact {
+  gap: 10px;
+}
+
+.admin-shell .admin-filters--audit .admin-filters__groups--multi,
+.admin-shell .admin-list-section--audit .admin-filters__groups--multi {
+  align-items: stretch;
+  display: grid !important;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.admin-shell .admin-filters--audit .admin-filters__select,
+.admin-shell .admin-list-section--audit .admin-filters__select {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 540px) {
+  .admin-shell .admin-filters--audit .admin-filters__groups--multi,
+  .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .audit-entry__time {
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -164,18 +192,148 @@
   gap: 6px;
 }
 
-/* La credencial se abre debajo de la tabla y no en un modal: el operador la
-   coteja contra la fila que acaba de tocar, y un overlay taparía justamente
-   eso. */
-.admin-membership-credential-panel {
-  border-top: 1px solid var(--color-border-subtle);
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
+/* ---------- Credencial del socio (modal desde Afiliaciones) ---------- */
+
+.membership-credential-modal {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 1200;
 }
 
-.admin-membership-credential-panel h3 {
-  font-size: 15px;
-  margin: 0 0 var(--space-md);
+.membership-credential-modal__backdrop {
+  background: rgba(6, 8, 12, 0.62);
+  border: none;
+  cursor: pointer;
+  inset: 0;
+  position: absolute;
+}
+
+.membership-credential-modal__panel {
+  background: var(--color-bg-surface, #14161c);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 16px;
+  max-height: min(860px, calc(100dvh - 40px));
+  max-width: 640px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  position: relative;
+  width: 100%;
+}
+
+.membership-credential-modal__head {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.membership-credential-modal__who {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.membership-credential-modal__eyebrow {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.membership-credential-modal__title {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.membership-credential-modal__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.membership-credential-modal__close {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  padding: 6px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.membership-credential-modal__close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+.membership-credential-modal__close:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+[data-theme='light'] .membership-credential-modal__backdrop {
+  background: rgba(15, 17, 23, 0.52);
+}
+
+[data-theme='light'] .membership-credential-modal__panel {
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light'] .membership-credential-modal__close:hover {
+  background: rgba(15, 17, 23, 0.05);
+}
+
+@media (max-width: 600px) {
+  .membership-credential-modal {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .membership-credential-modal__panel {
+    border-radius: 0;
+    max-height: 100dvh;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .membership-credential-modal__panel {
+    animation: membership-credential-modal-in var(--motion-base) var(--ease-out);
+  }
+}
+
+@keyframes membership-credential-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ---------- Credencial en el detalle del atleta ---------- */
@@ -188,6 +346,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xl);
+}
+
+.admin-credential--modal {
+  gap: var(--space-lg);
 }
 
 .admin-credential__qr {
@@ -221,10 +383,27 @@
   min-width: 0;
 }
 
+.admin-credential__identity {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-credential__name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-credential__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
 .admin-credential__rows {
   display: grid;
   gap: var(--space-sm) var(--space-lg);
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   margin: 0;
 }
 
@@ -242,8 +421,62 @@
   margin: 4px 0 0;
 }
 
+.admin-credential__token-row {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.admin-credential__token-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-credential__token-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
 .admin-credential__token {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.admin-credential__copy-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 10px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-credential__copy-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-credential__copy-btn:hover {
+  background: rgba(15, 17, 23, 0.04);
 }
 
 .admin-credential__actions {
@@ -287,6 +520,11 @@
 }
 
 @media (max-width: 600px) {
+  .admin-credential,
+  .admin-credential--modal {
+    flex-direction: column;
+  }
+
   .admin-credential__qr {
     height: 152px;
     margin-inline: auto;

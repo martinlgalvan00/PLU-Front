@@ -46,7 +46,9 @@ export function createSupabaseAuditRepository(
       if (before) query = query.lt('created_at', before)
       if (search) query = query.or(`entity_id.ilike.%${search}%,actor_id.ilike.%${search}%`)
 
-      return assertSupabaseResult(query, 'No se pudo leer la auditoría.')
+      // Sin `await` el builder llega crudo a assertSupabaseResult, `data` queda
+      // undefined y `/api/audit` explota al leer `entries.length` (500).
+      return assertSupabaseResult(await query, 'No se pudo leer la auditoría.')
     },
 
     /**

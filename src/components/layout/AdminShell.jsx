@@ -236,18 +236,20 @@ export default function AdminShell({
               <strong className="admin-shell__account-role">{roleLabel}</strong>
               <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
             </div>
-            <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
-              <ThemeToggle compact />
-              <LanguageToggle compact variant="segment" />
-            </div>
           </div>
+
+          <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
+            <ThemeToggle compact />
+            <LanguageToggle compact variant="segment" />
+          </div>
+
           <button
             type="button"
             className="admin-shell__exit"
             onClick={onExit}
             title={collapsed ? t('admin.shell.exit') : undefined}
           >
-            <ArrowLeft size={14} strokeWidth={2} aria-hidden />
+            <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
             <span className="admin-shell__exit-label">{t('admin.shell.exit')}</span>
           </button>
         </div>

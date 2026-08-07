@@ -17,7 +17,7 @@ import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { formatDayMonth, initials, money } from '../../lib/format.js'
+import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
 
 const QUEUE_PREVIEW_LIMIT = 6
 
@@ -122,15 +122,27 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
     activeItems.reduce((sum, item) => sum + item.value, 0),
     1,
   )
+  const totalLabel = t('admin.dashboard.chartTotal', { count: total })
+  const segmentSummary = activeItems.length
+    ? activeItems
+        .map((item) => {
+          const percent = Math.round((item.value / chartTotal) * 100)
+          return `${getLabel(item)} ${item.value} (${percent}%)`
+        })
+        .join(', ')
+    : t('admin.dashboard.breakdownEmpty')
+  const stackLabel = `${title}: ${totalLabel}. ${segmentSummary}`
 
   return (
     <section className="admin-ops__chart">
       <header className="admin-ops__chart-head">
-        <div>
+        <div className="admin-ops__chart-copy">
           <h3>{title}</h3>
-          <p>
-            {t('admin.dashboard.chartTotal', { count: total })}
-          </p>
+          <div className="admin-ops__chart-total-wrap">
+            <strong className="admin-ops__chart-total" aria-label={totalLabel}>
+              {total}
+            </strong>
+          </div>
         </div>
         <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.(section)}>
           {t('admin.actions.view')}
@@ -138,11 +150,7 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
         </button>
       </header>
 
-      <div
-        className="admin-ops__stack"
-        role="img"
-        aria-label={`${title}: ${total}`}
-      >
+      <div className="admin-ops__stack" role="img" aria-label={stackLabel}>
         {activeItems.length > 0 ? (
           activeItems.map((item) => (
             <span
@@ -162,7 +170,10 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
           {activeItems.map((item) => {
             const percent = Math.round((item.value / chartTotal) * 100)
             return (
-              <li key={item.status} className={`admin-ops__chart-legend-item admin-ops__chart-legend-item--${item.tone}`}>
+              <li
+                key={item.status}
+                className={`admin-ops__chart-legend-item admin-ops__chart-legend-item--${item.tone}`}
+              >
                 <span>{getLabel(item)}</span>
                 <strong>{item.value}</strong>
                 <em>{percent}%</em>
@@ -288,11 +299,17 @@ function RecentMembershipsCard({ memberships, locale, onNavigate, t }) {
             </span>
             <span className="admin-ops__recent-body">
               <strong>{membership.fullName}</strong>
-              <span className="data-table__mono">{membership.memberCode ?? '—'}</span>
+              <span className="data-table__mono" title={membership.memberCode ?? undefined}>
+                {formatShortMemberCode(membership.memberCode) || '—'}
+              </span>
             </span>
             <span className="admin-ops__recent-date">
               <StatusBadge value={membership.status} />
-              {membership.startDate ? formatDayMonth(membership.startDate.slice(0, 10), locale) : null}
+              {membership.startDate ? (
+                <time dateTime={membership.startDate.slice(0, 10)}>
+                  {formatDayMonth(membership.startDate.slice(0, 10), locale)}
+                </time>
+              ) : null}
             </span>
           </li>
         ))}
@@ -446,23 +463,25 @@ export default function DashboardSection({
               </ul>
             </div>
             <nav className="admin-ops__links" aria-label={t('admin.dashboard.quickTitle')}>
-              {QUICK_ACTIONS.map(({ section, labelKey }) => (
-                <button
-                  key={section}
-                  type="button"
-                  className="admin-ops__link"
-                  onClick={() => onNavigate?.(section)}
-                >
-                  {t(labelKey)}
-                </button>
-              ))}
+              <div className="admin-ops__links-track">
+                {QUICK_ACTIONS.map(({ section, labelKey }) => (
+                  <button
+                    key={section}
+                    type="button"
+                    className="admin-ops__link"
+                    onClick={() => onNavigate?.(section)}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
             </nav>
           </header>
 
           <div className="admin-ops__charts">
             <section className="admin-ops__chart admin-ops__chart--finance">
               <header className="admin-ops__chart-head">
-                <div>
+                <div className="admin-ops__chart-copy">
                   <h3>{t('admin.dashboard.financeTitle')}</h3>
                   <p>{t('admin.dashboard.financeSubtitle')}</p>
                 </div>
@@ -500,42 +519,44 @@ export default function DashboardSection({
               </div>
             </section>
 
-            <StackedBarChart
-              title={t('admin.dashboard.breakdownRegistrations')}
-              total={breakdowns.registrations.total}
-              items={breakdowns.registrations.items}
-              section={breakdowns.registrations.section}
-              onNavigate={onNavigate}
-              getLabel={breakdownLabel}
-              t={t}
-            />
-            <StackedBarChart
-              title={t('admin.dashboard.breakdownMemberships')}
-              total={breakdowns.memberships.total}
-              items={breakdowns.memberships.items}
-              section={breakdowns.memberships.section}
-              onNavigate={onNavigate}
-              getLabel={breakdownLabel}
-              t={t}
-            />
-            <StackedBarChart
-              title={t('admin.dashboard.breakdownPayments')}
-              total={breakdowns.payments.total}
-              items={breakdowns.payments.items}
-              section={breakdowns.payments.section}
-              onNavigate={onNavigate}
-              getLabel={breakdownLabel}
-              t={t}
-            />
-            <StackedBarChart
-              title={t('admin.dashboard.breakdownEvents')}
-              total={breakdowns.events.total}
-              items={breakdowns.events.items}
-              section={breakdowns.events.section}
-              onNavigate={onNavigate}
-              getLabel={breakdownLabel}
-              t={t}
-            />
+            <div className="admin-ops__breakdowns">
+              <StackedBarChart
+                title={t('admin.dashboard.breakdownRegistrations')}
+                total={breakdowns.registrations.total}
+                items={breakdowns.registrations.items}
+                section={breakdowns.registrations.section}
+                onNavigate={onNavigate}
+                getLabel={breakdownLabel}
+                t={t}
+              />
+              <StackedBarChart
+                title={t('admin.dashboard.breakdownMemberships')}
+                total={breakdowns.memberships.total}
+                items={breakdowns.memberships.items}
+                section={breakdowns.memberships.section}
+                onNavigate={onNavigate}
+                getLabel={breakdownLabel}
+                t={t}
+              />
+              <StackedBarChart
+                title={t('admin.dashboard.breakdownPayments')}
+                total={breakdowns.payments.total}
+                items={breakdowns.payments.items}
+                section={breakdowns.payments.section}
+                onNavigate={onNavigate}
+                getLabel={breakdownLabel}
+                t={t}
+              />
+              <StackedBarChart
+                title={t('admin.dashboard.breakdownEvents')}
+                total={breakdowns.events.total}
+                items={breakdowns.events.items}
+                section={breakdowns.events.section}
+                onNavigate={onNavigate}
+                getLabel={breakdownLabel}
+                t={t}
+              />
+            </div>
           </div>
 
           <div className="admin-ops__work">

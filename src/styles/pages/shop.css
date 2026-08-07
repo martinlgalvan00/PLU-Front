@@ -563,7 +563,7 @@
   text-wrap: pretty;
 }
 
-/* —— Paneles de departamento full-width —— */
+/* —— Paneles de departamento: editorial, sin card SaaS —— */
 
 .shop-department {
   display: grid;
@@ -571,92 +571,149 @@
 }
 
 .shop-department-panel {
-  align-items: center;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-brand-gold) 10%, transparent), transparent 42%),
-    var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
   display: grid;
-  gap: clamp(18px, 3vw, 28px);
+  gap: clamp(20px, 3vw, 28px);
   grid-template-columns: minmax(0, 1fr);
-  padding: clamp(24px, 3.5vw, 36px);
+  padding: clamp(26px, 3.8vw, 40px) 2px clamp(28px, 4vw, 44px);
+  position: relative;
   width: 100%;
 }
 
-@media (min-width: 720px) {
-  .shop-department-panel {
+.shop-department-panel::before {
+  background: var(--color-border-subtle);
+  content: '';
+  height: 1.5px;
+  left: 2px;
+  position: absolute;
+  top: 0;
+  width: 2.75rem;
+}
+
+.shop-department-panel--soon::before {
+  background: var(--color-brand-gold);
+  height: 2px;
+}
+
+.shop-department-panel--action::before {
+  background: var(--color-brand-celeste);
+  height: 2px;
+}
+
+.shop-department-panel::after {
+  background: var(--color-border-subtle);
+  bottom: 0;
+  content: '';
+  height: 1px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+@media (min-width: 800px) {
+  .shop-department-panel--action {
+    align-items: center;
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
 
-.shop-department-panel__main {
-  align-items: start;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.shop-department-panel__icon {
-  align-items: center;
-  background: color-mix(in oklab, var(--color-brand-gold) 14%, transparent);
-  border-radius: var(--border-radius-md);
-  color: var(--color-brand-gold);
-  display: inline-flex;
-  height: 48px;
-  justify-content: center;
-  width: 48px;
-}
-
 .shop-department-panel__copy {
   display: grid;
-  gap: 8px;
-  max-width: 40rem;
+  gap: 10px;
+  max-width: 38rem;
+  min-width: 0;
+}
+
+.shop-department-panel__meta {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  min-height: 18px;
 }
 
 .shop-department-panel__badge {
-  color: var(--color-text-muted);
-  font-size: 11px;
+  color: var(--color-brand-gold);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .shop-department-panel__title {
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(22px, 2.6vw, 28px);
-  font-weight: 750;
-  letter-spacing: -0.025em;
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
   margin: 0;
+  max-width: 18ch;
+  text-wrap: balance;
 }
 
 .shop-department-panel__text {
-  color: var(--color-text-muted);
-  font-size: 15px;
-  line-height: 1.5;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  font-size: clamp(14.5px, 1.5vw, 16px);
+  line-height: 1.55;
   margin: 0;
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+.shop-department-panel__aside {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (min-width: 800px) {
+  .shop-department-panel__aside {
+    justify-content: flex-end;
+    padding-bottom: 2px;
+  }
 }
 
 .shop-department-panel__action {
   align-items: center;
-  background: var(--color-brand-gold);
-  color: #14181f;
+  background: var(--color-brand-action, var(--color-brand-gold));
+  border: 0;
+  border-radius: 10px;
+  color: var(--color-text-on-action, #14181f);
   display: inline-flex;
+  font-size: 13.5px;
+  font-weight: 700;
   gap: 8px;
   justify-content: center;
-  min-height: 44px;
+  min-height: 46px;
   padding-inline: 18px;
+  transition:
+    transform var(--motion-fast, 160ms) var(--ease-standard, ease),
+    background var(--motion-fast, 160ms) var(--ease-standard, ease);
   white-space: nowrap;
   width: fit-content;
 }
 
-[data-theme='light'] .shop-department-panel {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-brand-gold) 8%, transparent), transparent 42%),
-    #fff;
+.shop-department-panel__action:hover {
+  background: color-mix(in srgb, var(--color-brand-action, var(--color-brand-gold)) 88%, white);
 }
 
-/* —— Event detail drawer (entradas + merch) —— */
+.shop-department-panel__action:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-department-panel__action {
+    transition: none;
+  }
+}
+
+[data-theme='light'] .shop-department-panel__text {
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+[data-theme='light'] .shop-department-panel__action {
+  color: #14181f;
+}
 
 .shop-event-drawer__backdrop {
   background: rgba(4, 6, 10, 0.6);

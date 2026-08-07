@@ -326,10 +326,13 @@ function isPortOpen(port, host) {
 async function assertPortsAvailable(includeServices) {
   if (!includeServices) return
 
-  const apiIpv4 = await isPortOpen(3001, '127.0.0.1')
-  const apiLocalhost = await isPortOpen(3001, 'localhost')
+  const apiPort = Number(process.env.PORT) || 3001
+  const apiIpv4 = await isPortOpen(apiPort, '127.0.0.1')
+  const apiLocalhost = await isPortOpen(apiPort, 'localhost')
   if (apiIpv4 || apiLocalhost) {
-    throw new Error('El puerto 3001 está ocupado. Cerrá el API/dev anterior con Ctrl+C y reintentá.')
+    throw new Error(
+      `El puerto ${apiPort} está ocupado. Cerrá el API/dev anterior con Ctrl+C, o definí otro PORT en .env.`,
+    )
   }
 
   if (includeServices) {
@@ -364,6 +367,7 @@ async function startDevelopment() {
     throw new Error('No se encontró npm-cli. Ejecutá este flujo mediante npm run dev:all.')
   }
 
+  const apiPort = Number(process.env.PORT) || 3001
   const child = spawn(process.execPath, [npmCli, 'run', 'dev:services'], {
     cwd: projectRoot,
     env: process.env,
@@ -378,7 +382,7 @@ async function startDevelopment() {
   await Promise.race([
     Promise.all([
       waitForHttp('http://localhost:5173/', 30_000),
-      waitForHttp('http://localhost:3001/ready', 30_000).then(async (response) => {
+      waitForHttp(`http://localhost:${apiPort}/ready`, 30_000).then(async (response) => {
         const readiness = await response.json()
         if (!readiness.checks?.prisma || !readiness.checks?.supabase) {
           throw new Error(`/ready incompleto: ${JSON.stringify(readiness.checks)}`)
@@ -390,8 +394,8 @@ async function startDevelopment() {
 
   console.log('\nTodo listo:')
   console.log('  Frontend: http://localhost:5173')
-  console.log('  API:      http://localhost:3001')
-  console.log('  Ready:    http://localhost:3001/ready')
+  console.log(`  API:      http://localhost:${apiPort}`)
+  console.log(`  Ready:    http://localhost:${apiPort}/ready`)
   console.log('  Ctrl+C cierra frontend y API.')
 
   const exitCode = await new Promise((resolvePromise, reject) => {

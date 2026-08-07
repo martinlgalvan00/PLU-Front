@@ -35,7 +35,11 @@ function athleteMeta(athlete) {
  * funcionar en una tablet. Es además el mismo gesto que ya existe en
  * Inscripciones.
  */
-export default function ScheduleBoardSection({ adminEvents = [], canEdit = false }) {
+export default function ScheduleBoardSection({
+  adminEvents = [],
+  canEdit = false,
+  onGoToEvents,
+}) {
   const { locale, t } = useI18n()
 
   const eventOptions = useMemo(
@@ -65,6 +69,11 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
     setSelected(new Set())
     setNotice(null)
   }, [eventSlug])
+
+  const sessionsMissing = useMemo(
+    () => days.length > 0 && days.every((day) => day.sessions.length === 0),
+    [days],
+  )
 
   const toggle = useCallback((registrationId) => {
     setSelected((current) => {
@@ -125,11 +134,15 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
   }
 
   return (
-    <section className="admin-board" aria-label={t('admin.board.title')}>
+    <section
+      className={`admin-board${days.length === 0 && status === 'ready' ? ' admin-board--setup' : ''}`}
+      aria-label={t('admin.board.title')}
+    >
       <header className="admin-board__header">
         <div className="admin-board__heading">
           <span className="admin-board__eyebrow">{t('admin.board.eyebrow')}</span>
           <h1 className="admin-board__title">{t('admin.board.title')}</h1>
+          <p className="admin-board__lead">{t('admin.board.lead')}</p>
         </div>
 
         <label className="admin-board__event-picker">
@@ -144,22 +157,6 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
         </label>
       </header>
 
-      {/* Lo primero que se lee: cuánto trabajo queda. */}
-      <dl className="admin-board__totals">
-        <div className="admin-board__total admin-board__total--lead">
-          <dt>{t('admin.board.unassigned')}</dt>
-          <dd>{totals.unassigned}</dd>
-        </div>
-        <div className="admin-board__total">
-          <dt>{t('admin.board.assigned')}</dt>
-          <dd>{totals.assigned}</dd>
-        </div>
-        <div className="admin-board__total">
-          <dt>{t('admin.board.registered')}</dt>
-          <dd>{totals.registered}</dd>
-        </div>
-      </dl>
-
       {error && (
         <p className="admin-board__alert" role="alert">
           {error}
@@ -173,8 +170,40 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
 
       {status === 'loading' && <p className="admin-board__empty">{t('admin.board.loading')}</p>}
 
-      {status === 'ready' && (
+      {status === 'ready' && days.length === 0 && (
+        <SetupEmpty onGoToEvents={onGoToEvents} t={t} />
+      )}
+
+      {status === 'ready' && days.length > 0 && (
         <>
+          {/* Ledger tipográfico: solo cuando hay grilla que operar. */}
+          <dl className="admin-board__totals">
+            <div className="admin-board__total admin-board__total--lead">
+              <dt>{t('admin.board.unassigned')}</dt>
+              <dd>{totals.unassigned}</dd>
+            </div>
+            <div className="admin-board__total">
+              <dt>{t('admin.board.assigned')}</dt>
+              <dd>{totals.assigned}</dd>
+            </div>
+            <div className="admin-board__total">
+              <dt>{t('admin.board.registered')}</dt>
+              <dd>{totals.registered}</dd>
+            </div>
+          </dl>
+
+          {sessionsMissing && (
+            <p className="admin-board__setup-banner" role="status">
+              <span className="admin-board__setup-kicker">{t('admin.board.setupHint')}</span>
+              <span>{t('admin.board.sessionsMissing')}</span>
+              {onGoToEvents ? (
+                <button type="button" className="admin-board__text-btn" onClick={onGoToEvents}>
+                  {t('admin.board.noDaysCta')}
+                </button>
+              ) : null}
+            </p>
+          )}
+
           {selectedIds.length > 0 && (
             <MoveBar
               busy={busy}
@@ -197,31 +226,84 @@ export default function ScheduleBoardSection({ adminEvents = [], canEdit = false
             />
 
             <div className="admin-board__days">
-              {days.length === 0 ? (
-                <p className="admin-board__empty">{t('admin.board.noDays')}</p>
-              ) : (
-                days.map((day) => (
-                  <DayColumn
-                    busy={busy}
-                    canEdit={canEdit}
-                    day={day}
-                    flightSize={flightSize}
-                    key={day.id}
-                    locale={locale}
-                    onAutofill={handleAutofill}
-                    onFlightSizeChange={setFlightSize}
-                    onToggle={toggle}
-                    onToggleMany={toggleMany}
-                    selected={selected}
-                    t={t}
-                  />
-                ))
-              )}
+              {days.map((day) => (
+                <DayColumn
+                  busy={busy}
+                  canEdit={canEdit}
+                  day={day}
+                  flightSize={flightSize}
+                  key={day.id}
+                  locale={locale}
+                  onAutofill={handleAutofill}
+                  onFlightSizeChange={setFlightSize}
+                  onGoToEvents={onGoToEvents}
+                  onToggle={toggle}
+                  onToggleMany={toggleMany}
+                  selected={selected}
+                  t={t}
+                />
+              ))}
             </div>
           </div>
         </>
       )}
     </section>
+  )
+}
+
+/** Empty operativo: pipeline de preparación, sin métricas en cero. */
+function SetupEmpty({ onGoToEvents, t }) {
+  const steps = [
+    {
+      id: 'days',
+      label: t('admin.board.stepDays'),
+      hint: t('admin.board.stepDaysHint'),
+      current: true,
+    },
+    {
+      id: 'sessions',
+      label: t('admin.board.stepSessions'),
+      hint: t('admin.board.stepSessionsHint'),
+      current: false,
+    },
+    {
+      id: 'assign',
+      label: t('admin.board.stepAssign'),
+      hint: t('admin.board.stepAssignHint'),
+      current: false,
+    },
+  ]
+
+  return (
+    <div className="admin-board__setup" role="status">
+      <ol className="admin-board__pipeline" aria-label={t('admin.board.setupHint')}>
+        {steps.map((step, index) => (
+          <li
+            key={step.id}
+            className={`admin-board__pipeline-step${step.current ? ' is-current' : ''}`}
+            aria-current={step.current ? 'step' : undefined}
+          >
+            <span className="admin-board__pipeline-index" aria-hidden>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <span className="admin-board__pipeline-body">
+              <span className="admin-board__pipeline-label">{step.label}</span>
+              <span className="admin-board__pipeline-hint">{step.hint}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="admin-board__setup-copy">
+        <h2 className="admin-board__setup-title">{t('admin.board.noDaysTitle')}</h2>
+        <p className="admin-board__setup-lead">{t('admin.board.noDaysLead')}</p>
+        {onGoToEvents ? (
+          <Button type="button" onClick={onGoToEvents}>
+            {t('admin.board.noDaysCta')}
+          </Button>
+        ) : null}
+      </div>
+    </div>
   )
 }
 
@@ -293,7 +375,7 @@ function AthletePool({ athletes, onToggle, onToggleMany, selected, t }) {
 
       {athletes.length === 0 ? (
         <p className="admin-board__empty admin-board__empty--inline">
-          {t('admin.board.poolEmpty')}
+          {t('admin.board.poolEmptyReady')}
         </p>
       ) : (
         <>
@@ -324,6 +406,7 @@ function DayColumn({
   locale,
   onAutofill,
   onFlightSizeChange,
+  onGoToEvents,
   onToggle,
   onToggleMany,
   selected,
@@ -367,9 +450,16 @@ function DayColumn({
       )}
 
       {day.sessions.length === 0 ? (
-        <p className="admin-board__empty admin-board__empty--inline">
-          {t('admin.board.noSessions')}
-        </p>
+        <div className="admin-board__day-empty">
+          <p className="admin-board__empty admin-board__empty--inline">
+            {t('admin.board.noSessions')}
+          </p>
+          {onGoToEvents ? (
+            <button type="button" className="admin-board__text-btn" onClick={onGoToEvents}>
+              {t('admin.board.noDaysCta')}
+            </button>
+          ) : null}
+        </div>
       ) : (
         day.sessions.map((session) => {
           const ids = session.athletes.map((athlete) => athlete.registrationId)

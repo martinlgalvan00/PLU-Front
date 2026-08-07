@@ -54,6 +54,7 @@ export function auditLabels(messages) {
   return {
     action: (value) => audit.actions?.[value] ?? value,
     actor: (value) => audit.actors?.[value] ?? value,
+    entity: (value) => audit.entities?.[value] ?? value,
     field: (value) => audit.fields?.[value] ?? value,
   }
 }

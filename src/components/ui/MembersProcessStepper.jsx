@@ -11,6 +11,7 @@ import {
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
+  MOTION_BLUR,
   MOTION_DURATION,
   MOTION_EASE,
   MOTION_STAGGER,
@@ -35,36 +36,33 @@ const headMotion = {
 const sceneVariants = {
   enter: (direction) => ({
     opacity: 0,
-    x: direction > 0 ? 28 : -28,
-    y: 10,
-    scale: 0.985,
-    filter: 'blur(4px)',
+    x: direction > 0 ? 18 : -18,
+    y: 6,
+    filter: `blur(${MOTION_BLUR.sm}px)`,
   }),
   center: {
     opacity: 1,
     x: 0,
     y: 0,
-    scale: 1,
     filter: 'blur(0px)',
     transition: {
       duration: MOTION_DURATION.slow,
       ease: MOTION_EASE.out,
       staggerChildren: MOTION_STAGGER.stepFast,
-      delayChildren: 0.06,
+      delayChildren: 0.05,
     },
   },
   exit: (direction) => ({
     opacity: 0,
-    x: direction > 0 ? -18 : 18,
-    y: -6,
-    scale: 0.99,
-    filter: 'blur(3px)',
+    x: direction > 0 ? -12 : 12,
+    y: -4,
+    filter: `blur(${MOTION_BLUR.sm}px)`,
     transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.inOut },
   }),
 }
 
 const sceneChild = {
-  enter: { opacity: 0, y: 14 },
+  enter: { opacity: 0, y: 10 },
   center: {
     opacity: 1,
     y: 0,
@@ -73,7 +71,7 @@ const sceneChild = {
 }
 
 /**
- * Proceso de afiliación — showcase animado (escenas + profundidad, sin 3D).
+ * Proceso de afiliación — escenario cinematográfico + timeline (sin cards).
  */
 export default function MembersProcessStepper({
   steps = [],
@@ -142,7 +140,7 @@ export default function MembersProcessStepper({
   const head = <MembersBlockHead eyebrow={eyebrow} title={title} lead={lead} />
 
   return (
-    <div className="members-plu-stepper" aria-label={ariaLabel}>
+    <div className="members-plu-stepper members-plu-stepper--timeline" aria-label={ariaLabel}>
       {reducedMotion ? (
         head
       ) : (
@@ -267,30 +265,30 @@ export default function MembersProcessStepper({
           )}
         </div>
 
-        <ol className="members-plu-stepper__rail" style={{ '--step-count': String(stepCount) }}>
+        <ol
+          className="members-plu-stepper__timeline"
+          style={{
+            '--step-count': String(stepCount),
+            '--active-ratio': String(activeIndex / Math.max(stepCount - 1, 1)),
+          }}
+        >
           {steps.map((step, index) => {
             const num = String(index + 1).padStart(2, '0')
-            const StepIcon = STEP_ICONS[index % STEP_ICONS.length] ?? ClipboardPen
             const isActive = index === activeIndex
+            const isPast = index < activeIndex
 
             return (
-              <li key={step.step ?? num}>
+              <li key={step.step ?? num} className="members-plu-stepper__timeline-item">
                 <button
                   type="button"
-                  className={`members-plu-stepper__item${isActive ? ' is-active' : ''}`}
+                  className={`members-plu-stepper__node${isActive ? ' is-active' : ''}${isPast ? ' is-past' : ''}`}
                   aria-current={isActive ? 'step' : undefined}
                   onClick={() => selectStep(index)}
                 >
-                  <span className="members-plu-stepper__item-mark" aria-hidden>
-                    <span className="members-plu-stepper__index">{num}</span>
-                    <span className="members-plu-stepper__item-icon">
-                      <StepIcon size={14} strokeWidth={1.6} />
-                    </span>
+                  <span className="members-plu-stepper__node-dot" aria-hidden>
+                    <span className="members-plu-stepper__node-index">{num}</span>
                   </span>
-                  <span className="members-plu-stepper__copy">
-                    <span className="members-plu-stepper__item-title">{step.title}</span>
-                    <span className="members-plu-stepper__item-text">{step.text}</span>
-                  </span>
+                  <span className="members-plu-stepper__node-title">{step.title}</span>
                 </button>
               </li>
             )

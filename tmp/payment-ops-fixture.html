@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment ops fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/components/buttons.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-institutional.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-minimal.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--admin-canvas, #0b0d12);
+        color: var(--admin-ink);
+        font-family: var(--font-family, system-ui);
+        padding: 20px;
+      }
+      .btn {
+        align-items: center;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 650;
+        gap: 6px;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 12px;
+      }
+      .btn--outline {
+        background: transparent;
+        border: 1px solid var(--admin-hairline-strong, #444);
+        color: var(--admin-ink);
+      }
+      .btn--small { min-height: 36px; }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <div class="admin-payments-operations" style="max-width: 920px; margin: 0 auto;">
+        <section class="admin-payment-ops" aria-labelledby="payment-ops-title">
+          <header class="admin-payment-ops__header">
+            <div class="admin-payment-ops__intro">
+              <span class="admin-payment-ops__eyebrow">Mercado Pago</span>
+              <h2 id="payment-ops-title">Operación y conciliación de pagos</h2>
+              <p class="admin-payment-ops__subtitle">
+                Webhooks, reintentos, suscripciones y conciliaciones de Mercado Pago en un solo lugar.
+              </p>
+            </div>
+            <div class="admin-payment-ops__toolbar">
+              <span class="admin-payment-ops__worker">
+                <span aria-hidden></span>
+                Recuperación automática desactivada
+              </span>
+              <div class="admin-payment-ops__actions">
+                <button type="button" class="btn btn--outline btn--small">Actualizar</button>
+                <button type="button" class="btn btn--small" style="background: var(--admin-action); color: var(--admin-on-action);">Ejecutar recuperación</button>
+              </div>
+            </div>
+          </header>
+
+          <div class="admin-payment-ops__ledger" aria-label="Señales clave del ledger">
+            <article class="admin-payment-ops__metric admin-payment-ops__metric--success">
+              <strong>OK</strong>
+              <span>Integridad del ledger</span>
+            </article>
+            <article class="admin-payment-ops__metric admin-payment-ops__metric--neutral">
+              <strong>0</strong>
+              <span>Webhooks fallidos</span>
+            </article>
+            <article class="admin-payment-ops__metric admin-payment-ops__metric--neutral">
+              <strong>0</strong>
+              <span>Conciliaciones pendientes</span>
+            </article>
+            <article class="admin-payment-ops__metric admin-payment-ops__metric--neutral">
+              <strong>0</strong>
+              <span>Suscripciones en mora</span>
+            </article>
+            <article class="admin-payment-ops__metric admin-payment-ops__metric--neutral">
+              <strong>12</strong>
+              <span>Eventos procesados</span>
+            </article>
+          </div>
+
+          <div class="admin-payment-ops__filter">
+            <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all">
+              <div class="admin-filter-chips-rail">
+                <div class="admin-filter-chips">
+                  <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span></button>
+                  <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Fallidos</span><span class="admin-filter-chip__count">0</span></button>
+                  <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Procesando</span></button>
+                  <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Procesados</span><span class="admin-filter-chip__count">12</span></button>
+                </div>
+              </div>
+            </div>
+            <small class="admin-payment-ops__filter-meta">Actualizado 7/8/26, 1:46 p. m.</small>
+          </div>
+
+          <div class="admin-empty admin-empty--payment-ops">
+            <span class="admin-empty__icon" aria-hidden>✓</span>
+            <h3 class="admin-empty__title">Ledger al día</h3>
+            <p class="admin-empty__lead">
+              No hay webhooks fallidos ni conciliaciones pendientes. La integración de Mercado Pago está en orden.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

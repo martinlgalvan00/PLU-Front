@@ -51,6 +51,25 @@ describe('api security baseline', () => {
     await target.close()
   })
 
+  it('acepta orígenes locales de Vite fuera del 5173', async () => {
+    const target = listen(createApp())
+
+    const response = await fetch(`${target.url}/api/payments/preferences`, {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:5175',
+        'Content-Type': 'application/json',
+        'X-PLU-Request': 'browser',
+      },
+      body: JSON.stringify({}),
+    })
+
+    // Llega a validación de dominio (400), no se corta por CORS/origen.
+    expect(response.status).toBe(400)
+
+    await target.close()
+  })
+
   it('rechaza mutaciones browser sin header custom anti-csrf', async () => {
     const target = listen(createApp())
 

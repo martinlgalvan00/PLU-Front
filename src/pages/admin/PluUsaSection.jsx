@@ -2,15 +2,26 @@ import { useMemo, useState } from 'react'
 import { Download, Lock } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
+import {
+  AdminIdentityCell,
+  AdminMonoCell,
+} from '../../components/admin/AdminTableCells.jsx'
+import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import {
   CONFIRMED_REGISTRATION_STATUSES,
   MEMBERSHIP_FILTER_STATUSES,
 } from '../../lib/constants.js'
+import { formatShortMemberCode } from '../../lib/format.js'
 import { filterMemberships, isExpiringSoon } from '../../services/membershipService.js'
 
+/**
+ * PluUsaSection — PLU ARG
+ *
+ * Vista de socio: solo lectura + export. El nav ya nombra la sección;
+ * acá priorizamos búsqueda, estado y descarga, sin cabecera decorativa.
+ */
 export default function PluUsaSection({ athletes, memberships, registrations, onExportPluUsa }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
@@ -27,7 +38,10 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
   )
 
   const expiringCount = useMemo(
-    () => memberships.filter((item) => item.status === 'activa' && isExpiringSoon(item.expirationDate)).length,
+    () =>
+      memberships.filter(
+        (item) => item.status === 'activa' && isExpiringSoon(item.expirationDate),
+      ).length,
     [memberships],
   )
 
@@ -51,18 +65,29 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
     [memberships, query, status],
   )
 
+  const filterActions = (
+    <div className="admin-plu-usa__toolbar">
+      <span className="admin-readonly-tag" title={t('admin.sections.pluUsa.readonlyHint')}>
+        <Lock size={11} aria-hidden />
+        <span>{t('admin.sections.pluUsa.readonlyTag')}</span>
+      </span>
+      <Button
+        type="button"
+        variant="secondary"
+        className="btn--small admin-plu-usa__export"
+        onClick={onExportPluUsa}
+      >
+        <Download size={14} aria-hidden />
+        <span>{t('admin.sections.pluUsa.export')}</span>
+      </Button>
+    </div>
+  )
+
   return (
     <AdminListSection
       variant="plu-usa"
-      eyebrow={t('admin.sections.pluUsa.eyebrow')}
-      title={t('admin.sections.pluUsa.title')}
-      subtitle={t('admin.sections.pluUsa.subtitle')}
-      totalCount={memberships.length}
       filteredCount={rows.length}
-      query={query}
-      onQueryChange={setQuery}
-      placeholder={t('admin.search.membership')}
-      beforeFilters={<p className="admin-list-shell__note">{t('admin.sections.pluUsa.recordsNote')}</p>}
+      filterActions={filterActions}
       filters={[
         {
           id: 'status',
@@ -72,23 +97,25 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
           options: statusOptions,
         },
       ]}
+      placeholder={t('admin.search.membership')}
+      query={query}
+      showHeader={false}
+      showStats
+      collapseStatsOnMobile
       stats={[
         { label: t('admin.sections.pluUsa.statAthletes'), value: athletes.length },
         { label: t('admin.sections.pluUsa.statActive'), value: activeCount, tone: 'success' },
         { label: t('admin.sections.pluUsa.statExpiring'), value: expiringCount, tone: 'warning' },
-        { label: t('admin.sections.pluUsa.statRegistrations'), value: confirmedCount, tone: 'celeste' },
+        {
+          label: t('admin.sections.pluUsa.statRegistrations'),
+          value: confirmedCount,
+          tone: 'celeste',
+        },
       ]}
-      actions={
-        <>
-          <span className="admin-readonly-tag">
-            <Lock size={11} aria-hidden />
-            {t('admin.sections.pluUsa.readonlyTag')}
-          </span>
-          <button type="button" className="btn btn--outline" onClick={onExportPluUsa}>
-            <Download size={15} aria-hidden />
-            {t('admin.sections.pluUsa.export')}
-          </button>
-        </>
+      totalCount={memberships.length}
+      onQueryChange={setQuery}
+      beforeShell={
+        <p className="admin-plu-usa__note">{t('admin.sections.pluUsa.recordsNote')}</p>
       }
     >
       <AdminDataTable
@@ -102,8 +129,24 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
               <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} subMono />
             ),
           },
-          { key: 'memberCode', label: t('admin.columns.code'), mobile: 'default' },
-          { key: 'year', label: t('admin.columns.year'), mobile: 'default', desktop: 'numeric', align: 'end' },
+          {
+            key: 'memberCode',
+            label: t('admin.columns.code'),
+            mobile: 'default',
+            className: 'data-table__column--mono data-table__column--code',
+            render: (row) => (
+              <AdminMonoCell title={row.memberCode}>
+                {formatShortMemberCode(row.memberCode)}
+              </AdminMonoCell>
+            ),
+          },
+          {
+            key: 'year',
+            label: t('admin.columns.year'),
+            mobile: 'default',
+            desktop: 'numeric',
+            align: 'end',
+          },
           {
             key: 'status',
             label: t('admin.columns.status'),

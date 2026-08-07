@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PLU USA section fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-institutional.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-minimal.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--admin-bg, #0b0d12);
+        color: var(--admin-ink, #f4f5f7);
+        font-family: system-ui, sans-serif;
+        padding: 24px 16px;
+      }
+      .btn {
+        align-items: center;
+        background: transparent;
+        border: 1px solid var(--admin-hairline, #333);
+        border-radius: 9px;
+        color: inherit;
+        display: inline-flex;
+        font-size: 12.5px;
+        font-weight: 600;
+        gap: 6px;
+        min-height: 36px;
+        padding: 0 12px;
+      }
+      .btn--small { font-size: 12px; }
+      .btn--secondary { background: transparent; }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <div class="admin-list-section admin-list-section--rails admin-list-section--plu-usa">
+        <div class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--external admin-filters--plu-usa">
+          <div class="admin-filters__primary">
+            <div class="admin-filters__search" role="search">
+              <input type="search" placeholder="Buscar afiliado…" aria-label="Buscar" />
+            </div>
+            <div class="admin-filters__actions">
+              <div class="admin-plu-usa__toolbar">
+                <span class="admin-readonly-tag" title="Solo consulta y exporta">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span>Solo lectura</span>
+                </span>
+                <button type="button" class="btn btn--secondary btn--small admin-plu-usa__export">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Descargar reporte</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-filters__panel is-open">
+            <div class="admin-filters__panel-inner">
+              <div class="admin-filters__groups">
+                <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all">
+                  <div class="admin-filter-chips-rail">
+                    <div class="admin-filter-chips">
+                      <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span></button>
+                      <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Activas</span><span class="admin-filter-chip__count">3</span></button>
+                      <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Vencidas</span><span class="admin-filter-chip__count">1</span></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="admin-plu-usa__note">Padrón de afiliaciones y resultados. Los récords oficiales se suman cuando PLU USA publique el estándar global.</p>
+        <section class="admin-list-shell admin-list-shell--plu-usa">
+          <div class="admin-list-shell__stats-strip">
+            <article class="admin-list-stat"><span class="admin-list-stat__value">12</span><span class="admin-list-stat__label">Atletas</span></article>
+            <article class="admin-list-stat admin-list-stat--success"><span class="admin-list-stat__value">8</span><span class="admin-list-stat__label">Afiliaciones activas</span></article>
+            <article class="admin-list-stat admin-list-stat--warning"><span class="admin-list-stat__value">2</span><span class="admin-list-stat__label">Vencen pronto</span></article>
+            <article class="admin-list-stat admin-list-stat--celeste"><span class="admin-list-stat__value">5</span><span class="admin-list-stat__label">Inscripciones confirmadas</span></article>
+          </div>
+          <div class="admin-list-shell__body" style="padding:16px;color:var(--admin-muted);font-size:13px">Tabla del padrón…</div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

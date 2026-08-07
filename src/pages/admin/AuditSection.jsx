@@ -108,6 +108,7 @@ export default function AuditSection() {
   const labels = useMemo(() => auditLabels(messages), [messages])
   const actionLabel = labels.action
   const actorLabel = labels.actor
+  const entityLabel = labels.entity
 
   const filterOptions = useMemo(
     () => [
@@ -117,6 +118,7 @@ export default function AuditSection() {
         value: action,
         onChange: setAction,
         variant: 'select',
+        showLabel: true,
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.actions.map((value) => [value, actionLabel(value)]),
@@ -128,6 +130,7 @@ export default function AuditSection() {
         value: actorType,
         onChange: setActorType,
         variant: 'select',
+        showLabel: true,
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.actorTypes.map((value) => [value, actorLabel(value)]),
@@ -139,13 +142,14 @@ export default function AuditSection() {
         value: entityType,
         onChange: setEntityType,
         variant: 'select',
+        showLabel: true,
         options: [
           ['all', t('admin.audit.filterAll')],
-          ...facets.entityTypes.map((value) => [value, value]),
+          ...facets.entityTypes.map((value) => [value, entityLabel(value)]),
         ],
       },
     ],
-    [action, actionLabel, actorLabel, actorType, entityType, facets, t],
+    [action, actionLabel, actorLabel, actorType, entityLabel, entityType, facets, t],
   )
 
   const columns = useMemo(
@@ -177,7 +181,7 @@ export default function AuditSection() {
         mobile: 'default',
         render: (row) => (
           <div className="audit-entry__entity">
-            <span className="audit-entry__entity-type">{row.entityType}</span>
+            <span className="audit-entry__entity-type">{entityLabel(row.entityType)}</span>
             <AdminMonoCell>{row.entityId}</AdminMonoCell>
           </div>
         ),
@@ -212,11 +216,12 @@ export default function AuditSection() {
           ),
       },
     ],
-    [actionLabel, actorLabel, labels, locale, t],
+    [actionLabel, actorLabel, entityLabel, labels, locale, t],
   )
 
   return (
     <AdminListSection
+      variant="audit"
       filteredCount={entries.length}
       placeholder={t('admin.audit.searchPlaceholder')}
       query={query}

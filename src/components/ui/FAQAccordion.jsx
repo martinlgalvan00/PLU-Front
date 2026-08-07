@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
-import { MOTION_DURATION } from '../../motion/tokens.ts'
+import { MOTION_DISTANCE, MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 function FaqRefIcon({ isOpen }) {
@@ -18,6 +18,28 @@ export default function FAQAccordion({ idPrefix = 'faq', items, numbered = false
   const { reducedMotion } = useMotionConfig()
   const isRef = variant === 'ref'
   const rootClass = isRef ? 'faq-accordion faq-accordion--ref' : 'faq-accordion'
+
+  const panelTransition = reducedMotion
+    ? { duration: 0 }
+    : {
+        height: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
+        opacity: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+      }
+
+  const contentTransition = reducedMotion
+    ? { duration: 0 }
+    : {
+        duration: MOTION_DURATION.base,
+        ease: MOTION_EASE.out,
+        delay: 0.06,
+      }
+
+  const contentExit = reducedMotion
+    ? { duration: 0 }
+    : {
+        duration: MOTION_DURATION.fast,
+        ease: MOTION_EASE.inOut,
+      }
 
   return (
     <div className={rootClass}>
@@ -59,12 +81,34 @@ export default function FAQAccordion({ idPrefix = 'faq', items, numbered = false
                   aria-labelledby={triggerId}
                   initial={reducedMotion ? false : { height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: reducedMotion ? 0 : MOTION_DURATION.base, ease: [0.22, 1, 0.36, 1] }}
+                  exit={
+                    reducedMotion
+                      ? undefined
+                      : {
+                          height: 0,
+                          opacity: 0,
+                          transition: {
+                            height: { duration: MOTION_DURATION.base, ease: MOTION_EASE.inOut },
+                            opacity: { duration: MOTION_DURATION.fast, ease: MOTION_EASE.inOut },
+                          },
+                        }
+                  }
+                  transition={panelTransition}
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div className="faq-item__panel">
+                  <m.div
+                    className="faq-item__panel"
+                    initial={reducedMotion ? false : { opacity: 0, y: MOTION_DISTANCE.sm }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={
+                      reducedMotion
+                        ? undefined
+                        : { opacity: 0, y: -4, transition: contentExit }
+                    }
+                    transition={contentTransition}
+                  >
                     <p>{item.a}</p>
-                  </div>
+                  </m.div>
                 </m.div>
               )}
             </AnimatePresence>

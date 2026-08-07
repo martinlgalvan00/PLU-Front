@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shop department panel fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/components/buttons.css" />
+    <link rel="stylesheet" href="../src/styles/pages/shop.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--color-bg-canvas, #0b0d12);
+        color: var(--color-text-primary);
+        font-family: var(--font-family, system-ui);
+        padding: 28px 20px 48px;
+      }
+      .fixture {
+        display: grid;
+        gap: 48px;
+        margin: 0 auto;
+        max-width: 640px;
+      }
+      .fixture h1 {
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0.1em;
+        margin: 0 0 16px;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+      }
+      .btn {
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="fixture">
+      <section>
+        <h1>Merch · próximamente</h1>
+        <article class="shop-department-panel shop-department-panel--soon">
+          <div class="shop-department-panel__copy">
+            <div class="shop-department-panel__meta">
+              <span class="shop-department-panel__badge">Próximamente</span>
+            </div>
+            <h2 class="shop-department-panel__title">Merch oficial</h2>
+            <p class="shop-department-panel__text">
+              Remeras, accesorios y productos de eventos, hechos con la misma identidad que ves en cancha.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <h1>Inscripciones · acción</h1>
+        <article class="shop-department-panel shop-department-panel--action">
+          <div class="shop-department-panel__copy">
+            <h2 class="shop-department-panel__title">Inscripciones a competencias</h2>
+            <p class="shop-department-panel__text">
+              Inscribite a competencias oficiales PLU ARG: categoría, peso y equipamiento en un solo paso.
+            </p>
+          </div>
+          <div class="shop-department-panel__aside">
+            <button type="button" class="btn shop-department-panel__action">
+              Ver inscripciones abiertas
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>

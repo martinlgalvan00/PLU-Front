@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin filters fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-institutional.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-minimal.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-audit.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--admin-bg, var(--color-bg-canvas));
+        color: var(--admin-ink, var(--color-text-primary));
+        font-family: var(--font-family, system-ui);
+        padding: 20px 16px 40px;
+      }
+      .fixture {
+        display: grid;
+        gap: 32px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      .fixture h2 {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--admin-muted);
+        margin: 0 0 12px;
+        font-weight: 650;
+      }
+      .btn {
+        align-items: center;
+        background: var(--admin-brand);
+        border: 0;
+        border-radius: 9px;
+        color: var(--admin-on-brand, #111);
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 12.5px;
+        font-weight: 700;
+        gap: 6px;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 14px;
+        white-space: nowrap;
+      }
+      .btn--secondary {
+        background: transparent;
+        border: 1px solid var(--admin-hairline);
+        color: var(--admin-ink);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <div class="fixture">
+        <section class="admin-list-section admin-list-section--rails">
+          <h2>Membresías · multi-rail</h2>
+          <div class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--external admin-filters--multi">
+            <div class="admin-filters__primary">
+              <div class="admin-filters__search" role="search">
+                <input type="search" placeholder="Buscar afiliado…" value="" aria-label="Buscar afiliado" />
+              </div>
+              <span class="admin-filters__count"><span class="admin-filters__count-label">6 registros</span></span>
+            </div>
+            <div class="admin-filters__panel is-open">
+              <div class="admin-filters__panel-inner">
+                <div class="admin-filters__groups admin-filters__groups--multi">
+                  <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all" role="group" aria-label="Estado">
+                    <div class="admin-filter-chips-rail">
+                      <div class="admin-filter-chips">
+                        <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span></button>
+                        <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Activas</span><span class="admin-filter-chip__count">3</span></button>
+                        <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Canceladas</span><span class="admin-filter-chip__count">3</span></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle" role="group" aria-label="Vencen en 30 días">
+                    <button type="button" class="admin-filter-chip admin-filter-chip--toggle" aria-pressed="false"><span class="admin-filter-chip__label">Vencen en 30 días</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-list-section admin-list-section--rails admin-list-section--events">
+          <h2>Eventos · riel de estados</h2>
+          <div class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--external admin-filters--events">
+            <div class="admin-filters__primary">
+              <div class="admin-filters__search" role="search">
+                <input type="search" placeholder="Buscar evento…" value="" aria-label="Buscar evento" />
+              </div>
+              <div class="admin-filters__actions">
+                <button type="button" class="btn">Nuevo evento</button>
+              </div>
+            </div>
+            <div class="admin-filters__panel is-open">
+              <div class="admin-filters__panel-inner">
+                <div class="admin-filters__groups">
+                  <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all" role="group">
+                    <div class="admin-filter-chips-rail">
+                      <div class="admin-filter-chips">
+                        <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Próximamente</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Inscripción abierta</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Cupos limitados</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Cupo lleno</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Cerrado</span></button>
+                        <button type="button" class="admin-filter-chip" aria-pressed="false"><span class="admin-filter-chip__label">Finalizado</span></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-list-section admin-list-section--rails admin-list-section--users">
+          <h2>Usuarios · search + chips</h2>
+          <div class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--external admin-filters--users">
+            <div class="admin-filters__primary">
+              <div class="admin-filters__search" role="search">
+                <input type="search" placeholder="Buscar por nombre o email" value="" aria-label="Buscar por nombre o email" />
+              </div>
+              <div class="admin-filters__actions">
+                <button type="button" class="btn">Nuevo usuario</button>
+              </div>
+              <span class="admin-filters__count"><span class="admin-filters__count-label">2 registros</span></span>
+            </div>
+            <div class="admin-filters__panel is-open">
+              <div class="admin-filters__panel-inner">
+                <div class="admin-filters__groups">
+                  <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all" role="group">
+                    <div class="admin-filter-chips-rail">
+                      <div class="admin-filter-chips">
+                        <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span></button>
+                        <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Activo</span><span class="admin-filter-chip__count">2</span></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-list-section admin-list-section--rails admin-list-section--audit">
+          <h2>Auditoría · selects etiquetados</h2>
+          <div class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--multi admin-filters--external admin-filters--audit">
+            <div class="admin-filters__primary">
+              <div class="admin-filters__search" role="search">
+                <input type="search" placeholder="Buscar en auditoría…" value="" aria-label="Buscar en auditoría" />
+              </div>
+              <div class="admin-filters__actions">
+                <button type="button" class="btn btn--secondary">Actualizar</button>
+              </div>
+            </div>
+            <div class="admin-filters__panel is-open">
+              <div class="admin-filters__panel-inner">
+                <div class="admin-filters__groups admin-filters__groups--multi admin-filters__groups--secondary-only">
+                  <label class="admin-filters__select">
+                    <span class="admin-filters__select-label">Acción</span>
+                    <span class="admin-filters__select-control">
+                      <select aria-label="Acción">
+                        <option>Todas</option>
+                        <option>Orden de afiliación creada</option>
+                        <option>Inscripción creada</option>
+                      </select>
+                      <svg class="admin-filters__select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </span>
+                  </label>
+                  <label class="admin-filters__select">
+                    <span class="admin-filters__select-label">Actor</span>
+                    <span class="admin-filters__select-control">
+                      <select aria-label="Actor">
+                        <option>Todas</option>
+                        <option>Atleta</option>
+                        <option>Panel</option>
+                      </select>
+                      <svg class="admin-filters__select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </span>
+                  </label>
+                  <label class="admin-filters__select">
+                    <span class="admin-filters__select-label">Entidad</span>
+                    <span class="admin-filters__select-control">
+                      <select aria-label="Entidad">
+                        <option>Todas</option>
+                        <option>event_registration</option>
+                        <option>payment_order</option>
+                      </select>
+                      <svg class="admin-filters__select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

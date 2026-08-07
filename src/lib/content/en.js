@@ -258,7 +258,7 @@ export const MEMBERSHIP_REQUIREMENTS = [
 ]
 
 export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
-  athlete: 'Martín Delgado',
+  athlete: 'Agustin Di Santo',
   affiliateCode: 'PA-2847',
   season: '2026 season',
   status: 'Active membership',

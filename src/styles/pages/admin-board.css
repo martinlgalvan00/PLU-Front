@@ -2,13 +2,9 @@
    admin-board.css — PLU ARG
    Armado de la grilla del torneo (sección Grilla del panel)
 
-   Familia operativa, composición de workspace denso: la bolsa de inscriptos
-   sin ubicar enfrentada a los días de competencia. El orden de lectura es
-   cuánto falta repartir → los días con su carga → el roster de cada tanda.
-
-   Las tandas van como bloques reglados dentro del panel del día, no como
-   cards: el panel ya es una superficie, y anidar otra aplanaría la jerarquía
-   en vez de construirla.
+   Workspace operativo editorial: ledger de pendientes, paneles abiertos
+   (sin cards anidadas) y empty states con CTA a Eventos. El orden de
+   lectura es cuánto falta repartir → días con carga → roster por tanda.
    ═══════════════════════════════════════════════════════════════════ */
 
 .admin-board {
@@ -17,12 +13,26 @@
   gap: var(--space-md);
 }
 
+.admin-board--setup {
+  gap: var(--space-lg);
+}
+
 .admin-board__header {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 240px;
 }
 
 .admin-board__eyebrow {
@@ -35,11 +45,21 @@
 }
 
 .admin-board__title {
-  margin: 4px 0 0;
-  font-size: clamp(22px, 3.2vw, 30px);
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 3.6vw, 34px);
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--color-text-primary);
+}
+
+.admin-board__lead {
+  margin: 2px 0 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .admin-board__event-picker {
@@ -64,9 +84,10 @@
 .admin-board__autofill-field input {
   min-height: 38px;
   padding: 7px 10px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
   color: var(--color-text-primary);
   font-family: var(--font-family);
   font-size: 13.5px;
@@ -76,21 +97,29 @@
 .admin-board__event-picker select:focus-visible,
 .admin-board__movebar-field select:focus-visible,
 .admin-board__autofill-field input:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 1px;
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
 }
 
-/* ── Totales: lo primero que se lee ─────────────────────────────────
+/* ── Totales: ledger tipográfico (sin card) ─────────────────────────
    El pendiente es el trabajo, así que es el único con escala. */
 .admin-board__totals {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-lg);
+  align-items: baseline;
+  gap: var(--space-xl) var(--space-2xl);
   margin: 0;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-lg);
+  padding: var(--space-sm) 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .admin-board__total dt {
@@ -102,17 +131,164 @@
 }
 
 .admin-board__total dd {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
   color: var(--color-text-muted);
 }
 
 .admin-board__total--lead dd {
-  font-size: 30px;
-  line-height: 1.1;
+  font-size: clamp(28px, 4vw, 36px);
   color: var(--color-text-primary);
+}
+
+/* ── Setup: pipeline editorial + copy de acción ───────────────────── */
+.admin-board__setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-xl) var(--space-2xl);
+  align-items: start;
+  padding: var(--space-md) 0 var(--space-sm);
+}
+
+.admin-board__pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__pipeline-step {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+  padding: var(--space-sm) 0 var(--space-sm) var(--space-md);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  color: var(--color-text-muted);
+}
+
+.admin-board__pipeline-step:last-child {
+  border-bottom: none;
+}
+
+.admin-board__pipeline-step.is-current {
+  color: var(--color-text-primary);
+  border-left: 2px solid var(--color-brand-gold);
+  margin-left: -1px;
+  padding-left: calc(var(--space-md) - 1px);
+}
+
+.admin-board__pipeline-index {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.admin-board__pipeline-step.is-current .admin-board__pipeline-index {
+  color: var(--color-brand-gold);
+  opacity: 1;
+}
+
+.admin-board__pipeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-board__pipeline-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+
+.admin-board__pipeline-hint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.admin-board__pipeline-step.is-current .admin-board__pipeline-hint {
+  color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-text-muted));
+}
+
+.admin-board__setup-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding-top: 2px;
+}
+
+.admin-board__setup-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand-gold);
+}
+
+.admin-board__setup-title {
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.admin-board__setup-lead {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.admin-board__setup-copy .btn {
+  margin-top: var(--space-xs);
+}
+
+.admin-board__setup-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm) var(--space-md);
+  margin: 0;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__setup-banner .admin-board__setup-kicker {
+  flex: none;
+}
+
+.admin-board__day-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 860px) {
+  .admin-board__setup {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
 }
 
 /* ── Barra de movimiento ────────────────────────────────────────────── */
@@ -121,10 +297,11 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-md);
-  padding: 12px var(--space-lg);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-brand-celeste);
-  border-radius: var(--border-radius-lg);
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-brand-celeste);
+  border-radius: 0;
 }
 
 .admin-board__movebar-count {
@@ -172,7 +349,7 @@
 .admin-board__layout {
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr;
-  gap: var(--space-md);
+  gap: var(--space-lg);
   align-items: start;
 }
 
@@ -181,10 +358,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-lg);
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .admin-board__pool {
@@ -192,19 +369,33 @@
   top: var(--space-md);
   max-height: calc(100vh - var(--space-2xl));
   overflow-y: auto;
+  padding-right: var(--space-md);
+  border-right: 1px solid var(--color-border-subtle);
 }
 
 .admin-board__days {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-lg);
   min-width: 0;
+}
+
+.admin-board__day {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__day:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .admin-board__panel-head {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .admin-board__panel-icon {
@@ -214,8 +405,8 @@
   width: 26px;
   height: 26px;
   flex: none;
-  border-radius: var(--border-radius-sm);
-  background: var(--plu-celeste-alpha-18);
+  border-radius: 0;
+  background: transparent;
   color: var(--color-brand-celeste);
 }
 
@@ -229,14 +420,14 @@
 
 .admin-board__count {
   flex: none;
-  min-width: 26px;
-  padding: 2px 8px;
-  border-radius: var(--border-radius-pill);
-  background: var(--color-bg-elevated);
-  font-size: 12px;
+  min-width: 1.5ch;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  text-align: right;
   color: var(--color-text-muted);
 }
 
@@ -258,7 +449,7 @@
 }
 
 /* ── Tandas ─────────────────────────────────────────────────────────
-   Bloques reglados, no cards: el panel del día ya es la superficie. */
+   Bloques reglados, no cards: el día ya es la unidad. */
 .admin-board__session {
   padding-top: var(--space-sm);
   border-top: 1px solid var(--color-border-subtle);
@@ -303,19 +494,24 @@
   gap: var(--space-sm);
   /* 44px de alto real: esto se opera desde una tablet en la sede. */
   min-height: 44px;
-  padding: 6px 8px;
-  border-radius: var(--border-radius-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  border-radius: 0;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
+.admin-board__athlete:last-child {
+  border-bottom: none;
+}
+
 .admin-board__athlete:hover {
-  background: var(--color-bg-elevated);
+  background: color-mix(in srgb, var(--color-bg-elevated) 55%, transparent);
 }
 
 .admin-board__athlete:focus-within {
   outline: 2px solid var(--color-brand-celeste);
-  outline-offset: -2px;
+  outline-offset: 0;
 }
 
 .admin-board__athlete input {
@@ -372,7 +568,7 @@
 /* ── Estados ────────────────────────────────────────────────────────── */
 .admin-board__empty {
   margin: 0;
-  padding: var(--space-md);
+  padding: var(--space-md) 0;
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -384,18 +580,21 @@
 .admin-board__alert,
 .admin-board__notice {
   margin: 0;
-  padding: 10px var(--space-md);
-  border-radius: var(--border-radius-md);
+  padding: 10px 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
   font-size: 13px;
 }
 
 .admin-board__alert {
-  background: var(--color-danger-bg);
+  background: transparent;
+  border-bottom-color: var(--color-danger-text);
   color: var(--color-danger-text);
 }
 
 .admin-board__notice {
-  background: var(--plu-celeste-alpha-18);
+  background: transparent;
+  border-bottom-color: var(--color-brand-celeste);
   color: var(--color-text-primary);
 }
 
@@ -407,6 +606,10 @@
   .admin-board__pool {
     position: static;
     max-height: none;
+    padding-right: 0;
+    border-right: none;
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 }
 
@@ -414,5 +617,9 @@
   .admin-board__movebar-field,
   .admin-board__event-picker {
     min-width: 100%;
+  }
+
+  .admin-board__totals {
+    gap: var(--space-md) var(--space-lg);
   }
 }

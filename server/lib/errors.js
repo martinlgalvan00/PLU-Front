@@ -15,7 +15,10 @@ export function errorHandler(err, _req, res, _next) {
   const status = Number.isInteger(err.status) ? err.status : 500
   const message = status >= 500 ? 'Error interno' : err.message
   const body = { error: message }
-  if (status < 500 && err.details?.code) body.code = err.details.code
+  if (err.details?.code) body.code = err.details.code
   if (err.details?.code === 'PLU06') body.alreadyUsed = true
+  if (status >= 500) {
+    console.error(`[api] ${status} ${err.message}`, err.details?.code ?? '')
+  }
   res.status(status).json(body)
 }

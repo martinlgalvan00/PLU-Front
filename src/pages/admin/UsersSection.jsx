@@ -2,13 +2,15 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   Ban,
   CheckCircle2,
+  LoaderCircle,
   PauseCircle,
   Shield,
   UserPlus,
   X,
 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import { AdminIdentityCell } from '../../components/admin/AdminTableCells.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import { AdminIdentityCell, AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
 import Pill from '../../components/ui/Pill.jsx'
@@ -237,17 +239,19 @@ export default function UsersSection({
         <Button
           type="button"
           variant="secondary"
-          className="btn--small"
+          className="btn--small admin-users__toolbar-btn admin-users__toolbar-btn--roles"
+          aria-label={t('admin.users.managePermissions')}
+          title={t('admin.users.managePermissions')}
           onClick={onNavigateRoles}
         >
-          <Shield size={14} aria-hidden />
+          <Shield size={15} aria-hidden />
           <span>{t('admin.users.managePermissions')}</span>
         </Button>
       ) : null}
       <Button
         type="button"
         variant={isCreating ? 'secondary' : 'gold'}
-        className="btn--small"
+        className="btn--small admin-users__toolbar-btn admin-users__toolbar-btn--primary"
         aria-controls={formId}
         aria-expanded={isCreating}
         onClick={() => {
@@ -258,7 +262,7 @@ export default function UsersSection({
           openCreateForm()
         }}
       >
-        {isCreating ? <X size={14} aria-hidden /> : <UserPlus size={14} aria-hidden />}
+        {isCreating ? <X size={15} aria-hidden /> : <UserPlus size={15} aria-hidden />}
         <span>{isCreating ? t('admin.users.cancel') : t('admin.users.newUser')}</span>
       </Button>
     </div>
@@ -280,11 +284,8 @@ export default function UsersSection({
       ]}
       placeholder={t('admin.search.users')}
       query={query}
-      showHeader
+      showHeader={false}
       showStats={false}
-      eyebrow={t('admin.sections.users.eyebrow')}
-      title={t('admin.sections.users.title')}
-      subtitle={t('admin.sections.users.subtitle')}
       totalCount={users.length}
       onQueryChange={setQuery}
     >
@@ -393,19 +394,31 @@ export default function UsersSection({
             label: t('admin.columns.role'),
             mobile: 'badge',
             sortable: true,
-            render: (row) =>
-              canManageUsers &&
-              row.role !== 'admin_maximal' &&
-              roleOptions.some(([roleKey]) => roleKey === (row.roleKey ?? row.role)) ? (
-                <label className="admin-users__role-select">
-                  <span className="admin-users__role-select-label">{t('admin.columns.role')}</span>
+            className: 'data-table__column--role',
+            render: (row) => {
+              const roleKey = row.roleKey ?? row.role
+              const canEditRole =
+                canManageUsers &&
+                row.role !== 'admin_maximal' &&
+                roleOptions.some(([optionKey]) => optionKey === roleKey)
+
+              if (!canEditRole) {
+                return <span className="admin-users__role-pill">{getRoleLabel(row)}</span>
+              }
+
+              const busy = updatingUserId === row.id
+
+              return (
+                <label
+                  className={`admin-users__role-select${busy ? ' is-busy' : ''}`}
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <select
                     name={`role-${row.id}`}
-                    value={row.roleKey ?? row.role}
-                    disabled={updatingUserId === row.id}
+                    value={roleKey}
+                    disabled={busy}
                     aria-label={`${t('admin.columns.role')}: ${row.name}`}
-                    onChange={(e) => handleRoleChange(row.id, e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
+                    onChange={(event) => handleRoleChange(row.id, event.target.value)}
                   >
                     {roleOptions.map(([optionValue, optionLabel]) => (
                       <option key={optionValue} value={optionValue}>
@@ -414,9 +427,8 @@ export default function UsersSection({
                     ))}
                   </select>
                 </label>
-              ) : (
-                <span className="status-pill status-pill--neutral">{getRoleLabel(row)}</span>
-              ),
+              )
+            },
           },
           {
             key: 'status',
@@ -433,61 +445,51 @@ export default function UsersSection({
           {
             key: 'actions',
             label: t('admin.columns.action'),
-            mobile: 'actions',
+            mobile: 'action',
             sortable: false,
+            mobileSortable: false,
+            className: 'data-table__column--actions',
             render: (row) => {
               if (!canMutateUser(row)) {
-                return <span className="admin-users__actions-empty">—</span>
+                return <AdminTableActionsEmpty />
               }
 
               const status = row.status ?? 'active'
               const busy = updatingUserId === row.id
 
               return (
-                <div className="admin-users__row-actions" role="group" aria-label={t('admin.users.actionsAria', { name: row.name })}>
+                <AdminTableActions
+                  aria-label={t('admin.users.actionsAria', { name: row.name })}
+                  onClick={(event) => event.stopPropagation()}
+                >
                   {status !== 'active' ? (
-                    <button
-                      type="button"
-                      className="admin-users__action-btn admin-users__action-btn--activate"
+                    <AdminIconButton
                       disabled={busy}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleStatusChange(row.id, 'active')
-                      }}
-                    >
-                      <CheckCircle2 size={14} aria-hidden />
-                      <span>{t('admin.users.actionActivate')}</span>
-                    </button>
+                      icon={busy ? LoaderCircle : CheckCircle2}
+                      label={t('admin.users.actionActivate')}
+                      onClick={() => void handleStatusChange(row.id, 'active')}
+                      variant="celeste"
+                    />
                   ) : null}
                   {status === 'active' ? (
-                    <button
-                      type="button"
-                      className="admin-users__action-btn"
+                    <AdminIconButton
                       disabled={busy}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleStatusChange(row.id, 'suspended')
-                      }}
-                    >
-                      <PauseCircle size={14} aria-hidden />
-                      <span>{t('admin.users.actionSuspend')}</span>
-                    </button>
+                      icon={busy ? LoaderCircle : PauseCircle}
+                      label={t('admin.users.actionSuspend')}
+                      onClick={() => void handleStatusChange(row.id, 'suspended')}
+                      variant="ghost"
+                    />
                   ) : null}
                   {status !== 'disabled' ? (
-                    <button
-                      type="button"
-                      className="admin-users__action-btn admin-users__action-btn--danger"
+                    <AdminIconButton
                       disabled={busy}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleStatusChange(row.id, 'disabled')
-                      }}
-                    >
-                      <Ban size={14} aria-hidden />
-                      <span>{t('admin.users.actionDisable')}</span>
-                    </button>
+                      icon={Ban}
+                      label={t('admin.users.actionDisable')}
+                      onClick={() => void handleStatusChange(row.id, 'disabled')}
+                      variant="danger"
+                    />
                   ) : null}
-                </div>
+                </AdminTableActions>
               )
             },
           },

@@ -394,8 +394,8 @@
 .admin-shell__account {
   align-items: center;
   display: grid;
-  gap: 8px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
   min-width: 0;
   width: 100%;
 }
@@ -452,15 +452,17 @@
 
 .admin-shell__prefs {
   align-items: center;
-  display: inline-flex;
+  display: grid;
   flex: none;
-  gap: 6px;
-  justify-content: flex-end;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: stretch;
+  width: 100%;
 }
 
 .admin-shell--collapsed .admin-shell__prefs {
-  flex-direction: column;
-  justify-content: center;
+  grid-template-columns: 1fr;
+  justify-items: center;
   width: 100%;
 }
 
@@ -474,8 +476,8 @@
 .admin-shell__exit {
   align-items: center;
   background: transparent;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -483,16 +485,18 @@
   font-weight: 600;
   gap: 8px;
   justify-content: flex-start;
-  min-height: 34px;
-  padding: 0 8px;
+  min-height: 40px;
+  padding: 0 12px;
   transition:
     background var(--transition-fast),
+    border-color var(--transition-fast),
     color var(--transition-fast);
   width: 100%;
 }
 
 .admin-shell__exit:hover {
   background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 28%, var(--color-border-subtle));
   color: var(--color-text-primary);
 }
 
@@ -905,18 +909,20 @@
   }
 
   .admin-shell--collapsed .admin-shell__account {
-    gap: 8px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr);
     justify-items: stretch;
   }
 
   .admin-shell--collapsed .admin-shell__prefs {
-    flex-direction: row;
-    width: auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
   }
 
   .admin-shell--collapsed .admin-shell__prefs .locale-switch--segment {
     height: 30px;
+    justify-self: end;
     min-height: 30px;
     width: 64px;
   }

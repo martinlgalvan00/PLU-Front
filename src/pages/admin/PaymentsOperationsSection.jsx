@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { LoaderCircle, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
@@ -110,6 +112,7 @@ export default function PaymentsOperationsSection({
 
   const primaryMetrics = [
     {
+      id: 'integrity',
       label: t('admin.paymentOperations.integrity'),
       value: summary.health?.healthy
         ? t('admin.paymentOperations.integrityOk')
@@ -117,28 +120,31 @@ export default function PaymentsOperationsSection({
       tone: summary.health?.healthy ? 'success' : 'danger',
     },
     {
+      id: 'failed',
       label: t('admin.paymentOperations.failedEvents'),
       value: failedCount,
-      tone: 'danger',
+      tone: failedCount > 0 ? 'danger' : 'neutral',
     },
-  ]
-  const secondaryMetrics = [
     {
+      id: 'pending',
       label: t('admin.paymentOperations.pendingReconciliations'),
       value: pendingReconciliations,
-      tone: 'warning',
+      tone: pendingReconciliations > 0 ? 'warning' : 'neutral',
     },
     {
+      id: 'pastDue',
       label: t('admin.paymentOperations.pastDueSubscriptions'),
       value: summary.subscriptions?.pastDue ?? 0,
-      tone: 'warning',
+      tone: (summary.subscriptions?.pastDue ?? 0) > 0 ? 'warning' : 'neutral',
     },
     {
+      id: 'processed',
       label: t('admin.paymentOperations.processedEvents'),
       value: summary.events?.processed ?? 0,
-      tone: 'success',
+      tone: 'neutral',
     },
   ]
+
   const operationRows = [
     ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
     ...(data?.reconciliations ?? []).map((attempt) => ({
@@ -166,7 +172,7 @@ export default function PaymentsOperationsSection({
         <header className="admin-payment-ops__header">
           <div className="admin-payment-ops__intro">
             <span className="admin-payment-ops__eyebrow">
-              <ShieldCheck size={15} aria-hidden /> Mercado Pago
+              <ShieldCheck size={14} aria-hidden /> Mercado Pago
             </span>
             <h2 id="payment-ops-title">{t('admin.paymentOperations.title')}</h2>
             <p className="admin-payment-ops__subtitle">{t('admin.paymentOperations.subtitle')}</p>
@@ -212,36 +218,19 @@ export default function PaymentsOperationsSection({
         </header>
 
         <div
-          className="admin-payment-ops__signal"
+          className="admin-payment-ops__ledger"
           aria-label={t('admin.paymentOperations.signalAria')}
         >
           {primaryMetrics.map((metric) => (
             <article
-              key={metric.label}
-              className={`admin-payment-ops__metric admin-payment-ops__metric--compact admin-payment-ops__metric--${metric.tone}`}
+              key={metric.id}
+              className={`admin-payment-ops__metric admin-payment-ops__metric--${metric.tone}`}
             >
               <strong>{metric.value}</strong>
               <span>{metric.label}</span>
             </article>
           ))}
         </div>
-
-        <details className="admin-payment-ops__metrics-panel">
-          <summary className="admin-payment-ops__metrics-summary">
-            {t('admin.paymentOperations.metricsMore')}
-          </summary>
-          <div className="admin-payment-ops__metrics">
-            {secondaryMetrics.map((metric) => (
-              <article
-                key={metric.label}
-                className={`admin-payment-ops__metric admin-payment-ops__metric--${metric.tone}`}
-              >
-                <strong>{metric.value}</strong>
-                <span>{metric.label}</span>
-              </article>
-            ))}
-          </div>
-        </details>
 
         <div className="admin-payment-ops__filter">
           <AdminFilterChipGroup
@@ -335,19 +324,26 @@ export default function PaymentsOperationsSection({
                 key: 'actions',
                 label: t('admin.columns.action'),
                 mobile: 'action',
-                render: (row) =>
-                  ['failed', 'pending'].includes(row.status) && canEdit ? (
-                    <button
-                      type="button"
-                      className="btn btn--small btn--outline"
-                      disabled={retryingId === row.id}
-                      onClick={() => handleRetry(row)}
-                    >
-                      {t('admin.paymentOperations.retry')}
-                    </button>
-                  ) : (
-                    '—'
-                  ),
+                className: 'data-table__column--actions',
+                render: (row) => {
+                  if (!['failed', 'pending'].includes(row.status) || !canEdit) {
+                    return <AdminTableActionsEmpty />
+                  }
+
+                  const retrying = retryingId === row.id
+
+                  return (
+                    <AdminTableActions>
+                      <AdminIconButton
+                        disabled={retrying}
+                        icon={retrying ? LoaderCircle : RotateCcw}
+                        label={t('admin.paymentOperations.retry')}
+                        onClick={() => handleRetry(row)}
+                        variant="ghost"
+                      />
+                    </AdminTableActions>
+                  )
+                },
               },
             ]}
           />

@@ -403,9 +403,11 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
       {isEmpty ? (
         <div className="pitbull-recent__empty" role="status">
           <p className="pitbull-recent__empty-lead">{t('pages.pitbull.recentRegistrantsEmpty')}</p>
-          {!isLive ? (
-            <p className="pitbull-recent__empty-note">{t('pages.pitbull.recentRegistrantsFallbackHint')}</p>
-          ) : null}
+          <p className="pitbull-recent__empty-note">
+            {isLive
+              ? t('pages.pitbull.recentRegistrantsEmptyNote')
+              : t('pages.pitbull.recentRegistrantsFallbackHint')}
+          </p>
         </div>
       ) : (
         <ol className="pitbull-recent__list">
