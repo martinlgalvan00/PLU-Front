@@ -73,10 +73,12 @@ En `push` a `dev`/`main` (y `workflow_dispatch`) corre además `integrations-liv
 El workflow `Deployment smoke` exige `/api/health` **y** `/api/ready`
 (`checks.prisma` + `checks.supabase`) sobre la URL del deploy.
 
-Las ejecuciones anteriores de la misma rama se cancelan cuando llega un commit
-nuevo. Si un push a `dev` también sincroniza el PR permanente `dev -> main`,
-ambos eventos comparten el mismo grupo y queda una sola corrida activa. Esto
-evita gastar runners y revisar resultados obsoletos.
+Las ejecuciones anteriores de la **misma rama y el mismo tipo de evento**
+(`push` o `pull_request`) se cancelan cuando llega un commit nuevo. Un push a
+`dev` también sincroniza el PR permanente `dev -> main`: los dos eventos corren
+en grupos separados para que uno no cancele al otro (si no, GitHub muestra el
+commit en rojo por checks `cancelled`). En el `push` a `dev` solo corre
+`integrations-live`; `application` y `supabase-integration` los cubre el PR.
 
 ## Configuración única en GitHub
 
