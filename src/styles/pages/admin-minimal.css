@@ -1051,6 +1051,59 @@
   gap: 8px;
 }
 
+.admin-shell .admin-payments-operations > .admin-orders-block,
+.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.admin-shell .admin-payments-operations > .admin-orders-block {
+  border-top: 0;
+  gap: 0;
+  margin-top: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__header {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding: 18px clamp(14px, 2.4vw, 22px) 16px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block > .admin-filter-group {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding: 12px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-shell .admin-payments-operations .admin-list-section--tickets {
+  gap: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-shell__header,
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-section__header {
+  background: transparent;
+  border-bottom: 1px solid var(--admin-hairline);
+  margin: 0;
+  padding: 18px clamp(14px, 2.4vw, 22px) 16px;
+}
+
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-filters--external {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  margin: 0;
+  padding: 12px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-shell .admin-payments-operations .admin-list-section--tickets .admin-list-shell {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
 .admin-shell .admin-payment-ops__ledger {
   background: color-mix(in srgb, var(--admin-surface-muted) 55%, transparent);
   border-bottom: 1px solid var(--admin-hairline);

@@ -3588,6 +3588,10 @@
   padding-left: 40px !important;
 }
 
+.field--has-trailing input {
+  padding-right: 44px !important;
+}
+
 .field--has-icon .field__icon {
   color: rgba(255, 255, 255, 0.38);
   left: 14px;
@@ -3600,4 +3604,52 @@
 
 .field--has-icon:focus-within .field__icon {
   color: var(--color-brand-gold);
+}
+
+.field__toggle {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: color var(--duration-base, 180ms) var(--ease-design, ease);
+  width: 36px;
+  z-index: 2;
+}
+
+.field__toggle:hover,
+.field--has-trailing:focus-within .field__toggle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.field__toggle:focus-visible {
+  border-radius: 4px;
+  color: var(--color-brand-gold);
+  outline: 2px solid color-mix(in oklab, var(--color-brand-gold) 55%, transparent);
+  outline-offset: 1px;
+}
+
+[data-theme='light'] .field--has-icon .field__icon {
+  color: rgba(15, 17, 23, 0.4);
+}
+
+[data-theme='light'] .field--has-icon:focus-within .field__icon {
+  color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 55%, rgba(15, 17, 23, 0.55));
+}
+
+[data-theme='light'] .field__toggle {
+  color: rgba(15, 17, 23, 0.42);
+}
+
+[data-theme='light'] .field__toggle:hover,
+[data-theme='light'] .field--has-trailing:focus-within .field__toggle {
+  color: rgba(15, 17, 23, 0.8);
 }

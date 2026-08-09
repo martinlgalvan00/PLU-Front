@@ -1,8 +1,23 @@
 import { ChevronDown } from 'lucide-react'
 
-export function Field({ className = '', error, hideLabel = false, icon: Icon, label, ...props }) {
+export function Field({
+  className = '',
+  error,
+  hideLabel = false,
+  icon: Icon,
+  label,
+  trailing = null,
+  ...props
+}) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', className, hideLabel ? 'field--headless' : '', error ? 'is-invalid' : '', Icon ? 'field--has-icon' : '']
+  const fieldClass = [
+    'field',
+    className,
+    hideLabel ? 'field--headless' : '',
+    error ? 'is-invalid' : '',
+    Icon ? 'field--has-icon' : '',
+    trailing ? 'field--has-trailing' : '',
+  ]
     .filter(Boolean)
     .join(' ')
   return (
@@ -16,6 +31,7 @@ export function Field({ className = '', error, hideLabel = false, icon: Icon, la
           aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
         />
+        {trailing}
       </span>
       {error ? (
         <span className="field__error" id={errorId} role="alert" title={error}>

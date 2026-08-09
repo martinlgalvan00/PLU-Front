@@ -1,28 +1,63 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Lock, QrCode, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
+import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
 import { formatShortDate } from '../../lib/format.js'
+import {
+  getRegistrationGateLabelKey,
+  isGateAccessReady,
+  resolveRequiresMembership,
+} from '../../lib/gateAccess.js'
+import { isRegistrationAdmitted } from '../../lib/status.js'
+import { isMembershipCurrent } from '../../services/membershipService.js'
 
 export default function QrCredentialSection({
   athlete,
   membership,
+  latestMembership = null,
   registrations = [],
   onNavigateSection,
 }) {
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
   const [qrSrc, setQrSrc] = useState(null)
-  const memberCode = membership?.memberCode
-  // El QR sale del token de la persona, que es estable de por vida: renovar la
-  // afiliación ya no invalida la card impresa. Los otros dos quedan de fallback
-  // para una cuenta cuyo snapshot todavía no trae el token nuevo.
-  const credentialCode = athlete?.credentialToken ?? membership?.qrToken ?? memberCode
-  const isMemberActive = membership?.status === 'activa'
-  // Un inscripto a un evento que no exige afiliación también necesita su
-  // credencial en la puerta; antes esa persona no tenía ninguna.
-  const hasCredential = Boolean(credentialCode) && (isMemberActive || registrations.length > 0)
+  const [mergeDone, setMergeDone] = useState(false)
+
+  const memberCode = membership?.memberCode ?? latestMembership?.memberCode
+  const credentialCode = athlete?.credentialToken ?? membership?.qrToken ?? latestMembership?.qrToken ?? memberCode
+  const membershipCurrent = isMembershipCurrent(membership)
+  const membershipForPass = membershipCurrent ? membership : latestMembership
+
+  const admittedRegistrations = useMemo(
+    () => registrations.filter((item) => isRegistrationAdmitted(item.status)),
+    [registrations],
+  )
+  const primaryMeet = admittedRegistrations[0] ?? null
+  const meetRequiresMembership = primaryMeet ? resolveRequiresMembership(primaryMeet) : false
+  const gateReady = primaryMeet
+    ? isGateAccessReady({
+        registrationStatus: primaryMeet.status,
+        requiresMembership: meetRequiresMembership,
+        membershipCurrent,
+      })
+    : membershipCurrent
+  const gateLabelKey = primaryMeet
+    ? getRegistrationGateLabelKey(primaryMeet, { membershipCurrent })
+    : null
+
+  const hasCredential = Boolean(credentialCode) && (membershipCurrent || admittedRegistrations.length > 0)
+  const showDual = hasCredential && Boolean(primaryMeet) && !membershipCurrent
+  const shouldPlayMerge =
+    hasCredential &&
+    membershipCurrent &&
+    Boolean(membership?.id) &&
+    Boolean(primaryMeet) &&
+    !hasPlayedCredentialMerge(athlete?.id, membership.id) &&
+    !mergeDone
+
   const validUntil = membership?.expirationDate
     ? formatShortDate(membership.expirationDate, locale)
     : null
@@ -33,11 +68,18 @@ export default function QrCredentialSection({
       return undefined
     }
     let cancelled = false
-    generateCredentialQr(buildCredentialUrl({ code: credentialCode }))
-      .then((dataUrl) => { if (!cancelled) setQrSrc(dataUrl) })
-      .catch(() => { if (!cancelled) setQrSrc(null) })
-    return () => { cancelled = true }
-  }, [credentialCode, hasCredential])
+    const eventSlug = primaryMeet?.eventSlug ?? (membershipCurrent ? 'afiliacion' : undefined)
+    generateCredentialQr(buildCredentialUrl({ code: credentialCode, eventSlug }))
+      .then((dataUrl) => {
+        if (!cancelled) setQrSrc(dataUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setQrSrc(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [credentialCode, hasCredential, membershipCurrent, primaryMeet?.eventSlug])
 
   const cardData = hasCredential
     ? {
@@ -46,10 +88,30 @@ export default function QrCredentialSection({
         athletePhotoUrl: athlete.photoUrl,
         qrCode: credentialCode,
         membershipExpiration: validUntil,
-        variant: 'membership',
-        eventSlug: 'afiliacion',
+        variant: membershipCurrent ? 'membership' : 'event',
+        eventSlug: primaryMeet?.eventSlug ?? 'afiliacion',
+        eventTitle: primaryMeet?.event,
       }
     : null
+
+  if (shouldPlayMerge) {
+    return (
+      <section id="account-qr" className="account-section account-section--celeste">
+        <div className="account-section__heading">
+          <div className="account-section__icon account-section__icon--celeste"><QrCode size={21} /></div>
+          <div><span>{t('account.qr.eyebrow')}</span><h2>{t('account.qr.title')}</h2></div>
+        </div>
+        <CredentialMergeRitual
+          athleteId={athlete.id}
+          membershipId={membership.id}
+          meetLabel={t('account.qr.meetPassTitle')}
+          membershipLabel={t('account.qr.membershipPassTitle')}
+          qrSrc={qrSrc}
+          onComplete={() => setMergeDone(true)}
+        />
+      </section>
+    )
+  }
 
   return (
     <section id="account-qr" className="account-section account-section--celeste">
@@ -60,61 +122,114 @@ export default function QrCredentialSection({
 
       {hasCredential ? (
         <>
-          <p className="account-section__lead">{t('account.qr.lead')}</p>
+          <p className="account-section__lead">
+            {showDual
+              ? t('account.qr.leadDual')
+              : membershipCurrent
+                ? t('account.qr.leadUnified')
+                : t('account.qr.lead')}
+          </p>
 
-          <div className="account-qr account-qr--split">
-            <div className="account-qr__code-col">
-              <div className="account-qr__chip">
-                {qrSrc && <img src={qrSrc} alt={t('account.qr.imageAlt')} />}
-              </div>
-              <p className="account-qr__code-label">{memberCode ?? athlete.fullName}</p>
-              {isMemberActive && validUntil && (
-                <p className="account-qr__code-meta">{t('account.qr.validUntil', { date: validUntil })}</p>
-              )}
-            </div>
-
-            <div className="account-qr__preview-col">
-              <p className="account-qr__preview-caption">{t('account.qr.scanPreviewCaption')}</p>
-              <aside className="account-qr__preview" aria-label={t('account.qr.scanPreviewCaption')}>
-                <div className="account-qr__preview-verdict">
-                  <CheckCircle2 size={18} aria-hidden />
-                  <span>{t('account.qr.scanPreviewVerdict')}</span>
+          {showDual ? (
+            <div className="account-qr-dual">
+              <article className="account-qr-pass">
+                <h3>{t('account.qr.meetPassTitle')}</h3>
+                <p className="account-qr-pass__meta">
+                  {primaryMeet?.event ?? t('account.qr.meetPassMeta')}
+                </p>
+                {gateLabelKey ? (
+                  <p
+                    className={`account-qr-pass__gate ${
+                      gateReady ? 'account-qr-pass__gate--ready' : 'account-qr-pass__gate--reserved'
+                    }`}
+                  >
+                    {t(gateLabelKey)}
+                  </p>
+                ) : null}
+                <div className="account-qr__chip">
+                  {qrSrc && <img src={qrSrc} alt={t('account.qr.imageAlt')} />}
                 </div>
-                <p className="account-qr__preview-name">{athlete.fullName}</p>
-                {memberCode && <p className="account-qr__preview-code">{memberCode}</p>}
-                <dl className="account-qr__preview-rows">
-                  <div>
-                    <dt>{t('account.qr.scanPreviewMembership')}</dt>
-                    <dd>
-                      {isMemberActive
-                        ? t('account.membershipActive')
-                        : t('account.qr.scanPreviewNoMembership')}
-                    </dd>
-                  </div>
-                  {isMemberActive && validUntil && (
-                    <div>
-                      <dt>{t('account.credential.expiration')}</dt>
-                      <dd>{validUntil}</dd>
-                    </div>
-                  )}
-                  {/* Sin afiliación, lo que habilita el ingreso es la
-                      inscripción: es el dato que el operador necesita ver. */}
-                  {!isMemberActive && registrations.length > 0 && (
-                    <div>
-                      <dt>{t('account.qr.scanPreviewRegistration')}</dt>
-                      <dd>{registrations[0].event ?? t('account.qr.scanPreviewRegistered')}</dd>
-                    </div>
-                  )}
-                </dl>
-              </aside>
-              <button type="button" className="account-qr__share" onClick={() => setModalOpen(true)}>
-                <Share2 size={15} aria-hidden />
-                {t('account.qr.openAction')}
-              </button>
-            </div>
-          </div>
+                {!gateReady && meetRequiresMembership ? (
+                  <p className="account-qr-pass__note">{t('account.qr.gateBlockedNote')}</p>
+                ) : null}
+              </article>
 
-          <CardPreviewModal open={modalOpen} onClose={() => setModalOpen(false)} cardData={cardData} />
+              <article className="account-qr-pass account-qr-pass--pending">
+                <h3>{t('account.qr.membershipPassTitle')}</h3>
+                <p className="account-qr-pass__meta">
+                  {membershipForPass?.status === 'pendiente_pago'
+                    ? t('account.qr.membershipPassPending')
+                    : t('account.qr.scanPreviewNoMembership')}
+                </p>
+                <div className="account-qr__chip account-qr__chip--muted">
+                  {qrSrc && <img src={qrSrc} alt="" />}
+                </div>
+                <button
+                  type="button"
+                  className="account-primary-action"
+                  onClick={() => onNavigateSection('account-membership')}
+                >
+                  {t('pages.register.membershipRequiredAction')}
+                </button>
+              </article>
+            </div>
+          ) : (
+            <div className="account-qr account-qr--split">
+              <div className="account-qr__code-col">
+                <div className="account-qr__chip">
+                  {qrSrc && <img src={qrSrc} alt={t('account.qr.imageAlt')} />}
+                </div>
+                <p className="account-qr__code-label">{memberCode ?? athlete.fullName}</p>
+                {membershipCurrent && validUntil && (
+                  <p className="account-qr__code-meta">{t('account.qr.validUntil', { date: validUntil })}</p>
+                )}
+              </div>
+
+              <div className="account-qr__preview-col">
+                <p className="account-qr__preview-caption">{t('account.qr.scanPreviewCaption')}</p>
+                <aside className="account-qr__preview" aria-label={t('account.qr.scanPreviewCaption')}>
+                  <div className="account-qr__preview-verdict">
+                    <CheckCircle2 size={18} aria-hidden />
+                    <span>
+                      {gateLabelKey ? t(gateLabelKey) : t('account.qr.scanPreviewVerdict')}
+                    </span>
+                  </div>
+                  <p className="account-qr__preview-name">{athlete.fullName}</p>
+                  {memberCode && <p className="account-qr__preview-code">{memberCode}</p>}
+                  <dl className="account-qr__preview-rows">
+                    <div>
+                      <dt>{t('account.qr.scanPreviewMembership')}</dt>
+                      <dd>
+                        {membershipCurrent
+                          ? t('account.membershipActive')
+                          : t('account.qr.scanPreviewNoMembership')}
+                      </dd>
+                    </div>
+                    {membershipCurrent && validUntil && (
+                      <div>
+                        <dt>{t('account.credential.expiration')}</dt>
+                        <dd>{validUntil}</dd>
+                      </div>
+                    )}
+                    {!membershipCurrent && admittedRegistrations.length > 0 && (
+                      <div>
+                        <dt>{t('account.qr.scanPreviewRegistration')}</dt>
+                        <dd>{admittedRegistrations[0].event ?? t('account.qr.scanPreviewRegistered')}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </aside>
+                <button type="button" className="account-qr__share" onClick={() => setModalOpen(true)}>
+                  <Share2 size={15} aria-hidden />
+                  {t('account.qr.openAction')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!showDual && (
+            <CardPreviewModal open={modalOpen} onClose={() => setModalOpen(false)} cardData={cardData} />
+          )}
         </>
       ) : (
         <div className="account-qr account-qr--locked">

@@ -8,10 +8,30 @@ const LOCALE_OPTIONS = [
 export default function LanguageToggle({ compact = false, variant = 'switch' }) {
   const { locale, setLocale, t } = useI18n()
   const isEnglish = locale === 'en'
-  const isSegment = variant === 'segment' || variant === 'glyph'
   const activeIndex = locale === 'en' ? 1 : 0
 
-  if (isSegment) {
+  if (variant === 'glyph') {
+    const activeShort = isEnglish ? 'EN' : 'ES'
+    const switchTitle = isEnglish ? t('locale.switchToEs') : t('locale.switchToEn')
+    const switchLabel = `${t('locale.label')}: ${isEnglish ? t('locale.en') : t('locale.es')}`
+
+    return (
+      <button
+        type="button"
+        className={`locale-switch locale-switch--glyph${compact ? ' locale-switch--compact' : ''}`}
+        data-locale={locale}
+        aria-label={switchLabel}
+        title={switchTitle}
+        onClick={() => setLocale(isEnglish ? 'es' : 'en')}
+      >
+        <span className="locale-switch__glyph" aria-hidden>
+          {activeShort}
+        </span>
+      </button>
+    )
+  }
+
+  if (variant === 'segment') {
     return (
       <div
         className={`locale-switch locale-switch--segment${compact ? ' locale-switch--compact' : ''}`}

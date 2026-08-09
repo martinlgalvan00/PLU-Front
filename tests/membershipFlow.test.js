@@ -13,7 +13,7 @@ import { reconcileCreatedOrder } from '../src/services/paymentService.js'
  * de `memberships`, y que hasta ahora se resolvían con `status === 'activa'`
  * repartido por las pantallas:
  *
- *   ¿cubre hoy?      -> habilita inscribirse y emitir la credencial
+ *   ¿cubre hoy?      -> habilita el ingreso en puerta si el meet exige afiliación
  *   ¿ya venció?      -> corresponde renovar, NO "pendiente de pago"
  *   ¿nunca se pagó?  -> corresponde pagar por primera vez
  *
@@ -21,9 +21,9 @@ import { reconcileCreatedOrder } from '../src/services/paymentService.js'
  * vencimiento pasada. El cron de vencimiento no es instantáneo y la fila queda
  * así por un rato; mirando solo `status` esa afiliación se mostraba al día,
  * escondía el botón de renovar —única salida del atleta— y ofrecía una
- * credencial vencida como si sirviera. El servidor, en cambio, la rechaza:
- * `create_competition_registration_v2` exige cobertura vigente y responde
- * PLU05.
+ * credencial vencida como si sirviera. El servidor, en cambio, la rechaza en
+ * la puerta: `staff_check_in_registration` exige cobertura vigente (PLU05)
+ * cuando el evento pide afiliación.
  */
 
 const TODAY = new Date('2026-08-07T12:00:00')

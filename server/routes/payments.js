@@ -4,8 +4,14 @@ import { HttpError } from '../lib/errors.js'
 import { getPrisma } from '../lib/prisma.js'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js'
 import { validateBody } from '../lib/validate.js'
-import { createMercadoPagoAdapter } from '../modules/payments/mercadoPagoAdapter.js'
 import {
+  assertPaymentsMockAllowed,
+  createPaymentProviderAdapter,
+  getPaymentsRuntimeStatus,
+  resolvePaymentsProvider,
+} from '../modules/payments/createPaymentProviderAdapter.js'
+import {
+  applyCanonicalPayment,
   createPaymentPreference,
   processClaimedPaymentEvent,
   processPaymentWebhook,
@@ -77,6 +83,14 @@ const operationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(50),
 })
 
+const mockNotifySchema = z.object({
+  paymentId: z.string().trim().min(1),
+  orderId: z.string().uuid().optional(),
+  status: z
+    .enum(['approved', 'rejected', 'cancelled', 'refunded', 'charged_back', 'in_process', 'pending'])
+    .optional(),
+})
+
 function parseInput(schema, value) {
   const result = schema.safeParse(value)
   if (!result.success) throw new HttpError(400, 'Parametros invalidos.')
@@ -100,7 +114,7 @@ export function createPaymentRoutes(deps = {}) {
     const client = deps.supabaseAdmin ?? getSupabaseAdmin()
     const result = {
       repository: repository(),
-      mercadoPago: deps.mercadoPago ?? createMercadoPagoAdapter({ env }),
+      mercadoPago: deps.mercadoPago ?? createPaymentProviderAdapter({ env }),
     }
     if (!notifications) return result
     if (deps.notifyPaymentApplied) result.notifyPaymentApplied = deps.notifyPaymentApplied
@@ -199,6 +213,7 @@ export function createPaymentRoutes(deps = {}) {
         events,
         reconciliations,
         configuration: {
+          ...getPaymentsRuntimeStatus(env),
           recoveryEnabled: env.PAYMENT_RECOVERY_JOB_ENABLED === 'true',
           recoveryIntervalMs: Number(env.PAYMENT_RECOVERY_JOB_INTERVAL_MS) || 60_000,
         },
@@ -268,10 +283,56 @@ export function createPaymentRoutes(deps = {}) {
           ...services({ notifications: true }),
           webhookSecret: env.MERCADO_PAGO_WEBHOOK_SECRET,
           toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
-          deferProcessing: env.PAYMENT_RECOVERY_JOB_ENABLED === 'true',
+          // Recuperar y diferir son decisiones distintas. En serverless se
+          // procesa inline por defecto y el job queda como red de seguridad.
+          deferProcessing: env.PAYMENT_WEBHOOK_DEFER_PROCESSING === 'true',
         },
       )
       res.status(200).json({ received: true, duplicate: result.duplicate })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Harness local: relee un pago mock y aplica el camino canónico sin firma MP.
+   * Opcionalmente fuerza un status (pending → approved) antes de acreditar.
+   */
+  router.post('/mock/notify', checkoutLimiter, validateBody(mockNotifySchema), async (req, res, next) => {
+    try {
+      if (resolvePaymentsProvider(env) !== 'mock') {
+        throw new HttpError(503, 'POST /api/payments/mock/notify solo funciona con PAYMENTS_PROVIDER=mock.')
+      }
+      assertPaymentsMockAllowed(env)
+
+      const paymentServices = services({ notifications: true })
+      const { mercadoPago, repository: paymentRepository, notifyPaymentApplied } = paymentServices
+      if (typeof mercadoPago.updatePaymentStatus !== 'function') {
+        throw new HttpError(503, 'El adaptador mock no expone updatePaymentStatus.')
+      }
+
+      const { paymentId, orderId, status } = req.validatedBody
+      let payment = status
+        ? await mercadoPago.updatePaymentStatus(paymentId, status)
+        : await mercadoPago.getPayment(paymentId)
+
+      const resolvedOrderId = orderId ?? payment.external_reference
+      if (!resolvedOrderId) throw new HttpError(409, 'Pago mock sin referencia de orden.')
+      await requireOrderAccess(req, resolvedOrderId, req.get('x-order-access-token'))
+      const order = await paymentRepository.getOrder(resolvedOrderId)
+      const applied = await applyCanonicalPayment(payment, order, {
+        repository: paymentRepository,
+        notifyPaymentApplied,
+      })
+
+      res.status(200).json({
+        payment: {
+          id: String(payment.id),
+          status: payment.status,
+          statusDetail: payment.status_detail ?? null,
+        },
+        order: applied.result.order,
+      })
     } catch (error) {
       next(error)
     }

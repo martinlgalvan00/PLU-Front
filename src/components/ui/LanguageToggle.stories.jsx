@@ -15,3 +15,7 @@ export const Compact = {
 export const Segment = {
   args: { compact: true, variant: 'segment' },
 }
+
+export const Glyph = {
+  args: { compact: true, variant: 'glyph' },
+}

@@ -1,5 +1,6 @@
 import { EVENT_STATUS } from '../lib/events.js'
 import { money } from '../lib/format.js'
+import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { isExpiringSoon } from './membershipService.js'
 
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
@@ -13,7 +14,14 @@ const EVENT_BREAKDOWN_STATUSES = [
 ]
 const EVENT_TONE_BY_STATUS_TONE = { success: 'success', warning: 'warning', danger: 'alert', neutral: 'default' }
 
-export function buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders = [] }) {
+export function buildPendingActions({
+  payments,
+  athletes,
+  memberships,
+  registrations,
+  pendingTicketOrders = [],
+  events = [],
+}) {
   const actions = []
 
   pendingTicketOrders.forEach((order) => {
@@ -66,6 +74,20 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
       })
     })
 
+  findGatePendingRegistrations(registrations, { memberships, events }).forEach((registration) => {
+    const athlete = athletes.find((item) => item.id === registration.athleteId)
+    actions.push({
+      id: `action-gate-${registration.id}`,
+      type: 'registration_gate',
+      priority: 'medium',
+      subject: athlete?.fullName ?? 'Atleta',
+      summary: 'Confirmada sin afiliación vigente',
+      detail: registration.event,
+      meta: registration.category,
+      section: 'registrations',
+    })
+  })
+
   memberships
     .filter((membership) => membership.status === 'activa' && isExpiringSoon(membership.expirationDate))
     .forEach((membership) => {
@@ -86,14 +108,22 @@ export function buildPendingActions({ payments, athletes, memberships, registrat
   return actions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 }
 
-export function getAdminNavBadges({ payments, registrations, pendingTicketOrders = [] }) {
+export function getAdminNavBadges({
+  payments,
+  registrations,
+  pendingTicketOrders = [],
+  memberships = [],
+  events = [],
+}) {
+  const gatePending = findGatePendingRegistrations(registrations, { memberships, events }).length
   return {
     payments:
       payments.filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status)).length +
       pendingTicketOrders.length,
-    registrations: registrations.filter((registration) =>
-      ['pendiente_pago', 'observada'].includes(registration.status),
-    ).length,
+    registrations:
+      registrations.filter((registration) =>
+        ['pendiente_pago', 'observada'].includes(registration.status),
+      ).length + gatePending,
   }
 }
 
@@ -122,6 +152,10 @@ export function buildDashboardOverview({
   const pendingRegistrations = registrations.filter(
     (registration) => registration.status === 'pendiente_pago',
   )
+  const gatePendingRegistrations = findGatePendingRegistrations(registrations, {
+    memberships,
+    events,
+  })
   const activeMemberships = memberships.filter((membership) => membership.status === 'activa')
   const expiringMemberships = activeMemberships.filter((membership) =>
     isExpiringSoon(membership.expirationDate),
@@ -290,8 +324,11 @@ export function buildDashboardOverview({
         icon: 'clipboard',
         section: 'registrations',
         tone: 'default',
-        hintKey: 'observed',
-        hintValue: observedRegistrations.length,
+        hintKey: gatePendingRegistrations.length > 0 ? 'gatePending' : 'observed',
+        hintValue:
+          gatePendingRegistrations.length > 0
+            ? gatePendingRegistrations.length
+            : observedRegistrations.length,
       },
       {
         labelKey: 'pendingPayments',
@@ -319,6 +356,7 @@ export function buildDashboardOverview({
         })),
         pending: pendingRegistrations.length,
         observed: observedRegistrations.length,
+        gatePending: gatePendingRegistrations.length,
       },
       memberships: {
         total: memberships.length,

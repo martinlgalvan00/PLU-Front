@@ -101,10 +101,16 @@ export default function LoginPage({ onLogin, onNavigate }) {
       await enter({ email: normalizeEmail(email), password })
     } catch (error) {
       // Un 429 no es una credencial mal puesta: mostrarlo como tal hacía que
-      // el atleta cambiara una contraseña que estaba bien. Se propaga el
-      // mensaje real del servidor (incluye cuánto esperar).
-      const showsServerMessage = error?.status === 0 || error?.status === 429
-      setSubmitError(showsServerMessage ? error.message : t('login.errorInvalid'))
+      // el atleta cambiara una contraseña que estaba bien. 502/503 (API caída
+      // o proxy de Vite sin backend) tampoco: el mensaje genérico de
+      // "revisá email/contraseña" escondía que el servicio no estaba arriba.
+      const status = error?.status
+      const showsServerMessage = status === 0 || status === 429 || status === 502 || status === 503
+      setSubmitError(
+        showsServerMessage
+          ? error.message || t('login.errorUnavailable')
+          : t('login.errorInvalid'),
+      )
     } finally {
       setIsSubmitting(false)
     }

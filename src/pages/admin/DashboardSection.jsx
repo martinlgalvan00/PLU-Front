@@ -11,7 +11,6 @@ import {
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
-import AdminRecentActivity from '../../components/admin/AdminRecentActivity.jsx'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -49,13 +48,13 @@ const QUICK_ACTIONS = [
   { section: 'memberships', labelKey: 'admin.nav.memberships' },
 ]
 
-const PRIORITY_KEYS = ['high', 'medium', 'low']
-
 function mapMetrics(items, t, locale) {
   return items.map((item) => {
     let hint = null
     if (item.hintKey === 'expiringSoon' && item.hintValue > 0) {
       hint = t('admin.dashboard.kpiHintExpiring', { count: item.hintValue })
+    } else if (item.hintKey === 'gatePending' && item.hintValue > 0) {
+      hint = t('admin.dashboard.kpiHintGatePending', { count: item.hintValue })
     } else if (item.hintKey === 'observed' && item.hintValue > 0) {
       hint = t('admin.dashboard.kpiHintObserved', { count: item.hintValue })
     } else if (item.hintKey === 'pendingAmount' && item.hintValue > 0) {
@@ -93,25 +92,6 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
         {hint ? <span className="admin-ops__kpi-hint">{hint}</span> : null}
       </span>
     </button>
-  )
-}
-
-function PriorityChips({ counts, t }) {
-  const active = PRIORITY_KEYS.filter((priority) => counts[priority] > 0)
-  if (!active.length) return null
-
-  return (
-    <ul className="admin-ops__priority-chips" aria-label={t('admin.dashboard.priorityAria')}>
-      {active.map((priority) => (
-        <li
-          key={priority}
-          className={`admin-ops__priority-chip admin-ops__priority-chip--${priority} is-active`}
-        >
-          <strong>{counts[priority]}</strong>
-          <span>{t(`admin.actionQueue.priority.${priority}`)}</span>
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -376,14 +356,6 @@ export default function DashboardSection({
     [primary, t, locale],
   )
 
-  const priorityCounts = useMemo(() => {
-    const counts = { high: 0, medium: 0, low: 0 }
-    pendingActions.forEach((action) => {
-      if (Object.hasOwn(counts, action.priority)) counts[action.priority] += 1
-    })
-    return counts
-  }, [pendingActions])
-
   const queuePreview = useMemo(
     () => pendingActions.slice(0, QUEUE_PREVIEW_LIMIT),
     [pendingActions],
@@ -391,6 +363,11 @@ export default function DashboardSection({
 
   const hasMoreQueue = pendingActions.length > QUEUE_PREVIEW_LIMIT
   const hasWork = pendingActions.length > 0 || finance.pendingItems.length > 0
+  const workSubtitle = !hasWork
+    ? t('admin.dashboard.noUrgency')
+    : pendingActions.length > 0
+      ? t('admin.dashboard.workSubtitle', { count: pendingActions.length })
+      : t('admin.dashboard.workSubtitlePayments', { count: finance.pendingCount })
 
   function breakdownLabel(item) {
     if (item.status === 'expiringSoon') return t('admin.metrics.expiringSoon')
@@ -561,18 +538,9 @@ export default function DashboardSection({
 
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
-              <div>
-                <p className="admin-ops__eyebrow">{t('admin.dashboard.priorityEyebrow')}</p>
+              <div className="admin-ops__work-copy">
                 <h3>{t('admin.dashboard.workTitle')}</h3>
-                <p>
-                  {hasWork
-                    ? t('admin.dashboard.workSubtitle', {
-                        queue: pendingActions.length,
-                        payments: finance.pendingCount,
-                      })
-                    : t('admin.dashboard.noUrgency')}
-                </p>
-                <PriorityChips counts={priorityCounts} t={t} />
+                <p>{workSubtitle}</p>
               </div>
               {hasWork ? (
                 <button
@@ -592,6 +560,7 @@ export default function DashboardSection({
               <ActionQueue
                 compact
                 embedded
+                showGroupHeads={false}
                 showHeader={false}
                 items={queuePreview}
                 onNavigate={onNavigate}
@@ -706,8 +675,6 @@ export default function DashboardSection({
             onNavigate={onNavigate}
             t={t}
           />
-
-          <AdminRecentActivity />
         </section>
       </div>
     </div>

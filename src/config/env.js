@@ -13,6 +13,10 @@ const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN ?? ''
 const auth0ClientId = import.meta.env.VITE_AUTH0_CLIENT_ID ?? ''
 const auth0Audience = import.meta.env.VITE_AUTH0_AUDIENCE ?? ''
 const mercadoPagoPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? ''
+const paymentsProviderRaw = String(import.meta.env.VITE_PAYMENTS_PROVIDER ?? 'mercado_pago')
+  .trim()
+  .toLowerCase()
+const paymentsProvider = paymentsProviderRaw === 'mock' ? 'mock' : 'mercado_pago'
 const isConfiguredValue = (value) =>
   Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
@@ -31,6 +35,9 @@ export const env = {
     configured: isConfiguredValue(mercadoPagoPublicKey),
   },
   payments: {
+    provider: paymentsProvider,
+    // Solo en Vite DEV: un build de producción nunca activa UI/mock aunque el flag quede en el env.
+    isMock: paymentsProvider === 'mock' && import.meta.env.DEV,
     transferAlias: import.meta.env.VITE_PAYMENT_TRANSFER_ALIAS ?? '',
     transferCbu: import.meta.env.VITE_PAYMENT_TRANSFER_CBU ?? '',
     transferHolder: import.meta.env.VITE_PAYMENT_TRANSFER_HOLDER ?? '',

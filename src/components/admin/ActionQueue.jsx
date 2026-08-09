@@ -14,6 +14,7 @@ const TYPE_ICONS = {
 export default function ActionQueue({
   compact = false,
   embedded = false,
+  showGroupHeads = true,
   showHeader = true,
   items = [],
   onNavigate,
@@ -81,12 +82,14 @@ export default function ActionQueue({
       <div className="action-queue__groups">
         {groups.map(({ priority, items: groupItems }) => (
           <section key={priority} className={`action-queue__group action-queue__group--${priority}`}>
-            <header className="action-queue__group-head">
-              <span className={`action-queue__group-label action-queue__group-label--${priority}`}>
-                {t(`admin.actionQueue.priority.${priority}`)}
-              </span>
-              <span className="action-queue__group-count">{groupItems.length}</span>
-            </header>
+            {showGroupHeads ? (
+              <header className="action-queue__group-head">
+                <span className={`action-queue__group-label action-queue__group-label--${priority}`}>
+                  {t(`admin.actionQueue.priority.${priority}`)}
+                </span>
+                <span className="action-queue__group-count">{groupItems.length}</span>
+              </header>
+            ) : null}
 
             <ul className="action-queue__list">
               {groupItems.map((item) => {

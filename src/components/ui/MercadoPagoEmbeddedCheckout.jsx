@@ -7,6 +7,7 @@ import {
   processEmbeddedPayment,
   processEmbeddedSubscription,
   getPaymentOrderStatus,
+  notifyMockPayment,
 } from '../../services/paymentService.js'
 
 let initializedPublicKey = null
@@ -20,6 +21,14 @@ const PAYMENT_CUSTOMIZATION = {
     mercadoPago: 'all',
   },
 }
+
+const MOCK_TOKEN = 'mock_card_token_local_dev_only'
+const MOCK_OUTCOMES = [
+  { id: 'mock_approved', labelKey: 'payments.mockApprove', variant: 'success' },
+  { id: 'mock_rejected', labelKey: 'payments.mockReject', variant: 'outline' },
+  { id: 'mock_pending', labelKey: 'payments.mockPending', variant: 'outline' },
+  { id: 'mock_error', labelKey: 'payments.mockError', variant: 'outline' },
+]
 
 function ensureMercadoPago(locale) {
   if (!env.mercadoPago.publicKey || initializedPublicKey === env.mercadoPago.publicKey) return
@@ -42,6 +51,26 @@ function announcePaymentUpdate(orderId, status) {
   }))
 }
 
+function resolvePayerEmail(order) {
+  return (
+    order?.payerEmail
+    || order?.athleteEmail
+    || order?.email
+    || order?.buyerEmail
+    || 'mock-payer@pluarg.local'
+  )
+}
+
+function buildMockFormData(order, paymentMethodId) {
+  return {
+    token: MOCK_TOKEN,
+    payment_method_id: paymentMethodId,
+    payment_type_id: 'credit_card',
+    installments: 1,
+    payer: { email: resolvePayerEmail(order) },
+  }
+}
+
 export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
@@ -49,16 +78,25 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   const [error, setError] = useState('')
   const [brickVersion, setBrickVersion] = useState(0)
   const [checking, setChecking] = useState(false)
+  const [simulating, setSimulating] = useState(false)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
+  const isMock = env.payments.isMock
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
   const initialization = useMemo(() => ({
     amount: Number(order?.amount ?? 0),
     ...(!isSubscription && order?.preferenceId ? { preferenceId: order.preferenceId } : {}),
   }), [isSubscription, order?.amount, order?.preferenceId])
 
-  useEffect(() => ensureMercadoPago(locale), [locale])
+  useEffect(() => {
+    if (isMock) {
+      setReady(true)
+      return undefined
+    }
+    ensureMercadoPago(locale)
+    return undefined
+  }, [isMock, locale])
 
   const submitPayment = useCallback(async (payload) => {
     setError('')
@@ -73,6 +111,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       setResult({ status, data: response })
       announcePaymentUpdate(orderId, status)
       onResult?.(response)
+      return response
     } catch (submitError) {
       setError(submitError?.message ?? t('payments.embeddedError'))
       throw submitError
@@ -90,13 +129,58 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       })
       const status = normalizePaymentStatus(response.subscription?.status)
       setResult({ status, data: response })
-      announcePaymentUpdate(orderId, status)
+      // Autorizar la suscripción no equivale a cobrar el primer ciclo. La
+      // orden queda pendiente hasta el authorized_payment canónico de MP.
+      announcePaymentUpdate(orderId, 'pending')
       onResult?.(response)
+      return response
     } catch (submitError) {
       setError(submitError?.message ?? t('payments.embeddedError'))
       throw submitError
     }
   }, [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t])
+
+  const simulateOutcome = useCallback(async (paymentMethodId) => {
+    setSimulating(true)
+    setError('')
+    try {
+      if (isSubscription) {
+        await submitSubscription({ token: MOCK_TOKEN })
+        return
+      }
+      await submitPayment({ formData: buildMockFormData(order, paymentMethodId) })
+    } catch {
+      // El error ya quedó en estado local.
+    } finally {
+      setSimulating(false)
+    }
+  }, [isSubscription, order, submitPayment, submitSubscription])
+
+  const forceMockAccreditation = useCallback(async () => {
+    const paymentId = result?.data?.payment?.id
+    if (!paymentId) {
+      setError(t('payments.mockForceMissingPayment'))
+      return
+    }
+    setSimulating(true)
+    setError('')
+    try {
+      const response = await notifyMockPayment({
+        paymentId,
+        orderId,
+        orderAccessToken: order?.orderAccessToken,
+        status: 'approved',
+      })
+      const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
+      setResult({ status, data: response })
+      announcePaymentUpdate(orderId, status)
+      onResult?.(response)
+    } catch (notifyError) {
+      setError(notifyError?.message ?? t('payments.embeddedError'))
+    } finally {
+      setSimulating(false)
+    }
+  }, [onResult, order?.orderAccessToken, orderId, result?.data?.payment?.id, t])
 
   const handleReady = useCallback(() => setReady(true), [])
   const handleRenderError = useCallback(() => setError(t('payments.embeddedRenderError')), [t])
@@ -134,12 +218,12 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   function resetCheckout() {
     setResult(null)
     setError('')
-    setReady(false)
+    setReady(isMock)
     setBrickVersion((current) => current + 1)
   }
 
   if (!orderId || !order?.amount) return null
-  if (!env.mercadoPago.configured) {
+  if (!isMock && !env.mercadoPago.configured) {
     return <p className="mp-embedded-checkout__error" role="alert">{t('payments.embeddedConfigMissing')}</p>
   }
 
@@ -148,6 +232,8 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
     : result?.status === 'rejected'
       ? t('payments.paymentRejected')
       : t('payments.paymentPending')
+  const mockPaymentId = result?.data?.payment?.id ?? null
+  const payerEmail = resolvePayerEmail(order)
 
   return (
     <section className="mp-embedded-checkout" aria-labelledby={`mp-checkout-title-${orderId}`}>
@@ -161,9 +247,70 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
         </div>
       </header>
 
-      {!ready && !result && <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>}
+      {isMock && (
+        <p className="mp-embedded-checkout__mock-banner" role="status">
+          {t('payments.mockBanner')}
+        </p>
+      )}
 
-      {!result && (
+      {isMock && (
+        <dl className="mp-embedded-checkout__mock-meta">
+          <div>
+            <dt>{t('payments.mockOrderId')}</dt>
+            <dd><code>{orderId}</code></dd>
+          </div>
+          <div>
+            <dt>{t('payments.mockPayerEmail')}</dt>
+            <dd><code>{payerEmail}</code></dd>
+          </div>
+          {order?.status ? (
+            <div>
+              <dt>{t('payments.mockOrderStatus')}</dt>
+              <dd><code>{order.status}</code></dd>
+            </div>
+          ) : null}
+          {mockPaymentId ? (
+            <div>
+              <dt>{t('payments.mockPaymentId')}</dt>
+              <dd><code>{mockPaymentId}</code></dd>
+            </div>
+          ) : null}
+        </dl>
+      )}
+
+      {!isMock && !ready && !result && <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>}
+      {isMock && simulating && !result && (
+        <p className="mp-embedded-checkout__loading">{t('payments.mockProcessing')}</p>
+      )}
+
+      {!result && isMock && (
+        <div className="mp-embedded-checkout__mock-panel">
+          {isSubscription ? (
+            <button
+              type="button"
+              className="btn"
+              disabled={simulating}
+              onClick={() => void simulateOutcome('mock_approved')}
+            >
+              {t('payments.mockAuthorizeSubscription')}
+            </button>
+          ) : (
+            MOCK_OUTCOMES.map((outcome) => (
+              <button
+                key={outcome.id}
+                type="button"
+                className={outcome.variant === 'success' ? 'btn' : 'btn btn--outline'}
+                disabled={simulating}
+                onClick={() => void simulateOutcome(outcome.id)}
+              >
+                {t(outcome.labelKey)}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {!result && !isMock && (
         <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
           {isSubscription ? (
             <CardPayment
@@ -199,9 +346,14 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       )}
       {result?.status === 'pending' && !isSubscription && (
         <div className="mp-embedded-checkout__actions">
-          <button type="button" className="btn btn--small btn--outline" onClick={() => refreshStatus()} disabled={checking}>
+          <button type="button" className="btn btn--small btn--outline" onClick={() => refreshStatus()} disabled={checking || simulating}>
             <RefreshCw size={14} aria-hidden /> {t('payments.checkStatus')}
           </button>
+          {isMock && (
+            <button type="button" className="btn btn--small" onClick={() => void forceMockAccreditation()} disabled={simulating}>
+              {t('payments.mockForceApprove')}
+            </button>
+          )}
         </div>
       )}
       {result?.status === 'rejected' && (
@@ -217,7 +369,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
           {t('payments.reloadCheckout')}
         </button>
       )}
-      <small className="mp-embedded-checkout__security">{t('payments.embeddedSecurity')}</small>
+      <small className="mp-embedded-checkout__security">
+        {t(isMock ? 'payments.mockSecurity' : 'payments.embeddedSecurity')}
+      </small>
     </section>
   )
 }

@@ -104,14 +104,16 @@ Definidas en `FORM_OPTIONS`:
 ### 4. Flujo de inscripción
 
 ```
-1. Atleta elige procedureType: event | both
-2. Si both → crea Membership (pendiente) + EventRegistration
-3. Si event only → solo EventRegistration
+1. Atleta con sesión + email verificado elige evento
+2. Puede iniciar afiliación en paralelo (pendiente_pago) o después
+3. create_competition_registration_v2 crea orden + EventRegistration
+   (NO exige membership activa, aunque requiresMembership=true)
 4. Registration.status = pendiente_pago
 5. Tras pago aprobado → confirmada
 6. Si requiresMembership:
-   - Verificar Membership.status = activa antes de confirmada
-   - Si solo event sin afiliación activa → observada o bloquear (definir política)
+   - Check-in (staff_check_in_registration) exige membership activa y vigente
+   - Sin afiliación activa: inscripción OK, puerta bloqueada (PLU05)
+7. Si requiresMembership=false: check-in con inscripción confirmada alcanza
 ```
 
 ### 5. Cupos
@@ -162,7 +164,7 @@ Valores de evento hoy: string `'Pitbull Classic'` — migrar a `eventId` o slug.
 ## Validaciones
 
 - No inscribir si cupo lleno.
-- `requiresMembership` → afiliación `activa` para `confirmada`.
+- `requiresMembership` → afiliación `activa` vigente para **check-in**, no para crear la inscripción.
 - Una inscripción activa por atleta/evento (unique constraint sugerido).
 - Categoría y división dentro de `FORM_OPTIONS`.
 - Filtro admin por evento devuelve subset correcto.
@@ -173,7 +175,7 @@ Valores de evento hoy: string `'Pitbull Classic'` — migrar a `eventId` o slug.
 | Error | Impacto | Fix |
 |-------|---------|-----|
 | Evento hardcodeado en servicio | No escala multi-evento | Parametrizar eventId/slug |
-| Ignorar requiresMembership | Inscripción sin afiliación | Validar en confirmación |
+| Ignorar requiresMembership en puerta | Ingreso sin socio vigente | Gate en staff_check_in_registration |
 | Cupos sin atomicidad | Overbooking | Transacción DB al confirmar |
 | Nombre evento inconsistente | Filtros rotos | Usar slug como FK |
 | División incorrecta por edad | DQ en competencia | Validar birthDate vs eventDate |

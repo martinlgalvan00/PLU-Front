@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildDashboardOverview } from '../src/services/adminService.js'
+import {
+  buildDashboardOverview,
+  buildPendingActions,
+  getAdminNavBadges,
+} from '../src/services/adminService.js'
 
 describe('buildDashboardOverview — estados de inscripción', () => {
   it('cuenta acreditada como confirmada y no la muestra aparte', () => {
@@ -21,6 +25,54 @@ describe('buildDashboardOverview — estados de inscripción', () => {
     expect(
       overview.breakdowns.registrations.items.find((item) => item.status === 'confirmada')?.value,
     ).toBe(2)
+  })
+})
+
+describe('buildPendingActions — gate sin afiliación', () => {
+  it('incluye confirmadas de meets que exigen afiliación sin membership vigente', () => {
+    const actions = buildPendingActions({
+      payments: [],
+      athletes: [{ id: 'a1', fullName: 'Ana Test' }],
+      memberships: [{ id: 'm1', athleteId: 'a1', status: 'pendiente_pago' }],
+      registrations: [
+        {
+          id: 'r1',
+          athleteId: 'a1',
+          status: 'confirmada',
+          event: 'Pitbull Classic',
+          eventSlug: 'pitbull-classic-2026',
+          category: 'Raw',
+        },
+      ],
+      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true }],
+    })
+
+    expect(actions.some((item) => item.id === 'action-gate-r1')).toBe(true)
+    expect(actions.find((item) => item.id === 'action-gate-r1')?.summary).toBe(
+      'Confirmada sin afiliación vigente',
+    )
+  })
+})
+
+describe('getAdminNavBadges — incluye gate pending', () => {
+  it('suma confirmadas sin afiliación al badge de inscripciones', () => {
+    const badges = getAdminNavBadges({
+      payments: [],
+      memberships: [],
+      registrations: [
+        {
+          id: 'r1',
+          athleteId: 'a1',
+          status: 'confirmada',
+          eventSlug: 'pitbull-classic-2026',
+          event: 'Pitbull Classic',
+        },
+        { id: 'r2', athleteId: 'a2', status: 'pendiente_pago' },
+      ],
+      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true }],
+    })
+
+    expect(badges.registrations).toBe(2)
   })
 })
 

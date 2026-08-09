@@ -1,7 +1,7 @@
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
-import { createMercadoPagoAdapter } from '../modules/payments/mercadoPagoAdapter.js'
+import { createPaymentProviderAdapter } from '../modules/payments/createPaymentProviderAdapter.js'
 import { recoverPaymentOperations } from '../modules/payments/paymentRecoveryWorkflow.js'
 import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
 
@@ -11,7 +11,7 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
   if (!client) throw new Error('Supabase no está configurado para recuperar pagos.')
 
   const repository = createSupabasePaymentRepository(client)
-  const mercadoPago = createMercadoPagoAdapter({ env })
+  const mercadoPago = createPaymentProviderAdapter({ env })
   const notifyPaymentApplied = createPaymentNotificationService({
     repository: createSupabaseNotificationRepository(client),
     brevo: createBrevoAdapter({ env }),

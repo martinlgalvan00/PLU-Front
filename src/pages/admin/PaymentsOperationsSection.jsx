@@ -104,8 +104,10 @@ export default function PaymentsOperationsSection({
     : null
   const failedCount = summary.events?.failed ?? 0
   const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
+  const runtimeReady = data?.configuration?.ready !== false
   const isLedgerHealthy =
     Boolean(data) &&
+    runtimeReady &&
     failedCount === 0 &&
     pendingReconciliations === 0 &&
     summary.health?.healthy !== false
@@ -115,9 +117,11 @@ export default function PaymentsOperationsSection({
       id: 'integrity',
       label: t('admin.paymentOperations.integrity'),
       value: summary.health?.healthy
-        ? t('admin.paymentOperations.integrityOk')
+        ? (runtimeReady
+            ? t('admin.paymentOperations.integrityOk')
+            : t('admin.paymentOperations.configurationBlocked'))
         : (healthIssues ?? '—'),
-      tone: summary.health?.healthy ? 'success' : 'danger',
+      tone: summary.health?.healthy && runtimeReady ? 'success' : 'danger',
     },
     {
       id: 'failed',
@@ -176,6 +180,26 @@ export default function PaymentsOperationsSection({
             </span>
             <h2 id="payment-ops-title">{t('admin.paymentOperations.title')}</h2>
             <p className="admin-payment-ops__subtitle">{t('admin.paymentOperations.subtitle')}</p>
+            {data?.configuration ? (
+              <ul className="admin-payment-ops__healthy-facts">
+                <li>
+                  <span>{t('admin.paymentOperations.provider')}</span>
+                  <strong>{data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}</strong>
+                </li>
+                <li>
+                  <span>{t('admin.paymentOperations.webhook')}</span>
+                  <strong>{t(data.configuration.webhookConfigured
+                    ? 'admin.paymentOperations.configured'
+                    : 'admin.paymentOperations.missing')}</strong>
+                </li>
+                <li>
+                  <span>{t('admin.paymentOperations.processingMode')}</span>
+                  <strong>{t(data.configuration.webhookProcessingMode === 'deferred'
+                    ? 'admin.paymentOperations.deferred'
+                    : 'admin.paymentOperations.inline')}</strong>
+                </li>
+              </ul>
+            ) : null}
           </div>
           <div className="admin-payment-ops__toolbar">
             {data?.configuration ? (

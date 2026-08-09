@@ -55,6 +55,7 @@ import {
   isDemoSession,
 } from '../services/demoAthleteSeed.js'
 import {
+  applyPaymentUpdate,
   createPreference as createPreferenceRequest,
   reconcileCreatedOrder,
 } from '../services/paymentService.js'
@@ -93,6 +94,7 @@ import {
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
+import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
   getInitialShopProducts,
@@ -322,7 +324,14 @@ export function useAppData() {
   // null y el aviso de "confirmá tu correo" quedaba pegado hasta recargar,
   // aunque el gate del servidor ya estuviera abierto.
   useEffect(() => {
-    const refreshFromServer = () => {
+    const refreshFromServer = (event) => {
+      if (event.type === 'plu:payment-updated') {
+        setCreatedOrder((current) => {
+          const updated = applyPaymentUpdate(current, [], event.detail)
+          return updated.createdOrder
+        })
+        setTickets((current) => applyPaymentUpdate(null, current, event.detail).tickets)
+      }
       void refreshAthleteData()
     }
     window.addEventListener('plu:payment-updated', refreshFromServer)
@@ -421,13 +430,27 @@ export function useAppData() {
 
   const pendingActions = useMemo(
     () =>
-      buildPendingActions({ payments, athletes, memberships, registrations, pendingTicketOrders }),
-    [payments, athletes, memberships, registrations, pendingTicketOrders],
+      buildPendingActions({
+        payments,
+        athletes,
+        memberships,
+        registrations,
+        pendingTicketOrders,
+        events: adminEvents,
+      }),
+    [payments, athletes, memberships, registrations, pendingTicketOrders, adminEvents],
   )
 
   const adminNavBadges = useMemo(
-    () => getAdminNavBadges({ payments, registrations, pendingTicketOrders }),
-    [payments, registrations, pendingTicketOrders],
+    () =>
+      getAdminNavBadges({
+        payments,
+        registrations,
+        pendingTicketOrders,
+        memberships,
+        events: adminEvents,
+      }),
+    [payments, registrations, pendingTicketOrders, memberships, adminEvents],
   )
 
   // La actividad reciente y el timeline del atleta salen de `domain_audit_logs`
@@ -450,11 +473,22 @@ export function useAppData() {
   )
 
   const filteredRegistrations = useMemo(() => {
+    const gatePendingIds =
+      filters.status === 'gate_pending'
+        ? new Set(
+            findGatePendingRegistrations(registrations, {
+              memberships,
+              events: adminEvents,
+            }).map((item) => item.id),
+          )
+        : null
+
     return enrichedRegistrations.filter((registration) => {
       const statusMatch =
         filters.status === 'all' ||
-        registration.status === filters.status ||
-        registration.paymentStatus === filters.status
+        (filters.status === 'gate_pending'
+          ? gatePendingIds.has(registration.id)
+          : registration.status === filters.status || registration.paymentStatus === filters.status)
       const eventMatch = filters.event === 'all' || registration.event === filters.event
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
@@ -467,7 +501,7 @@ export function useAppData() {
         registration.division?.toLowerCase().includes(query)
       return statusMatch && eventMatch && queryMatch
     })
-  }, [enrichedRegistrations, filters])
+  }, [enrichedRegistrations, filters, registrations, memberships, adminEvents])
 
   const updateForm = useCallback((event) => {
     const { name, value } = event.target
@@ -498,7 +532,13 @@ export function useAppData() {
         })
         return { athlete, confirmation }
       } catch (error) {
-        if (error instanceof ApiError) return { error: error.message }
+        if (error instanceof ApiError) {
+          return {
+            error: error.message,
+            code: error.body?.code ?? null,
+            fields: error.body?.fields ?? null,
+          }
+        }
         throw error
       }
     },
@@ -551,6 +591,7 @@ export function useAppData() {
           athleteName: athlete.fullName,
           athleteDocument: athlete.documentId,
           athleteId: athlete.id,
+          payerEmail: athlete.email ?? session?.email ?? null,
           paymentId: order.id,
           paymentMethod: order.method,
           preferenceId: checkout?.preference?.id ?? null,
@@ -637,6 +678,7 @@ export function useAppData() {
           athleteName: athlete.fullName,
           athleteDocument: athlete.documentId,
           athleteId: athlete.id,
+          payerEmail: athlete.email ?? session?.email ?? null,
           paymentId: order.id,
           paymentMethod: order.method,
           preferenceId: checkout?.preference?.id ?? null,
@@ -714,6 +756,7 @@ export function useAppData() {
           paymentProofUploadedAt: order.paymentProofUploadedAt,
           preferenceId: checkout?.preference?.id ?? null,
           paymentMode: 'payment',
+          payerEmail: order.buyerEmail ?? order.payerEmail ?? session?.email ?? null,
           createdAt: order.createdAt,
         }
         setCreatedOrder(nextOrder)
@@ -722,7 +765,7 @@ export function useAppData() {
         return { error: error.message ?? 'No se pudo completar la compra.' }
       }
     },
-    [],
+    [session],
   )
 
   // Aprobación operativa reservada a transferencias manuales. Las órdenes

@@ -80,6 +80,27 @@ export function isRegistrationAdmitted(status) {
   return status === 'pagada' || status === 'confirmada'
 }
 
+/**
+ * ¿La puerta puede marcar ingreso? Misma política que
+ * `staff_check_in_registration`: inscripción admitted + afiliación vigente
+ * solo si el evento exige membresía.
+ *
+ * @param {{
+ *   registrationStatus?: string|null,
+ *   requiresMembership?: boolean|null,
+ *   membershipCurrent?: boolean,
+ * }} params
+ */
+export function isGateAccessReady({
+  registrationStatus,
+  requiresMembership = false,
+  membershipCurrent = false,
+} = {}) {
+  if (!isRegistrationAdmitted(registrationStatus)) return false
+  if (requiresMembership && !membershipCurrent) return false
+  return true
+}
+
 const LEGACY_STATUS_MAP = {
   active: 'activa',
   expired: 'vencida',

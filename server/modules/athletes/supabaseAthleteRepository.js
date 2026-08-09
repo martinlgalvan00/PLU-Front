@@ -35,6 +35,45 @@ export function createSupabaseAthleteRepository(
         p_password_hash: passwordHash,
       }, 'No se pudo registrar el atleta.')
     },
+    /**
+     * Solo booleanos: sirve para el alta y el check temprano del formulario.
+     * No devuelve datos del atleta (email enumeration mitigada con rate limit).
+     */
+    async checkAvailability({ email, documentId } = {}) {
+      const result = { emailTaken: false, documentTaken: false }
+      const normalizedEmail = email ? String(email).trim().toLowerCase() : ''
+      const normalizedDocument = documentId
+        ? String(documentId).trim().replace(/[.\-\s]/g, '')
+        : ''
+
+      if (normalizedEmail) {
+        const row = assertSupabaseResult(
+          await client
+            .from('athletes')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .eq('email', normalizedEmail)
+            .maybeSingle(),
+          'No se pudo validar el correo.',
+        )
+        result.emailTaken = Boolean(row)
+      }
+
+      if (normalizedDocument) {
+        const row = assertSupabaseResult(
+          await client
+            .from('athletes')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .eq('document_id', normalizedDocument)
+            .maybeSingle(),
+          'No se pudo validar el documento.',
+        )
+        result.documentTaken = Boolean(row)
+      }
+
+      return result
+    },
     async findLogin(email) {
       const athlete = assertSupabaseResult(
         await client
