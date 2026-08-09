@@ -119,6 +119,32 @@ const PASSWORD_RESET_TTL_MS = 1000 * 60 * 30
 
 const PASSWORD_RESET_TTL_MINUTES = PASSWORD_RESET_TTL_MS / 60_000
 
+const availabilitySchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email().optional(),
+    documentId: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/[.\-\s]/g, ''))
+      .pipe(z.string().regex(/^\d{7,8}$/))
+      .optional(),
+  })
+  .refine((value) => Boolean(value.email || value.documentId), {
+    message: 'Indicá un correo o un documento.',
+  })
+
+function athleteExistsError(availability) {
+  const fields = {}
+  if (availability.emailTaken) fields.email = 'taken'
+  if (availability.documentTaken) fields.documentId = 'taken'
+  const message = availability.emailTaken && !availability.documentTaken
+    ? 'Este correo ya tiene una cuenta. Ingresá o usá otro.'
+    : availability.documentTaken && !availability.emailTaken
+      ? 'Este documento ya tiene una cuenta. Ingresá o usá otro.'
+      : 'Ya existe una cuenta con ese correo o documento.'
+  return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
+}
+
 export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env, brevo }) {
   const router = Router()
   const client = () => getSupabaseAdmin?.()
@@ -227,9 +253,34 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     }
   }
 
+  // Público y rate-limited: el wizard pregunta al salir del campo si el
+  // correo/documento ya están tomados, antes de pedir el resto del perfil.
+  router.post(
+    '/check-availability',
+    publicWriteLimiter,
+    validateBody(availabilitySchema),
+    async (req, res, next) => {
+      try {
+        const availability = await repo().checkAvailability(req.validatedBody)
+        res.json(availability)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/register', publicWriteLimiter, validateBody(registerSchema), async (req, res, next) => {
     try {
       const { password, ...form } = req.validatedBody
+      // Pre-check con campos concretos: PLU07 del unique es ambiguo
+      // (email o documento) y el formulario no sabía qué corregir.
+      const availability = await repo().checkAvailability({
+        email: form.email,
+        documentId: form.documentId,
+      })
+      if (availability.emailTaken || availability.documentTaken) {
+        throw athleteExistsError(availability)
+      }
       const row = await repo().register(form, await hashPassword(password))
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
@@ -243,7 +294,18 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       await sendOnboardingEmails(row).catch((error) =>
         console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error),
       )
-    } catch (error) { next(error) }
+    } catch (error) {
+      // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
+      // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
+      if (error instanceof HttpError && error.details?.code === 'PLU07') {
+        next(new HttpError(409, 'Ya existe una cuenta con ese correo o documento.', {
+          code: 'ATHLETE_EXISTS',
+          fields: { email: 'taken', documentId: 'taken' },
+        }))
+        return
+      }
+      next(error)
+    }
   })
 
   // Público: el link llega por email y se abre sin sesión iniciada.

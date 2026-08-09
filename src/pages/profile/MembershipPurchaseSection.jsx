@@ -310,7 +310,7 @@ export default function MembershipPurchaseSection({
         </div>
       )}
 
-      {demoMode && <div className="account-membership__demo">
+      {demoMode && !env.payments.isMock && <div className="account-membership__demo">
         <p className="account-membership__demo-label">{t('account.membership.demoLabel')}</p>
         <div className="account-demo-actions">
           {!membershipActive && (
@@ -333,6 +333,20 @@ export default function MembershipPurchaseSection({
           )}
         </div>
       </div>}
+
+      {demoMode && env.payments.isMock && membershipActive && (
+        <div className="account-membership__demo">
+          <div className="account-demo-actions">
+            <button
+              type="button"
+              className="account-secondary-action account-secondary-action--danger"
+              onClick={cancelMembership}
+            >
+              {t('account.membership.cancelMembership')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {checkoutMessage && <p className="account-checkout-message" role="status">{checkoutMessage}</p>}
 

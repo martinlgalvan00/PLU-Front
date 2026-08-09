@@ -3,6 +3,14 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 describe('browser env', () => {
+  it('activa el mock de pagos solo en Vite DEV', () => {
+    const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
+    expect(source).toContain('VITE_PAYMENTS_PROVIDER')
+    expect(source).toContain("paymentsProviderRaw === 'mock'")
+    expect(source).toContain('import.meta.env.DEV')
+    expect(source).toContain("paymentsProvider === 'mock' && import.meta.env.DEV")
+  })
+
   it('no expone secretos privados en config cliente', () => {
     const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
 

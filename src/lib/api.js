@@ -56,10 +56,19 @@ export async function apiRequest(path, options = {}) {
   const body = await parseResponse(response)
 
   if (!response.ok) {
-    throw new ApiError(body?.error ?? `Error ${response.status}`, {
-      status: response.status,
-      body,
-    })
+    // Vite proxyea /api; si la API no está arriba responde 502 con HTML.
+    // Traducimos a un mensaje accionable en vez de "Error 502".
+    const unavailable =
+      response.status === 502 || response.status === 503 || response.status === 504
+    throw new ApiError(
+      unavailable
+        ? 'El servicio no está disponible en este momento. En local levantá la API con npm run dev:api (o npm run dev:services).'
+        : body?.error ?? `Error ${response.status}`,
+      {
+        status: response.status,
+        body: typeof body === 'object' && body ? body : { error: body },
+      },
+    )
   }
 
   return body

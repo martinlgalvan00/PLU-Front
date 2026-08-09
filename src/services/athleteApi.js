@@ -101,6 +101,13 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     // El torneo todavía no terminó. Lo calcula la proyección contra el reloj,
     // no contra `events.status`, que se edita a mano y queda viejo.
     upcoming: registration.upcoming ?? null,
+    // Misma bandera que mira el check-in: si el meet la pide, la puerta
+    // exige afiliación vigente aunque la inscripción ya esté confirmada.
+    requiresMembership:
+      registration.requires_membership ??
+      event?.requires_membership ??
+      event?.requiresMembership ??
+      null,
     notes: '',
   }
 }
@@ -235,6 +242,17 @@ export async function registerAthlete(form) {
       password: form.password,
   })
   return { athlete: toCamelAthlete(row) }
+}
+
+/**
+ * Consulta pública: ¿email/documento ya tienen cuenta?
+ * Devuelve solo booleanos (`emailTaken`, `documentTaken`).
+ */
+export function checkAthleteAvailability({ email, documentId } = {}) {
+  const body = {}
+  if (email) body.email = email
+  if (documentId) body.documentId = documentId
+  return apiPost('/api/athletes/check-availability', body)
 }
 
 export async function updateAthleteProfile(_athleteId, updates) {

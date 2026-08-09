@@ -1,6 +1,7 @@
 import { Trophy } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
+import { isMembershipCurrent } from '../../services/membershipService.js'
 
 function eventRequiresMembership(event) {
   return Boolean(event?.requiresMembership)
@@ -8,7 +9,7 @@ function eventRequiresMembership(event) {
 
 export default function UpcomingEventsSection({ availableEvents, athleteRegistrations, membership, onNavigate }) {
   const { t } = useI18n()
-  const hasActiveMembership = membership?.status === 'activa'
+  const hasActiveMembership = isMembershipCurrent(membership)
 
   return (
     <section id="account-events" className="account-section account-section--gold">
@@ -21,7 +22,7 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
           {availableEvents.map((event) => {
             const registered = athleteRegistrations.some((item) => item.event === event.title)
             const needsMembership = eventRequiresMembership(event)
-            const membershipBlocks = needsMembership && !hasActiveMembership
+            const membershipPending = needsMembership && !hasActiveMembership
 
             return (
               <article key={event.slug}>
@@ -29,23 +30,25 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
                 <div>
                   <h3>{event.title}</h3>
                   <p>{event.venue} · {event.location}</p>
-                  {membershipBlocks ? (
+                  {membershipPending ? (
                     <p className="account-event-membership-note">{t('account.events.membershipRequiredText')}</p>
                   ) : null}
                 </div>
                 <span className="account-event-status">
-                  {registered ? t('account.events.registered') : EVENT_STATUS[event.status]?.label}
+                  {registered
+                    ? membershipPending
+                      ? t('account.qr.gateReserved')
+                      : t('account.events.registered')
+                    : EVENT_STATUS[event.status]?.label}
                 </span>
                 <button
                   type="button"
-                  onClick={() => onNavigate(membershipBlocks ? 'members' : 'competition')}
+                  onClick={() => onNavigate('competition')}
                   disabled={registered}
                 >
                   {registered
                     ? t('account.events.alreadyRegistered')
-                    : membershipBlocks
-                      ? t('account.events.membershipRequiredButton')
-                      : t('account.events.register')}
+                    : t('account.events.register')}
                 </button>
               </article>
             )

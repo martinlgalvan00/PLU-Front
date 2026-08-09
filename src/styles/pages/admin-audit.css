@@ -184,6 +184,50 @@
   opacity: 0.6;
 }
 
+.admin-orders-block__amount-badge {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .admin-orders-block__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-orders-block__actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .admin-orders-block__actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .admin-orders-block > .admin-filter-group .admin-filter-chips {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .admin-orders-block > .admin-filter-group .admin-filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-orders-block > .admin-filter-group .admin-filter-chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+}
+
 /* ---------- Acciones de afiliación en la tabla ---------- */
 
 .admin-membership-actions {

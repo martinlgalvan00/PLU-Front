@@ -33,6 +33,7 @@ const hardening = readFileSync(
 
 const athleteRoutes = readFileSync(resolve(process.cwd(), 'server/routes/athletes.js'), 'utf8')
 const rateLimits = readFileSync(resolve(process.cwd(), 'server/middleware/rateLimit.js'), 'utf8')
+const athleteApi = readFileSync(resolve(process.cwd(), 'src/services/athleteApi.js'), 'utf8')
 
 function functionBody(source, signature) {
   const start = source.indexOf(signature)
@@ -170,6 +171,13 @@ describe('alta de atleta', () => {
     expect(respondsAt).toBeGreaterThan(-1)
     expect(sendsAt).toBeGreaterThan(respondsAt)
   })
+
+  it('expone check de disponibilidad y marca ATHLETE_EXISTS con campos', () => {
+    expect(athleteRoutes).toContain("'/check-availability'")
+    expect(athleteRoutes).toContain("code: 'ATHLETE_EXISTS'")
+    expect(athleteRoutes).toContain('checkAvailability')
+    expect(athleteApi).toContain('checkAthleteAvailability')
+  })
 })
 
 describe('vigencia de la afiliación en el cliente', () => {
@@ -185,8 +193,7 @@ describe('vigencia de la afiliación en el cliente', () => {
   })
 
   it('una activa pero vencida no alcanza', () => {
-    // Es la condición que ya exigía create_competition_registration_v2: el
-    // cliente solo miraba `status` y el rechazo (PLU05) aparecía al enviar.
+    // Misma vigencia que exige el check-in cuando el evento pide afiliación.
     expect(
       isMembershipCurrent(
         { status: 'activa', startDate: '2025-01-01', expirationDate: '2026-01-31' },

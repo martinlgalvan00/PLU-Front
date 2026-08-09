@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Eye,
+  EyeOff,
   ImageDown,
   User,
   Mail,
@@ -26,7 +28,7 @@ import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
-import { resendAthleteVerification } from '../services/athleteApi.js'
+import { resendAthleteVerification, checkAthleteAvailability } from '../services/athleteApi.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -293,6 +295,8 @@ export default function RegisterPage({
   const [profileStepIndex, setProfileStepIndex] = useState(0)
   const [wizardDirection, setWizardDirection] = useState(1)
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const availabilityRequestRef = useRef(0)
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -306,6 +310,7 @@ export default function RegisterPage({
     setTouched({})
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
+    setShowPassword(false)
     setSubmitError('')
   }, [flow])
 
@@ -335,11 +340,14 @@ export default function RegisterPage({
   // El QR de la card apunta a la persona, no al período: la credencial no se
   // vence ni cambia al renovar.
   const credentialCode = athlete?.credentialToken ?? activeMembership?.qrToken
-  // Vigencia y no solo `status === 'activa'`: es la misma condición que exige
-  // la RPC de inscripción, así que una afiliación activa pero con fechas
-  // vencidas ahora se frena acá en vez de fallar con PLU05 al enviar.
+  // Vigencia y no solo `status === 'activa'`: misma condición que usa la
+  // puerta cuando el evento exige afiliación.
   const hasActiveMembership = hasCurrentMembership(memberships, athlete?.id)
-  const competitionBlocked = flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
+  // Si el meet exige afiliación y todavía no está vigente, se puede inscribir
+  // igual: el aviso empuja a afiliarse, pero no bloquea el submit. La puerta
+  // es la que sigue exigiendo membresía activa.
+  const membershipGatePending =
+    flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -401,7 +409,32 @@ export default function RegisterPage({
     setEmailBlocked(false)
   }
 
-  function blurField(event) {
+  function takenMessage(field) {
+    if (field === 'email') return t('pages.register.emailTaken')
+    if (field === 'documentId') return t('pages.register.documentTaken')
+    return t('pages.register.accountExists')
+  }
+
+  async function checkAvailabilityForField(field, value) {
+    if (field !== 'email' && field !== 'documentId') return
+    const requestId = ++availabilityRequestRef.current
+    try {
+      const availability = await checkAthleteAvailability(
+        field === 'email' ? { email: value } : { documentId: value },
+      )
+      if (requestId !== availabilityRequestRef.current) return
+
+      const taken = field === 'email' ? availability.emailTaken : availability.documentTaken
+      setErrors((current) => ({
+        ...current,
+        [field]: taken ? takenMessage(field) : '',
+      }))
+    } catch {
+      // Fail-open: si el check cae, el submit del alta sigue siendo la red de seguridad.
+    }
+  }
+
+  async function blurField(event) {
     const field = event.target.name
     if (!field) return
 
@@ -426,10 +459,33 @@ export default function RegisterPage({
 
     if (!validation) return
 
+    const fieldError = validation.errors[field] ?? ''
     setErrors((current) => ({
       ...current,
-      [field]: validation.errors[field] ?? '',
+      [field]: fieldError,
     }))
+
+    // Formato OK: preguntamos al backend si email/documento ya están tomados.
+    if (!fieldError && flow === 'profile') {
+      await checkAvailabilityForField(field, value)
+    }
+  }
+
+  async function ensureStepAvailability(fields) {
+    const payload = {}
+    if (fields.includes('email') && form.email) payload.email = form.email
+    if (fields.includes('documentId') && form.documentId) payload.documentId = form.documentId
+    if (!payload.email && !payload.documentId) return {}
+
+    try {
+      const availability = await checkAthleteAvailability(payload)
+      const takenErrors = {}
+      if (availability.emailTaken) takenErrors.email = takenMessage('email')
+      if (availability.documentTaken) takenErrors.documentId = takenMessage('documentId')
+      return takenErrors
+    } catch {
+      return {}
+    }
   }
 
   function focusFirstError(stepErrors) {
@@ -450,7 +506,7 @@ export default function RegisterPage({
     setSubmitError('')
   }
 
-  function advanceProfileStep() {
+  async function advanceProfileStep() {
     const step = profileSteps[profileStepIndex]
     const validation = validateAthleteFields(form, step.fields, t)
     if (!validation.success) {
@@ -461,6 +517,18 @@ export default function RegisterPage({
       }))
       setProfileErrorStepIndex(profileStepIndex)
       focusFirstError(validation.errors)
+      return
+    }
+
+    const takenErrors = await ensureStepAvailability(step.fields)
+    if (Object.keys(takenErrors).length) {
+      setErrors((current) => ({ ...current, ...takenErrors }))
+      setTouched((current) => ({
+        ...current,
+        ...Object.fromEntries(Object.keys(takenErrors).map((field) => [field, true])),
+      }))
+      setProfileErrorStepIndex(profileStepIndex)
+      focusFirstError(takenErrors)
       return
     }
 
@@ -486,11 +554,6 @@ export default function RegisterPage({
   async function submit(eventObject) {
     eventObject.preventDefault()
     if (flow === 'profile') setProfileSubmitAttempted(true)
-
-    if (competitionBlocked) {
-      setSubmitError(t('pages.register.membershipRequiredForCompetition'))
-      return
-    }
 
     const validation =
       flow === 'profile'
@@ -527,9 +590,42 @@ export default function RegisterPage({
       return
     }
 
+    if (flow === 'profile') {
+      const takenErrors = await ensureStepAvailability(['email', 'documentId'])
+      if (Object.keys(takenErrors).length) {
+        setErrors((current) => ({ ...current, ...takenErrors }))
+        setTouched((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(takenErrors).map((field) => [field, true])),
+        }))
+        setProfileStepIndex(0)
+        setProfileErrorStepIndex(0)
+        focusFirstError(takenErrors)
+        return
+      }
+    }
+
     const result = await onSubmit(eventObject, event)
     if (result?.error) {
-      setSubmitError(result.error)
+      const fieldErrors = {}
+      if (result.fields?.email === 'taken') fieldErrors.email = takenMessage('email')
+      if (result.fields?.documentId === 'taken') fieldErrors.documentId = takenMessage('documentId')
+
+      if (Object.keys(fieldErrors).length) {
+        setErrors((current) => ({ ...current, ...fieldErrors }))
+        setTouched((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(fieldErrors).map((field) => [field, true])),
+        }))
+        if (flow === 'profile') {
+          setProfileStepIndex(0)
+          setProfileErrorStepIndex(0)
+        }
+        focusFirstError(fieldErrors)
+        setSubmitError(result.error)
+      } else {
+        setSubmitError(result.error)
+      }
       setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
       setResendState('idle')
     } else if (flow === 'profile') onNavigate?.('profile')
@@ -801,10 +897,27 @@ export default function RegisterPage({
                           icon={Lock}
                           label={t('login.password')}
                           name="password"
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           value={form.password}
                           onBlur={blurField}
                           onChange={changeField}
+                          trailing={
+                            <button
+                              type="button"
+                              className="field__toggle"
+                              aria-label={
+                                showPassword ? t('login.hidePassword') : t('login.showPassword')
+                              }
+                              aria-pressed={showPassword}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                setShowPassword((visible) => !visible)
+                              }}
+                              onMouseDown={(event) => event.preventDefault()}
+                            >
+                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          }
                         />
                         <PasswordStrengthMeter password={form.password} />
                       </div>
@@ -880,12 +993,12 @@ export default function RegisterPage({
                 title={event?.title ?? ''}
                 description={t('pages.register.competitionDataDesc')}
               >
-                {competitionBlocked && (
-                  <div className="register-eligibility-alert" role="alert">
+                {membershipGatePending && (
+                  <div className="register-eligibility-alert" role="status">
                     <strong>{t('pages.register.membershipRequiredTitle')}</strong>
                     <p>{t('pages.register.membershipRequiredForCompetition')}</p>
                     {onNavigate && (
-                      <button type="button" className="btn btn--small" onClick={() => onNavigate('membership')}>
+                      <button type="button" className="btn btn--small btn--outline" onClick={() => onNavigate('membership')}>
                         {t('pages.register.membershipRequiredAction')}
                       </button>
                     )}
@@ -1027,7 +1140,7 @@ export default function RegisterPage({
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  disabled={(flow === 'profile' && Boolean(visibleOrder)) || competitionBlocked}
+                  disabled={flow === 'profile' && Boolean(visibleOrder)}
                 >
                   {content[2]}
                   <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />

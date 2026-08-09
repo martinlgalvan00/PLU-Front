@@ -18,11 +18,26 @@ webhook firmado es la confirmación canónica y el mecanismo de recuperación.
 
 | Variable | Alcance |
 |----------|---------|
-| `VITE_MERCADO_PAGO_PUBLIC_KEY` | Frontend; inicializa MercadoPago.js |
-| `MERCADO_PAGO_ACCESS_TOKEN` | Sólo backend |
-| `MERCADO_PAGO_WEBHOOK_SECRET` | Sólo backend; valida `x-signature` |
+| `PAYMENTS_PROVIDER` | Backend; `mock` o `mercado_pago` (default) |
+| `VITE_PAYMENTS_PROVIDER` | Frontend; `mock` muestra el panel de simulación |
+| `VITE_MERCADO_PAGO_PUBLIC_KEY` | Frontend; inicializa MercadoPago.js (no hace falta en mock) |
+| `MERCADO_PAGO_ACCESS_TOKEN` | Sólo backend (no hace falta en mock) |
+| `MERCADO_PAGO_WEBHOOK_SECRET` | Sólo backend; valida `x-signature` (en mock usá `/api/payments/mock/notify`) |
 | `MERCADO_PAGO_ENV` | `sandbox` o `production` |
 | `APP_URL`, `API_URL` | Retornos y `notification_url` HTTPS |
+
+## Modo mock local
+
+```text
+PAYMENTS_PROVIDER=mock
+VITE_PAYMENTS_PROVIDER=mock
+```
+
+- Solo permitido fuera de production / Vercel preview-prod.
+- El Brick se reemplaza por botones de outcome; el workflow (`processEmbeddedPayment` → `applyCanonicalPayment`) es el mismo.
+- Outcomes: `mock_approved`, `mock_rejected`, `mock_pending`, `mock_error`.
+- `MOCK_PAYMENT_DELAY_MS` agrega latencia artificial (máx 10s).
+- `POST /api/payments/mock/notify` fuerza acreditación sin firma MP.
 
 ## Reglas no negociables
 
@@ -103,9 +118,11 @@ UI crea orden ligada al plan recurrente
 
 | Archivo | Rol |
 |---------|-----|
-| `src/components/ui/MercadoPagoEmbeddedCheckout.jsx` | Renderiza los Bricks |
+| `src/components/ui/MercadoPagoEmbeddedCheckout.jsx` | Renderiza los Bricks o el panel mock |
 | `src/services/paymentService.js` | Cliente de la API propia |
 | `server/routes/payments.js` | Endpoints y validación Zod |
+| `server/modules/payments/createPaymentProviderAdapter.js` | Factory mock / mercado_pago |
+| `server/modules/payments/mockMercadoPagoAdapter.js` | Provider in-memory local |
 | `server/modules/payments/embeddedPaymentWorkflow.js` | Cobro único seguro |
 | `server/modules/subscriptions/subscriptionWorkflow.js` | Suscripciones |
 | `server/modules/payments/mercadoPagoAdapter.js` | SDK oficial server-side |

@@ -13,6 +13,7 @@ import {
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
+import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
 import {
   clearTicketsRoute,
   getTicketsRouteEventSlug,
@@ -432,6 +433,7 @@ export default function App() {
           Se monta acá, fuera de PageTransition, para que el aviso no se pierda
           al cambiar de vista. */}
       <EmailVerificationNotice />
+      <PaymentsMockBanner />
       <NavbarPublic
         activeView={view}
         latestEvent={nextEvent}
@@ -457,6 +459,7 @@ export default function App() {
 function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
   return (
     <div className="app-shell">
+      <PaymentsMockBanner />
       <NavbarPublic
         activeView={view}
         latestEvent={

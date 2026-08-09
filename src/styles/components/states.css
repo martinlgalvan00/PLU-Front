@@ -337,6 +337,58 @@
   z-index: 1;
 }
 
+/* Glyph: un solo código de locale (rail colapsado / hit target compacto) */
+.locale-switch--glyph {
+  align-items: center;
+  background: var(--locale-track-bg);
+  border: 1px solid var(--locale-track-border);
+  border-radius: 10px;
+  box-shadow: var(--locale-track-shadow);
+  color: var(--locale-code-active);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease,
+    color 220ms ease;
+  width: 32px;
+}
+
+.locale-switch--glyph:hover {
+  border-color: var(--locale-hover-border);
+  color: var(--locale-code-active);
+}
+
+.locale-switch--glyph:focus-visible {
+  outline: 2px solid var(--locale-focus-ring);
+  outline-offset: 2px;
+}
+
+.locale-switch--glyph:active {
+  transform: scale(0.96);
+}
+
+.locale-switch__glyph {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.locale-switch--glyph.locale-switch--compact {
+  height: 30px;
+  min-height: 30px;
+  min-width: 30px;
+  width: 30px;
+}
+
 .locale-switch__track {
   background: var(--locale-track-bg);
   border: 1px solid var(--locale-track-border);

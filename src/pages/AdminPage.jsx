@@ -209,6 +209,8 @@ export default function AdminPage({
           filteredRegistrations={filteredRegistrations}
           payments={payments}
           registrations={registrations}
+          memberships={enrichedMemberships}
+          events={adminEvents}
           registrationsCount={registrations.length}
           onApprovePayment={onApprovePayment}
           onExportAdmin={onExportAdmin}

@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
+import { isRegistrationAdmitted } from '../lib/status.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
+import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -31,31 +35,45 @@ export default function AthleteProfilePage({
 }) {
   const [activeTab, setActiveTab] = useState(DEFAULT_TAB)
 
-  if (!athlete) return null
-
-  // La afiliación que cubre HOY, no la primera del array. El snapshot llega
-  // ordenado por created_at desc, así que apenas el socio arrancaba una
-  // renovación (fila nueva en pendiente_pago) `.find()` devolvía esa y el QR
-  // desaparecía de la cuenta pese a tener la afiliación anterior vigente.
-  const athleteMemberships = memberships.filter((item) => item.athleteId === athlete.id)
+  const athleteId = athlete?.id ?? null
+  const athleteMemberships = athleteId
+    ? memberships.filter((item) => item.athleteId === athleteId)
+    : []
   const membership = athleteMemberships.find((item) => isMembershipCurrent(item))
-  // Para la sección de pago sí interesa la más reciente: es la que el atleta
-  // está por pagar o renovar.
   const storedMembership = membership ?? athleteMemberships[0]
-  const athleteRegistrations = registrations.filter((item) => item.athleteId === athlete.id)
+  const athleteRegistrations = athleteId
+    ? registrations.filter((item) => item.athleteId === athleteId)
+    : []
   const availableEvents = UPCOMING_EVENTS.filter((event) => event.status !== 'finalizado')
   const nextEvent = availableEvents[0]
+  const gatePendingRegistrations = athleteId
+    ? findGatePendingRegistrations(athleteRegistrations, {
+        memberships: athleteMemberships,
+        athleteId,
+        events: availableEvents,
+      })
+    : []
 
-  // Un solo tab visible a la vez — ver AccountNav.jsx. `onNavigateSection`
-  // reemplaza al viejo scrollIntoView: los links internos ("Editar mis
-  // datos", "Afiliarme para generar mi credencial") ahora cambian de tab
-  // en vez de scrollear, porque las otras secciones ni siquiera están
-  // montadas mientras no son la activa.
+  const hasAdmittedMeet = athleteRegistrations.some((item) => isRegistrationAdmitted(item.status))
+  const membershipId = membership?.id ?? null
+
+  // Si la afiliación acaba de activarse y todavía no se vio el ritual de
+  // fusión, saltamos al tab QR para mostrarlo (p.ej. tras pagar desde
+  // Afiliación o volver desde el checkout).
+  useEffect(() => {
+    if (!athleteId || !membershipId || !hasAdmittedMeet) return
+    if (hasPlayedCredentialMerge(athleteId, membershipId)) return
+    setActiveTab('account-qr')
+  }, [athleteId, hasAdmittedMeet, membershipId])
+
+  if (!athlete) return null
+
   const tabContent = {
     'account-qr': (
       <QrCredentialSection
         athlete={athlete}
         membership={membership}
+        latestMembership={storedMembership}
         registrations={athleteRegistrations}
         onNavigateSection={setActiveTab}
       />
@@ -98,19 +116,15 @@ export default function AthleteProfilePage({
           membership={membership}
           athleteRegistrations={athleteRegistrations}
           nextEvent={nextEvent}
-          onNavigateSection={setActiveTab}
         />
       </Reveal>
-
       <EmailVerificationBanner athlete={athlete} />
-
+      <GateMembershipBanner
+        pendingEvents={gatePendingRegistrations}
+        onCompleteMembership={() => setActiveTab('account-membership')}
+      />
       <AccountNav activeId={activeTab} onChange={setActiveTab} />
-
-      <div className="account-sections">
-        <div key={activeTab} className="account-tab-panel">
-          {tabContent[activeTab]}
-        </div>
-      </div>
+      {tabContent[activeTab]}
     </main>
   )
 }

@@ -84,7 +84,11 @@ Toda creación de orden requiere idempotency key. El evento se bloquea al tomar
 cupos, los códigos se generan por secuencia y las reservas impagas vencen para
 liberar capacidad. Una renovación crea un ciclo nuevo y nunca acorta ni
 sobrescribe el derecho vigente. Una inscripción requiere evento publicado,
-ventana abierta, cupo disponible y afiliación activa durante la fecha válida.
+ventana abierta y cupo disponible. La afiliación activa vigente **no** es
+condición para crear ni pagar la inscripción: puede quedar pendiente en
+paralelo. Si el evento tiene `requires_membership`, el **check-in en puerta**
+sí exige afiliación activa y vigente; sin ese requisito, la inscripción
+confirmada alcanza para ingresar.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.

@@ -43,6 +43,30 @@
   padding-right: 0;
 }
 
+.admin-shell .admin-shell__brand-home {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+}
+
+.admin-shell .admin-shell__brand-home:hover .admin-shell__brand-mark {
+  border-color: color-mix(in srgb, var(--admin-accent) 36%, var(--admin-sidebar-border));
+}
+
+.admin-shell .admin-shell__brand-home:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
 .admin-shell .admin-shell__brand-mark {
   align-items: center;
   background: transparent;
@@ -430,39 +454,131 @@
 }
 
 .admin-shell--collapsed .admin-shell__account {
-  display: none;
-}
-
-.admin-shell--collapsed .admin-shell__prefs {
-  align-items: center;
   display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr;
-  justify-items: center;
-  min-height: 0;
-  padding: 8px 6px;
-  width: 100%;
-}
-
-.admin-shell--collapsed .admin-shell__prefs .locale-switch,
-.admin-shell--collapsed .admin-shell__prefs .locale-switch--compact,
-.admin-shell--collapsed .admin-shell__prefs .locale-switch--segment {
-  height: 30px;
-  justify-self: center;
-  min-height: 30px;
-  width: 56px;
 }
 
 @media (min-width: 768px) {
+  .admin-shell--collapsed .admin-shell__account {
+    display: flex;
+    justify-content: center;
+    min-height: 18px;
+    padding: 4px 0 0;
+    width: auto;
+  }
+
+  .admin-shell--collapsed .admin-shell__account-copy {
+    display: none;
+  }
+
+  .admin-shell--collapsed .admin-shell__account-mark {
+    display: block;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+    min-height: 0;
+    padding: 0;
+    width: auto;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs .pref-toggle,
+  .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact,
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
+    align-items: center;
+    background: color-mix(in srgb, var(--admin-sidebar-text) 3.5%, transparent);
+    border: 1px solid var(--admin-sidebar-border);
+    border-radius: 10px;
+    box-shadow: none;
+    color: var(--admin-sidebar-muted);
+    display: inline-flex;
+    height: 42px;
+    justify-content: center;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 0;
+    width: 42px;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs .pref-toggle:hover,
+  .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact:hover,
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph:hover {
+    background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--admin-accent) 24%, transparent);
+    color: var(--admin-sidebar-text);
+    transform: none;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--segment,
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--compact:not(.locale-switch--glyph) {
+    height: 30px;
+    justify-self: center;
+    min-height: 30px;
+    width: 56px;
+  }
+
+  .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
+    --locale-track-bg: color-mix(in srgb, var(--admin-sidebar-text) 3.5%, transparent);
+    --locale-track-border: var(--admin-sidebar-border);
+    --locale-track-shadow: none;
+    --locale-hover-border: color-mix(in srgb, var(--admin-premium) 36%, transparent);
+    --locale-focus-ring: color-mix(in srgb, var(--admin-premium) 28%, transparent);
+    --locale-code-active: color-mix(in srgb, var(--admin-premium) 82%, var(--admin-sidebar-text));
+    align-items: center;
+    color: var(--locale-code-active);
+    display: inline-flex;
+    height: 42px;
+    justify-content: center;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 0;
+    width: 42px;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button::before {
+    background: transparent;
+    border-radius: 0 0 3px 3px;
+    bottom: 3px;
+    height: 2px;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    width: auto;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button.active::before {
+    background: var(--admin-accent);
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button.active {
+    background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-sidebar-border));
+  }
+
+  .admin-shell--collapsed .admin-shell__nav-label {
+    display: none;
+  }
+
   .admin-shell--collapsed .admin-shell__exit {
     border: 1px solid var(--admin-sidebar-border);
     height: 42px;
     justify-content: center;
-    margin-inline: auto;
+    margin-inline: 0;
     margin-top: 0;
     min-height: 42px;
     padding: 0;
     width: 42px;
+  }
+
+  .admin-shell--collapsed .admin-shell__brand-home .admin-shell__brand-mark,
+  .admin-shell--collapsed .admin-shell__brand-mark {
+    height: 40px;
+    width: 40px;
   }
 }
 
@@ -1477,6 +1593,20 @@
 .admin-shell .admin-payments-operations {
   display: grid;
   gap: 18px;
+}
+
+@media (max-width: 720px) {
+  .admin-shell .admin-payments-operations {
+    gap: 14px;
+  }
+}
+
+.admin-shell .admin-payments-operations > .admin-orders-block,
+.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  box-shadow: none;
 }
 
 .admin-shell .admin-payment-ops {

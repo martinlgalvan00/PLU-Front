@@ -114,6 +114,7 @@ export default function TicketOrdersSection({
       filters={[]}
       title={t('admin.ticketOrders.title')}
       subtitle={t('admin.ticketOrders.subtitle')}
+      variant="tickets"
     >
       {actionError && <p className="form-submit-error">{actionError}</p>}
       {isLoading && rows.length === 0 ? (
@@ -124,22 +125,22 @@ export default function TicketOrdersSection({
         <AdminDataTable
           columns={[
             {
+              key: 'attendees',
+              label: t('admin.columns.attendee'),
+              mobile: 'primary',
+              sortable: true,
+            },
+            {
               key: 'reference',
               label: t('admin.columns.reference'),
-              mobile: 'primary',
+              mobile: 'hidden',
               sortable: true,
             },
             { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
             {
-              key: 'attendees',
-              label: t('admin.columns.attendee'),
-              mobile: 'default',
-              sortable: true,
-            },
-            {
               key: 'ticketCount',
               label: t('admin.ticketOrders.tickets'),
-              mobile: 'default',
+              mobile: 'hidden',
               desktop: 'numeric',
               align: 'end',
               sortable: true,
@@ -155,7 +156,7 @@ export default function TicketOrdersSection({
             {
               key: 'proofStatus',
               label: t('admin.ticketOrders.proof'),
-              mobile: 'badge',
+              mobile: 'default',
               sortable: true,
               render: (row) => (
                 <span

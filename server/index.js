@@ -23,6 +23,12 @@ const port = Number(process.env.PORT) || 3001
 
 const server = app.listen(port, () => {
   console.info(`API PLU ARG en http://localhost:${port}`)
+  const supabase = getSupabaseAdmin()
+  if (supabase) {
+    console.info('Supabase Admin: configurado')
+  } else {
+    console.warn('Supabase Admin: NO configurado (faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)')
+  }
 })
 
 server.on('error', (error) => {

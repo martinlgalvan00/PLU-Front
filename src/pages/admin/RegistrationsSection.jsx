@@ -13,20 +13,19 @@ import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatScheduleSummary } from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
+import { findGatePendingRegistrations } from '../../lib/gateAccess.js'
+import { findRegistrationPayment } from '../../services/registrationAdminService.js'
 
-function findRegistrationPayment(payments, athleteId) {
-  return payments.find((item) => item.athleteId === athleteId)
-}
-
-function matchesRegistrationFilter(registration, payment, filter) {
+function matchesRegistrationFilter(registration, payment, filter, gatePendingIds) {
   if (filter === 'all') return true
+  if (filter === 'gate_pending') return gatePendingIds.has(registration.id)
   return registration.status === filter || registration.paymentStatus === filter || payment?.status === filter
 }
 
-function countRegistrationsByFilter(registrations, payments, filter) {
+function countRegistrationsByFilter(registrations, payments, filter, gatePendingIds) {
   return registrations.filter((registration) => {
-    const payment = findRegistrationPayment(payments, registration.athleteId)
-    return matchesRegistrationFilter(registration, payment, filter)
+    const payment = findRegistrationPayment(payments, registration)
+    return matchesRegistrationFilter(registration, payment, filter, gatePendingIds)
   }).length
 }
 
@@ -37,6 +36,8 @@ export default function RegistrationsSection({
   filteredRegistrations,
   payments,
   registrations = [],
+  memberships = [],
+  events = [],
   registrationsCount,
   onApprovePayment,
   onExportAdmin,
@@ -51,13 +52,21 @@ export default function RegistrationsSection({
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 
+  const gatePendingIds = useMemo(
+    () =>
+      new Set(
+        findGatePendingRegistrations(registrations, { memberships, events }).map((item) => item.id),
+      ),
+    [registrations, memberships, events],
+  )
+
   const statusCounts = useMemo(() => {
     const counts = {}
     for (const [value] of REGISTRATION_FILTER_STATUSES) {
-      counts[value] = countRegistrationsByFilter(registrations, payments, value)
+      counts[value] = countRegistrationsByFilter(registrations, payments, value, gatePendingIds)
     }
     return counts
-  }, [payments, registrations])
+  }, [payments, registrations, gatePendingIds])
 
   const statusOptions = useMemo(
     () =>
@@ -81,7 +90,7 @@ export default function RegistrationsSection({
   const registrationRows = useMemo(
     () =>
       filteredRegistrations.map((reg) => {
-        const payment = findRegistrationPayment(payments, reg.athleteId)
+        const payment = findRegistrationPayment(payments, reg)
         return {
           id: reg.id,
           athlete: reg.athlete?.fullName,
@@ -92,6 +101,7 @@ export default function RegistrationsSection({
           schedule: reg.schedule ?? null,
           status: reg.status,
           paymentStatus: payment?.status,
+          paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
           paymentId: payment?.id,
         }
@@ -379,7 +389,12 @@ export default function RegistrationsSection({
                 render: (row) => (
                   <AdminTableActions>
                     <AdminIconButton
-                      disabled={!canEdit || row.paymentStatus === 'aprobado'}
+                      disabled={
+                        !canEdit ||
+                        !row.paymentId ||
+                        row.paymentMethod === 'mercado_pago' ||
+                        row.paymentStatus === 'aprobado'
+                      }
                       icon={BadgeCheck}
                       label={t('admin.actions.validate')}
                       onClick={() => onApprovePayment(row.paymentId)}

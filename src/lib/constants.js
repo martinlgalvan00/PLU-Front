@@ -139,6 +139,7 @@ export const REGISTRATION_FILTER_STATUSES = [
   ['pendiente_pago', 'status'],
   ['validacion_manual', 'status'],
   ['confirmada', 'status'],
+  ['gate_pending', 'gatePending'],
   ['aprobado', 'paymentApproved'],
 ]
 

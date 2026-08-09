@@ -211,21 +211,24 @@ export default function AthletePaymentOrdersSection({
             {
               key: 'amount',
               label: t('admin.columns.amount'),
+              mobile: 'badge',
               desktop: 'numeric',
               align: 'end',
               sortable: true,
-              render: (row) => money(row.amount, locale),
+              render: (row) => (
+                <span className="admin-orders-block__amount-badge">{money(row.amount, locale)}</span>
+              ),
             },
             {
               key: 'method',
               label: t('admin.columns.method'),
-              mobile: 'default',
+              mobile: 'hidden',
               render: (row) => PAYMENT_METHODS[row.method]?.label ?? row.method,
             },
             {
               key: 'proof',
               label: t('admin.athletePayments.columnProof'),
-              mobile: 'default',
+              mobile: 'hidden',
               render: (row) => {
                 if (row.method !== 'manual_link') {
                   return <span className="data-table__mono data-table__mono--empty">—</span>

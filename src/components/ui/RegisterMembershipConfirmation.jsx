@@ -102,7 +102,9 @@ export default function RegisterMembershipConfirmation({
             className="register-membership-confirmation__cta register-membership-confirmation__cta--ghost"
             onClick={() => onNavigate('profile')}
           >
-            {t('pages.register.membershipGoProfile')}
+            {isActive
+              ? t('pages.register.membershipGoProfileCredential')
+              : t('pages.register.membershipGoProfile')}
             <ArrowRight size={14} aria-hidden />
           </button>
         )}

@@ -2,7 +2,11 @@ import { env } from '../config/env.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 
 export function isMercadoPagoConfigured() {
-  return env.mercadoPago.configured
+  return env.payments.isMock || env.mercadoPago.configured
+}
+
+export function isPaymentsMockEnabled() {
+  return env.payments.isMock
 }
 
 export function createPaymentReference(method) {
@@ -38,6 +42,28 @@ export function reconcileCreatedOrder(createdOrder, payments = []) {
   return { ...createdOrder, status: order.status }
 }
 
+export function paymentUpdateStatus(status) {
+  if (status === 'approved' || status === 'aprobado') return 'aprobado'
+  if (status === 'rejected' || status === 'rechazado') return 'rechazado'
+  if (status === 'cancelled' || status === 'cancelado') return 'cancelado'
+  if (status === 'refunded' || status === 'reembolsado') return 'reembolsado'
+  return 'pendiente'
+}
+
+export function applyPaymentUpdate(createdOrder, tickets = [], detail = {}) {
+  const orderId = detail.orderId
+  if (!orderId) return { createdOrder, tickets }
+
+  const status = paymentUpdateStatus(detail.status)
+  const matchesOrder = createdOrder?.paymentId === orderId || createdOrder?.orderId === orderId
+  const nextOrder = matchesOrder ? { ...createdOrder, status } : createdOrder
+  const nextTickets = status === 'aprobado'
+    ? tickets.map((ticket) => ticket.orderId === orderId ? { ...ticket, status: 'pagada' } : ticket)
+    : tickets
+
+  return { createdOrder: nextOrder, tickets: nextTickets }
+}
+
 export async function createPreference({ paymentId, orderAccessToken }) {
   return apiPost('/api/payments/preferences', { paymentOrderId: paymentId, orderAccessToken })
 }
@@ -58,6 +84,14 @@ export async function listMembershipPlans() {
 
 export async function processEmbeddedSubscription({ paymentOrderId, orderAccessToken, planCode, cardToken }) {
   return apiPost('/api/payments/subscriptions/process', { paymentOrderId, orderAccessToken, planCode, cardToken })
+}
+
+export async function notifyMockPayment({ paymentId, orderId, orderAccessToken, status }) {
+  return apiRequest('/api/payments/mock/notify', {
+    method: 'POST',
+    headers: orderAccessToken ? { 'X-Order-Access-Token': orderAccessToken } : {},
+    body: JSON.stringify({ paymentId, orderId, ...(status ? { status } : {}) }),
+  })
 }
 
 export async function getPaymentOperations(status) {

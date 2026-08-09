@@ -8,10 +8,10 @@
     "npm": ">=10"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run dev:services",
     "dev:web": "vite",
     "dev:api": "node server/index.js",
-    "dev:services": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:services": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
     "dev:all": "node scripts/bootstrap-all.mjs --start",
     "setup:all": "node scripts/bootstrap-all.mjs",
     "start:all": "npm run dev:all",
@@ -33,6 +33,7 @@
     "db:seed": "node scripts/prisma-supabase.mjs seed",
     "db:verify:payments": "node scripts/verify-payment-database.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
+    "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",
     "email:doctor": "node scripts/email-doctor.mjs",
     "mercado-pago:doctor": "node scripts/mercado-pago-doctor.mjs",
     "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",

@@ -1893,6 +1893,135 @@
     linear-gradient(165deg, #1a1c22 0%, #121418 100%);
 }
 
+.account-verify--gate {
+  background: color-mix(in srgb, var(--color-warning-bg, #3a2f12) 88%, transparent);
+}
+
+.account-qr-pass__gate {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.account-qr-pass__gate--ready {
+  color: var(--color-success-text, #7dcea0);
+}
+
+.account-qr-pass__gate--reserved {
+  color: var(--color-warning-text, #d4a017);
+}
+
+.account-qr__chip--muted {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.account-qr-dual {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 1rem);
+  margin-block: var(--space-4, 1rem);
+}
+
+.account-qr-pass {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-elevated);
+}
+
+.account-qr-pass h3 {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-qr-pass__meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.account-qr-pass__note {
+  margin: 0;
+  color: var(--color-warning, #d4a017);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.account-qr-pass .account-qr__chip {
+  align-self: center;
+}
+
+.account-qr-pass .account-primary-action {
+  margin-top: auto;
+}
+
+.credential-merge {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+  padding-block: var(--space-4, 1rem);
+  text-align: center;
+}
+
+.credential-merge__title {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+}
+
+.credential-merge__subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.credential-merge__stage {
+  position: relative;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.credential-merge__pass {
+  position: absolute;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  width: min(42%, 160px);
+}
+
+.credential-merge__pass--meet {
+  left: 8%;
+}
+
+.credential-merge__pass--membership {
+  right: 8%;
+}
+
+.credential-merge__pass span {
+  font-size: var(--text-xs, 0.75rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.credential-merge__pass img,
+.credential-merge__final img,
+.credential-merge__placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.credential-merge__final {
+  position: relative;
+  z-index: 2;
+}
+
 /* Preview "bloqueada" cuando todavía no hay afiliación activa — mismo
    layout que el QR real (chip + meta) para que se sienta como el mismo
    componente esperando a desbloquearse, no un estado vacío aparte. */
@@ -2022,6 +2151,16 @@
     grid-template-columns: 1fr;
     justify-items: stretch;
     text-align: left;
+  }
+
+  .account-qr-dual {
+    grid-template-columns: 1fr;
+  }
+
+  .credential-merge__pass--meet,
+  .credential-merge__pass--membership {
+    left: auto;
+    right: auto;
   }
 
   .account-qr__code-col {

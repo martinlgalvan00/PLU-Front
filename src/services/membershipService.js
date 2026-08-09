@@ -6,10 +6,9 @@ export function enrichMemberships(memberships, athletes) {
 }
 
 /**
- * Misma condición que exige `create_competition_registration_v2` para dejar
- * inscribirse: activa Y vigente hoy. El cliente solo miraba `status` y una
- * afiliación marcada activa con fechas vencidas pasaba el chequeo local para
- * después fallar con PLU05 recién al enviar el formulario.
+ * Misma condición que exige `staff_check_in_registration` cuando el evento
+ * pide afiliación: activa Y vigente hoy. Crear la inscripción ya no la
+ * requiere; el gate vive en la puerta.
  */
 export function isMembershipCurrent(membership, today = new Date()) {
   if (membership?.status !== 'activa') return false
@@ -31,7 +30,7 @@ export function isMembershipCurrent(membership, today = new Date()) {
   return true
 }
 
-/** ¿Este atleta puede inscribirse hoy a un evento que exige afiliación? */
+/** ¿Este atleta tiene afiliación activa y vigente hoy? (ingreso en puerta si el meet la exige) */
 export function hasCurrentMembership(memberships = [], athleteId, today = new Date()) {
   if (!athleteId) return false
   return memberships.some(

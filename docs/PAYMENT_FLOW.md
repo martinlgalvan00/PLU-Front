@@ -23,10 +23,32 @@ la respuesta canónica del proveedor y queda respaldada por el webhook firmado.
 
 ## Implementación actual
 
-- `MercadoPagoEmbeddedCheckout.jsx` — Payment Brick y Card Payment Brick
+- `MercadoPagoEmbeddedCheckout.jsx` — Payment Brick, Card Payment Brick y panel mock local
+- `createPaymentProviderAdapter.js` — elige `mercado_pago` o `mock` según `PAYMENTS_PROVIDER`
+- `mockMercadoPagoAdapter.js` — pagos/suscripciones in-memory para desarrollo
 - `embeddedPaymentWorkflow.js` — monto server-side e intentos idempotentes
 - `subscriptionWorkflow.js` — planes y abonos recurrentes
 - Transferencia manual como canal separado con aprobación operativa
+
+## Modo mock local (sin pagar)
+
+Para recorrer el flujo completo en local sin llamar a Mercado Pago:
+
+```text
+PAYMENTS_PROVIDER=mock
+VITE_PAYMENTS_PROVIDER=mock
+```
+
+Restricciones:
+
+- Solo local/dev (`NODE_ENV !== production` y sin `VERCEL_ENV` production/preview).
+- El checkout muestra botones: aprobado / rechazado / pendiente / error proveedor (y autorizar plan en suscripciones).
+- Si quedó pendiente, `POST /api/payments/mock/notify` (o el botón “Forzar acreditación”) aplica el camino canónico sin firma de webhook.
+- Delay opcional: `MOCK_PAYMENT_DELAY_MS` (máx 10000) para simular latencia.
+- El store mock es in-memory: se pierde al reiniciar el server.
+- Banner global “Ambiente de desarrollo” solo en Vite DEV + mock.
+
+Para volver a sandbox real: `PAYMENTS_PROVIDER=mercado_pago` y `VITE_PAYMENTS_PROVIDER=mercado_pago` con public key + access token + webhook secret.
 
 ## Estados internos
 

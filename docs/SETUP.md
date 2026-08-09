@@ -30,20 +30,21 @@ falla a propósito: no reemplaces `npm ci` por `npm install` en el workflow.
 ## Desarrollo
 
 ```bash
-# Día a día UI: solo frontend (Vite). Habla con Supabase; /api necesita Express.
+# Día a día: frontend (Vite) + API Express contra Supabase remoto
 npm run dev
 
-# Frontend + API sin migrar (login, pagos, admin)
-npm run dev:services
+# Solo frontend (si la API ya está corriendo en otra terminal)
+npm run dev:web
+
+# Solo API
+npm run dev:api
 
 # Primera vez o tras cambios de schema: migra, verifica y levanta todo
-npm run dev:all
-
-# Sólo preparar/migrar/verificar, sin dejar servidores abiertos
 npm run setup:all
+npm run dev
 
-# Día a día con bootstrap pero sin migrate/db push:
-# BOOTSTRAP_SKIP_MIGRATIONS=1 npm run dev:all
+# Diagnóstico rápido de integración Supabase
+npm run supabase:diagnose
 ```
 
 En Windows, el CLI de Supabase a veces falla con `uv_spawn`: el bootstrap

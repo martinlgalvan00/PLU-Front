@@ -17,6 +17,10 @@ export function errorHandler(err, _req, res, _next) {
   const body = { error: message }
   if (err.details?.code) body.code = err.details.code
   if (err.details?.code === 'PLU06') body.alreadyUsed = true
+  // Campos concretos del conflicto (ej. email/documento ya usados en el alta).
+  if (err.details?.fields && typeof err.details.fields === 'object') {
+    body.fields = err.details.fields
+  }
   if (status >= 500) {
     console.error(`[api] ${status} ${err.message}`, err.details?.code ?? '')
   }
