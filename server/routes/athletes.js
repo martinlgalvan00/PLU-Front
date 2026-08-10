@@ -200,19 +200,12 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   }
 
   /**
-   * Bienvenida + pedido de verificación. Van como dos emails y no uno: el de
-   * bienvenida es informativo y el de verificación tiene una sola acción
-   * clara. Mezclarlos hace que el link se pierda entre el resto del texto.
+   * Bienvenida + confirmacion de correo en un solo email. El template conserva
+   * la clave `email_verification` porque el link de activacion es el requisito
+   * operativo; el contenido tambien cubre la bienvenida al atleta.
    */
   async function sendOnboardingEmails(row) {
-    await sendBestEffort('welcome', {
-      to: row.email,
-      toName: row.full_name,
-      entityType: 'athlete',
-      entityId: row.id,
-      params: { name: row.full_name, accountUrl: `${appUrl}/mi-cuenta` },
-    })
-    await sendVerificationEmail(row)
+    return sendVerificationEmail(row)
   }
 
   function sendVerificationEmail(row) {

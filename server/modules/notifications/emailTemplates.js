@@ -241,14 +241,17 @@ const BODIES = {
   }),
 
   email_verification: (p) => ({
-    title: 'Confirmá tu correo',
-    preheader: 'Un paso para poder afiliarte e inscribirte.',
+    title: 'Bienvenido a PLU ARG',
+    preheader: 'Confirma tu correo para activar tu cuenta.',
     body: [
-      paragraph(`${greeting(p.name)} necesitamos confirmar que este correo es tuyo.`),
+      paragraph(`${greeting(p.name)} tu cuenta en Powerlifting United Argentina ya esta creada.`),
+      paragraph(
+        'Para completar el registro y poder gestionar tu afiliacion, inscripciones y comprobantes, confirma tu correo con el boton de abajo.',
+      ),
       button(p.verificationUrl, 'Confirmar mi correo'),
       fallbackLink(p.verificationUrl),
       paragraph(
-        'Podés seguir usando tu cuenta mientras tanto. La confirmación hace falta para afiliarte y para inscribirte a las fechas del calendario, porque es a esta dirección donde te mandamos los comprobantes.',
+        'Si no creaste esta cuenta, podes ignorar este correo.',
         { muted: true },
       ),
     ].join(''),

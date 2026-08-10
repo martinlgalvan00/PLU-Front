@@ -51,7 +51,7 @@ export const EMAIL_CATALOG = Object.freeze({
   email_verification: {
     category: EMAIL_CATEGORIES.account,
     templateEnv: 'BREVO_TEMPLATE_EMAIL_VERIFICATION',
-    subject: 'Confirmá tu correo · PLU ARG',
+    subject: 'Bienvenido a PLU ARG: confirma tu correo',
     entityType: 'athlete',
     requiredParams: ['verificationUrl'],
     optOutAllowed: false,
