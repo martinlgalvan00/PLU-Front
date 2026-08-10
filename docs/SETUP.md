@@ -77,6 +77,7 @@ en `.env`. Vite proxyea `/api` al mismo `PORT`.
 | `npm run supabase:assert` | Ping rápido admin a `events` |
 | `npm run email:doctor` | Diagnóstico live Brevo (sin `--send`) |
 | `npm run mercado-pago:doctor` | Ping live del Access Token de Mercado Pago |
+| `npm run mercado-pago:urls` | Imprime webhooks DEV/PROD y verifica que respondan en público |
 
 ## Por qué existe la API
 

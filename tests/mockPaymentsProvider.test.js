@@ -71,6 +71,16 @@ describe('createPaymentProviderAdapter', () => {
     expect(resolvePaymentsProvider({})).toBe('mercado_pago')
   })
 
+  it('prioriza PAYMENTS_MOCK true|false sobre PAYMENTS_PROVIDER', () => {
+    expect(resolvePaymentsProvider({ PAYMENTS_MOCK: 'true', PAYMENTS_PROVIDER: 'mercado_pago' })).toBe('mock')
+    expect(resolvePaymentsProvider({ PAYMENTS_MOCK: 'false', PAYMENTS_PROVIDER: 'mock' })).toBe('mercado_pago')
+    expect(resolvePaymentsProvider({ PAYMENTS_PROVIDER: 'mock' })).toBe('mock')
+  })
+
+  it('rechaza PAYMENTS_MOCK invalido', () => {
+    expect(() => resolvePaymentsProvider({ PAYMENTS_MOCK: 'maybe' })).toThrow(/PAYMENTS_MOCK invalido/)
+  })
+
   it('permite mock solo fuera de production/preview', () => {
     expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development' })).toBe(true)
     expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'production' })).toBe(false)
@@ -110,7 +120,6 @@ describe('createPaymentProviderAdapter', () => {
       MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
       MERCADO_PAGO_WEBHOOK_SECRET: 'webhook-secret-for-tests',
       VITE_MERCADO_PAGO_PUBLIC_KEY: 'TEST-public-key',
-      PAYMENT_WEBHOOK_DEFER_PROCESSING: 'false',
     })).toEqual({
       provider: 'mercado_pago',
       ready: true,

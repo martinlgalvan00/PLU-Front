@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Download, Share2, X } from 'lucide-react'
 import EventShareCard from './EventShareCard.jsx'
 import SegmentedSwitch from './SegmentedSwitch.jsx'
@@ -7,6 +7,7 @@ import {
   buildCardFilename,
   downloadCard,
   generateEventCard,
+  preloadEventCardCapture,
   shareCard,
 } from '../../services/eventCardService.js'
 
@@ -15,6 +16,36 @@ function buildShareText(cardData, t) {
   if (cardData.variant === 'membership') return t('cardModal.shareTextMembership')
   if (cardData.variant === 'ticket') return t('cardModal.shareTextTicket', { event: eventTitle })
   return t('cardModal.shareTextDefault', { event: eventTitle })
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Espera QR asíncrono + decodificación de <img> antes de rasterizar.
+ * Evita PNGs sin QR cuando el árbol de captura se monta recién al tap.
+ */
+async function waitForCaptureReady(root, { timeoutMs = 8000 } = {}) {
+  const deadline = performance.now() + timeoutMs
+
+  while (performance.now() < deadline) {
+    const card = root.querySelector('.share-card')
+    if (card?.getAttribute('data-capture-ready') === '1') {
+      const images = [...card.querySelectorAll('img')]
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve()
+          return new Promise((resolve) => {
+            img.addEventListener('load', resolve, { once: true })
+            img.addEventListener('error', resolve, { once: true })
+          })
+        }),
+      )
+      return
+    }
+    await sleep(32)
+  }
 }
 
 /**
@@ -42,19 +73,42 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
     ['story', t('cardModal.formatStory'), t('cardModal.formatStoryShort')],
   ]
   const captureRef = useRef(null)
+  const blobRef = useRef(null)
+  const captureWaitersRef = useRef([])
   const [status, setStatus] = useState('idle') // 'idle' | 'generating' | 'done' | 'error'
-  const [blob, setBlob] = useState(null)
   const [format, setFormat] = useState(initialFormat) // 'square' | 'story'
+  /** Árbol 1080×(1080|1920) solo al generar — no al abrir el modal. */
+  const [captureMounted, setCaptureMounted] = useState(false)
   const canShare =
     typeof navigator !== 'undefined' &&
     typeof navigator.share === 'function'
 
-  // Resetear estado al abrir
+  function clearGeneratedBlob() {
+    blobRef.current = null
+  }
+
+  function resolveCaptureWaiters(node) {
+    const waiters = captureWaitersRef.current
+    captureWaitersRef.current = []
+    waiters.forEach((resolve) => resolve(node))
+  }
+
+  function requestCaptureNode() {
+    if (captureRef.current) return Promise.resolve(captureRef.current)
+    return new Promise((resolve) => {
+      captureWaitersRef.current.push(resolve)
+      setCaptureMounted(true)
+    })
+  }
+
+  // Resetear estado al abrir + precargar html2canvas para el primer tap.
   useEffect(() => {
     if (open) {
       setStatus('idle')
-      setBlob(null)
+      clearGeneratedBlob()
+      setCaptureMounted(false)
       setFormat(initialFormat)
+      preloadEventCardCapture().catch(() => {})
     }
   }, [open, initialFormat])
 
@@ -62,7 +116,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
   // formato hay que regenerarlo antes de descargar/compartir de nuevo.
   useEffect(() => {
     setStatus('idle')
-    setBlob(null)
+    clearGeneratedBlob()
   }, [format])
 
   // Cerrar con Escape
@@ -75,16 +129,37 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  // Cuando el nodo de captura monta, liberar a quien espera el ref.
+  useLayoutEffect(() => {
+    if (!captureMounted || !captureRef.current) return
+    resolveCaptureWaiters(captureRef.current)
+  }, [captureMounted, format])
+
   if (!open) return null
 
   const isStory = format === 'story'
   const filename = buildCardFilename(cardData.athleteName, cardData.eventSlug ?? 'evento', isStory ? 'historia' : '')
 
+  async function ensureCardBlob() {
+    if (blobRef.current) return blobRef.current
+
+    const node = await requestCaptureNode()
+    await waitForCaptureReady(node)
+
+    try {
+      const generated = await generateEventCard(node)
+      blobRef.current = generated
+      return generated
+    } finally {
+      // Liberar el DOM full-size de la memoria (mobile) tras rasterizar.
+      setCaptureMounted(false)
+    }
+  }
+
   async function handleDownload() {
     setStatus('generating')
     try {
-      const generated = await generateEventCard(captureRef.current)
-      setBlob(generated)
+      const generated = await ensureCardBlob()
       downloadCard(generated, filename)
       setStatus('done')
     } catch (err) {
@@ -96,8 +171,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
   async function handleShare() {
     setStatus('generating')
     try {
-      const generated = blob ?? (await generateEventCard(captureRef.current))
-      setBlob(generated)
+      const generated = await ensureCardBlob()
       await shareCard(generated, buildShareText(cardData, t), filename)
       setStatus('done')
     } catch (err) {
@@ -110,16 +184,19 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
 
   return (
     <>
-      {/* ── Elemento oculto a tamaño real para captura ──
+      {/* ── Elemento oculto a tamaño real para captura (lazy) ──
           html2canvas no rasteriza bien texto/imágenes dentro de nodos
           "position: fixed" ubicados fuera del viewport (offset negativo) —
           por eso acá el nodo capturado queda en flujo normal (sin fixed/offset
-          propio) y es el CONTENEDOR el que lo recorta a 0×0 visualmente. */}
-      <div style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div ref={captureRef} style={{ width: '1080px', height: isStory ? '1920px' : '1080px' }}>
-          <EventShareCard {...cardData} preview={false} format={format} />
+          propio) y es el CONTENEDOR el que lo recorta a 0×0 visualmente.
+          Solo se monta al descargar/compartir para no pesar el open en mobile. */}
+      {captureMounted ? (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <div ref={captureRef} style={{ width: '1080px', height: isStory ? '1920px' : '1080px' }}>
+            <EventShareCard {...cardData} preview={false} format={format} />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* ── Overlay del modal ── */}
       <div

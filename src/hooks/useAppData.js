@@ -101,6 +101,12 @@ import {
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
+import {
+  createMembershipPlanVersionRequest,
+  fetchPricingConfigurationRequest,
+  saveEventComboOfferRequest,
+  setMembershipPlanActiveRequest,
+} from '../services/pricingAdminService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
@@ -160,6 +166,13 @@ export function useAppData() {
   )
   const [adminEventsLoading, setAdminEventsLoading] = useState(false)
   const [adminEventsError, setAdminEventsError] = useState(null)
+  const [pricingConfiguration, setPricingConfiguration] = useState({
+    plans: [],
+    events: [],
+    availability: { editable: !env.appProduction, reason: env.appProduction ? 'production_coming_soon' : null },
+  })
+  const [pricingLoading, setPricingLoading] = useState(false)
+  const [pricingError, setPricingError] = useState(null)
   const [shopProducts, setShopProducts] = useState(() =>
     getInitialShopProducts(storedData?.shopProducts),
   )
@@ -1642,6 +1655,83 @@ export function useAppData() {
     [adminEvents, session],
   )
 
+  const refreshPricingConfiguration = useCallback(async () => {
+    const currentSession = sessionRef.current
+    if (!currentSession || !hasPermission(currentSession, 'admin.pricing.read')) return null
+
+    if (isDemoSession(currentSession)) {
+      const demoConfiguration = {
+        plans: [],
+        events: adminEvents.map((event) => ({
+          id: event.id,
+          slug: event.slug,
+          title: event.title,
+          registrationPrice: event.pricing?.registration ?? event.price ?? 0,
+          currency: event.currency ?? 'ARS',
+          comboOffer: null,
+        })),
+        availability: {
+          editable: false,
+          reason: env.appProduction ? 'production_coming_soon' : 'demo_read_only',
+        },
+      }
+      setPricingConfiguration(demoConfiguration)
+      return demoConfiguration
+    }
+
+    setPricingLoading(true)
+    setPricingError(null)
+    try {
+      const configuration = await fetchPricingConfigurationRequest()
+      setPricingConfiguration(configuration)
+      return configuration
+    } catch (error) {
+      setPricingError(error?.message ?? 'No se pudo cargar la configuración económica.')
+      return null
+    } finally {
+      setPricingLoading(false)
+    }
+  }, [adminEvents])
+
+  const createMembershipPlanVersion = useCallback(async (plan) => {
+    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const created = await createMembershipPlanVersionRequest(plan)
+      await refreshPricingConfiguration()
+      return { plan: created }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo publicar la versión del plan.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
+  const setMembershipPlanActive = useCallback(async (planId, active) => {
+    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const plan = await setMembershipPlanActiveRequest(planId, active)
+      await refreshPricingConfiguration()
+      return { plan }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo cambiar el estado del plan.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
+  const saveEventComboOffer = useCallback(async (eventSlug, offer) => {
+    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const result = await saveEventComboOfferRequest(eventSlug, offer)
+      await refreshPricingConfiguration()
+      return result
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo guardar la oferta combo.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
   const saveShopProduct = useCallback(
     (draft) => {
       if (!hasPermission(session, 'admin.shop.write')) {
@@ -1692,6 +1782,13 @@ export function useAppData() {
     adminEventsLoading,
     adminEventsError,
     refreshAdminEvents,
+    pricingConfiguration,
+    pricingLoading,
+    pricingError,
+    refreshPricingConfiguration,
+    createMembershipPlanVersion,
+    setMembershipPlanActive,
+    saveEventComboOffer,
     shopProducts,
     saveAdminEvent,
     setAdminEventState,

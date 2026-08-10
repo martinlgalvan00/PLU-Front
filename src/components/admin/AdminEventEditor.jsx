@@ -408,6 +408,14 @@ export default function AdminEventEditor({
     event.preventDefault()
     setSyncError(null)
 
+    const registered = sourceEvent?.registered ?? 0
+    if (draft.id && Number(draft.slots) < registered) {
+      setFieldErrors({ slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }) })
+      setActiveTab('sales')
+      requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid('slots')))
+      return
+    }
+
     const validation = validateAdminEventDraft(draft, t)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
@@ -762,36 +770,6 @@ export default function AdminEventEditor({
 
                     <div className="admin-event-form__rate-cards">
                       <label
-                        className={`admin-event-form__rate-card${err('pricing.membership') ? ' is-invalid' : ''}`}
-                      >
-                        <span className="admin-event-form__rate-card-label">
-                          {t('admin.eventEditor.priceMembership')}
-                        </span>
-                        <span className="admin-event-form__rate-card-input">
-                          <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                          <input
-                            name="pricing.membership"
-                            data-field="pricing.membership"
-                            min={0}
-                            required
-                            type="number"
-                            value={draft.pricing?.membership ?? DEFAULT_EVENT_PRICING.membership}
-                            aria-invalid={Boolean(err('pricing.membership'))}
-                            onChange={(event) =>
-                              patchDraft(
-                                updatePricingField(draft, 'membership', event.target.value),
-                              )
-                            }
-                            disabled={!canEdit}
-                          />
-                        </span>
-                        {err('pricing.membership') ? (
-                          <span className="admin-event-form__error" role="alert">
-                            {err('pricing.membership')}
-                          </span>
-                        ) : null}
-                      </label>
-                      <label
                         className={`admin-event-form__rate-card${err('pricing.registration') ? ' is-invalid' : ''}`}
                       >
                         <span className="admin-event-form__rate-card-label">
@@ -802,7 +780,7 @@ export default function AdminEventEditor({
                           <input
                             name="pricing.registration"
                             data-field="pricing.registration"
-                            min={0}
+                            min={1}
                             required
                             type="number"
                             value={
@@ -823,34 +801,9 @@ export default function AdminEventEditor({
                           </span>
                         ) : null}
                       </label>
-                      <label
-                        className={`admin-event-form__rate-card admin-event-form__rate-card--featured${err('pricing.combo') ? ' is-invalid' : ''}`}
-                      >
-                        <span className="admin-event-form__rate-card-label">
-                          {t('admin.eventEditor.priceCombo')}
-                        </span>
-                        <span className="admin-event-form__rate-card-input">
-                          <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                          <input
-                            name="pricing.combo"
-                            data-field="pricing.combo"
-                            min={0}
-                            required
-                            type="number"
-                            value={draft.pricing?.combo ?? DEFAULT_EVENT_PRICING.combo}
-                            aria-invalid={Boolean(err('pricing.combo'))}
-                            onChange={(event) =>
-                              patchDraft(updatePricingField(draft, 'combo', event.target.value))
-                            }
-                            disabled={!canEdit}
-                          />
-                        </span>
-                        {err('pricing.combo') ? (
-                          <span className="admin-event-form__error" role="alert">
-                            {err('pricing.combo')}
-                          </span>
-                        ) : null}
-                      </label>
+                      <p className="admin-event-form__pricing-note">
+                        {t('admin.eventEditor.pricingCatalogHint')}
+                      </p>
                     </div>
                   </div>
 

@@ -267,6 +267,13 @@ export default function App() {
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
           onRefreshAdminEvents={app.refreshAdminEvents}
+          pricingConfiguration={app.pricingConfiguration}
+          pricingLoading={app.pricingLoading}
+          pricingError={app.pricingError}
+          onRefreshPricing={app.refreshPricingConfiguration}
+          onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
+          onSetMembershipPlanActive={app.setMembershipPlanActive}
+          onSaveEventComboOffer={app.saveEventComboOffer}
           onCreateSecurityUser={app.createSecurityUserAction}
           onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
           onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}

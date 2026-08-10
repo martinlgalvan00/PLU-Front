@@ -25,8 +25,7 @@ describe('navegación pública', () => {
       'members',
       'events',
       'competitions',
-      'results',
-      'records',
+      'shop',
       'resources',
     ])
   })
@@ -47,7 +46,7 @@ describe('navegación pública', () => {
     const competitions = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
     const resources = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
 
-    expect(competitions.views).toEqual(['pitbull', 'shop', 'tickets'])
+    expect(competitions.views).toEqual(['pitbull', 'tickets', 'results', 'records'])
     expect(resources.views).toEqual(['resources', 'rulebook', 'faq', 'community', 'contact'])
     expect(competitions.views).not.toContain('events')
     expect(resources.views).not.toContain('members')

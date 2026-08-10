@@ -3,7 +3,7 @@ import { m } from 'motion/react'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_BLUR, MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
 const groupVariants = {
   hidden: { opacity: 0, y: 14 },
@@ -45,13 +45,11 @@ const sheetVariants = {
     opacity: 0,
     y: 16,
     scale: 0.985,
-    filter: `blur(${MOTION_BLUR.sm}px)`,
   },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: MOTION_DURATION.slow,
       ease: MOTION_EASE.cinematic,

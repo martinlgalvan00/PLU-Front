@@ -50,7 +50,65 @@ Vite.
 
 ## Webhook Mercado Pago
 
-Configurar la URL publica HTTPS `POST /api/payments/webhook`. El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y tolerancia temporal, guarda cada notificacion de forma idempotente y no acredita desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
+Configurar la URL publica HTTPS `POST /api/payments/webhook/mercadopago`.
+El path corto `/api/payments/webhook` sigue aceptado como alias legacy.
+El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y tolerancia temporal, guarda cada notificacion de forma idempotente y no acredita desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
+
+### URLs DEV y PROD (copiar/pegar)
+
+Frontend y API comparten origen en Vercel (`APP_URL` = `API_URL`). Usar dos
+aplicaciones distintas en Mercado Pago (TEST para DEV, PROD para produccion).
+
+| Entorno | `APP_URL` / `API_URL` | Webhook en panel MP |
+|---------|------------------------|---------------------|
+| DEV (preview rama `dev`) | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app` | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
+| PROD | `https://www.powerliftingunited.ar` | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
+
+En el panel MP (Tu integracion → Webhooks):
+
+1. Pegar la URL de webhook de la fila correspondiente.
+2. Suscribir eventos: `payment`, `subscription_preapproval`, `subscription_authorized_payment`.
+3. Copiar el secret → `MERCADO_PAGO_WEBHOOK_SECRET` en Vercel (Preview para TEST, Production para PROD).
+
+Las `back_urls` no se cargan a mano: el backend las arma al crear preferencias
+(`/registro?payment=...` para afiliacion/inscripcion, `/eventos?payment=...`
+para entradas). Suscripciones usan `back_url` = `APP_URL`.
+
+Variables por entorno Vercel:
+
+```text
+# Preview / DEV (app TEST)
+PAYMENTS_MOCK=false
+MERCADO_PAGO_ENV=sandbox
+VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
+MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
+MERCADO_PAGO_WEBHOOK_SECRET=<secret app TEST>
+APP_URL=https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app
+API_URL=https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app
+
+# Production (app PROD)
+PAYMENTS_MOCK=false
+MERCADO_PAGO_ENV=production
+VITE_MERCADO_PAGO_PUBLIC_KEY=<public key PROD>
+MERCADO_PAGO_ACCESS_TOKEN=<access token PROD>
+MERCADO_PAGO_WEBHOOK_SECRET=<secret app PROD>
+APP_URL=https://www.powerliftingunited.ar
+API_URL=https://www.powerliftingunited.ar
+APP_PRODUCTION=true
+```
+
+Importante: si el preview DEV tiene Vercel Deployment Protection (login), Mercado
+Pago no puede entregar el webhook. El `POST /api/payments/webhook/mercadopago` tiene que
+quedar publico o con bypass.
+
+Verificacion rapida:
+
+```bash
+npm run mercado-pago:urls
+```
+
+Las env de Vercel viven en el team del proyecto (`martinlgalvan00s-projects`), no
+en cuentas personales sin acceso al deployment.
 
 ## Readiness y workers
 

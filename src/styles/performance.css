@@ -13,6 +13,38 @@
     -webkit-backdrop-filter: none !important;
   }
 
+  /* Share / card preview modal: glass caro encima de UI densa */
+  .card-modal-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 11, 13, 0.94);
+  }
+
+  /* Perfil: nav sticky sin glass al scrollear */
+  .account-nav__inner {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--color-bg-surface);
+  }
+
+  /* Events / members / home / community — glass que pelea con el scroll */
+  .events-toolbar__filters-shell,
+  .events-sidebar-card,
+  .events-page--premium .design-hero--compact .design-hero__eyebrow,
+  .members-hero-rail__panel,
+  .hero-meta--note,
+  .community-page--premium .community-hero .design-hero__eyebrow,
+  .results-toolbar__filters-shell,
+  .pitbull-spotlight__home-date.event-date-plate--static,
+  .pitbull-spotlight__home-date .event-date-plate__face {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .events-sidebar-card {
+    background: var(--color-bg-surface);
+  }
+
   .site-header:not(.site-header--over-hero) {
     background: rgba(10, 10, 12, 0.94);
   }
@@ -27,6 +59,12 @@
 
   [data-theme='light'] .site-header--scrolled:not(.site-header--over-hero) {
     background: rgba(248, 249, 251, 0.98);
+  }
+
+  /* will-change permanente = capas extras en GPU mobile */
+  .hero-sequence__item,
+  .mask-reveal {
+    will-change: auto;
   }
 }
 
@@ -88,5 +126,24 @@
   .pitbull-feature__category-tag {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+  }
+}
+
+/* Touch: cortar loops decorativos y float infinito */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .hm-artifact:not(.is-static) .hm-artifact__model {
+    animation: none;
+  }
+
+  .hm-artifact__orbit {
+    will-change: auto;
+  }
+
+  .hm-artifact {
+    touch-action: pan-y;
+  }
+
+  .community-spotlight__live {
+    animation: none;
   }
 }

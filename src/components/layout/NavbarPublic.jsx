@@ -520,8 +520,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 )
               })}
               </NavDropdown>
-              <NavLink active={activeView === 'results'} hovered={hoveredNav === 'results'} onHover={() => setHoveredNav('results')} onLeave={() => setHoveredNav(null)} onClick={() => go('results')}>{t('nav.results')}</NavLink>
-              <NavLink active={activeView === 'records'} hovered={hoveredNav === 'records'} onHover={() => setHoveredNav('records')} onLeave={() => setHoveredNav(null)} onClick={() => go('records')}>{t('nav.records')}</NavLink>
+              <NavLink active={['shop', 'tickets'].includes(activeView)} hovered={hoveredNav === 'shop'} onHover={() => setHoveredNav('shop')} onLeave={() => setHoveredNav(null)} onClick={() => go('shop')}>{t('nav.shop')}</NavLink>
               <NavDropdown
               active={resourcesActive}
               hovered={hoveredNav === 'resources'}

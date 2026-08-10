@@ -5,6 +5,7 @@ import '../styles/pages/admin-institutional.css'
 import '../styles/pages/admin-minimal.css'
 import '../styles/pages/admin-dashboard-bento.css'
 import '../styles/pages/admin-audit.css'
+import '../styles/pages/admin-pricing.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
 // `DashboardSection` es la vista de entrada para casi todos los roles, así
@@ -25,6 +26,7 @@ const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
 const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
 const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx'))
 const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
+const PricingSection = lazy(() => import('./admin/PricingSection.jsx'))
 const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
 const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
 const RolesSection = lazy(() => import('./admin/RolesSection.jsx'))
@@ -51,6 +53,10 @@ export default function AdminPage({
   onApproveTicketPurchase,
   onRefreshPendingTicketOrders,
   onRefreshAdminEvents,
+  onRefreshPricing,
+  onCreateMembershipPlanVersion,
+  onSetMembershipPlanActive,
+  onSaveEventComboOffer,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
@@ -76,6 +82,9 @@ export default function AdminPage({
   pendingTicketOrders,
   pendingTicketOrdersLoading,
   pendingTicketOrdersError,
+  pricingConfiguration,
+  pricingLoading,
+  pricingError,
   athletes,
   registrations,
   tickets,
@@ -307,6 +316,21 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRefresh={onRefreshPendingTicketOrders}
+        />
+      )
+    }
+
+    if (section === 'pricing') {
+      return (
+        <PricingSection
+          canEdit={hasPermission(authorization, 'admin.pricing.write')}
+          configuration={pricingConfiguration}
+          error={pricingError}
+          isLoading={pricingLoading}
+          onCreatePlanVersion={onCreateMembershipPlanVersion}
+          onRefresh={onRefreshPricing}
+          onSaveComboOffer={onSaveEventComboOffer}
+          onSetPlanActive={onSetMembershipPlanActive}
         />
       )
     }

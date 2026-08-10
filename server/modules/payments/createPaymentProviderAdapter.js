@@ -1,6 +1,7 @@
 import { HttpError } from '../../lib/errors.js'
 import { createMercadoPagoAdapter } from './mercadoPagoAdapter.js'
 import { createMockMercadoPagoAdapter } from './mockMercadoPagoAdapter.js'
+import { PAYMENT_WEBHOOK_DEFER_PROCESSING } from './paymentRuntimeDefaults.js'
 
 const PRODUCTIVE_VERCEL = new Set(['production', 'preview'])
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -14,17 +15,33 @@ export function isPaymentsMockEnvironmentAllowed(env = process.env) {
   return true
 }
 
+function parsePaymentsMockFlag(value) {
+  const raw = String(value ?? '').trim().toLowerCase()
+  if (!raw) return null
+  if (['true', '1', 'yes'].includes(raw)) return true
+  if (['false', '0', 'no'].includes(raw)) return false
+  throw new HttpError(503, `PAYMENTS_MOCK invalido: ${value}. Usá true o false.`)
+}
+
 export function resolvePaymentsProvider(env = process.env) {
+  // Flag boolean tiene prioridad. PAYMENTS_PROVIDER queda como alias legacy.
+  const mockFlag = parsePaymentsMockFlag(env.PAYMENTS_MOCK)
+  if (mockFlag === true) return 'mock'
+  if (mockFlag === false) return 'mercado_pago'
+
   const raw = String(env.PAYMENTS_PROVIDER ?? 'mercado_pago').trim().toLowerCase()
   if (raw === 'mock' || raw === 'mercado_pago') return raw
-  throw new HttpError(503, `PAYMENTS_PROVIDER invalido: ${raw}. Usá mock o mercado_pago.`)
+  throw new HttpError(
+    503,
+    `PAYMENTS_PROVIDER invalido: ${raw}. Usá PAYMENTS_MOCK=true|false o PAYMENTS_PROVIDER=mock|mercado_pago.`,
+  )
 }
 
 export function assertPaymentsMockAllowed(env = process.env) {
   if (!isPaymentsMockEnvironmentAllowed(env)) {
     throw new HttpError(
       503,
-      'PAYMENTS_PROVIDER=mock solo esta permitido en local/dev (no production ni Vercel preview/prod).',
+      'PAYMENTS_MOCK=true solo esta permitido en local/dev (no production ni Vercel preview/prod).',
     )
   }
 }
@@ -71,7 +88,7 @@ export function getPaymentsRuntimeStatus(env = process.env) {
     accessTokenConfigured,
     webhookConfigured,
     publicKeyConfigured,
-    webhookProcessingMode: env.PAYMENT_WEBHOOK_DEFER_PROCESSING === 'true' ? 'deferred' : 'inline',
+    webhookProcessingMode: PAYMENT_WEBHOOK_DEFER_PROCESSING ? 'deferred' : 'inline',
     issues,
   }
 }

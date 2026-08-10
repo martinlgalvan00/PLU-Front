@@ -259,8 +259,12 @@
 
 .faq-page--premium .faq-accordion--ref .faq-item__question {
   flex: 1;
+  hyphens: none;
   line-height: 1.45;
   min-width: 0;
+  overflow-wrap: normal;
+  text-wrap: pretty;
+  word-break: normal;
 }
 
 .faq-page--premium .faq-accordion--ref .faq-item__icon-ref {

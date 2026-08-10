@@ -8,6 +8,7 @@
  *
  * Uso:
  *   npm run mercado-pago:doctor
+ *   npm run mercado-pago:urls   # webhooks DEV/PROD + reachability
  */
 
 import { loadEnvFile } from 'node:process'

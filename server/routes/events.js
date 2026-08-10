@@ -33,6 +33,7 @@ const EVENT_STATUSES = [
 ]
 
 const boundedMoney = z.coerce.number().finite().int().min(0).max(10_000_000)
+const paidMoney = z.coerce.number().finite().int().min(1).max(10_000_000)
 const optionalDate = z
   .string()
   .trim()
@@ -59,7 +60,7 @@ const ticketAddonSchema = z.object({
 const pricingSchema = z
   .object({
     membership: boundedMoney,
-    registration: boundedMoney,
+    registration: paidMoney,
     combo: boundedMoney,
     ticketsEnabled: z.boolean().optional(),
     ticketAddons: z.array(ticketAddonSchema).max(30).optional(),

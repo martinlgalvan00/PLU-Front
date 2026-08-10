@@ -465,14 +465,22 @@
 .plu-nav-menu__copy strong {
   font-size: 12.5px;
   font-weight: 650;
+  hyphens: none;
   line-height: 1.3;
+  overflow-wrap: normal;
+  text-wrap: pretty;
+  word-break: normal;
 }
 
 .plu-nav-menu__copy small {
   color: var(--institution-text-muted);
   font-size: 10.5px;
   font-weight: 400;
+  hyphens: none;
   line-height: 1.4;
+  overflow-wrap: normal;
+  text-wrap: pretty;
+  word-break: normal;
 }
 
 .plu-resources-menu__head {
@@ -2101,20 +2109,41 @@ html.plu-drawer-open body {
   padding: 0;
 }
 
+.institutional-footer__directory .institutional-footer__sublist {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
 .institutional-footer__directory button {
   color: color-mix(in srgb, var(--footer-text-hover, var(--institution-text)) 70%, transparent);
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.02em;
   min-height: 32px;
+  overflow-wrap: normal;
   padding: 0;
   text-align: left;
+  text-wrap: pretty;
   transition: color var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
+  word-break: normal;
 }
 
 .institutional-footer__directory button:hover {
   color: var(--footer-text-hover, var(--institution-text));
   transform: translateX(4px);
+}
+
+.institutional-footer__directory .institutional-footer__subitem {
+  margin: 0;
+  padding-left: 14px;
+}
+
+.institutional-footer__directory .institutional-footer__subitem button {
+  color: color-mix(in srgb, var(--footer-text-hover, var(--institution-text)) 55%, transparent);
+  font-size: 13px;
 }
 
 .institutional-footer__bottom {

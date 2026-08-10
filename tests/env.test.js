@@ -5,10 +5,18 @@ import { join } from 'node:path'
 describe('browser env', () => {
   it('activa el mock de pagos solo en Vite DEV', () => {
     const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
-    expect(source).toContain('VITE_PAYMENTS_PROVIDER')
-    expect(source).toContain("paymentsProviderRaw === 'mock'")
+    expect(source).toContain('PAYMENTS_MOCK')
+    expect(source).not.toContain('VITE_PAYMENTS_MOCK')
+    expect(source).not.toContain('VITE_PAYMENTS_PROVIDER')
     expect(source).toContain('import.meta.env.DEV')
     expect(source).toContain("paymentsProvider === 'mock' && import.meta.env.DEV")
+  })
+
+  it('expone APP_PRODUCTION para UI de produccion', () => {
+    const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
+    expect(source).toContain('APP_PRODUCTION')
+    expect(source).toContain('appProduction')
+    expect(source).toContain('demoMode: import.meta.env.VITE_DEMO_MODE === \'true\' && !appProduction')
   })
 
   it('no expone secretos privados en config cliente', () => {

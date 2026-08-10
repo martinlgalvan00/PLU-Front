@@ -33,7 +33,6 @@ describe('internal scheduled jobs', () => {
     const paymentRecovery = vi.fn().mockResolvedValue({ recovered: 2 })
     const env = {
       CRON_SECRET: 'secret-for-tests',
-      PAYMENT_RECOVERY_JOB_ENABLED: 'true',
     }
     const target = listen(
       createApp({

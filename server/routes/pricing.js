@@ -1,0 +1,168 @@
+import { Router } from 'express'
+import { z } from 'zod'
+import { HttpError } from '../lib/errors.js'
+import { requireSupabaseClient } from '../lib/supabaseRpc.js'
+import { validateBody } from '../lib/validate.js'
+import { requirePermission } from '../middleware/auth.js'
+import { staffLimiter } from '../middleware/rateLimit.js'
+import { createSupabasePricingRepository } from '../modules/pricing/supabasePricingRepository.js'
+
+const money = z.coerce.number().int().positive().max(10_000_000)
+const optionalDateTime = z
+  .string()
+  .trim()
+  .optional()
+  .default('')
+  .refine((value) => !value || !Number.isNaN(Date.parse(value)), 'Fecha inválida.')
+
+export const membershipPlanVersionSchema = z.object({
+  sourcePlanId: z.string().uuid().optional(),
+  familyCode: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Usá letras minúsculas, números y guiones.'),
+  name: z.string().trim().min(3).max(120),
+  description: z.string().trim().max(400).optional().default(''),
+  price: money,
+  currency: z.literal('ARS').default('ARS'),
+  billingFrequency: z.enum(['monthly', 'annual']),
+  collectionMode: z.enum(['one_time', 'recurring']),
+  intervalCount: z.coerce.number().int().min(1).max(24),
+  graceDays: z.coerce.number().int().min(0).max(90),
+  effectiveFrom: optionalDateTime,
+})
+
+const planStatusSchema = z.object({ active: z.boolean() })
+
+export const comboOfferSchema = z
+  .object({
+    membershipPlanId: z.string().uuid(),
+    price: money,
+    active: z.boolean().default(false),
+    startsAt: optionalDateTime,
+    endsAt: optionalDateTime,
+  })
+  .superRefine((offer, context) => {
+    if (offer.startsAt && offer.endsAt && new Date(offer.endsAt) < new Date(offer.startsAt)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endsAt'],
+        message: 'El cierre debe ser posterior a la apertura.',
+      })
+    }
+  })
+
+function isEnabled(value) {
+  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+function assertPricingWritesEnabled(env) {
+  if (isEnabled(env.APP_PRODUCTION)) {
+    throw new HttpError(
+      409,
+      'La configuración económica está disponible próximamente en producción.',
+      { code: 'FEATURE_COMING_SOON' },
+    )
+  }
+}
+
+function actor(req) {
+  return `${req.auth.user.id}:${req.auth.user.email}`
+}
+
+function parseRouteParam(schema, value, message) {
+  const parsed = schema.safeParse(value)
+  if (!parsed.success) throw new HttpError(400, message)
+  return parsed.data
+}
+
+export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process.env }) {
+  const router = Router()
+  const prisma = getPrisma()
+  const readGuard = requirePermission('admin.pricing.read', { prisma })
+  const writeGuard = requirePermission('admin.pricing.write', { prisma })
+  const repository = () =>
+    createSupabasePricingRepository(requireSupabaseClient(getSupabaseAdmin()))
+
+  router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
+    try {
+      const configuration = await repository().getConfiguration()
+      res.json({
+        ...configuration,
+        availability: {
+          editable: !isEnabled(env.APP_PRODUCTION),
+          reason: isEnabled(env.APP_PRODUCTION) ? 'production_coming_soon' : null,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post(
+    '/membership-plans/versions',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(membershipPlanVersionSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const plan = await repository().createPlanVersion(req.validatedBody, actor(req))
+        res.status(201).json({ plan })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.patch(
+    '/membership-plans/:planId/status',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(planStatusSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const planId = parseRouteParam(
+          z.string().uuid(),
+          req.params.planId,
+          'El identificador del plan es inválido.',
+        )
+        const plan = await repository().setPlanActive(planId, req.validatedBody.active, actor(req))
+        res.json({ plan })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.put(
+    '/events/:eventSlug/combo',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(comboOfferSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const eventSlug = parseRouteParam(
+          z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          req.params.eventSlug,
+          'El identificador del evento es inválido.',
+        )
+        const offer = await repository().upsertComboOffer(
+          eventSlug,
+          req.validatedBody,
+          actor(req),
+        )
+        res.json({ offer })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  return router
+}

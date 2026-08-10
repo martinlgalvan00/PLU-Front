@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembersBenefitsShowcase from '../components/ui/MembersBenefitsShowcase.jsx'
@@ -8,6 +9,8 @@ import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { env } from '../config/env.js'
+import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
 export default function MembersPage({ memberships = [], onNavigate, session }) {
@@ -20,7 +23,41 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
   const { messages, t } = useI18n()
+  const [livePlans, setLivePlans] = useState([])
+  const [plansLoaded, setPlansLoaded] = useState(false)
   const validityNotes = messages.pages.members.validityNotes
+
+  useEffect(() => {
+    let active = true
+    listMembershipPlans()
+      .then(({ plans }) => {
+        if (active) setLivePlans(plans ?? [])
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setPlansLoaded(true)
+      })
+    return () => { active = false }
+  }, [])
+
+  const visiblePlans = useMemo(() => {
+    if (!livePlans.length) return env.appProduction ? [] : MEMBERSHIP_PLANS
+    const featureTemplate = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete')?.features ?? []
+    return livePlans.map((plan) => ({
+      id: plan.id,
+      title: plan.name,
+      kicker: plan.billingFrequency === 'monthly'
+        ? t('pages.members.planMonthly')
+        : t('pages.membershipCard.periodAnnual'),
+      price: plan.price,
+      period: plan.billingFrequency === 'monthly'
+        ? t('pages.members.planMonthly')
+        : t('pages.membershipCard.periodAnnual'),
+      features: featureTemplate,
+      highlighted: false,
+      procedureType: 'membership',
+    }))
+  }, [MEMBERSHIP_PLANS, livePlans, t])
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
@@ -56,7 +93,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
             <p className="members-plu-block__lead">{t('pages.members.plansLead')}</p>
           </header>
           <div className="membership-grid membership-grid--plu">
-            {MEMBERSHIP_PLANS.map((plan) => (
+            {visiblePlans.map((plan) => (
               <MembershipCard
                 key={plan.id}
                 {...plan}
@@ -67,6 +104,11 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
               />
             ))}
           </div>
+          {env.appProduction && plansLoaded && visiblePlans.length === 0 ? (
+            <p className="members-plu-block__lead" role="status">
+              {t('pages.members.plansComingSoon')}
+            </p>
+          ) : null}
         </section>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--benefits">

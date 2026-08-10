@@ -68,14 +68,18 @@ export function useScrolled(threshold = 20) {
 /**
  * Parallax muy leve para una imagen de fondo (ej. hero): desplaza
  * `--hero-parallax-shift` en px mientras el elemento está en pantalla, vía
- * rAF (sin re-render). No hace nada si `prefers-reduced-motion: reduce`.
+ * rAF (sin re-render). No hace nada si `prefers-reduced-motion: reduce`
+ * o el puntero es coarse (touch), para no pelear con el scroll en mobile.
  */
 export function useParallaxShift(ref, { strength = 22 } = {}) {
   useEffect(() => {
     const node = ref.current
     if (!node) return undefined
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
       return undefined
     }
 

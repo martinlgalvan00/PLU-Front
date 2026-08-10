@@ -11,6 +11,11 @@ import {
   resolvePaymentsProvider,
 } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
+  PAYMENT_RECOVERY_JOB_ENABLED,
+  PAYMENT_RECOVERY_JOB_INTERVAL_MS,
+  PAYMENT_WEBHOOK_DEFER_PROCESSING,
+} from '../modules/payments/paymentRuntimeDefaults.js'
+import {
   applyCanonicalPayment,
   createPaymentPreference,
   processClaimedPaymentEvent,
@@ -214,8 +219,8 @@ export function createPaymentRoutes(deps = {}) {
         reconciliations,
         configuration: {
           ...getPaymentsRuntimeStatus(env),
-          recoveryEnabled: env.PAYMENT_RECOVERY_JOB_ENABLED === 'true',
-          recoveryIntervalMs: Number(env.PAYMENT_RECOVERY_JOB_INTERVAL_MS) || 60_000,
+          recoveryEnabled: PAYMENT_RECOVERY_JOB_ENABLED,
+          recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })
     } catch (error) {
@@ -275,7 +280,7 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/webhook', validateBody(webhookSchema), async (req, res, next) => {
+  const handleMercadoPagoWebhook = async (req, res, next) => {
     try {
       const result = await processPaymentWebhook(
         { body: req.validatedBody, query: req.query, headers: req.headers },
@@ -283,16 +288,20 @@ export function createPaymentRoutes(deps = {}) {
           ...services({ notifications: true }),
           webhookSecret: env.MERCADO_PAGO_WEBHOOK_SECRET,
           toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
-          // Recuperar y diferir son decisiones distintas. En serverless se
-          // procesa inline por defecto y el job queda como red de seguridad.
-          deferProcessing: env.PAYMENT_WEBHOOK_DEFER_PROCESSING === 'true',
+          // Recovery siempre activo; webhook inline + job como red de seguridad.
+          deferProcessing: PAYMENT_WEBHOOK_DEFER_PROCESSING,
         },
       )
       res.status(200).json({ received: true, duplicate: result.duplicate })
     } catch (error) {
       next(error)
     }
-  })
+  }
+
+  // Canónico: discrimina proveedor (mismo patrón que /api/emails/webhook/brevo).
+  router.post('/webhook/mercadopago', validateBody(webhookSchema), handleMercadoPagoWebhook)
+  // Alias legacy: notificaciones ya registradas en panel MP con el path corto.
+  router.post('/webhook', validateBody(webhookSchema), handleMercadoPagoWebhook)
 
   /**
    * Harness local: relee un pago mock y aplica el camino canónico sin firma MP.
@@ -301,7 +310,7 @@ export function createPaymentRoutes(deps = {}) {
   router.post('/mock/notify', checkoutLimiter, validateBody(mockNotifySchema), async (req, res, next) => {
     try {
       if (resolvePaymentsProvider(env) !== 'mock') {
-        throw new HttpError(503, 'POST /api/payments/mock/notify solo funciona con PAYMENTS_PROVIDER=mock.')
+        throw new HttpError(503, 'POST /api/payments/mock/notify solo funciona con PAYMENTS_MOCK=true.')
       }
       assertPaymentsMockAllowed(env)
 

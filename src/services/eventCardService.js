@@ -10,6 +10,43 @@
  *   downloadCard(blob, 'mi-card-plu.png')
  */
 
+/** Instagram canónico: 1080×1080 / 1080×1920. Scale 1 alcanza; scale 2
+ *  cuadruplica píxeles (caro en mobile). */
+const CAPTURE_SCALE_DESKTOP = 2
+const CAPTURE_SCALE_MOBILE = 1
+
+/**
+ * Scale de captura: mobile/touch usa 1 (tamaño canónico IG, menos memoria);
+ * desktop fine-pointer usa 2 para descargas más nítidas.
+ * @param {number} [explicit]
+ * @returns {number}
+ */
+export function resolveCaptureScale(explicit) {
+  if (typeof explicit === 'number' && explicit > 0) return explicit
+  if (typeof window === 'undefined') return CAPTURE_SCALE_DESKTOP
+
+  const coarse =
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(hover: none)').matches
+  const narrow = window.matchMedia('(max-width: 719px)').matches
+
+  return coarse || narrow ? CAPTURE_SCALE_MOBILE : CAPTURE_SCALE_DESKTOP
+}
+
+/** Precarga el chunk de html2canvas (p. ej. al abrir el modal). */
+export function preloadEventCardCapture() {
+  return import('html2canvas')
+}
+
+/** Deja que el browser pinte el spinner antes del trabajo pesado de raster. */
+function yieldToMain() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve)
+    })
+  })
+}
+
 /**
  * Captura un elemento DOM como PNG usando html2canvas.
  * @param {HTMLElement} element — el nodo a capturar
@@ -19,10 +56,13 @@
 export async function generateEventCard(element, options = {}) {
   if (!element) throw new Error('eventCardService: elemento no encontrado.')
 
+  await yieldToMain()
+
   const html2canvas = (await import('html2canvas')).default
+  const scale = resolveCaptureScale(options.scale)
 
   const canvas = await html2canvas(element, {
-    scale: options.scale ?? 2,
+    scale,
     useCORS: true,
     allowTaint: false,
     // La card es un cuadrado opaco (no un recorte) — un canvas transparente

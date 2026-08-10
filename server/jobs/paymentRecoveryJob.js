@@ -2,10 +2,12 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { createPaymentProviderAdapter } from '../modules/payments/createPaymentProviderAdapter.js'
+import {
+  PAYMENT_RECOVERY_JOB_ENABLED,
+  PAYMENT_RECOVERY_JOB_INTERVAL_MS,
+} from '../modules/payments/paymentRuntimeDefaults.js'
 import { recoverPaymentOperations } from '../modules/payments/paymentRecoveryWorkflow.js'
 import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
-
-const DEFAULT_INTERVAL_MS = 60_000
 
 export async function runPaymentRecoveryJob({ client, env = process.env } = {}) {
   if (!client) throw new Error('Supabase no está configurado para recuperar pagos.')
@@ -28,7 +30,7 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
 }
 
 export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
-  if (env.PAYMENT_RECOVERY_JOB_ENABLED !== 'true' || !client) return null
+  if (!PAYMENT_RECOVERY_JOB_ENABLED || !client) return null
 
   let running = false
   const run = async () => {
@@ -50,8 +52,7 @@ export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
   }
 
   void run()
-  const intervalMs = Number(env.PAYMENT_RECOVERY_JOB_INTERVAL_MS) || DEFAULT_INTERVAL_MS
-  const timer = setInterval(run, Math.max(30_000, intervalMs))
+  const timer = setInterval(run, Math.max(30_000, PAYMENT_RECOVERY_JOB_INTERVAL_MS))
   timer.unref()
   return timer
 }

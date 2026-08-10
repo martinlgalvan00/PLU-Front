@@ -109,7 +109,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         ],
         payer: order.payerEmail ? { email: order.payerEmail } : undefined,
         external_reference: order.id,
-        notification_url: safeUrl(webhookBase, '/api/payments/webhook'),
+        notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
         back_urls: {
           success: safeUrl(returnBase, `${returnPath}?payment=success&order=${encodeURIComponent(order.id)}`),
           pending: safeUrl(returnBase, `${returnPath}?payment=pending&order=${encodeURIComponent(order.id)}`),
@@ -170,7 +170,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             issuer_id: formData.issuer_id ? String(formData.issuer_id) : undefined,
             payer,
             external_reference: order.id,
-            notification_url: safeUrl(webhookBase, '/api/payments/webhook'),
+            notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
             metadata: {
               payment_order_id: order.id,
               order_kind: order.kind,

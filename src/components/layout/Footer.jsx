@@ -3,10 +3,29 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 
 const FOOTER_GROUPS = [
-  { labelKey: 'navCompetition', items: ['members', 'events', 'pitbull', 'results', 'records'] },
-  { labelKey: 'navResources', items: ['resources', 'rulebook', 'faq', 'community'] },
-  { labelKey: 'navInstitution', items: ['contact', 'login'] },
+  {
+    labelKey: 'navCompetition',
+    items: [
+      { key: 'members' },
+      { key: 'events', children: [{ key: 'pitbull' }] },
+      { key: 'results' },
+      { key: 'records' },
+    ],
+  },
+  {
+    labelKey: 'navResources',
+    items: [{ key: 'resources' }, { key: 'rulebook' }, { key: 'faq' }, { key: 'community' }],
+  },
+  { labelKey: 'navInstitution', items: [{ key: 'contact' }, { key: 'login' }] },
 ]
+
+function FooterLink({ itemKey, onNavigate, t }) {
+  return (
+    <button type="button" onClick={() => onNavigate?.(itemKey)}>
+      {itemKey === 'login' ? t('nav.login') : t(`nav.${itemKey}`)}
+    </button>
+  )
+}
 
 export default function Footer({ onNavigate }) {
   const { t } = useI18n()
@@ -22,7 +41,7 @@ export default function Footer({ onNavigate }) {
         <div className="institutional-footer__cta">
           <p className="institutional-footer__kicker">{t('footer.actionEyebrow')}</p>
           <h2 className="institutional-footer__cta-title">{t('footer.actionTitle')}</h2>
-          
+
           <div className="institutional-footer__cta-row">
             <button
               type="button"
@@ -51,29 +70,36 @@ export default function Footer({ onNavigate }) {
             <span className="institutional-footer__chapter">{t('footer.chapterLine')}</span>
           </div>
 
-        <div className="institutional-footer__directory">
-          {FOOTER_GROUPS.map((group) => (
-            <nav key={group.labelKey} aria-label={t(`footer.${group.labelKey}`)}>
-              <h3>{t(`footer.${group.labelKey}`)}</h3>
-              <ul>
-                {group.items.map((key) => (
-                  <li key={key}>
-                    <button type="button" onClick={() => onNavigate?.(key)}>
-                      {key === 'login' ? t('nav.login') : t(`nav.${key}`)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ))}
-        </div>
+          <div className="institutional-footer__directory">
+            {FOOTER_GROUPS.map((group) => (
+              <nav key={group.labelKey} aria-label={t(`footer.${group.labelKey}`)}>
+                <h3>{t(`footer.${group.labelKey}`)}</h3>
+                <ul>
+                  {group.items.map((item) => (
+                    <li key={item.key}>
+                      <FooterLink itemKey={item.key} onNavigate={onNavigate} t={t} />
+                      {item.children?.length ? (
+                        <ul className="institutional-footer__sublist">
+                          {item.children.map((child) => (
+                            <li key={child.key} className="institutional-footer__subitem">
+                              <FooterLink itemKey={child.key} onNavigate={onNavigate} t={t} />
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
 
-        <div className="institutional-footer__bottom">
-          <span>
-            © {year} {t('brand.name')}
-          </span>
-          <span>{t('footer.poweredBy')}</span>
-        </div>
+          <div className="institutional-footer__bottom">
+            <span>
+              © {year} {t('brand.name')}
+            </span>
+            <span>{t('footer.poweredBy')}</span>
+          </div>
         </div>
       </div>
     </footer>

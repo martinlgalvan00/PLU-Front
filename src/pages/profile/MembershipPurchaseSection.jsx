@@ -233,11 +233,15 @@ export default function MembershipPurchaseSection({
 
             <aside className="account-combo-offer">
               <div className="account-combo-offer__copy">
-                <span>{t('account.membership.comboEyebrow')}</span>
+                <span>{env.appProduction
+                  ? t('account.membership.comboComingSoon')
+                  : t('account.membership.comboEyebrow')}</span>
                 <h3>{t('account.membership.comboTitle')}</h3>
-                <p>{t('account.membership.comboLead')}</p>
+                <p>{env.appProduction
+                  ? t('account.membership.comboComingSoonLead')
+                  : t('account.membership.comboLead')}</p>
               </div>
-              <dl className="account-combo-offer__prices">
+              {!env.appProduction ? <dl className="account-combo-offer__prices">
                 <div>
                   <dt>{t('account.membership.comboSeparate')}</dt>
                   <dd>{money(PRICING.membership + PRICING.event, locale)}</dd>
@@ -250,7 +254,7 @@ export default function MembershipPurchaseSection({
                   <dt>{t('account.membership.comboSavings')}</dt>
                   <dd>{money(comboSavings, locale)}</dd>
                 </div>
-              </dl>
+              </dl> : null}
             </aside>
           </div>
 

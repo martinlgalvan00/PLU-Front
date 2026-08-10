@@ -26,6 +26,15 @@ webhook firmado es la confirmación canónica y el mecanismo de recuperación.
 | `MERCADO_PAGO_ENV` | `sandbox` o `production` |
 | `APP_URL`, `API_URL` | Retornos y `notification_url` HTTPS |
 
+### URLs de webhook (Vercel)
+
+| Entorno | Webhook |
+|---------|---------|
+| DEV | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
+| PROD | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
+
+Detalle de variables y `back_urls`: `docs/PAYMENTS_OPERATIONS.md`.
+
 ## Modo mock local
 
 ```text
