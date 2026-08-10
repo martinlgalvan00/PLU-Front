@@ -35,7 +35,7 @@ export const HOME_MEMBERSHIP = {
     'Get official calendar access, a digital credential and results under the PLU USA standard.',
   cta: 'View plans',
   planLabel: 'Adult athlete',
-  seasonNote: '2026 season',
+  seasonNote: '26/27 season',
   cardCta: 'Join',
 }
 
@@ -184,7 +184,7 @@ export const MEMBERSHIP_PLANS = [
     kicker: 'Annual plan',
     price: PRICING.membershipJunior,
     period: 'annual',
-    features: ['Ages 10–17', 'Digital credential', 'PLU ARG junior events'],
+    features: ['Ages 14–17', 'Digital credential', 'PLU ARG junior events'],
     highlighted: false,
     procedureType: 'membership',
   },
@@ -193,7 +193,7 @@ export const MEMBERSHIP_PLANS = [
     title: 'Pitbull Classic',
     kicker: 'Season combo',
     price: PRICING.combo,
-    period: '2026 season',
+    period: '26/27 season',
     features: ['Annual membership', 'Pitbull Classic registration', 'Single checkout'],
     highlighted: true,
     procedureType: 'both',
@@ -260,7 +260,7 @@ export const MEMBERSHIP_REQUIREMENTS = [
 export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
   athlete: 'Agustin Di Santo',
   affiliateCode: 'PA-2847',
-  season: '2026 season',
+  season: '26/27 season',
   status: 'Active membership',
 }
 
@@ -330,7 +330,7 @@ export const MEMBERSHIP_COMPARE_ROWS = [
   { label: 'Digital member card', athlete: true, junior: true, combo: true },
   { label: 'Access to official events', athlete: true, junior: true, combo: true },
   { label: 'Pitbull Classic registration', athlete: false, junior: false, combo: true },
-  { label: '2026 season validity', athlete: true, junior: true, combo: true },
+  { label: '26/27 season validity', athlete: true, junior: true, combo: true },
 ]
 
 export const PLATFORM_SECTIONS = [
@@ -650,6 +650,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['shop', 'admin.nav.shop', 'ShoppingBag'],
       ['payments', 'admin.nav.payments', 'CreditCard'],
+      ['pricing', 'admin.nav.pricing', 'BadgeDollarSign'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],
   },

@@ -14,12 +14,15 @@ la respuesta canónica del proveedor y queda respaldada por el webhook firmado.
 3. Backend crea una preferencia cuando el medio la requiere
 4. Payment Brick o Card Payment Brick se renderiza dentro del sitio
 5. Backend relee la orden y procesa el token con una idempotency key persistida
-6. MP envía webhook POST /api/payments/webhook
+6. MP envía webhook POST /api/payments/webhook/mercadopago
 7. Backend valida x-signature
 8. Backend consulta el recurso canónico en Mercado Pago
 9. Si aprobado → actualiza orden, afiliación/inscripción, audit log, email
 10. Si una dependencia falla → evento durable + backoff + recuperación automática
 ```
+
+URLs concretas de webhook DEV/PROD y variables por entorno: ver
+[`docs/PAYMENTS_OPERATIONS.md`](./PAYMENTS_OPERATIONS.md#urls-dev-y-prod-copiarpegar).
 
 ## Implementación actual
 

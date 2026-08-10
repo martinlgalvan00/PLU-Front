@@ -195,25 +195,25 @@
 }
 
 .share-card__logo {
-  height: 72px;
+  height: 92px;
   width: auto;
   object-fit: contain;
   filter: brightness(1.1);
 }
 
 .share-card--story .share-card__logo {
-  height: 84px;
+  height: 118px;
 }
 
 .share-card__brand-name {
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.5);
 }
 
 .share-card--story .share-card__brand-name {
-  font-size: 22px;
+  font-size: 26px;
 }
 
 /* Estado: texto neutro, el acento vive solo en el dot. Un glow tipo LED
@@ -221,13 +221,23 @@
 .share-card__status {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  align-self: flex-start;
+  gap: 12px;
+  padding: 13px 26px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
+  border: 1px solid rgba(242, 183, 5, 0.4);
+  border-radius: 999px;
+  background: rgba(242, 183, 5, 0.09);
+}
+
+.share-card--ticket .share-card__status {
+  border-color: rgba(116, 172, 223, 0.45);
+  background: rgba(116, 172, 223, 0.09);
 }
 
 .share-card__status-dot {
@@ -391,10 +401,26 @@
 }
 
 /* Sección evento */
+/* El evento como placa enmarcada: dialoga con el QR-chip del footer y le
+   da masa a la zona media. Filo de acento a la izquierda, marco fino. */
 .share-card__event-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--card-accent);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 34px 40px;
+}
+
+.share-card--ticket .share-card__event-section {
+  border-left-color: var(--card-accent-alt);
+}
+
+.share-card--story .share-card__event-section {
+  padding: 44px 48px;
+  border-radius: 20px;
 }
 
 .share-card__event-eyebrow {
@@ -433,48 +459,53 @@
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────
-   Sin línea de corte ni remaches: el aire separa. El QR ancla abajo
-   como sello de verificación; la firma de marca y la URL quedan en
-   segundo plano. */
+   Banda enmarcada: mismo lenguaje que la placa del evento y el pill
+   de estado. El QR queda sellado dentro de la placa; la firma de
+   marca y la URL cierran la composición. */
 .share-card__footer {
   position: relative;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 40px 0 60px;
-  margin: 0 72px;
   gap: 32px;
+  margin: 40px 72px 60px;
+  padding: 28px 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.035);
 }
 
 /* En Story, la barra de respuesta/stickers de Instagram vive abajo de todo —
    dejamos un margen de seguridad extra para que el footer no quede tapado. */
 .share-card--story .share-card__footer {
-  padding-top: 48px;
-  padding-bottom: 186px;
+  margin-top: 48px;
+  margin-bottom: 186px;
+  padding: 32px 40px;
+  border-radius: 24px;
 }
 
 .share-card__footer-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .share-card__tagline {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .share-card__url {
   flex-shrink: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.42);
   white-space: nowrap;
 }
 
@@ -488,15 +519,11 @@
   padding: 12px;
   background: #ffffff;
   border-radius: 14px;
-  box-shadow:
-    0 0 0 1.5px rgba(242, 183, 5, 0.3),
-    0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 1.5px rgba(242, 183, 5, 0.3);
 }
 
 .share-card--ticket .share-card__qr-chip {
-  box-shadow:
-    0 0 0 1.5px rgba(116, 172, 223, 0.32),
-    0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 1.5px rgba(116, 172, 223, 0.32);
 }
 
 .share-card--story .share-card__qr-chip {

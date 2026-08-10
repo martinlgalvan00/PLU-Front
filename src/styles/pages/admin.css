@@ -12544,6 +12544,15 @@
   opacity: 0.55;
 }
 
+.admin-event-form__pricing-note {
+  align-self: center;
+  max-width: 48ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 [data-theme='light'] .admin-event-form__pricing {
   background: var(--admin-surface-muted, rgba(15, 17, 23, 0.02));
 }

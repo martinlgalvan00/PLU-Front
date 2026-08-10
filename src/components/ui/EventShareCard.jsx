@@ -100,6 +100,7 @@ export default function EventShareCard({
   // QR de verificación — permite validar la credencial en la puerta del evento
   // o establecimiento escaneando desde cualquier celular, sin apps extra.
   const [qrSrc, setQrSrc] = useState(null)
+  const [qrSettled, setQrSettled] = useState(() => !(qrCode ?? athleteCode))
   // Para entradas, el QR tiene que llevar el qrToken opaco (alta entropía),
   // no el athleteCode/ticketCode humano — ese es secuencial y adivinable.
   // Ver server/modules/ticketing: el qrToken es lo único que el backend
@@ -109,17 +110,27 @@ export default function EventShareCard({
   useEffect(() => {
     if (!codeForQr) {
       setQrSrc(null)
+      setQrSettled(true)
       return undefined
     }
     let cancelled = false
+    setQrSettled(false)
     const url = buildCredentialUrl({
       code: codeForQr,
       eventSlug: isMembership ? undefined : eventSlug,
       type: isTicket ? 'ticket' : undefined,
     })
     generateCredentialQr(url)
-      .then((dataUrl) => { if (!cancelled) setQrSrc(dataUrl) })
-      .catch(() => { if (!cancelled) setQrSrc(null) })
+      .then((dataUrl) => {
+        if (cancelled) return
+        setQrSrc(dataUrl)
+        setQrSettled(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setQrSrc(null)
+        setQrSettled(true)
+      })
     return () => { cancelled = true }
   }, [codeForQr, eventSlug, isMembership, isTicket])
 
@@ -147,6 +158,7 @@ export default function EventShareCard({
       ].join(' ')}
       style={preview ? { transform: `scale(${scale})` } : undefined}
       aria-hidden={!preview}
+      data-capture-ready={qrSettled ? '1' : '0'}
     >
       {/* ── Fondo con gradiente ── */}
       <div className="share-card__bg" />

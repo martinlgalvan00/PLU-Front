@@ -36,7 +36,7 @@ export const HOME_MEMBERSHIP = {
     'Accedé al calendario oficial, credencial digital y resultados bajo el estándar PLU USA.',
   cta: 'Ver planes',
   planLabel: 'Atleta adulto',
-  seasonNote: 'Temporada 2026',
+  seasonNote: 'Temporada 26/27',
   cardCta: 'Afiliarme',
 }
 
@@ -185,7 +185,7 @@ export const MEMBERSHIP_PLANS = [
     kicker: 'Plan anual',
     price: PRICING.membershipJunior,
     period: 'anual',
-    features: ['10 a 17 años', 'Credencial digital', 'Eventos juveniles PLU ARG'],
+    features: ['14 a 17 años', 'Credencial digital', 'Eventos juveniles PLU ARG'],
     highlighted: false,
     procedureType: 'membership',
   },
@@ -194,7 +194,7 @@ export const MEMBERSHIP_PLANS = [
     title: 'Pitbull Classic',
     kicker: 'Combo temporada',
     price: PRICING.combo,
-    period: 'temporada 2026',
+    period: 'temporada 26/27',
     features: ['Afiliación anual', 'Inscripción Pitbull Classic', 'Un solo trámite'],
     highlighted: true,
     procedureType: 'both',
@@ -261,7 +261,7 @@ export const MEMBERSHIP_REQUIREMENTS = [
 export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
   athlete: 'Agustin Di Santo',
   affiliateCode: 'PA-2847',
-  season: 'Temporada 2026',
+  season: 'Temporada 26/27',
   status: 'Afiliación activa',
 }
 
@@ -331,7 +331,7 @@ export const MEMBERSHIP_COMPARE_ROWS = [
   { label: 'Tarjeta digital de miembro', athlete: true, junior: true, combo: true },
   { label: 'Acceso a eventos oficiales', athlete: true, junior: true, combo: true },
   { label: 'Inscripción Pitbull Classic', athlete: false, junior: false, combo: true },
-  { label: 'Vigencia temporada 2026', athlete: true, junior: true, combo: true },
+  { label: 'Vigencia temporada 26/27', athlete: true, junior: true, combo: true },
 ]
 
 export const PLATFORM_SECTIONS = [
@@ -737,6 +737,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['shop', 'admin.nav.shop', 'ShoppingBag'],
       ['payments', 'admin.nav.payments', 'CreditCard'],
+      ['pricing', 'admin.nav.pricing', 'BadgeDollarSign'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],
   },

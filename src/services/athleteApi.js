@@ -285,13 +285,17 @@ function toCamelMembershipPlan(row) {
   return {
     id: row.id,
     code: row.code,
+    familyCode: row.familyCode ?? row.family_code,
+    version: row.version,
     name: row.name,
+    description: row.description,
     price: row.price,
     currency: row.currency,
     billingFrequency: row.billing_frequency,
     collectionMode: row.collection_mode,
     intervalCount: row.interval_count,
     graceDays: row.grace_days,
+    effectiveFrom: row.effectiveFrom ?? row.effective_from,
   }
 }
 

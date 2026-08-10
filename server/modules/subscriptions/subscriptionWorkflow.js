@@ -9,13 +9,17 @@ function normalizePlan(plan) {
   return {
     id: plan.id,
     code: plan.code,
+    familyCode: plan.family_code,
+    version: plan.version,
     name: plan.name,
+    description: plan.description,
     price: plan.price,
     currency: plan.currency,
     billingFrequency: plan.billing_frequency,
     collectionMode: plan.collection_mode,
     intervalCount: plan.interval_count,
     graceDays: plan.grace_days,
+    effectiveFrom: plan.effective_from,
     providerPlanId: plan.provider_plan_id,
   }
 }

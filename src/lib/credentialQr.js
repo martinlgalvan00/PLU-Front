@@ -27,18 +27,31 @@ export function buildCredentialUrl({ code, eventSlug, type }) {
 
 /**
  * Genera el PNG (data URL) del QR para una credencial.
+ * Cachea por URL para no re-encodear cuando preview + capture montan
+ * dos EventShareCard en el mismo flujo de share (pico CPU en mobile).
  * @param {string} url
  * @returns {Promise<string>}
  */
+const qrDataUrlCache = new Map()
+
 export function generateCredentialQr(url) {
-  return QRCode.toDataURL(url, {
+  const cached = qrDataUrlCache.get(url)
+  if (cached) return cached
+
+  const pending = QRCode.toDataURL(url, {
     width: 320,
     margin: 1,
     color: {
       dark: '#0d0e11',
       light: '#ffffff',
     },
+  }).catch((error) => {
+    qrDataUrlCache.delete(url)
+    throw error
   })
+
+  qrDataUrlCache.set(url, pending)
+  return pending
 }
 
 /**

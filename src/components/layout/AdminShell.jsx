@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  BadgeDollarSign,
   ArrowLeft,
   BadgeCheck,
   Calendar,
@@ -32,6 +33,7 @@ import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 // fallback, y una clave faltante devuelve undefined, que React rechaza como
 // tipo de elemento y tira toda la shell del panel, no solo ese ítem.
 const ICONS = {
+  BadgeDollarSign,
   LayoutDashboard,
   LayoutGrid,
   Users,

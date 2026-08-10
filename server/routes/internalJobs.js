@@ -6,6 +6,7 @@ import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
 import { HttpError } from '../lib/errors.js'
+import { PAYMENT_RECOVERY_JOB_ENABLED } from '../modules/payments/paymentRuntimeDefaults.js'
 
 function hasValidCronAuthorization(request, secret) {
   const expected = Buffer.from(`Bearer ${secret}`)
@@ -43,7 +44,7 @@ export function createInternalJobRoutes({
   })
 
   router.get('/jobs/payment-recovery', async (_req, res) => {
-    if (env.PAYMENT_RECOVERY_JOB_ENABLED !== 'true') {
+    if (!PAYMENT_RECOVERY_JOB_ENABLED) {
       res.json({ status: 'disabled', job: 'payment-recovery' })
       return
     }

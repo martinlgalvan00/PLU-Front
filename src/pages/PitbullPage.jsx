@@ -728,12 +728,12 @@ export default function PitbullPage({
     fallbackSlots: PITBULL_CLASSIC.slots,
   })
   const sectionNavItems = [
-    { id: 'experiencia', index: '02', label: 'Experiencia' },
-    { id: 'pesajes', index: '03', label: t('pages.pitbull.weighInsEyebrow') },
-    { id: 'categorias', index: '04', label: t('pages.pitbull.categoriesEyebrow') },
-    { id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') },
-    { id: 'inscripcion', index: '06', label: t('pages.pitbull.inscriptionEyebrow') },
-    { id: 'entradas', index: '07', label: t('pages.pitbull.ticketsEyebrow') },
+    { id: 'experiencia', index: '01', label: 'Experiencia' },
+    { id: 'pesajes', index: '02', label: t('pages.pitbull.weighInsEyebrow') },
+    { id: 'categorias', index: '03', label: t('pages.pitbull.categoriesEyebrow') },
+    { id: 'lugar', index: '04', label: t('pages.pitbull.locationEyebrow') },
+    { id: 'inscripcion', index: '05', label: t('pages.pitbull.inscriptionEyebrow') },
+    { id: 'entradas', index: '06', label: t('pages.pitbull.ticketsEyebrow') },
   ]
 
   function goToTicketsPage() {

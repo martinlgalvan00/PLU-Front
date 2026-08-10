@@ -6,16 +6,15 @@ import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_BLUR, MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 
-/** Shell: ancla espacial liviana. El tilt 3D lleva la presencia. */
+/** Shell: ancla espacial liviana (opacity + transform). El tilt 3D lleva la presencia. */
 const cardShell = {
-  hidden: { opacity: 0, y: 16, scale: 0.985, filter: `blur(${MOTION_BLUR.sm}px)` },
+  hidden: { opacity: 0, y: 16, scale: 0.985 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: 'blur(0px)',
     transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.cinematic },
   },
 }

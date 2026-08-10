@@ -1,0 +1,271 @@
+.admin-pricing {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-pricing__hero,
+.admin-pricing__block-head,
+.admin-pricing__plan-row,
+.admin-pricing__form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.admin-pricing__hero h1,
+.admin-pricing__block h2,
+.admin-pricing__plan-row h3,
+.admin-pricing__form h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__hero > div > p:last-child,
+.admin-pricing__block-head p,
+.admin-pricing__plan-row p,
+.admin-pricing__form small,
+.admin-pricing__locked p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+}
+
+.admin-pricing__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--color-brand-celeste);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-pricing button {
+  min-height: 44px;
+}
+
+.admin-pricing__refresh,
+.admin-pricing__block-head button,
+.admin-pricing__form-actions button,
+.admin-pricing__plan-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-pricing__block-head > button,
+.admin-pricing__form-actions button[type='submit'] {
+  border-color: var(--color-brand-action);
+  background: var(--color-brand-action);
+  color: var(--color-brand-action-text);
+}
+
+.admin-pricing button:disabled,
+.admin-pricing fieldset:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.admin-pricing__locked,
+.admin-pricing__message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-brand-gold);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__locked strong {
+  display: block;
+}
+
+.admin-pricing__message--error,
+.admin-pricing__form-error {
+  color: var(--color-danger-text);
+}
+
+.admin-pricing__block {
+  display: grid;
+  gap: var(--space-4);
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.admin-pricing__block-head p {
+  max-width: 68ch;
+}
+
+.admin-pricing__plan-list {
+  display: grid;
+}
+
+.admin-pricing__plan-row {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.admin-pricing__plan-identity {
+  min-width: 220px;
+}
+
+.admin-pricing__status {
+  display: inline-flex;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-pricing__status--active {
+  color: var(--color-success-text);
+}
+
+.admin-pricing__status--scheduled {
+  color: var(--color-brand-celeste);
+}
+
+.admin-pricing__plan-price,
+.admin-pricing__plan-date {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-pricing__plan-price strong {
+  font-size: 1.15rem;
+}
+
+.admin-pricing__plan-price span,
+.admin-pricing__plan-date {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.admin-pricing__plan-date {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.admin-pricing__plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.admin-pricing__form {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.admin-pricing__form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-pricing__form label {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.admin-pricing__form input,
+.admin-pricing__form select,
+.admin-pricing__form textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+}
+
+.admin-pricing__form textarea {
+  resize: vertical;
+}
+
+.admin-pricing__form input:focus-visible,
+.admin-pricing__form select:focus-visible,
+.admin-pricing__form textarea:focus-visible,
+.admin-pricing button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-pricing__wide {
+  grid-column: 1 / -1;
+}
+
+.admin-pricing__toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.admin-pricing__toggle input {
+  width: 20px;
+  min-height: 20px;
+}
+
+.admin-pricing__form-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .admin-pricing__plan-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-pricing__plan-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-pricing__hero,
+  .admin-pricing__block-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-pricing__plan-row,
+  .admin-pricing__form fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pricing__wide {
+    grid-column: auto;
+  }
+
+  .admin-pricing__plan-actions button,
+  .admin-pricing__form-actions button {
+    flex: 1;
+  }
+}

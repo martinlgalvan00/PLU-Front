@@ -649,7 +649,8 @@
   }
 }
 
-@media (hover: none), (pointer: coarse) {
+/* Touch / reduced motion: flip como crossfade (sin rotateY 3D). */
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
   .account-credential__tilt {
     transform: none;
     will-change: auto;
@@ -657,6 +658,36 @@
 
   .account-credential__tilt::after {
     display: none;
+  }
+
+  .account-credential__card {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .account-credential__face {
+    backface-visibility: visible;
+    transition: opacity var(--motion-base, 240ms) linear;
+  }
+
+  .account-credential__back {
+    opacity: 0;
+    transform: none;
+    visibility: hidden;
+  }
+
+  .account-credential__card.is-flipped .account-credential__front {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .account-credential__card.is-flipped .account-credential__back {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .account-credential__status-dot {
+    animation: none;
   }
 }
 
@@ -2204,7 +2235,7 @@
   }
 
   .account-nav__item {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 13px;
   }
 

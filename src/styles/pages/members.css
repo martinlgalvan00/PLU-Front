@@ -3336,10 +3336,16 @@
 .members-plu-hero {
   margin-top: calc(-1 * var(--header-height));
   padding:
-    calc(var(--header-height) + clamp(32px, 5vh, 56px))
+    calc(var(--header-height) + clamp(42px, 6vw, 76px))
     clamp(20px, 5vw, 64px)
-    clamp(28px, 4vw, 36px);
+    clamp(42px, 6vw, 72px);
   text-align: left;
+}
+
+@media (max-width: 900px) {
+  .members-plu-hero {
+    padding: calc(var(--header-height) + 30px) 20px 40px;
+  }
 }
 
 .members-plu-hero__chapter {
@@ -4008,10 +4014,14 @@
   font-family: var(--font-display);
   font-size: clamp(0.98rem, 1.4vw, 1.08rem);
   font-weight: 600;
+  hyphens: none;
   letter-spacing: -0.02em;
   line-height: 1.35;
   min-width: 0;
+  overflow-wrap: normal;
+  text-wrap: pretty;
   transition: letter-spacing var(--motion-base) var(--ease-out);
+  word-break: normal;
 }
 
 .members-plu-block--faq .faq-accordion--ref .faq-item--open .faq-item__question {
@@ -4862,7 +4872,9 @@
   letter-spacing: -0.036em;
   line-height: 1.15;
   margin: 0;
-  text-wrap: balance;
+  overflow-wrap: normal;
+  text-wrap: pretty;
+  word-break: normal;
 }
 
 .members-plu-stepper__scene-text {
@@ -5002,9 +5014,9 @@
     background: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
     content: '';
     height: 1.5px;
-    left: 18px;
+    left: calc(100% / var(--step-count, 4) / 2);
     position: absolute;
-    right: 18px;
+    right: calc(100% / var(--step-count, 4) / 2);
     top: 18px;
     z-index: 0;
   }
@@ -5013,13 +5025,13 @@
     background: var(--color-brand-gold);
     content: '';
     height: 1.5px;
-    left: 18px;
+    left: calc(100% / var(--step-count, 4) / 2);
     position: absolute;
     top: 18px;
     transform: scaleX(var(--active-ratio, 0));
     transform-origin: left center;
     transition: transform var(--motion-slow) var(--ease-out);
-    width: calc(100% - 36px);
+    width: calc(100% - (100% / var(--step-count, 4)));
     z-index: 0;
   }
 
@@ -5027,8 +5039,9 @@
     border: 0;
     gap: 12px;
     grid-template-columns: 1fr;
-    justify-items: start;
+    justify-items: center;
     padding: 0;
+    text-align: center;
   }
 
   .members-plu-stepper__timeline-item:last-child .members-plu-stepper__node {
@@ -5037,8 +5050,10 @@
 
   .members-plu-stepper__node-title {
     font-size: 0.92rem;
-    max-width: 14ch;
+    max-width: 16ch;
     padding-top: 4px;
+    text-align: center;
+    text-wrap: pretty;
   }
 }
 

@@ -180,8 +180,8 @@ window.__shareCardPreview = {
   expectedQrs: FIXTURES.length,
   /**
    * Rasteriza todas las cards con el pipeline real. scale 1 → tamaño
-   * canónico de Instagram (1080×1080 / 1080×1920); la descarga de
-   * producción usa el default del servicio (scale 2, misma imagen).
+   * canónico de Instagram (1080×1080 / 1080×1920). En producción mobile
+   * el servicio también usa scale 1; desktop fine-pointer usa scale 2.
    */
   async captureAll() {
     const results = []

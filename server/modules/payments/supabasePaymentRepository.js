@@ -324,12 +324,15 @@ export function createSupabasePaymentRepository(
     },
 
     async listPlans() {
+      const now = new Date().toISOString()
       return assertResult(
         await client
           .from('membership_plans')
           .select('*')
           .eq('organization_id', organizationId)
           .eq('active', true)
+          .lte('effective_from', now)
+          .or(`retired_at.is.null,retired_at.gt.${now}`)
           .order('price'),
         'No se pudieron leer los planes.',
       )

@@ -6,6 +6,8 @@ const TRUSTED_BROWSER_VALUE = 'browser'
 // header de mutación confiable. Cada uno valida su propio origen (firma de
 // Mercado Pago, token compartido en el de Brevo).
 const SERVER_TO_SERVER_MUTATION_PATHS = new Set([
+  '/api/payments/webhook/mercadopago',
+  // Alias legacy: preferir /mercadopago en panel MP y notification_url nuevas.
   '/api/payments/webhook',
   '/api/emails/webhook/brevo',
 ])

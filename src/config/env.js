@@ -13,10 +13,14 @@ const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN ?? ''
 const auth0ClientId = import.meta.env.VITE_AUTH0_CLIENT_ID ?? ''
 const auth0Audience = import.meta.env.VITE_AUTH0_AUDIENCE ?? ''
 const mercadoPagoPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? ''
-const paymentsProviderRaw = String(import.meta.env.VITE_PAYMENTS_PROVIDER ?? 'mercado_pago')
+const paymentsMockRaw = String(import.meta.env.PAYMENTS_MOCK ?? '')
   .trim()
   .toLowerCase()
-const paymentsProvider = paymentsProviderRaw === 'mock' ? 'mock' : 'mercado_pago'
+const paymentsProvider = ['true', '1', 'yes'].includes(paymentsMockRaw) ? 'mock' : 'mercado_pago'
+const appProductionRaw = String(import.meta.env.APP_PRODUCTION ?? '')
+  .trim()
+  .toLowerCase()
+const appProduction = ['true', '1', 'yes'].includes(appProductionRaw)
 const isConfiguredValue = (value) =>
   Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
@@ -24,7 +28,10 @@ export const env = {
   appUrl,
   apiUrl,
   isDev: import.meta.env.DEV,
-  demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
+  // true = presentación/comportamiento de producción (ocultar WIP, demos, etc.).
+  // Independiente del build: en Vercel Production poné APP_PRODUCTION=true.
+  appProduction,
+  demoMode: import.meta.env.VITE_DEMO_MODE === 'true' && !appProduction,
   supabase: {
     url: supabaseUrl,
     anonKey: supabaseAnonKey,

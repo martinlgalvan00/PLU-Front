@@ -1900,7 +1900,9 @@
 }
 
 .results-page--premium .results-page__count {
-  /* Hereda .plu-meta-chip — sin caja */
+  /* Hereda .plu-meta-chip — sin caja; center override baseline del chip */
+  align-items: center;
+  align-self: center;
   background: transparent;
   border: none;
   border-radius: 0;

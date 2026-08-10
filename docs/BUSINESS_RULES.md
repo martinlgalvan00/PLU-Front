@@ -23,9 +23,23 @@
 
 ## Precios
 
-Los planes de afiliación se leen de `membership_plans`. La inscripción y las
-entradas se cotizan desde el evento y su `rules.ticketPricing`; el frontend no
-puede enviar el monto autoritativo.
+Los planes de afiliación se leen de `membership_plans`. Cada cambio económico
+publica una fila versionada (`family_code`, `version`, `effective_from` y
+`retired_at`); nunca modifica el monto de una versión usada por una orden o
+vinculada a Mercado Pago.
+
+La inscripción se cotiza desde `events.price`, y las entradas desde el catálogo
+del evento y `rules.ticketPricing`. El editor del torneo sólo administra el
+precio propio de inscripción. Las afiliaciones y las ofertas conjuntas se
+administran desde **Tarifas**, para evitar dos valores distintos para el mismo
+concepto. El frontend nunca puede enviar el monto autoritativo de una orden.
+
+Una oferta conjunta vive en `event_combo_offers`, referencia una versión de
+afiliación de pago único y no puede superar la suma del plan más la inscripción.
+Su activación y ventana son independientes por evento. Mientras
+`APP_PRODUCTION=true`, el módulo se expone en modo lectura como **Próximamente**
+y Express rechaza toda escritura con `FEATURE_COMING_SOON`; ocultar o desactivar
+controles en el navegador no reemplaza ese bloqueo.
 
 ## Roles
 

@@ -90,9 +90,9 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
         tabIndex={canShowResults ? 0 : undefined}
       >
         <div className="results-archive-row__date" aria-hidden>
-          <span className="results-archive-row__date-day">{day}</span>
-          <span className="results-archive-row__date-month">{month}</span>
-          <span className="results-archive-row__date-year">{year}</span>
+          <span className="results-archive-row__day">{day}</span>
+          <span className="results-archive-row__month">{month}</span>
+          <span className="results-archive-row__year">{year}</span>
         </div>
 
         <div className="results-archive-row__main">

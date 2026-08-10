@@ -63,10 +63,14 @@ export function isTicketSalesEnabled(event) {
 }
 
 export function normalizeEventPricingInput(pricing = {}) {
+  const numberOrDefault = (value, fallback) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
   return {
-    membership: Number(pricing.membership) || DEFAULT_EVENT_PRICING.membership,
-    registration: Number(pricing.registration) || DEFAULT_EVENT_PRICING.registration,
-    combo: Number(pricing.combo) || DEFAULT_EVENT_PRICING.combo,
+    membership: numberOrDefault(pricing.membership, DEFAULT_EVENT_PRICING.membership),
+    registration: numberOrDefault(pricing.registration, DEFAULT_EVENT_PRICING.registration),
+    combo: numberOrDefault(pricing.combo, DEFAULT_EVENT_PRICING.combo),
     ticketsEnabled: pricing.ticketsEnabled !== false,
     ticketAddons: normalizeTicketAddons(pricing.ticketAddons),
   }

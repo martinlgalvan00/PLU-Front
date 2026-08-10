@@ -117,13 +117,38 @@ describe('api security baseline', () => {
       env: { MERCADO_PAGO_WEBHOOK_SECRET: 'test-secret' },
     }))
 
-    const response = await fetch(`${target.url}/api/payments/webhook?data.id=mp-pay-001&type=payment`, {
+    const response = await fetch(`${target.url}/api/payments/webhook/mercadopago?data.id=mp-pay-001&type=payment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         id: 'notification-1',
+        type: 'payment',
+        action: 'payment.updated',
+        data: { id: 'mp-pay-001' },
+      }),
+    })
+
+    expect(response.status).toBe(401)
+
+    await target.close()
+  })
+
+  it('acepta el alias legacy /api/payments/webhook sin exigir header de browser', async () => {
+    const target = listen(createApp({
+      paymentRepository: {},
+      mercadoPago: {},
+      env: { MERCADO_PAGO_WEBHOOK_SECRET: 'test-secret' },
+    }))
+
+    const response = await fetch(`${target.url}/api/payments/webhook?data.id=mp-pay-001&type=payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: 'notification-legacy-1',
         type: 'payment',
         action: 'payment.updated',
         data: { id: 'mp-pay-001' },

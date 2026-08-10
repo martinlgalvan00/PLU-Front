@@ -7,6 +7,12 @@ const moneyField = z.coerce
   .min(0, 'priceMin')
   .max(10_000_000, 'priceMax')
 
+const paidMoneyField = z.coerce
+  .number({ invalid_type_error: 'priceInvalid' })
+  .finite('priceInvalid')
+  .min(1, 'priceMin')
+  .max(10_000_000, 'priceMax')
+
 const optionalText = (max, message) =>
   z
     .string()
@@ -122,7 +128,7 @@ export const adminEventDraftSchema = z
     status: z.string().trim().min(1, 'statusRequired'),
     pricing: z.object({
       membership: moneyField,
-      registration: moneyField,
+      registration: paidMoneyField,
       combo: moneyField,
       ticketsEnabled: z.boolean().optional(),
       ticketAddons: z.array(ticketAddonSchema).max(30, 'ticketAddonsMax').optional(),
@@ -146,18 +152,6 @@ export const adminEventDraftSchema = z
     ticketTypes: z.array(ticketTypeSchema).max(50, 'ticketTypesMax').optional(),
   })
   .superRefine((data, ctx) => {
-    const membership = data.pricing.membership
-    const registration = data.pricing.registration
-    const combo = data.pricing.combo
-
-    if (combo > 0 && membership + registration > 0 && combo > membership + registration) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['pricing', 'combo'],
-        message: 'comboTooHigh',
-      })
-    }
-
     if (data.startsAt && data.endsAt && data.startsAt > data.endsAt) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

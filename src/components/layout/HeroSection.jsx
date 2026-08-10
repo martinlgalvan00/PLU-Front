@@ -82,16 +82,16 @@ export default function HeroSection({ onNavigate }) {
         <button
           type="button"
           className="hero__cta hero__cta--featured"
-          onClick={() => onNavigate('pitbull')}
+          onClick={() => onNavigate('events')}
         >
-          <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaPitbull')}</span>
-          <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaPitbullShort')}</span>
+          <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaEvents')}</span>
+          <span className="hero__cta-label hero__cta-label--short">{t('hero.ctaEventsShort')}</span>
         </button>
       </div>
 
       <div className="hero__secondary-links">
-        <button type="button" className="hero__secondary-link" onClick={() => onNavigate('events')}>
-          {t('hero.ctaEvents')}
+        <button type="button" className="hero__secondary-link" onClick={() => onNavigate('pitbull')}>
+          {t('hero.ctaPitbull')}
           <ArrowRight size={12} aria-hidden className="hero__secondary-link-icon" />
         </button>
         <button type="button" className="hero__account-pill" onClick={() => onNavigate('login')}>
