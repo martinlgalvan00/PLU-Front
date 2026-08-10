@@ -8,9 +8,10 @@
   --card-bg: #0d0e11;
   --card-surface: #141518;
   --card-border: rgba(255, 255, 255, 0.08);
-  --card-red: #1f5f9e;
-  --card-celeste: #74acdf;
-  --card-gold: #f2b705;
+  /* Acentos de marca planos (hex/rgba) — html2canvas no rasteriza
+     color-mix()/oklab, así que acá nunca entran funciones de color. */
+  --card-accent: #f2b705;
+  --card-accent-alt: #74acdf;
   --card-text: #ffffff;
   --card-muted: rgba(255, 255, 255, 0.55);
   --card-size: 1080px;
@@ -69,82 +70,60 @@
   aspect-ratio: 9 / 16;
 }
 
-/* ─── Fondo con gradiente ───────────────────────────────────────── */
+/* ─── Fondo con gradiente ─────────────────────────────────────────
+   Mismo grafito que la credencial física (#161820 → #0c0d12 → #08090c).
+   Un solo efecto atmosférico: glow dorado arriba a la derecha +
+   contra-glow del acento secundario abajo. Sin tercer halo blanco:
+   el aire limpio es el lujo. */
 .share-card__bg {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(242, 183, 5, 0.18) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(255, 255, 255, 0.025) 0%, transparent 60%),
-    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(242, 183, 5, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(116, 172, 223, 0.09) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
   z-index: 0;
 }
 
 .share-card--membership .share-card__bg {
   background:
-    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(242, 183, 5, 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(116, 172, 223, 0.09) 0%, transparent 50%),
-    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(242, 183, 5, 0.04) 0%, transparent 60%),
-    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(242, 183, 5, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(116, 172, 223, 0.07) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
 }
 
 .share-card--ticket .share-card__bg {
   background:
-    radial-gradient(ellipse 70% 55% at 80% 8%, rgba(116, 172, 223, 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 55% at 6% 90%, rgba(242, 183, 5, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 45% 40% at 50% 50%, rgba(116, 172, 223, 0.04) 0%, transparent 60%),
-    linear-gradient(168deg, #1a1b21 0%, #0e0f13 42%, #09090c 100%);
+    radial-gradient(ellipse 70% 55% at 88% 4%, rgba(116, 172, 223, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 4% 96%, rgba(242, 183, 5, 0.07) 0%, transparent 50%),
+    linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
 }
 
 /* Formato historia: el lienzo es mucho más alto (9:16), así que el cuerpo
-   centrado deja aire de sobra arriba y abajo del bloque de texto. En vez
-   de forzar más contenido (rompería "minimalista"), se refuerza el glow
-   central ya existente para que ese aire se sienta deliberado — una
-   presencia ambiental detrás del nombre, no un vacío. */
+   centrado deja aire de sobra arriba y abajo del bloque de texto. Ese aire
+   es deliberado — presencia ambiental detrás del nombre, no un vacío. */
 .share-card--story .share-card__bg {
   background:
-    radial-gradient(ellipse 70% 32% at 80% 6%, rgba(242, 183, 5, 0.16) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 30% at 8% 96%, rgba(116, 172, 223, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 34% at 50% 48%, rgba(255, 255, 255, 0.04) 0%, transparent 62%),
-    linear-gradient(180deg, #1a1b21 0%, #0e0f13 46%, #09090c 100%);
+    radial-gradient(ellipse 70% 30% at 88% 5%, rgba(242, 183, 5, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 28% at 6% 97%, rgba(116, 172, 223, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #161820 0%, #0c0d12 46%, #08090c 100%);
 }
 
-/* ─── Monograma personalizado ───────────────────────────────────────
-   Iniciales del atleta como marca de agua — reemplaza el texto
-   genérico de marca por un elemento único para cada card.
-   Nada de background-clip:text: html2canvas (la captura real que se
-   descarga) no lo soporta -- el texto "transparente" + fondo sin
-   recortar queda como un rectángulo gris opaco en el PNG final, aunque
-   en el preview del modal (DOM real, no captura) se vea bien. Color
-   plano con opacidad baja da un resultado visual casi idéntico y es
-   100% confiable en la captura. */
-.share-card__monogram {
+/* ─── Marco interior ──────────────────────────────────────────────
+   El mismo gesto que la credencial física: un filo fino dorado tenue
+   corrido del borde. Div con borde plano (html2canvas lo rasteriza
+   perfecto), nunca outline/clip exóticos. */
+.share-card__frame {
   position: absolute;
-  right: -36px;
-  bottom: -64px;
-  font-size: 460px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: rgba(255, 255, 255, 0.05);
+  inset: 26px;
+  border: 1px solid rgba(242, 183, 5, 0.16);
+  border-radius: 4px;
   pointer-events: none;
-  user-select: none;
-  z-index: 1;
+  z-index: 3;
 }
 
-.share-card--membership .share-card__monogram {
-  color: rgba(242, 183, 5, 0.1);
-}
-
-.share-card--ticket .share-card__monogram {
-  color: rgba(116, 172, 223, 0.1);
-}
-
-.share-card--story .share-card__monogram {
-  right: -50px;
-  bottom: -120px;
-  font-size: 660px;
+.share-card--story .share-card__frame {
+  inset: 26px 26px 26px;
 }
 
 /* ─── Textura "foil" ─────────────────────────────────────────────
@@ -175,7 +154,10 @@
     );
 }
 
-/* ─── Franja de acento superior ─────────────────────────────────── */
+/* ─── Franja de acento superior ───────────────────────────────────
+   Firma de marca (celeste → dorado), la misma de la credencial, pero
+   sin el blanco central: un filo fino de 4px que se lee como marca,
+   no como bandera pegada. */
 .share-card__stripe-top {
   position: absolute;
   top: 0;
@@ -184,29 +166,10 @@
   height: 4px;
   background: linear-gradient(
     90deg,
-    var(--card-red) 0%,
-    rgba(255, 255, 255, 0.72) 50%,
-    var(--card-celeste) 100%
+    var(--card-accent-alt) 0%,
+    var(--card-accent) 100%
   );
   z-index: 10;
-}
-
-.share-card--membership .share-card__stripe-top {
-  background: linear-gradient(
-    90deg,
-    var(--card-red) 0%,
-    var(--card-gold) 50%,
-    var(--card-celeste) 100%
-  );
-}
-
-.share-card--ticket .share-card__stripe-top {
-  background: linear-gradient(
-    90deg,
-    var(--card-celeste) 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    var(--card-red) 100%
-  );
 }
 
 /* ─── Header ────────────────────────────────────────────────────── */
@@ -228,49 +191,54 @@
 .share-card__brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .share-card__logo {
-  height: 52px;
+  height: 72px;
   width: auto;
   object-fit: contain;
   filter: brightness(1.1);
 }
 
-.share-card__brand-name {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.65);
+.share-card--story .share-card__logo {
+  height: 84px;
 }
 
+.share-card__brand-name {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.share-card--story .share-card__brand-name {
+  font-size: 22px;
+}
+
+/* Estado: texto neutro, el acento vive solo en el dot. Un glow tipo LED
+   (`box-shadow: 0 0 12px`) se lee como neón barato en el PNG — prohibido. */
 .share-card__status {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--card-red);
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
 }
 
-.share-card--membership .share-card__status {
-  color: var(--card-gold);
-}
-
-.share-card--ticket .share-card__status {
-  color: var(--card-celeste);
-}
-
 .share-card__status-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 12px currentColor;
+  background: var(--card-accent);
+}
+
+.share-card--ticket .share-card__status-dot {
+  background: var(--card-accent-alt);
 }
 
 /* ─── Body ──────────────────────────────────────────────────────── */
@@ -285,9 +253,14 @@
   gap: 44px;
 }
 
+/* Historia: composición con gravedad, no flotante. El bloque se ancla en
+   el tercio superior (donde cae el ojo al abrir la historia) y el aire
+   queda como UNA zona deliberada antes del footer — no tres huecos
+   simétricos que hacen sentir el lienzo vacío. */
 .share-card--story .share-card__body {
-  padding: 88px 72px;
-  gap: 88px;
+  justify-content: flex-start;
+  padding: 150px 72px 48px;
+  gap: 64px;
 }
 
 /* Sección atleta */
@@ -297,18 +270,18 @@
   gap: 16px;
 }
 
-/* Con foto de perfil: avatar circular a la izquierda, texto al lado --
-   estilo credencial oficial en vez de ficha de texto suelta. */
+/* Con medallón/foto a la izquierda: credencial oficial en vez de texto
+   suelto. */
 .share-card__athlete-section--with-avatar {
   flex-direction: row;
   align-items: center;
-  gap: 32px;
+  gap: 36px;
 }
 
 .share-card__athlete-text {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   min-width: 0;
 }
 
@@ -320,13 +293,13 @@
   overflow: hidden;
   background: var(--card-surface);
   box-shadow:
-    0 0 0 3px rgba(31, 95, 158, 0.45),
+    0 0 0 3px rgba(242, 183, 5, 0.45),
     0 14px 32px rgba(0, 0, 0, 0.5);
 }
 
 .share-card--membership .share-card__avatar {
   box-shadow:
-    0 0 0 3px rgba(242, 183, 5, 0.5),
+    0 0 0 3px rgba(242, 183, 5, 0.55),
     0 14px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -343,9 +316,32 @@
   display: block;
 }
 
+/* Medallón de iniciales: el avatar de quien no sube foto. Mismo anillo y
+   sombra; disco con un degradado apenas perceptible para que tenga
+   material, no un plastiquito plano. Todo hex/rgba plano (html2canvas). */
+.share-card__avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--card-accent);
+  background: linear-gradient(180deg, #1b1d24 0%, #141518 100%);
+  text-indent: 0.01em;
+}
+
+.share-card--ticket .share-card__avatar--initials {
+  color: var(--card-accent-alt);
+}
+
 .share-card--story .share-card__avatar {
   width: 196px;
   height: 196px;
+}
+
+.share-card--story .share-card__avatar--initials {
+  font-size: 76px;
 }
 
 .share-card__eyebrow {
@@ -353,14 +349,14 @@
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--card-red);
+  color: var(--card-accent);
 }
 
 .share-card__athlete-name {
   font-size: 108px;
   font-weight: 800;
   line-height: 0.98;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: var(--card-text);
   /* Truncar nombres muy largos */
   overflow: hidden;
@@ -370,44 +366,35 @@
 }
 
 .share-card__athlete-code {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 500;
   letter-spacing: 0.1em;
-  color: var(--card-muted);
+  color: rgba(255, 255, 255, 0.45);
   font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-/* Divisor */
+/* Divisor: firma fina de marca (dorado → celeste), corta y sin brillo. */
 .share-card__divider {
-  width: 96px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--card-red) 0%, rgba(255, 255, 255, 0.55) 55%, var(--card-celeste) 100%);
+  width: 64px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--card-accent) 0%, var(--card-accent-alt) 100%);
   border-radius: 999px;
 }
 
-/* Variante afiliación: acento dorado en vez de rojo */
-.share-card--membership .share-card__eyebrow {
-  color: var(--card-gold);
-}
-
-.share-card--membership .share-card__divider {
-  background: linear-gradient(90deg, var(--card-gold) 0%, rgba(255, 255, 255, 0.45) 55%, var(--card-celeste) 100%);
-}
-
-/* Variante entrada: acento celeste (el tercer color de la bandera) */
+/* Variante entrada: el divisor invierte el orden del acento. */
 .share-card--ticket .share-card__eyebrow {
-  color: var(--card-celeste);
+  color: var(--card-accent-alt);
 }
 
 .share-card--ticket .share-card__divider {
-  background: linear-gradient(90deg, var(--card-celeste) 0%, rgba(255, 255, 255, 0.5) 55%, var(--card-red) 100%);
+  background: linear-gradient(90deg, var(--card-accent-alt) 0%, var(--card-accent) 100%);
 }
 
 /* Sección evento */
 .share-card__event-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .share-card__event-eyebrow {
@@ -418,95 +405,53 @@
   color: var(--card-muted);
 }
 
+/* Título del evento en blanco: el nombre del atleta es el protagonista y el
+   dorado queda reservado para eyebrow, divisor y filos (un solo acento). */
 .share-card__event-title {
-  font-size: 50px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--card-red);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.12;
+  color: var(--card-text);
   letter-spacing: -0.01em;
   margin: 0;
 }
 
-.share-card--membership .share-card__event-title {
-  color: var(--card-gold);
-}
-
-.share-card--ticket .share-card__event-title {
-  color: var(--card-celeste);
-}
-
 .share-card__event-meta {
-  font-size: 27px;
+  font-size: 26px;
   font-weight: 400;
-  color: var(--card-muted);
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
 }
 
 .share-card__event-category {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.62);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin: 0;
 }
 
-/* ─── Línea de corte (estilo ticket) ──────────────────────────────
-   Refuerza la idea de "credencial de ingreso": una perforación entre
-   el cuerpo y el QR de verificación, con dos remaches en los extremos. */
-.share-card__stub-line {
-  position: relative;
-  z-index: 5;
-  margin: 0 72px;
-  border-top: 2px dashed rgba(255, 255, 255, 0.18);
-}
-
-.share-card__stub-dot {
-  position: absolute;
-  top: -7px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--card-bg);
-  border: 2px solid var(--card-red);
-  box-shadow: 0 0 10px rgba(242, 183, 5, 0.5);
-  opacity: 1;
-}
-
-.share-card--membership .share-card__stub-dot {
-  border-color: var(--card-gold);
-  box-shadow: 0 0 10px rgba(242, 183, 5, 0.5);
-}
-
-.share-card--ticket .share-card__stub-dot {
-  border-color: var(--card-celeste);
-  box-shadow: 0 0 10px rgba(116, 172, 223, 0.5);
-}
-
-.share-card__stub-dot--left {
-  left: -7px;
-}
-
-.share-card__stub-dot--right {
-  right: -7px;
-}
-
-/* ─── Footer ────────────────────────────────────────────────────── */
+/* ─── Footer ──────────────────────────────────────────────────────
+   Sin línea de corte ni remaches: el aire separa. El QR ancla abajo
+   como sello de verificación; la firma de marca y la URL quedan en
+   segundo plano. */
 .share-card__footer {
   position: relative;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32px 0 60px;
+  padding: 40px 0 60px;
   margin: 0 72px;
-  gap: 28px;
+  gap: 32px;
 }
 
 /* En Story, la barra de respuesta/stickers de Instagram vive abajo de todo —
    dejamos un margen de seguridad extra para que el footer no quede tapado. */
 .share-card--story .share-card__footer {
-  padding-bottom: 176px;
+  padding-top: 48px;
+  padding-bottom: 186px;
 }
 
 .share-card__footer-col {
@@ -521,7 +466,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .share-card__url {
@@ -542,32 +487,23 @@
   height: 148px;
   padding: 12px;
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow:
-    0 0 0 2px rgba(31, 95, 158, 0.35),
-    0 12px 36px rgba(0, 0, 0, 0.45),
-    0 2px 0 rgba(255, 255, 255, 0.1) inset;
-}
-
-.share-card--membership .share-card__qr-chip {
-  box-shadow:
-    0 0 0 2px rgba(242, 183, 5, 0.4),
-    0 12px 36px rgba(0, 0, 0, 0.45),
-    0 2px 0 rgba(255, 255, 255, 0.1) inset;
+    0 0 0 1.5px rgba(242, 183, 5, 0.3),
+    0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 .share-card--ticket .share-card__qr-chip {
   box-shadow:
-    0 0 0 2px rgba(116, 172, 223, 0.4),
-    0 12px 36px rgba(0, 0, 0, 0.45),
-    0 2px 0 rgba(255, 255, 255, 0.1) inset;
+    0 0 0 1.5px rgba(116, 172, 223, 0.32),
+    0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 .share-card--story .share-card__qr-chip {
-  width: 208px;
-  height: 208px;
+  width: 224px;
+  height: 224px;
   padding: 16px;
-  border-radius: 20px;
+  border-radius: 22px;
 }
 
 .share-card__qr-img {
@@ -580,8 +516,8 @@
 .share-card__qr-caption {
   font-size: 16px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.02em;
 }
 
 .share-card--story .share-card__tagline {
@@ -778,7 +714,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.15), rgba(31, 95, 158, 0.10));
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.15), rgba(116, 172, 223, 0.10));
   border: 1px solid rgba(242, 183, 5, 0.3);
   border-radius: 10px;
   color: #fff;
@@ -793,7 +729,7 @@
 }
 
 .card-trigger-btn:hover {
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.22), rgba(31, 95, 158, 0.15));
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.22), rgba(116, 172, 223, 0.15));
   border-color: rgba(242, 183, 5, 0.5);
   transform: translateY(-1px);
 }
@@ -810,7 +746,7 @@
 /* Sección "Mi card" en el perfil */
 .account-card-share {
   position: relative;
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.08) 0%, rgba(31, 95, 158, 0.06) 100%);
+  background: linear-gradient(135deg, rgba(242, 183, 5, 0.08) 0%, rgba(116, 172, 223, 0.06) 100%);
   border: 1px solid rgba(242, 183, 5, 0.2);
   border-radius: 14px;
   padding: 24px;

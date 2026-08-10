@@ -251,7 +251,7 @@ export default function ScheduleBoardSection({
   )
 }
 
-/** Empty operativo: pipeline de preparación, sin métricas en cero. */
+/** Empty operativo: CTA primero, secuencia de preparación como orientación. */
 function SetupEmpty({ onGoToEvents, t }) {
   const steps = [
     {
@@ -276,6 +276,16 @@ function SetupEmpty({ onGoToEvents, t }) {
 
   return (
     <div className="admin-board__setup" role="status">
+      <div className="admin-board__setup-copy">
+        <h2 className="admin-board__setup-title">{t('admin.board.noDaysTitle')}</h2>
+        <p className="admin-board__setup-lead">{t('admin.board.noDaysLead')}</p>
+        {onGoToEvents ? (
+          <Button type="button" onClick={onGoToEvents}>
+            {t('admin.board.noDaysCta')}
+          </Button>
+        ) : null}
+      </div>
+
       <ol className="admin-board__pipeline" aria-label={t('admin.board.setupHint')}>
         {steps.map((step, index) => (
           <li
@@ -293,16 +303,6 @@ function SetupEmpty({ onGoToEvents, t }) {
           </li>
         ))}
       </ol>
-
-      <div className="admin-board__setup-copy">
-        <h2 className="admin-board__setup-title">{t('admin.board.noDaysTitle')}</h2>
-        <p className="admin-board__setup-lead">{t('admin.board.noDaysLead')}</p>
-        {onGoToEvents ? (
-          <Button type="button" onClick={onGoToEvents}>
-            {t('admin.board.noDaysCta')}
-          </Button>
-        ) : null}
-      </div>
     </div>
   )
 }

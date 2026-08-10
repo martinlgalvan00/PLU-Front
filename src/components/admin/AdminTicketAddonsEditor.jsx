@@ -8,7 +8,7 @@ function updateAddon(addons, index, patch) {
   return addons.map((addon, i) => (i === index ? { ...addon, ...patch } : addon))
 }
 
-export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange }) {
+export default function AdminTicketAddonsEditor({ addons = [], canEdit, errors = {}, onChange }) {
   const { locale, t } = useI18n()
 
   function addAddon() {
@@ -72,9 +72,17 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange
                     required
                     type="text"
                     value={addon.label}
+                    name={`pricing.ticketAddons.${index}.label`}
+                    data-field={`pricing.ticketAddons.${index}.label`}
+                    aria-invalid={Boolean(errors[`pricing.ticketAddons.${index}.label`])}
                     onChange={(event) => patchAddon(index, 'label', event.target.value)}
                     placeholder={t('admin.eventEditor.ticketAddonLabelPlaceholder')}
                   />
+                  {errors[`pricing.ticketAddons.${index}.label`] ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errors[`pricing.ticketAddons.${index}.label`]}
+                    </small>
+                  ) : null}
                 </label>
                 <label className="admin-event-form__field">
                   <span>{t('admin.eventEditor.ticketAddonPrice')}</span>
@@ -84,8 +92,16 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange
                     required
                     type="number"
                     value={addon.price}
+                    name={`pricing.ticketAddons.${index}.price`}
+                    data-field={`pricing.ticketAddons.${index}.price`}
+                    aria-invalid={Boolean(errors[`pricing.ticketAddons.${index}.price`])}
                     onChange={(event) => patchAddon(index, 'price', event.target.value)}
                   />
+                  {errors[`pricing.ticketAddons.${index}.price`] ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errors[`pricing.ticketAddons.${index}.price`]}
+                    </small>
+                  ) : null}
                 </label>
                 <label className="admin-event-form__field admin-event-form__field--wide">
                   <span>{t('admin.eventEditor.ticketAddonDescription')}</span>
@@ -93,9 +109,17 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange
                     disabled={!canEdit}
                     type="text"
                     value={addon.description}
+                    name={`pricing.ticketAddons.${index}.description`}
+                    data-field={`pricing.ticketAddons.${index}.description`}
+                    aria-invalid={Boolean(errors[`pricing.ticketAddons.${index}.description`])}
                     onChange={(event) => patchAddon(index, 'description', event.target.value)}
                     placeholder={t('admin.eventEditor.ticketAddonDescriptionPlaceholder')}
                   />
+                  {errors[`pricing.ticketAddons.${index}.description`] ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errors[`pricing.ticketAddons.${index}.description`]}
+                    </small>
+                  ) : null}
                 </label>
                 <label className="admin-event-form__field admin-event-form__field--wide">
                   <span>{t('admin.eventEditor.ticketAddonRedeem')}</span>
@@ -103,9 +127,17 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange
                     disabled={!canEdit}
                     type="text"
                     value={addon.redeemLabel}
+                    name={`pricing.ticketAddons.${index}.redeemLabel`}
+                    data-field={`pricing.ticketAddons.${index}.redeemLabel`}
+                    aria-invalid={Boolean(errors[`pricing.ticketAddons.${index}.redeemLabel`])}
                     onChange={(event) => patchAddon(index, 'redeemLabel', event.target.value)}
                     placeholder={t('admin.eventEditor.ticketAddonRedeemPlaceholder')}
                   />
+                  {errors[`pricing.ticketAddons.${index}.redeemLabel`] ? (
+                    <small className="admin-event-form__error" role="alert">
+                      {errors[`pricing.ticketAddons.${index}.redeemLabel`]}
+                    </small>
+                  ) : null}
                 </label>
               </div>
             </li>
@@ -114,7 +146,11 @@ export default function AdminTicketAddonsEditor({ addons = [], canEdit, onChange
       )}
 
       {canEdit ? (
-        <Button className="btn--small btn--ghost admin-ticket-addons__add" type="button" onClick={addAddon}>
+        <Button
+          className="btn--small btn--ghost admin-ticket-addons__add"
+          type="button"
+          onClick={addAddon}
+        >
           <Plus size={14} aria-hidden />
           {t('admin.eventEditor.ticketAddonAdd')}
         </Button>

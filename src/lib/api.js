@@ -88,6 +88,10 @@ export function apiPatch(path, payload) {
   })
 }
 
+export function apiDelete(path) {
+  return apiRequest(path, { method: 'DELETE' })
+}
+
 export function apiGet(path) {
   return apiRequest(path)
 }
@@ -142,6 +146,10 @@ export function updateStaffUserRoleRequest(userId, roleKey) {
 
 export function updateStaffUserStatusRequest(userId, status) {
   return apiPatch(`/api/users/${encodeURIComponent(userId)}/status`, { status })
+}
+
+export function deleteStaffUserRequest(userId) {
+  return apiDelete(`/api/users/${encodeURIComponent(userId)}`)
 }
 
 export function listAccessRolesRequest() {

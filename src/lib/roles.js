@@ -1,6 +1,7 @@
 import { ROLES } from './constants.js'
 import {
   ACCESS_ROLE_TEMPLATES,
+  getAccessRoleKey,
   getAllowedAdminSections,
   hasAnyPermission,
   hasPermission,
@@ -41,6 +42,10 @@ export function canEdit(subject) {
 
 export function canManageUsers(subject) {
   return hasPermission(subject, 'admin.users.write')
+}
+
+export function canDeleteUsers(subject) {
+  return getAccessRoleKey(subject) === 'admin_maximal'
 }
 
 export function canManageRoles(subject) {

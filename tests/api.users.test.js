@@ -27,8 +27,9 @@ function authHeaders(cookie) {
 function createPrismaDouble(seedUsers) {
   const users = [...seedUsers]
   const sessions = []
+  const auditLogs = []
   let seq = users.length
-  return {
+  const prisma = {
     user: {
       findUnique: async ({ where }) => {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
@@ -58,6 +59,12 @@ function createPrismaDouble(seedUsers) {
         Object.assign(user, data)
         return user
       },
+      delete: async ({ where }) => {
+        const index = users.findIndex((item) => item.id === where.id)
+        if (index === -1) throw new Error('Usuario inexistente')
+        const [deleted] = users.splice(index, 1)
+        return deleted
+      },
     },
     session: {
       create: async ({ data }) => {
@@ -72,7 +79,18 @@ function createPrismaDouble(seedUsers) {
       },
       updateMany: async () => ({ count: 0 }),
     },
+    auditLog: {
+      create: async ({ data }) => {
+        const auditLog = { id: `audit-${auditLogs.length + 1}`, ...data }
+        auditLogs.push(auditLog)
+        return auditLog
+      },
+    },
   }
+
+  prisma.$transaction = async (callback) => callback(prisma)
+  prisma._state = { auditLogs, users }
+  return prisma
 }
 
 async function buildAdmin(role = 'admin_plu_arg') {
@@ -262,6 +280,110 @@ describe('alta de staff (/api/users)', () => {
       })
 
       expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('permite que Super Admin elimine una cuenta y registra auditoría', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin('admin_maximal'),
+      {
+        id: 'usr-test',
+        email: 'test@pluarg.test',
+        passwordHash: null,
+        role: 'operador_plu_arg',
+        status: 'disabled',
+        profile: { firstName: 'Cuenta', lastName: 'Test' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-test`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.deletedUser).toEqual({ id: 'usr-test' })
+      expect(prisma._state.users.some((user) => user.id === 'usr-test')).toBe(false)
+      expect(prisma._state.auditLogs).toContainEqual(
+        expect.objectContaining({
+          action: 'user.deleted',
+          entityId: 'usr-test',
+          actorId: 'usr-admin',
+        }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza la eliminación para Administrador aunque gestione usuarios', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin('admin_plu_arg'),
+      {
+        id: 'usr-test',
+        email: 'test@pluarg.test',
+        passwordHash: null,
+        role: 'operador_plu_arg',
+        status: 'active',
+        profile: { firstName: 'Cuenta', lastName: 'Test' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-test`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(response.status).toBe(403)
+      expect(prisma._state.users.some((user) => user.id === 'usr-test')).toBe(true)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('impide eliminar la propia cuenta o a otro Super Admin', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin('admin_maximal'),
+      {
+        id: 'usr-max-2',
+        email: 'max2@pluarg.test',
+        passwordHash: null,
+        role: 'admin_maximal',
+        status: 'active',
+        profile: { firstName: 'Otro', lastName: 'Max' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const ownResponse = await fetch(`${target.url}/api/users/usr-admin`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+      const otherMaxResponse = await fetch(`${target.url}/api/users/usr-max-2`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(ownResponse.status).toBe(400)
+      expect(otherMaxResponse.status).toBe(403)
+      expect(prisma._state.users).toHaveLength(2)
     } finally {
       await target.close()
     }

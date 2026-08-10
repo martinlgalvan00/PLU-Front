@@ -23,7 +23,11 @@ if (!url || !key) {
 }
 
 if (!browserUrl || !anonKey) {
-  console.error('Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY.')
+  console.error(
+    'Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY.\n' +
+      'Local: agregalas al .env (mismo proyecto que SUPABASE_URL; anon = publishable).\n' +
+      'CI: el job supabase-integration debe exportarlas desde `supabase status -o env`.',
+  )
   process.exit(1)
 }
 

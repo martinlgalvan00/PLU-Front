@@ -40,6 +40,7 @@
 @import url('/src/styles/pages/events.css');
 @import url('/src/styles/pages/members.css');
 @import './layout/design-page-notebook.css';
+@import url('/src/styles/components/credential-card.css');
 @import url('/src/styles/components/event-share-card.css');
 @import url('/src/styles/components/ticket-purchase.css');
 @import url('/src/styles/components/ticket-pass-preview.css');

@@ -3088,18 +3088,22 @@
   }
 
   .auth-layout .auth-immersive-glass {
-    background: color-mix(in srgb, var(--color-bg-elevated, #12141a) 88%, transparent);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 16px;
-    box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(242, 183, 5, 0.06);
+    background: var(--color-bg-elevated, #12141a);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+    border-radius: 14px;
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-text-primary) 5%, transparent),
+      0 28px 56px -32px rgba(0, 0, 0, 0.55);
   }
 
   [data-theme='light'] .auth-layout .auth-immersive-glass {
-    background: color-mix(in srgb, var(--color-bg-elevated, #ffffff) 98%, transparent);
-    border-color: rgba(15, 17, 23, 0.1);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.08);
+    background: var(--color-bg-elevated, #ffffff);
+    border-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),
+      0 22px 44px -28px rgba(15, 17, 23, 0.14);
   }
 }
 
@@ -3140,8 +3144,15 @@ body:has(.auth-layout) {
   z-index: 0;
 }
 
+/* Flota arriba del canvas: con position:relative el pill heredaba top:16px
+   institucional y además bajaba si había banners (mock pagos / verificación),
+   tapando "Iniciar sesión". Absolute lo ancla al borde superior del shell. */
 .app-shell:has(.auth-layout) > .site-header-shell {
-  position: relative;
+  left: 0;
+  margin-inline: auto;
+  position: absolute;
+  right: 0;
+  top: 8px;
   z-index: 200;
 }
 
@@ -3204,12 +3215,12 @@ body:has(.auth-layout) {
 }
 
 .auth-layout .auth-immersive-page::before {
+  /* Un solo acento atmosférico, muy contenido — no glow de marca. */
   background:
     radial-gradient(
-      circle at 50% 12%,
-      rgba(242, 183, 5, 0.14) 0%,
-      rgba(116, 172, 223, 0.04) 45%,
-      transparent 70%
+      ellipse 70% 42% at 50% 0%,
+      color-mix(in srgb, var(--color-brand-gold) 7%, transparent) 0%,
+      transparent 68%
     );
   content: '';
   inset: 0;
@@ -3219,12 +3230,15 @@ body:has(.auth-layout) {
 }
 
 .auth-layout .auth-immersive-glass {
-  background: color-mix(in srgb, var(--color-bg-elevated, #12141a) 88%, transparent);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 16px;
-  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(242, 183, 5, 0.06);
+  /* Superficie sólida editorial: sin glass/blur. Lujo = restricción. */
+  background: var(--color-bg-elevated, #12141a);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-text-primary) 5%, transparent),
+    0 28px 56px -32px rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
   display: flex;
   flex: 1 1 auto;
@@ -3235,7 +3249,7 @@ body:has(.auth-layout) {
   max-width: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: clamp(16px, 2.8vh, 32px) clamp(18px, 4vw, 32px) clamp(14px, 2.4vh, 28px);
+  padding: clamp(18px, 3vh, 34px) clamp(18px, 4vw, 32px) clamp(16px, 2.6vh, 30px);
   position: relative;
   width: 100%;
   z-index: 1;
@@ -3245,21 +3259,24 @@ body:has(.auth-layout) {
   background: linear-gradient(
     90deg,
     var(--color-brand-gold) 0%,
-    rgba(242, 183, 5, 0.4) 40%,
+    color-mix(in srgb, var(--color-brand-gold) 42%, transparent) 42%,
     transparent 100%
   );
   content: '';
-  height: 2px;
+  height: 1px;
   left: 0;
+  opacity: 0.9;
   position: absolute;
   top: 0;
   width: 100%;
 }
 
 [data-theme='light'] .auth-layout .auth-immersive-glass {
-  background: color-mix(in srgb, var(--color-bg-elevated, #ffffff) 98%, transparent);
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-elevated, #ffffff);
+  border-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),
+    0 22px 44px -28px rgba(15, 17, 23, 0.14);
 }
 
 .auth-layout .auth-immersive-glass__header {
@@ -3270,12 +3287,12 @@ body:has(.auth-layout) {
 }
 
 .auth-immersive-glass__eyebrow {
-  color: var(--color-brand-gold);
+  color: color-mix(in srgb, var(--color-brand-gold) 82%, var(--color-text-muted));
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  margin-bottom: 6px;
   text-transform: uppercase;
 }
 
@@ -3322,11 +3339,11 @@ body:has(.auth-layout) {
 }
 
 .auth-layout .auth-immersive-glass .login-submit {
-  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-600) 100%);
-  border: none;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
   border-radius: 10px;
-  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.35);
-  color: #0d0f14;
+  box-shadow: none;
+  color: var(--color-brand-action-text, #0d0f14);
   cursor: pointer;
   font-size: 14px;
   font-weight: 700;
@@ -3335,15 +3352,16 @@ body:has(.auth-layout) {
   margin-top: clamp(4px, 1vh, 12px);
   min-height: clamp(42px, 5.8vh, 50px);
   transition:
-    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    background-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   width: 100%;
 }
 
 .auth-layout .auth-immersive-glass .login-submit:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--plu-gold-400) 0%, var(--plu-gold-500) 100%);
-  box-shadow: 0 12px 32px -4px rgba(242, 183, 5, 0.5);
+  background: var(--color-brand-action-hover, var(--plu-gold-400));
+  border-color: var(--color-brand-action-hover, var(--plu-gold-400));
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -3415,7 +3433,7 @@ body:has(.auth-layout) {
   .auth-layout .auth-immersive-glass {
     border-radius: 12px;
     gap: clamp(8px, 1.6vh, 14px);
-    padding: clamp(14px, 2.4vh, 20px) clamp(14px, 3.5vw, 18px) clamp(12px, 2vh, 18px);
+    padding: clamp(16px, 2.6vh, 22px) clamp(14px, 3.5vw, 18px) clamp(14px, 2.2vh, 20px);
     width: 100%;
   }
 
@@ -3481,7 +3499,7 @@ body:has(.auth-layout) {
     min-height: 0;
     overflow: hidden;
     width: 100%;
-    --auth-panel-pad-top: calc(var(--header-height) + clamp(20px, 3.5vh, 40px));
+    --auth-panel-pad-top: calc(var(--header-height) + clamp(8px, 1.5vh, 16px));
     --auth-panel-pad-x: clamp(32px, 4.5vw, 64px);
     --auth-panel-pad-bottom: clamp(28px, 5vh, 56px);
   }
@@ -3503,23 +3521,43 @@ body:has(.auth-layout) {
     width: 100%;
   }
 
-  /* Un solo efecto atmosférico */
-  .auth-layout__visual::before {
-    content: '';
+  .auth-layout__visual-photo {
+    inset: 0;
+    object-fit: cover;
+    object-position: 42% 28%;
+    pointer-events: none;
     position: absolute;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    animation: auth-visual-photo var(--motion-slow) var(--ease-out) both;
+  }
+
+  /* Scrim editorial: legibilidad sobre foto + un acento oro contenido */
+  .auth-layout__visual-scrim {
     inset: 0;
     pointer-events: none;
+    position: absolute;
     z-index: 0;
     background:
-      radial-gradient(
-        ellipse 56% 42% at 38% 22%,
-        color-mix(in oklab, var(--plu-gold-500) 11%, transparent),
-        transparent 74%
+      linear-gradient(
+        105deg,
+        color-mix(in srgb, var(--color-page-canvas) 92%, transparent) 0%,
+        color-mix(in srgb, var(--color-page-canvas) 72%, transparent) 42%,
+        color-mix(in srgb, var(--color-page-canvas) 38%, transparent) 72%,
+        color-mix(in srgb, var(--color-page-canvas) 22%, transparent) 100%
       ),
       linear-gradient(
         180deg,
-        transparent 70%,
-        color-mix(in oklab, var(--color-page-canvas) 55%, transparent) 100%
+        color-mix(in srgb, var(--color-page-canvas) 55%, transparent) 0%,
+        transparent 28%,
+        transparent 58%,
+        color-mix(in srgb, var(--color-page-canvas) 78%, transparent) 100%
+      ),
+      radial-gradient(
+        ellipse 48% 36% at 28% 18%,
+        color-mix(in oklab, var(--plu-gold-500) 10%, transparent),
+        transparent 72%
       );
   }
 
@@ -3535,6 +3573,8 @@ body:has(.auth-layout) {
     width: 100%;
     max-width: 400px;
     margin: 0;
+    min-height: 0;
+    height: 100%;
   }
 
   .auth-layout__emblem {
@@ -3552,10 +3592,10 @@ body:has(.auth-layout) {
     line-height: 1;
     text-transform: none;
     color: var(--color-text-primary);
-    margin: clamp(28px, 4vh, 40px) 0 0;
+    margin: clamp(20px, 3vh, 32px) 0 0;
     max-width: 8ch;
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 80ms;
+    animation-delay: 60ms;
   }
 
   .auth-layout__slogan-line {
@@ -3563,90 +3603,102 @@ body:has(.auth-layout) {
     margin-top: 0.02em;
     color: color-mix(in srgb, var(--plu-gold-500) 78%, var(--color-text-primary));
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 160ms;
+    animation-delay: 120ms;
   }
 
   .auth-layout__lead {
-    margin: clamp(16px, 2.4vh, 22px) 0 0;
-    max-width: 28ch;
+    margin: clamp(14px, 2.2vh, 20px) 0 0;
+    max-width: 34ch;
     font-family: var(--font-display);
-    font-size: 15px;
+    font-size: clamp(0.9375rem, 1.35vw, 1.0625rem);
     font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: -0.01em;
-    color: color-mix(in srgb, var(--color-text-muted) 94%, var(--color-text-primary));
+    line-height: 1.55;
+    letter-spacing: -0.012em;
+    color: color-mix(in srgb, var(--color-text-muted) 88%, var(--color-text-primary));
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 200ms;
+    animation-delay: 180ms;
   }
 
   .auth-layout__rule {
     display: block;
-    width: 36px;
+    width: 28px;
     height: 1.5px;
-    margin-top: clamp(22px, 3.2vh, 32px);
+    margin-top: clamp(18px, 2.8vh, 28px);
     background: var(--plu-gold-500);
-    opacity: 0.85;
+    opacity: 0.9;
     transform-origin: left center;
     animation: auth-visual-rule var(--motion-slow) var(--ease-out) both;
-    animation-delay: 280ms;
+    animation-delay: 240ms;
   }
 
   .auth-layout__signals {
     list-style: none;
-    margin: clamp(18px, 2.6vh, 26px) 0 0;
+    margin: clamp(16px, 2.4vh, 22px) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
+    width: 100%;
+    max-width: 30ch;
   }
 
   .auth-layout__signals li {
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     font-family: var(--font-display);
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
-    letter-spacing: 0.01em;
-    color: color-mix(in srgb, var(--color-text-primary) 78%, transparent);
-    padding-left: 14px;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--color-text-primary) 88%, transparent);
+    padding: 11px 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
     position: relative;
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
   }
 
+  .auth-layout__signals li:last-child {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  }
+
   .auth-layout__signals li:nth-child(1) {
-    animation-delay: 340ms;
+    animation-delay: 300ms;
   }
 
   .auth-layout__signals li:nth-child(2) {
-    animation-delay: 400ms;
+    animation-delay: 360ms;
   }
 
   .auth-layout__signals li:nth-child(3) {
-    animation-delay: 460ms;
+    animation-delay: 420ms;
   }
 
+  /* Marca editorial: trazo oro corto, no bullet genérico */
   .auth-layout__signals li::before {
     content: '';
-    position: absolute;
-    left: 0;
-    top: 0.55em;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 1.5px;
+    border-radius: 0;
     background: var(--plu-gold-500);
-    opacity: 0.7;
+    opacity: 0.85;
+    position: static;
   }
 
   .auth-layout__meta {
-    margin: clamp(28px, 4vh, 40px) 0 0;
+    margin-top: auto;
+    padding-top: clamp(24px, 4vh, 40px);
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     line-height: 1.45;
-    color: color-mix(in srgb, var(--color-text-muted) 82%, transparent);
+    color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 520ms;
+    animation-delay: 480ms;
   }
 
   .auth-layout__statement,
@@ -3693,16 +3745,18 @@ body:has(.auth-layout) {
     box-sizing: border-box;
     flex: 1 1 auto;
     gap: clamp(12px, 2vh, 20px);
-    justify-content: center;
+    justify-content: flex-start;
     margin: 0;
     max-width: 100%;
     min-height: 0;
     overflow: hidden;
     padding: 0;
     width: 100%;
+    animation: auth-form-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 140ms;
   }
 
-    /* Light mode: no tarjeta blanca — el split ya es canvas limpio */
+  /* Light mode: no tarjeta blanca — el split ya es canvas limpio */
   [data-theme='light'] .auth-layout__content .auth-immersive-glass {
     background: transparent;
     box-shadow: none;
@@ -3721,8 +3775,8 @@ body:has(.auth-layout) {
     align-items: flex-start;
     text-align: left;
     gap: 0;
-    margin-bottom: clamp(20px, 3vh, 28px);
-    padding-bottom: clamp(18px, 2.5vh, 24px);
+    margin-bottom: clamp(16px, 2.4vh, 24px);
+    padding-bottom: clamp(14px, 2vh, 20px);
     border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
     width: 100%;
   }
@@ -3796,7 +3850,7 @@ body:has(.auth-layout) {
   /* Pantallas bajas en split: compactar, no scrollear */
   @media (max-height: 680px) {
     .auth-layout {
-      --auth-panel-pad-top: calc(var(--header-height) + clamp(10px, 2vh, 18px));
+      --auth-panel-pad-top: calc(var(--header-height) + clamp(4px, 1vh, 10px));
       --auth-panel-pad-bottom: clamp(16px, 3vh, 28px);
     }
 
@@ -3822,7 +3876,31 @@ body:has(.auth-layout) {
 @keyframes auth-visual-enter {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-visual-photo {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes auth-form-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
 
   to {
@@ -3844,18 +3922,25 @@ body:has(.auth-layout) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .auth-layout__visual-photo,
   .auth-layout__emblem,
   .auth-layout__slogan,
   .auth-layout__slogan-line,
   .auth-layout__lead,
   .auth-layout__rule,
   .auth-layout__signals li,
-  .auth-layout__meta {
+  .auth-layout__meta,
+  .auth-layout__content .auth-immersive-glass {
     animation: none;
   }
 
   .auth-layout__rule {
     opacity: 0.85;
+    transform: none;
+  }
+
+  .auth-layout__visual-photo {
+    opacity: 1;
     transform: none;
   }
 
@@ -3868,14 +3953,27 @@ body:has(.auth-layout) {
   }
 }
 
-[data-theme='light'] .auth-layout__visual::before {
+[data-theme='light'] .auth-layout__visual-scrim {
   background:
-    radial-gradient(
-      ellipse 56% 42% at 38% 22%,
-      color-mix(in oklab, var(--plu-gold-500) 14%, transparent),
-      transparent 74%
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--color-page-canvas) 94%, transparent) 0%,
+      color-mix(in srgb, var(--color-page-canvas) 78%, transparent) 44%,
+      color-mix(in srgb, var(--color-page-canvas) 42%, transparent) 74%,
+      color-mix(in srgb, var(--color-page-canvas) 28%, transparent) 100%
     ),
-    linear-gradient(180deg, transparent 72%, var(--color-page-canvas) 100%);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-page-canvas) 62%, transparent) 0%,
+      transparent 30%,
+      transparent 56%,
+      color-mix(in srgb, var(--color-page-canvas) 82%, transparent) 100%
+    ),
+    radial-gradient(
+      ellipse 48% 36% at 28% 18%,
+      color-mix(in oklab, var(--plu-gold-500) 12%, transparent),
+      transparent 72%
+    );
 }
 
 [data-theme='light'] .auth-layout__visual {

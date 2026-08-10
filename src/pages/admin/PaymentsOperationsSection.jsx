@@ -1,5 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { LoaderCircle, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  BadgeDollarSign,
+  LoaderCircle,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Ticket,
+  Webhook,
+} from 'lucide-react'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
@@ -7,6 +17,7 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { money } from '../../lib/format.js'
 import {
   getPaymentOperations,
   recoverPaymentOperations,
@@ -22,6 +33,33 @@ function formatDate(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
+}
+
+function scrollToId(id) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.getElementById(id)?.scrollIntoView({
+    block: 'start',
+    behavior: reduceMotion ? 'auto' : 'smooth',
+  })
+}
+
+function OpsKpi({ icon: Icon, label, value, hint, tone, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`admin-payments-ops-strip__kpi admin-payments-ops-strip__kpi--${tone}`}
+      onClick={onClick}
+    >
+      <span className="admin-payments-ops-strip__kpi-icon" aria-hidden>
+        <Icon size={15} strokeWidth={1.7} />
+      </span>
+      <span className="admin-payments-ops-strip__kpi-body">
+        <span className="admin-payments-ops-strip__kpi-value">{value}</span>
+        <span className="admin-payments-ops-strip__kpi-label">{label}</span>
+        {hint ? <span className="admin-payments-ops-strip__kpi-hint">{hint}</span> : null}
+      </span>
+    </button>
+  )
 }
 
 export default function PaymentsOperationsSection({
@@ -42,8 +80,15 @@ export default function PaymentsOperationsSection({
   const [recovering, setRecovering] = useState(false)
   const [retryingId, setRetryingId] = useState(null)
   const [status, setStatus] = useState('')
+  const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
+  const [athleteStatusRequest, setAthleteStatusRequest] = useState(null)
+  const [athleteSummary, setAthleteSummary] = useState({
+    pending: null,
+    openAmount: null,
+    loading: true,
+  })
 
-  const load = useCallback(async () => {
+  const loadOps = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -55,14 +100,19 @@ export default function PaymentsOperationsSection({
     }
   }, [status, t])
 
+  const refreshAll = useCallback(async () => {
+    setAthleteRefreshKey((key) => key + 1)
+    await Promise.all([loadOps(), onRefreshManual?.() ?? Promise.resolve()])
+  }, [loadOps, onRefreshManual])
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadOps()
+  }, [loadOps])
 
   useEffect(() => {
     if (!ticketOrderEventScope || loading) return undefined
     const frame = window.requestAnimationFrame(() => {
-      document.getElementById('admin-ticket-orders')?.scrollIntoView({ block: 'start' })
+      scrollToId('admin-ticket-orders')
     })
     return () => window.cancelAnimationFrame(frame)
   }, [loading, ticketOrderEventScope])
@@ -72,7 +122,7 @@ export default function PaymentsOperationsSection({
     setError('')
     try {
       await recoverPaymentOperations()
-      await load()
+      await refreshAll()
     } catch (recoverError) {
       setError(recoverError?.message ?? t('admin.paymentOperations.recoverError'))
     } finally {
@@ -86,7 +136,7 @@ export default function PaymentsOperationsSection({
     try {
       if (row.operationKind === 'reconciliation') await retryPaymentReconciliation(row.id)
       else await retryPaymentEvent(row.id)
-      await load()
+      await loadOps()
     } catch (retryError) {
       setError(retryError?.message ?? t('admin.paymentOperations.retryError'))
     } finally {
@@ -94,34 +144,46 @@ export default function PaymentsOperationsSection({
     }
   }
 
+  const handleAthleteSummaryChange = useCallback((summary) => {
+    setAthleteSummary(summary)
+  }, [])
+
   const summary = data?.summary ?? {}
-  const healthIssues = summary.health
-    ? Number(summary.health.athleteOrderDrift ?? 0) +
-      Number(summary.health.ticketOrderDrift ?? 0) +
-      Number(summary.health.staleEventLocks ?? 0) +
-      Number(summary.health.staleReconciliationLocks ?? 0) +
-      Number(summary.health.exhaustedEvents ?? 0)
+  const health = summary.health ?? null
+  const healthIssues = health
+    ? Number(health.athleteOrderDrift ?? 0) +
+      Number(health.ticketOrderDrift ?? 0) +
+      Number(health.staleEventLocks ?? 0) +
+      Number(health.staleReconciliationLocks ?? 0) +
+      Number(health.exhaustedEvents ?? 0)
     : null
   const failedCount = summary.events?.failed ?? 0
   const pendingReconciliations = summary.attempts?.reconciliationPending ?? 0
+  const pastDue = summary.subscriptions?.pastDue ?? 0
   const runtimeReady = data?.configuration?.ready !== false
   const isLedgerHealthy =
     Boolean(data) &&
     runtimeReady &&
     failedCount === 0 &&
     pendingReconciliations === 0 &&
-    summary.health?.healthy !== false
+    health?.healthy !== false
+
+  const ticketPendingCount = pendingTicketOrders?.length ?? 0
+  const ticketsWithProof = useMemo(
+    () => (pendingTicketOrders ?? []).filter((order) => order.paymentProofPath).length,
+    [pendingTicketOrders],
+  )
 
   const primaryMetrics = [
     {
       id: 'integrity',
       label: t('admin.paymentOperations.integrity'),
-      value: summary.health?.healthy
-        ? (runtimeReady
-            ? t('admin.paymentOperations.integrityOk')
-            : t('admin.paymentOperations.configurationBlocked'))
+      value: health?.healthy
+        ? runtimeReady
+          ? t('admin.paymentOperations.integrityOk')
+          : t('admin.paymentOperations.configurationBlocked')
         : (healthIssues ?? '—'),
-      tone: summary.health?.healthy && runtimeReady ? 'success' : 'danger',
+      tone: health?.healthy && runtimeReady ? 'success' : 'danger',
     },
     {
       id: 'failed',
@@ -138,14 +200,8 @@ export default function PaymentsOperationsSection({
     {
       id: 'pastDue',
       label: t('admin.paymentOperations.pastDueSubscriptions'),
-      value: summary.subscriptions?.pastDue ?? 0,
-      tone: (summary.subscriptions?.pastDue ?? 0) > 0 ? 'warning' : 'neutral',
-    },
-    {
-      id: 'processed',
-      label: t('admin.paymentOperations.processedEvents'),
-      value: summary.events?.processed ?? 0,
-      tone: 'neutral',
+      value: pastDue,
+      tone: pastDue > 0 ? 'warning' : 'neutral',
     },
   ]
 
@@ -170,10 +226,217 @@ export default function PaymentsOperationsSection({
     isLedgerHealthy &&
     (!status || status === 'failed')
 
+  const athletePending =
+    athleteSummary.loading || athleteSummary.pending == null ? null : athleteSummary.pending
+  const athleteOpenAmount =
+    athleteSummary.loading || athleteSummary.openAmount == null
+      ? null
+      : athleteSummary.openAmount
+
+  const integrityTone =
+    !data || loading
+      ? 'neutral'
+      : !isLedgerHealthy || pastDue > 0
+        ? 'danger'
+        : 'success'
+
+  const integrityValue = !data || loading
+    ? '—'
+    : !isLedgerHealthy
+      ? (healthIssues ?? t('admin.paymentOperations.integrityAlert'))
+      : pastDue > 0
+        ? pastDue
+        : t('admin.paymentOperations.integrityOk')
+
+  const integrityHint = !data || loading
+    ? null
+    : !isLedgerHealthy
+      ? t('admin.paymentOperations.kpiIntegrityHintIssue')
+      : pastDue > 0
+        ? t('admin.paymentOperations.kpiIntegrityHintMora', { count: pastDue })
+        : null
+
+  const healthBreakdown = []
+  if (health && health.healthy === false) {
+    if (Number(health.athleteOrderDrift ?? 0) > 0) {
+      healthBreakdown.push(
+        t('admin.paymentOperations.healthAthleteDrift', { count: health.athleteOrderDrift }),
+      )
+    }
+    if (Number(health.ticketOrderDrift ?? 0) > 0) {
+      healthBreakdown.push(
+        t('admin.paymentOperations.healthTicketDrift', { count: health.ticketOrderDrift }),
+      )
+    }
+    if (Number(health.staleEventLocks ?? 0) > 0) {
+      healthBreakdown.push(
+        t('admin.paymentOperations.healthStaleEventLocks', { count: health.staleEventLocks }),
+      )
+    }
+    if (Number(health.staleReconciliationLocks ?? 0) > 0) {
+      healthBreakdown.push(
+        t('admin.paymentOperations.healthStaleReconciliationLocks', {
+          count: health.staleReconciliationLocks,
+        }),
+      )
+    }
+    if (Number(health.exhaustedEvents ?? 0) > 0) {
+      healthBreakdown.push(
+        t('admin.paymentOperations.healthExhaustedEvents', { count: health.exhaustedEvents }),
+      )
+    }
+  }
+
+  const configIssues = Array.isArray(data?.configuration?.issues)
+    ? data.configuration.issues.filter(Boolean)
+    : []
+  const showHealthCallout =
+    Boolean(data) && (healthBreakdown.length > 0 || (!runtimeReady && configIssues.length > 0))
+
+  function focusAthletes() {
+    setAthleteStatusRequest({ status: 'pending', at: Date.now() })
+    scrollToId('admin-athlete-payments')
+  }
+
+  function focusTickets() {
+    scrollToId('admin-ticket-orders')
+  }
+
+  function focusLedger(nextStatus = '') {
+    setStatus(nextStatus)
+    scrollToId('admin-payment-ledger')
+  }
+
   return (
     <div className="admin-payments-operations">
-      <section className="admin-payment-ops" aria-labelledby="payment-ops-title">
-        <header className="admin-payment-ops__header">
+      <div className="admin-payments-ops-strip" aria-label={t('admin.paymentOperations.opsStripAria')}>
+        <div className="admin-payments-ops-strip__kpis">
+          <OpsKpi
+            icon={BadgeDollarSign}
+            label={t('admin.paymentOperations.kpiAthletes')}
+            value={athletePending == null ? '—' : athletePending}
+            hint={
+              athleteOpenAmount != null && athleteOpenAmount > 0
+                ? t('admin.paymentOperations.kpiAthletesHint', {
+                    amount: money(athleteOpenAmount, locale),
+                  })
+                : null
+            }
+            tone={athletePending > 0 ? 'warning' : 'neutral'}
+            onClick={focusAthletes}
+          />
+          <OpsKpi
+            icon={Ticket}
+            label={t('admin.paymentOperations.kpiTickets')}
+            value={manualLoading && ticketPendingCount === 0 ? '—' : ticketPendingCount}
+            hint={
+              ticketsWithProof > 0
+                ? t('admin.paymentOperations.kpiTicketsHint', { count: ticketsWithProof })
+                : null
+            }
+            tone={ticketPendingCount > 0 ? 'warning' : 'neutral'}
+            onClick={focusTickets}
+          />
+          <OpsKpi
+            icon={Webhook}
+            label={t('admin.paymentOperations.kpiFailed')}
+            value={loading && !data ? '—' : failedCount}
+            tone={failedCount > 0 ? 'danger' : 'neutral'}
+            onClick={() => focusLedger('failed')}
+          />
+          <OpsKpi
+            icon={RotateCcw}
+            label={t('admin.paymentOperations.kpiReconciliations')}
+            value={loading && !data ? '—' : pendingReconciliations}
+            tone={pendingReconciliations > 0 ? 'warning' : 'neutral'}
+            onClick={() => focusLedger('')}
+          />
+          <OpsKpi
+            icon={integrityTone === 'danger' ? ShieldAlert : ShieldCheck}
+            label={t('admin.paymentOperations.kpiIntegrity')}
+            value={integrityValue}
+            hint={integrityHint}
+            tone={integrityTone}
+            onClick={() => focusLedger('')}
+          />
+        </div>
+        <div className="admin-payments-ops-strip__actions">
+          <button
+            type="button"
+            className="btn btn--outline btn--small"
+            onClick={() => void refreshAll()}
+            disabled={loading || recovering}
+          >
+            <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
+          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => void handleRecover()}
+              disabled={recovering}
+            >
+              <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {showHealthCallout ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <AlertTriangle size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            {healthBreakdown.length > 0 ? (
+              <>
+                <strong>{t('admin.paymentOperations.healthCalloutTitle')}</strong>
+                <ul>
+                  {healthBreakdown.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {!runtimeReady && configIssues.length > 0 ? (
+              <>
+                <strong>{t('admin.paymentOperations.configIssuesTitle')}</strong>
+                <ul>
+                  {configIssues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <AthletePaymentOrdersSection
+        canEdit={canEdit}
+        highlightOrderId={highlightOrderId}
+        onApprovePayment={onApprovePayment}
+        onSummaryChange={handleAthleteSummaryChange}
+        refreshKey={athleteRefreshKey}
+        statusFilter={athleteStatusRequest}
+      />
+
+      <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
+        <TicketOrdersSection
+          canEdit={canEdit}
+          initialQuery={ticketOrderEventScope}
+          pendingTicketOrders={pendingTicketOrders}
+          isLoading={manualLoading}
+          loadError={manualError}
+          onApproveTicketOrder={onApproveTicketOrder}
+          onRefresh={onRefreshManual}
+        />
+      </div>
+
+      <section
+        id="admin-payment-ledger"
+        className="admin-payment-ops"
+        aria-labelledby="payment-ops-title"
+      >
+        <header className="admin-payment-ops__header admin-payment-ops__header--compact">
           <div className="admin-payment-ops__intro">
             <span className="admin-payment-ops__eyebrow">
               <ShieldCheck size={14} aria-hidden /> Mercado Pago
@@ -181,24 +444,36 @@ export default function PaymentsOperationsSection({
             <h2 id="payment-ops-title">{t('admin.paymentOperations.title')}</h2>
             <p className="admin-payment-ops__subtitle">{t('admin.paymentOperations.subtitle')}</p>
             {data?.configuration ? (
-              <ul className="admin-payment-ops__healthy-facts">
-                <li>
-                  <span>{t('admin.paymentOperations.provider')}</span>
-                  <strong>{data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}</strong>
-                </li>
-                <li>
-                  <span>{t('admin.paymentOperations.webhook')}</span>
-                  <strong>{t(data.configuration.webhookConfigured
-                    ? 'admin.paymentOperations.configured'
-                    : 'admin.paymentOperations.missing')}</strong>
-                </li>
-                <li>
-                  <span>{t('admin.paymentOperations.processingMode')}</span>
-                  <strong>{t(data.configuration.webhookProcessingMode === 'deferred'
-                    ? 'admin.paymentOperations.deferred'
-                    : 'admin.paymentOperations.inline')}</strong>
-                </li>
-              </ul>
+              <p className="admin-payment-ops__meta-line">
+                <span>
+                  {t('admin.paymentOperations.provider')}:{' '}
+                  <strong>
+                    {data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}
+                  </strong>
+                </span>
+                <span aria-hidden>·</span>
+                <span>
+                  {t('admin.paymentOperations.webhook')}:{' '}
+                  <strong>
+                    {t(
+                      data.configuration.webhookConfigured
+                        ? 'admin.paymentOperations.configured'
+                        : 'admin.paymentOperations.missing',
+                    )}
+                  </strong>
+                </span>
+                <span aria-hidden>·</span>
+                <span>
+                  {t('admin.paymentOperations.processingMode')}:{' '}
+                  <strong>
+                    {t(
+                      data.configuration.webhookProcessingMode === 'deferred'
+                        ? 'admin.paymentOperations.deferred'
+                        : 'admin.paymentOperations.inline',
+                    )}
+                  </strong>
+                </span>
+              </p>
             ) : null}
           </div>
           <div className="admin-payment-ops__toolbar">
@@ -218,26 +493,6 @@ export default function PaymentsOperationsSection({
                 )}
               </span>
             ) : null}
-            <div className="admin-payment-ops__actions">
-              <button
-                type="button"
-                className="btn btn--outline btn--small"
-                onClick={load}
-                disabled={loading}
-              >
-                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-              </button>
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={handleRecover}
-                  disabled={recovering}
-                >
-                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-                </button>
-              ) : null}
-            </div>
           </div>
         </header>
 
@@ -276,27 +531,37 @@ export default function PaymentsOperationsSection({
               ['processed', t('admin.paymentOperations.processed'), summary.events?.processed],
             ]}
           />
-          {summary.updatedAt ? (
-            <small className="admin-payment-ops__filter-meta">
-              {t('admin.paymentOperations.updatedAt', {
-                date: formatDate(summary.updatedAt, locale),
-              })}
-            </small>
-          ) : null}
+          <small className="admin-payment-ops__filter-meta">
+            {summary.updatedAt
+              ? t('admin.paymentOperations.updatedAt', {
+                  date: formatDate(summary.updatedAt, locale),
+                })
+              : null}
+            {summary.events?.processed != null ? (
+              <>
+                {summary.updatedAt ? ' · ' : null}
+                {t('admin.paymentOperations.processedEvents')}: {summary.events.processed}
+              </>
+            ) : null}
+          </small>
         </div>
 
         {error ? (
-          <ErrorState message={error} onRetry={load} retryLabel={t('common.retry')} />
+          <ErrorState message={error} onRetry={loadOps} retryLabel={t('common.retry')} />
         ) : loading && !data ? (
           <LoadingState label={t('admin.paymentOperations.loading')} />
         ) : showHealthyEmpty ? (
-          <div className="admin-empty admin-empty--payment-ops">
-            <span className="admin-empty__icon" aria-hidden>
-              <ShieldCheck size={22} strokeWidth={1.6} />
+          <p className="admin-payment-ops__healthy-line" role="status">
+            <ShieldCheck size={16} aria-hidden />
+            <span>
+              {t('admin.paymentOperations.emptyHealthyCompact')}
+              {summary.updatedAt
+                ? ` · ${t('admin.paymentOperations.updatedAt', {
+                    date: formatDate(summary.updatedAt, locale),
+                  })}`
+                : null}
             </span>
-            <h3 className="admin-empty__title">{t('admin.paymentOperations.emptyHealthyTitle')}</h3>
-            <p className="admin-empty__lead">{t('admin.paymentOperations.emptyHealthyLead')}</p>
-          </div>
+          </p>
         ) : (
           <AdminDataTable
             variant="admin"
@@ -373,24 +638,6 @@ export default function PaymentsOperationsSection({
           />
         )}
       </section>
-
-      <AthletePaymentOrdersSection
-        canEdit={canEdit}
-        highlightOrderId={highlightOrderId}
-        onApprovePayment={onApprovePayment}
-      />
-
-      <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
-        <TicketOrdersSection
-          canEdit={canEdit}
-          initialQuery={ticketOrderEventScope}
-          pendingTicketOrders={pendingTicketOrders}
-          isLoading={manualLoading}
-          loadError={manualError}
-          onApproveTicketOrder={onApproveTicketOrder}
-          onRefresh={onRefreshManual}
-        />
-      </div>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing } from '../lib/eventPricing.js'
+import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { formatRelativeTime, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
@@ -117,7 +118,7 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
         <div className="pitbull-inscription-counter__stat">
           <AnimatedNumber className="pitbull-inscription-counter__value" value={registered} />
           <span className="pitbull-inscription-counter__of">/ {slots}</span>
-          <span className="pitbull-inscription-counter__unit">cupos</span>
+          <span className="pitbull-inscription-counter__unit">{t('pages.pitbull.slots')}</span>
         </div>
         {reducedMotion ? (
           <span className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}>
@@ -254,31 +255,40 @@ function PitbullExperienceSection({ t }) {
 }
 
 function PitbullWeighInSnapshot() {
+  const { t } = useI18n()
+
   return (
     <PitbullDossierSection
       id="pesajes"
       className="pitbull-dossier__section--weighins"
-      eyebrow="03"
-      index="03"
-      lead="Control estricto de peso corporal. Sin excepciones."
-      title="Pesajes Oficiales"
+      eyebrow={t('pages.pitbull.weighInsEyebrow')}
+      index={t('pages.pitbull.weighInsIndex')}
+      lead={t('pages.pitbull.weighInsLead')}
+      title={t('pages.pitbull.weighInsTitle')}
       titleId="pitbull-weighins-title"
     >
-      <div className="pitbull-weighins">
-        <div className="pitbull-weighin-card">
-          <span className="pitbull-weighin-card__day">Viernes</span>
-          <div className="pitbull-weighin-card__details">
-            <time className="pitbull-weighin-card__time">09:00 — 12:00<br/>16:00 — 19:00</time>
-            <p className="pitbull-weighin-card__note">Pesaje adelantado. Opcional para todas las categorías.</p>
+      <div className="pitbull-weighins" role="list">
+        <article className="pitbull-weighin" role="listitem">
+          <p className="pitbull-weighin__day">{t('pages.pitbull.weighInsFriday')}</p>
+          <div className="pitbull-weighin__slots">
+            <time className="pitbull-weighin__time" dateTime="09:00/12:00">
+              {t('pages.pitbull.weighInsFridaySlot1')}
+            </time>
+            <time className="pitbull-weighin__time" dateTime="16:00/19:00">
+              {t('pages.pitbull.weighInsFridaySlot2')}
+            </time>
           </div>
-        </div>
-        <div className="pitbull-weighin-card">
-          <span className="pitbull-weighin-card__day">Sábado</span>
-          <div className="pitbull-weighin-card__details">
-            <time className="pitbull-weighin-card__time">07:00 — 08:30</time>
-            <p className="pitbull-weighin-card__note">Último llamado. Exclusivo para atletas que compiten y no se pesaron el viernes.</p>
+          <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsFridayNote')}</p>
+        </article>
+        <article className="pitbull-weighin" role="listitem">
+          <p className="pitbull-weighin__day">{t('pages.pitbull.weighInsSaturday')}</p>
+          <div className="pitbull-weighin__slots">
+            <time className="pitbull-weighin__time" dateTime="07:00/08:30">
+              {t('pages.pitbull.weighInsSaturdaySlot')}
+            </time>
           </div>
-        </div>
+          <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsSaturdayNote')}</p>
+        </article>
       </div>
     </PitbullDossierSection>
   )
@@ -289,6 +299,20 @@ function PitbullLocationSection({ event, venue, t }) {
   const lead = venue.street
     ? [venue.street, locality].filter(Boolean).join(' · ')
     : t('pages.pitbull.locationLead')
+
+  const travelTarget = {
+    ...event,
+    address: venue.address,
+    addressVenue: venue.name,
+    coordinateVenue: venue.name,
+    latitude: venue.latitude ?? event?.latitude,
+    location: venue.locality ?? event?.location,
+    longitude: venue.longitude ?? event?.longitude,
+    mapsUrl: venue.mapsUrl || event?.mapsUrl,
+    venue: venue.name,
+  }
+  const googleMapsUrl = venue.mapsUrl || buildExternalMapUrl(travelTarget)
+  const wazeUrl = buildWazeUrl(travelTarget)
 
   return (
     <PitbullDossierSection
@@ -313,16 +337,34 @@ function PitbullLocationSection({ event, venue, t }) {
               {venue.street ? <p className="pitbull-venue__street">{venue.street}</p> : null}
               {locality ? <p className="pitbull-venue__locality">{locality}</p> : null}
             </div>
-            {venue.mapsUrl ? (
-              <a
-                className="pitbull-venue__directions motion-icon-shift"
-                href={venue.mapsUrl}
-                rel="noopener noreferrer"
-                target="_blank"
+            {googleMapsUrl || wazeUrl ? (
+              <nav
+                className="pitbull-venue__travel"
+                aria-label={t('pages.pitbull.locationTravelAria')}
               >
-                {t('pages.pitbull.locationDirectionsCta')}
-                <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-              </a>
+                {googleMapsUrl ? (
+                  <a
+                    className="pitbull-venue__directions pitbull-venue__directions--maps motion-icon-shift"
+                    href={googleMapsUrl}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('pages.pitbull.locationMapsLink')}
+                    <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+                  </a>
+                ) : null}
+                {wazeUrl ? (
+                  <a
+                    className="pitbull-venue__directions pitbull-venue__directions--waze"
+                    href={wazeUrl}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('pages.pitbull.locationWazeLink')}
+                    <ArrowRight size={14} aria-hidden />
+                  </a>
+                ) : null}
+              </nav>
             ) : null}
           </div>
         </div>
@@ -687,7 +729,7 @@ export default function PitbullPage({
   })
   const sectionNavItems = [
     { id: 'experiencia', index: '02', label: 'Experiencia' },
-    { id: 'pesajes', index: '03', label: 'Pesajes' },
+    { id: 'pesajes', index: '03', label: t('pages.pitbull.weighInsEyebrow') },
     { id: 'categorias', index: '04', label: t('pages.pitbull.categoriesEyebrow') },
     { id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') },
     { id: 'inscripcion', index: '06', label: t('pages.pitbull.inscriptionEyebrow') },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   canApproveManualPayments,
+  canDeleteUsers,
   canEditOperationalData,
   canExport,
   canExportPluUsa,
@@ -57,6 +58,15 @@ describe('roles', () => {
     expect(canManageUsers('admin_plu_arg')).toBe(true)
     expect(canManageUsers('plu_arg')).toBe(false)
     expect(canManageRoles('admin_plu_arg')).toBe(true)
+    expect(canDeleteUsers('admin_maximal')).toBe(true)
+    expect(canDeleteUsers('admin_plu_arg')).toBe(false)
+    expect(
+      canDeleteUsers({
+        role: 'admin_plu_arg',
+        roleKey: 'admin_plu_arg',
+        permissions: ['admin.users.write'],
+      }),
+    ).toBe(false)
   })
 
   it('permite administrar permisos de roles operativos base y personalizados', () => {

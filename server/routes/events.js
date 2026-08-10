@@ -99,6 +99,7 @@ export const eventSchema = z
       .max(160)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug inválido.'),
     title: z.string().trim().min(3).max(120),
+    description: z.string().trim().max(1000).optional(),
     venue: z.string().trim().min(2).max(120),
     location: z.string().trim().min(2).max(120),
     startsAt: z

@@ -196,9 +196,12 @@ export default function RulebookPage({ onNavigate }) {
 
       <div className="institutional-page__inner rulebook-institutional__inner">
         <section className="rulebook-document-block" aria-labelledby="rulebook-document-title">
-          <header className="institutional-section-head institutional-section-head--compact">
-            <p className="institutional-kicker">01 / {t('pages.rulebook.docSectionEyebrow')}</p>
-            <div><h2 id="rulebook-document-title">{t('pages.rulebook.docSectionTitle')}</h2><p>{t('pages.rulebook.docSectionLead')}</p></div>
+          <header className="rulebook-document-block__head">
+            <p className="rulebook-document-block__kicker">01 / {t('pages.rulebook.docSectionEyebrow')}</p>
+            <div className="rulebook-document-block__copy">
+              <h2 id="rulebook-document-title">{t('pages.rulebook.docSectionTitle')}</h2>
+              <p>{t('pages.rulebook.docSectionLead')}</p>
+            </div>
           </header>
           <RulebookDocShell documents={rulebook.documents} downloadMeta={downloadMeta} locale={locale} manifest={rulebook.manifest} />
         </section>

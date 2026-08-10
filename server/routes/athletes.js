@@ -5,7 +5,13 @@ import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { athleteAuthLimiter, athleteWriteLimiter, publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import {
+  athleteAuthLimiter,
+  athleteWriteLimiter,
+  publicReadLimiter,
+  publicWriteLimiter,
+  staffLimiter,
+} from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
@@ -32,6 +38,7 @@ import {
   createAthleteSession,
   getAthleteSessionCookieOptions,
   getClearAthleteSessionCookieOptions,
+  readAthleteSession,
   requireAthleteSession,
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
@@ -301,6 +308,21 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     }
   })
 
+  /**
+   * Foto firmada para la página pública de verificación QR. Sin sesión: el
+   * código tiene que ser el token del QR (la RPC no expone photo_path por
+   * member_code). Rate-limited como el resto de lecturas públicas.
+   */
+  router.get('/public/credential-photo', publicReadLimiter, async (req, res, next) => {
+    try {
+      const code = String(req.query.code ?? '').trim()
+      if (!code) throw new HttpError(400, 'Falta el código de credencial.')
+      res.json(await repo().signCredentialPhoto(code))
+    } catch (error) {
+      next(error)
+    }
+  })
+
   // Público: el link llega por email y se abre sin sesión iniciada.
   router.post('/verify-email', publicWriteLimiter, validateBody(
     z.object({ token: z.string().trim().min(20, 'El enlace de verificación no es válido.') }),
@@ -412,9 +434,19 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     }
   })
 
+  // Probe de bootstrap (igual que /api/auth/me): sin cookie responde 200 +
+  // user null para que el restore anónimo no figure como error en DevTools.
   router.get('/session', async (req, res, next) => {
     try {
-      const auth = await athlete(req)
+      const auth = await readAthleteSession({
+        client: client(),
+        token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
+      })
+      if (!auth) {
+        res.json({ user: null })
+        return
+      }
+
       const data = await repo().snapshot(auth.athleteId)
       res.json({
         user: {

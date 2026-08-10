@@ -54,6 +54,9 @@ export default function AthletePaymentOrdersSection({
   canEdit,
   highlightOrderId = null,
   onApprovePayment,
+  onSummaryChange,
+  refreshKey = 0,
+  statusFilter = null,
 }) {
   const { locale, t } = useI18n()
   const [orders, setOrders] = useState([])
@@ -80,6 +83,16 @@ export default function AthletePaymentOrdersSection({
   }, [load])
 
   useEffect(() => {
+    if (refreshKey === 0) return
+    void load()
+  }, [refreshKey, load])
+
+  useEffect(() => {
+    if (statusFilter?.status == null) return
+    setStatus(statusFilter.status)
+  }, [statusFilter])
+
+  useEffect(() => {
     if (!highlightOrderId || loading) return undefined
     const frame = window.requestAnimationFrame(() => {
       document.getElementById('admin-athlete-payments')?.scrollIntoView({ block: 'start' })
@@ -97,6 +110,14 @@ export default function AthletePaymentOrdersSection({
       openAmount: open.reduce((sum, order) => sum + (order.amount ?? 0), 0),
     }
   }, [orders])
+
+  useEffect(() => {
+    onSummaryChange?.({
+      pending: counts.pending,
+      openAmount: counts.openAmount,
+      loading,
+    })
+  }, [counts.openAmount, counts.pending, loading, onSummaryChange])
 
   const rows = useMemo(() => {
     const filtered = orders.filter((order) => {

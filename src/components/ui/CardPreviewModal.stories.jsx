@@ -28,3 +28,11 @@ export const OpenWithPhoto = {
     cardData: { ...cardData, variant: 'membership', athletePhotoUrl: 'https://picsum.photos/seed/plu-arg/400/400' },
   },
 }
+
+/** Abierto directo en formato historia (así se abre desde el perfil en mobile). */
+export const OpenAsStory = {
+  args: {
+    initialFormat: 'story',
+    cardData: { ...cardData, variant: 'membership' },
+  },
+}

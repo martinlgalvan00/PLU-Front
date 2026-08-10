@@ -27,6 +27,7 @@ describe('eventAdminService', () => {
       id: '11111111-1111-4111-8111-111111111111',
       slug: 'pitbull-classic-2026',
       title: 'Pitbull Classic',
+      description: 'Fecha nacional con dos plataformas.',
       dateISO: '2026-08-15',
       venue: 'Maximal Strength Club',
       location: 'Buenos Aires',
@@ -49,6 +50,7 @@ describe('eventAdminService', () => {
       expectedUpdatedAt: '2026-07-26T12:00:00.000Z',
       published: true,
       requiresMembership: false,
+      description: 'Fecha nacional con dos plataformas.',
     })
     expect(draft.startsAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
     expect(mapDraftToPreviewEvent({ ...draft, title: 'Título nuevo' }).slug).toBe(
@@ -139,7 +141,10 @@ describe('getEventConsistencyWarnings', () => {
   it('no advierte nada cuando el estado coincide con la configuración', () => {
     expect(
       getEventConsistencyWarnings(
-        draft({ registrationOpensAt: '2026-07-01T00:00', registrationClosesAt: '2026-09-01T00:00' }),
+        draft({
+          registrationOpensAt: '2026-07-01T00:00',
+          registrationClosesAt: '2026-09-01T00:00',
+        }),
         { registered: 40 },
         now,
       ),

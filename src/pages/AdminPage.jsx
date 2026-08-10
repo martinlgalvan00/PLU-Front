@@ -37,6 +37,7 @@ export default function AdminPage({
   adminEventsError,
   allowedSections = [],
   authorization,
+  canDeleteUsers,
   canManageUsers,
   dashboardOverview,
   filters,
@@ -57,6 +58,7 @@ export default function AdminPage({
   onListSecurityUsers,
   onUpdateSecurityUserStatus,
   onCreateUser,
+  onDeleteUser,
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
@@ -265,9 +267,11 @@ export default function AdminPage({
         <UsersSection
           accessRoles={accessRoles}
           adminEvents={adminEvents}
+          canDeleteUsers={canDeleteUsers}
           canManageUsers={canManageUsers}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateUser={onCreateUser}
+          onDeleteUser={onDeleteUser}
           onNavigateRoles={
             allowedSections.includes('roles') ? () => setSection('roles') : undefined
           }

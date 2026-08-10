@@ -29,6 +29,10 @@ function createPrismaDouble(users) {
   const sessions = []
   let userSequence = users.length
   return {
+    accessRole: {
+      findUnique: async ({ where }) =>
+        where.key === 'seguridad_plu_arg' ? { key: 'seguridad_plu_arg', active: true } : null,
+    },
     user: {
       findUnique: async ({ where }) => {
         if (where.email) return users.find((user) => user.email === where.email) ?? null
@@ -55,7 +59,13 @@ function createPrismaDouble(users) {
       },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
-        Object.assign(user, data)
+        const { accessRole: _accessRole, profile, ...plainData } = data
+        Object.assign(user, plainData)
+        if (profile?.upsert) {
+          user.profile = user.profile
+            ? { ...user.profile, ...profile.upsert.update }
+            : { ...profile.upsert.create }
+        }
         return user
       },
     },
@@ -113,7 +123,12 @@ async function loginAdmin(url, admin) {
 }
 
 const gateToken = (guard, ttlMs = 60_000) =>
-  createAccessToken({ userId: guard.id, eventId: guard.eventId, expiresAt: new Date(Date.now() + ttlMs), secret: SECRET })
+  createAccessToken({
+    userId: guard.id,
+    eventId: guard.eventId,
+    expiresAt: new Date(Date.now() + ttlMs),
+    secret: SECRET,
+  })
 
 function createSupabaseEventDouble() {
   return {
@@ -150,7 +165,11 @@ describe('security-gate (login por credencial de acceso)', () => {
 
       expect(response.status).toBe(200)
       expect(response.headers.get('set-cookie')).toContain('HttpOnly')
-      expect(body.user).toMatchObject({ id: 'usr-guard', role: 'seguridad_plu_arg', eventSlug: 'pitbull-classic-2026' })
+      expect(body.user).toMatchObject({
+        id: 'usr-guard',
+        role: 'seguridad_plu_arg',
+        eventSlug: 'pitbull-classic-2026',
+      })
     } finally {
       await target.close()
     }
@@ -201,11 +220,14 @@ describe('access-link (generación de credencial)', () => {
     try {
       const cookie = await loginAdmin(target.url, admin)
 
-      const linkResponse = await fetch(`${target.url}/api/auth/security-users/${guard.id}/access-link`, {
-        method: 'POST',
-        headers: authHeaders(cookie),
-        body: JSON.stringify({ sendEmail: false }),
-      })
+      const linkResponse = await fetch(
+        `${target.url}/api/auth/security-users/${guard.id}/access-link`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ sendEmail: false }),
+        },
+      )
       const link = await linkResponse.json()
 
       expect(linkResponse.status).toBe(200)
@@ -230,11 +252,14 @@ describe('access-link (generación de credencial)', () => {
     const target = listen(createApp({ prisma: createPrismaDouble([guard]), env: ENV }))
 
     try {
-      const response = await fetch(`${target.url}/api/auth/security-users/${guard.id}/access-link`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ sendEmail: false }),
-      })
+      const response = await fetch(
+        `${target.url}/api/auth/security-users/${guard.id}/access-link`,
+        {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ sendEmail: false }),
+        },
+      )
 
       expect(response.status).toBe(401)
     } finally {
@@ -247,7 +272,9 @@ describe('alta de equipo con acceso personal', () => {
   it('crea varias cuentas y devuelve sus links firmados en una sola operación', async () => {
     const admin = await buildAdmin()
     const prisma = createPrismaDouble([admin])
-    const target = listen(createApp({ prisma, supabaseAdmin: createSupabaseEventDouble(), env: ENV }))
+    const target = listen(
+      createApp({ prisma, supabaseAdmin: createSupabaseEventDouble(), env: ENV }),
+    )
 
     try {
       const cookie = await loginAdmin(target.url, admin)
@@ -270,6 +297,49 @@ describe('alta de equipo con acceso personal', () => {
       expect(body.created.every((item) => item.accessUrl.includes('?acceso='))).toBe(true)
       expect(body.created.every((item) => item.expiresAt)).toBe(true)
       expect(body.skipped).toEqual([])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('asigna y reactiva una cuenta de seguridad existente sin evento', async () => {
+    const admin = await buildAdmin()
+    const legacyGuard = await buildGuard({
+      id: 'usr-legacy-guard',
+      email: 'legacy@pluarg.test',
+      status: 'disabled',
+      eventId: null,
+      eventSlug: null,
+    })
+    const prisma = createPrismaDouble([admin, legacyGuard])
+    const target = listen(
+      createApp({ prisma, supabaseAdmin: createSupabaseEventDouble(), env: ENV }),
+    )
+
+    try {
+      const cookie = await loginAdmin(target.url, admin)
+      const response = await fetch(`${target.url}/api/auth/security-users`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          eventId: 'evt-1',
+          name: 'Puerta Legacy',
+          email: legacyGuard.email,
+          sendEmail: false,
+        }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(201)
+      expect(body).toMatchObject({ reused: true, tempPassword: null })
+      expect(body.accessUrl).toMatch(
+        /^http:\/\/localhost:5173\/evento\/pitbull-classic-2026\/seguridad\?acceso=/,
+      )
+      expect(legacyGuard).toMatchObject({
+        status: 'active',
+        eventId: 'evt-1',
+        eventSlug: 'pitbull-classic-2026',
+      })
     } finally {
       await target.close()
     }

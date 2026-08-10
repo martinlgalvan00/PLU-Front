@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react'
 import Button from './Button.jsx'
+import CredentialCard from './CredentialCard.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import TiltCard from '../../motion/TiltCard.tsx'
+import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+
+const PREVIEW_CREDENTIAL_CODE = 'PREV-MEMBERS-CRED'
 
 function scrollToId(id) {
   const target = document.getElementById(id)
@@ -19,6 +23,23 @@ export default function MembersPluHero({
   const { t } = useI18n()
   const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
   const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const [credentialQrSrc, setCredentialQrSrc] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    // QR de vista previa (código PREV-*, no verificable) — mismo patrón que
+    // el showcase de home; nunca un código real de atleta.
+    generateCredentialQr(buildCredentialUrl({ code: PREVIEW_CREDENTIAL_CODE }))
+      .then((dataUrl) => {
+        if (!cancelled) setCredentialQrSrc(dataUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setCredentialQrSrc(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const quickLinks = [
     { id: 'afiliarme', label: t('pages.members.quickNavAffiliate'), onClick: () => scrollToId('planes') },
@@ -76,50 +97,23 @@ export default function MembersPluHero({
         </div>
 
         <div className="members-plu-hero__showcase">
-          <TiltCard
-            className="members-plu-hero__card-tilt members-cred-tilt"
-            innerClassName="members-plu-hero__card members-plu-hero__card-inner members-cred"
-            maxTilt={3}
-          >
-            <aside className="members-cred__stack" aria-label={t('pages.members.credentialPreviewLabel')}>
-              <span className="members-cred__glow" aria-hidden />
-              <span className="members-cred__grain" aria-hidden />
-              <span className="members-cred__frame" aria-hidden />
-              <span className="members-cred__watermark" aria-hidden>
-                PLU
-              </span>
-              <span className="members-cred__stripe" aria-hidden />
-
-              <div className="members-cred__layer members-cred__layer--front">
-                <header className="members-cred__head">
-                  <div className="members-cred__brand">
-                    <span className="members-cred__mark">PLU</span>
-                    <span className="members-cred__mark-sub">Argentina</span>
-                  </div>
-                  <span className="members-cred__chip" aria-hidden>
-                    <span className="members-cred__chip-shine" />
-                  </span>
-                </header>
-
-                <div className="members-cred__identity">
-                  <p className="members-cred__eyebrow">{t('pages.members.credentialAthleteLabel')}</p>
-                  <p className="members-cred__name">{MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}</p>
-                  <p className="members-cred__code">
-                    <span className="members-cred__code-label">{t('pages.members.credentialCodeLabel')}</span>
-                    <span className="members-cred__code-value">{MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}</span>
-                  </p>
-                </div>
-
-                <footer className="members-cred__foot">
-                  <span className="members-cred__season">{MEMBERSHIP_CREDENTIAL_SAMPLE.season}</span>
-                  <span className="members-cred__status">
-                    <span className="members-cred__status-dot" aria-hidden />
-                    {MEMBERSHIP_CREDENTIAL_SAMPLE.status}
-                  </span>
-                </footer>
-              </div>
-            </aside>
-          </TiltCard>
+          <CredentialCard
+            className="members-plu-hero__card-tilt"
+            eyebrow={t('pages.members.credentialAthleteLabel')}
+            name={MEMBERSHIP_CREDENTIAL_SAMPLE.athlete}
+            code={MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode}
+            codeLabel={t('pages.members.credentialCodeLabel')}
+            season={MEMBERSHIP_CREDENTIAL_SAMPLE.season}
+            status={MEMBERSHIP_CREDENTIAL_SAMPLE.status}
+            qrSrc={credentialQrSrc}
+            qrAlt={t('pages.members.credentialQrAlt')}
+            qrCaption={t('pages.members.credentialQrCaption')}
+            flipToBackLabel={t('pages.members.credentialFlipToBack')}
+            flipToFrontLabel={t('pages.members.credentialFlipToFront')}
+            flipAriaLabel={t('pages.members.credentialFlipAria', {
+              name: MEMBERSHIP_CREDENTIAL_SAMPLE.athlete,
+            })}
+          />
           <p className="members-cred__caption">{t('pages.members.credentialPreviewNote')}</p>
         </div>
       </div>

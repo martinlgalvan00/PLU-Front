@@ -1,10 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Ban,
   CheckCircle2,
   LoaderCircle,
   PauseCircle,
   Shield,
+  Trash2,
   UserPlus,
   X,
 } from 'lucide-react'
@@ -58,12 +60,109 @@ function statusLabel(t, status) {
   }
 }
 
+function UserDeletionDialog({ busy, error, onCancel, onConfirm, t, user }) {
+  const titleId = useId()
+  const descriptionId = useId()
+  const panelRef = useRef(null)
+  const dialogStateRef = useRef({ busy, onCancel })
+  dialogStateRef.current = { busy, onCancel }
+
+  useEffect(() => {
+    const previousFocus = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    panelRef.current?.querySelector('button')?.focus()
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !dialogStateRef.current.busy) {
+        event.preventDefault()
+        dialogStateRef.current.onCancel()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+      const focusable = panelRef.current?.querySelectorAll('button:not(:disabled)') ?? []
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocus?.focus?.()
+    }
+  }, [])
+
+  return createPortal(
+    <div className="admin-user-delete-dialog">
+      <button
+        type="button"
+        className="admin-user-delete-dialog__backdrop"
+        aria-label={t('admin.users.deleteCancel')}
+        disabled={busy}
+        onClick={onCancel}
+      />
+      <section
+        ref={panelRef}
+        className="admin-user-delete-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+      >
+        <span className="admin-user-delete-dialog__icon" aria-hidden>
+          <Trash2 size={19} />
+        </span>
+        <div className="admin-user-delete-dialog__copy">
+          <h2 id={titleId}>{t('admin.users.deleteTitle')}</h2>
+          <p id={descriptionId}>
+            {t('admin.users.deleteDescription', { name: user.name, email: user.email })}
+          </p>
+          <p className="admin-user-delete-dialog__warning">{t('admin.users.deleteWarning')}</p>
+          {error ? (
+            <p className="admin-user-delete-dialog__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <div className="admin-user-delete-dialog__actions">
+          <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
+            {t('admin.users.deleteCancel')}
+          </Button>
+          <Button
+            type="button"
+            className="admin-user-delete-dialog__confirm"
+            disabled={busy}
+            onClick={onConfirm}
+          >
+            {busy ? <LoaderCircle size={15} aria-hidden /> : <Trash2 size={15} aria-hidden />}
+            {busy ? t('admin.users.deleting') : t('admin.users.deleteConfirm')}
+          </Button>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
 export default function UsersSection({
   accessRoles,
   adminEvents,
+  canDeleteUsers,
   canManageUsers,
   onCreateSecurityUser,
   onCreateUser,
+  onDeleteUser,
   onNavigateRoles,
   onUpdateRole,
   onUpdateStatus,
@@ -81,6 +180,9 @@ export default function UsersSection({
   const [inviteNotice, setInviteNotice] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingUserId, setUpdatingUserId] = useState(null)
+  const [pendingDeletion, setPendingDeletion] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteNotice, setDeleteNotice] = useState('')
 
   const isSecurityRole = draft.role === 'seguridad_plu_arg'
 
@@ -229,8 +331,39 @@ export default function UsersSection({
     }
   }
 
+  function openDeleteDialog(user) {
+    setDeleteError('')
+    setDeleteNotice('')
+    setPendingDeletion(user)
+  }
+
+  function closeDeleteDialog() {
+    if (updatingUserId) return
+    setPendingDeletion(null)
+    setDeleteError('')
+  }
+
+  async function handleDeleteUser() {
+    if (!pendingDeletion || !onDeleteUser) return
+    setDeleteError('')
+    setUpdatingUserId(pendingDeletion.id)
+
+    try {
+      await onDeleteUser(pendingDeletion.id)
+      setDeleteNotice(t('admin.users.deleteSuccess', { name: pendingDeletion.name }))
+      setPendingDeletion(null)
+    } catch (error) {
+      setDeleteError(error?.message ?? t('admin.users.errorDelete'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
   function canMutateUser(row) {
-    return canManageUsers && row.role !== 'admin_maximal' && Boolean(onUpdateStatus)
+    return (
+      row.role !== 'admin_maximal' &&
+      ((canManageUsers && Boolean(onUpdateStatus)) || (canDeleteUsers && Boolean(onDeleteUser)))
+    )
   }
 
   const filterActions = canManageUsers ? (
@@ -352,6 +485,11 @@ export default function UsersSection({
           {formError}
         </p>
       )}
+      {deleteNotice ? (
+        <p className="admin-users__delete-notice" role="status">
+          {deleteNotice}
+        </p>
+      ) : null}
       {tempPassword && (
         <div className="admin-users__temp-password" role="status">
           <p className="admin-users__temp-password-title">{t('admin.users.tempPasswordTitle')}</p>
@@ -456,13 +594,15 @@ export default function UsersSection({
 
               const status = row.status ?? 'active'
               const busy = updatingUserId === row.id
+              const canUpdateStatus = canManageUsers && Boolean(onUpdateStatus)
+              const canDelete = canDeleteUsers && Boolean(onDeleteUser)
 
               return (
                 <AdminTableActions
                   aria-label={t('admin.users.actionsAria', { name: row.name })}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {status !== 'active' ? (
+                  {canUpdateStatus && status !== 'active' ? (
                     <AdminIconButton
                       disabled={busy}
                       icon={busy ? LoaderCircle : CheckCircle2}
@@ -471,7 +611,7 @@ export default function UsersSection({
                       variant="celeste"
                     />
                   ) : null}
-                  {status === 'active' ? (
+                  {canUpdateStatus && status === 'active' ? (
                     <AdminIconButton
                       disabled={busy}
                       icon={busy ? LoaderCircle : PauseCircle}
@@ -480,12 +620,21 @@ export default function UsersSection({
                       variant="ghost"
                     />
                   ) : null}
-                  {status !== 'disabled' ? (
+                  {canUpdateStatus && status !== 'disabled' ? (
                     <AdminIconButton
                       disabled={busy}
                       icon={Ban}
                       label={t('admin.users.actionDisable')}
                       onClick={() => void handleStatusChange(row.id, 'disabled')}
+                      variant="danger"
+                    />
+                  ) : null}
+                  {canDelete ? (
+                    <AdminIconButton
+                      disabled={busy}
+                      icon={Trash2}
+                      label={t('admin.users.actionDelete')}
+                      onClick={() => openDeleteDialog(row)}
                       variant="danger"
                     />
                   ) : null}
@@ -497,6 +646,16 @@ export default function UsersSection({
         rows={rows}
         emptyMessage={t('admin.sections.users.empty')}
       />
+      {pendingDeletion ? (
+        <UserDeletionDialog
+          busy={updatingUserId === pendingDeletion.id}
+          error={deleteError}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void handleDeleteUser()}
+          t={t}
+          user={pendingDeletion}
+        />
+      ) : null}
     </AdminListSection>
   )
 }

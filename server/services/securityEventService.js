@@ -10,6 +10,8 @@
  * ciclo de vida usen exactamente la misma forma normalizada, sin drift.
  */
 
+import { HttpError } from '../lib/errors.js'
+
 // Forma normalizada que consumen resolveAccessLinkExpiry, la notificación de
 // credenciales y la clasificación del ciclo de vida.
 function normalizeEventRow(row) {
@@ -32,6 +34,30 @@ export async function fetchSupabaseEvent(admin, eventId) {
     .eq('id', eventId)
     .maybeSingle()
   if (error || !data) return null
+  return normalizeEventRow(data)
+}
+
+/**
+ * Variante estricta para altas: no confunde un evento inexistente con una
+ * caída/configuración faltante de Supabase.
+ */
+export async function requireSupabaseEvent(admin, eventId) {
+  if (!admin) throw new HttpError(503, 'Supabase Admin no está configurado.')
+  if (!eventId) throw new HttpError(400, 'Elegí un evento.')
+
+  const { data, error } = await admin
+    .from('events')
+    .select('id, slug, title, ends_at')
+    .eq('id', eventId)
+    .maybeSingle()
+
+  if (error) {
+    throw new HttpError(503, 'No se pudo validar el evento en Supabase.', {
+      code: error.code,
+      details: error.message,
+    })
+  }
+  if (!data) throw new HttpError(400, 'El evento no existe.')
   return normalizeEventRow(data)
 }
 

@@ -31,8 +31,11 @@ function buildShareText(cardData, t) {
  *     eventVenue?, eventLocation?, category?, division?,
  *     eventSlug?, attendeeDocument?, dayPassLabel?, variant?
  *   }
+ *   initialFormat  'square' | 'story' — formato preseleccionado al abrir
+ *                  (default 'square'). Desde el perfil en mobile se abre en
+ *                  'story' porque es el formato que se comparte a Instagram.
  */
-export default function CardPreviewModal({ open, onClose, cardData = {} }) {
+export default function CardPreviewModal({ open, onClose, cardData = {}, initialFormat = 'square' }) {
   const { t } = useI18n()
   const formatOptions = [
     ['square', t('cardModal.formatSquare'), t('cardModal.formatSquareShort')],
@@ -41,7 +44,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
   const captureRef = useRef(null)
   const [status, setStatus] = useState('idle') // 'idle' | 'generating' | 'done' | 'error'
   const [blob, setBlob] = useState(null)
-  const [format, setFormat] = useState('square') // 'square' | 'story'
+  const [format, setFormat] = useState(initialFormat) // 'square' | 'story'
   const canShare =
     typeof navigator !== 'undefined' &&
     typeof navigator.share === 'function'
@@ -51,9 +54,9 @@ export default function CardPreviewModal({ open, onClose, cardData = {} }) {
     if (open) {
       setStatus('idle')
       setBlob(null)
-      setFormat('square')
+      setFormat(initialFormat)
     }
-  }, [open])
+  }, [open, initialFormat])
 
   // El blob generado corresponde a un solo formato — si el usuario cambia de
   // formato hay que regenerarlo antes de descargar/compartir de nuevo.

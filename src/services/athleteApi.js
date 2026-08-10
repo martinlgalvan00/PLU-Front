@@ -168,9 +168,25 @@ function mapAthleteData({ athletes, athlete, memberships, registrations, payment
   }
 }
 
+const EMPTY_ATHLETE_SESSION = {
+  user: null,
+  athlete: null,
+  memberships: [],
+  registrations: [],
+  payments: [],
+}
+
 /** Snapshot público de UN atleta (perfil propio, sin sesión de Supabase Auth). */
 export async function fetchAthleteSnapshot() {
   const result = await apiGet('/api/athletes/session')
+  if (!result?.user) {
+    return {
+      athlete: null,
+      memberships: [],
+      registrations: [],
+      payments: [],
+    }
+  }
   const mapped = mapAthleteData(result)
   return {
     athlete: mapped.athletes[0] ?? null,
@@ -182,6 +198,7 @@ export async function fetchAthleteSnapshot() {
 
 export async function fetchAthleteSession() {
   const result = await apiGet('/api/athletes/session')
+  if (!result?.user) return { ...EMPTY_ATHLETE_SESSION }
   const mapped = mapAthleteData(result)
   return {
     user: result.user,
@@ -369,13 +386,30 @@ function toCredentialResult(result, eventSlug) {
  * sesión. La proyección no trae documento ni `qr_token` — el `member_code` es
  * correlativo, así que devolver cualquiera de los dos permitía cosecharlos
  * iterando códigos desde la home.
+ *
+ * La foto (si el QR era un token y el atleta tiene `photo_path`) se firma en
+ * un endpoint Express rate-limited; si falla, la credencial igual se muestra
+ * con iniciales.
  */
 export async function getMembershipByCodeOrToken(code, eventSlug) {
   const result = await callRpc('get_membership_by_code_or_token', {
     p_code: code,
     p_event_slug: eventSlug ?? null,
   })
-  return toCredentialResult(result, eventSlug)
+  const mapped = toCredentialResult(result, eventSlug)
+
+  if (mapped.athlete?.photoPath && !mapped.athlete.photoUrl) {
+    try {
+      const { photoUrl } = await apiGet(
+        `/api/athletes/public/credential-photo?code=${encodeURIComponent(code)}`,
+      )
+      if (photoUrl) mapped.athlete.photoUrl = photoUrl
+    } catch {
+      // La verificación de puerta no depende de la foto.
+    }
+  }
+
+  return mapped
 }
 
 /**

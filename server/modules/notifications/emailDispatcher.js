@@ -62,7 +62,13 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
     if (templateId) return { templateId, mode: 'brevo_template' }
 
     if (!hasHtmlFallback(type)) return { mode: 'none' }
-    const rendered = renderEmail(type, params, { subject: subjectOverride })
+    const definition = getEmailDefinition(type)
+    const rendered = renderEmail(type, params, {
+      // El catálogo define el asunto del fallback; el título visible del body
+      // puede ser más corto. Un caller puede pisarlo con `input.subject`.
+      subject: subjectOverride ?? definition?.subject,
+      appUrl,
+    })
     return { ...rendered, mode: 'html_fallback' }
   }
 

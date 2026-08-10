@@ -61,6 +61,7 @@ function VenueMapEmbed({ event, title }) {
 
 function MapFallback({ event, state, hidden, onRetry, showRetry, t }) {
   const announcesState = state === 'loading' || state === 'error' || state === 'offline'
+  const isLoadingState = state === 'idle' || state === 'loading' || state === 'ready'
   const locationPendingTitle = event?.address
     ? t('pages.events.map.coordinatesTitle')
     : t('pages.events.map.locationTitle')
@@ -93,7 +94,43 @@ function MapFallback({ event, state, hidden, onRetry, showRetry, t }) {
   const showUsefulMeta =
     !hidden &&
     Boolean(event) &&
-    ['missing_coordinates', 'idle', 'loading', 'error', 'offline'].includes(state)
+    ['missing_coordinates', 'error', 'offline'].includes(state)
+
+  if (isLoadingState) {
+    return (
+      <div
+        className={`competition-map__fallback competition-map__fallback--skeleton${hidden ? ' competition-map__fallback--hidden' : ''}`}
+        data-state={state}
+        aria-hidden={hidden || undefined}
+        aria-busy={!hidden || undefined}
+        aria-live={!hidden ? 'polite' : undefined}
+        role={!hidden ? 'status' : undefined}
+      >
+        <div className="competition-map__skeleton" aria-hidden>
+          <div className="competition-map__skeleton-canvas">
+            <span className="competition-map__skeleton-road competition-map__skeleton-road--h" />
+            <span className="competition-map__skeleton-road competition-map__skeleton-road--h competition-map__skeleton-road--h2" />
+            <span className="competition-map__skeleton-road competition-map__skeleton-road--v" />
+            <span className="competition-map__skeleton-road competition-map__skeleton-road--v competition-map__skeleton-road--v2" />
+            <span className="competition-map__skeleton-block competition-map__skeleton-block--a" />
+            <span className="competition-map__skeleton-block competition-map__skeleton-block--b" />
+            <span className="competition-map__skeleton-block competition-map__skeleton-block--c" />
+            <span className="competition-map__skeleton-pin" />
+          </div>
+          <div className="competition-map__skeleton-copy">
+            <p className="competition-map__skeleton-status">
+              <span className="competition-map__skeleton-pulse" aria-hidden />
+              <span className="competition-map__skeleton-status-label">{title}</span>
+            </p>
+            <p className="competition-map__skeleton-status-copy">{copy}</p>
+          </div>
+        </div>
+        <p className="competition-map__sr-only">
+          {eyebrow}. {title}. {copy}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -433,7 +470,14 @@ export default function CompetitionMap({
             <VenueMapEmbed event={fallbackEvent} title={t('pages.events.map.mapAria')} />
           ) : null}
           {shouldLoad ? (
-            <Suspense fallback={null}>
+            <Suspense
+              fallback={
+                <div className="competition-map__suspense-fallback" aria-busy="true" role="status">
+                  <span className="competition-map__skeleton-pulse" aria-hidden />
+                  <span>{t('pages.events.map.loadingTitle')}</span>
+                </div>
+              }
+            >
               <OpenMapCanvas
                 key={canvasKey}
                 events={mappedEvents}

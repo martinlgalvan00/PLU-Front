@@ -166,7 +166,9 @@ describe('auth api', () => {
 
     const me = await fetch(`${target.url}/api/auth/me`, { headers: { Cookie: cookie } })
 
-    expect(me.status).toBe(401)
+    // Soft-probe: sin sesión activa responde 200 + user null (no 401).
+    expect(me.status).toBe(200)
+    expect(await me.json()).toEqual({ user: null })
 
     await target.close()
   })

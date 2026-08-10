@@ -84,7 +84,7 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
       onClick={onClick}
     >
       <span className="admin-ops__kpi-icon" aria-hidden>
-        <Icon size={18} strokeWidth={1.65} />
+        <Icon size={15} strokeWidth={1.7} />
       </span>
       <span className="admin-ops__kpi-body">
         <span className="admin-ops__kpi-value">{value}</span>
@@ -97,13 +97,14 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
 
 function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t }) {
   const activeItems = items.filter((item) => item.value > 0)
+  const isEmpty = activeItems.length === 0
   const chartTotal = Math.max(
     total,
     activeItems.reduce((sum, item) => sum + item.value, 0),
     1,
   )
   const totalLabel = t('admin.dashboard.chartTotal', { count: total })
-  const segmentSummary = activeItems.length
+  const segmentSummary = !isEmpty
     ? activeItems
         .map((item) => {
           const percent = Math.round((item.value / chartTotal) * 100)
@@ -114,11 +115,11 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
   const stackLabel = `${title}: ${totalLabel}. ${segmentSummary}`
 
   return (
-    <section className="admin-ops__chart">
+    <section className={`admin-ops__chart${isEmpty ? ' admin-ops__chart--empty' : ''}`}>
       <header className="admin-ops__chart-head">
         <div className="admin-ops__chart-copy">
-          <h3>{title}</h3>
-          <div className="admin-ops__chart-total-wrap">
+          <div className="admin-ops__chart-title-row">
+            <h3>{title}</h3>
             <strong className="admin-ops__chart-total" aria-label={totalLabel}>
               {total}
             </strong>
@@ -131,7 +132,7 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
       </header>
 
       <div className="admin-ops__stack" role="img" aria-label={stackLabel}>
-        {activeItems.length > 0 ? (
+        {!isEmpty ? (
           activeItems.map((item) => (
             <span
               key={item.status}
@@ -145,7 +146,7 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
         )}
       </div>
 
-      {activeItems.length > 0 ? (
+      {!isEmpty ? (
         <ul className="admin-ops__chart-legend">
           {activeItems.map((item) => {
             const percent = Math.round((item.value / chartTotal) * 100)
@@ -298,16 +299,29 @@ function RecentMembershipsCard({ memberships, locale, onNavigate, t }) {
   )
 }
 
-function LeaderboardCard({ eyebrow, title, subtitle, items, navigateSection, onNavigate, t, renderItem }) {
+function LeaderboardCard({
+  eyebrow,
+  title,
+  subtitle,
+  items,
+  navigateSection,
+  onNavigate,
+  t,
+  renderItem,
+  featured = false,
+}) {
   if (!items?.length) return null
 
   return (
-    <section className="admin-ops__leaderboard" aria-label={title}>
-      <header className="admin-ops__chart-head">
-        <div>
+    <section
+      className={`admin-ops__leaderboard${featured ? ' admin-ops__leaderboard--featured' : ''}`}
+      aria-label={title}
+    >
+      <header className="admin-ops__leaderboard-head">
+        <div className="admin-ops__leaderboard-copy">
           <p className="admin-ops__eyebrow">{eyebrow}</p>
           <h3>{title}</h3>
-          <p>{subtitle}</p>
+          {subtitle ? <p className="admin-ops__leaderboard-sub">{subtitle}</p> : null}
         </div>
         {navigateSection ? (
           <button
@@ -459,8 +473,8 @@ export default function DashboardSection({
             <section className="admin-ops__chart admin-ops__chart--finance">
               <header className="admin-ops__chart-head">
                 <div className="admin-ops__chart-copy">
+                  <p className="admin-ops__eyebrow">{t('admin.dashboard.financeSubtitle')}</p>
                   <h3>{t('admin.dashboard.financeTitle')}</h3>
-                  <p>{t('admin.dashboard.financeSubtitle')}</p>
                 </div>
                 <button
                   type="button"
@@ -539,19 +553,20 @@ export default function DashboardSection({
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
+                <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
                 <h3>{t('admin.dashboard.workTitle')}</h3>
                 <p>{workSubtitle}</p>
               </div>
               {hasWork ? (
                 <button
                   type="button"
-                  className="admin-dashboard-link"
+                  className="admin-ops__work-cta"
                   onClick={() => setAlertsOpen(true)}
                 >
                   {hasMoreQueue
                     ? t('admin.dashboard.queueSeeAll', { count: pendingActions.length })
                     : t('admin.dashboard.priorityReview')}
-                  <ArrowRight size={12} aria-hidden />
+                  <ArrowRight size={13} aria-hidden />
                 </button>
               ) : null}
             </header>
@@ -629,20 +644,23 @@ export default function DashboardSection({
 
           <div className="admin-ops__stats-row">
             <LeaderboardCard
+              featured
               eyebrow={t('admin.dashboard.eventLeaderboardEyebrow')}
               title={t('admin.dashboard.eventLeaderboardTitle')}
-              subtitle={t('admin.dashboard.eventLeaderboardSubtitle')}
               items={eventLeaderboard.items}
               navigateSection="events"
               onNavigate={onNavigate}
               t={t}
               renderItem={(event) => (
                 <li key={event.id} className="admin-ops__leaderboard-item">
-                  <span className="admin-ops__leaderboard-title">{event.title}</span>
-                  <span className="admin-ops__leaderboard-value">
-                    {event.registered}/{event.slots} · {event.fillPercent}%
-                  </span>
-                  <span className="admin-ops__leaderboard-bar">
+                  <div className="admin-ops__leaderboard-main">
+                    <span className="admin-ops__leaderboard-title">{event.title}</span>
+                    <span className="admin-ops__leaderboard-value">
+                      {event.registered}/{event.slots}
+                      <span className="admin-ops__leaderboard-pct">{event.fillPercent}%</span>
+                    </span>
+                  </div>
+                  <span className="admin-ops__leaderboard-bar" aria-hidden>
                     <span style={{ width: `${event.fillPercent}%` }} />
                   </span>
                 </li>
@@ -651,21 +669,29 @@ export default function DashboardSection({
             <LeaderboardCard
               eyebrow={t('admin.dashboard.topGymsEyebrow')}
               title={t('admin.dashboard.topGymsTitle')}
-              subtitle={t('admin.dashboard.topGymsSubtitle')}
               items={topGyms.items}
               navigateSection="athletes"
               onNavigate={onNavigate}
               t={t}
-              renderItem={(gym, index) => (
-                <li
-                  key={gym.gym}
-                  className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
-                >
-                  <span className="admin-ops__leaderboard-rank">{index + 1}</span>
-                  <span className="admin-ops__leaderboard-title">{gym.gym}</span>
-                  <span className="admin-ops__leaderboard-value">{gym.count}</span>
-                </li>
-              )}
+              renderItem={(gym, index) => {
+                const peak = Math.max(topGyms.items[0]?.count ?? 1, 1)
+                const share = Math.round((gym.count / peak) * 100)
+                return (
+                  <li
+                    key={gym.gym}
+                    className="admin-ops__leaderboard-item admin-ops__leaderboard-item--rank"
+                  >
+                    <span className="admin-ops__leaderboard-rank">{index + 1}</span>
+                    <div className="admin-ops__leaderboard-main">
+                      <span className="admin-ops__leaderboard-title">{gym.gym}</span>
+                      <span className="admin-ops__leaderboard-value">{gym.count}</span>
+                    </div>
+                    <span className="admin-ops__leaderboard-bar" aria-hidden>
+                      <span style={{ width: `${share}%` }} />
+                    </span>
+                  </li>
+                )
+              }}
             />
           </div>
 

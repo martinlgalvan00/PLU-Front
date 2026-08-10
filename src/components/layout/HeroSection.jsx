@@ -81,7 +81,7 @@ export default function HeroSection({ onNavigate }) {
         </button>
         <button
           type="button"
-          className="hero__cta hero__cta--outline"
+          className="hero__cta hero__cta--featured"
           onClick={() => onNavigate('pitbull')}
         >
           <span className="hero__cta-label hero__cta-label--full">{t('hero.ctaPitbull')}</span>

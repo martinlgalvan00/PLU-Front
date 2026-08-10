@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, Download, ExternalLink, FileDown, X } from 'lucide-react'
+import { BookOpen, Download, ExternalLink, X } from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -78,9 +78,9 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
     <section className="rulebook-doc-shell">
       <article className="rulebook-doc-panel">
         <div className="rulebook-doc-panel__meta">
-          <span className="rulebook-doc-panel__glyph" aria-hidden>
-            <FileDown size={18} strokeWidth={1.75} />
-          </span>
+          <p className="rulebook-doc-panel__version motif-num" aria-hidden>
+            {manifest.version}
+          </p>
           <div className="rulebook-doc-panel__copy">
             <div className="rulebook-doc-panel__meta-row">
               <span className="rulebook-doc-panel__badge">PDF</span>

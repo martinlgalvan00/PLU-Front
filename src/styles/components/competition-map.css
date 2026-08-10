@@ -314,6 +314,313 @@
   pointer-events: none;
 }
 
+.competition-map__sr-only {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Loading skeleton — mapa abstracto + líneas tipográficas */
+.competition-map__fallback--skeleton {
+  align-content: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  justify-items: stretch;
+  padding: 0;
+}
+
+.competition-map__skeleton {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.competition-map__skeleton-canvas {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-bg-secondary) 88%, var(--plu-warm-100, #ebe7df)) 0%,
+      var(--color-bg-secondary) 55%
+    );
+  isolation: isolate;
+  min-height: 180px;
+  overflow: hidden;
+  position: relative;
+}
+
+.competition-map__skeleton-canvas::after {
+  animation: competition-map-skeleton-shimmer 1.6s var(--ease-out, ease) infinite;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in srgb, #fff 18%, transparent) 45%,
+    transparent 78%
+  );
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: translateX(-120%);
+  z-index: 2;
+}
+
+.competition-map__skeleton-road {
+  background: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  position: absolute;
+  z-index: 1;
+}
+
+.competition-map__skeleton-road--h {
+  height: 10px;
+  left: -8%;
+  right: -8%;
+  top: 38%;
+}
+
+.competition-map__skeleton-road--h2 {
+  height: 7px;
+  opacity: 0.7;
+  top: 68%;
+}
+
+.competition-map__skeleton-road--v {
+  bottom: -10%;
+  left: 28%;
+  top: -10%;
+  width: 8px;
+}
+
+.competition-map__skeleton-road--v2 {
+  left: 62%;
+  opacity: 0.65;
+  width: 6px;
+}
+
+.competition-map__skeleton-block {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  position: absolute;
+  z-index: 1;
+}
+
+.competition-map__skeleton-block--a {
+  height: 18%;
+  left: 10%;
+  top: 12%;
+  width: 16%;
+}
+
+.competition-map__skeleton-block--b {
+  height: 14%;
+  right: 14%;
+  top: 18%;
+  width: 20%;
+}
+
+.competition-map__skeleton-block--c {
+  bottom: 18%;
+  height: 16%;
+  left: 36%;
+  width: 14%;
+}
+
+.competition-map__skeleton-pin {
+  animation: competition-map-skeleton-pin 1.4s var(--ease-out, ease) infinite;
+  background: var(--color-brand-gold);
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  height: 18px;
+  left: 50%;
+  position: absolute;
+  top: 46%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  width: 18px;
+  z-index: 3;
+}
+
+.competition-map__skeleton-pin::after {
+  background: color-mix(in srgb, #fff 88%, var(--color-brand-gold));
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+}
+
+.competition-map__skeleton-copy {
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-secondary));
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 8px;
+  padding: 18px clamp(16px, 3vw, 28px) 20px;
+}
+
+.competition-map__skeleton-status {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.competition-map__skeleton-status-label {
+  min-width: 0;
+}
+
+.competition-map__skeleton-status-copy {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.competition-map__skeleton-pulse {
+  animation: competition-map-skeleton-pulse 1.1s var(--ease-out, ease) infinite;
+  background: var(--color-brand-celeste);
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.competition-map__suspense-fallback {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-secondary) 94%, transparent);
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 10px;
+  inset: auto 16px 16px auto;
+  letter-spacing: -0.01em;
+  padding: 10px 14px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+@keyframes competition-map-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competition-map__skeleton-pulse {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.competition-map__skeleton-line {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-radius: 2px;
+  display: block;
+  height: 10px;
+}
+
+.competition-map__skeleton-line--eyebrow {
+  height: 8px;
+  width: 4.5rem;
+}
+
+.competition-map__skeleton-line--title {
+  height: 14px;
+  width: min(18rem, 72%);
+}
+
+.competition-map__skeleton-line--body {
+  height: 10px;
+  opacity: 0.75;
+  width: min(26rem, 88%);
+}
+
+.competition-map__skeleton-line--meta {
+  height: 9px;
+  opacity: 0.55;
+  width: min(16rem, 54%);
+}
+
+[data-theme='light'] .competition-map__skeleton-canvas {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--plu-warm-50, #f7f6f3) 82%, var(--plu-warm-100, #ebe7df)) 0%,
+      var(--plu-warm-50, #f7f6f3) 58%
+    );
+}
+
+[data-theme='light'] .competition-map__skeleton-road {
+  background: rgba(15, 17, 23, 0.06);
+}
+
+[data-theme='light'] .competition-map__skeleton-block {
+  background: rgba(15, 17, 23, 0.035);
+  border-color: rgba(15, 17, 23, 0.05);
+}
+
+[data-theme='light'] .competition-map__skeleton-copy {
+  background: #fff;
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .competition-map__skeleton-line {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+.competition-map--venue .competition-map__fallback--skeleton {
+  background: transparent;
+}
+
+.competition-map--venue .competition-map__skeleton-copy {
+  /* En sede el dock tipográfico vive arriba; el skeleton queda full-bleed */
+  display: none;
+}
+
+@keyframes competition-map-skeleton-shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@keyframes competition-map-skeleton-pin {
+  0%,
+  100% { transform: translate(-50%, -50%) rotate(-45deg) scale(1); }
+  50% { transform: translate(-50%, -56%) rotate(-45deg) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competition-map__skeleton-canvas::after,
+  .competition-map__skeleton-pin {
+    animation: none;
+  }
+}
+
 .competition-map__fallback-icon {
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);

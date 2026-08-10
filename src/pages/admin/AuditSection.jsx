@@ -157,7 +157,8 @@ export default function AuditSection() {
       {
         key: 'createdAt',
         label: t('admin.audit.columnWhen'),
-        mobile: 'primary',
+        // En mobile la hora va arriba a la derecha; la acción lidera la card.
+        mobile: 'badge',
         className: 'data-table__column--audit-when',
         render: (row) => (
           <time className="audit-entry__time" dateTime={row.createdAt}>
@@ -168,7 +169,7 @@ export default function AuditSection() {
       {
         key: 'action',
         label: t('admin.audit.columnAction'),
-        mobile: 'badge',
+        mobile: 'primary',
         render: (row) => (
           <span className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}>
             {actionLabel(row.action)}

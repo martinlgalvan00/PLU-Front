@@ -318,25 +318,27 @@ export default function AdminShell({
         </div>
 
         <div className="admin-shell__footer">
-          <div
-            className="admin-shell__account"
-            title={collapsed || sidebarHidden ? roleLabel : undefined}
-          >
-            <span
-              className="admin-shell__account-mark"
-              role="img"
-              aria-label={roleLabel}
-              title={roleLabel}
-            />
-            <div className="admin-shell__account-copy">
-              <strong className="admin-shell__account-role">{roleLabel}</strong>
-              <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
+          <div className="admin-shell__session">
+            <div
+              className="admin-shell__account"
+              title={collapsed || sidebarHidden ? roleLabel : undefined}
+            >
+              <span
+                className="admin-shell__account-mark"
+                role="img"
+                aria-label={roleLabel}
+                title={roleLabel}
+              />
+              <div className="admin-shell__account-copy">
+                <strong className="admin-shell__account-role">{roleLabel}</strong>
+                <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
-            <ThemeToggle compact />
-            <LanguageToggle compact variant={collapsed || sidebarHidden ? 'glyph' : 'segment'} />
+            <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
+              <ThemeToggle compact />
+              <LanguageToggle compact variant={collapsed || sidebarHidden ? 'glyph' : 'segment'} />
+            </div>
           </div>
 
           <button
@@ -374,7 +376,7 @@ export default function AdminShell({
           </button>
           <h1 className="admin-mobile-bar__title">{activeLabel}</h1>
           <div className="admin-mobile-bar__actions">
-            <LanguageToggle compact />
+            <LanguageToggle compact variant="segment" />
             <ThemeToggle compact />
           </div>
         </header>
