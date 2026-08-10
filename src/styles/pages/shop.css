@@ -248,7 +248,14 @@
   border-left: 1px solid rgba(255, 255, 255, 0.16);
   display: grid;
   gap: 10px;
+  justify-items: stretch;
   padding-left: 20px;
+}
+
+.shop-hero__buy .status-pill {
+  justify-self: start;
+  max-width: 100%;
+  width: fit-content;
 }
 
 .shop-hero__price {

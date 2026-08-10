@@ -22,7 +22,7 @@ import {
   buildEmailVerificationUrl,
   readEmailVerificationToken,
 } from '../src/lib/emailVerificationRoute.js'
-import { hasHtmlFallback, renderEmail, safeUrl } from '../server/modules/notifications/emailTemplates.js'
+import { hasHtmlFallback, renderEmail, safeUrl, buildEmailLogoUrl, EMAIL_LOGO_PATH } from '../server/modules/notifications/emailTemplates.js'
 
 const okResponse = (body = { messageId: 'msg-1' }) => ({
   ok: true,
@@ -188,6 +188,69 @@ describe('plantillas HTML de fallback', () => {
     expect(rendered.textContent).toContain('Restablecé tu contraseña')
     expect(rendered.textContent).not.toContain('<')
   })
+
+  it('incluye el logo oficial cuando hay appUrl', () => {
+    const { htmlContent } = renderEmail(
+      'password_reset',
+      { name: 'Ana', resetUrl: 'https://plu.example/reset?token=abc' },
+      { appUrl: 'https://plu.example' },
+    )
+    expect(htmlContent).toContain(`src="https://plu.example${EMAIL_LOGO_PATH}"`)
+    expect(htmlContent).toContain('alt="PLU Argentina"')
+    expect(htmlContent).toContain('background-color:#1a1c22')
+    expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Restablecé tu contraseña</)
+    expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
+  })
+
+  it('cae al wordmark tipográfico sin appUrl', () => {
+    const { htmlContent } = renderEmail('welcome', {
+      name: 'Ana',
+      accountUrl: 'https://plu.example/mi-cuenta',
+    })
+    expect(htmlContent).not.toContain('src="')
+    expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
+    expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Te damos la bienvenida</)
+    expect(htmlContent).toContain("font-family:'Poppins'")
+  })
+
+  it('usa filas editoriales sin caja rellena en paneles de datos', () => {
+    const { htmlContent } = renderEmail('payment_approved', {
+      name: 'Ana',
+      concept: 'Afiliación',
+      amount: 1000,
+      reference: 'REF-1',
+    })
+    expect(htmlContent).toContain('border-bottom:1px solid #e4e3df')
+    expect(htmlContent).not.toContain('background-color:#f7f6f3;border:1px solid')
+  })
+
+  it('arma la URL del logo desde appUrl y rutas relativas', () => {
+    expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(`https://plu.example${EMAIL_LOGO_PATH}`)
+    expect(buildEmailLogoUrl('', null)).toBe('')
+    expect(buildEmailLogoUrl('', '../../public/brand/plu-argentina-email.png')).toBe(
+      '../../public/brand/plu-argentina-email.png',
+    )
+  })
+
+  it('menciona el QR de perfil en afiliación e inscripción', () => {
+    const affiliation = renderEmail('affiliation_approved', {
+      name: 'Ana',
+      memberCode: 'PLU-1',
+      expirationDate: '2027-01-01',
+      accountUrl: 'https://plu.example/mi-cuenta',
+    })
+    const registration = renderEmail('registration_confirmed', {
+      name: 'Ana',
+      eventTitle: 'Pitbull',
+      eventDate: '2026-11-15',
+      venue: 'CABA',
+      division: 'Open',
+      category: '83',
+      eventUrl: 'https://plu.example/eventos/1',
+    })
+    expect(affiliation.htmlContent).toContain('código QR asociado a tu afiliación')
+    expect(registration.htmlContent).toContain('código QR asociado a tu cuenta')
+  })
 })
 
 describe('adaptador de Brevo', () => {
@@ -269,6 +332,26 @@ describe('dispatcher de emails', () => {
     const payload = send.mock.calls[0][0]
     expect(payload.templateId).toBeUndefined()
     expect(payload.htmlContent).toContain('PLU Argentina')
+    expect(payload.subject).toBe('Te damos la bienvenida a PLU Argentina')
+  })
+
+  it('usa el subject del catálogo en el fallback HTML', async () => {
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-1' })
+    const dispatcher = createEmailDispatcher({
+      repository: memoryRepository(),
+      brevo: { configured: true, send },
+      env: { APP_URL: 'https://plu.example' },
+    })
+
+    await dispatcher.send('password_reset', {
+      to: 'a@example.com',
+      params: { resetUrl: 'https://plu.example/reset?token=x' },
+    })
+
+    const payload = send.mock.calls[0][0]
+    expect(payload.subject).toBe('Restablecé tu contraseña · PLU ARG')
+    expect(payload.htmlContent).toContain(`src="https://plu.example/brand/plu-argentina-email.png"`)
+    expect(payload.htmlContent).toContain('Restablecé tu contraseña')
   })
 
   it('no manda dos veces el mismo email ante un reintento de webhook', async () => {

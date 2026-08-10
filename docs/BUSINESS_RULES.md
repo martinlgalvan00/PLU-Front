@@ -59,6 +59,11 @@ Reglas:
   también puede asignar Administrador; nadie puede asignar Super Admin.
 - Nadie puede cambiar su propio rol ni modificar a otro Super Admin desde el
   panel.
+- Sólo Super Admin puede eliminar cuentas de staff. No puede eliminar su propia
+  cuenta ni otra cuenta Super Admin. La operación es atómica: borra perfil,
+  sesiones, identidades, preferencias y membresías organizativas; las
+  referencias históricas conservadas quedan anonimizadas, y se registra la
+  acción en auditoría.
 - Ningún rol operativo —PLU, Seguridad o personalizado— puede recibir
   `admin.users.write` ni `admin.roles.write`, aunque el resto de su matriz sea
   configurable.

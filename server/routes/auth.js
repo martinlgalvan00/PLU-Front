@@ -15,16 +15,14 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
-import { fetchSupabaseEvent } from '../services/securityEventService.js'
+import { fetchSupabaseEvent, requireSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
-import {
-  ACCESS_ROLE_INCLUDE,
-} from '../services/accessControlService.js'
+import { ACCESS_ROLE_INCLUDE } from '../services/accessControlService.js'
 import {
   createSession,
   getClearSessionCookieOptions,
@@ -77,7 +75,7 @@ export function createAuthRoutes({
   // salen de Supabase, no de la tabla Prisma Event (legacy, sin poblar). La
   // resolucion vive en securityEventService (compartida con el job de ciclo
   // de vida); aca solo inyectamos el cliente admin.
-  const resolveEvent = (eventId) => fetchSupabaseEvent(getSupabaseAdmin?.(), eventId)
+  const resolveEvent = (eventId) => requireSupabaseEvent(getSupabaseAdmin?.(), eventId)
 
   // Rechaza dar de alta seguridad para un evento que ya termino: esas cuentas
   // no podrian operar y el job de ciclo de vida las purgaria de inmediato.
@@ -107,10 +105,22 @@ export function createAuthRoutes({
     brevo: brevo ?? createBrevoAdapter({ env: env ?? process.env }),
     env: env ?? process.env,
   })
-  const accessLinkAppUrl = (env?.APP_URL ?? process.env.APP_URL ?? '').replace(/\/$/, '')
+  const configuredAppUrl = (
+    env?.APP_URL ??
+    env?.VITE_APP_URL ??
+    process.env.APP_URL ??
+    process.env.VITE_APP_URL ??
+    ''
+  ).replace(/\/$/, '')
   const accessLinkSecret = env?.AUTH_SECRET ?? process.env.AUTH_SECRET
 
-  function createPersonalAccess(user, event) {
+  function resolveAppUrl(req) {
+    if (configuredAppUrl) return configuredAppUrl
+    const origin = req?.get?.('origin') ?? ''
+    return /^https?:\/\//i.test(origin) ? origin.replace(/\/$/, '') : ''
+  }
+
+  function createPersonalAccess(user, event, req) {
     const expiresAt = resolveAccessLinkExpiry(event)
     const token = createAccessToken({
       userId: user.id,
@@ -118,7 +128,7 @@ export function createAuthRoutes({
       expiresAt,
       secret: accessLinkSecret,
     })
-    const url = `${accessLinkAppUrl}${buildSecurityGatePath(user.eventSlug)}?acceso=${token}`
+    const url = `${resolveAppUrl(req)}${buildSecurityGatePath(user.eventSlug)}?acceso=${token}`
 
     return { url, token, expiresAt }
   }
@@ -126,10 +136,48 @@ export function createAuthRoutes({
   // Crea una cuenta seguridad_plu_arg con password temporal. Compartido por
   // el alta individual y la masiva -- el caller ya validó que el evento
   // existe y (para el alta individual) que el email no está tomado.
-  async function provisionSecurityUser(prisma, { name, email, event }) {
+  async function requireSecurityAccessRole(prisma) {
+    const role = await prisma.accessRole.findUnique({
+      where: { key: 'seguridad_plu_arg' },
+      select: { key: true, active: true },
+    })
+    if (!role?.active) {
+      throw new HttpError(
+        503,
+        'El rol de Seguridad no está inicializado. Ejecutá las migraciones y el seed.',
+      )
+    }
+  }
+
+  function canReuseSecurityUser(user, eventId) {
+    return user?.role === 'seguridad_plu_arg' && (!user.eventId || user.eventId === eventId)
+  }
+
+  async function provisionSecurityUser(prisma, { name, email, event, existing = null }) {
+    const { firstName, lastName } = splitName(name)
+
+    if (existing) {
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          status: 'active',
+          eventId: event.id,
+          eventSlug: event.slug,
+          accessRole: { connect: { key: 'seguridad_plu_arg' } },
+          profile: {
+            upsert: {
+              create: { firstName, lastName },
+              update: { firstName, lastName },
+            },
+          },
+        },
+        include: { profile: true },
+      })
+      return { user: serializeUser(updated), tempPassword: null, event, reused: true }
+    }
+
     const tempPassword = generateTempPassword()
     const passwordHash = await hashPassword(tempPassword)
-    const { firstName, lastName } = splitName(name)
 
     const created = await prisma.user.create({
       data: {
@@ -145,7 +193,7 @@ export function createAuthRoutes({
       include: { profile: true },
     })
 
-    return { user: serializeUser(created), tempPassword, event }
+    return { user: serializeUser(created), tempPassword, event, reused: false }
   }
 
   // Envío best-effort de credenciales: nunca corta el flujo de alta. Devuelve
@@ -213,16 +261,13 @@ export function createAuthRoutes({
     }
   })
 
+  // Probe de bootstrap: sin sesión responde 200 + user null (no 401) para
+  // no ensuciar la consola del navegador en cada visita anónima al login.
   router.get('/me', async (req, res, next) => {
     try {
       const prisma = getPrisma()
       const result = await readSessionFromRequest({ prisma, req })
-      if (!result) {
-        next(new HttpError(401, 'No autenticado.'))
-        return
-      }
-
-      res.json({ user: result.user })
+      res.json({ user: result?.user ?? null })
     } catch (error) {
       next(error)
     }
@@ -276,14 +321,29 @@ export function createAuthRoutes({
         const { name, email, eventId, sendEmail } = req.validatedBody
 
         const event = await resolveEvent(eventId)
-        if (!event) throw new HttpError(400, 'El evento no existe.')
         assertEventOpen(event)
+        await requireSecurityAccessRole(prisma)
 
-        const existing = await prisma.user.findUnique({ where: { email } })
-        if (existing) throw new HttpError(409, 'Ya existe un usuario con ese email.')
+        const existing = await prisma.user.findUnique({
+          where: { email },
+          include: { profile: true },
+        })
+        if (existing && !canReuseSecurityUser(existing, event.id)) {
+          throw new HttpError(
+            409,
+            existing.role === 'seguridad_plu_arg'
+              ? 'La cuenta de seguridad ya está asignada a otro evento.'
+              : 'Ya existe un usuario con ese email.',
+          )
+        }
 
-        const { user, tempPassword } = await provisionSecurityUser(prisma, { name, email, event })
-        const access = createPersonalAccess(user, event)
+        const { user, tempPassword, reused } = await provisionSecurityUser(prisma, {
+          name,
+          email,
+          event,
+          existing,
+        })
+        const access = createPersonalAccess(user, event, req)
         const emailed = sendEmail
           ? await dispatchAccessEmail({ user, event, accessUrl: access.url })
           : false
@@ -294,6 +354,7 @@ export function createAuthRoutes({
           emailed,
           accessUrl: access.url,
           expiresAt: access.expiresAt.toISOString(),
+          reused,
         })
       } catch (error) {
         next(error)
@@ -315,21 +376,35 @@ export function createAuthRoutes({
         const { eventId, users, sendEmail } = req.validatedBody
 
         const event = await resolveEvent(eventId)
-        if (!event) throw new HttpError(400, 'El evento no existe.')
         assertEventOpen(event)
+        await requireSecurityAccessRole(prisma)
 
         // Una sola consulta para detectar emails ya tomados, en vez de un
         // findUnique por cada entrada del lote.
         const existingRows = await prisma.user.findMany({
           where: { email: { in: users.map((entry) => entry.email) } },
-          select: { email: true },
+          include: { profile: true },
         })
-        const existingEmails = new Set(existingRows.map((row) => row.email))
+        const existingByEmail = new Map(existingRows.map((row) => [row.email, row]))
 
-        const toCreate = users.filter((entry) => !existingEmails.has(entry.email))
+        const toCreate = users
+          .filter((entry) => {
+            const existing = existingByEmail.get(entry.email)
+            return !existing || canReuseSecurityUser(existing, event.id)
+          })
+          .map((entry) => ({ ...entry, existing: existingByEmail.get(entry.email) ?? null }))
         const skipped = users
-          .filter((entry) => existingEmails.has(entry.email))
-          .map((entry) => ({ email: entry.email, reason: 'exists' }))
+          .filter((entry) => {
+            const existing = existingByEmail.get(entry.email)
+            return existing && !canReuseSecurityUser(existing, event.id)
+          })
+          .map((entry) => ({
+            email: entry.email,
+            reason:
+              existingByEmail.get(entry.email)?.role === 'seguridad_plu_arg'
+                ? 'other_event'
+                : 'exists',
+          }))
 
         // Altas en paralelo, cada una independiente (partial success).
         const settled = await Promise.allSettled(
@@ -339,13 +414,14 @@ export function createAuthRoutes({
         const created = []
         settled.forEach((result, index) => {
           if (result.status === 'fulfilled') {
-            const access = createPersonalAccess(result.value.user, event)
+            const access = createPersonalAccess(result.value.user, event, req)
             created.push({
               user: result.value.user,
               tempPassword: result.value.tempPassword,
               accessUrl: access.url,
               expiresAt: access.expiresAt.toISOString(),
               emailed: false,
+              reused: result.value.reused,
             })
             return
           }
@@ -357,7 +433,9 @@ export function createAuthRoutes({
         // crear todas las cuentas.
         if (sendEmail && created.length) {
           const emailResults = await Promise.allSettled(
-            created.map((item) => dispatchAccessEmail({ user: item.user, event, accessUrl: item.accessUrl })),
+            created.map((item) =>
+              dispatchAccessEmail({ user: item.user, event, accessUrl: item.accessUrl }),
+            ),
           )
           emailResults.forEach((result, index) => {
             created[index].emailed = result.status === 'fulfilled' && result.value === true
@@ -383,7 +461,11 @@ export function createAuthRoutes({
       try {
         const prisma = getPrisma()
         const result = await prisma.user.updateMany({
-          where: { role: 'seguridad_plu_arg', eventId: req.validatedBody.eventId, status: 'active' },
+          where: {
+            role: 'seguridad_plu_arg',
+            eventId: req.validatedBody.eventId,
+            status: 'active',
+          },
           data: { status: 'disabled' },
         })
 
@@ -469,8 +551,10 @@ export function createAuthRoutes({
         // El slug ya lo tenemos desnormalizado en la cuenta; endsAt (para la
         // vigencia de la credencial) sale de Supabase. Si el evento ya no
         // existe alla, se cae al TTL default de resolveAccessLinkExpiry.
-        const event = (await resolveEvent(user.eventId)) ?? { slug: user.eventSlug }
-        const access = createPersonalAccess(serializeUser(user), event)
+        const event = (await fetchSupabaseEvent(getSupabaseAdmin?.(), user.eventId)) ?? {
+          slug: user.eventSlug,
+        }
+        const access = createPersonalAccess(serializeUser(user), event, req)
 
         const emailed = req.validatedBody.sendEmail
           ? await dispatchAccessEmail({
@@ -496,46 +580,51 @@ export function createAuthRoutes({
   // Login por credencial de acceso (passwordless). El token firmado prueba
   // la identidad; igual revalidamos contra la DB (status activo + evento
   // asignado) para que dar de baja la cuenta invalide la credencial al toque.
-  router.post('/security-gate', authLimiter, validateBody(securityGateSchema), async (req, res, next) => {
-    try {
-      const prisma = getPrisma()
-      const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
-      if (!payload) {
-        next(new HttpError(401, 'Credencial inválida o vencida.'))
-        return
+  router.post(
+    '/security-gate',
+    authLimiter,
+    validateBody(securityGateSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
+        if (!payload) {
+          next(new HttpError(401, 'Credencial inválida o vencida.'))
+          return
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { id: payload.uid },
+          include: { profile: true },
+        })
+        if (
+          !user ||
+          user.role !== 'seguridad_plu_arg' ||
+          user.status !== 'active' ||
+          user.eventId !== payload.eid
+        ) {
+          next(new HttpError(401, 'Credencial inválida o vencida.'))
+          return
+        }
+
+        const session = await createSession({ prisma, userId: user.id, req })
+        await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+
+        const serialized = serializeUser(user)
+        const supabaseAuth = await ensureSupabaseSessionToken({
+          email: serialized.email,
+          permissions: serialized.permissions,
+          role: serialized.roleKey,
+        })
+
+        res
+          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+          .json({ user: serialized, supabaseAuth })
+      } catch (error) {
+        next(error)
       }
-
-      const user = await prisma.user.findUnique({
-        where: { id: payload.uid },
-        include: { profile: true },
-      })
-      if (
-        !user ||
-        user.role !== 'seguridad_plu_arg' ||
-        user.status !== 'active' ||
-        user.eventId !== payload.eid
-      ) {
-        next(new HttpError(401, 'Credencial inválida o vencida.'))
-        return
-      }
-
-      const session = await createSession({ prisma, userId: user.id, req })
-      await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
-
-      const serialized = serializeUser(user)
-      const supabaseAuth = await ensureSupabaseSessionToken({
-        email: serialized.email,
-        permissions: serialized.permissions,
-        role: serialized.roleKey,
-      })
-
-      res
-        .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
-        .json({ user: serialized, supabaseAuth })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   return router
 }

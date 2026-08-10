@@ -60,6 +60,8 @@ function SharedActiveIndicator() {
 }
 
 function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLeave, tone = 'default' }) {
+  const { reducedMotion } = useMotionConfig()
+
   return (
     <button
       type="button"
@@ -69,7 +71,16 @@ function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLe
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
-      {hovered ? <m.span layoutId="plu-nav-hover-pill" className="plu-global-nav__hover-pill" aria-hidden transition={{ type: 'spring', stiffness: 460, damping: 35, mass: 0.8 }} /> : null}
+      {hovered ? (
+        <m.span
+          layoutId="plu-nav-hover-pill"
+          className="plu-global-nav__hover-pill"
+          aria-hidden
+          transition={reducedMotion
+            ? { duration: 0.01 }
+            : { type: 'spring', stiffness: 520, damping: 38, mass: 0.55 }}
+        />
+      ) : null}
       <span className="plu-global-nav__link-content">
         {Icon ? <Icon className="plu-global-nav__link-icon" size={14} aria-hidden /> : null}
         {children}
@@ -85,8 +96,12 @@ function NavDropdownItem({ active = false, description, icon: Icon, label, onCli
       type="button"
       role="menuitem"
       variants={{
-        hidden: { opacity: 0, y: 8, filter: 'blur(4px)' },
-        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 350, damping: 25 } }
+        hidden: { opacity: 0, y: 6 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+        },
       }}
       className={`plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`}
       aria-current={active ? 'page' : undefined}
@@ -166,7 +181,16 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
       >
-        {hovered ? <m.span layoutId="plu-nav-hover-pill" className="plu-global-nav__hover-pill" aria-hidden transition={{ type: 'spring', stiffness: 460, damping: 35, mass: 0.8 }} /> : null}
+        {hovered ? (
+          <m.span
+            layoutId="plu-nav-hover-pill"
+            className="plu-global-nav__hover-pill"
+            aria-hidden
+            transition={reducedMotion
+              ? { duration: 0.01 }
+              : { type: 'spring', stiffness: 520, damping: 38, mass: 0.55 }}
+          />
+        ) : null}
         <span className="plu-global-nav__link-content">
           {label}<ChevronDown size={13} aria-hidden />
         </span>
@@ -185,18 +209,22 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
             animate="visible"
             exit="hidden"
             variants={{
-              hidden: { 
-                opacity: 0, y: 12, scale: 0.985, filter: 'blur(4px)',
-                transition: { duration: reducedMotion ? 0.01 : 0.14, ease: [0.2, 0, 0, 1] }
+              hidden: {
+                opacity: 0,
+                y: 8,
+                scale: 0.992,
+                transition: { duration: reducedMotion ? 0.01 : 0.12, ease: [0.2, 0, 0, 1] },
               },
-              visible: { 
-                opacity: 1, y: 0, scale: 1, filter: 'blur(0px)',
-                transition: { 
-                  duration: reducedMotion ? 0.08 : 0.25, 
+              visible: {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                transition: {
+                  duration: reducedMotion ? 0.06 : 0.2,
                   ease: [0.22, 1, 0.36, 1],
-                  staggerChildren: reducedMotion ? 0 : 0.04
-                } 
-              }
+                  staggerChildren: reducedMotion ? 0 : 0.025,
+                },
+              },
             }}
             onKeyDown={handleMenuKeyDown}
           >
@@ -227,9 +255,13 @@ function DrawerRow({ active = false, children, delay = 0, description, feature =
   const { reducedMotion } = useMotionConfig()
   const motionProps = reveal
     ? {
-        initial: reducedMotion ? false : { opacity: 0, y: 14 },
+        initial: reducedMotion ? false : { opacity: 0, y: 8 },
         animate: { opacity: 1, y: 0 },
-        transition: { duration: reducedMotion ? 0.01 : 0.46, ease: MOTION_EASE.spring, delay: reducedMotion ? 0 : delay },
+        transition: {
+          duration: reducedMotion ? 0.01 : 0.22,
+          ease: [0.22, 1, 0.36, 1],
+          delay: reducedMotion ? 0 : Math.min(delay, 0.12),
+        },
       }
     : {}
 
@@ -269,6 +301,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
   const menuButtonRef = useRef(null)
   const profileMenuRef = useRef(null)
   const restoreDrawerFocusRef = useRef(true)
+  const suppressScrollRestoreRef = useRef(false)
   const { scrolled } = useHeaderScroll(shellRef, { autoHide: false })
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
@@ -302,6 +335,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
   function go(view) {
     restoreDrawerFocusRef.current = false
+    if (drawerOpen) suppressScrollRestoreRef.current = true
     onNavigate?.(view)
     setDrawerOpen(false)
     setDropdown(null)
@@ -310,22 +344,48 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
   function closeDrawer(restoreFocus = true) {
     restoreDrawerFocusRef.current = restoreFocus
+    suppressScrollRestoreRef.current = false
     setDrawerOpen(false)
   }
 
   function openDrawer() {
     restoreDrawerFocusRef.current = true
+    suppressScrollRestoreRef.current = false
     setDropdown(null)
     setDrawerOpen(true)
   }
 
   useEffect(() => {
     if (!drawerOpen) return undefined
-    const previousOverflow = document.body.style.overflow
+
+    const html = document.documentElement
+    const { body } = document
+    const scrollY = window.scrollY
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+    }
     const backgroundNodes = Array.from(shellRef.current?.parentElement?.children ?? [])
       .filter((node) => node !== shellRef.current)
       .map((node) => ({ inert: node.inert, node }))
-    document.body.style.overflow = 'hidden'
+
+    html.classList.add('plu-drawer-open')
+    html.style.overflow = 'hidden'
+    html.style.overscrollBehavior = 'none'
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
     backgroundNodes.forEach(({ node }) => { node.inert = true })
     const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus())
 
@@ -354,7 +414,19 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
     document.addEventListener('keydown', onKeyDown)
     return () => {
       window.cancelAnimationFrame(focusFrame)
-      document.body.style.overflow = previousOverflow
+      html.classList.remove('plu-drawer-open')
+      html.style.overflow = previous.htmlOverflow
+      html.style.overscrollBehavior = previous.htmlOverscroll
+      body.style.overflow = previous.bodyOverflow
+      body.style.overscrollBehavior = previous.bodyOverscroll
+      body.style.position = previous.bodyPosition
+      body.style.top = previous.bodyTop
+      body.style.left = previous.bodyLeft
+      body.style.right = previous.bodyRight
+      body.style.width = previous.bodyWidth
+      const skipRestore = suppressScrollRestoreRef.current
+      suppressScrollRestoreRef.current = false
+      window.scrollTo(0, skipRestore ? 0 : scrollY)
       backgroundNodes.forEach(({ inert, node }) => { node.inert = inert })
       document.removeEventListener('keydown', onKeyDown)
     }
@@ -447,9 +519,6 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   />
                 )
               })}
-              <button type="button" role="menuitem" className="plu-nav-menu__footer" onClick={() => go('events')}>
-                <span><CalendarDays size={14} aria-hidden />{t('nav.calendarOfficial')}</span><ArrowRight size={14} aria-hidden />
-              </button>
               </NavDropdown>
               <NavLink active={activeView === 'results'} hovered={hoveredNav === 'results'} onHover={() => setHoveredNav('results')} onLeave={() => setHoveredNav(null)} onClick={() => go('results')}>{t('nav.results')}</NavLink>
               <NavLink active={activeView === 'records'} hovered={hoveredNav === 'records'} onHover={() => setHoveredNav('records')} onLeave={() => setHoveredNav(null)} onClick={() => go('records')}>{t('nav.records')}</NavLink>
@@ -562,6 +631,30 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 <LanguageToggle compact variant="segment" />
               </div>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
+              {session ? (
+                <button
+                  type="button"
+                  className={`plu-global-nav__mobile-login plu-global-nav__mobile-login--account${activeView === 'profile' || activeView === 'admin' ? ' is-active' : ''}`}
+                  aria-current={activeView === 'profile' || activeView === 'admin' ? 'page' : undefined}
+                  aria-label={sessionFullName || t('nav.myProfile')}
+                  title={sessionFullName || t('nav.myProfile')}
+                  onClick={() => go(adminSession ? 'admin' : 'profile')}
+                >
+                  <span className="plu-global-nav__mobile-login-avatar" aria-hidden>
+                    {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`plu-global-nav__mobile-login${activeView === 'login' ? ' is-active' : ''}`}
+                  aria-current={activeView === 'login' ? 'page' : undefined}
+                  onClick={() => go('login')}
+                >
+                  {t('nav.login')}
+                </button>
+              )}
+              <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
                 type="button"
                 className={`plu-global-nav__mobile-affiliate${activeView === 'members' ? ' is-active' : ''}`}
@@ -614,18 +707,18 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               role="dialog"
               aria-modal="true"
               aria-label={t('nav.mobileMenu')}
-              initial={reducedMotion ? { opacity: 0 } : { opacity: 0.85, scale: 0.995, x: '105%' }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 1, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
               exit={reducedMotion
                 ? { opacity: 0, transition: { duration: 0.01 } }
-                : { opacity: 0, x: '105%', transition: { duration: 0.26, ease: [0.76, 0, 0.24, 1] } }}
-              transition={{ duration: reducedMotion ? 0.01 : 0.4, ease: [0.16, 1, 0.3, 1] }}
+                : { opacity: 0, x: '100%', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
+              transition={{ duration: reducedMotion ? 0.01 : 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
             <m.header
               className="plu-drawer__head"
-              initial={reducedMotion ? false : { opacity: 0, y: -8 }}
+              initial={reducedMotion ? false : { opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reducedMotion ? 0.01 : 0.4, ease: MOTION_EASE.out }}
+              transition={{ duration: reducedMotion ? 0.01 : 0.22, ease: MOTION_EASE.out, delay: reducedMotion ? 0 : 0.04 }}
             >
               <div className="plu-drawer__head-bar">
                 <button
@@ -654,9 +747,9 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                 className={`plu-drawer__cta${activeView === 'members' ? ' is-active' : ''}`}
                 aria-current={activeView === 'members' ? 'page' : undefined}
                 onClick={() => go('members')}
-                initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: reducedMotion ? 0.01 : 0.4, ease: MOTION_EASE.spring, delay: reducedMotion ? 0 : 0.05 }}
+                transition={{ duration: reducedMotion ? 0.01 : 0.22, ease: MOTION_EASE.out, delay: reducedMotion ? 0 : 0.04 }}
               >
                 <span className="plu-drawer__cta-copy">
                   <small>{t('nav.calendarSeason')}</small>
@@ -670,13 +763,13 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               <LayoutGroup id={`plu-drawer-nav-${locale}`}>
                 <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
                   <div className="plu-drawer__nav-primary">
-                    <DrawerRow active={activeView === 'events'} delay={0.08} onClick={() => go('events')}>
+                    <DrawerRow active={activeView === 'events'} delay={0.02} onClick={() => go('events')}>
                       {t('nav.calendarOfficial')}
                     </DrawerRow>
 
                     <DrawerRow
                       active={latestEventActive}
-                      delay={0.12}
+                      delay={0.04}
                       description={latestEvent?.date ?? t('nav.pitbullHint')}
                       onClick={() => go(latestEventView)}
                     >
@@ -685,17 +778,17 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
 
                     <DrawerRow
                       active={['shop', 'tickets'].includes(activeView)}
-                      delay={0.16}
+                      delay={0.06}
                       description={t('nav.shopHint')}
                       onClick={() => go('shop')}
                     >
                       {t('nav.shop')}
                     </DrawerRow>
 
-                    <DrawerRow active={activeView === 'results'} delay={0.2} onClick={() => go('results')}>
+                    <DrawerRow active={activeView === 'results'} delay={0.08} onClick={() => go('results')}>
                       {t('nav.results')}
                     </DrawerRow>
-                    <DrawerRow active={activeView === 'records'} delay={0.24} onClick={() => go('records')}>
+                    <DrawerRow active={activeView === 'records'} delay={0.1} onClick={() => go('records')}>
                       {t('nav.records')}
                     </DrawerRow>
                   </div>
@@ -710,7 +803,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                         ) : null}
                         <DrawerRow
                           active={item.active}
-                          delay={0.3 + index * 0.03}
+                          delay={0.08 + index * 0.02}
                           onClick={() => go(item.key)}
                         >
                           {item.label}

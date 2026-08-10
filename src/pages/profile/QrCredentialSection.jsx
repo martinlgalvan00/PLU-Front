@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Lock, QrCode, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
+import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
@@ -23,6 +24,7 @@ export default function QrCredentialSection({
 }) {
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
+  const [cardInitialFormat, setCardInitialFormat] = useState('square')
   const [qrSrc, setQrSrc] = useState(null)
   const [mergeDone, setMergeDone] = useState(false)
 
@@ -61,6 +63,11 @@ export default function QrCredentialSection({
   const validUntil = membership?.expirationDate
     ? formatShortDate(membership.expirationDate, locale)
     : null
+  const credentialSeasonYear =
+    membership?.year ??
+    membership?.startDate?.slice(0, 4) ??
+    membership?.expirationDate?.slice(0, 4) ??
+    String(new Date().getFullYear())
 
   useEffect(() => {
     if (!hasCredential) {
@@ -174,15 +181,23 @@ export default function QrCredentialSection({
               </article>
             </div>
           ) : (
-            <div className="account-qr account-qr--split">
-              <div className="account-qr__code-col">
-                <div className="account-qr__chip">
-                  {qrSrc && <img src={qrSrc} alt={t('account.qr.imageAlt')} />}
-                </div>
-                <p className="account-qr__code-label">{memberCode ?? athlete.fullName}</p>
-                {membershipCurrent && validUntil && (
-                  <p className="account-qr__code-meta">{t('account.qr.validUntil', { date: validUntil })}</p>
-                )}
+            <div className="account-qr account-qr--split account-qr--with-credential">
+              <div className="account-qr__credential-col">
+                <CredentialCard
+                  eyebrow={t('account.credential.athlete')}
+                  name={athlete.fullName}
+                  code={memberCode ?? credentialCode}
+                  codeLabel={t('account.qr.cardCodeLabel')}
+                  season={t('account.qr.cardSeason', { year: credentialSeasonYear })}
+                  status={t('account.membershipActive')}
+                  qrSrc={qrSrc}
+                  qrAlt={t('account.qr.imageAlt')}
+                  qrCaption={t('account.qr.cardScanHint')}
+                  validUntil={validUntil ? t('account.qr.validUntil', { date: validUntil }) : null}
+                  flipToBackLabel={t('account.credential.viewBack')}
+                  flipToFrontLabel={t('account.credential.viewFront')}
+                  flipAriaLabel={t('account.qr.cardFlipAria')}
+                />
               </div>
 
               <div className="account-qr__preview-col">
@@ -219,16 +234,34 @@ export default function QrCredentialSection({
                     )}
                   </dl>
                 </aside>
-                <button type="button" className="account-qr__share" onClick={() => setModalOpen(true)}>
+                <button
+                  type="button"
+                  className="account-qr__share"
+                  onClick={() => {
+                    // En mobile el destino natural es una historia de
+                    // Instagram; en desktop, el post cuadrado. El usuario
+                    // puede cambiarlo dentro del modal.
+                    const prefersStory =
+                      typeof window !== 'undefined' &&
+                      window.matchMedia('(max-width: 720px)').matches
+                    setCardInitialFormat(prefersStory ? 'story' : 'square')
+                    setModalOpen(true)
+                  }}
+                >
                   <Share2 size={15} aria-hidden />
-                  {t('account.qr.openAction')}
+                  {t('account.qr.shareAction')}
                 </button>
               </div>
             </div>
           )}
 
           {!showDual && (
-            <CardPreviewModal open={modalOpen} onClose={() => setModalOpen(false)} cardData={cardData} />
+            <CardPreviewModal
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              cardData={cardData}
+              initialFormat={cardInitialFormat}
+            />
           )}
         </>
       ) : (

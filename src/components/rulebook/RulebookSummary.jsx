@@ -19,7 +19,7 @@ export default function RulebookSummary({ items }) {
         {items.map((item, index) => (
           <li key={item.id}>
             <article className="rulebook-summary__card">
-              <span className="rulebook-summary__index" aria-hidden>
+              <span className="rulebook-summary__index motif-num" aria-hidden>
                 {String(index + 1).padStart(2, '0')}
               </span>
               <div className="rulebook-summary__body">

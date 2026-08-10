@@ -159,7 +159,11 @@ if (sendIndex !== -1) {
     fail('Falta la dirección: npm run email:doctor -- --send tu@email.com')
   } else {
     try {
-      const rendered = renderEmail('welcome', { name: 'Prueba', accountUrl: `${process.env.APP_URL ?? ''}/mi-cuenta` })
+      const rendered = renderEmail(
+        'welcome',
+        { name: 'Prueba', accountUrl: `${process.env.APP_URL ?? process.env.VITE_APP_URL ?? ''}/mi-cuenta` },
+        { appUrl: process.env.APP_URL ?? process.env.VITE_APP_URL ?? '' },
+      )
       const result = await createBrevoAdapter({}).send({
         to,
         subject: '[PLU ARG] prueba de infraestructura de emails',

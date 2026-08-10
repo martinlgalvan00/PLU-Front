@@ -1060,6 +1060,16 @@
   overflow: hidden;
 }
 
+.admin-shell .admin-payments-ops-strip {
+  background: var(--admin-surface);
+  border-color: var(--admin-hairline);
+  border-radius: 12px;
+}
+
+.admin-shell .admin-payment-ops__healthy-line {
+  color: var(--admin-muted);
+}
+
 .admin-shell .admin-payments-operations > .admin-orders-block {
   border-top: 0;
   gap: 0;
@@ -4040,8 +4050,8 @@
   border-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 4px 2px 12px;
+  gap: 8px;
+  padding: 2px 2px 10px;
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__panel {
@@ -4051,6 +4061,8 @@
 }
 
 .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact > .admin-filters__primary {
+  align-items: center;
+  gap: 10px;
   justify-content: flex-start;
   min-width: 0;
   order: 1;
@@ -4060,21 +4072,29 @@
 .admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search,
 .admin-shell .admin-list-section--events .admin-filters__search {
   background: transparent;
-  border-color: var(--admin-hairline);
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
   border-radius: 0;
   box-shadow: none;
   flex: 1 1 auto;
-  height: 36px;
+  height: 40px;
   margin-left: 0;
-  min-height: 36px;
+  min-height: 40px;
   min-width: 0;
   order: 0;
+  padding-inline: 2px;
+  transition: border-color var(--transition-fast);
   width: auto;
+}
+
+.admin-shell .admin-list-section--events .admin-filters__primary .admin-filters__search:focus-within,
+.admin-shell .admin-list-section--events .admin-filters__search:focus-within {
+  border-bottom-color: color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 55%, var(--admin-hairline));
 }
 
 .admin-shell .admin-list-section--events .admin-filters__groups {
   flex: none;
-  gap: 12px;
+  gap: 8px;
   max-width: 100%;
   order: 0;
   overflow: visible;
@@ -4089,8 +4109,8 @@
 }
 
 .admin-shell .admin-list-section--events .admin-events__toolbar-actions .btn {
-  min-height: 40px;
-  padding-inline: 14px;
+  min-height: 36px;
+  padding-inline: 12px;
 }
 
 /* El tratamiento del chip ya lo cubre el bloque `:is(.admin-filters--compact,
@@ -4100,20 +4120,26 @@
   background: transparent;
 }
 
-/* KPI strip fuera del shell: ledger tipográfico entre filtros y lista. */
+/* KPI strip: meta tipográfica quieta entre filtros y lista. */
 .admin-shell .admin-list-section--events .admin-events-kpis {
-  align-items: stretch;
+  align-items: baseline;
   background: transparent;
   border: 0;
-  border-bottom: 1px solid var(--admin-hairline);
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
   border-radius: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0;
   grid-template-columns: none;
-  margin: 0 0 6px;
-  overflow: visible;
-  padding: 2px 2px 10px;
+  margin: 0 0 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 2px 10px;
+  scrollbar-width: none;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpis::-webkit-scrollbar {
+  display: none;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi {
@@ -4121,34 +4147,35 @@
   display: inline-flex;
   flex: 1 1 0;
   flex-direction: row;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-start;
-  min-width: 0;
-  padding: 8px 14px 8px 0;
+  min-width: max(5.5rem, 18%);
+  padding: 4px 16px 4px 0;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
   border-left: 1px solid var(--admin-hairline);
-  padding-left: 14px;
+  padding-left: 16px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__label {
   color: var(--admin-muted);
   font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  order: 0;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  order: 1;
   text-transform: uppercase;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__value {
   color: var(--admin-ink);
-  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  font-size: clamp(1.1rem, 1.9vw, 1.35rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   line-height: 1;
-  margin-left: auto;
+  margin-left: 0;
+  order: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-events-workspace {
@@ -4710,14 +4737,16 @@
 
 @media (max-width: 900px) {
   .admin-shell .admin-list-section--events .admin-events-kpis {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 8px;
-    padding-bottom: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+    overflow: visible;
+    padding-bottom: 8px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi {
-    padding: 8px 12px 8px 0;
+    flex: 1 1 calc(50% - 1px);
+    min-width: 0;
+    padding: 6px 12px 6px 0;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
@@ -4732,7 +4761,7 @@
 
   .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
     border-top: 1px solid var(--admin-hairline);
-    padding-top: 10px;
+    padding-top: 8px;
   }
 
   /* El panel pasa a estar debajo de la lista, así que el scroll interno
@@ -5136,25 +5165,31 @@
 }
 
 .admin-event-editor-modal__backdrop {
-  background: rgba(4, 6, 10, 0.78);
+  background: rgba(4, 6, 10, 0.72);
 }
 
 .admin-event-editor-modal__panel {
   background: var(--admin-surface, var(--color-bg-surface));
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.42);
 }
 
 .admin-event-editor-modal__panel .admin-event-form__head {
   align-items: flex-start;
   flex: 0 0 auto;
   gap: 16px;
-  padding: 20px 24px 14px;
+  padding: 22px 24px 16px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__head h3 {
-  font-size: clamp(18px, 2vw, 22px);
-  font-weight: 750;
-  letter-spacing: -0.03em;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__lead {
+  font-size: 13px;
+  max-width: 52ch;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-nav {
@@ -5223,9 +5258,9 @@
 .admin-event-editor-modal__panel .admin-event-form__mode {
   border: 0;
   border-radius: 0;
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   margin: 0;
   padding: 0;
 }
@@ -5242,19 +5277,27 @@
 
 .admin-event-editor-modal__panel .admin-event-editor__toolbar {
   background: var(--admin-surface);
-  border-bottom-color: var(--admin-hairline);
+  border-bottom: 1px solid var(--admin-hairline);
   flex: 0 0 auto;
   margin: 0;
   padding-inline: 24px;
 }
 
+.admin-event-editor-modal__panel .admin-event-editor__toolbar .detail-tabs--editorial .detail-tabs__tab {
+  font-size: 12.5px;
+  font-weight: 550;
+  min-height: 46px;
+  padding: 14px 14px 12px;
+}
+
 .admin-event-editor-modal__panel .admin-event-form__body {
   flex: 1 1 auto;
+  gap: 22px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px 24px 22px;
+  padding: 18px 24px 26px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section {
@@ -5262,12 +5305,17 @@
   border-bottom: 0;
   border-radius: 0;
   gap: 18px;
-  padding: 4px 0 8px;
+  padding: 4px 0 12px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-head h4 {
-  font-size: 15px;
-  letter-spacing: -0.025em;
+  font-size: clamp(15px, 1.6vw, 17px);
+  letter-spacing: -0.028em;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__section-head p {
+  font-size: 13px;
+  max-width: 54ch;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__lane {

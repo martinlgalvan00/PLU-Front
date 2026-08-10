@@ -487,6 +487,17 @@
     width: auto;
   }
 
+  .admin-shell--collapsed .admin-shell__session {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    width: 100%;
+  }
+
   .admin-shell--collapsed .admin-shell__prefs .pref-toggle,
   .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact,
   .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
@@ -1601,6 +1612,24 @@
   }
 }
 
+.admin-shell .admin-payments-ops-strip {
+  background: color-mix(in srgb, var(--admin-surface) 94%, transparent);
+  border-color: var(--admin-hairline);
+  border-radius: 12px;
+}
+
+.admin-shell .admin-payments-ops-strip__kpi {
+  background: color-mix(in srgb, var(--admin-ink) 2.5%, transparent);
+  border-color: var(--admin-hairline);
+  border-radius: 10px;
+}
+
+.admin-shell .admin-payments-ops-callout {
+  background: color-mix(in srgb, var(--admin-status-warning, #c9a227) 10%, transparent);
+  border-color: color-mix(in srgb, var(--admin-status-warning, #c9a227) 28%, transparent);
+  border-radius: 10px;
+}
+
 .admin-shell .admin-payments-operations > .admin-orders-block,
 .admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
   background: var(--admin-surface);
@@ -1623,6 +1652,22 @@
   border-bottom: 1px solid var(--admin-hairline);
   gap: 18px 22px;
   padding: 20px clamp(16px, 2.4vw, 24px) 18px;
+}
+
+.admin-shell .admin-payment-ops__header--compact {
+  padding-bottom: 14px;
+}
+
+.admin-shell .admin-payment-ops__meta-line {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-payment-ops__meta-line strong {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-payment-ops__healthy-line {
+  color: var(--admin-muted);
 }
 
 @media (max-width: 1024px) {

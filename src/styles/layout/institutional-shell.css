@@ -73,11 +73,28 @@
   z-index: var(--z-header);
 }
 
+[data-theme='light'] .site-header--institutional {
+  backdrop-filter: blur(18px) saturate(108%);
+  -webkit-backdrop-filter: blur(18px) saturate(108%);
+  background: color-mix(in srgb, var(--institution-header) 96%, transparent);
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    0 10px 28px -16px rgba(15, 17, 23, 0.14),
+    0 0 0 1px rgba(15, 17, 23, 0.03);
+}
+
 .site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   background: var(--institution-header-blend);
   border-color: color-mix(in srgb, var(--institution-border) 50%, transparent);
+}
+
+[data-theme='light'] .site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
+  backdrop-filter: blur(16px) saturate(105%);
+  -webkit-backdrop-filter: blur(16px) saturate(105%);
+  background: color-mix(in srgb, var(--plu-warm-50) 88%, #fff);
+  border-color: rgba(15, 17, 23, 0.08);
 }
 
 .site-header {
@@ -103,9 +120,11 @@
 
 [data-theme='light'] .site-header--institutional.site-header--scrolled,
 [data-theme='light'] .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(0, 0, 0, 0.04);
-  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(16px) saturate(100%);
+  -webkit-backdrop-filter: blur(16px) saturate(100%);
+  background: color-mix(in srgb, #fff 94%, var(--plu-warm-50));
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow: 0 12px 28px -18px rgba(15, 17, 23, 0.16);
 }
 
 /* Lux + institutional */
@@ -253,11 +272,12 @@
   inset: 6px 0;
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--border-radius-sm);
+  pointer-events: none;
   z-index: 0;
 }
 
 [data-theme='light'] .plu-global-nav__hover-pill {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(15, 17, 23, 0.05);
 }
 
 .plu-global-nav__link-icon {
@@ -328,7 +348,7 @@
 }
 
 .plu-nav-menu {
-  background: color-mix(in srgb, var(--institution-surface) 85%, transparent);
+  background: color-mix(in srgb, var(--institution-surface) 92%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid color-mix(in srgb, var(--institution-border-strong) 40%, transparent);
@@ -340,15 +360,24 @@
   position: absolute;
   top: calc(100% + 10px);
   transform-origin: top center;
+  will-change: opacity, transform;
   z-index: var(--z-dropdown);
 }
 
-.plu-nav-menu > * {
-  animation: institutional-menu-item-enter var(--motion-fast) var(--ease-out) both;
+[data-theme='light'] .plu-nav-menu {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.1);
+  box-shadow:
+    0 18px 40px -20px rgba(15, 17, 23, 0.22),
+    0 0 0 1px rgba(15, 17, 23, 0.04);
 }
 
-.plu-nav-menu > :nth-child(2) { animation-delay: 35ms; }
-.plu-nav-menu > :nth-child(3) { animation-delay: 70ms; }
+.plu-nav-menu > * {
+  /* Enter lo maneja Motion (opacity/transform); evitar doble animación CSS+JS */
+  animation: none;
+}
 
 .plu-nav-menu--compact {
   min-width: 330px;
@@ -383,7 +412,10 @@
   min-height: 52px;
   padding: 8px 12px;
   text-align: left;
-  transition: all var(--motion-fast) var(--ease-out);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
   width: 100%;
 }
 
@@ -443,35 +475,59 @@
   line-height: 1.4;
 }
 
-.plu-nav-menu__footer {
-  align-items: center;
-  border-top: 1px solid var(--institution-border);
-  color: var(--institution-blue);
-  display: flex;
-  font-size: 11.5px;
-  font-weight: 650;
-  justify-content: space-between;
-  margin-top: 6px;
-  min-height: 40px;
-  padding: 8px 10px 3px;
-  width: 100%;
-}
-
-.plu-nav-menu__footer > span {
-  align-items: center;
-  display: inline-flex;
-  gap: 7px;
-}
-
 .plu-resources-menu__head {
   align-items: center;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--institution-surface-strong) 80%, transparent), color-mix(in srgb, var(--institution-surface) 60%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--institution-surface-strong) 80%, transparent),
+    color-mix(in srgb, var(--institution-surface) 60%, transparent)
+  );
   border-bottom: 1px solid color-mix(in srgb, var(--institution-border) 40%, transparent);
   color: var(--institution-text);
   display: flex;
   gap: 24px;
   justify-content: space-between;
   padding: 18px 24px;
+  position: relative;
+}
+
+[data-theme='light'] .plu-resources-menu__head {
+  background: #fff;
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+  color: var(--institution-text);
+}
+
+[data-theme='light'] .plu-resources-menu__head::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--institution-gold) 78%, transparent),
+    transparent 72%
+  );
+  content: '';
+  height: 1.5px;
+  left: 24px;
+  position: absolute;
+  right: 24px;
+  top: 0;
+}
+
+[data-theme='light'] .plu-resources-menu__head p {
+  color: var(--institution-text);
+}
+
+[data-theme='light'] .plu-resources-menu__head span {
+  color: var(--institution-text-muted);
+}
+
+[data-theme='light'] .plu-resources-menu__head button {
+  background: color-mix(in srgb, var(--institution-gold) 8%, #fff);
+  border-color: color-mix(in srgb, var(--institution-gold) 28%, rgba(15, 17, 23, 0.1));
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .plu-resources-menu__head button:hover {
+  background: color-mix(in srgb, var(--institution-gold) 14%, #fff);
+  transform: none;
 }
 
 .plu-resources-menu__head > div {
@@ -505,12 +561,14 @@
   gap: 8px;
   min-height: 36px;
   padding: 0 16px;
-  transition: all var(--motion-fast) var(--ease-out);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
 .plu-resources-menu__head button:hover {
   background: color-mix(in srgb, var(--institution-gold) 10%, transparent);
-  transform: translateY(-1px);
 }
 
 .plu-resources-menu__groups {
@@ -751,8 +809,16 @@
   backdrop-filter: blur(6px);
   background: color-mix(in srgb, var(--institution-surface-strong) 72%, transparent);
   inset: 0;
+  overscroll-behavior: none;
   position: fixed;
+  touch-action: none;
   z-index: var(--z-drawer-backdrop);
+}
+
+html.plu-drawer-open,
+html.plu-drawer-open body {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .plu-drawer {
@@ -770,8 +836,29 @@
   max-width: 372px;
   overflow: hidden;
   position: fixed;
-  width: calc(100vw - 24px);
+  width: min(372px, calc(100% - 24px));
   z-index: var(--z-drawer);
+}
+
+[data-theme='light'] .plu-drawer {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.08);
+  box-shadow:
+    -18px 0 48px rgba(15, 17, 23, 0.14),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--institution-text);
+}
+
+[data-theme='light'] .plu-drawer__head {
+  background: #fff;
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .plu-drawer__footer {
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.96) 28%, #fff);
+  border-top-color: rgba(15, 17, 23, 0.08);
 }
 
 /* Drawer dark — grafito profundo, un acento, sin wash */
@@ -2270,6 +2357,62 @@
     width: 1px;
   }
 
+  .plu-global-nav__mobile-login {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: var(--institution-text);
+    display: inline-flex;
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    min-height: 40px;
+    padding: 0 7px;
+    text-transform: uppercase;
+    transition: color var(--motion-fast) var(--ease-out);
+  }
+
+  .plu-global-nav__mobile-login:hover,
+  .plu-global-nav__mobile-login.is-active {
+    color: var(--institution-blue);
+  }
+
+  .plu-global-nav__mobile-login:focus-visible {
+    outline: 2px solid var(--institution-focus);
+    outline-offset: 2px;
+  }
+
+  .plu-global-nav__mobile-login--account {
+    padding: 0 4px;
+  }
+
+  .plu-global-nav__mobile-login-avatar {
+    align-items: center;
+    background: color-mix(in srgb, var(--institution-surface-raised) 80%, var(--institution-blue));
+    border: 1px solid color-mix(in srgb, var(--institution-border) 70%, transparent);
+    border-radius: 999px;
+    color: var(--institution-text);
+    display: inline-flex;
+    font-size: 10px;
+    font-weight: 700;
+    height: 28px;
+    justify-content: center;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-transform: none;
+    width: 28px;
+  }
+
+  .plu-global-nav__mobile-login-avatar img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
   /* Afiliar — sin caja: el acento es una hairline gold bajo el texto */
   .plu-global-nav__mobile-affiliate {
     align-items: center;
@@ -2598,10 +2741,11 @@
 }
 
 [data-theme='light'] .plu-profile-menu {
-  background: var(--institution-surface);
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.08);
   box-shadow:
-    0 12px 32px color-mix(in srgb, var(--color-shadow-tint, #000) 18%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--institution-border) 80%, transparent);
+    0 14px 34px -18px rgba(15, 17, 23, 0.2),
+    0 0 0 1px rgba(15, 17, 23, 0.04);
 }
 
 .plu-profile-menu__header {

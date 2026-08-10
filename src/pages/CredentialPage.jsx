@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } from 'lucide-react'
 import { BRAND } from '../lib/brand.js'
-import { formatShortDate } from '../lib/format.js'
+import { formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
 import { getStatusMeta, isGateAccessReady, isRegistrationAdmitted } from '../lib/status.js'
 import { useCredentialVerification } from '../hooks/useCredentialVerification.js'
@@ -52,7 +52,7 @@ function ageFromBirthDate(iso) {
  * fila en la puerta.
  *
  * El orden de lectura está fijado por lo que se resuelve en la puerta:
- * veredicto → persona → identidad etiquetada → cuándo compite → estados →
+ * veredicto → persona (foto) → identidad etiquetada → cuándo compite → estados →
  * acción. El bloque de grilla es el único con escala propia porque es el dato
  * por el que se escanea.
  *
@@ -78,6 +78,21 @@ export default function CredentialPage({ code, eventSlug, type, onCheckIn, onChe
   }
 
   return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+}
+
+/**
+ * Foto o iniciales para cotejar en la puerta. La foto solo llega cuando el QR
+ * era un token y el atleta la cargó; si no, las iniciales sostienen la fila.
+ */
+function AthletePortrait({ name, photoUrl }) {
+  return (
+    <span
+      className={`credential-page__photo${photoUrl ? ' has-photo' : ''}`}
+      aria-hidden
+    >
+      {photoUrl ? <img src={photoUrl} alt="" /> : initials(name)}
+    </span>
+  )
 }
 
 /**
@@ -112,7 +127,7 @@ function IdentityFacts({ facts }) {
   )
 }
 
-function buildAthleteIdentityFacts(athlete, membership) {
+function buildAthleteIdentityFacts(athlete) {
   const facts = []
   if (athlete?.documentId) {
     facts.push({ label: 'Documento', value: athlete.documentId })
@@ -126,9 +141,6 @@ function buildAthleteIdentityFacts(athlete, membership) {
       mono: false,
     })
   }
-  if (membership?.memberCode) {
-    facts.push({ label: 'Nº de socio', value: membership.memberCode })
-  }
   return facts
 }
 
@@ -140,19 +152,23 @@ function buildAthleteIdentityFacts(athlete, membership) {
  * confirmar" y se cae a la fecha del evento: dejar el renglón vacío haría
  * parecer que la credencial está incompleta cuando en realidad está al día.
  */
-function ScheduleBlock({ registration }) {
+function ScheduleBlock({ registration, showEventTitle = false }) {
   const summary = formatScheduleSummary(registration.schedule)
   const eventDate = registration.eventStartsAt
     ? formatShortDate(String(registration.eventStartsAt).slice(0, 10))
     : ''
+  const eventTitle = showEventTitle && registration.event ? registration.event : null
+  const categoryLine = [registration.category, registration.division].filter(Boolean).join(' · ')
 
   if (!summary) {
     return (
       <div className="credential-page__schedule-block credential-page__schedule-block--pending">
         <span className="credential-page__schedule-eyebrow">Compite</span>
+        {eventTitle ? <p className="credential-page__schedule-event">{eventTitle}</p> : null}
         <p className="credential-page__schedule-day">
           Día a confirmar{eventDate ? ` · ${eventDate}` : ''}
         </p>
+        {categoryLine ? <p className="credential-page__schedule-detail">{categoryLine}</p> : null}
       </div>
     )
   }
@@ -162,8 +178,13 @@ function ScheduleBlock({ registration }) {
   return (
     <div className="credential-page__schedule-block">
       <span className="credential-page__schedule-eyebrow">Compite</span>
+      {eventTitle ? <p className="credential-page__schedule-event">{eventTitle}</p> : null}
       <p className="credential-page__schedule-day">{summary}</p>
-      {detail && <p className="credential-page__schedule-detail">{detail}</p>}
+      {(detail || categoryLine) && (
+        <p className="credential-page__schedule-detail">
+          {[detail, categoryLine].filter(Boolean).join(' · ')}
+        </p>
+      )}
     </div>
   )
 }
@@ -335,11 +356,23 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
       <div className="credential-page__body">
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
-        <p className="credential-page__athlete-name">{athlete.fullName}</p>
-        <IdentityFacts facts={buildAthleteIdentityFacts(athlete, membership)} />
+        <div className="credential-page__identity-hero">
+          <AthletePortrait name={athlete.fullName} photoUrl={athlete.photoUrl} />
+          <div className="credential-page__identity-hero-copy">
+            <p className="credential-page__athlete-name">{athlete.fullName}</p>
+            {membership?.memberCode ? (
+              <p className="credential-page__member-code">
+                <span className="credential-page__member-code-label">Nº de socio</span>
+                <span className="credential-page__member-code-value">{membership.memberCode}</span>
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <IdentityFacts facts={buildAthleteIdentityFacts(athlete)} />
 
         {/* Escaneo con evento: la grilla de esa inscripción manda. */}
-        {eventSlug && registration && <ScheduleBlock registration={registration} />}
+        {eventSlug && registration && <ScheduleBlock registration={registration} showEventTitle />}
 
         <dl className="credential-page__rows">
           <div className="credential-page__row">
@@ -401,7 +434,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
         {otherRegistrations.length > 0 && (
           <>
             <p className="credential-page__section-label">
-              {otherRegistrations.some((item) => item.upcoming) ? 'Próximos torneos' : 'Último torneo'}
+              {otherRegistrations.some((item) => item.upcoming) ? 'Participación' : 'Último torneo'}
             </p>
             <div className="credential-page__rows">
               {otherRegistrations.map((item) => {
@@ -412,11 +445,6 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
                       <p className="credential-page__entry-title">{item.event ?? 'Inscripción'}</p>
                       <span className={`status-pill status-pill--${meta.tone}`}>{meta.label}</span>
                     </div>
-                    {(item.category || item.division) && (
-                      <p className="credential-page__row-meta">
-                        {[item.category, item.division].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
                     <ScheduleBlock registration={item} />
                     {item.checkedInAt ? (
                       <p className="credential-page__row-meta">
@@ -612,12 +640,23 @@ function TicketCredential({ code, onCheckIn }) {
       <div className="credential-page__body">
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
-        <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
+        <div className="credential-page__identity-hero">
+          <AthletePortrait name={ticket.attendeeName} photoUrl={null} />
+          <div className="credential-page__identity-hero-copy">
+            <p className="credential-page__athlete-name">{ticket.attendeeName}</p>
+            {ticket.ticketCode ? (
+              <p className="credential-page__member-code">
+                <span className="credential-page__member-code-label">Entrada</span>
+                <span className="credential-page__member-code-value">{ticket.ticketCode}</span>
+              </p>
+            ) : null}
+          </div>
+        </div>
+
         <IdentityFacts
-          facts={[
-            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
-            ticket.ticketCode ? { label: 'Entrada', value: ticket.ticketCode } : null,
-          ].filter(Boolean)}
+          facts={[ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null].filter(
+            Boolean,
+          )}
         />
 
         {/* La entrada es un pase de un solo uso, no una identidad: lo que
@@ -694,12 +733,16 @@ function NotFoundBody({ code }) {
 function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictClass }) {
   return (
     <main className="credential-page">
+      <div className="credential-page__ambient" aria-hidden>
+        <img src={BRAND.logoArgentinaMarkUrl} alt="" className="credential-page__watermark" />
+      </div>
+
       <div className="credential-page__panel">
         <header className="credential-page__brand">
           <img src={BRAND.logoArgentinaUrl} alt="" className="credential-page__logo" />
           <div className="credential-page__brand-text">
             <span className="credential-page__brand-name">PLU Argentina</span>
-            <span className="credential-page__brand-mark">Verificación</span>
+            <span className="credential-page__brand-mark">Verificación QR</span>
           </div>
         </header>
 

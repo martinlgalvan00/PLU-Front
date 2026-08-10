@@ -641,35 +641,89 @@
 /* ── Rulebook documentation ─────────────────────── */
 
 .rulebook-institutional__inner { display: grid; gap: clamp(72px, 9vw, 112px); }
-.rulebook-document-block { display: grid; gap: 34px; }
 
-.rulebook-page--institutional .rulebook-doc-shell { margin: 0; }
+.rulebook-document-block {
+  display: grid;
+  gap: clamp(28px, 4vw, 40px);
+}
+
+.rulebook-document-block__head {
+  display: grid;
+  gap: 12px;
+  max-width: 40rem;
+  padding-bottom: 4px;
+}
+
+.rulebook-document-block__kicker {
+  color: var(--institution-text-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.rulebook-document-block__copy {
+  display: grid;
+  gap: 10px;
+}
+
+.rulebook-document-block__copy h2 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 3.8vw, 2.6rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+  max-width: 14ch;
+}
+
+.rulebook-document-block__copy p {
+  color: var(--institution-text-muted);
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.rulebook-page--institutional .rulebook-doc-shell {
+  margin: 0;
+  padding: 0;
+}
+
 .rulebook-page--institutional .rulebook-doc-panel {
-  background: var(--institution-surface);
-  border: 1px solid var(--institution-border-strong);
-  border-radius: var(--institution-radius-surface);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
   display: grid;
   gap: 0;
   grid-template-columns: 1fr;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 
 .rulebook-page--institutional .rulebook-doc-panel__meta {
+  align-items: start;
+  gap: clamp(16px, 2.8vw, 28px);
   min-width: 0;
-  padding: 20px 22px;
+  padding: clamp(22px, 3vw, 32px) 0 clamp(18px, 2.4vw, 24px);
 }
 
-.rulebook-page--institutional .rulebook-doc-panel__glyph {
-  background: var(--institution-blue-soft);
-  border-color: color-mix(in srgb, var(--institution-blue) 22%, transparent);
-  color: var(--institution-blue);
+.rulebook-page--institutional .rulebook-doc-panel__version {
+  color: color-mix(in oklab, var(--institution-gold, var(--plu-gold-600)) 55%, var(--institution-text));
 }
 
 .rulebook-page--institutional .rulebook-doc-panel__title {
   color: var(--institution-text);
   overflow-wrap: anywhere;
+}
+
+.rulebook-page--institutional .rulebook-doc-panel__status,
+.rulebook-page--institutional .rulebook-doc-panel__meta-line {
+  color: var(--institution-text-muted);
 }
 
 .rulebook-page--institutional .rulebook-doc-panel__toolbar {
@@ -678,10 +732,10 @@
   border-top: 1px solid var(--institution-border);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 18px;
+  gap: 14px 20px;
   justify-content: space-between;
   min-width: 0;
-  padding: 14px 22px 16px;
+  padding: clamp(16px, 2.2vw, 20px) 0 0;
 }
 
 .rulebook-page--institutional .rulebook-doc-panel__lang {
@@ -700,31 +754,102 @@
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 
 .rulebook-page--institutional .rulebook-doc-panel__view-btn,
 .rulebook-page--institutional .rulebook-icon-action {
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .rulebook-page--institutional .rulebook-summary {
   border: 0;
   display: grid;
-  gap: 30px;
+  gap: clamp(28px, 4vw, 40px);
   padding: 0;
 }
 
-.rulebook-page--institutional .rulebook-summary__head { max-width: 720px; }
-.rulebook-page--institutional .rulebook-summary__rail { border-top: 1px solid var(--institution-border-strong); display: grid; grid-template-columns: repeat(2, 1fr); list-style: none; margin: 0; padding: 0; }
-.rulebook-page--institutional .rulebook-summary__rail > li { border-bottom: 1px solid var(--institution-border); padding: 0; }
-.rulebook-page--institutional .rulebook-summary__rail > li:nth-child(odd) { border-right: 1px solid var(--institution-border); }
-.rulebook-page--institutional .rulebook-summary__rail > li:nth-child(even) { padding-left: 0; }
-.rulebook-page--institutional .rulebook-summary__card { align-items: start; background: transparent; border: 0; border-radius: 0; box-shadow: none; display: grid; gap: 18px; grid-template-columns: 34px minmax(0, 1fr); min-height: 150px; padding: 24px; }
-.rulebook-page--institutional .rulebook-summary__index { color: var(--institution-gold); font-family: var(--font-mono); font-size: 9px; }
-.rulebook-page--institutional .rulebook-summary__body h3 { color: var(--institution-text); font-size: 14px; }
-.rulebook-page--institutional .rulebook-summary__body p { color: var(--institution-text-muted); font-size: 11.5px; line-height: 1.65; }
-.rulebook-page--institutional .rulebook-summary__disclaimer { color: var(--institution-text-muted); font-size: 9px; margin: 0; }
+.rulebook-page--institutional .rulebook-summary__head {
+  max-width: 36rem;
+}
+
+.rulebook-page--institutional .motion-section-header--rulebook .motion-section-header__eyebrow {
+  color: var(--institution-text-muted);
+}
+
+.rulebook-page--institutional .motion-section-header--rulebook .motion-section-header__title {
+  color: var(--institution-text);
+}
+
+.rulebook-page--institutional .motion-section-header--rulebook .motion-section-header__lead {
+  color: var(--institution-text-muted);
+}
+
+.rulebook-page--institutional .rulebook-summary__rail {
+  border-top: 1px solid var(--institution-border-strong);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rulebook-page--institutional .rulebook-summary__rail > li {
+  border-bottom: 1px solid var(--institution-border);
+  padding: 0;
+}
+
+.rulebook-page--institutional .rulebook-summary__rail > li:nth-child(odd) {
+  border-right: 1px solid var(--institution-border);
+  padding-right: clamp(20px, 3vw, 40px);
+}
+
+.rulebook-page--institutional .rulebook-summary__rail > li:nth-child(even) {
+  padding-left: clamp(20px, 3vw, 40px);
+}
+
+.rulebook-page--institutional .rulebook-summary__card {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  gap: clamp(14px, 2vw, 20px);
+  grid-template-columns: clamp(2.75rem, 5vw, 3.5rem) minmax(0, 1fr);
+  min-height: 0;
+  padding: clamp(22px, 3vw, 32px) 0;
+}
+
+.rulebook-page--institutional .rulebook-summary__index {
+  color: color-mix(in oklab, var(--institution-gold, var(--plu-gold-600)) 58%, var(--institution-text));
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.8vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.rulebook-page--institutional .rulebook-summary__body h3 {
+  color: var(--institution-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.rulebook-page--institutional .rulebook-summary__body p {
+  color: var(--institution-text-muted);
+  font-size: clamp(13.5px, 1.3vw, 15px);
+  line-height: 1.55;
+}
+
+.rulebook-page--institutional .rulebook-summary__disclaimer {
+  border-top: 1px solid var(--institution-border);
+  color: var(--institution-text-muted);
+  font-size: 12.5px;
+  margin: 0;
+  padding-top: 16px;
+}
 
 .rulebook-reading {
   display: grid;
@@ -919,8 +1044,26 @@
   }
 
   .rulebook-page--institutional .rulebook-summary__rail { grid-template-columns: 1fr; }
-  .rulebook-page--institutional .rulebook-summary__rail > li:nth-child(odd) { border-right: 0; }
-  .rulebook-page--institutional .rulebook-summary__card { min-height: 0; padding: 20px 0; }
+  .rulebook-page--institutional .rulebook-summary__rail > li:nth-child(odd) {
+    border-right: 0;
+    padding-right: 0;
+  }
+  .rulebook-page--institutional .rulebook-summary__rail > li:nth-child(even) {
+    padding-left: 0;
+  }
+  .rulebook-page--institutional .rulebook-summary__card {
+    min-height: 0;
+    padding: clamp(20px, 4vw, 26px) 0;
+  }
+
+  .rulebook-page--institutional .rulebook-doc-panel__meta {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .rulebook-page--institutional .rulebook-doc-panel__version {
+    font-size: clamp(2.2rem, 10vw, 3rem);
+  }
 
   .rulebook-reading { grid-template-columns: 1fr; }
   .rulebook-index { display: none; }
@@ -952,8 +1095,6 @@
   .faq-empty-state { align-items: start; grid-template-columns: auto minmax(0, 1fr); }
   .faq-empty-state button { grid-column: 1 / -1; width: 100%; }
 
-  .rulebook-page--institutional .rulebook-doc-panel__meta,
-  .rulebook-page--institutional .rulebook-doc-panel__toolbar { padding: 18px; }
   .rulebook-page--institutional .rulebook-section__head { grid-template-columns: 30px minmax(0, 1fr); }
 }
 

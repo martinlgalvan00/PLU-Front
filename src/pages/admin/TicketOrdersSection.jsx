@@ -102,13 +102,30 @@ export default function TicketOrdersSection({
     }
   }
 
+  const withProofCount = useMemo(
+    () => allRows.filter((row) => row.paymentProofPath).length,
+    [allRows],
+  )
+
   return (
     <AdminListSection
       filteredCount={rows.length}
       placeholder={t('admin.ticketOrders.search')}
       query={query}
       showHeader
-      showStats={false}
+      showStats
+      stats={[
+        {
+          label: t('admin.ticketOrders.statsPending'),
+          value: allRows.length,
+          tone: allRows.length > 0 ? 'warning' : 'default',
+        },
+        {
+          label: t('admin.ticketOrders.statsWithProof'),
+          value: withProofCount,
+          tone: withProofCount > 0 ? 'warning' : 'default',
+        },
+      ]}
       totalCount={allRows.length}
       onQueryChange={setQuery}
       filters={[]}

@@ -80,6 +80,12 @@ PLU, Seguridad y los roles personalizados; sólo Super Admin puede asignar
 Administrador y nadie puede asignar Super Admin desde el panel. Los permisos de
 gestión de usuarios y roles no se pueden delegar a niveles operativos.
 
+La eliminación definitiva de staff queda fuera de la matriz delegable: exige el
+rol base `admin_maximal`. Se ejecuta en una transacción Prisma; las relaciones
+propias usan `ON DELETE CASCADE`, las referencias operativas e históricas usan
+`ON DELETE SET NULL`, y el asiento `user.deleted` se confirma en la misma
+transacción.
+
 El portal `/evento/:slug/seguridad` no compara nombres de rol. Exige
 `admin.checkin.execute`: una cuenta sin evento asignado puede operar cualquier
 evento y una cuenta con `User.eventId/eventSlug` sólo puede operar el evento

@@ -5,11 +5,11 @@
 [data-theme='light'] {
   --plu-page-hero-bg:
     radial-gradient(
-      circle at 82% 10%,
-      color-mix(in srgb, var(--color-brand-celeste) 9%, transparent),
-      transparent 38%
+      circle at 86% 8%,
+      color-mix(in srgb, var(--color-brand-celeste) 4.5%, transparent),
+      transparent 34%
     ),
-    color-mix(in srgb, var(--color-bg-surface) 96%, var(--color-bg-primary));
+    var(--color-bg-primary);
   --plu-page-hero-border: var(--color-border-subtle);
 }
 

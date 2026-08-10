@@ -4,11 +4,9 @@ import PluPageHero from '../components/layout/PluPageHero.jsx'
 import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Button from '../components/ui/Button.jsx'
-import CompetitionMap from '../components/ui/CompetitionMap.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
-import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -275,32 +273,11 @@ export default function EventsPage({
     })
   }, [events, filter])
 
-  const showPitbull = (filter === 'all' || filter === 'soon') && pitbull?.status !== 'finalizado'
-
-  const listEvents = useMemo(() => {
-    if (filter === 'done') return filteredEvents
-    // Excluye por slug (no por `event.featured`): ese flag viene del mock
-    // local (lib/events.js) pero se pierde al enriquecer con datos reales
-    // (admin/Supabase), y el evento destacado terminaba duplicado acá abajo.
-    if (!showPitbull || !pitbull?.slug) return filteredEvents
-    return filteredEvents.filter((event) => event.slug !== pitbull.slug)
-  }, [filter, filteredEvents, showPitbull, pitbull])
+  const listEvents = filteredEvents
 
   useEffect(() => {
-    // El evento destacado se excluye de `listEvents` porque ya se muestra en
-    // el spotlight principal — pero sigue "visible" en el sidebar (calendario +
-    // detalle), así que no hay que sacarlo de la selección solo por no estar
-    // en esa lista.
-    const pitbullSelected = showPitbull && pitbull?.slug && selectedSlug === pitbull.slug
-    if (pitbullSelected) return
-
     if (listEvents.length === 0) {
-      if (showPitbull && pitbull?.slug) {
-        setSelectedSlug(pitbull.slug)
-        setCalendarFocus(pitbull.dateISO)
-      } else {
-        setSelectedSlug(null)
-      }
+      setSelectedSlug(null)
       return
     }
 
@@ -310,23 +287,11 @@ export default function EventsPage({
       setSelectedSlug(next.slug)
       setCalendarFocus(next.dateISO)
     }
-  }, [listEvents, selectedSlug, showPitbull, pitbull])
+  }, [listEvents, selectedSlug])
 
   function focusEvent(event) {
     setSelectedSlug(event.slug)
     setCalendarFocus(event.dateISO)
-  }
-
-  function focusEventFromHero(event) {
-    if (event?.featured) {
-      onNavigate('pitbull')
-      return
-    }
-
-    focusEvent(event)
-    window.requestAnimationFrame(() => {
-      document.querySelector('.events-page__body')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
   }
 
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
@@ -340,32 +305,7 @@ export default function EventsPage({
     onSelectEvent?.(event)
   }
 
-  function resolveMapPrimaryAction(event) {
-    if (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados') {
-      return {
-        label: registerLabel,
-        onClick: () => handleRegister(event),
-      }
-    }
-
-    if (event.status === 'finalizado') {
-      return {
-        label: t('pages.home.viewResults'),
-        onClick: () => onNavigate('results'),
-      }
-    }
-
-    if (event.slug === pitbull?.slug) {
-      return {
-        label: t('pages.events.viewFull'),
-        onClick: () => onNavigate('pitbull'),
-      }
-    }
-
-    return null
-  }
-
-  const visibleEventCount = listEvents.length + (showPitbull && pitbull ? 1 : 0)
+  const visibleEventCount = listEvents.length
 
   const eventCountLabel =
     visibleEventCount === 1
@@ -377,33 +317,12 @@ export default function EventsPage({
     { count: '' },
   ).trim()
 
+  const ticketsEvent = selected ?? nextEvent ?? pitbull
+
   return (
-    <main className="page page--design page--plu-ref events-page--design events-page--plu-ref">
+    <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--calendar-first">
       <PluPageHero
         className="events-page__hero"
-        aside={
-          nextEvent ? (
-            <div className="events-hero-dossier">
-              <div className="events-hero-dossier__head">
-                <span>{t('pages.events.nextMeet')}</span>
-                <EventStatusBadge status={nextEvent.status} t={t} />
-              </div>
-              <p className="events-hero-dossier__date">{nextEvent.displayDate ?? nextEvent.date}</p>
-              <h2>{nextEvent.title}</h2>
-              <p className="events-hero-dossier__place">
-                {[nextEvent.venue, nextEvent.location].filter(Boolean).join(' · ')}
-              </p>
-              <button
-                className="events-hero-dossier__link motion-icon-shift"
-                onClick={() => focusEventFromHero(nextEvent)}
-                type="button"
-              >
-                {t('pages.events.viewFull')}
-                <ArrowRight aria-hidden className="motion-icon-shift__target" size={15} />
-              </button>
-            </div>
-          ) : null
-        }
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
         chapter={t('pages.events.heroChapter')}
         description={t('pages.events.heroDesc')}
@@ -435,98 +354,74 @@ export default function EventsPage({
             </span>
           </span>
         </div>
-        <CompetitionMap
-          className="events-page__competition-map"
-          events={filteredEvents}
-          featuredEventId={nextEvent?.slug}
-          onSelectEvent={focusEvent}
-          resolvePrimaryAction={resolveMapPrimaryAction}
-          selectedEventId={selected?.slug}
-          showHeader={false}
-        />
-        <div className="events-layout-v2">
-          <MotionContentSwap swapKey={filter} className="events-main-column">
-            {showPitbull && pitbull && (
-              <Reveal variant="from-left">
-                <div className="events-featured-stack">
-                  <PitbullSpotlight
-                    variant="events"
-                    event={pitbull}
-                    onDetail={() => onNavigate('pitbull')}
-                    onRegister={() => handleRegister(pitbull)}
-                    onJoin={() => onNavigate('members')}
-                    onResults={() => onNavigate('results')}
-                    registerLabel={registerLabel}
-                  />
-                  <EventsAudienceTicketsPanel
-                    event={pitbull}
-                    locale={locale}
-                    onBuyTickets={() => onNavigate('tickets', { eventSlug: pitbull?.slug })}
-                    t={t}
-                  />
-                </div>
-              </Reveal>
-            )}
 
-            {listEvents.length > 0 ? (
-              <StaggerReveal className="events-list events-list--design" stagger={70}>
-                {listEvents.map((event) => (
-                  <EventCard
-                    key={event.slug}
-                    date={event.displayDate}
-                    title={event.title}
-                    venue={event.venue}
-                    location={event.location}
-                    status={event.status}
-                    selected={selected?.slug === event.slug}
-                    onSelect={() => focusEvent(event)}
-                    onAction={
-                      event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-                        ? () => handleRegister(event)
-                        : () => focusEvent(event)
-                    }
-                    actionLabel={registerLabel}
-                  />
-                ))}
-              </StaggerReveal>
-            ) : showPitbull ? (
-              <div className="events-list__note">
-                <p>{t('pages.events.moreEventsSoon')}</p>
-              </div>
-            ) : (
-              <div className="events-list__empty">
-                <CalendarDays size={32} strokeWidth={1.5} aria-hidden />
-                <p>{t('pages.events.emptyList', { filter: filterLabels[filter] })}</p>
-                <Button variant="outline" className="btn--small" onClick={() => setFilter('all')}>
-                  {t('nav.viewAllEvents')}
-                </Button>
-              </div>
-            )}
-          </MotionContentSwap>
-
-          <Reveal variant="from-right" as="aside" className="events-sidebar-card">
-            <EventsCountdownChip event={nextEvent} days={daysUntilNext} t={t} />
-            <div className="events-sidebar-card__calendar">
+        <Reveal variant="from-left" as="section" className="events-calendar-board" aria-label={t('pages.events.heroTitle')}>
+          <EventsCountdownChip event={nextEvent} days={daysUntilNext} t={t} />
+          <div className="events-calendar-board__grid">
+            <div className="events-calendar-board__calendar">
               <EventCalendar
-                events={events}
+                events={filteredEvents}
                 initialDate="2026-12-01"
                 focusDateISO={calendarFocus}
                 selectedEventSlug={selected?.slug}
                 onEventSelect={focusEvent}
               />
             </div>
-            <div className="events-sidebar-card__detail">
+            <div className="events-calendar-board__panel">
               <EventsDetailPanel
                 event={selected}
-                isFeaturedSelected={Boolean(showPitbull && pitbull?.slug && selected?.slug === pitbull.slug)}
+                isFeaturedSelected={false}
                 onRegister={selected ? () => handleRegister(selected) : undefined}
-                onViewPitbull={pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined}
+                onViewPitbull={
+                  pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined
+                }
                 registerLabel={registerLabel}
                 t={t}
               />
+              {ticketsEvent ? (
+                <EventsAudienceTicketsPanel
+                  event={ticketsEvent}
+                  locale={locale}
+                  onBuyTickets={() => onNavigate('tickets', { eventSlug: ticketsEvent.slug })}
+                  t={t}
+                />
+              ) : null}
             </div>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
+
+        <MotionContentSwap swapKey={filter} className="events-main-column">
+          {listEvents.length > 0 ? (
+            <StaggerReveal className="events-list events-list--design" stagger={70}>
+              {listEvents.map((event) => (
+                <EventCard
+                  key={event.slug}
+                  date={event.displayDate}
+                  title={event.title}
+                  venue={event.venue}
+                  location={event.location}
+                  status={event.status}
+                  selected={selected?.slug === event.slug}
+                  onSelect={() => focusEvent(event)}
+                  onAction={
+                    event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+                      ? () => handleRegister(event)
+                      : () => focusEvent(event)
+                  }
+                  actionLabel={registerLabel}
+                />
+              ))}
+            </StaggerReveal>
+          ) : (
+            <div className="events-list__empty">
+              <CalendarDays size={32} strokeWidth={1.5} aria-hidden />
+              <p>{t('pages.events.emptyList', { filter: filterLabels[filter] })}</p>
+              <Button variant="outline" className="btn--small" onClick={() => setFilter('all')}>
+                {t('nav.viewAllEvents')}
+              </Button>
+            </div>
+          )}
+        </MotionContentSwap>
       </div>
     </main>
   )

@@ -42,6 +42,10 @@ export function updateUserStatus(users, userId, status) {
   return users.map((user) => (user.id === userId ? { ...user, status } : user))
 }
 
+export function deleteUser(users, userId) {
+  return users.filter((user) => user.id !== userId)
+}
+
 export function createUser(users, { name, email, role }) {
   const user = {
     id: generateId('usr', users.length + 1),

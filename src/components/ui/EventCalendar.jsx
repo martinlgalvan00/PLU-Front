@@ -237,16 +237,29 @@ export default function EventCalendar({
                 .join(', ')}`}
             >
               {dayNumber}
-              <span className="event-calendar__dots">
-                {visible.map(({ event }) => (
-                  <span
-                    key={event.slug}
-                    className={`event-calendar__dot event-calendar__dot--${EVENT_STATUS[event.status]?.tone ?? 'neutral'}`}
-                  />
-                ))}
-                {hiddenCount > 0 && (
-                  <span className="event-calendar__dot event-calendar__dot--more" />
-                )}
+              <span className="event-calendar__chips">
+                {visible.map(({ event, isSpan, isStart, isEnd }) => {
+                  const tone = EVENT_STATUS[event.status]?.tone ?? 'neutral'
+                  return (
+                    <span
+                      key={event.slug}
+                      className={[
+                        'event-calendar__chip',
+                        `event-calendar__chip--${tone}`,
+                        isSpan ? 'event-calendar__chip--span' : '',
+                        isSpan && isStart ? 'event-calendar__chip--span-start' : '',
+                        isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <span className="event-calendar__chip-label">{event.title}</span>
+                    </span>
+                  )
+                })}
+                {hiddenCount > 0 ? (
+                  <span className="event-calendar__chip-more">+{hiddenCount}</span>
+                ) : null}
               </span>
             </button>
           )

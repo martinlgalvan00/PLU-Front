@@ -16,6 +16,7 @@ function eventPayload(overrides = {}) {
   return {
     slug: 'pitbull-classic-2026',
     title: 'Pitbull Classic',
+    description: 'Fecha nacional de powerlifting.',
     venue: 'Maximal Strength Club',
     location: 'Buenos Aires',
     startsAt: '2026-08-15T09:00',
@@ -164,6 +165,7 @@ describe('API administrativa de eventos', () => {
         expect.objectContaining({
           p_event: expect.objectContaining({
             title: payload.title,
+            description: payload.description,
             slots: 120,
             requiresMembership: true,
           }),
@@ -285,7 +287,26 @@ describe('migración 20260807160000 (endurecimiento de estado)', () => {
       "'statusOverridden', v_event.status <> coalesce(p_status, v_before.status)",
     )
     expect(migration).toContain('select * into v_event from public.events where id = v_event.id')
-    expect(migration).toContain('grant execute on function public.staff_set_event_state(text, text, boolean, text)')
+    expect(migration).toContain(
+      'grant execute on function public.staff_set_event_state(text, text, boolean, text)',
+    )
     expect(migration).toContain('to service_role')
+  })
+})
+
+describe('migración de edición integral y no destructiva', () => {
+  it('persiste descripción y conserva tipos con tickets vendidos', () => {
+    const migration = readFileSync(
+      resolve('supabase/migrations/20260810130000_event_editor_full_update.sql'),
+      'utf8',
+    )
+
+    expect(migration).toContain('slug, title, description, venue')
+    expect(migration).toContain('description = excluded.description')
+    expect(migration).toContain("v_requested_type_id := nullif(v_type ->> 'id', '')::uuid")
+    expect(migration).toContain(
+      'exists (select 1 from public.tickets t where t.ticket_type_id = tt.id)',
+    )
+    expect(migration).not.toContain('delete from public.ticket_types where event_id = v_event.id;')
   })
 })

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Share cards — previews de diseño · PLU ARG</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #101114;
+        color: rgba(255, 255, 255, 0.75);
+        font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+        padding: 48px 32px 96px;
+      }
+      header { max-width: 1200px; margin: 0 auto 40px; }
+      h1 { color: #fff; font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+      header p { margin: 0; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.5); }
+      code { color: #f2b705; }
+      .grid {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 32px;
+        align-items: start;
+      }
+      figure { margin: 0; }
+      figure img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 6px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      }
+      figcaption {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+      figcaption strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+      figcaption span { color: rgba(255,255,255,0.35); }
+      footer { max-width: 1200px; margin: 56px auto 0; font-size: 12px; color: rgba(255,255,255,0.35); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Share cards — previews de diseño</h1>
+      <p>
+        PNGs reales generados con el pipeline de producción (html2canvas).
+        Regenerar con <code>npm run share-cards:previews</code>.
+        Click en cualquier imagen para verla a tamaño completo.
+      </p>
+    </header>
+    <div class="grid">
+      <figure>
+        <a href="afiliacion-historia.png" target="_blank" rel="noopener">
+          <img src="afiliacion-historia.png" alt="afiliacion-historia" loading="lazy" />
+        </a>
+        <figcaption><strong>afiliacion-historia</strong><span>1080×1920 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="afiliacion-post.png" target="_blank" rel="noopener">
+          <img src="afiliacion-post.png" alt="afiliacion-post" loading="lazy" />
+        </a>
+        <figcaption><strong>afiliacion-post</strong><span>1080×1080 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="inscripcion-historia.png" target="_blank" rel="noopener">
+          <img src="inscripcion-historia.png" alt="inscripcion-historia" loading="lazy" />
+        </a>
+        <figcaption><strong>inscripcion-historia</strong><span>1080×1920 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="inscripcion-post.png" target="_blank" rel="noopener">
+          <img src="inscripcion-post.png" alt="inscripcion-post" loading="lazy" />
+        </a>
+        <figcaption><strong>inscripcion-post</strong><span>1080×1080 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="entrada-historia.png" target="_blank" rel="noopener">
+          <img src="entrada-historia.png" alt="entrada-historia" loading="lazy" />
+        </a>
+        <figcaption><strong>entrada-historia</strong><span>1080×1920 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="inscripcion-foto-historia.png" target="_blank" rel="noopener">
+          <img src="inscripcion-foto-historia.png" alt="inscripcion-foto-historia" loading="lazy" />
+        </a>
+        <figcaption><strong>inscripcion-foto-historia</strong><span>1080×1920 PNG</span></figcaption>
+      </figure>
+      <figure>
+        <a href="nombre-largo-historia.png" target="_blank" rel="noopener">
+          <img src="nombre-largo-historia.png" alt="nombre-largo-historia" loading="lazy" />
+        </a>
+        <figcaption><strong>nombre-largo-historia</strong><span>1080×1920 PNG</span></figcaption>
+      </figure>
+    </div>
+    <footer>
+      Generado por scripts/render-share-card-previews.mjs — componente:
+      src/components/ui/EventShareCard.jsx + src/styles/components/event-share-card.css
+    </footer>
+  </body>
+</html>

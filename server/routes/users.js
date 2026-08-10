@@ -3,17 +3,19 @@ import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.
 import { createStaffUserSchema, updateStaffUserStatusSchema } from '../../src/lib/schemas/auth.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission } from '../middleware/auth.js'
+import { requirePermission, requireRole } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import {
   ACCESS_ROLE_INCLUDE,
   resolveAssignableRole,
 } from '../services/accessControlService.js'
 import { revokeSessionsForUser, serializeUser } from '../services/sessionService.js'
+import { deleteStaffUser } from '../services/staffUserDeletionService.js'
 
 // Los roles configurables conservan uno de estos roles base para Auth y las
 // integraciones existentes. Seguridad se administra por evento en /api/auth.
 const STAFF_LIST_ROLES = ['admin_maximal', 'admin_plu_arg', 'operador_plu_arg', 'viewer_plu_usa']
+const DELETABLE_STAFF_ROLES = [...STAFF_LIST_ROLES, 'seguridad_plu_arg']
 
 function splitName(name) {
   const [firstName, ...rest] = name.trim().split(/\s+/)
@@ -62,6 +64,7 @@ export function createUserRoutes({ getPrisma }) {
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.users.read', { prisma })
   const writeGuard = requirePermission('admin.users.write', { prisma })
+  const deleteGuard = requireRole(['admin_maximal'], { prisma })
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
@@ -257,6 +260,37 @@ export function createUserRoutes({ getPrisma }) {
       }
     },
   )
+
+  router.delete('/:userId', ...deleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const prismaClient = getPrisma()
+      if (req.params.userId === req.auth.user.id) {
+        throw new HttpError(400, 'No podés eliminar tu propia cuenta.')
+      }
+
+      const target = await prismaClient.user.findUnique({
+        where: { id: req.params.userId },
+        include: userInclude(),
+      })
+      if (!target) throw new HttpError(404, 'El usuario no existe.')
+      if (target.role === 'admin_maximal') {
+        throw new HttpError(403, 'No se puede eliminar otra cuenta Super Admin.')
+      }
+      if (!DELETABLE_STAFF_ROLES.includes(target.role)) {
+        throw new HttpError(400, 'Esa cuenta no pertenece al staff administrable.')
+      }
+
+      const deletedUser = await deleteStaffUser({
+        prisma: prismaClient,
+        actorId: req.auth.user.id,
+        target,
+      })
+
+      res.json({ deletedUser })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   return router
 }

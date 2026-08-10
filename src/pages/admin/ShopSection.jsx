@@ -319,16 +319,32 @@ export default function ShopSection({
   return (
     <section className={`admin-shop${isEmpty ? ' admin-shop--empty' : ''}`}>
       {isEmpty ? (
-        <div className="admin-shop__hero">
-          <span className="admin-shop__eyebrow">{t('admin.shop.eyebrow')}</span>
-          <h1>{t('admin.shop.title')}</h1>
-          <p>{t('admin.shop.emptyLead')}</p>
-          {canEdit ? (
-            <Button className="admin-shop__cta" onClick={openCreate}>
-              <Plus size={16} aria-hidden />
-              {t('admin.shop.newProduct')}
-            </Button>
-          ) : null}
+        <div className="admin-shop__debut">
+          <div className="admin-shop__debut-copy">
+            <span className="admin-shop__eyebrow">{t('admin.shop.eyebrow')}</span>
+            <h1>{t('admin.shop.title')}</h1>
+            <p className="admin-shop__debut-lead">{t('admin.shop.emptyLead')}</p>
+            {canEdit ? (
+              <Button className="admin-shop__cta" onClick={openCreate}>
+                <Plus size={16} aria-hidden />
+                {t('admin.shop.newProduct')}
+              </Button>
+            ) : null}
+          </div>
+          <aside
+            className="admin-shop__debut-rail"
+            aria-label={t('admin.shop.emptyRailLabel')}
+          >
+            {SHOP_PRODUCT_CATEGORIES.map(([value]) => (
+              <div key={value} className="admin-shop__debut-slot">
+                <span className="admin-shop__debut-slot-media" aria-hidden />
+                <div className="admin-shop__debut-slot-copy">
+                  <strong>{t(`admin.shop.categories.${value}`)}</strong>
+                  <span>{t(`admin.shop.starterHints.${value}`)}</span>
+                </div>
+              </div>
+            ))}
+          </aside>
         </div>
       ) : (
         <>

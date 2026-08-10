@@ -29,6 +29,7 @@ webhook de Brevo  ──> record_email_delivery_event() ──> delivered | boun
 | `server/modules/notifications/emailDispatcher.js` | Camino único de envío: validación, idempotencia, supresión, reintentos |
 | `server/modules/notifications/brevoAdapter.js` | Cliente HTTP: timeout, backoff, clasificación de errores |
 | `server/modules/notifications/emailTemplates.js` | Fallback HTML de marca cuando falta el template de Brevo |
+| `docs/email-previews/` | HTML de referencia abribles (`npm run email:previews`) |
 | `server/modules/notifications/supabaseNotificationRepository.js` | Persistencia sobre `transactional_email_logs` y `email_suppressions` |
 | `server/modules/notifications/eventNotificationService.js` | Avisos de evento a una audiencia |
 | `server/jobs/emailDispatchJob.js` | Vacía la cola de `retrying` |
@@ -95,6 +96,17 @@ mejora la pieza sin tocar código.
 
 El HTML de fallback usa hex literales espejo de `src/styles/tokens/palette.css` (los clientes de
 correo no resuelven custom properties). Si cambia la paleta, hay que sincronizarlos a mano.
+
+El encabezado es negro con el emblema Argentina croppeado y el wordmark de marca;
+el título del mail va en el cuerpo blanco (`{APP_URL}/brand/plu-argentina-email.png`).
+Sin `APP_URL` válida cae al wordmark tipográfico. Para revisar el diseño en el navegador:
+
+```bash
+npm run email:previews
+```
+
+Los HTML quedan en `docs/email-previews/`. Si hay `BREVO_TEMPLATE_*` cargados, el dashboard pisa
+este diseño: para que los destinatarios vean el fallback, dejá esos IDs vacíos o alineá Brevo.
 
 ## Idempotencia
 

@@ -1225,7 +1225,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-intro__eyebrow {
-  color: color-mix(in oklab, var(--plu-gold-600) 72%, #4a5568);
+  color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .register-page--profile .register-intro__title {
@@ -1233,7 +1233,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-intro__desc {
-  color: rgba(15, 17, 23, 0.58);
+  color: rgba(15, 17, 23, 0.68);
 }
 
 [data-theme='light'] .register-page--profile .register-progress__segments {
@@ -1254,7 +1254,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-progress__segment-label {
-  color: rgba(15, 17, 23, 0.55);
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .register-page--profile .register-progress__segment--active .register-progress__segment-label {
@@ -1262,7 +1262,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-progress__segment-meta {
-  color: rgba(15, 17, 23, 0.4);
+  color: rgba(15, 17, 23, 0.52);
 }
 
 [data-theme='light'] .register-page--profile .register-progress--compact .register-progress__bar {
@@ -1280,7 +1280,7 @@
 }
 
 [data-theme='light'] .register-page--profile .register-card .form-section-block__step {
-  color: color-mix(in oklab, var(--plu-gold-600) 78%, #4a5568);
+  color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .register-page--profile .register-card .form-section-block__title {
@@ -1288,11 +1288,11 @@
 }
 
 [data-theme='light'] .register-page--profile .register-card .field__label {
-  color: rgba(15, 17, 23, 0.48);
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field:focus-within .field__label {
-  color: color-mix(in oklab, var(--plu-gold-600) 70%, #4a5568);
+  color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field input,
@@ -1319,12 +1319,12 @@
 }
 
 [data-theme='light'] .register-page--profile .register-card .field--choice .field__choice.is-active {
-  border-bottom-color: rgba(160, 128, 48, 0.75);
-  box-shadow: 0 1px 0 0 rgba(160, 128, 48, 0.4);
+  border-bottom-color: color-mix(in srgb, var(--plu-gold-600) 72%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--plu-gold-600) 45%, transparent);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field--choice .field__choice-text {
-  color: rgba(15, 17, 23, 0.55);
+  color: rgba(15, 17, 23, 0.62);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field--choice .field__choice.is-active .field__choice-text {
@@ -1343,8 +1343,8 @@
 [data-theme='light'] .register-page--profile .register-card .field input:focus,
 [data-theme='light'] .register-page--profile .register-card .field select:focus {
   background: transparent;
-  border-color: rgba(160, 128, 48, 0.7);
-  box-shadow: 0 1px 0 0 rgba(160, 128, 48, 0.4);
+  border-color: color-mix(in srgb, var(--plu-gold-600) 65%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--plu-gold-600) 42%, transparent);
 }
 
 [data-theme='light'] .register-page--profile .register-card .field select option {
@@ -1395,8 +1395,22 @@
   }
 
   .register-page--profile .register-card .form-grid {
-    column-gap: 20px;
-    row-gap: 26px;
+    column-gap: 18px;
+    row-gap: 22px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .register-page--profile .register-card .form-section-block__title {
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  }
+
+  .register-page--profile .register-card .field input,
+  .register-page--profile .register-card .field select {
+    min-height: 46px;
   }
 }
 
@@ -1546,6 +1560,66 @@
   .register-page--profile .register-card__footer--wizard-back {
     gap: 12px;
   }
+
+  /* Progreso sticky: el paso actual siempre a la vista en notebook/mobile */
+  .register-page--profile .register-mobile-context .register-progress--rail {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--color-bg-primary) 88%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    padding: 10px var(--layout-gutter, var(--space-md)) 12px;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  [data-theme='light'] .register-page--profile .register-mobile-context .register-progress--rail {
+    background: color-mix(in srgb, #fff 92%, transparent);
+    border-bottom-color: rgba(15, 17, 23, 0.08);
+  }
+
+  .register-page--profile .register-live-credential {
+    border-radius: 12px;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 12px 14px;
+  }
+
+  .register-page--profile .register-live-credential__avatar {
+    height: 36px;
+    width: 36px;
+  }
+
+  .register-page--profile .register-live-credential__name {
+    font-size: 14px;
+  }
+
+  .register-page--profile .register-card .form-section-block__desc {
+    font-size: 12.5px;
+    max-width: 38ch;
+  }
+
+  /* Footer sticky: Continuar siempre a mano sin scroll extra */
+  .register-page--profile .register-card__footer--wizard,
+  .register-page--profile .register-card__footer--wizard-back {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--color-bg-primary) 92%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    bottom: 0;
+    margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
+    margin-top: 20px;
+    padding: 12px var(--layout-gutter, var(--space-md)) calc(12px + env(safe-area-inset-bottom, 0px));
+    position: sticky;
+    z-index: 5;
+  }
+
+  [data-theme='light'] .register-page--profile .register-card__footer--wizard,
+  [data-theme='light'] .register-page--profile .register-card__footer--wizard-back {
+    background: color-mix(in srgb, #fff 94%, transparent);
+    border-top-color: rgba(15, 17, 23, 0.08);
+  }
 }
 
 @media (max-width: 640px) {
@@ -1601,6 +1675,24 @@
 
   .register-page--profile .register-progress--rail .register-progress__segment-label {
     font-size: 12px;
+  }
+
+  .register-page--profile .register-live-credential__meta {
+    font-size: 10.5px;
+  }
+
+  .register-page--profile .register-card .form-section-block__header {
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .register-page--profile .register-card .form-section-block__title {
+    font-size: clamp(1.2rem, 5vw, 1.4rem);
+  }
+
+  .register-page--profile .register-card .field__label {
+    font-size: 10px;
   }
 }
 
@@ -3439,10 +3531,11 @@
    ============================================= */
 
 .register-live-credential {
-  background: linear-gradient(135deg, rgba(20, 22, 28, 0.9) 0%, rgba(14, 16, 20, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(20, 22, 28, 0.92) 0%, rgba(14, 16, 20, 0.96) 100%);
   border: 1px solid rgba(242, 183, 5, 0.25);
   border-radius: 14px;
   box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(242, 183, 5, 0.08);
+  color: #f7f7f5;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3450,7 +3543,13 @@
   overflow: hidden;
   padding: 16px 18px;
   position: relative;
-  transition: all 0.2s ease;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+[data-theme='light'] .register-live-credential {
+  box-shadow: 0 14px 28px -16px rgba(15, 17, 23, 0.28), 0 0 0 1px rgba(242, 183, 5, 0.12);
 }
 
 .register-live-credential__header {
@@ -3502,14 +3601,14 @@
 }
 
 .register-live-credential__name {
-  color: var(--color-text-primary);
+  color: #f7f7f5;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .register-live-credential__doc {
-  color: var(--color-text-muted);
+  color: rgba(247, 247, 245, 0.58);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -3517,7 +3616,7 @@
 
 .register-live-credential__meta {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--color-text-secondary);
+  color: rgba(247, 247, 245, 0.72);
   display: flex;
   font-size: 11px;
   justify-content: space-between;

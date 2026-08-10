@@ -26,6 +26,7 @@ import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
 import {
   canCheckIn,
+  canDeleteUsers,
   canManageUsers,
   canViewAdmin,
   getRoleLabel,
@@ -246,6 +247,7 @@ export default function App() {
           authorization={app.session}
           allowedSections={getAllowedAdminSections(app.session)}
           canManageUsers={canManageUsers(app.session)}
+          canDeleteUsers={canDeleteUsers(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
           adminEventsLoading={app.adminEventsLoading}
@@ -272,6 +274,7 @@ export default function App() {
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}
+          onDeleteUser={app.deleteUserAction}
           onCreateRole={app.createAccessRoleAction}
           onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}

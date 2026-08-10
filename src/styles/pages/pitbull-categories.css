@@ -2,12 +2,13 @@
    PITBULL — CATEGORÍAS
    Dos lanes editoriales (modalidades / divisiones).
    Índice tipográfico, un acento por lane, sin chips.
+   Responsive: mobile stack → tablet 2 col → desktop aire.
    ============================================= */
 
 .pitbull-cat {
   display: flex;
   flex-direction: column;
-  gap: clamp(20px, 2.8vw, 28px);
+  gap: clamp(22px, 3vw, 36px);
   width: 100%;
 }
 
@@ -19,26 +20,38 @@
   gap: 10px 18px;
   justify-content: space-between;
   padding-bottom: 14px;
+  position: relative;
+}
+
+.pitbull-cat__meta::after {
+  background: var(--color-brand-gold);
+  bottom: -1px;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  width: 2.5rem;
 }
 
 .pitbull-cat__status {
   align-items: center;
   color: var(--color-text-muted);
   display: inline-flex;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   gap: 8px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .pitbull-cat__totals {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: clamp(13px, 1.35vw, 14.5px);
+  font-size: clamp(12px, 1.3vw, 13.5px);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
   margin: 0;
   margin-inline-start: auto;
+  text-transform: uppercase;
 }
 
 .pitbull-cat__rulebook {
@@ -48,9 +61,11 @@
   color: var(--color-brand-celeste);
   cursor: pointer;
   display: inline-flex;
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 650;
   gap: 6px;
+  letter-spacing: 0.02em;
   min-height: 44px;
   padding: 0;
   transition: color var(--motion-fast) var(--ease-out);
@@ -67,21 +82,14 @@
 
 .pitbull-cat__lanes {
   display: grid;
-  gap: clamp(22px, 3vw, 32px);
+  gap: clamp(28px, 4vw, 40px);
   grid-template-columns: 1fr;
-}
-
-@media (min-width: 720px) {
-  .pitbull-cat__lanes {
-    column-gap: clamp(28px, 4vw, 48px);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .pitbull-cat__lane {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -91,32 +99,53 @@
   display: grid;
   gap: 10px 14px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  padding-bottom: 12px;
+  padding-bottom: 14px;
+  position: relative;
+}
+
+.pitbull-cat__lane--modalities .pitbull-cat__lane-head::after {
+  background: color-mix(in srgb, var(--color-brand-celeste) 70%, transparent);
+  bottom: -1px;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  width: 2rem;
+}
+
+.pitbull-cat__lane--divisions .pitbull-cat__lane-head::after {
+  background: color-mix(in srgb, var(--color-brand-gold) 75%, transparent);
+  bottom: -1px;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  width: 2rem;
 }
 
 .pitbull-cat__lane-index {
   color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3vw, 2rem);
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 0.9;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .pitbull-cat__lane--modalities .pitbull-cat__lane-index {
   color: var(--color-brand-celeste);
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
 .pitbull-cat__lane--divisions .pitbull-cat__lane-index {
   color: var(--color-brand-gold);
-  opacity: 0.8;
+  opacity: 0.78;
 }
 
 .pitbull-cat__lane-copy {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -132,9 +161,9 @@
 .pitbull-cat__lane-title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2vw, 1.35rem);
-  font-weight: 550;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.12rem, 1.9vw, 1.3rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
   line-height: 1.15;
   margin: 0;
 }
@@ -143,12 +172,12 @@
   align-self: center;
   color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .pitbull-cat__list {
@@ -161,11 +190,11 @@
 
 .pitbull-cat__row {
   align-items: baseline;
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   display: grid;
   gap: 14px;
   grid-template-columns: 2ch minmax(0, 1fr);
-  padding: 11px 0;
+  padding: 12px 0;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out);
@@ -176,17 +205,17 @@
 }
 
 .pitbull-cat__row:hover {
-  border-color: color-mix(in oklab, var(--color-text-primary) 16%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 14%, transparent);
 }
 
 .pitbull-cat__row-index {
   color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  opacity: 0.55;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
   transition: color var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -202,34 +231,152 @@
 
 .pitbull-cat__row-name {
   color: var(--color-text-primary);
-  font-size: clamp(14px, 1.5vw, 15.5px);
+  font-size: clamp(14px, 1.45vw, 15px);
   font-weight: 550;
   letter-spacing: -0.015em;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
+[data-theme='light'] .pitbull-cat__meta,
+[data-theme='light'] .pitbull-cat__lane-head {
+  border-bottom-color: rgba(15, 17, 23, 0.09);
+}
+
+[data-theme='light'] .pitbull-cat__row {
+  border-bottom-color: rgba(15, 17, 23, 0.07);
+}
+
+[data-theme='light'] .pitbull-cat__status,
+[data-theme='light'] .pitbull-cat__totals,
+[data-theme='light'] .pitbull-cat__lane-hint {
+  color: rgba(15, 17, 23, 0.55);
+}
+
+/* —— Mobile ≤719: meta en columna, lanes con más aire —— */
 @media (max-width: 719px) {
+  .pitbull-cat {
+    gap: 28px;
+  }
+
   .pitbull-cat__meta {
     align-items: flex-start;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .pitbull-cat__status {
+    order: 1;
   }
 
   .pitbull-cat__totals {
     margin-inline-start: 0;
-    order: 3;
+    order: 2;
   }
 
   .pitbull-cat__rulebook {
-    order: 2;
+    order: 3;
+  }
+
+  .pitbull-cat__lanes {
+    gap: 36px;
   }
 
   .pitbull-cat__lane-head {
     align-items: center;
+    gap: 8px 12px;
+    padding-bottom: 12px;
+  }
+
+  .pitbull-cat__lane-index {
+    font-size: 1.25rem;
+    opacity: 0.45;
+  }
+
+  .pitbull-cat__lane--modalities .pitbull-cat__lane-index,
+  .pitbull-cat__lane--divisions .pitbull-cat__lane-index {
+    opacity: 0.55;
+  }
+
+  .pitbull-cat__lane-count {
+    font-size: 16px;
+    opacity: 0.4;
+  }
+
+  .pitbull-cat__lane-title {
+    font-size: 1.08rem;
   }
 
   .pitbull-cat__row {
-    padding-block: 12px;
+    gap: 12px;
+    padding-block: 10px;
+  }
+
+  .pitbull-cat__row-index {
+    opacity: 0.4;
+  }
+}
+
+/* —— Tablet 720–1099: 2 lanes, meta en fila wrap —— */
+@media (min-width: 720px) and (max-width: 1099px) {
+  .pitbull-cat__meta {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+  }
+
+  .pitbull-cat__status {
+    order: 1;
+  }
+
+  .pitbull-cat__totals {
+    margin-inline-start: 0;
+    order: 2;
+  }
+
+  .pitbull-cat__rulebook {
+    margin-inline-start: auto;
+    order: 3;
+  }
+
+  .pitbull-cat__lanes {
+    column-gap: clamp(28px, 4vw, 40px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-cat__lane-title {
+    font-weight: 650;
+  }
+}
+
+/* —— Desktop ≥1100: más aire, totales a la derecha —— */
+@media (min-width: 1100px) {
+  .pitbull-cat__meta {
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 16px 24px;
+  }
+
+  .pitbull-cat__totals {
+    margin-inline-start: auto;
+  }
+
+  .pitbull-cat__rulebook {
+    flex-shrink: 0;
+  }
+
+  .pitbull-cat__lanes {
+    column-gap: clamp(48px, 6vw, 72px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pitbull-cat__lane-title {
+    font-size: clamp(1.2rem, 1.6vw, 1.35rem);
+    font-weight: 650;
+  }
+
+  .pitbull-cat__row {
+    padding-block: 13px;
   }
 }
 

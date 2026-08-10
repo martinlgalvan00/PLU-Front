@@ -81,10 +81,18 @@ jobs:
         run: supabase db lint --local --fail-on warning
       - name: Export Supabase local connection as env vars
         run: |
-          supabase status -o env | sed -n \
-            's/^API_URL="\(.*\)"$/SUPABASE_URL=\1/p;
-             s/^SERVICE_ROLE_KEY="\(.*\)"$/SUPABASE_SERVICE_ROLE_KEY=\1/p;
-             s/^DB_URL="\(.*\)"$/SUPABASE_DATABASE_URL=\1/p' >> "$GITHUB_ENV"
+          # supabase:assert pide URL/key de servidor Y de browser (VITE_*).
+          # Un solo sed sobre API_URL no puede emitir dos vars: el primero
+          # reescribe la línea y el segundo ya no matchea.
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          {
+            echo "SUPABASE_URL=${API_URL}"
+            echo "VITE_SUPABASE_URL=${API_URL}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}"
+            echo "VITE_SUPABASE_ANON_KEY=${ANON_KEY}"
+            echo "SUPABASE_DATABASE_URL=${DB_URL}"
+          } >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc

@@ -70,6 +70,7 @@ export function buildAdminEventDraft(event) {
     expectedUpdatedAt: event.updatedAt ?? '',
     slug: event.slug,
     title: event.title ?? '',
+    description: event.description ?? '',
     dateISO: event.dateISO ?? event.startsAt?.slice(0, 10) ?? '',
     venue: event.venue ?? '',
     location: event.location ?? '',
@@ -115,6 +116,7 @@ export function mapDraftToPreviewEvent(draft, sourceEvent = null) {
   return {
     id: draft.id ?? sourceEvent?.id ?? 'preview',
     title,
+    description: draft.description?.trim() ?? sourceEvent?.description ?? '',
     date: dateISO ? formatEventDate(dateISO) : '—',
     dateISO,
     venue: draft.venue?.trim() || 'Sede del evento',
@@ -273,6 +275,7 @@ export function createAdminEvent(events, payload) {
   const event = {
     id: `evt-${Date.now()}`,
     title: payload.title.trim(),
+    description: payload.description?.trim() ?? '',
     date,
     dateISO,
     venue: payload.venue.trim(),
@@ -330,6 +333,7 @@ export function updateAdminEvent(events, eventId, payload) {
     updated = {
       ...event,
       title: payload.title?.trim() ?? event.title,
+      description: payload.description?.trim() ?? event.description ?? '',
       dateISO,
       date: formatEventDate(dateISO),
       venue: payload.venue?.trim() ?? event.venue,
@@ -409,6 +413,7 @@ export function isEventFull(event) {
 
 export const ADMIN_EVENT_FORM_DEFAULT = {
   title: '',
+  description: '',
   dateISO: '',
   venue: '',
   location: '',

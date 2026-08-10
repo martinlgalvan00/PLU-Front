@@ -17,6 +17,10 @@ export function createPrismaDouble(users, { events = [] } = {}) {
   let userSeq = users.length
 
   return {
+    accessRole: {
+      findUnique: async ({ where }) =>
+        where.key === 'seguridad_plu_arg' ? { key: 'seguridad_plu_arg', active: true } : null,
+    },
     event: {
       findUnique: async ({ where }) => events.find((event) => event.id === where.id) ?? null,
     },
@@ -62,7 +66,13 @@ export function createPrismaDouble(users, { events = [] } = {}) {
       },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
-        Object.assign(user, data)
+        const { accessRole: _accessRole, profile, ...plainData } = data
+        Object.assign(user, plainData)
+        if (profile?.upsert) {
+          user.profile = user.profile
+            ? { ...user.profile, ...profile.upsert.update }
+            : { ...profile.upsert.create }
+        }
         return user
       },
       updateMany: async ({ where, data }) => {

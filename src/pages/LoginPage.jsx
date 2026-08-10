@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react'
+import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
@@ -186,6 +187,17 @@ export default function LoginPage({ onLogin, onNavigate }) {
   return (
     <main className="page auth-layout">
       <aside className="auth-layout__visual" aria-hidden="true">
+        <img
+          className="auth-layout__visual-photo"
+          src={authVisualPhoto}
+          alt=""
+          width={800}
+          height={1200}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+        <div className="auth-layout__visual-scrim" />
         <div className="auth-layout__visual-content">
           <BrandLogo variant="letterhead" height={40} imgClassName="auth-layout__emblem" />
           <h2 className="auth-layout__slogan">

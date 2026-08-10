@@ -42,6 +42,7 @@ function credential(overrides = {}) {
       fullName: 'Ana Torres',
       documentId: '30111222',
       birthDate: '1995-01-01',
+      photoUrl: null,
     },
     membership: {
       id: 'mem-1',
@@ -88,6 +89,8 @@ describe('verificación de credencial en la puerta', () => {
 
     expect(await screen.findByText('Credencial válida')).toBeTruthy()
     expect(screen.getByText('Ana Torres')).toBeTruthy()
+    expect(screen.getByText('Verificación QR')).toBeTruthy()
+    expect(screen.getAllByText('Pitbull Classic 2026').length).toBeGreaterThan(0)
     expect(screen.getByText('Día 2 · sáb 14 nov · Tanda B')).toBeTruthy()
   })
 
@@ -106,6 +109,29 @@ describe('verificación de credencial en la puerta', () => {
     expect(screen.getByText(/Período 2026/)).toBeTruthy()
     expect(screen.getByText(/Desde/)).toBeTruthy()
     expect(screen.getByText(/Hasta/)).toBeTruthy()
+    // Sin foto: iniciales del nombre en el retrato.
+    expect(screen.getByText('AT')).toBeTruthy()
+  })
+
+  it('muestra la foto del atleta cuando la verificación la trae', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        athlete: {
+          id: 'ath-1',
+          fullName: 'Ana Torres',
+          documentId: '30111222',
+          birthDate: '1995-01-01',
+          photoUrl: 'https://example.test/ana.jpg',
+        },
+      }),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Ana Torres')).toBeTruthy()
+    const photo = document.querySelector('.credential-page__photo img')
+    expect(photo).toBeTruthy()
+    expect(photo.getAttribute('src')).toBe('https://example.test/ana.jpg')
+    expect(screen.queryByText('AT')).toBeNull()
   })
 
   it('sin documento ni nacimiento (member_code) igual muestra el socio', async () => {

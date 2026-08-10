@@ -6,6 +6,7 @@ function validEvent(overrides = {}) {
   return {
     slug: 'pitbull-classic-2026',
     title: 'Pitbull Classic',
+    description: 'Fecha nacional de powerlifting.',
     venue: 'Maximal Strength Club',
     location: 'Buenos Aires',
     startsAt: '2026-08-15T09:00',
@@ -63,6 +64,13 @@ describe('eventSchema del backend', () => {
     expect(result.error.issues.some((issue) => issue.path.join('.') === 'endsAt')).toBe(true)
   })
 
+  it('acepta y conserva la descripción editable del evento', () => {
+    const result = eventSchema.safeParse(validEvent({ description: '  Torneo abierto.  ' }))
+
+    expect(result.success).toBe(true)
+    expect(result.data.description).toBe('Torneo abierto.')
+  })
+
   it('rechaza jornadas duplicadas y referencias inexistentes', () => {
     const result = eventSchema.safeParse(
       validEvent({
@@ -118,9 +126,7 @@ describe('validateAdminEventDraft del editor', () => {
     const missingEnd = validateAdminEventDraft(validDraft({ endsAt: '' }), t)
 
     expect(missingStart.ok).toBe(false)
-    expect(missingStart.fieldErrors.startsAt).toBe(
-      'admin.eventEditor.validation.startsAtRequired',
-    )
+    expect(missingStart.fieldErrors.startsAt).toBe('admin.eventEditor.validation.startsAtRequired')
     expect(missingEnd.ok).toBe(false)
     expect(missingEnd.fieldErrors.endsAt).toBe('admin.eventEditor.validation.endsAtRequired')
   })
@@ -137,5 +143,30 @@ describe('validateAdminEventDraft del editor', () => {
 
     expect(result.ok).toBe(false)
     expect(result.fieldErrors.endsAt).toBe('admin.eventEditor.validation.endsBeforeStarts')
+  })
+
+  it('valida jornadas, entradas y beneficios antes de llamar al backend', () => {
+    const result = validateAdminEventDraft(
+      validDraft({
+        eventDays: [{ dayIndex: 0, label: '' }],
+        pricing: {
+          membership: 38000,
+          registration: 45000,
+          combo: 78000,
+          ticketAddons: [{ id: 'food', label: '', price: -1 }],
+        },
+        ticketTypes: [{ name: '', price: 1000, dayIndexes: [3], includedAddonIds: ['missing'] }],
+      }),
+      t,
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.fieldErrors).toMatchObject({
+      'eventDays.0.label': 'admin.eventEditor.validation.dayLabelRequired',
+      'pricing.ticketAddons.0.label': 'admin.eventEditor.validation.addonLabelRequired',
+      'ticketTypes.0.name': 'admin.eventEditor.validation.ticketTypeNameRequired',
+      'ticketTypes.0.dayIndexes': 'admin.eventEditor.validation.ticketTypeDayMissing',
+      'ticketTypes.0.includedAddonIds': 'admin.eventEditor.validation.ticketTypeAddonMissing',
+    })
   })
 })

@@ -331,6 +331,28 @@ export function createSupabaseAthleteRepository(
       p_code: code,
       p_event_slug: eventSlug ?? null,
     }, 'No se pudo leer la credencial.'),
+
+    /**
+     * URL firmada corta para la foto en la página pública de verificación.
+     * La RPC solo incluye `photo_path` cuando el código era un token; por
+     * member_code no hay path y respondemos null (sin filtrar el padrón).
+     */
+    async signCredentialPhoto(code) {
+      const result = await rpc(
+        'get_membership_by_code_or_token',
+        { p_code: code, p_event_slug: null },
+        'No se pudo leer la credencial.',
+      )
+      const photoPath = result?.athlete?.photo_path
+      if (!photoPath) return { photoUrl: null }
+
+      const signed = assertSupabaseResult(
+        await client.storage.from(PHOTO_BUCKET).createSignedUrl(photoPath, 600),
+        'No se pudo firmar la foto de la credencial.',
+      )
+      return { photoUrl: signed.signedUrl }
+    },
+
     async registerPhoto(athleteId, photoPath) {
       const current = assertSupabaseResult(
         await client.from('athletes').select('photo_path').eq('id', athleteId).maybeSingle(),

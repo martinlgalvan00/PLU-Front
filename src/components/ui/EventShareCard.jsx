@@ -72,15 +72,17 @@ export default function EventShareCard({
   // La historia tiene más alto disponible, así que el nombre puede ser más grande.
   // Con foto de perfil el nombre tiene menos ancho disponible (el avatar se
   // lleva una franja fija a la izquierda), así que baja un escalón más.
+  // Con el medallón de iniciales o la foto a la izquierda, el nombre tiene
+  // menos ancho disponible: baja un escalón en vez de arriesgar wraps feos.
   const nameLength = resolvedAthleteName.trim().length
-  const avatarSizeAdjust = athletePhotoUrl ? (isStory ? 16 : 12) : 0
+  const avatarSizeAdjust = isStory ? 16 : 12
   const nameSize =
     (isStory
-      ? (nameLength > 22 ? 92 : nameLength > 16 ? 116 : 132)
-      : (nameLength > 22 ? 72 : nameLength > 16 ? 92 : 108)) - avatarSizeAdjust
+      ? (nameLength > 22 ? 100 : nameLength > 16 ? 124 : 144)
+      : (nameLength > 22 ? 76 : nameLength > 16 ? 96 : 112)) - avatarSizeAdjust
 
-  // Iniciales del atleta para el monograma de fondo — el toque personalizado
-  // que reemplaza la marca de agua genérica de texto.
+  // Iniciales del atleta para el medallón cuando no hay foto — la
+  // personalización de la pieza sin superponer texto alguno.
   const initials = resolvedAthleteName
     .trim()
     .split(/\s+/)
@@ -149,13 +151,11 @@ export default function EventShareCard({
       {/* ── Fondo con gradiente ── */}
       <div className="share-card__bg" />
 
+      {/* ── Marco interior fino (gesto credencial impresa) ── */}
+      <div className="share-card__frame" aria-hidden />
+
       {/* ── Franja de acento superior ── */}
       <div className="share-card__stripe-top" />
-
-      {/* ── Monograma personalizado (iniciales del atleta) ── */}
-      <div className="share-card__monogram" aria-hidden>
-        {initials}
-      </div>
 
       {/* ── Textura sutil: sheen diagonal + líneas finas, look "foil" ── */}
       <div className="share-card__texture" aria-hidden />
@@ -183,10 +183,14 @@ export default function EventShareCard({
 
       {/* ── Cuerpo: nombre + datos ── */}
       <main className="share-card__body">
-        <div className={`share-card__athlete-section${athletePhotoUrl ? ' share-card__athlete-section--with-avatar' : ''}`}>
-          {athletePhotoUrl && (
+        <div className="share-card__athlete-section share-card__athlete-section--with-avatar">
+          {athletePhotoUrl ? (
             <div className="share-card__avatar">
               <img src={athletePhotoUrl} alt="" className="share-card__avatar-img" crossOrigin="anonymous" />
+            </div>
+          ) : (
+            <div className="share-card__avatar share-card__avatar--initials" aria-hidden>
+              {initials}
             </div>
           )}
           <div className="share-card__athlete-text">
@@ -242,13 +246,7 @@ export default function EventShareCard({
         </div>
       </main>
 
-      {/* ── Línea de corte estilo ticket ── */}
-      <div className="share-card__stub-line" aria-hidden>
-        <span className="share-card__stub-dot share-card__stub-dot--left" />
-        <span className="share-card__stub-dot share-card__stub-dot--right" />
-      </div>
-
-      {/* ── Footer: QR de verificación + marca (2 zonas, sin duplicar info) ── */}
+      {/* ── Footer: QR de verificación + firma de marca ── */}
       <footer className="share-card__footer">
         {qrSrc && (
           <div className="share-card__qr-chip">

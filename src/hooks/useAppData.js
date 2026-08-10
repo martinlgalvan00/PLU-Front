@@ -6,6 +6,7 @@ import {
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
   createStaffUserRequest,
+  deleteStaffUserRequest,
   deactivateAllSecurityUsersRequest,
   listAccessRolesRequest,
   listSecurityUsersRequest,
@@ -71,7 +72,13 @@ import {
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
-import { getInitialUsers, updateUserRole, updateUserStatus } from '../services/userService.js'
+import {
+  deleteUser,
+  getInitialUsers,
+  updateUserRole,
+  updateUserStatus,
+} from '../services/userService.js'
+import { canDeleteUsers } from '../lib/roles.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -348,8 +355,16 @@ export function useAppData() {
     let active = true
 
     meRequest()
-      .then(({ user }) => {
-        if (active) setSession(user)
+      .then(async ({ user }) => {
+        if (!active) return
+
+        // Soft-probe: { user: null } = anónimo (ya no debería venir como 401).
+        if (user) {
+          setSession(user)
+          return
+        }
+
+        await restoreAthleteOrOAuth()
       })
       .catch(async (error) => {
         if (!active) return
@@ -362,38 +377,45 @@ export function useAppData() {
           return
         }
 
-        if (error.status !== 401) {
-          console.warn('No se pudo restaurar la sesion.', error)
+        // Compat: APIs viejas todavía respondían 401 en el probe anónimo.
+        if (error.status === 401) {
+          await restoreAthleteOrOAuth()
           return
         }
 
-        try {
-          const athleteSession = await fetchAthleteSession()
-          if (!active) return
+        console.warn('No se pudo restaurar la sesion.', error)
+      })
+
+    async function restoreAthleteOrOAuth() {
+      try {
+        const athleteSession = await fetchAthleteSession()
+        if (!active) return
+        if (athleteSession.user) {
           setSession(athleteSession.user)
           setAthletes(athleteSession.athlete ? [athleteSession.athlete] : [])
           setMemberships(athleteSession.memberships)
           setRegistrations(athleteSession.registrations)
           setPayments(athleteSession.payments)
           return
-        } catch (athleteError) {
-          if (athleteError?.status !== 401)
-            console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
         }
+      } catch (athleteError) {
+        if (athleteError?.status !== 401)
+          console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
+      }
 
-        if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
+      if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
 
-        try {
-          const accessToken = await oauth.getAccessToken()
-          if (!active || !accessToken) return
+      try {
+        const accessToken = await oauth.getAccessToken()
+        if (!active || !accessToken) return
 
-          const { user, supabaseAuth } = await oauthSessionRequest(accessToken)
-          if (active) setSession(user)
-          await establishSupabaseSession(supabaseAuth)
-        } catch (oauthError) {
-          console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
-        }
-      })
+        const { user: oauthUser, supabaseAuth } = await oauthSessionRequest(accessToken)
+        if (active) setSession(oauthUser)
+        await establishSupabaseSession(supabaseAuth)
+      } catch (oauthError) {
+        console.warn('No se pudo iniciar sesion con OAuth.', oauthError)
+      }
+    }
 
     return () => {
       active = false
@@ -605,7 +627,8 @@ export function useAppData() {
         // El `code` viaja para que la pantalla que quedó bloqueada pueda
         // ofrecer la acción correcta (ej. reenviar el mail de verificación) en
         // vez de solo mostrar un texto.
-        if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
+        if (error instanceof ApiError)
+          return { error: error.message, code: error.body?.code ?? null }
         throw error
       }
     },
@@ -691,7 +714,8 @@ export function useAppData() {
         // El servidor es la autoridad para el gate de membresía activa
         // (PLU05) y de inscripción duplicada (PLU08) -- antes esos dos
         // checks vivían solo del lado del cliente.
-        if (error instanceof ApiError) return { error: error.message, code: error.body?.code ?? null }
+        if (error instanceof ApiError)
+          return { error: error.message, code: error.body?.code ?? null }
         throw error
       }
     },
@@ -976,6 +1000,23 @@ export function useAppData() {
     return user
   }, [])
 
+  const deleteUserAction = useCallback(
+    async (userId) => {
+      if (isDemoSession(session)) {
+        if (!canDeleteUsers(session)) {
+          throw new Error('Solo Super Admin puede eliminar usuarios.')
+        }
+        setUsers((current) => deleteUser(current, userId))
+        return { id: userId }
+      }
+
+      const { deletedUser } = await deleteStaffUserRequest(userId)
+      setUsers((current) => deleteUser(current, deletedUser.id))
+      return deletedUser
+    },
+    [session],
+  )
+
   const createAccessRoleAction = useCallback(
     async (draft) => {
       let createdRole
@@ -1091,7 +1132,7 @@ export function useAppData() {
       await createSecurityUserRequest(draft)
     setUsers((current) => [
       { id: user.id, name: user.name, email: user.email, role: user.role },
-      ...current,
+      ...current.filter((item) => item.id !== user.id),
     ])
     return { user, tempPassword, emailed, accessUrl, expiresAt }
   }, [])
@@ -1106,7 +1147,7 @@ export function useAppData() {
           email: user.email,
           role: user.role,
         })),
-        ...current,
+        ...current.filter((item) => !created.some(({ user }) => user.id === item.id)),
       ])
     }
     return { created, skipped }
@@ -1688,6 +1729,7 @@ export function useAppData() {
     updateUserRoleAction,
     updateUserStatusAction,
     createUserAction,
+    deleteUserAction,
     createAccessRoleAction,
     updateAccessRolePermissionsAction,
     createSecurityUserAction,

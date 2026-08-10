@@ -103,6 +103,163 @@
   padding: var(--space-md) 0 var(--space-xs);
 }
 
+/* Mobile: cards operativas a ancho completo.
+   La card compacta genérica aplasta entidad/actor/detalle en una sola línea
+   con separadores; acá cada bloque recupera su filas y el espacio horizontal. */
+@media (max-width: 720px) {
+  .admin-shell .admin-list-shell--audit .data-table-cards--admin {
+    gap: 10px;
+    margin-inline: 0;
+    padding: 0 0 12px;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact {
+    gap: 12px;
+    padding: 14px 14px 12px;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__top {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+    gap: 10px 12px;
+    padding-bottom: 10px;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__primary {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* La acción es el titular: el pill pierde chrome y gana tipografía de título. */
+  .admin-shell .admin-list-shell--audit .data-table-card__primary .status-pill {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: var(--admin-ink, var(--color-text-primary));
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    max-width: 100%;
+    min-height: 0;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__primary .status-pill__dot {
+    display: none;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__badges {
+    align-items: flex-end;
+    flex: 0 0 auto;
+    max-width: 42%;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__badge .audit-entry__time {
+    color: var(--admin-muted, var(--color-text-muted));
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__meta--inline {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__meta-sep {
+    display: none;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__meta-value {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__entity,
+  .admin-shell .admin-list-shell--audit .audit-entry__actor {
+    gap: 4px;
+    padding: 8px 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__meta-value:first-child .audit-entry__entity,
+  .admin-shell .admin-list-shell--audit .data-table-card__meta-value:first-child .audit-entry__actor {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__entity-type,
+  .admin-shell .admin-list-shell--audit .audit-entry__actor-type {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__entity .data-table__mono,
+  .admin-shell .admin-list-shell--audit .audit-entry__actor .data-table__mono {
+    max-width: none;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__detail {
+    display: grid;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__detail > div {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__detail dt {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-entry__detail dd {
+    font-size: 13px;
+    max-width: none;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-loadmore {
+    padding-inline: 0;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-loadmore .btn {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact {
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card__badges {
+    max-width: 38%;
+  }
+}
+
 /* ---------- Bandeja de órdenes de atleta ---------- */
 
 .admin-orders-block {
