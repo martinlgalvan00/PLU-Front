@@ -13,6 +13,7 @@ import { createAthleteRoutes } from './routes/athletes.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
+import { createCommunityRoutes } from './routes/community.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
@@ -136,6 +137,13 @@ export function createApp(deps = {}) {
     getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
     env: deps.env ?? process.env,
   }))
+  app.use(
+    '/api/community',
+    createCommunityRoutes({
+      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      communityRepository: deps.communityRepository,
+    }),
+  )
   app.use(notFoundHandler)
   app.use(errorHandler)
 

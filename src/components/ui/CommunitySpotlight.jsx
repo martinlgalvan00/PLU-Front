@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
+  fetchCommunitySpotlight,
   formatMemberSince,
   getCommunityStats,
   getRecentMembers,
@@ -30,13 +31,103 @@ const rosterItem = {
   },
 }
 
+function RosterList({ members, recentLabel, locale, reducedMotion, listVariants }) {
+  if (reducedMotion) {
+    return (
+      <ul className="community-spotlight__list" aria-label={recentLabel}>
+        {members.map((member, index) => (
+          <li key={member.id} className="community-spotlight__row">
+            <span className="community-spotlight__avatar" aria-hidden>
+              {memberInitials(member.name)}
+            </span>
+            <span className="community-spotlight__index" aria-hidden>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <span className="community-spotlight__row-main">
+              <strong className="community-spotlight__row-name">{member.name}</strong>
+              <span className="community-spotlight__row-meta">
+                {member.gym}
+                <span aria-hidden> · </span>
+                {member.province}
+              </span>
+            </span>
+            {member.affiliatedAt ? (
+              <time className="community-spotlight__row-date" dateTime={member.affiliatedAt}>
+                {formatMemberSince(member.affiliatedAt, locale)}
+              </time>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  return (
+    <m.ul
+      className="community-spotlight__list"
+      aria-label={recentLabel}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{
+        once: MOTION_VIEWPORT.once,
+        amount: 0.35,
+        margin: MOTION_VIEWPORT.margin,
+      }}
+      variants={listVariants}
+    >
+      {members.map((member, index) => (
+        <m.li
+          key={member.id}
+          className="community-spotlight__row"
+          variants={rosterItem}
+        >
+          <span className="community-spotlight__avatar" aria-hidden>
+            {memberInitials(member.name)}
+          </span>
+          <span className="community-spotlight__index" aria-hidden>
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <span className="community-spotlight__row-main">
+            <strong className="community-spotlight__row-name">{member.name}</strong>
+            <span className="community-spotlight__row-meta">
+              {member.gym}
+              <span aria-hidden> · </span>
+              {member.province}
+            </span>
+          </span>
+          {member.affiliatedAt ? (
+            <time className="community-spotlight__row-date" dateTime={member.affiliatedAt}>
+              {formatMemberSince(member.affiliatedAt, locale)}
+            </time>
+          ) : null}
+        </m.li>
+      ))}
+    </m.ul>
+  )
+}
+
 export default function CommunitySpotlight({ onNavigate }) {
   const { HOME_COMMUNITY } = useContent()
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const [members, setMembers] = useState(() => getRecentMembers(FEED_LIMIT, locale))
+  const [stats, setStats] = useState(() => getCommunityStats(locale))
 
-  const members = useMemo(() => getRecentMembers(FEED_LIMIT, locale), [locale])
-  const stats = useMemo(() => getCommunityStats(locale), [locale])
+  useEffect(() => {
+    let active = true
+    fetchCommunitySpotlight(FEED_LIMIT, locale)
+      .then((spotlight) => {
+        if (!active) return
+        setMembers(spotlight.members)
+        setStats(spotlight.stats)
+      })
+      .catch(() => {
+        // El servicio ya cae a fallback; este catch es por si el estado desmontó.
+      })
+    return () => {
+      active = false
+    }
+  }, [locale])
 
   const listVariants = {
     ...staggerContainer,
@@ -87,74 +178,13 @@ export default function CommunitySpotlight({ onNavigate }) {
           {HOME_COMMUNITY.recentLabel}
         </p>
 
-        {reducedMotion ? (
-          <ul className="community-spotlight__list" aria-label={HOME_COMMUNITY.recentLabel}>
-            {members.map((member, index) => (
-              <li key={member.id} className="community-spotlight__row">
-                <span className="community-spotlight__avatar" aria-hidden>
-                  {memberInitials(member.name)}
-                </span>
-                <span className="community-spotlight__index" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="community-spotlight__row-main">
-                  <strong className="community-spotlight__row-name">{member.name}</strong>
-                  <span className="community-spotlight__row-meta">
-                    {member.gym}
-                    <span aria-hidden> · </span>
-                    {member.province}
-                  </span>
-                </span>
-                {member.affiliatedAt ? (
-                  <time className="community-spotlight__row-date" dateTime={member.affiliatedAt}>
-                    {formatMemberSince(member.affiliatedAt, locale)}
-                  </time>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <m.ul
-            className="community-spotlight__list"
-            aria-label={HOME_COMMUNITY.recentLabel}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{
-              once: MOTION_VIEWPORT.once,
-              amount: 0.35,
-              margin: MOTION_VIEWPORT.margin,
-            }}
-            variants={listVariants}
-          >
-            {members.map((member, index) => (
-              <m.li
-                key={member.id}
-                className="community-spotlight__row"
-                variants={rosterItem}
-              >
-                <span className="community-spotlight__avatar" aria-hidden>
-                  {memberInitials(member.name)}
-                </span>
-                <span className="community-spotlight__index" aria-hidden>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="community-spotlight__row-main">
-                  <strong className="community-spotlight__row-name">{member.name}</strong>
-                  <span className="community-spotlight__row-meta">
-                    {member.gym}
-                    <span aria-hidden> · </span>
-                    {member.province}
-                  </span>
-                </span>
-                {member.affiliatedAt ? (
-                  <time className="community-spotlight__row-date" dateTime={member.affiliatedAt}>
-                    {formatMemberSince(member.affiliatedAt, locale)}
-                  </time>
-                ) : null}
-              </m.li>
-            ))}
-          </m.ul>
-        )}
+        <RosterList
+          members={members}
+          recentLabel={HOME_COMMUNITY.recentLabel}
+          locale={locale}
+          reducedMotion={reducedMotion}
+          listVariants={listVariants}
+        />
       </div>
     </article>
   )
