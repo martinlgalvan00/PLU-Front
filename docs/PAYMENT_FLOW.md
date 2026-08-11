@@ -27,7 +27,7 @@ URLs concretas de webhook DEV/PROD y variables por entorno: ver
 ## Implementación actual
 
 - `MercadoPagoEmbeddedCheckout.jsx` — Payment Brick, Card Payment Brick y panel mock local
-- `createPaymentProviderAdapter.js` — elige `mercado_pago` o `mock` según `PAYMENTS_PROVIDER`
+- `createPaymentProviderAdapter.js` — elige `mercado_pago` o `mock` según `PAYMENTS_MOCK` (alias legacy: `PAYMENTS_PROVIDER`)
 - `mockMercadoPagoAdapter.js` — pagos/suscripciones in-memory para desarrollo
 - `embeddedPaymentWorkflow.js` — monto server-side e intentos idempotentes
 - `subscriptionWorkflow.js` — planes y abonos recurrentes
@@ -38,8 +38,7 @@ URLs concretas de webhook DEV/PROD y variables por entorno: ver
 Para recorrer el flujo completo en local sin llamar a Mercado Pago:
 
 ```text
-PAYMENTS_PROVIDER=mock
-VITE_PAYMENTS_PROVIDER=mock
+PAYMENTS_MOCK=true
 ```
 
 Restricciones:
@@ -51,7 +50,17 @@ Restricciones:
 - El store mock es in-memory: se pierde al reiniciar el server.
 - Banner global “Ambiente de desarrollo” solo en Vite DEV + mock.
 
-Para volver a sandbox real: `PAYMENTS_PROVIDER=mercado_pago` y `VITE_PAYMENTS_PROVIDER=mercado_pago` con public key + access token + webhook secret.
+Para sandbox real (local o Vercel Preview):
+
+```text
+PAYMENTS_MOCK=false
+MERCADO_PAGO_ENV=sandbox
+VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
+MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
+MERCADO_PAGO_WEBHOOK_SECRET=<secret TEST>
+APP_URL=<url del sitio>
+API_URL=<misma url>
+```
 
 ## Estados internos
 

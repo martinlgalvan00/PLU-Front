@@ -40,6 +40,9 @@ export default {
     paymentApproved: 'Pago aprobado. La acreditación ya fue registrada.',
     subscriptionAuthorized:
       'Suscripción autorizada. La afiliación se activará al acreditarse el primer cobro.',
+    subscriptionPendingCharge:
+      'Suscripción autorizada. Esperando la acreditación del primer cobro de Mercado Pago…',
+    subscriptionActivated: 'Suscripción acreditada. Tu afiliación ya está activa.',
     paymentPending: 'La operación quedó pendiente. Te avisaremos cuando Mercado Pago la confirme.',
     paymentRejected: 'Mercado Pago rechazó la operación. Podés intentar con otro medio de pago.',
     checkStatus: 'Consultar estado',

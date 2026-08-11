@@ -40,6 +40,9 @@ export default {
     paymentApproved: 'Payment approved and recorded.',
     subscriptionAuthorized:
       'Subscription authorized. Membership will activate after the first charge is credited.',
+    subscriptionPendingCharge:
+      'Subscription authorized. Waiting for Mercado Pago to credit the first charge…',
+    subscriptionActivated: 'Subscription credited. Your membership is now active.',
     paymentPending: 'The operation is pending. We will notify you when Mercado Pago confirms it.',
     paymentRejected: 'Mercado Pago rejected the operation. You can try another payment method.',
     checkStatus: 'Check status',

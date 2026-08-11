@@ -194,6 +194,17 @@ export function useAppData() {
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
 
+  useEffect(() => {
+    const onPaymentUpdated = (event) => {
+      const status = String(event?.detail?.status ?? '')
+      if (status === 'approved' || status === 'aprobado') {
+        membershipAttemptRef.current = null
+      }
+    }
+    window.addEventListener('plu:payment-updated', onPaymentUpdated)
+    return () => window.removeEventListener('plu:payment-updated', onPaymentUpdated)
+  }, [])
+
   const role = session?.role || null
 
   // athletes/memberships/registrations/payments ya no se persisten acá --
