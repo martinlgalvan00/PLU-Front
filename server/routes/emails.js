@@ -26,9 +26,9 @@ import { createSupabaseNotificationRepository } from '../modules/notifications/s
  */
 
 const sendSchema = z.object({
-  // Los tipos de cuenta (bienvenida, contraseña, acceso) quedan fuera a
-  // propósito: los dispara el flujo, no un operador. Permitir un
-  // `password_reset` a mano sería una vía de phishing con nuestro remitente.
+  // Sólo comunicaciones editoriales/operativas. Cuenta, pagos, membresías e
+  // inscripciones quedan reservados a sus workflows para evitar phishing,
+  // estados inventados y confirmaciones duplicadas.
   type: z.enum(MANUALLY_SENDABLE_EMAIL_TYPES),
   to: z.string().trim().email(),
   params: z.record(z.unknown()).optional(),

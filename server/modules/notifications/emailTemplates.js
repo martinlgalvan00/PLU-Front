@@ -527,23 +527,30 @@ const BODIES = {
     ].join(''),
   }),
 
-  membership_renewal: (p) => ({
-    title: 'Afiliación por vencer',
-    preheader: `Vence el ${formatDate(p.expirationDate)}.`,
-    body: [
-      paragraph(`${greeting(p.name)} tu afiliación vence pronto.`),
-      dataPanel(
-        [
-          ['Número de socio', p.memberCode],
-          ['Vence el', formatDate(p.expirationDate)],
-        ],
-        { accent: GOLD_500 },
-      ),
-      button(p.renewalUrl, 'Renovar'),
-      fallbackLink(p.renewalUrl),
-    ].join(''),
-    footerNote: 'Recibís este aviso porque tenés una afiliación activa.',
-  }),
+  membership_renewal: (p) => {
+    const expiresToday = p.notificationKey === 'expires_in_0'
+    return {
+      title: expiresToday ? 'Tu afiliación vence hoy' : 'Afiliación por vencer',
+      preheader: expiresToday
+        ? 'Renovala para mantener activa tu credencial.'
+        : `Vence el ${formatDate(p.expirationDate)}.`,
+      body: [
+        paragraph(
+          `${greeting(p.name)} ${expiresToday ? 'tu afiliación vence hoy.' : 'tu afiliación vence pronto.'}`,
+        ),
+        dataPanel(
+          [
+            ['Número de socio', p.memberCode],
+            ['Vence el', formatDate(p.expirationDate)],
+          ],
+          { accent: GOLD_500 },
+        ),
+        button(p.renewalUrl, 'Renovar'),
+        fallbackLink(p.renewalUrl),
+      ].join(''),
+      footerNote: 'Recibís este aviso porque tenés una afiliación activa.',
+    }
+  },
 
   payment_approved: (p) => ({
     title: 'Pago recibido',
@@ -576,6 +583,74 @@ const BODIES = {
     ].join(''),
   }),
 
+  payment_confirmation: (p) => {
+    const membershipSection = p.includesMembership
+      ? p.memberCode
+        ? [
+            paragraph('Tu afiliación ya está activa.'),
+            dataPanel(
+              [
+                ['Número de socio', p.memberCode],
+                ['Vigencia hasta', formatDate(p.expirationDate)],
+              ],
+              { accent: GOLD_500 },
+            ),
+            paragraph('En tu perfil te espera la credencial con su código QR.', { muted: true }),
+            button(p.accountUrl, 'Ver credencial'),
+          ].join('')
+        : [
+            paragraph('El pago quedó acreditado y estamos terminando de activar tu afiliación.'),
+            p.accountUrl ? button(p.accountUrl, 'Ver estado') : '',
+          ].join('')
+      : ''
+
+    const registrationSection = p.includesRegistration
+      ? [
+          paragraph('Tu inscripción quedó confirmada.'),
+          dataPanel([
+            ['Evento', p.eventTitle],
+            ['Fecha', formatDate(p.eventDate)],
+            ['Sede', p.venue],
+            ['División', p.division],
+            ['Categoría', p.category],
+          ]),
+          p.eventUrl ? button(p.eventUrl, 'Ver evento') : '',
+        ].join('')
+      : ''
+
+    const ticketSection = p.includesTicket
+      ? [
+          paragraph('Tus entradas quedaron emitidas.'),
+          dataPanel([
+            ['Evento', p.eventTitle],
+            ['Cantidad', p.ticketQuantity],
+          ]),
+          p.ticketUrl ? button(p.ticketUrl, 'Ver entradas') : '',
+          p.ticketUrl ? fallbackLink(p.ticketUrl) : '',
+          paragraph('Presentá el QR desde el celular al ingresar.', { muted: true }),
+        ].join('')
+      : ''
+
+    return {
+      title: 'Pago confirmado',
+      preheader: `Pago de ${formatArs(p.amount)} acreditado.`,
+      body: [
+        paragraph(`${greeting(p.name)} confirmamos tu pago y reunimos toda la información en este correo.`),
+        dataPanel([
+          ['Comprobante', p.reference],
+          ['Concepto', p.concept],
+          ['Importe', formatArs(p.amount)],
+          ['Fecha', formatDate(p.paidAt)],
+          ['Medio', p.paymentMethod],
+        ]),
+        membershipSection,
+        registrationSection,
+        ticketSection,
+        paragraph('Este comprobante no es una factura electrónica AFIP.', { muted: true }),
+      ].join(''),
+    }
+  },
+
   payment_refunded: (p) => ({
     title: 'Pago reintegrado',
     preheader: `Reintegro de ${formatArs(p.amount)} registrado.`,
@@ -586,6 +661,16 @@ const BODIES = {
         ['Importe', formatArs(p.amount)],
         ['Referencia', p.reference],
       ]),
+      p.memberCode
+        ? [
+            paragraph('La afiliación asociada también cambió de estado.'),
+            dataPanel([
+              ['Número de socio', p.memberCode],
+              ['Estado', p.membershipStatus === 'reembolsada' ? 'Reintegrada' : 'Cancelada'],
+            ]),
+            p.accountUrl ? button(p.accountUrl, 'Ver mi cuenta') : '',
+          ].join('')
+        : '',
       paragraph('La acreditación final puede demorar según el medio de pago.', { muted: true }),
     ].join(''),
   }),

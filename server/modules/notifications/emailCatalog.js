@@ -174,6 +174,17 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: false,
     critical: true,
   },
+  payment_confirmation: {
+    category: EMAIL_CATEGORIES.billing,
+    templateEnv: 'BREVO_TEMPLATE_PAYMENT_CONFIRMATION',
+    subject: 'Pago confirmado · PLU ARG',
+    entityType: 'athlete_payment_order',
+    requiredParams: ['name', 'amount', 'reference'],
+    optOutAllowed: false,
+    // Es comprobante y confirmación del derecho en una sola pieza. No puede
+    // quedar bloqueado por una desuscripción de comunicaciones opcionales.
+    critical: true,
+  },
   payment_pending: {
     category: EMAIL_CATEGORIES.billing,
     templateEnv: 'BREVO_TEMPLATE_PAYMENT_PENDING',
@@ -264,10 +275,18 @@ export const EMAIL_CATALOG = Object.freeze({
 
 export const EMAIL_TYPES = Object.freeze(Object.keys(EMAIL_CATALOG))
 
-/** Tipos que el panel admin puede disparar a mano desde `POST /api/emails/send`. */
-export const MANUALLY_SENDABLE_EMAIL_TYPES = Object.freeze(
-  EMAIL_TYPES.filter((type) => EMAIL_CATALOG[type].category !== EMAIL_CATEGORIES.account),
-)
+/**
+ * El endpoint genérico queda limitado a comunicaciones editoriales u
+ * operativas. Los estados de cuenta, pagos, afiliaciones e inscripciones sólo
+ * pueden notificarse desde su workflow de negocio; permitirlos acá reabría la
+ * posibilidad de mandar confirmaciones duplicadas desde el panel.
+ */
+export const MANUALLY_SENDABLE_EMAIL_TYPES = Object.freeze([
+  'event_announcement',
+  'event_reminder',
+  'admin_notification',
+  'export_ready',
+])
 
 export function getEmailDefinition(type) {
   return EMAIL_CATALOG[type] ?? null

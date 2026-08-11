@@ -1364,6 +1364,10 @@
     padding: 12px 10px 28px;
   }
 
+  .admin-shell .admin-page:has(.admin-list-section) {
+    padding: 8px 10px 24px;
+  }
+
   .admin-shell .admin-page-toolbar {
     gap: 12px;
     margin-bottom: 12px;
@@ -1383,17 +1387,60 @@
     border-radius: 9px;
   }
 
-  .admin-shell .admin-list-shell__header {
-    gap: 12px;
-    padding: 14px 13px 12px;
+  .admin-shell .admin-list-shell__header,
+  .admin-shell .admin-list-section__header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 12px 10px;
   }
 
   .admin-shell .admin-list-shell__title {
-    font-size: 25px;
+    font-size: clamp(1.25rem, 5.5vw, 1.55rem);
   }
 
   .admin-shell .admin-list-shell__subtitle {
-    font-size: 10.5px;
+    font-size: 12px;
+    max-width: none;
+  }
+
+  .admin-shell .admin-list-shell__actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell__actions > * {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell__actions .export-btn,
+  .admin-shell .admin-list-shell__actions .btn {
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell__actions:has(> :only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-list-shell__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .admin-shell .admin-list-shell__toolbar .admin-list-shell__actions {
+    margin-left: 0;
+  }
+
+  .admin-shell .admin-list-shell__stats-toggle {
+    min-height: 36px;
   }
 
   .admin-shell .admin-filters--inline.admin-filters--compact,
@@ -1407,38 +1454,129 @@
 
   .admin-shell .admin-filters--inline .admin-filters__search,
   .admin-shell .admin-list-section--events .admin-filters__search {
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .admin-shell .admin-filters--inline .admin-filters__groups:not(.admin-filters__groups--multi) .admin-filter-group--inline > .admin-filter-group__label {
     display: none;
   }
 
+  .admin-shell .admin-filters--inline .admin-filter-chips {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    overflow: visible;
+    padding-bottom: 0;
+    padding-inline: 0;
+  }
+
   .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
-    min-height: 34px;
+    min-height: 40px;
     padding: 6px 12px;
   }
 
+  /* Sticky bajo la barra mobile del shell (no tapar el menú). */
   .admin-shell .admin-list-section > .admin-filters--external {
     background: var(--admin-bg, var(--color-bg-canvas));
     position: sticky;
-    top: 0;
+    top: calc(env(safe-area-inset-top, 0px) + 48px);
     z-index: 4;
   }
 
   .admin-shell .data-table-cards--admin {
     background: transparent;
-    gap: 7px;
+    gap: 8px;
     padding: 2px 0 8px;
   }
 
   .admin-shell .data-table-card--admin {
-    border-radius: 8px;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .admin-shell .data-table-card--admin.data-table-card--compact {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .admin-shell .data-table-card__top {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .admin-shell .data-table-card__footer {
+    gap: 8px;
+    justify-content: stretch;
+    padding-top: 8px;
+  }
+
+  .admin-shell .data-table-card__footer .admin-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .admin-shell .data-table-card__footer .admin-table-actions .admin-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .admin-shell .data-table-card__action {
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .admin-shell .data-table-card__action .btn {
+    min-height: 44px;
   }
 
   .admin-shell .data-table__empty-wrap--admin {
     min-height: 150px;
+  }
+
+  .admin-shell .admin-payment-ops__header {
+    gap: 12px;
+    padding-inline: 12px;
+  }
+
+  .admin-shell .admin-payment-ops__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-payment-ops__actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .admin-shell .admin-payment-ops__actions .btn {
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-payment-ops__filter {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .admin-shell .admin-payment-ops__filter .admin-filter-group--inline {
+    width: 100%;
+  }
+
+  .admin-shell .admin-payment-ops__filter .admin-filter-chips {
+    flex-wrap: wrap;
+    overflow: visible;
   }
 
   .admin-dashboard--executive .admin-kpi-tile {
@@ -1512,7 +1650,15 @@
 @media (max-width: 430px) {
   .admin-shell .admin-page-toolbar__subtitle,
   .admin-shell .admin-list-shell__subtitle {
-    max-width: 38ch;
+    max-width: none;
+  }
+
+  .admin-shell .admin-list-shell__actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-payment-ops__actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-shell .admin-event-row__featured-badge {
@@ -1523,6 +1669,21 @@
 
   .admin-shell .admin-event-row__meta-item:nth-child(2) {
     display: none;
+  }
+
+  .admin-shell .admin-event-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-event-row__badge {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-event-row__actions {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
   }
 }
 
@@ -2677,23 +2838,24 @@
 
   .admin-shell .admin-filters__primary .admin-filters__search {
     flex: 1 1 160px;
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .admin-shell .admin-filters__toggle {
     display: inline-flex;
     grid-column: 2;
     grid-row: 1;
-    height: 40px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .admin-shell .admin-filters__primary .admin-filters__clear {
     grid-column: 3;
     grid-row: 1;
-    height: 40px;
-    min-height: 40px;
-    width: 36px;
+    height: 44px;
+    min-height: 44px;
+    width: 44px;
   }
 
   .admin-shell .admin-filters__actions {
@@ -2709,7 +2871,7 @@
   }
 
   .admin-shell .admin-filters__actions .btn {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 10px;
   }
 

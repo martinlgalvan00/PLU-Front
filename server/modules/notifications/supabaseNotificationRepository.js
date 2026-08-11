@@ -1,5 +1,7 @@
 import { HttpError } from '../../lib/errors.js'
 
+export const DEFAULT_MEMBERSHIP_RENEWAL_OFFSETS = Object.freeze([30, 7, 0])
+
 /**
  * supabaseNotificationRepository.js — PLU ARG
  *
@@ -193,7 +195,9 @@ export function createSupabaseNotificationRepository(client) {
       return { rows: assertResult(result, 'No se pudieron listar los emails.'), total: result.count ?? 0 }
     },
 
-    async claimRenewals({ offsets = [30, 7, 1, 0], limit = 100 } = {}) {
+    // Tres hitos útiles: anticipación, recordatorio y vencimiento. Antes se
+    // sumaban día 1 y "expired" al día siguiente, generando hasta cinco mails.
+    async claimRenewals({ offsets = DEFAULT_MEMBERSHIP_RENEWAL_OFFSETS, limit = 100 } = {}) {
       return assertResult(
         await client.rpc('claim_membership_renewal_notifications', {
           p_offsets: offsets,

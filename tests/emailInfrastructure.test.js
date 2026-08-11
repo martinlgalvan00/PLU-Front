@@ -12,7 +12,10 @@ import {
 import { mapWithConcurrency } from '../server/lib/concurrency.js'
 import { createEmailDispatcher, nextRetryAt } from '../server/modules/notifications/emailDispatcher.js'
 import { createEventNotificationService } from '../server/modules/notifications/eventNotificationService.js'
-import { createPaymentNotificationService } from '../server/modules/notifications/paymentNotificationService.js'
+import {
+  buildPaymentConfirmationParams,
+  createPaymentNotificationService,
+} from '../server/modules/notifications/paymentNotificationService.js'
 import {
   createEmailVerificationToken,
   verifyEmailVerificationToken,
@@ -162,13 +165,20 @@ describe('catálogo de emails', () => {
     expect(findMissingParams('payment_receipt', { name: 'Ana', amount: 1000, reference: 'X' })).toEqual([])
   })
 
-  it('no expone los emails de cuenta al disparo manual desde el panel', () => {
-    // Permitir un `password_reset` a mano sería una vía de phishing con
-    // nuestro propio remitente verificado.
+  it('limita el disparo manual a comunicaciones editoriales y operativas', () => {
     expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('password_reset')
     expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('security_access')
     expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('welcome')
-    expect(MANUALLY_SENDABLE_EMAIL_TYPES).toContain('event_announcement')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('payment_confirmation')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('payment_receipt')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('affiliation_approved')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).not.toContain('registration_confirmed')
+    expect(MANUALLY_SENDABLE_EMAIL_TYPES).toEqual([
+      'event_announcement',
+      'event_reminder',
+      'admin_notification',
+      'export_ready',
+    ])
   })
 })
 
@@ -302,6 +312,34 @@ describe('plantillas HTML de fallback', () => {
     })
     expect(affiliation.htmlContent).toContain('código QR asociado a tu afiliación')
     expect(registration.htmlContent).toContain('código QR asociado a tu cuenta')
+  })
+
+  it('agrupa comprobante, afiliación e inscripción en la confirmación del pago', () => {
+    const confirmation = renderEmail('payment_confirmation', {
+      name: 'Ana',
+      amount: 78000,
+      concept: 'Afiliación + inscripción',
+      reference: 'PLU-2026-14',
+      paidAt: '2026-08-11T15:00:00.000Z',
+      paymentMethod: 'Mercado Pago',
+      includesMembership: true,
+      memberCode: 'PLU-ARG-2026-014',
+      expirationDate: '2027-08-11',
+      accountUrl: 'https://plu.example/mi-cuenta',
+      includesRegistration: true,
+      eventTitle: 'Pitbull Classic',
+      eventDate: '2026-11-15',
+      venue: 'CABA',
+      division: 'Open',
+      category: '-83',
+      eventUrl: 'https://plu.example/eventos/pitbull-classic',
+    })
+
+    expect(confirmation.subject).toBe('Pago confirmado')
+    expect(confirmation.htmlContent).toContain('Comprobante')
+    expect(confirmation.htmlContent).toContain('PLU-ARG-2026-014')
+    expect(confirmation.htmlContent).toContain('Tu inscripción quedó confirmada')
+    expect(confirmation.htmlContent).toContain('Pitbull Classic')
   })
 })
 
@@ -662,16 +700,44 @@ describe('emails de pago (vía Mercado Pago)', () => {
     return (await llamadas(order, payment, result)).map(([type]) => type)
   }
 
-  it('manda comprobante y aviso en todo pago aprobado', async () => {
+  it('arma el mismo contenido consolidado para una aprobación manual', () => {
+    const params = buildPaymentConfirmationParams({
+      order: {
+        kind: 'athlete',
+        id: 'o-manual',
+        concept: 'combo',
+        reference: 'MAN-1',
+        amount: 78000,
+        method: 'manual_link',
+      },
+      result: {
+        membership: { id: 'mem-manual', member_code: 'PLU-99', expiration_date: '2027-08-11' },
+        registration: { id: 'reg-manual', division: 'Open', category: '-83' },
+      },
+      registrationEvent: { title: 'Pitbull', slug: 'pitbull', starts_at: '2026-11-15' },
+      recipientName: 'Ana',
+      appUrl: 'https://plu.example',
+    })
+
+    expect(params).toMatchObject({
+      paymentMethod: 'Transferencia / aprobación manual',
+      membershipId: 'mem-manual',
+      registrationId: 'reg-manual',
+      eventTitle: 'Pitbull',
+      includesMembership: true,
+      includesRegistration: true,
+    })
+  })
+
+  it('manda una sola confirmación en todo pago aprobado', async () => {
     const tipos = await tiposEnviados({
       kind: 'athlete', id: 'o1', concept: 'membership', reference: 'R1',
       payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
     })
-    expect(tipos).toContain('payment_approved')
-    expect(tipos).toContain('payment_receipt')
+    expect(tipos).toEqual(['payment_confirmation'])
   })
 
-  it('manda la afiliación aprobada con el código de socio', async () => {
+  it('incluye la afiliación aprobada y el código de socio en la confirmación', async () => {
     // Regresión: la RPC deja la afiliación activa en la misma transacción,
     // pero por Mercado Pago salía `affiliation_started` ("en curso"). Quien
     // pagaba con tarjeta —el camino principal— nunca recibía su código.
@@ -683,43 +749,50 @@ describe('emails de pago (vía Mercado Pago)', () => {
       aprobado,
       { membership: { id: 'mem-1', member_code: 'PLU-ARG-2026-014', expiration_date: '2027-08-02' } },
     )
-    const afiliacion = calls.find(([type]) => type === 'affiliation_approved')
+    const confirmacion = calls.find(([type]) => type === 'payment_confirmation')
 
-    expect(afiliacion).toBeDefined()
-    expect(afiliacion[1].params.memberCode).toBe('PLU-ARG-2026-014')
-    expect(afiliacion[1].params.expirationDate).toBe('2027-08-02')
-    expect(afiliacion[1].entityId).toBe('mem-1')
-    // Anclada en la afiliación: un reintento del webhook sobre el mismo ciclo
-    // no puede generar un segundo aviso.
-    expect(afiliacion[1].idempotencyKey).toBe('email:affiliation-approved:mem-1')
-    expect(calls.map(([type]) => type)).not.toContain('affiliation_started')
+    expect(calls).toHaveLength(1)
+    expect(confirmacion).toBeDefined()
+    expect(confirmacion[1].params.memberCode).toBe('PLU-ARG-2026-014')
+    expect(confirmacion[1].params.membershipId).toBe('mem-1')
+    expect(confirmacion[1].params.expirationDate).toBe('2027-08-02')
+    expect(confirmacion[1].entityId).toBe('o1')
+    expect(confirmacion[1].idempotencyKey).toBe('email:payment-confirmation:mp-1')
   })
 
-  it('cae en afiliación en curso si el pago aprobado no dejó afiliación', async () => {
-    const tipos = await tiposEnviados({
+  it('indica afiliación en proceso si el pago aprobado todavía no dejó afiliación', async () => {
+    const calls = await llamadas({
       kind: 'athlete', id: 'o1', concept: 'membership', reference: 'R1',
       payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
     })
-    expect(tipos).toContain('affiliation_started')
+    expect(calls.map(([type]) => type)).toEqual(['payment_confirmation'])
+    expect(calls[0][1].params.membershipPending).toBe(true)
   })
 
-  it('confirma la inscripción, igual que la aprobación manual', async () => {
+  it('incluye la inscripción en la misma confirmación', async () => {
     // Regresión: por Mercado Pago llegaba el comprobante pero nunca la
     // confirmación de inscripción, que sí salía por la aprobación manual.
-    const tipos = await tiposEnviados({
+    const calls = await llamadas({
       kind: 'athlete', id: 'o2', concept: 'registration', reference: 'R2',
       payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' },
       registration: { id: 'reg-1', division: 'Open', category: '-83', event: { title: 'Pitbull', slug: 'pitbull', starts_at: '2026-09-12' } },
     })
-    expect(tipos).toContain('registration_confirmed')
+    expect(calls.map(([type]) => type)).toEqual(['payment_confirmation'])
+    expect(calls[0][1].params).toMatchObject({
+      registrationId: 'reg-1',
+      eventTitle: 'Pitbull',
+      division: 'Open',
+      category: '-83',
+    })
   })
 
-  it('manda la entrada al comprar tickets', async () => {
-    const tipos = await tiposEnviados({
+  it('incluye la entrada al comprar tickets', async () => {
+    const calls = await llamadas({
       kind: 'ticket', id: 'o3', concept: 'tickets', reference: 'T1',
       payerEmail: 'ana@example.com', event: { title: 'Pitbull', slug: 'pitbull' },
     })
-    expect(tipos).toContain('ticket_confirmation')
+    expect(calls.map(([type]) => type)).toEqual(['payment_confirmation'])
+    expect(calls[0][1].params).toMatchObject({ includesTicket: true, eventTitle: 'Pitbull' })
   })
 
   it('avisa el rechazo y el pendiente sin mandar comprobante', async () => {
@@ -736,7 +809,7 @@ describe('emails de pago (vía Mercado Pago)', () => {
     expect(pendiente).toEqual(['payment_pending'])
   })
 
-  it('avisa el reintegro y la baja de la afiliación', async () => {
+  it('agrupa el reintegro y la baja de la afiliación', async () => {
     const calls = await llamadas(
       {
         kind: 'athlete', id: 'o6', concept: 'membership', reference: 'R6',
@@ -746,8 +819,12 @@ describe('emails de pago (vía Mercado Pago)', () => {
       { membership: { id: 'mem-6', member_code: 'PLU-ARG-2026-006', status: 'reembolsada' } },
     )
 
-    expect(calls.map(([type]) => type)).toEqual(['payment_refunded', 'affiliation_cancelled'])
-    expect(calls[1][1].idempotencyKey).toBe('email:affiliation-cancelled:mem-6:reembolsada')
+    expect(calls.map(([type]) => type)).toEqual(['payment_refunded'])
+    expect(calls[0][1].params).toMatchObject({
+      membershipId: 'mem-6',
+      memberCode: 'PLU-ARG-2026-006',
+      membershipStatus: 'reembolsada',
+    })
   })
 
   it('no manda nada si la orden no tiene email del pagador', async () => {

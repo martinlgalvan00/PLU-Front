@@ -19,7 +19,9 @@ logo apunte a ese host. Por defecto usa `https://pluarg.com`.
 | `email_verification.html` | Confirmación de correo (registro) |
 | `password_reset.html` | Olvidé mi contraseña |
 | `payment_receipt.html` | Comprobante de pago |
+| `payment_confirmation.html` | Pago + afiliación/inscripción/entrada consolidados |
 | `affiliation_approved.html` | Afiliación activa + QR de perfil |
+| `membership_renewal.html` | Último recordatorio, el día del vencimiento |
 | `registration_confirmed.html` | Inscripción confirmada + QR de perfil |
 | `event_announcement.html` | Aviso de fecha |
 

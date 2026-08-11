@@ -14,6 +14,7 @@ import {
 } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
+import { buildPaymentConfirmationParams } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import {
   anonymousIdentityId,
@@ -28,7 +29,6 @@ import {
 } from '../services/passwordResetToken.js'
 import { buildPasswordResetUrl } from '../../src/lib/passwordResetRoute.js'
 import { buildEmailVerificationUrl } from '../../src/lib/emailVerificationRoute.js'
-import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
 import {
   createEmailVerificationToken,
   verifyEmailVerificationToken,
@@ -721,57 +721,28 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       entityType: 'athlete_payment_order',
       entityId: order.id,
     }
-    const money = { name: athlete.full_name, amount: order.amount, reference: order.reference }
+    // La fila de inscripción que devuelve la RPC solo trae `event_id`; se
+    // completa antes de armar el único mail para que no pierda información.
+    const registrationEvent = result.registration?.event_id
+      ? await repo().findEventSummary(result.registration.event_id)
+      : null
 
-    await sendBestEffort('payment_approved', {
+    await sendBestEffort('payment_confirmation', {
       ...common,
-      idempotencyKey: `email:payment-approved:manual:${order.id}`,
-      params: { ...money, concept: order.concept },
-    })
-    await sendBestEffort('payment_receipt', {
-      ...common,
-      idempotencyKey: `email:payment-receipt:manual:${order.id}`,
-      params: { ...money, concept: order.concept, paidAt: new Date().toISOString(), paymentMethod: order.method },
-    })
-
-    if (result.membership) {
-      await sendBestEffort('affiliation_approved', {
-        ...common,
-        entityType: 'membership',
-        entityId: result.membership.id,
-        idempotencyKey: `email:affiliation-approved:${result.membership.id}`,
-        params: {
-          name: athlete.full_name,
-          memberCode: result.membership.member_code,
-          expirationDate: result.membership.expiration_date,
-          accountUrl: `${appUrl}/mi-cuenta`,
+      idempotencyKey: `email:payment-confirmation:manual:${order.id}`,
+      params: buildPaymentConfirmationParams({
+        order: { ...order, kind: 'athlete' },
+        payment: {
+          amount: order.amount,
+          paidAt: order.approved_at ?? new Date().toISOString(),
+          paymentMethod: order.method,
         },
-      })
-    }
-
-    if (result.registration) {
-      // La fila de inscripción solo trae `event_id`; el título sale del evento.
-      const event = result.registration.event_id
-        ? await repo().findEventSummary(result.registration.event_id)
-        : null
-      if (event?.title) {
-        await sendBestEffort('registration_confirmed', {
-          ...common,
-          entityType: 'event_registration',
-          entityId: result.registration.id,
-          idempotencyKey: `email:registration-confirmed:${result.registration.id}`,
-          params: {
-            name: athlete.full_name,
-            eventTitle: event.title,
-            eventDate: event.starts_at,
-            venue: event.venue ?? '',
-            division: result.registration.division,
-            category: result.registration.category,
-            eventUrl: `${appUrl}${buildEventPagePath(event.slug)}`,
-          },
-        })
-      }
-    }
+        result,
+        recipientName: athlete.full_name,
+        appUrl,
+        registrationEvent,
+      }),
+    })
   }
 
   /**
