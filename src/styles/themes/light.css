@@ -173,6 +173,38 @@
   --admin-shadow-panel: 0 18px 48px rgba(26, 28, 34, 0.09);
   --admin-attention-bg: var(--plu-cool-900);
   --admin-attention-text: var(--plu-ink-inverse);
+
+  /* Liquid glass — light: vidrio esmerilado cálido sobre el canvas.
+     Sin atmósfera en light (decisión de tema), el vidrio se lee por
+     translucidez blanca + borde fino + highlight superior. */
+  --admin-glass-bg: color-mix(in srgb, white 64%, transparent);
+  --admin-glass-bg-strong: color-mix(in srgb, white 86%, transparent);
+  --admin-glass-border: color-mix(in srgb, var(--plu-ink-900) 8%, transparent);
+  --admin-glass-border-strong: color-mix(in srgb, var(--plu-ink-900) 14%, transparent);
+  --admin-glass-highlight: color-mix(in srgb, white 70%, transparent);
+  --admin-glass-blur: 14px;
+  --admin-glass-shadow: 0 14px 36px rgba(26, 28, 34, 0.08);
+  --admin-glass-sidebar-bg: color-mix(in srgb, white 74%, var(--plu-warm-100) 10%, transparent);
+}
+
+/* Vidrio light sin transparencia: material sólido, mismo layout. */
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme='light'] {
+    --admin-glass-blur: 0px;
+    --admin-glass-bg: #ffffff;
+    --admin-glass-bg-strong: #ffffff;
+    --admin-glass-sidebar-bg: #ffffff;
+    --admin-glass-highlight: transparent;
+  }
+
+  [data-theme='light'] .admin-shell__sidebar,
+  [data-theme='light'] .admin-shell .admin-shell__sidebar,
+  [data-theme='light'] .admin-shell__collapse-toggle,
+  [data-theme='light'] .admin-shell .admin-shell__collapse-toggle,
+  [data-theme='light'] .admin-mobile-bar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* =============================================
@@ -180,7 +212,9 @@
    ============================================= */
 
 [data-theme='light'] .admin-shell__sidebar {
-  background: #ffffff;
+  background: var(--admin-glass-sidebar-bg);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
   border-right-color: var(--color-border-subtle);
 }
 
@@ -193,7 +227,9 @@
 }
 
 [data-theme='light'] .admin-mobile-bar {
-  background: color-mix(in srgb, #ffffff 92%, transparent);
+  background: var(--admin-glass-sidebar-bg);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.05);
 }
 
 [data-theme='light'] .admin-page-toolbar__search,

@@ -138,6 +138,7 @@ describe('oauth auth api', () => {
         'admin.roles.read',
       ]),
       status: 'active',
+      mustChangePassword: false,
       eventId: null,
       eventSlug: null,
       lastLoginAt: null,

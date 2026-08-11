@@ -59,6 +59,44 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
       ])
     }
 
+    if (payment.status === 'reembolsado' || payment.status === 'cancelado') {
+      const jobs = []
+      if (payment.status === 'reembolsado') {
+        jobs.push(
+          mailer.send('payment_refunded', {
+            ...common,
+            idempotencyKey: `email:payment-refunded:${payment.externalPaymentId}`,
+            params: {
+              name: recipientName,
+              amount: payment.amount,
+              concept: order.displayConcept,
+              reference: order.reference,
+            },
+          }),
+        )
+      }
+
+      const membership = result?.membership
+      if (order.kind === 'athlete' && membership?.id && ['membership', 'combo'].includes(order.concept)) {
+        jobs.push(
+          mailer.send('affiliation_cancelled', {
+            ...common,
+            entityType: 'membership',
+            entityId: membership.id,
+            idempotencyKey: `email:affiliation-cancelled:${membership.id}:${membership.status}`,
+            params: {
+              name: order.athlete?.full_name ?? recipientName,
+              memberCode: membership.member_code,
+              status: membership.status,
+              accountUrl: `${appUrl}/mi-cuenta`,
+            },
+          }),
+        )
+      }
+
+      return Promise.allSettled(jobs)
+    }
+
     if (payment.status !== 'aprobado') return []
 
     const jobs = [

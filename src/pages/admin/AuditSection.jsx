@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { Activity, BadgeCheck, CircleAlert, MailCheck, RefreshCw } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
@@ -7,7 +7,11 @@ import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
-import { fetchAuditEntries, fetchAuditFacets } from '../../services/auditService.js'
+import {
+  fetchAuditEntries,
+  fetchAuditFacets,
+  fetchAuditOverview,
+} from '../../services/auditService.js'
 
 /**
  * AuditSection — PLU ARG
@@ -23,6 +27,16 @@ import { fetchAuditEntries, fetchAuditFacets } from '../../services/auditService
  */
 
 const PAGE_SIZE = 100
+const EMPTY_OVERVIEW = {
+  status: 'unknown',
+  eventsLast24h: 0,
+  emailsDeliveredLast24h: 0,
+  emailsRetrying: 0,
+  emailAttention: 0,
+  paymentAttention: 0,
+  activeMembershipsWithoutConfirmation: 0,
+  approvedOrdersWithoutActiveMembership: 0,
+}
 
 function formatDateTime(value, locale) {
   if (!value) return '—'
@@ -37,11 +51,20 @@ function formatDateTime(value, locale) {
 export default function AuditSection() {
   const { locale, messages, t } = useI18n()
   const [entries, setEntries] = useState([])
-  const [facets, setFacets] = useState({ actions: [], entityTypes: [], actorTypes: [] })
+  const [facets, setFacets] = useState({
+    actions: [],
+    entityTypes: [],
+    actorTypes: [],
+    sources: [],
+    statuses: [],
+  })
+  const [overview, setOverview] = useState(EMPTY_OVERVIEW)
   const [query, setQuery] = useState('')
   const [action, setAction] = useState('all')
   const [actorType, setActorType] = useState('all')
   const [entityType, setEntityType] = useState('all')
+  const [source, setSource] = useState('all')
+  const [status, setStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
@@ -52,13 +75,15 @@ export default function AuditSection() {
       action: action === 'all' ? undefined : action,
       actorType: actorType === 'all' ? undefined : actorType,
       entityType: entityType === 'all' ? undefined : entityType,
+      source: source === 'all' ? undefined : source,
+      status: status === 'all' ? undefined : status,
       search: query.trim() || undefined,
       limit: PAGE_SIZE,
     }),
-    [action, actorType, entityType, query],
+    [action, actorType, entityType, query, source, status],
   )
 
-  const load = useCallback(async () => {
+  const loadEntries = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -72,18 +97,36 @@ export default function AuditSection() {
     }
   }, [filters, t])
 
+  const loadOverview = useCallback(async (reportError = false) => {
+    try {
+      const nextOverview = await fetchAuditOverview()
+      setOverview({ ...EMPTY_OVERVIEW, ...nextOverview })
+    } catch (loadError) {
+      setOverview(EMPTY_OVERVIEW)
+      if (reportError) setError(loadError?.message ?? t('admin.audit.loadError'))
+    }
+  }, [t])
+
+  const refresh = useCallback(async () => {
+    await Promise.all([loadEntries(), loadOverview(true)])
+  }, [loadEntries, loadOverview])
+
   useEffect(() => {
     // La búsqueda pega contra la API, no contra un array en memoria: la
     // bitácora crece sin techo y no se puede traer entera al browser.
     const timer = setTimeout(() => {
-      void load()
+      void loadEntries()
     }, 250)
     return () => clearTimeout(timer)
-  }, [load])
+  }, [loadEntries])
+
+  useEffect(() => {
+    void loadOverview()
+  }, [loadOverview])
 
   useEffect(() => {
     fetchAuditFacets()
-      .then(setFacets)
+      .then((nextFacets) => setFacets((current) => ({ ...current, ...nextFacets })))
       .catch(() => {})
   }, [])
 
@@ -109,9 +152,35 @@ export default function AuditSection() {
   const actionLabel = labels.action
   const actorLabel = labels.actor
   const entityLabel = labels.entity
+  const sourceLabel = labels.source
+  const statusLabel = labels.status
 
   const filterOptions = useMemo(
     () => [
+      {
+        id: 'source',
+        label: t('admin.audit.filterSource'),
+        value: source,
+        onChange: setSource,
+        variant: 'select',
+        showLabel: true,
+        options: [
+          ['all', t('admin.audit.filterAll')],
+          ...facets.sources.map((value) => [value, sourceLabel(value)]),
+        ],
+      },
+      {
+        id: 'status',
+        label: t('admin.audit.filterStatus'),
+        value: status,
+        onChange: setStatus,
+        variant: 'select',
+        showLabel: true,
+        options: [
+          ['all', t('admin.audit.filterAll')],
+          ...facets.statuses.map((value) => [value, statusLabel(value)]),
+        ],
+      },
       {
         id: 'action',
         label: t('admin.audit.filterAction'),
@@ -149,7 +218,20 @@ export default function AuditSection() {
         ],
       },
     ],
-    [action, actionLabel, actorLabel, actorType, entityLabel, entityType, facets, t],
+    [
+      action,
+      actionLabel,
+      actorLabel,
+      actorType,
+      entityLabel,
+      entityType,
+      facets,
+      source,
+      sourceLabel,
+      status,
+      statusLabel,
+      t,
+    ],
   )
 
   const columns = useMemo(
@@ -171,9 +253,12 @@ export default function AuditSection() {
         label: t('admin.audit.columnAction'),
         mobile: 'primary',
         render: (row) => (
-          <span className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}>
-            {actionLabel(row.action)}
-          </span>
+          <div className="audit-entry__action">
+            <span className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}>
+              {actionLabel(row.action)}
+            </span>
+            <small>{sourceLabel(row.source)}</small>
+          </div>
         ),
       },
       {
@@ -217,8 +302,12 @@ export default function AuditSection() {
           ),
       },
     ],
-    [actionLabel, actorLabel, entityLabel, labels, locale, t],
+    [actionLabel, actorLabel, entityLabel, labels, locale, sourceLabel, t],
   )
+
+  const affiliationIncidents =
+    overview.activeMembershipsWithoutConfirmation + overview.approvedOrdersWithoutActiveMembership
+  const attentionCount = overview.emailAttention + overview.paymentAttention + affiliationIncidents
 
   return (
     <AdminListSection
@@ -234,18 +323,72 @@ export default function AuditSection() {
       totalCount={entries.length}
       filters={filterOptions}
       filterActions={
-        <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>
+        <button type="button" className="btn btn--secondary btn--small" onClick={() => void refresh()}>
           <RefreshCw size={15} aria-hidden />
           {t('admin.audit.refresh')}
         </button>
       }
       onQueryChange={setQuery}
     >
+      <section
+        className={`audit-health audit-health--${overview.status}`}
+        aria-label={t('admin.audit.healthTitle')}
+        aria-live="polite"
+      >
+        <header className="audit-health__header">
+          <div>
+            <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
+            <h3>{t('admin.audit.healthTitle')}</h3>
+          </div>
+          <span className={`status-pill status-pill--${
+            overview.status === 'healthy' ? 'success' : overview.status === 'attention' ? 'danger' : 'warning'
+          }`}>
+            {overview.status === 'healthy'
+              ? t('admin.audit.healthHealthy')
+              : overview.status === 'attention'
+                ? t('admin.audit.healthAttention')
+                : t('admin.audit.healthUnknown')}
+          </span>
+        </header>
+
+        <dl className="audit-health__metrics">
+          <div>
+            <Activity size={17} aria-hidden />
+            <dt>{t('admin.audit.healthEvents')}</dt>
+            <dd>{overview.eventsLast24h}</dd>
+          </div>
+          <div>
+            <MailCheck size={17} aria-hidden />
+            <dt>{t('admin.audit.healthDelivered')}</dt>
+            <dd>{overview.emailsDeliveredLast24h}</dd>
+          </div>
+          <div>
+            <RefreshCw size={17} aria-hidden />
+            <dt>{t('admin.audit.healthRetrying')}</dt>
+            <dd>{overview.emailsRetrying}</dd>
+          </div>
+          <div className={attentionCount > 0 ? 'is-attention' : ''}>
+            {attentionCount > 0 ? <CircleAlert size={17} aria-hidden /> : <BadgeCheck size={17} aria-hidden />}
+            <dt>{t('admin.audit.healthIncidents')}</dt>
+            <dd>{attentionCount}</dd>
+          </div>
+        </dl>
+
+        {affiliationIncidents > 0 ? (
+          <p className="audit-health__notice">
+            {t('admin.audit.healthMembershipNotice', {
+              orders: overview.approvedOrdersWithoutActiveMembership,
+              emails: overview.activeMembershipsWithoutConfirmation,
+            })}
+          </p>
+        ) : null}
+      </section>
+
       {error ? (
         <ErrorState
           title={t('admin.audit.loadErrorTitle')}
           message={error}
-          onRetry={() => void load()}
+          onRetry={() => void refresh()}
         />
       ) : null}
 

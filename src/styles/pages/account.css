@@ -1258,13 +1258,17 @@
 }
 
 .account-primary-action {
+  align-items: center;
   background: var(--color-brand-action);
   border: 1px solid var(--color-brand-action);
   border-radius: 10px;
   color: #fff;
   cursor: pointer;
+  display: inline-flex;
   font-size: 13.5px;
   font-weight: 550;
+  gap: 8px;
+  justify-content: center;
   letter-spacing: 0.01em;
   min-height: 48px;
   padding: 0 22px;
@@ -1290,6 +1294,10 @@
   cursor: default;
   opacity: 0.5;
   transform: none;
+}
+
+.account-primary-action[aria-busy='true'] svg {
+  animation: spin 0.9s linear infinite;
 }
 
 .account-secondary-action {
@@ -1443,6 +1451,20 @@
   font-size: 12.5px;
 }
 
+.account-membership-status__aside {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  max-width: 48ch;
+  text-align: right;
+}
+
+.account-membership-status__next {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 .account-membership-status--active .account-membership-status__value {
   color: #4fbe79;
 }
@@ -1452,6 +1474,59 @@
   font-family: var(--font-family);
   font-variant-numeric: normal;
   letter-spacing: 0;
+}
+
+.account-membership-status--scheduled .account-membership-status__value {
+  color: var(--color-brand-celeste);
+  font-family: var(--font-family);
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+}
+
+.account-membership-status--expired .account-membership-status__value,
+.account-membership-status--cancelled .account-membership-status__value {
+  color: var(--color-brand-red);
+  font-family: var(--font-family);
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+}
+
+.account-plan-feedback {
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12.5px;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+}
+
+.account-plan-feedback--error {
+  border-color: color-mix(in srgb, var(--color-brand-red) 34%, var(--color-border-subtle));
+}
+
+.account-plan-feedback--error > svg {
+  color: var(--color-brand-red);
+  flex: none;
+}
+
+.account-plan-feedback button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 5px;
+  margin-left: auto;
+  padding: 3px;
+}
+
+.account-payment-options:disabled label {
+  cursor: default;
 }
 
 .account-combo-offer {
@@ -2165,6 +2240,11 @@
 
   .account-membership__grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-membership-status__aside {
+    justify-items: start;
+    text-align: left;
   }
 
   .account-payment-options {

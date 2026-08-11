@@ -443,7 +443,12 @@
   height: 32px;
   justify-content: center;
   width: 32px;
-  transition: all var(--motion-fast) var(--ease-out);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .plu-nav-menu__item:hover .plu-nav-menu__icon {
@@ -759,6 +764,27 @@
   width: 100%;
 }
 
+/* Skeleton de sesión: misma caja que el avatar definitivo (40px desktop,
+   28px en el cluster mobile) para que la transición skeleton → perfil o
+   → "Ingresar" no desplace el chrome. El shimmer es el único loop permitido:
+   comunica una verificación operativa real. */
+.plu-global-nav__session-skeleton {
+  animation: institutional-session-shimmer 1.5s var(--ease-standard) infinite;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--institution-text) 7%, transparent) 36%,
+    color-mix(in srgb, var(--institution-text) 15%, transparent) 50%,
+    color-mix(in srgb, var(--institution-text) 7%, transparent) 64%
+  );
+  background-size: 220% 100%;
+  border: 1px solid color-mix(in srgb, var(--institution-border) 75%, transparent);
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+  height: 40px;
+  width: 40px;
+}
+
 .plu-global-nav__logout {
   border: 1px solid var(--institution-border);
   border-radius: var(--institution-radius-control);
@@ -794,6 +820,11 @@
 @keyframes institutional-header-enter {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes institutional-session-shimmer {
+  from { background-position: 130% 0; }
+  to { background-position: -90% 0; }
 }
 
 @keyframes institutional-header-item-enter {
@@ -2442,6 +2473,12 @@ html.plu-drawer-open body {
     width: 100%;
   }
 
+  .plu-global-nav__session-skeleton {
+    height: 28px;
+    margin-inline: 4px;
+    width: 28px;
+  }
+
   /* Afiliar — sin caja: el acento es una hairline gold bajo el texto */
   .plu-global-nav__mobile-affiliate {
     align-items: center;
@@ -2704,6 +2741,7 @@ html.plu-drawer-open body {
   .plu-global-nav__brand,
   .plu-global-nav__desktop,
   .plu-global-nav__actions,
+  .plu-global-nav__session-skeleton,
   .plu-nav-menu,
   .plu-nav-menu > *,
   .plu-drawer,

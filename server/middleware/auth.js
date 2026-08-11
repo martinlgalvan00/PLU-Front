@@ -2,12 +2,32 @@ import { HttpError } from '../lib/errors.js'
 import { hasAnyPermission, hasPermission } from '../../src/lib/permissions.js'
 import { readSessionFromRequest } from '../services/sessionService.js'
 
-export function requireAuth({ prisma }) {
+/**
+ * @param {{ prisma: unknown, allowPasswordChangePending?: boolean }} deps
+ *
+ * `allowPasswordChangePending` sólo lo activan las rutas que el usuario tiene
+ * que poder alcanzar justamente para salir del estado (cambiar la contraseña
+ * y cerrar sesión).
+ */
+export function requireAuth({ prisma, allowPasswordChangePending = false }) {
   return async (req, _res, next) => {
     try {
       const result = await readSessionFromRequest({ prisma, req })
       if (!result) {
         next(new HttpError(401, 'No autenticado.'))
+        return
+      }
+
+      // Una contraseña temporal habilita a una sola cosa: cambiarla. Sin este
+      // corte del lado del servidor sería una credencial completa y permanente
+      // -- alcanzaría con no pasar por la pantalla del panel para operar con
+      // ella, que es exactamente lo que un mail filtrado le da a un tercero.
+      if (result.user.mustChangePassword && !allowPasswordChangePending) {
+        next(
+          new HttpError(403, 'Tenés que elegir una contraseña propia antes de seguir.', {
+            code: 'password_change_required',
+          }),
+        )
         return
       }
 

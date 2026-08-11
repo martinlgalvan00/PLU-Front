@@ -1,3 +1,4 @@
+import '../../styles/components/credential-card.css'
 import { useState } from 'react'
 import { QrCode, RotateCcw } from 'lucide-react'
 import TiltCard from '../../motion/TiltCard.tsx'

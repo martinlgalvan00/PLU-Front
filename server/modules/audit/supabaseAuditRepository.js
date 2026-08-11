@@ -4,10 +4,9 @@ import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseR
 /**
  * supabaseAuditRepository.js — PLU ARG
  *
- * Lectura de `domain_audit_logs`, la bitácora que las RPC de dominio vienen
- * escribiendo desde 20260716000000 (alta de afiliación, inscripción, ingreso
- * en puerta, aprobación de orden) y que 20260802120000 completó con el ciclo
- * de cobro (acreditación, activación, reembolso, vencimiento).
+ * Lectura de `operational_audit_events`: una proyección única de la bitácora
+ * transaccional de dominio y de las transiciones append-only de emails,
+ * webhooks y conciliaciones de pago.
  *
  * Hasta ahora el panel no la leía: mostraba un historial armado en el browser
  * y guardado en localStorage, distinto para cada operador y perdido al limpiar
@@ -24,10 +23,23 @@ export function createSupabaseAuditRepository(
   requireSupabaseClient(client)
 
   return {
-    async list({ action, entityType, entityId, entityIds, actorType, search, limit = 100, before } = {}) {
+    async list({
+      action,
+      entityType,
+      entityId,
+      entityIds,
+      actorType,
+      source,
+      status,
+      search,
+      limit = 100,
+      before,
+    } = {}) {
       let query = client
-        .from('domain_audit_logs')
-        .select('id, action, entity_type, entity_id, actor_type, actor_id, metadata, created_at')
+        .from('operational_audit_events')
+        .select(
+          'id, source, action, entity_type, entity_id, actor_type, actor_id, status, severity, metadata, created_at',
+        )
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false })
         .limit(limit)
@@ -40,6 +52,8 @@ export function createSupabaseAuditRepository(
       // y no en una por entidad.
       if (entityIds?.length) query = query.in('entity_id', entityIds)
       if (actorType) query = query.eq('actor_type', actorType)
+      if (source) query = query.eq('source', source)
+      if (status) query = query.eq('status', status)
       // Paginación por cursor y no por offset: la tabla crece por el final y
       // un offset se corre solo cuando entra un registro nuevo mientras se
       // pagina.
@@ -59,8 +73,8 @@ export function createSupabaseAuditRepository(
     async facets({ limit = 1000 } = {}) {
       const rows = assertSupabaseResult(
         await client
-          .from('domain_audit_logs')
-          .select('action, entity_type, actor_type')
+          .from('operational_audit_events')
+          .select('source, action, entity_type, actor_type, status')
           .eq('organization_id', organizationId)
           .order('created_at', { ascending: false })
           .limit(limit),
@@ -73,7 +87,18 @@ export function createSupabaseAuditRepository(
         actions: unique('action'),
         entityTypes: unique('entity_type'),
         actorTypes: unique('actor_type'),
+        sources: unique('source'),
+        statuses: unique('status'),
       }
+    },
+
+    async overview() {
+      return assertSupabaseResult(
+        await client.rpc('get_operational_audit_summary', {
+          p_organization_id: organizationId,
+        }),
+        'No se pudo calcular el estado operativo.',
+      )
     },
   }
 }

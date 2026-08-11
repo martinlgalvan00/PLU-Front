@@ -1,3 +1,4 @@
+import '../../styles/components/event-share-card.css'
 import { useEffect, useRef, useState } from 'react'
 import { BRAND } from '../../lib/brand.js'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'

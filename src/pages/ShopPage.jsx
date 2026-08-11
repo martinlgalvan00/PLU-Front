@@ -14,6 +14,7 @@ import { getFeaturedEvent, getUpcomingEventsByDate } from '../lib/eventNavigatio
 import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
+import '../styles/pages/design-phase2.css'
 import '../styles/pages/shop.css'
 
 /**

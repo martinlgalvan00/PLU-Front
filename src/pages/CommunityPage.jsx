@@ -1,3 +1,6 @@
+import '../styles/pages/community.css'
+import '../styles/layout/design-page-notebook.css'
+import '../styles/pages/institutional-pages.css'
 import { ArrowRight, BookOpen, CalendarDays, CircleCheck, Mail, MapPin, Trophy } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import '../styles/pages/design-phase2.css'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'

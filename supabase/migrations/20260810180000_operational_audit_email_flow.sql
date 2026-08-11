@@ -34,6 +34,16 @@ create index if not exists operational_event_logs_source_status_idx
 create index if not exists operational_event_logs_entity_idx
   on public.operational_event_logs (organization_id, entity_type, entity_id, created_at desc);
 
+-- Índices de las dos comprobaciones de integridad del resumen. Evitan recorrer
+-- todo el histórico de emails y órdenes cada vez que se abre Auditoría.
+create index if not exists transactional_email_logs_delivery_recovery_idx
+  on public.transactional_email_logs (
+    organization_id, template_key, entity_type, entity_id, recipient_email, updated_at desc
+  ) where status = 'delivered';
+create index if not exists athlete_payment_orders_membership_gap_idx
+  on public.athlete_payment_orders (organization_id, updated_at desc)
+  where status = 'aprobado' and concept in ('membership', 'combo');
+
 alter table public.operational_event_logs enable row level security;
 revoke all on public.operational_event_logs from public, anon, authenticated;
 grant select, insert on public.operational_event_logs to service_role;
@@ -255,8 +265,8 @@ select
   d.actor_id,
   null::text as status,
   case
-    when d.action like '%.revoked' or d.action like '%.cancelled' then 'danger'
-    when d.action like '%.expired' then 'warning'
+    when d.action like '%.revoked%' or d.action like '%.cancelled%' then 'danger'
+    when d.action like '%.expired%' then 'warning'
     when d.action like '%.activated%' or d.action like '%.approved%'
       or d.action like '%.confirmed' or d.action like '%.checked_in' then 'success'
     else 'info'
@@ -312,8 +322,24 @@ begin
 
   select count(*) filter (where l.status = 'retrying'),
          count(*) filter (
-           where l.status in ('failed', 'rejected', 'bounced', 'skipped', 'suppressed')
-              or (l.status = 'processing' and l.last_attempt_at < now() - interval '15 minutes')
+           where (
+             l.status in ('failed', 'rejected', 'bounced', 'skipped')
+             or (l.status = 'suppressed' and coalesce(l.error_code, '') <> 'SUPPRESSED_UNSUBSCRIBED')
+             or (l.status = 'processing' and l.last_attempt_at < now() - interval '15 minutes')
+           )
+           and not exists (
+             select 1 from public.transactional_email_logs recovered
+             where recovered.organization_id = l.organization_id
+               and recovered.template_key = l.template_key
+               and recovered.status = 'delivered'
+               and recovered.updated_at > l.updated_at
+               and (
+                 (l.entity_id is not null
+                   and recovered.entity_type is not distinct from l.entity_type
+                   and recovered.entity_id = l.entity_id)
+                 or (l.entity_id is null and recovered.recipient_email = l.recipient_email)
+               )
+           )
          )
     into v_email_retrying, v_email_attention
   from public.transactional_email_logs l
@@ -334,6 +360,7 @@ begin
   from public.memberships m
   where m.organization_id = p_organization_id
     and m.status = 'activa'
+    and coalesce(m.start_date, current_date + 1) <= current_date
     and coalesce(m.expiration_date, current_date - 1) >= current_date
     and m.updated_at >= now() - interval '30 days'
     and not exists (
@@ -342,7 +369,8 @@ begin
         and l.template_key = 'affiliation_approved'
         and l.entity_type = 'membership'
         and l.entity_id = m.id::text
-        and l.status in ('sent', 'delivered')
+        and l.status = 'delivered'
+        and l.delivered_at >= m.updated_at
     );
 
   select count(*) into v_approved_without_membership
@@ -356,6 +384,7 @@ begin
     and (
       m.id is null
       or m.status <> 'activa'
+      or coalesce(m.start_date, current_date + 1) > current_date
       or coalesce(m.expiration_date, current_date - 1) < current_date
     );
 

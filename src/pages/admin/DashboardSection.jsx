@@ -6,13 +6,17 @@ import {
   ClipboardList,
   MapPin,
   Shield,
+  Trash2,
   Users,
 } from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
+import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
@@ -87,7 +91,11 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
         <Icon size={15} strokeWidth={1.7} />
       </span>
       <span className="admin-ops__kpi-body">
-        <span className="admin-ops__kpi-value">{value}</span>
+        {typeof value === 'number' ? (
+          <AnimatedNumber className="admin-ops__kpi-value" value={value} />
+        ) : (
+          <span className="admin-ops__kpi-value">{value}</span>
+        )}
         <span className="admin-ops__kpi-label">{label}</span>
         {hint ? <span className="admin-ops__kpi-hint">{hint}</span> : null}
       </span>
@@ -213,7 +221,7 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
   )
 }
 
-function RecentAthletesCard({ athletes, locale, onNavigate, t }) {
+function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }) {
   if (!athletes?.items?.length) return null
 
   return (
@@ -233,16 +241,22 @@ function RecentAthletesCard({ athletes, locale, onNavigate, t }) {
       <ul className="admin-ops__recent-list">
         {athletes.items.map((athlete) => (
           <li key={athlete.id} className="admin-ops__recent-item">
-            <span className="admin-ops__recent-avatar" aria-hidden>
-              {initials(athlete.fullName)}
-            </span>
-            <span className="admin-ops__recent-body">
-              <strong>{athlete.fullName}</strong>
-              <span>{athlete.gym || t('admin.dashboard.recentAthletesNoGym')}</span>
-            </span>
-            <span className="admin-ops__recent-date">
-              {formatDayMonth(athlete.createdAt.slice(0, 10), locale)}
-            </span>
+            <button
+              type="button"
+              className="admin-ops__recent-open"
+              onClick={() => onSelectAthlete?.(athlete.id)}
+            >
+              <span className="admin-ops__recent-avatar" aria-hidden>
+                {initials(athlete.fullName)}
+              </span>
+              <span className="admin-ops__recent-body">
+                <strong>{athlete.fullName}</strong>
+                <span>{athlete.gym || t('admin.dashboard.recentAthletesNoGym')}</span>
+              </span>
+              <span className="admin-ops__recent-date">
+                {formatDayMonth(athlete.createdAt.slice(0, 10), locale)}
+              </span>
+            </button>
           </li>
         ))}
       </ul>
@@ -254,9 +268,49 @@ function RecentAthletesCard({ athletes, locale, onNavigate, t }) {
  * Afiliaciones recientes. Separada de `RecentAthletesCard` a propósito: esa
  * lista son altas de cuenta, y registrarse no afilia a nadie. Acá se ve quién
  * quedó cubierto, con qué código y desde cuándo.
+ *
+ * La fila abre el detalle del atleta; el botón de peligro (solo Super Admin)
+ * elimina al atleta con toda su cascada, reusando el mismo dialog y endpoint
+ * que la zona de peligro del detalle.
  */
-function RecentMembershipsCard({ memberships, locale, onNavigate, t }) {
+function RecentMembershipsCard({
+  memberships,
+  locale,
+  onNavigate,
+  onSelectAthlete,
+  canDeleteAthlete = false,
+  onDeleteAthlete,
+  getAthleteDetail,
+  t,
+}) {
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   if (!memberships?.items?.length) return null
+
+  const pendingDetail =
+    pendingDelete && getAthleteDetail ? getAthleteDetail(pendingDelete.athleteId) : null
+
+  function closeDeleteDialog() {
+    if (deleteBusy) return
+    setPendingDelete(null)
+    setDeleteError('')
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete || !onDeleteAthlete) return
+    setDeleteError('')
+    setDeleteBusy(true)
+    try {
+      await onDeleteAthlete(pendingDelete.athleteId)
+      setPendingDelete(null)
+    } catch (error) {
+      setDeleteError(error?.message ?? t('admin.athleteDetail.delete.error'))
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
 
   return (
     <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentMembershipsTitle')}>
@@ -274,27 +328,62 @@ function RecentMembershipsCard({ memberships, locale, onNavigate, t }) {
 
       <ul className="admin-ops__recent-list">
         {memberships.items.map((membership) => (
-          <li key={membership.id} className="admin-ops__recent-item">
-            <span className="admin-ops__recent-avatar" aria-hidden>
-              {initials(membership.fullName)}
-            </span>
-            <span className="admin-ops__recent-body">
-              <strong>{membership.fullName}</strong>
-              <span className="data-table__mono" title={membership.memberCode ?? undefined}>
-                {formatShortMemberCode(membership.memberCode) || '—'}
+          <li key={membership.id} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+            <button
+              type="button"
+              className="admin-ops__recent-open"
+              onClick={() => onSelectAthlete?.(membership.athleteId)}
+            >
+              <span className="admin-ops__recent-avatar" aria-hidden>
+                {initials(membership.fullName)}
               </span>
-            </span>
-            <span className="admin-ops__recent-date">
-              <StatusBadge value={membership.status} />
-              {membership.startDate ? (
-                <time dateTime={membership.startDate.slice(0, 10)}>
-                  {formatDayMonth(membership.startDate.slice(0, 10), locale)}
-                </time>
-              ) : null}
-            </span>
+              <span className="admin-ops__recent-body">
+                <strong>{membership.fullName}</strong>
+                <span className="data-table__mono" title={membership.memberCode ?? undefined}>
+                  {formatShortMemberCode(membership.memberCode) || '—'}
+                </span>
+              </span>
+              <span className="admin-ops__recent-date">
+                <StatusBadge value={membership.status} />
+                {membership.startDate ? (
+                  <time dateTime={membership.startDate.slice(0, 10)}>
+                    {formatDayMonth(membership.startDate.slice(0, 10), locale)}
+                  </time>
+                ) : null}
+              </span>
+            </button>
+            {canDeleteAthlete && onDeleteAthlete ? (
+              <AdminIconButton
+                icon={Trash2}
+                label={t('admin.dashboard.recentMembershipsDelete', { name: membership.fullName })}
+                onClick={() => setPendingDelete(membership)}
+                variant="danger"
+              />
+            ) : null}
           </li>
         ))}
       </ul>
+
+      {pendingDelete ? (
+        <AdminDeleteConfirmDialog
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void handleDelete()}
+          title={t('admin.athleteDetail.delete.confirmTitle')}
+          description={t('admin.athleteDetail.delete.confirmDescription', {
+            name: pendingDetail?.athlete?.fullName ?? pendingDelete.fullName,
+            documentId: pendingDetail?.athlete?.documentId ?? '—',
+            memberships: pendingDetail?.memberships?.length ?? 0,
+            registrations: pendingDetail?.registrations?.length ?? 0,
+            payments: pendingDetail?.payments?.length ?? 0,
+          })}
+          warning={t('admin.athleteDetail.delete.warning')}
+          cancelLabel={t('admin.athleteDetail.delete.cancel')}
+          confirmLabel={t('admin.athleteDetail.delete.confirm')}
+          busyLabel={t('admin.athleteDetail.delete.deleting')}
+        />
+      ) : null}
     </section>
   )
 }
@@ -347,6 +436,10 @@ export default function DashboardSection({
   onApprovePayment,
   onApproveTicketOrder,
   canEdit,
+  canDeleteAthletes = false,
+  onDeleteAthlete,
+  onSelectAthlete,
+  getAthleteDetail,
   globalSearch,
   onGlobalSearchChange,
   onGlobalSearchSubmit,
@@ -632,6 +725,7 @@ export default function DashboardSection({
             athletes={recentAthletes}
             locale={locale}
             onNavigate={onNavigate}
+            onSelectAthlete={onSelectAthlete}
             t={t}
           />
 
@@ -639,6 +733,10 @@ export default function DashboardSection({
             memberships={recentMemberships}
             locale={locale}
             onNavigate={onNavigate}
+            onSelectAthlete={onSelectAthlete}
+            canDeleteAthlete={canDeleteAthletes}
+            onDeleteAthlete={onDeleteAthlete}
+            getAthleteDetail={getAthleteDetail}
             t={t}
           />
 

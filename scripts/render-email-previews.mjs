@@ -35,6 +35,23 @@ const FIXTURES = {
     resetUrl: `${appUrl}/?reset=preview-token`,
     expiresInMinutes: 30,
   },
+  staff_invitation: {
+    name: 'Ana Gómez',
+    email: 'ana.gomez@pluarg.com.ar',
+    tempPassword: 'k7Qm-2xRt9Lp',
+    roleName: 'Administrador',
+    loginUrl: appUrl,
+    expiresInDays: 7,
+  },
+  staff_email_change: {
+    name: 'Ana Gómez',
+    newEmail: 'ana.nueva@pluarg.com.ar',
+    verificationUrl: `${appUrl}/?cambio-email=preview-token`,
+  },
+  staff_email_changed: {
+    name: 'Ana Gómez',
+    newEmail: 'ana.nueva@pluarg.com.ar',
+  },
   payment_receipt: {
     name: 'Ana Gómez',
     reference: 'PLU-PAY-2048',

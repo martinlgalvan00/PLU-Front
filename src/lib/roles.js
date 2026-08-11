@@ -48,6 +48,12 @@ export function canDeleteUsers(subject) {
   return getAccessRoleKey(subject) === 'admin_maximal'
 }
 
+// Mismo criterio que canDeleteUsers: borrar un atleta con toda su historia
+// (pagos, inscripciones, credenciales) es la accion mas destructiva del panel.
+export function canDeleteAthletes(subject) {
+  return getAccessRoleKey(subject) === 'admin_maximal'
+}
+
 export function canManageRoles(subject) {
   return hasPermission(subject, 'admin.roles.write')
 }

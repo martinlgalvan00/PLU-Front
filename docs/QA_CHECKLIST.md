@@ -23,9 +23,22 @@
 ## Registro
 
 - [ ] Formulario valida campos requeridos
+- [ ] Fecha de nacimiento futura/inexistente, teléfono fuera de rango y categoría inválida se rechazan también en la API
 - [ ] Duplicado email/documento muestra error
 - [ ] Combo/afiliación/solo evento calcula monto correcto
 - [ ] Orden se crea y aparece en panel
+- [ ] El alta deja `welcome` y `email_verification` enviados o en reintento antes del 201
+
+## Flujo de afiliación y emails
+
+- [ ] Webhook duplicado de pago no duplica afiliación ni emails
+- [ ] Pago aprobado activa afiliación y dispara aprobación + comprobante con claves idempotentes
+- [ ] Activación/cancelación manual envía el email correspondiente sin revertir el cambio si Brevo falla
+- [ ] Reembolso envía comprobante y cancelación de afiliación cuando corresponde
+- [ ] Email inválido, params faltantes y supresión quedan en el log con estado y código de error
+- [ ] Error transitorio queda en `retrying`; el job lo reclama una sola vez y respeta el máximo de intentos
+- [ ] Webhook Brevo mueve `sent` a `delivered`, `rejected` o `bounced` y conserva cada transición en auditoría
+- [ ] Auditoría alerta pagos aprobados sin afiliación activa y afiliaciones activas sin email `delivered`
 
 ## Panel admin
 
@@ -42,6 +55,7 @@
       validación server-side
 - [ ] Nadie puede autoasignarse otro rol ni elevar a Super Admin
 - [ ] Modificar permisos y reasignar usuarios genera auditoría
+- [ ] Auditoría filtra por origen/estado y muestra salud, reintentos e incidencias sin falsos “saludable” si el resumen falla
 - [ ] La matriz no produce overflow horizontal en 1366, 390 y 360px
 - [ ] Roles y permisos conservan contraste y foco visible en tema claro y oscuro
 - [ ] Filtros de inscripciones funcionan
@@ -53,6 +67,12 @@
 - [ ] Sin credenciales MP: modo mock sin errores
 - [ ] Sin credenciales Brevo: emails en consola dev
 - [ ] API `/health` responde 200
+
+## Integraciones (producción)
+
+- [ ] `npm run email:doctor` termina sin bloqueos: remitente validado, URL HTTPS pública y webhook transaccional activo
+- [ ] Un envío real pasa de `sent` a `delivered` en Auditoría
+- [ ] `npm run mercado-pago:doctor` valida Access Token y secreto del webhook
 
 ## Build
 

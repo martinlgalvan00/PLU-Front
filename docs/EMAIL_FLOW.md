@@ -11,9 +11,9 @@ email como best-effort. Si Brevo falla o no está configurado, se registra y se 
 ```
 Evento de negocio
   └─> emailDispatcher.send(type, { to, params, entityId })
-        ├─ 1. valida `type` y params obligatorios contra emailCatalog.js
-        ├─ 2. corta si el destinatario está en email_suppressions
-        ├─ 3. beginEmail() -> idempotencia por idempotency_key
+        ├─ 1. beginEmail() -> outbox durable + idempotencia por idempotency_key
+        ├─ 2. valida destinatario y params; todo rechazo queda auditado
+        ├─ 3. consulta email_suppressions; las supresiones también quedan registradas
         ├─ 4. template de Brevo si BREVO_TEMPLATE_* está cargado,
         │     si no -> fallback HTML de emailTemplates.js
         ├─ 5. brevoAdapter.send() con timeout + backoff
@@ -35,6 +35,12 @@ webhook de Brevo  ──> record_email_delivery_event() ──> delivered | boun
 | `server/jobs/emailDispatchJob.js` | Vacía la cola de `retrying` |
 | `server/routes/emails.js` | `/send`, `/webhook/brevo`, `/logs`, `/catalog`, `/suppressions` |
 
+Cada transición de `transactional_email_logs` se copia además a
+`operational_event_logs`. El historial operativo es append-only: un `delivered`, `bounced` o
+`rejected` ya no pisa la evidencia del intento anterior. El panel consume la vista unificada
+`operational_audit_events` y su resumen de salud detecta reintentos, fallos, pagos sin afiliación
+activa y afiliaciones activas sin confirmación de entrega.
+
 ## Catálogo de tipos
 
 Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega un cuerpo en
@@ -48,11 +54,13 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 | `security_access` | Alta de cuenta de seguridad | no (crítico) |
 | `affiliation_started` | Pago de membresía acreditado que no dejó afiliación activa | no |
 | `affiliation_approved` | Afiliación activada, por Mercado Pago o aprobación manual | no |
+| `affiliation_cancelled` | Afiliación cancelada o reintegrada | no |
 | `membership_renewal` | Job de renovación (30/7/1/0 días) | sí |
 | `payment_approved` | Pago acreditado | no |
 | `payment_receipt` | Pago acreditado (comprobante) | no (crítico) |
 | `payment_pending` | Pago pendiente de acreditación | no |
 | `payment_rejected` | Pago rechazado | no |
+| `payment_refunded` | Pago reintegrado por el proveedor | no |
 | `registration_confirmed` | Inscripción confirmada | no |
 | `ticket_confirmation` | Compra de entrada | no (crítico) |
 | `event_announcement` | Manual, desde el panel | sí |
@@ -202,6 +210,8 @@ Los nombres de evento se normalizan (`hardBounce` → `hard_bounce`): Brevo no e
 su API de estadísticas y algunas versiones del webhook.
 
 Configurar en Brevo: *Transactional → Settings → Webhooks*, con la URL y los eventos de arriba.
+`npm run email:doctor` devuelve error si falta el webhook, el token o una URL HTTPS pública; no
+considera sana una instalación que solo puede observar el `201` inicial.
 
 ## Política de supresión
 

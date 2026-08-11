@@ -85,6 +85,10 @@ export function serializeUser(user) {
     roleLabel: user.accessRole?.name ?? null,
     permissions,
     status: user.status,
+    // Entró con una credencial temporal y todavía no eligió una propia. El
+    // frontend la usa para forzar la pantalla de cambio; el corte real lo hace
+    // `requireAuth` del lado del servidor.
+    mustChangePassword: Boolean(user.mustChangePassword),
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
     lastLoginAt: user.lastLoginAt ?? null,

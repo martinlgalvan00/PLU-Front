@@ -1,3 +1,4 @@
+import '../../styles/components/ticket-pass-preview.css'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { QrCode } from 'lucide-react'
 import BrandLogo from './BrandLogo.jsx'

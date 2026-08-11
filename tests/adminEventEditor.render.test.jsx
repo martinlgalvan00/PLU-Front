@@ -12,9 +12,18 @@ import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
  */
 beforeAll(() => {
   // jsdom no implementa IntersectionObserver, que el editor usa para resaltar
-  // la sección activa en la navegación.
+  // la sección activa en la navegación. El mock dispara la intersección al
+  // observar: si queda inerte, los AnimatedNumber del resto de la suite
+  // (mismo worker) quedan congelados en el valor inicial.
   globalThis.IntersectionObserver ??= class {
-    observe() {}
+    constructor(callback) {
+      this.callback = callback
+    }
+
+    observe() {
+      this.callback?.([{ isIntersecting: true }], this)
+    }
+
     disconnect() {}
   }
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react'
+import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'

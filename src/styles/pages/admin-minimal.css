@@ -11,8 +11,8 @@
 }
 
 .admin-shell .admin-shell__sidebar {
-  border-right-color: color-mix(in srgb, var(--admin-sidebar-text) 10%, transparent);
-  box-shadow: none;
+  border-right-color: var(--admin-glass-border, color-mix(in srgb, var(--admin-sidebar-text) 10%, transparent));
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
 }
 
 .admin-shell .admin-shell__brand {
@@ -26,6 +26,10 @@
 
 .admin-shell .admin-shell__nav button.active {
   border-color: color-mix(in srgb, var(--admin-sidebar-text) 12%, transparent);
+}
+
+.admin-shell.admin-shell--collapsed .admin-shell__nav button.active {
+  border-color: transparent;
 }
 
 .admin-shell .admin-shell__nav button.active::before,
@@ -2427,6 +2431,20 @@
   flex: none;
 }
 
+/* En la card mobile alcanza con código + vencimiento. Repetir inicio y año
+   desbordaba la única línea operativa y volvía ilegible el período. */
+.admin-shell .data-table-card.data-table__row--membership .data-table__period-range > :first-child,
+.admin-shell .data-table-card.data-table__row--membership .data-table__period-sep,
+.admin-shell .data-table-card.data-table__row--membership .data-table__period-year {
+  display: none;
+}
+
+.admin-shell .data-table-card.data-table__row--membership .data-table__period,
+.admin-shell .data-table-card.data-table__row--membership .data-table__period-range {
+  display: inline;
+  white-space: nowrap;
+}
+
 .admin-shell .admin-list-shell--users .data-table__column--actions,
 .admin-shell .admin-list-shell--users .data-table__column--action {
   width: 1%;
@@ -4120,13 +4138,18 @@
   background: transparent;
 }
 
-/* KPI strip: meta tipográfica quieta entre filtros y lista. */
+/* KPI strip: un solo panel de vidrio con celdas abiertas adentro —
+   mismo lenguaje que la tira de KPIs del dashboard. */
 .admin-shell .admin-list-section--events .admin-events-kpis {
-  align-items: baseline;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
-  border-radius: 0;
+  align-items: stretch;
+  background: var(--admin-glass-bg);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  border: 1px solid var(--admin-glass-border);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight),
+    var(--admin-glass-shadow);
   display: flex;
   flex-wrap: nowrap;
   gap: 0;
@@ -4134,7 +4157,7 @@
   margin: 0 0 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 0 2px 10px;
+  padding: 4px 0;
   scrollbar-width: none;
 }
 
@@ -4150,12 +4173,12 @@
   gap: 8px;
   justify-content: flex-start;
   min-width: max(5.5rem, 18%);
-  padding: 4px 16px 4px 0;
+  padding: 8px 18px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
-  border-left: 1px solid var(--admin-hairline);
-  padding-left: 16px;
+  border-left: 1px solid var(--admin-glass-border);
+  padding-left: 18px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__label {
@@ -4169,10 +4192,11 @@
 
 .admin-shell .admin-list-section--events .admin-events-kpi__value {
   color: var(--admin-ink);
-  font-size: clamp(1.1rem, 1.9vw, 1.35rem);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.15rem, 1.9vw, 1.45rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   line-height: 1;
   margin-left: 0;
   order: 0;
@@ -4284,10 +4308,16 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row__day {
   color: var(--admin-ink);
-  font-size: 20px;
-  font-weight: 650;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 23px;
+  font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 1;
+  transition: color var(--motion-fast) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row:hover .admin-event-row__day {
+  color: var(--admin-brand);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__month {
@@ -4322,6 +4352,38 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row:hover {
   background: var(--admin-row-hover);
+}
+
+/* Entrada one-shot de la lista: las primeras filas caen en cascada.
+   React reusa por key, así que filtrar no re-anima lo que ya estaba. */
+.admin-shell .admin-list-shell--events .admin-event-row {
+  animation: admin-block-enter 0.34s var(--ease-out, ease) backwards;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list > .admin-event-row:nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list > .admin-event-row:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list > .admin-event-row:nth-child(4) {
+  animation-delay: 130ms;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list > .admin-event-row:nth-child(5) {
+  animation-delay: 165ms;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-group__list > .admin-event-row:nth-child(n + 6) {
+  animation-delay: 195ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-list-shell--events .admin-event-row {
+    animation: none;
+  }
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row--selected,
@@ -4411,10 +4473,16 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-  background: transparent;
-  border-color: var(--admin-hairline);
-  border-left: 1px solid var(--admin-hairline);
+  background: var(--admin-glass-bg);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  border: 1px solid var(--admin-glass-border);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight),
+    var(--admin-glass-shadow);
   gap: 0;
+  overflow: hidden;
   padding: 0 0 12px;
 }
 
@@ -4740,28 +4808,28 @@
     flex-wrap: wrap;
     margin-bottom: 6px;
     overflow: visible;
-    padding-bottom: 8px;
+    padding: 6px 2px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi {
     flex: 1 1 calc(50% - 1px);
     min-width: 0;
-    padding: 6px 12px 6px 0;
+    padding: 8px 12px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
-    border-left: 1px solid var(--admin-hairline);
+    border-left: 1px solid var(--admin-glass-border);
     padding-left: 12px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
     border-left: 0;
-    padding-left: 0;
+    padding-left: 10px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
-    border-top: 1px solid var(--admin-hairline);
-    padding-top: 8px;
+    border-top: 1px solid var(--admin-glass-border);
+    padding-top: 10px;
   }
 
   /* El panel pasa a estar debajo de la lista, así que el scroll interno

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -129,10 +129,10 @@ function renderRegister({ memberships = [], registrations = [], flow = 'membersh
   )
 }
 
-function renderPurchaseSection(membershipRow) {
+function renderPurchaseSection(membershipRow, props = {}) {
   return render(
     <I18nProvider>
-      <MembershipPurchaseSection athlete={ATHLETE} membership={membershipRow} />
+      <MembershipPurchaseSection athlete={ATHLETE} membership={membershipRow} {...props} />
     </I18nProvider>,
   )
 }
@@ -248,5 +248,48 @@ describe('sección de afiliación de la cuenta', () => {
     expect(screen.getByText('PLU-ARG-2026-014')).toBeTruthy()
     expect(screen.queryByRole('group', { name: /método de pago/i })).toBeNull()
     expect(accountCredentialAction()).toBeTruthy()
+  })
+
+  it('explica una renovación programada sin ofrecer cobrar otra vez', () => {
+    renderPurchaseSection(membership({
+      startDate: `${new Date().getFullYear() + 1}-01-01`,
+      expirationDate: `${new Date().getFullYear() + 2}-01-01`,
+    }))
+
+    expect(screen.getByText('Afiliación programada')).toBeTruthy()
+    expect(screen.getByText(/el pago ya está validado/i)).toBeTruthy()
+    expect(screen.queryByRole('group', { name: /método de pago/i })).toBeNull()
+  })
+
+  it('distingue una baja y un reembolso de un pago pendiente', () => {
+    const { rerender } = renderPurchaseSection(membership({ status: 'cancelada' }))
+    expect(screen.getByText('Afiliación cancelada')).toBeTruthy()
+    expect(screen.queryByText('Afiliación no paga')).toBeNull()
+
+    rerender(
+      <I18nProvider>
+        <MembershipPurchaseSection athlete={ATHLETE} membership={membership({ status: 'reembolsada' })} />
+      </I18nProvider>,
+    )
+    expect(screen.getByText('Pago reembolsado')).toBeTruthy()
+  })
+
+  it('bloquea el doble envío mientras crea la orden', async () => {
+    let resolveOrder
+    const onStartMembershipPayment = vi.fn(() => new Promise((resolve) => {
+      resolveOrder = resolve
+    }))
+    renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
+
+    const submit = screen.getByRole('button', { name: /continuar con mercado pago/i })
+    fireEvent.click(submit)
+    fireEvent.click(submit)
+
+    expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: /creando orden segura/i }).disabled).toBe(true)
+
+    resolveOrder({ error: 'No se pudo crear la orden.' })
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('No se pudo crear la orden.'))
+    expect(screen.getByRole('button', { name: /continuar con mercado pago/i }).disabled).toBe(false)
   })
 })

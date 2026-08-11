@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  filterMemberships,
+  getMembershipLifecycle,
+  getMembershipOperationalStatus,
   hasCurrentMembership,
+  isExpiringSoon,
   isMembershipCurrent,
   isMembershipExpired,
+  MEMBERSHIP_LIFECYCLE,
 } from '../src/services/membershipService.js'
 import { reconcileCreatedOrder } from '../src/services/paymentService.js'
 
@@ -75,6 +80,31 @@ describe('vigencia de la afiliación', () => {
     const scheduled = membership({ startDate: '2026-12-01', expirationDate: '2027-12-01' })
     expect(isMembershipCurrent(scheduled, TODAY)).toBe(false)
     expect(isMembershipExpired(scheduled, TODAY)).toBe(false)
+    expect(getMembershipLifecycle(scheduled, TODAY)).toBe(MEMBERSHIP_LIFECYCLE.SCHEDULED)
+    expect(getMembershipOperationalStatus(scheduled, TODAY)).toBe('programada')
+  })
+
+  it('deriva vencida aunque el cron todavía no haya corregido el estado persistido', () => {
+    const stale = membership({ expirationDate: '2026-08-06' })
+    expect(getMembershipOperationalStatus(stale, TODAY)).toBe('vencida')
+    expect(filterMemberships([stale], { status: 'activa', today: TODAY })).toEqual([])
+    expect(filterMemberships([stale], { status: 'vencida', today: TODAY })).toEqual([stale])
+  })
+
+  it('calcula el vencimiento próximo contra el día recibido, sin depender del reloj real', () => {
+    expect(isExpiringSoon('2026-09-06', 30, TODAY)).toBe(true)
+    expect(isExpiringSoon('2026-09-07', 30, TODAY)).toBe(false)
+    expect(isExpiringSoon('2026-08-06', 30, TODAY)).toBe(false)
+    expect(isExpiringSoon(null, 30, TODAY)).toBe(false)
+  })
+
+  it('mantiene cancelación y reembolso como estados terminales con fechas viejas', () => {
+    expect(getMembershipLifecycle(membership({ status: 'cancelada' }), TODAY)).toBe(
+      MEMBERSHIP_LIFECYCLE.CANCELLED,
+    )
+    expect(getMembershipLifecycle(membership({ status: 'reembolsada' }), TODAY)).toBe(
+      MEMBERSHIP_LIFECYCLE.REFUNDED,
+    )
   })
 
   it('no considera vencida una afiliación cancelada o reembolsada', () => {

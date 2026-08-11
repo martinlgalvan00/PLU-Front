@@ -1,5 +1,5 @@
 import { ApiError, apiPost } from '../lib/api.js'
-import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 /**
  * athleteProofService.js — PLU ARG
@@ -39,13 +39,14 @@ export async function uploadAthletePaymentProof(orderId, file) {
     throw new ApiError(validation.error, { status: 400 })
   }
 
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     throw new ApiError(
       'Supabase no está configurado. No se puede subir el comprobante en este entorno.',
       { status: 503 },
     )
   }
 
+  const supabase = await getSupabaseClient()
   const upload = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof-upload`, {
     fileName: sanitizeFileName(file.name),
     contentType: file.type,

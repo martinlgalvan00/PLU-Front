@@ -1,3 +1,4 @@
+import '../styles/pages/institutional-pages.css'
 import { useMemo } from 'react'
 import {
   ArrowRight,

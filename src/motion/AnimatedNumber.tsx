@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { animate, m, useInView } from 'motion/react'
+import { animate, m } from 'motion/react'
 import { MOTION_DURATION } from './tokens'
 import { useMotionConfig } from './MotionProvider'
 
@@ -29,18 +29,43 @@ export default function AnimatedNumber({
 }: AnimatedNumberProps) {
   const { reducedMotion } = useMotionConfig()
   const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true, amount: 0.6 })
-  const [display, setDisplay] = useState(() => formatValue(reducedMotion ? value : 0, decimals))
-  const hasAnimated = useRef(false)
+  // Sin IntersectionObserver (jsdom, SSR, browser viejo) nunca hay "entrada al
+  // viewport": el estado inicial ya es el valor final, decidido en render para
+  // no depender del timing de effects.
+  const [observerAvailable] = useState(() => typeof IntersectionObserver !== 'undefined')
+  const [inView, setInView] = useState(!observerAvailable)
+  const [display, setDisplay] = useState(() =>
+    formatValue(reducedMotion || !observerAvailable ? value : 0, decimals),
+  )
+  const hasAnimated = useRef(!observerAvailable)
 
   useEffect(() => {
-    if (!inView || hasAnimated.current) return undefined
-    hasAnimated.current = true
+    const node = ref.current
+    if (!node || !observerAvailable) return undefined
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setInView(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.6 },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
-    if (reducedMotion) {
+  useEffect(() => {
+    if (!inView) return undefined
+
+    // Después de la entrada el número tiene que seguir al dato: sin esta rama
+    // un total que cambia (grilla, KPIs) quedaría congelado en el valor inicial.
+    if (hasAnimated.current || reducedMotion) {
+      hasAnimated.current = true
       setDisplay(formatValue(value, decimals))
       return undefined
     }
+    hasAnimated.current = true
 
     const controls = animate(0, value, {
       duration,

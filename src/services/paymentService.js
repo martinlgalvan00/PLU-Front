@@ -1,6 +1,11 @@
 import { env } from '../config/env.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 
+const MEMBERSHIP_PLANS_CACHE_MS = 5 * 60 * 1000
+let membershipPlansCache = null
+let membershipPlansFetchedAt = 0
+let membershipPlansRequest = null
+
 export function isMercadoPagoConfigured() {
   return env.payments.isMock || env.mercadoPago.configured
 }
@@ -78,8 +83,30 @@ export async function getPaymentOrderStatus(paymentOrderId, orderAccessToken) {
   })
 }
 
-export async function listMembershipPlans() {
-  return apiGet('/api/payments/plans')
+export async function listMembershipPlans({ force = false } = {}) {
+  const cacheFresh =
+    membershipPlansCache && Date.now() - membershipPlansFetchedAt < MEMBERSHIP_PLANS_CACHE_MS
+  if (!force && cacheFresh) return membershipPlansCache
+  if (!force && membershipPlansRequest) return membershipPlansRequest
+
+  membershipPlansRequest = apiGet('/api/payments/plans')
+    .then((result) => {
+      membershipPlansCache = result
+      membershipPlansFetchedAt = Date.now()
+      return result
+    })
+    .finally(() => {
+      membershipPlansRequest = null
+    })
+
+  return membershipPlansRequest
+}
+
+/** Solo para aislar pruebas o invalidar después de editar tarifas en admin. */
+export function clearMembershipPlansCache() {
+  membershipPlansCache = null
+  membershipPlansFetchedAt = 0
+  membershipPlansRequest = null
 }
 
 export async function processEmbeddedSubscription({ paymentOrderId, orderAccessToken, planCode, cardToken }) {

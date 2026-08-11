@@ -6,6 +6,7 @@ export const STATUS_LABELS = {
   bloqueado: 'Bloqueado',
   pendiente_pago: 'Pendiente de pago',
   activa: 'Activa',
+  programada: 'Programada',
   vencida: 'Vencida',
   cancelada: 'Cancelada',
   reembolsada: 'Reembolsada',
@@ -46,7 +47,7 @@ const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'ob
 // largo se distinga de un vistazo de los eventos que siguen tomando gente.
 const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado', 'agotado'])
 
-const INFO = new Set(['pre_registrado', 'registrado', 'proximamente'])
+const INFO = new Set(['pre_registrado', 'registrado', 'proximamente', 'programada'])
 
 export function getStatusMeta(value, t) {
   let tone = 'neutral'

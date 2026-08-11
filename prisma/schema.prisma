@@ -399,6 +399,15 @@ model User {
   accessRoleId String?
   status       UserStatus @default(invited)
   lastLoginAt  DateTime?
+  // La cuenta entró con una contraseña temporal y todavía no eligió una
+  // propia. No se modela como `status: invited` porque readSession corta
+  // cualquier sesión cuyo usuario no esté `active`: el invitado no llegaría
+  // ni a la pantalla donde tiene que cambiarla.
+  mustChangePassword Boolean @default(false)
+  // Vencimiento de la credencial temporal. Sin esto, una invitación que quedó
+  // sin usar (o un mail reenviado a quien no debía) sigue abriendo la cuenta
+  // para siempre. Se limpia al elegir una contraseña propia.
+  passwordExpiresAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   personId     String?    @unique

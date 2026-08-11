@@ -49,7 +49,28 @@ const ok = (msg) => console.log(`  ${OK}    ${msg}`)
 
 const apiKey = process.env.BREVO_API_KEY?.trim()
 const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim()
+const webhookToken = process.env.BREVO_WEBHOOK_TOKEN?.trim()
+const webhookBaseUrl = (
+  process.env.API_URL ?? process.env.APP_URL ?? process.env.VITE_APP_URL ?? ''
+).trim().replace(/\/+$/, '')
 const headers = { accept: 'application/json', 'api-key': apiKey }
+
+function expectedWebhookUrl() {
+  if (!webhookToken || !webhookBaseUrl) return null
+  try {
+    const base = new URL(webhookBaseUrl)
+    if (base.protocol !== 'https:' || ['localhost', '127.0.0.1'].includes(base.hostname)) return null
+    const target = new URL('/api/emails/webhook/brevo', `${base.origin}/`)
+    target.searchParams.set('token', webhookToken)
+    return target.toString()
+  } catch {
+    return null
+  }
+}
+
+function maskWebhookUrl(value) {
+  return String(value).replace(/token=[^&]+/, 'token=***')
+}
 
 async function brevo(path) {
   const response = await fetch(`https://api.brevo.com/v3${path}`, { headers })
@@ -127,19 +148,33 @@ if (recent.length === 0) {
 
 // ----------------------------------------------------------------- 4. webhook
 console.log('\nWebhook de entrega')
-if (!process.env.BREVO_WEBHOOK_TOKEN?.trim()) {
-  warn(
+const expectedWebhook = expectedWebhookUrl()
+if (!webhookToken) {
+  fail(
     'BREVO_WEBHOOK_TOKEN no está definido.',
     'Sin webhook no hay forma de enterarse de rebotes ni de rechazos asincrónicos.',
   )
+} else if (!expectedWebhook) {
+  fail(
+    'API_URL/APP_URL no apunta a una URL HTTPS pública.',
+    'Definila con el origen público de la API antes de registrar el webhook de Brevo.',
+  )
 } else {
   const hooks = await brevo('/webhooks?type=transactional')
-  const urls = (hooks.body.webhooks ?? []).map((w) => w.url)
-  if (urls.length === 0) {
-    warn('No hay webhooks transaccionales cargados en Brevo.', `Cargar: ${process.env.API_URL ?? ''}/api/emails/webhook/brevo?token=...`)
+  if (hooks.status !== 200) {
+    fail(`No se pudieron consultar los webhooks (HTTP ${hooks.status}).`, hooks.body?.message ?? '')
   } else {
-    ok(`${urls.length} webhook(s) configurado(s).`)
-    for (const url of urls) console.log(`         ${url.replace(/token=[^&]+/, 'token=***')}`)
+    const configured = hooks.body.webhooks ?? []
+    const matching = configured.find((hook) => hook.active !== false && hook.url === expectedWebhook)
+    if (!matching) {
+      fail(
+        'No hay un webhook transaccional activo para esta API y este token.',
+        `Cargar en Brevo: ${maskWebhookUrl(expectedWebhook)}`,
+      )
+    } else {
+      ok('Webhook transaccional activo y apuntando a esta API.')
+      console.log(`         ${maskWebhookUrl(matching.url)}`)
+    }
   }
 }
 
@@ -186,4 +221,4 @@ console.log(
     ? '\n=== Sin problemas bloqueantes ===\n'
     : `\n=== ${problems} problema(s) bloqueante(s) ===\n`,
 )
-process.exit(problems === 0 ? 0 : 1)
+process.exitCode = problems === 0 ? 0 : 1

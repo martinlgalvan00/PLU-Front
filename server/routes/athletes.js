@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission } from '../middleware/auth.js'
+import { requirePermission, requireRole } from '../middleware/auth.js'
 import {
   athleteAuthLimiter,
   athleteWriteLimiter,
@@ -43,6 +43,36 @@ import {
   revokeAthleteSession,
 } from '../services/athleteSessionService.js'
 
+const COMPETITION_DIVISIONS = ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters']
+const COMPETITION_CATEGORIES = ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited']
+
+function todayInBuenosAires() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+const birthDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de nacimiento no es válida.')
+  .refine((value) => {
+    const [year, month, day] = value.split('-').map(Number)
+    const parsed = new Date(Date.UTC(year, month - 1, day))
+    if (
+      parsed.getUTCFullYear() !== year ||
+      parsed.getUTCMonth() + 1 !== month ||
+      parsed.getUTCDate() !== day
+    ) return false
+
+    return value <= todayInBuenosAires()
+  }, 'La fecha de nacimiento no puede ser futura ni inexistente.')
+
 // El email se guarda SIEMPRE en minúsculas. `findLogin` busca por
 // `email.toLowerCase()`, así que una cuenta dada de alta con cualquier
 // mayúscula (el autocompletado del teléfono las mete solo) quedaba
@@ -59,16 +89,30 @@ const registerSchema = z.object({
     .transform((value) => value.replace(/[.\-\s]/g, ''))
     .pipe(z.string().regex(/^\d{7,8}$/, 'El documento debe tener 7 u 8 dígitos.')),
   email: z.string().trim().toLowerCase().email(),
-  birthDate: z.string().trim().min(8),
-  phone: z.string().trim().min(6),
+  birthDate: birthDateSchema,
+  phone: z.string().trim().refine(
+    (value) => {
+      const digits = value.replace(/\D/g, '')
+      return digits.length >= 8 && digits.length <= 15
+    },
+    'El teléfono debe tener entre 8 y 15 dígitos.',
+  ),
   country: z.string().trim().min(2),
   province: z.string().trim().min(2),
   city: z.string().trim().min(2),
-  gym: z.string().trim().optional().default(''),
-  sex: z.string().trim().min(1),
-  division: z.string().trim().min(1),
-  category: z.string().trim().min(1),
-  estimatedWeight: z.union([z.string(), z.number()]).optional().nullable(),
+  gym: z.string().trim().min(2),
+  sex: z.enum(['Masculino', 'Femenino']),
+  division: z.enum(COMPETITION_DIVISIONS),
+  category: z.enum(COMPETITION_CATEGORIES),
+  estimatedWeight: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine((value) => {
+      if (value === undefined || value === null || String(value).trim() === '') return true
+      const parsed = Number(String(value).replace(',', '.').replace(/\s*kg$/i, ''))
+      return Number.isFinite(parsed) && parsed >= 10 && parsed <= 250
+    }, 'El peso estimado debe estar entre 10 y 250 kg.'),
   password: z.string().min(12).max(72),
 })
 const loginSchema = z.object({
@@ -97,8 +141,11 @@ const orderSchema = z.object({
   idempotencyKey: z.string().uuid().default(() => randomUUID()),
 })
 const registrationSchema = z.object({
-  eventSlug: z.string().trim().min(1), division: z.string().trim().min(1), category: z.string().trim().min(1),
-  bodyweightKg: z.number().positive().nullable().optional(), paymentMethod: z.enum(['mercado_pago', 'manual_link']),
+  eventSlug: z.string().trim().min(1),
+  division: z.enum(COMPETITION_DIVISIONS),
+  category: z.enum(COMPETITION_CATEGORIES),
+  bodyweightKg: z.number().min(10).max(250).nullable().optional(),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link']),
   idempotencyKey: z.string().uuid().default(() => randomUUID()),
 })
 const uploadSchema = z.object({
@@ -206,13 +253,21 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     }
   }
 
-  /**
-   * Bienvenida + confirmacion de correo en un solo email. El template conserva
-   * la clave `email_verification` porque el link de activacion es el requisito
-   * operativo; el contenido tambien cubre la bienvenida al atleta.
-   */
   async function sendOnboardingEmails(row) {
-    return sendVerificationEmail(row)
+    return Promise.allSettled([
+      sendBestEffort('welcome', {
+        to: row.email,
+        toName: row.full_name,
+        entityType: 'athlete',
+        entityId: row.id,
+        idempotencyKey: `email:welcome:${row.id}`,
+        params: {
+          name: row.full_name,
+          accountUrl: `${appUrl}/mi-cuenta`,
+        },
+      }),
+      sendVerificationEmail(row),
+    ])
   }
 
   function sendVerificationEmail(row) {
@@ -284,16 +339,14 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const row = await repo().register(form, await hashPassword(password))
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
-      // Se responde ANTES de mandar los mails. Son dos envíos secuenciales, con
-      // hasta 3 intentos de 10s cada uno: en el peor caso superaban el
-      // maxDuration de la función y el alta se cortaba con el atleta ya creado
-      // en la base. El browser veía un error de red y al reintentar recibía
-      // PLU07 ("ya existe"), sin manera de salir. La lambda sigue viva hasta
-      // que el handler resuelve, así que los mails salen igual.
-      res.status(201).json({ athlete: row })
+      // La operación de negocio ya quedó confirmada. El dispatcher reserva el
+      // outbox antes de llamar a Brevo; esperar este best-effort garantiza que
+      // el email crítico quede enviado o programado para reintento antes de que
+      // una función serverless pueda finalizar después de responder.
       await sendOnboardingEmails(row).catch((error) =>
         console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error),
       )
+      res.status(201).json({ athlete: row })
     } catch (error) {
       // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
       // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
@@ -682,11 +735,55 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     try {
       const membershipId = z.string().uuid().safeParse(req.params.membershipId)
       if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
-      res.json(await repo().setMembershipStatus(
+      const result = await repo().setMembershipStatus(
         membershipId.data,
         req.validatedBody.status,
         actorLabel(req),
-      ))
+      )
+
+      const membership = result?.membership
+      if (membership?.athlete_id && !result?.duplicate) {
+        try {
+          const contact = await repo().findContact(membership.athlete_id)
+          if (contact?.email) {
+            const type = req.validatedBody.status === 'activa'
+              ? 'affiliation_approved'
+              : 'affiliation_cancelled'
+            await sendBestEffort(type, {
+              to: contact.email,
+              toName: contact.full_name,
+              entityType: 'membership',
+              entityId: membership.id,
+              // `updated_at` identifica esta transición concreta: repetir el
+              // mismo request es idempotente, pero una baja y reactivación
+              // posterior de la misma afiliación sí merece un aviso nuevo.
+              idempotencyKey: type === 'affiliation_approved'
+                ? `email:affiliation-approved:${membership.id}:manual:${membership.updated_at}`
+                : `email:affiliation-cancelled:${membership.id}:manual:${membership.updated_at}`,
+              params: type === 'affiliation_approved'
+                ? {
+                    name: contact.full_name,
+                    memberCode: membership.member_code,
+                    expirationDate: membership.expiration_date,
+                    accountUrl: `${appUrl}/mi-cuenta`,
+                  }
+                : {
+                    name: contact.full_name,
+                    memberCode: membership.member_code,
+                    status: membership.status,
+                    accountUrl: `${appUrl}/mi-cuenta`,
+                  },
+            })
+          }
+        } catch (notificationError) {
+          console.warn(
+            '[membership-status] no se pudo reservar la notificación',
+            notificationError?.message ?? notificationError,
+          )
+        }
+      }
+
+      res.json(result)
     } catch (error) { next(error) }
   })
   // Rota la credencial de la persona. Es la que hay que usar cuando un token
@@ -713,6 +810,23 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       if (!athleteId.success) throw new HttpError(400, 'Atleta invalido.')
       await repo().setPassword(athleteId.data, await hashPassword(req.validatedBody.password))
       res.status(204).end()
+    } catch (error) { next(error) }
+  })
+
+  /**
+   * Borrado definitivo del atleta y todo lo asociado (afiliaciones,
+   * inscripciones, ordenes, sesiones, foto). Solo Super Admin, igual que el
+   * borrado de cuentas de staff: es la accion mas destructiva del panel y no
+   * tiene vuelta atras. La cascada y la auditoria viven en la RPC
+   * delete_athlete (20260810230000_athlete_hard_delete.sql).
+   */
+  const deleteGuard = requireRole(['admin_maximal'], { prisma })
+  router.delete('/admin/:athleteId', ...deleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+      if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+      const deleted = await repo().deleteAthlete(athleteId.data, actorLabel(req))
+      res.json({ deletedAthlete: deleted })
     } catch (error) { next(error) }
   })
 

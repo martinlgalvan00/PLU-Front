@@ -14,11 +14,10 @@ import { hasHtmlFallback, renderEmail } from './emailTemplates.js'
  *
  * Responsabilidades, en orden:
  *
- *  1. Validar el tipo contra el catálogo y los params obligatorios, antes de
- *     gastar una llamada a la API.
- *  2. Frenar destinatarios suprimidos (rebote duro, spam, desuscripción).
- *  3. Garantizar idempotencia por `idempotencyKey`: un reintento de webhook de
- *     Mercado Pago no puede mandar dos veces el mismo comprobante.
+ *  1. Validar el tipo y reservar el intento por `idempotencyKey` en el outbox.
+ *  2. Validar destinatario/params y aplicar supresiones dejando estado terminal.
+ *  3. Evitar duplicados: un reintento de webhook de Mercado Pago no puede
+ *     mandar dos veces el mismo comprobante.
  *  4. Elegir template de Brevo o fallback HTML del repo.
  *  5. Registrar el resultado y programar el reintento si el fallo es transitorio.
  *
@@ -103,29 +102,26 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
     }
 
     const to = String(input.to ?? '').trim().toLowerCase()
-    if (!EMAIL_PATTERN.test(to)) {
-      throw new HttpError(400, 'El destinatario del email no es válido.')
-    }
-
     const params = { appUrl, ...(input.params ?? {}) }
     const missing = findMissingParams(type, params)
-    if (missing.length > 0) {
-      throw new HttpError(422, `Faltan datos para el email ${type}: ${missing.join(', ')}.`)
-    }
-
     const entityType = input.entityType ?? definition.entityType
     const entityId = input.entityId ?? null
     const idempotencyKey = input.idempotencyKey ?? buildIdempotencyKey(type, { entityType, entityId, to })
 
-    const suppression = await isSuppressed(to, definition, input.suppressionCache)
-    if (suppression) {
-      logger.info?.('[email] destinatario suprimido', { type, reason: suppression.reason })
-      return { status: 'suppressed', created: false, emailLog: null, reason: suppression.reason }
-    }
-
     // Sin repositorio (tests unitarios, scripts) se envía igual pero sin log
     // ni idempotencia. Es el modo degradado, no el esperado en producción.
     if (!repository) {
+      if (!EMAIL_PATTERN.test(to)) {
+        throw new HttpError(400, 'El destinatario del email no es válido.')
+      }
+      if (missing.length > 0) {
+        throw new HttpError(422, `Faltan datos para el email ${type}: ${missing.join(', ')}.`)
+      }
+      const suppression = await isSuppressed(to, definition, input.suppressionCache)
+      if (suppression) {
+        logger.info?.('[email] destinatario suprimido', { type, reason: suppression.reason })
+        return { status: 'suppressed', created: false, emailLog: null, reason: suppression.reason }
+      }
       const content = resolveContent(type, params, input.subject)
       if (!brevo?.configured || content.mode === 'none') {
         logger.info?.('[Brevo mock]', { type, to })
@@ -135,6 +131,9 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       return { status: 'sent', created: true, emailLog: null, response }
     }
 
+    // La reserva ocurre antes de las validaciones operativas y de la lista de
+    // supresión. Así un flujo que intentó mandar un email incompleto o a una
+    // dirección suprimida deja evidencia durable en Auditoría.
     const started = await repository.beginEmail({
       type,
       to,
@@ -149,6 +148,39 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
     // Ya existía: otro proceso (o un reintento de webhook) lo tomó primero.
     if (!started.created) {
       return { status: started.emailLog?.status ?? 'duplicate', created: false, emailLog: started.emailLog }
+    }
+
+    async function failPreflight(status, message, errorCode) {
+      return repository.completeEmail(started.emailLog.id, {
+        status,
+        error: message,
+        errorCode,
+      })
+    }
+
+    if (!EMAIL_PATTERN.test(to)) {
+      const message = 'El destinatario del email no es válido.'
+      const error = new HttpError(400, message)
+      error.emailLog = await failPreflight('failed', message, 'INVALID_RECIPIENT')
+      throw error
+    }
+
+    if (missing.length > 0) {
+      const message = `Faltan datos para el email ${type}: ${missing.join(', ')}.`
+      const error = new HttpError(422, message)
+      error.emailLog = await failPreflight('failed', message, 'MISSING_PARAMS')
+      throw error
+    }
+
+    const suppression = await isSuppressed(to, definition, input.suppressionCache)
+    if (suppression) {
+      logger.info?.('[email] destinatario suprimido', { type, reason: suppression.reason })
+      const emailLog = await failPreflight(
+        'suppressed',
+        `Envío suprimido: ${suppression.reason}.`,
+        `SUPPRESSED_${String(suppression.reason).toUpperCase()}`,
+      )
+      return { status: 'suppressed', created: true, emailLog, reason: suppression.reason }
     }
 
     const content = resolveContent(type, params, input.subject)

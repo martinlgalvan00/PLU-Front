@@ -32,6 +32,7 @@ vi.mock('../src/services/auditService.js', async () => {
     ...actual,
     fetchAuditEntries: vi.fn(),
     fetchAuditFacets: vi.fn(),
+    fetchAuditOverview: vi.fn(),
   }
 })
 
@@ -45,7 +46,7 @@ vi.mock('../src/lib/credentialQr.js', () => ({
   generateCredentialQr: vi.fn(async () => 'data:image/png;base64,QR'),
 }))
 
-const { fetchAuditEntries, fetchAuditFacets, normalizeAuditEntry } = await import(
+const { fetchAuditEntries, fetchAuditFacets, fetchAuditOverview, normalizeAuditEntry } = await import(
   '../src/services/auditService.js'
 )
 const { getMembershipCredential } = await import('../src/services/athleteApi.js')
@@ -66,8 +67,23 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
+function healthyOverview(overrides = {}) {
+  return {
+    status: 'healthy',
+    eventsLast24h: 12,
+    emailsDeliveredLast24h: 4,
+    emailsRetrying: 0,
+    emailAttention: 0,
+    paymentAttention: 0,
+    activeMembershipsWithoutConfirmation: 0,
+    approvedOrdersWithoutActiveMembership: 0,
+    ...overrides,
+  }
+}
+
 describe('sección de auditoría', () => {
   it('muestra la bitácora con la acción traducida y el detalle operativo', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({
       actions: ['membership.activated'],
       entityTypes: ['membership'],
@@ -107,6 +123,7 @@ describe('sección de auditoría', () => {
   })
 
   it('muestra un vacío legible cuando no hay registros', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
     fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
 
@@ -118,12 +135,30 @@ describe('sección de auditoría', () => {
   })
 
   it('informa el error en vez de quedarse cargando para siempre', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
     fetchAuditEntries.mockRejectedValue(new Error('Supabase caído'))
 
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByText('Supabase caído')).toBeTruthy()
+  })
+
+  it('visibiliza las incidencias de emails y afiliaciones en el resumen', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview({
+      status: 'attention',
+      emailAttention: 2,
+      activeMembershipsWithoutConfirmation: 1,
+      approvedOrdersWithoutActiveMembership: 1,
+    }))
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByText('Requiere revisión')).toBeTruthy()
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0)
+    expect(screen.getByText(/1 órdenes aprobadas sin afiliación activa/)).toBeTruthy()
   })
 })
 

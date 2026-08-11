@@ -369,19 +369,29 @@ describe('dispatcher de emails', () => {
   })
 
   it('rechaza el envío si faltan params obligatorios', async () => {
-    const dispatcher = createEmailDispatcher({ repository: memoryRepository(), brevo: brevoOk, env: {} })
+    const repository = memoryRepository()
+    const dispatcher = createEmailDispatcher({ repository, brevo: brevoOk, env: {} })
 
     await expect(dispatcher.send('payment_receipt', { to: 'a@example.com', params: { name: 'Ana' } })).rejects.toThrow(
       /Faltan datos/,
     )
+    expect([...repository.rows.values()][0]).toMatchObject({
+      status: 'failed',
+      error_code: 'MISSING_PARAMS',
+    })
   })
 
   it('rechaza un destinatario con formato inválido', async () => {
-    const dispatcher = createEmailDispatcher({ repository: memoryRepository(), brevo: brevoOk, env: {} })
+    const repository = memoryRepository()
+    const dispatcher = createEmailDispatcher({ repository, brevo: brevoOk, env: {} })
 
     await expect(dispatcher.send('welcome', { to: 'no-es-un-mail', params: { name: 'Ana' } })).rejects.toThrow(
       /no es válido/,
     )
+    expect([...repository.rows.values()][0]).toMatchObject({
+      status: 'failed',
+      error_code: 'INVALID_RECIPIENT',
+    })
   })
 
   it('frena un destinatario con rebote duro incluso en emails críticos', async () => {
@@ -396,6 +406,8 @@ describe('dispatcher de emails', () => {
     })
 
     expect(result.status).toBe('suppressed')
+    expect(result.created).toBe(true)
+    expect(result.emailLog).toMatchObject({ status: 'suppressed' })
     expect(send).not.toHaveBeenCalled()
   })
 
@@ -608,6 +620,20 @@ describe('emails de pago (vía Mercado Pago)', () => {
       { status: 'pendiente', externalPaymentId: 'mp-3', amount: 1000 },
     )
     expect(pendiente).toEqual(['payment_pending'])
+  })
+
+  it('avisa el reintegro y la baja de la afiliación', async () => {
+    const calls = await llamadas(
+      {
+        kind: 'athlete', id: 'o6', concept: 'membership', reference: 'R6',
+        payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' }, displayConcept: 'Afiliación anual',
+      },
+      { status: 'reembolsado', externalPaymentId: 'mp-6', amount: 38000 },
+      { membership: { id: 'mem-6', member_code: 'PLU-ARG-2026-006', status: 'reembolsada' } },
+    )
+
+    expect(calls.map(([type]) => type)).toEqual(['payment_refunded', 'affiliation_cancelled'])
+    expect(calls[1][1].idempotencyKey).toBe('email:affiliation-cancelled:mem-6:reembolsada')
   })
 
   it('no manda nada si la orden no tiene email del pagador', async () => {

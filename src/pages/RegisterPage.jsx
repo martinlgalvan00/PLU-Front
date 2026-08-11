@@ -1,3 +1,5 @@
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/register.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,

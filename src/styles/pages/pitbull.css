@@ -11007,6 +11007,8 @@
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  scroll-padding-inline: 20px;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -11030,14 +11032,38 @@
   letter-spacing: -0.01em;
   min-height: 48px;
   padding: 0 14px;
+  position: relative;
+  scroll-snap-align: start;
   transition:
     border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
   white-space: nowrap;
 }
 
+/* Subrayado que crece desde el índice: hover anticipa, is-active confirma.
+   transform puro — la border-bottom queda solo para reservar la altura. */
+.pitbull-section-nav__item::after {
+  background: var(--color-brand-gold);
+  bottom: -1px;
+  content: '';
+  height: 2px;
+  left: 14px;
+  opacity: 0;
+  position: absolute;
+  right: 14px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-base, 0.24s) var(--ease-out);
+}
+
 .pitbull-section-nav__item:first-child {
   padding-left: 0;
+}
+
+.pitbull-section-nav__item:first-child::after {
+  left: 0;
 }
 
 .pitbull-section-nav__index {
@@ -11051,11 +11077,30 @@
 }
 
 .pitbull-section-nav__item:hover {
-  border-bottom-color: var(--color-brand-gold);
   color: var(--color-text-primary);
 }
 
+.pitbull-section-nav__item:hover::after {
+  opacity: 0.45;
+  transform: scaleX(1);
+}
+
 .pitbull-section-nav__item:hover .pitbull-section-nav__index {
+  color: var(--color-brand-gold);
+}
+
+/* Sección visible (scroll-spy): el índice deja de ser decoración y pasa a
+   comunicar ubicación real dentro del meet. */
+.pitbull-section-nav__item.is-active {
+  color: var(--color-text-primary);
+}
+
+.pitbull-section-nav__item.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.pitbull-section-nav__item.is-active .pitbull-section-nav__index {
   color: var(--color-brand-gold);
 }
 
@@ -11583,6 +11628,25 @@
     padding-inline: var(--layout-gutter-sm);
   }
 
+  /* El track desborda en mobile: el fade lateral comunica "hay más" sin
+     scrollbar visible y suaviza el corte de los ítems contra el borde. */
+  .pitbull-section-nav__track {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent 100%
+    );
+  }
+
   .pitbull-section-nav__label {
     display: none;
   }
@@ -11662,9 +11726,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pitbull-section-nav__item,
+  .pitbull-section-nav__item::after,
   .pitbull-page--premium .pitbull-hero-masthead__frame-img {
     transform: none;
     transition: none;
+  }
+
+  /* Sin la transición de crecimiento, el activo se comunica por color. */
+  .pitbull-section-nav__item:hover::after,
+  .pitbull-section-nav__item.is-active::after {
+    opacity: 0;
+    transform: none;
   }
 }
 

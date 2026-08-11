@@ -13,6 +13,7 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260806160000_staff_membership_status.sql'),
   'utf8',
 )
+const athleteRoutes = readFileSync(resolve(process.cwd(), 'server/routes/athletes.js'), 'utf8')
 
 const today = new Date('2026-08-06T12:00:00')
 
@@ -139,6 +140,12 @@ describe('activación y baja manual', () => {
     expect(migration).toContain("'membership.activated_manually'")
     expect(migration).toContain("'membership.cancelled_manually'")
     expect(migration).toContain('p_actor')
+  })
+
+  it('notifica cada transición manual sin duplicar un reintento', () => {
+    expect(athleteRoutes).toContain("? 'affiliation_approved'")
+    expect(athleteRoutes).toContain(": 'affiliation_cancelled'")
+    expect(athleteRoutes).toContain(':manual:${membership.updated_at}')
   })
 
   it('la RPC no queda expuesta a anon', () => {

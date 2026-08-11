@@ -3,6 +3,7 @@ import {
   assignRegistrationSchedule,
   autofillEventDay,
   fetchEventBoard,
+  saveEventSessions,
 } from '../services/eventRegistrationApi.js'
 
 /**
@@ -82,6 +83,30 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     [eventSlug, load],
   )
 
+  /**
+   * Edición inline de tandas desde el board. El RPC reemplaza el set completo
+   * (lo que no viene en el payload se borra), así que el caller tiene que
+   * mandar TODAS las tandas de todos los días, no solo la editada.
+   */
+  const saveSessions = useCallback(
+    async (sessions) => {
+      if (!eventSlug) return false
+      setBusy(true)
+      setError(null)
+      try {
+        await saveEventSessions(eventSlug, sessions)
+        await load()
+        return true
+      } catch (saveError) {
+        setError(saveError?.message ?? 'No se pudieron guardar las tandas.')
+        return false
+      } finally {
+        setBusy(false)
+      }
+    },
+    [eventSlug, load],
+  )
+
   const autofill = useCallback(
     async ({ dayIndex, maxPerSession }) => {
       if (!eventSlug) return null
@@ -109,6 +134,7 @@ export function useEventBoard(eventSlug, { enabled = true } = {}) {
     error,
     reload: load,
     assign,
+    saveSessions,
     autofill,
     days: board?.days ?? [],
     unassigned: board?.unassigned ?? [],

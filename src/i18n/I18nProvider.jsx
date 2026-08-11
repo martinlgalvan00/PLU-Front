@@ -1,10 +1,8 @@
-import { createContext, useContext, useMemo, useState } from 'react'
-import en from './locales/en.js'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import es from './locales/es.js'
 import { translate } from './translate.js'
 
 const LOCALE_STORAGE_KEY = 'plu-arg-locale'
-const LOCALES = { es, en }
 
 const I18nContext = createContext(null)
 
@@ -24,12 +22,26 @@ syncDocumentLocale(initialLocale)
 
 export function I18nProvider({ children }) {
   const [locale, setLocaleState] = useState(initialLocale)
+  // en.js (~79 KB + admin.en.js) solo se descarga si el usuario elige inglés;
+  // mientras carga se muestra español para no bloquear el primer render.
+  const [enMessages, setEnMessages] = useState(null)
+
+  useEffect(() => {
+    if (locale !== 'en' || enMessages) return undefined
+    let cancelled = false
+    import('./locales/en.js').then((module) => {
+      if (!cancelled) setEnMessages(module.default)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [locale, enMessages])
 
   const value = useMemo(() => {
-    const messages = LOCALES[locale] ?? LOCALES.es
+    const messages = locale === 'en' ? (enMessages ?? es) : es
 
     function setLocale(next) {
-      if (!LOCALES[next]) return
+      if (next !== 'es' && next !== 'en') return
       localStorage.setItem(LOCALE_STORAGE_KEY, next)
       syncDocumentLocale(next)
       setLocaleState(next)
@@ -40,7 +52,7 @@ export function I18nProvider({ children }) {
     }
 
     return { locale, setLocale, t, messages }
-  }, [locale])
+  }, [locale, enMessages])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

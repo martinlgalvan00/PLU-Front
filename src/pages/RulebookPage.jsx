@@ -1,3 +1,5 @@
+import '../styles/pages/rulebook.css'
+import '../styles/pages/institutional-pages.css'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, ChevronDown } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'

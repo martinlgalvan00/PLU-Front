@@ -12,6 +12,10 @@ import {
 } from './lib/eventPageRoute.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
+import {
+  clearStaffEmailChangeToken,
+  readStaffEmailChangeToken,
+} from './lib/staffEmailChangeRoute.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
 import {
@@ -26,6 +30,7 @@ import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection } from './lib/navigation.js'
 import {
   canCheckIn,
+  canDeleteAthletes,
   canDeleteUsers,
   canManageUsers,
   canViewAdmin,
@@ -54,6 +59,8 @@ const ResourcesPage = lazy(() => import('./pages/ResourcesPage.jsx'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
+const StaffEmailChangePage = lazy(() => import('./pages/StaffEmailChangePage.jsx'))
+const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePage.jsx'))
 const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
 const PUBLIC_VIEWS = {
@@ -94,7 +101,9 @@ export default function App() {
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
+    // respeta prefers-reduced-motion.
+    window.scrollTo({ top: 0 })
   }, [view])
 
   useEffect(() => {
@@ -205,6 +214,41 @@ export default function App() {
     )
   }
 
+  // Confirmación de cambio de email de staff. Va antes que todo lo demás: el
+  // link se abre desde la casilla nueva, que puede no tener sesión.
+  const emailChangeToken = readStaffEmailChangeToken()
+  if (emailChangeToken) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <StaffEmailChangePage
+          token={emailChangeToken}
+          onDone={async () => {
+            clearStaffEmailChangeToken()
+            await app.logout()
+            setView('login')
+          }}
+        />
+      </Suspense>
+    )
+  }
+
+  // Cuenta con contraseña temporal: no puede operar hasta elegir una propia.
+  // Espeja el corte que `requireAuth` ya hace del lado del servidor.
+  if (app.session?.mustChangePassword) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <StaffPasswordChangePage
+          session={app.session}
+          onChangePassword={app.changeOwnPasswordAction}
+          onLogout={async () => {
+            await app.logout()
+            setView('home')
+          }}
+        />
+      </Suspense>
+    )
+  }
+
   const credential = readCredentialParams()
   if (credential) {
     return (
@@ -248,6 +292,7 @@ export default function App() {
           allowedSections={getAllowedAdminSections(app.session)}
           canManageUsers={canManageUsers(app.session)}
           canDeleteUsers={canDeleteUsers(app.session)}
+          canDeleteAthletes={canDeleteAthletes(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
           adminEventsLoading={app.adminEventsLoading}
@@ -282,6 +327,9 @@ export default function App() {
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
           onCreateUser={app.createUserAction}
           onDeleteUser={app.deleteUserAction}
+          onRequestEmailChange={app.requestEmailChangeAction}
+          onResetStaffPassword={app.resetStaffPasswordAction}
+          onDeleteAthlete={app.deleteAthleteAction}
           onCreateRole={app.createAccessRoleAction}
           onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
@@ -450,6 +498,7 @@ export default function App() {
         onLogout={app.logout}
         onNavigate={navigate}
         session={app.session}
+        sessionPending={app.sessionPending}
       />
       <PageTransition
         viewKey={view}
@@ -481,6 +530,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
           navigate('home')
         }}
         onNavigate={navigate}
+        sessionPending={app.sessionPending}
         session={app.session}
       />
       <PageTransition

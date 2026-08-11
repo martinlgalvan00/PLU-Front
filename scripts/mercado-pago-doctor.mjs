@@ -115,4 +115,7 @@ console.log(
     ? '\n=== Mercado Pago OK ===\n'
     : `\n=== ${problems} problema(s) bloqueante(s) ===\n`,
 )
-process.exit(problems === 0 ? 0 : 1)
+// Dejar que fetch/undici cierre sus handles antes de terminar. `process.exit()`
+// inmediato dispara una aserción de libuv en Node 24 sobre Windows aunque el
+// diagnóstico haya salido OK.
+process.exitCode = problems === 0 ? 0 : 1

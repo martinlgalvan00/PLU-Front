@@ -557,7 +557,13 @@
   font-size: 13px;
   font-weight: 600;
   padding: 9px 18px;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .filter-pills__item.is-active {
@@ -1989,7 +1995,13 @@
   min-height: 48px;
   padding: 0 14px;
   position: relative;
-  transition: all var(--duration-base) var(--ease-design);
+  transition:
+    background-color var(--duration-base) var(--ease-design),
+    border-color var(--duration-base) var(--ease-design),
+    box-shadow var(--duration-base) var(--ease-design),
+    color var(--duration-base) var(--ease-design),
+    opacity var(--duration-base) var(--ease-design),
+    transform var(--duration-base) var(--ease-design);
 }
 
 .login-field__control:hover:not(:focus-within) {
@@ -3502,6 +3514,14 @@ body:has(.auth-layout) {
     --auth-panel-pad-top: calc(var(--header-height) + clamp(8px, 1.5vh, 16px));
     --auth-panel-pad-x: clamp(32px, 4.5vw, 64px);
     --auth-panel-pad-bottom: clamp(28px, 5vh, 56px);
+  }
+
+  /* Confirmaciones que se abren desde un mail: pura lectura, sin panel visual.
+     Una sola columna centrada -- con la grilla de dos, la tarjeta quedaba
+     pegada a la izquierda y media pantalla vacía. */
+  .auth-layout--solo {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
   }
 
   .auth-layout__visual {

@@ -88,6 +88,7 @@ export default function AdminShell({
   allowedSections,
   roleLabel = 'Sin rol',
   restrictedNav = false,
+  onOpenAccount,
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -321,21 +322,40 @@ export default function AdminShell({
 
         <div className="admin-shell__footer">
           <div className="admin-shell__session">
-            <div
-              className="admin-shell__account"
-              title={collapsed || sidebarHidden ? roleLabel : undefined}
-            >
-              <span
-                className="admin-shell__account-mark"
-                role="img"
-                aria-label={roleLabel}
-                title={roleLabel}
-              />
-              <div className="admin-shell__account-copy">
-                <strong className="admin-shell__account-role">{roleLabel}</strong>
-                <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
+            {/* El bloque de cuenta era un div decorativo. Es el lugar donde el
+                usuario ya busca lo suyo, así que ahora abre Mi cuenta (cambio
+                de email). Sin handler queda como estaba, no como botón muerto. */}
+            {onOpenAccount ? (
+              <button
+                type="button"
+                className="admin-shell__account admin-shell__account--action"
+                onClick={onOpenAccount}
+                title={collapsed || sidebarHidden ? t('staffAccount.dialogEyebrow') : undefined}
+                aria-label={t('staffAccount.openAria')}
+              >
+                <span className="admin-shell__account-mark" aria-hidden />
+                <div className="admin-shell__account-copy">
+                  <strong className="admin-shell__account-role">{roleLabel}</strong>
+                  <span className="admin-shell__account-hint">{t('staffAccount.dialogEyebrow')}</span>
+                </div>
+              </button>
+            ) : (
+              <div
+                className="admin-shell__account"
+                title={collapsed || sidebarHidden ? roleLabel : undefined}
+              >
+                <span
+                  className="admin-shell__account-mark"
+                  role="img"
+                  aria-label={roleLabel}
+                  title={roleLabel}
+                />
+                <div className="admin-shell__account-copy">
+                  <strong className="admin-shell__account-role">{roleLabel}</strong>
+                  <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
               <ThemeToggle compact />
@@ -369,7 +389,7 @@ export default function AdminShell({
             onClick={handleChromeMenuClick}
           >
             {sidebarHidden ? (
-              <PanelLeft size={18} strokeWidth={2} />
+              <PanelLeft size={16} strokeWidth={1.9} />
             ) : sidebarOpen ? (
               <X size={20} />
             ) : (

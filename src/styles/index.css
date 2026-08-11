@@ -25,26 +25,11 @@
 @import './components/plu-tab-rail.css';
 @import './pages/home.css';
 @import './pages/page.css';
-@import './pages/register.css';
-@import './pages/design-phase2.css';
-@import './pages/rulebook.css';
-@import './pages/faq.css';
-@import './pages/results.css';
-@import './pages/records.css';
-@import './pages/community.css';
-@import './pages/contact.css';
-@import './pages/pitbull.css';
-@import './pages/pitbull-journey.css';
-@import './pages/pitbull-meet.css';
-@import './pages/pitbull-categories.css';
-@import url('/src/styles/pages/events.css');
-@import url('/src/styles/pages/members.css');
-@import './layout/design-page-notebook.css';
-@import url('/src/styles/components/credential-card.css');
-@import url('/src/styles/components/event-share-card.css');
-@import url('/src/styles/components/ticket-purchase.css');
-@import url('/src/styles/components/ticket-pass-preview.css');
-@import url('/src/styles/components/home-membership-artifacts.css');
 @import url('/src/styles/layout/institutional-shell.css');
-@import url('/src/styles/pages/institutional-pages.css');
 @import './themes/dark-atmosphere.css';
+
+/* El CSS de páginas lazy y de componentes acotados se importa junto a su
+   módulo (code-splitting): Vite lo sirve con el chunk que lo usa y deja de
+   bloquear el primer render. Convención: dentro de cada página, importar
+   primero las hojas compartidas (design-phase2, notebook, institutional-pages)
+   y después la hoja propia, replicando el orden de cascada histórico. */

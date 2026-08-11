@@ -76,6 +76,10 @@ export function createApp(deps = {}) {
     '/api/users',
     createUserRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      brevo: deps.brevo,
+      notificationRepository: deps.notificationRepository,
+      env: deps.env,
     }),
   )
   app.use(

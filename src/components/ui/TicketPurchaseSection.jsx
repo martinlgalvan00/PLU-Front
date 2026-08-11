@@ -1,3 +1,4 @@
+import '../../styles/components/ticket-purchase.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, CreditCard, IdCard, Landmark, Minus, Plus, QrCode, Ticket as TicketIcon } from 'lucide-react'
 import Button from './Button.jsx'

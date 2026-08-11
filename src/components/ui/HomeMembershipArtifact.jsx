@@ -1,3 +1,4 @@
+import '../../styles/components/home-membership-artifacts.css'
 import { useRef, useState } from 'react'
 
 const KIND_BY_BENEFIT = {

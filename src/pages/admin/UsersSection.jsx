@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Ban,
   CheckCircle2,
+  KeyRound,
   LoaderCircle,
   PauseCircle,
   Shield,
@@ -10,6 +10,7 @@ import {
   UserPlus,
   X,
 } from 'lucide-react'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import { AdminIdentityCell, AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
@@ -60,101 +61,6 @@ function statusLabel(t, status) {
   }
 }
 
-function UserDeletionDialog({ busy, error, onCancel, onConfirm, t, user }) {
-  const titleId = useId()
-  const descriptionId = useId()
-  const panelRef = useRef(null)
-  const dialogStateRef = useRef({ busy, onCancel })
-  dialogStateRef.current = { busy, onCancel }
-
-  useEffect(() => {
-    const previousFocus = document.activeElement
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    panelRef.current?.querySelector('button')?.focus()
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape' && !dialogStateRef.current.busy) {
-        event.preventDefault()
-        dialogStateRef.current.onCancel()
-        return
-      }
-
-      if (event.key !== 'Tab') return
-      const focusable = panelRef.current?.querySelectorAll('button:not(:disabled)') ?? []
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      document.removeEventListener('keydown', handleKeyDown)
-      previousFocus?.focus?.()
-    }
-  }, [])
-
-  return createPortal(
-    <div className="admin-user-delete-dialog">
-      <button
-        type="button"
-        className="admin-user-delete-dialog__backdrop"
-        aria-label={t('admin.users.deleteCancel')}
-        disabled={busy}
-        onClick={onCancel}
-      />
-      <section
-        ref={panelRef}
-        className="admin-user-delete-dialog__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descriptionId}
-      >
-        <span className="admin-user-delete-dialog__icon" aria-hidden>
-          <Trash2 size={19} />
-        </span>
-        <div className="admin-user-delete-dialog__copy">
-          <h2 id={titleId}>{t('admin.users.deleteTitle')}</h2>
-          <p id={descriptionId}>
-            {t('admin.users.deleteDescription', { name: user.name, email: user.email })}
-          </p>
-          <p className="admin-user-delete-dialog__warning">{t('admin.users.deleteWarning')}</p>
-          {error ? (
-            <p className="admin-user-delete-dialog__error" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
-        <div className="admin-user-delete-dialog__actions">
-          <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
-            {t('admin.users.deleteCancel')}
-          </Button>
-          <Button
-            type="button"
-            className="admin-user-delete-dialog__confirm"
-            disabled={busy}
-            onClick={onConfirm}
-          >
-            {busy ? <LoaderCircle size={15} aria-hidden /> : <Trash2 size={15} aria-hidden />}
-            {busy ? t('admin.users.deleting') : t('admin.users.deleteConfirm')}
-          </Button>
-        </div>
-      </section>
-    </div>,
-    document.body,
-  )
-}
-
 export default function UsersSection({
   accessRoles,
   adminEvents,
@@ -164,6 +70,7 @@ export default function UsersSection({
   onCreateUser,
   onDeleteUser,
   onNavigateRoles,
+  onResetPassword,
   onUpdateRole,
   onUpdateStatus,
   users,
@@ -177,7 +84,6 @@ export default function UsersSection({
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [formError, setFormError] = useState('')
   const [tempPassword, setTempPassword] = useState(null)
-  const [inviteNotice, setInviteNotice] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [updatingUserId, setUpdatingUserId] = useState(null)
   const [pendingDeletion, setPendingDeletion] = useState(null)
@@ -262,7 +168,6 @@ export default function UsersSection({
   function openCreateForm() {
     setFormError('')
     setTempPassword(null)
-    setInviteNotice(null)
     setIsCreating(true)
   }
 
@@ -283,20 +188,24 @@ export default function UsersSection({
 
     setFormError('')
     setTempPassword(null)
-    setInviteNotice(null)
 
     setIsSubmitting(true)
     try {
       if (!isSecurityRole) {
-        const user = await onCreateUser(draft)
-        setInviteNotice({ email: user?.email ?? draft.email.trim().toLowerCase() })
+        const { user, tempPassword: password, emailed } = await onCreateUser(draft)
+        setTempPassword({
+          email: user?.email ?? draft.email.trim().toLowerCase(),
+          password,
+          emailed,
+          mode: 'invitation',
+        })
         setDraft(EMPTY_DRAFT)
         setIsCreating(false)
         return
       }
 
       const { user, tempPassword: password } = await onCreateSecurityUser(draft)
-      setTempPassword({ email: user.email, password })
+      setTempPassword({ email: user.email, password, emailed: false, mode: 'security' })
       setDraft(EMPTY_DRAFT)
       setIsCreating(false)
     } catch (error) {
@@ -313,6 +222,23 @@ export default function UsersSection({
       await onUpdateRole(userId, roleKey)
     } catch (error) {
       setFormError(error?.message ?? t('admin.users.errorRoleUpdate'))
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  // Reenviar invitación / resetear credencial. La clave nueva se muestra en
+  // pantalla igual que en el alta, porque el envío es best-effort.
+  async function handleResetPassword(user) {
+    if (!onResetPassword) return
+    setFormError('')
+    setTempPassword(null)
+    setUpdatingUserId(user.id)
+    try {
+      const { tempPassword: password, emailed } = await onResetPassword(user.id)
+      setTempPassword({ email: user.email, password, emailed, mode: 'reset' })
+    } catch (error) {
+      setFormError(error?.message ?? t('admin.users.errorReset'))
     } finally {
       setUpdatingUserId(null)
     }
@@ -362,7 +288,9 @@ export default function UsersSection({
   function canMutateUser(row) {
     return (
       row.role !== 'admin_maximal' &&
-      ((canManageUsers && Boolean(onUpdateStatus)) || (canDeleteUsers && Boolean(onDeleteUser)))
+      ((canManageUsers && Boolean(onUpdateStatus)) ||
+        (canManageUsers && Boolean(onResetPassword)) ||
+        (canDeleteUsers && Boolean(onDeleteUser)))
     )
   }
 
@@ -492,7 +420,13 @@ export default function UsersSection({
       ) : null}
       {tempPassword && (
         <div className="admin-users__temp-password" role="status">
-          <p className="admin-users__temp-password-title">{t('admin.users.tempPasswordTitle')}</p>
+          <p className="admin-users__temp-password-title">
+            {tempPassword.mode === 'security'
+              ? t('admin.users.tempPasswordTitle')
+              : tempPassword.mode === 'reset'
+                ? t('admin.users.resetTitle')
+                : t('admin.users.inviteTitle')}
+          </p>
           <dl className="admin-users__temp-password-meta">
             <div>
               <dt>{t('admin.users.email')}</dt>
@@ -505,14 +439,15 @@ export default function UsersSection({
               </dd>
             </div>
           </dl>
-          <p className="admin-users__temp-password-note">{t('admin.users.tempPasswordWarn')}</p>
-        </div>
-      )}
-      {inviteNotice && (
-        <div className="admin-users__temp-password" role="status">
-          <p className="admin-users__temp-password-title">{t('admin.users.inviteTitle')}</p>
+          {/* El envío es best-effort. Si Brevo no confirmó, la credencial en
+              pantalla es el único respaldo -- decirlo explícito evita que el
+              admin cierre la vista dando por hecho que el mail salió. */}
           <p className="admin-users__temp-password-note">
-            {t('admin.users.inviteNote', { email: inviteNotice.email })}
+            {tempPassword.mode === 'security'
+              ? t('admin.users.tempPasswordWarn')
+              : tempPassword.emailed
+                ? t('admin.users.credentialEmailed', { email: tempPassword.email })
+                : t('admin.users.credentialNotEmailed')}
           </p>
         </div>
       )}
@@ -596,12 +531,22 @@ export default function UsersSection({
               const busy = updatingUserId === row.id
               const canUpdateStatus = canManageUsers && Boolean(onUpdateStatus)
               const canDelete = canDeleteUsers && Boolean(onDeleteUser)
+              const canReset = canManageUsers && Boolean(onResetPassword)
 
               return (
                 <AdminTableActions
                   aria-label={t('admin.users.actionsAria', { name: row.name })}
                   onClick={(event) => event.stopPropagation()}
                 >
+                  {canReset ? (
+                    <AdminIconButton
+                      disabled={busy}
+                      icon={busy ? LoaderCircle : KeyRound}
+                      label={t('admin.users.actionReset')}
+                      onClick={() => void handleResetPassword(row)}
+                      variant="ghost"
+                    />
+                  ) : null}
                   {canUpdateStatus && status !== 'active' ? (
                     <AdminIconButton
                       disabled={busy}
@@ -647,13 +592,20 @@ export default function UsersSection({
         emptyMessage={t('admin.sections.users.empty')}
       />
       {pendingDeletion ? (
-        <UserDeletionDialog
+        <AdminDeleteConfirmDialog
           busy={updatingUserId === pendingDeletion.id}
           error={deleteError}
           onCancel={closeDeleteDialog}
           onConfirm={() => void handleDeleteUser()}
-          t={t}
-          user={pendingDeletion}
+          title={t('admin.users.deleteTitle')}
+          description={t('admin.users.deleteDescription', {
+            name: pendingDeletion.name,
+            email: pendingDeletion.email,
+          })}
+          warning={t('admin.users.deleteWarning')}
+          cancelLabel={t('admin.users.deleteCancel')}
+          confirmLabel={t('admin.users.deleteConfirm')}
+          busyLabel={t('admin.users.deleting')}
         />
       ) : null}
     </AdminListSection>

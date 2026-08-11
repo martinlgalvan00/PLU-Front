@@ -1,3 +1,4 @@
+import '../styles/pages/contact.css'
 import { Clock, Mail, MapPin } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import ContactForm from '../components/ui/ContactForm.jsx'

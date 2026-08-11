@@ -33,8 +33,15 @@ function createAuditRepositoryDouble(rows = [auditRow()]) {
     actions: ['payment.applied'],
     entityTypes: ['athlete_payment_order'],
     actorTypes: ['webhook'],
+    sources: ['domain'],
+    statuses: [],
   }))
-  return { repository: { list, facets }, list, facets }
+  const overview = vi.fn(async () => ({
+    status: 'healthy',
+    eventsLast24h: 1,
+    emailAttention: 0,
+  }))
+  return { repository: { list, facets, overview }, list, facets, overview }
 }
 
 async function setup({ role = 'admin_maximal', rows } = {}) {
@@ -94,7 +101,7 @@ describe('API de auditoría (/api/audit)', () => {
 
     try {
       await fetch(
-        `${target.url}/api/audit?action=membership.activated&actorType=staff&entityType=membership&limit=25`,
+        `${target.url}/api/audit?action=membership.activated&actorType=staff&entityType=membership&source=email&status=failed&limit=25`,
         { headers: { Cookie: cookie } },
       )
 
@@ -103,9 +110,28 @@ describe('API de auditoría (/api/audit)', () => {
           action: 'membership.activated',
           actorType: 'staff',
           entityType: 'membership',
+          source: 'email',
+          status: 'failed',
           limit: 25,
         }),
       )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('expone el resumen de salud operativa con el mismo permiso', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/audit/overview`, {
+        headers: { Cookie: cookie },
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body).toMatchObject({ status: 'healthy', eventsLast24h: 1 })
+      expect(audit.overview).toHaveBeenCalledTimes(1)
     } finally {
       await target.close()
     }
@@ -136,6 +162,21 @@ describe('API de auditoría (/api/audit)', () => {
       })
 
       expect(audit.list).toHaveBeenCalledWith(expect.objectContaining({ search: 'ana' }))
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza una búsqueda que queda vacía después de sanitizarla', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/audit?search=${encodeURIComponent('(*)')}`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(400)
+      expect(audit.list).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }

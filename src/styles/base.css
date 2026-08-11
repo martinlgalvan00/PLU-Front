@@ -37,6 +37,19 @@ html {
   scrollbar-width: thin;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  /* Los full-bleed con width: 100vw (banda de entradas Pitbull, drawers)
+     desbordan el ancho del scrollbar y generaban scroll horizontal fantasma.
+     clip lo recorta sin crear un scroll container (no rompe position: sticky). */
+  overflow-x: clip;
+}
+
 ::-webkit-scrollbar {
   height: 5px;
   width: 5px;

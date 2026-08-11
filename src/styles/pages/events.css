@@ -655,8 +655,8 @@
 }
 
 /* Mismo tratamiento "estado liviano" que .events-detail--empty ? evita que
-   el panel condensado (selección = evento destacado) quede como una caja
-   vacía cuando comparte fila con el calendario en tablet. */
+   el panel condensado (selecciï¿½n = evento destacado) quede como una caja
+   vacï¿½a cuando comparte fila con el calendario en tablet. */
 .events-detail--linked {
   align-content: center;
   justify-items: center;
@@ -1562,7 +1562,7 @@
   width: 100%;
 }
 
-/* Pitbull spotlight ? tema dark / light en página Eventos */
+/* Pitbull spotlight ? tema dark / light en pï¿½gina Eventos */
 .events-page--premium .pitbull-spotlight--design {
   background: var(--events-spotlight-bg);
   border-color: var(--events-spotlight-border);
@@ -2207,7 +2207,7 @@
 
 .events-page--premium .events-toolbar__meta::before {
   color: var(--color-border-light);
-  content: '·';
+  content: 'ï¿½';
   margin-right: 10px;
 }
 
@@ -2467,14 +2467,14 @@
   gap: clamp(16px, 2.2vw, 24px);
   margin: 0 auto;
   max-width: var(--max-width-content);
-  /* Toolbar más cerca del hero: menos aire superior */
+  /* Toolbar mï¿½s cerca del hero: menos aire superior */
   padding:
     clamp(10px, 1.6vw, 18px)
     clamp(20px, 5vw, 64px)
     clamp(48px, 7vw, 72px);
 }
 
-/* Hero Eventos: más compacto y editorial en notebook */
+/* Hero Eventos: mï¿½s compacto y editorial en notebook */
 .events-page--plu-ref .events-page__hero.plu-page-hero {
   padding-bottom: clamp(16px, 2.4vw, 28px);
 }
@@ -2531,7 +2531,7 @@
       padding-top: 18px;
     }
 
-    /* Próximo meet: franja densa, una sola lectura */
+    /* Prï¿½ximo meet: franja densa, una sola lectura */
     .events-page--plu-ref .events-page__hero .events-hero-dossier {
       column-gap: 16px;
       display: grid;
@@ -2671,7 +2671,7 @@
   width: max-content;
 }
 
-/* Misma tipografía/altura que Results (plu-tab-rail) */
+/* Misma tipografï¿½a/altura que Results (plu-tab-rail) */
 .events-page--plu-ref .events-page__filters-shell.plu-tab-rail__shell .filter-pills__item {
   background: transparent;
   border: none;
@@ -2764,7 +2764,7 @@
     border-color var(--transition-fast);
 }
 
-/* Anula el hover ?premium? genérico de .surface-card */
+/* Anula el hover ?premium? genï¿½rico de .surface-card */
 .events-page--plu-ref .events-list--design .event-card.surface-card:hover {
   border-color: color-mix(in oklab, var(--color-text-primary) 7%, transparent);
   box-shadow: none;
@@ -2804,9 +2804,9 @@
   background: var(--events-editorial-rule, var(--plu-gold-500));
 }
 
-/* Acá la fecha es tipografía, no chip: neutraliza la variante "ticket" de
+/* Acï¿½ la fecha es tipografï¿½a, no chip: neutraliza la variante "ticket" de
    plu-ui.css, cuyo `width: 62px` fijo desbordaba los tracks de 56/48px del
-   grid angosto y empujaba el título encima del bloque. Necesita el peso de
+   grid angosto y empujaba el tï¿½tulo encima del bloque. Necesita el peso de
    `.events-list--design` para ganarle a design-phase2.css, que pinta el chip
    con `.events-page--design .events-list--design .event-card__date-block`. */
 .events-page--plu-ref .events-list--design .event-card__date-block {
@@ -3615,8 +3615,8 @@
   min-height: 44px;
 }
 
-/* El día con evento no se pinta entero: el chip comunica el evento y el dorado
-   queda reservado al día seleccionado. */
+/* El dï¿½a con evento no se pinta entero: el chip comunica el evento y el dorado
+   queda reservado al dï¿½a seleccionado. */
 .events-page--plu-ref .events-sidebar-card .event-calendar--premium .event-calendar__cell--event {
   color: var(--color-text-primary);
   font-weight: 700;
@@ -3785,8 +3785,8 @@
   transform: none;
 }
 
-/* Selección = evento destacado: la ficha completa ya está arriba, así que
-   este panel queda liviano en vez de repetir título/estado/acciones. */
+/* Selecciï¿½n = evento destacado: la ficha completa ya estï¿½ arriba, asï¿½ que
+   este panel queda liviano en vez de repetir tï¿½tulo/estado/acciones. */
 .events-page--plu-ref .events-detail__linked-copy {
   color: var(--color-text-muted);
   font-size: 13px;
@@ -3831,7 +3831,7 @@
     min-height: 56px;
   }
 
-  /* Recién con la celda cerca de 50px el título del evento entra sin quedar
+  /* Reciï¿½n con la celda cerca de 50px el tï¿½tulo del evento entra sin quedar
      reducido a dos letras; abajo de este ancho el chip queda como barra de color. */
   .event-calendar__chip-label {
     display: block;
@@ -3846,7 +3846,7 @@
   }
 }
 
-/* Full HD+ / TV: más presencia, sidebar más ancho, menos vacío visual */
+/* Full HD+ / TV: mï¿½s presencia, sidebar mï¿½s ancho, menos vacï¿½o visual */
 @media (min-width: 1920px) {
   .events-page--plu-ref .events-page__body {
     gap: clamp(32px, 1.8vw, 44px);
@@ -3971,7 +3971,7 @@
     padding: clamp(16px, 2vw, 22px);
   }
 
-  /* Bento interno del calendario: mes full + leyenda | próximo meet */
+  /* Bento interno del calendario: mes full + leyenda | prï¿½ximo meet */
   .events-page--plu-ref .events-sidebar-card .event-calendar--premium {
     display: grid;
     gap: 12px;
@@ -4246,9 +4246,9 @@
 }
 
 /* ???????????????????????????????????????????????????????
-   PLU ARGENTINA ? REDISEÑO EDITORIAL Y LUJO PARA EVENTOS
+   PLU ARGENTINA ? REDISEï¿½O EDITORIAL Y LUJO PARA EVENTOS
    Nota: el dossier del hero y el conteo vuelven al lenguaje
-   editorial (regla + meta), sin glass/pill genéricos.
+   editorial (regla + meta), sin glass/pill genï¿½ricos.
    ??????????????????????????????????????????????????????? */
 
 /* ?? 1. Hero Dossier ? ficha editorial, no card glass ?? */
