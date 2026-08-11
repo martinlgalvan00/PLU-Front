@@ -65,6 +65,59 @@ export function corsOrigin(origin, callback) {
   callback(new HttpError(403, 'Origen no permitido'))
 }
 
+export function resolveMutationPathname(req) {
+  const candidates = [
+    req.path,
+    typeof req.originalUrl === 'string' ? req.originalUrl.split('?')[0] : null,
+    typeof req.url === 'string' ? req.url.split('?')[0] : null,
+    req.get?.('x-invoke-path'),
+    req.get?.('x-matched-path'),
+    req.get?.('x-forwarded-uri'),
+  ]
+
+  for (const candidate of candidates) {
+    const raw = String(candidate ?? '').trim()
+    if (!raw) continue
+    try {
+      const pathname = /^https?:\/\//i.test(raw) ? new URL(raw).pathname : raw
+      const normalized = pathname.replace(/\/+$/, '') || '/'
+      if (SERVER_TO_SERVER_MUTATION_PATHS.has(normalized)) return normalized
+    } catch {
+      // Seguir con el siguiente candidato.
+    }
+  }
+
+  return String(req.path ?? '').replace(/\/+$/, '') || '/'
+}
+
+export function isServerToServerMutationPath(req) {
+  const pathname = resolveMutationPathname(req)
+  if (SERVER_TO_SERVER_MUTATION_PATHS.has(pathname)) return true
+
+  // Fallback para rewrites de Vercel donde path/url pueden diferir del path público.
+  // Orden: primero los paths más específicos para no confundir /webhook con /webhook/mercadopago.
+  const haystack = [
+    req.path,
+    req.originalUrl,
+    req.url,
+    req.get?.('x-invoke-path'),
+    req.get?.('x-matched-path'),
+    req.get?.('x-forwarded-uri'),
+  ]
+    .map((value) => String(value ?? '').split('?')[0])
+    .join('\n')
+
+  for (const allowed of [
+    '/api/payments/webhook/mercadopago',
+    '/api/emails/webhook/brevo',
+    '/api/payments/webhook',
+  ]) {
+    if (haystack.includes(allowed)) return true
+  }
+
+  return false
+}
+
 export function requireTrustedMutation(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     next()
@@ -77,7 +130,7 @@ export function requireTrustedMutation(req, _res, next) {
     return
   }
 
-  if (SERVER_TO_SERVER_MUTATION_PATHS.has(req.path)) {
+  if (isServerToServerMutationPath(req)) {
     next()
     return
   }

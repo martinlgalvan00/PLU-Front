@@ -112,25 +112,43 @@ for (const env of ENVIRONMENTS) {
     warn(`/api/ready → ${ready.status || ready.error || 'sin respuesta'}`, 'Prisma/Supabase pueden no estar listos.')
   }
 
-  const hook = await probe(webhookUrl(env.appUrl), {
+  const hookUrl = `${webhookUrl(env.appUrl)}?data.id=url-smoke&type=payment`
+  const hook = await probe(hookUrl, {
     method: 'POST',
-    body: JSON.stringify({ type: 'payment', data: { id: 'url-smoke' } }),
+    body: JSON.stringify({
+      id: 'url-smoke',
+      type: 'payment',
+      action: 'payment.updated',
+      data: { id: 'url-smoke' },
+    }),
   })
 
-  // 400/401 de la app = ruta viva y pública. 401/403/302 de Vercel Protection = bloqueo.
+  // 400/401/422 de la app = ruta viva y pública (firma/secret incompletos).
+  // 403 con body de nuestra API también puede ser allowlist; 302 típico de Protection.
+  const hookBody = String(hook.text ?? '').slice(0, 160)
   if (hook.status === 400 || hook.status === 401 || hook.status === 422) {
-    ok(`/api/payments/webhook/mercadopago alcanzable (HTTP ${hook.status}; firma inválida esperada)`)
-  } else if (hook.status === 302 || hook.status === 403) {
+    ok(`/api/payments/webhook/mercadopago alcanzable (HTTP ${hook.status})`)
+  } else if (hook.status === 503 && /MERCADO_PAGO_WEBHOOK_SECRET|Mercado Pago/i.test(hookBody)) {
+    warn(
+      `/api/payments/webhook/mercadopago alcanzable pero mal configurado (HTTP 503)`,
+      hookBody || 'Falta secreto o credenciales en Vercel.',
+    )
+  } else if (hook.status === 302) {
     fail(
       `/api/payments/webhook/mercadopago protegido (HTTP ${hook.status}).`,
       'Desactivá Deployment Protection en el preview o agregá bypass para esta ruta.',
+    )
+  } else if (hook.status === 403) {
+    fail(
+      `/api/payments/webhook/mercadopago rechazado (HTTP 403). ${hookBody}`,
+      'Si el body dice "Solicitud no confiable", el allowlist no matcheó el path. Si está vacío, revisá Protection/WAF.',
     )
   } else if (hook.status === 0) {
     fail(`/api/payments/webhook/mercadopago sin respuesta.`, hook.error)
   } else {
     warn(
-      `/api/payments/webhook/mercadopago → HTTP ${hook.status}`,
-      'Revisá logs; se esperaba 400 por payload/firma incompletos.',
+      `/api/payments/webhook/mercadopago → HTTP ${hook.status} ${hookBody}`,
+      'Revisá logs; se esperaba 400/401 por payload/firma incompletos.',
     )
   }
 

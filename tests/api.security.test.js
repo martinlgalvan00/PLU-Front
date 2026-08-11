@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
+import {
+  isServerToServerMutationPath,
+  resolveMutationPathname,
+} from '../server/lib/security.js'
 
 function listen(app) {
   const server = app.listen(0)
@@ -11,6 +15,18 @@ function listen(app) {
 }
 
 describe('api security baseline', () => {
+  it('resuelve el path de webhook Mercado Pago aunque originalUrl traiga query', () => {
+    const req = {
+      path: '/api/index',
+      originalUrl: '/api/payments/webhook/mercadopago?data.id=1&type=payment',
+      url: '/api/index?data.id=1&type=payment',
+      get: () => undefined,
+    }
+
+    expect(resolveMutationPathname(req)).toBe('/api/payments/webhook/mercadopago')
+    expect(isServerToServerMutationPath(req)).toBe(true)
+  })
+
   it('oculta x-powered-by y aplica headers basicos', async () => {
     const target = listen(createApp())
 
