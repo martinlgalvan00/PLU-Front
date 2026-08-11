@@ -128,10 +128,10 @@ for (const env of ENVIRONMENTS) {
   const hookBody = String(hook.text ?? '').slice(0, 160)
   if (hook.status === 400 || hook.status === 401 || hook.status === 422) {
     ok(`/api/payments/webhook/mercadopago alcanzable (HTTP ${hook.status})`)
-  } else if (hook.status === 503 && /MERCADO_PAGO_WEBHOOK_SECRET|Mercado Pago/i.test(hookBody)) {
+  } else if (hook.status === 503) {
     warn(
-      `/api/payments/webhook/mercadopago alcanzable pero mal configurado (HTTP 503)`,
-      hookBody || 'Falta secreto o credenciales en Vercel.',
+      `/api/payments/webhook/mercadopago alcanzable pero falla en runtime (HTTP 503)`,
+      'En Vercel Preview revisá MERCADO_PAGO_WEBHOOK_SECRET, ACCESS_TOKEN y logs de la Function.',
     )
   } else if (hook.status === 302) {
     fail(
