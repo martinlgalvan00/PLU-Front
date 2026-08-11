@@ -18,8 +18,8 @@ webhook firmado es la confirmación canónica y el mecanismo de recuperación.
 
 | Variable | Alcance |
 |----------|---------|
-| `PAYMENTS_PROVIDER` | Backend; `mock` o `mercado_pago` (default) |
-| `VITE_PAYMENTS_PROVIDER` | Frontend; `mock` muestra el panel de simulación |
+| `PAYMENTS_MOCK` | Backend+frontend; `true` = mock local; `false` = Mercado Pago real |
+| `PAYMENTS_PROVIDER` | Alias legacy de `PAYMENTS_MOCK` (`mock` / `mercado_pago`) |
 | `VITE_MERCADO_PAGO_PUBLIC_KEY` | Frontend; inicializa MercadoPago.js (no hace falta en mock) |
 | `MERCADO_PAGO_ACCESS_TOKEN` | Sólo backend (no hace falta en mock) |
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Sólo backend; valida `x-signature` (en mock usá `/api/payments/mock/notify`) |
@@ -38,8 +38,7 @@ Detalle de variables y `back_urls`: `docs/PAYMENTS_OPERATIONS.md`.
 ## Modo mock local
 
 ```text
-PAYMENTS_PROVIDER=mock
-VITE_PAYMENTS_PROVIDER=mock
+PAYMENTS_MOCK=true
 ```
 
 - Solo permitido fuera de production / Vercel preview-prod.

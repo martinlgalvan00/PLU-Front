@@ -127,10 +127,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
         planCode: order.plan?.code,
         cardToken: formData.token,
       })
-      const status = normalizePaymentStatus(response.subscription?.status)
-      setResult({ status, data: response })
       // Autorizar la suscripción no equivale a cobrar el primer ciclo. La
       // orden queda pendiente hasta el authorized_payment canónico de MP.
+      setResult({ status: 'pending', data: response })
       announcePaymentUpdate(orderId, 'pending')
       onResult?.(response)
       return response
@@ -204,7 +203,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   }, [onResult, order?.orderAccessToken, orderId, t])
 
   useEffect(() => {
-    if (result?.status !== 'pending' || isSubscription) return undefined
+    if (result?.status !== 'pending') return undefined
     let checks = 0
     const timer = setInterval(() => {
       checks += 1
@@ -213,7 +212,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       })
     }, 3_000)
     return () => clearInterval(timer)
-  }, [isSubscription, refreshStatus, result?.status])
+  }, [refreshStatus, result?.status])
 
   function resetCheckout() {
     setResult(null)
@@ -228,10 +227,10 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   }
 
   const resultMessage = result?.status === 'approved'
-    ? t(isSubscription ? 'payments.subscriptionAuthorized' : 'payments.paymentApproved')
+    ? t(isSubscription ? 'payments.subscriptionActivated' : 'payments.paymentApproved')
     : result?.status === 'rejected'
       ? t('payments.paymentRejected')
-      : t('payments.paymentPending')
+      : t(isSubscription ? 'payments.subscriptionPendingCharge' : 'payments.paymentPending')
   const mockPaymentId = result?.data?.payment?.id ?? null
   const payerEmail = resolvePayerEmail(order)
 
@@ -344,12 +343,12 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
           <p>{resultMessage}</p>
         </div>
       )}
-      {result?.status === 'pending' && !isSubscription && (
+      {result?.status === 'pending' && (
         <div className="mp-embedded-checkout__actions">
           <button type="button" className="btn btn--small btn--outline" onClick={() => refreshStatus()} disabled={checking || simulating}>
             <RefreshCw size={14} aria-hidden /> {t('payments.checkStatus')}
           </button>
-          {isMock && (
+          {isMock && !isSubscription && (
             <button type="button" className="btn btn--small" onClick={() => void forceMockAccreditation()} disabled={simulating}>
               {t('payments.mockForceApprove')}
             </button>
