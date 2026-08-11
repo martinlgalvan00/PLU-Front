@@ -1,11 +1,14 @@
 import { getContent } from '../lib/content/index.js'
 import { formatShortDate } from '../lib/format.js'
+import { apiGet } from '../lib/api.js'
+
+const FEED_LIMIT = 5
 
 export function getAffiliatedGyms(locale = 'es') {
   return getContent(locale).COMMUNITY_AFFILIATED_GYMS
 }
 
-export function getRecentMembers(limit = 5, locale = 'es') {
+export function getRecentMembers(limit = FEED_LIMIT, locale = 'es') {
   return getContent(locale).COMMUNITY_RECENT_MEMBERS.slice(0, limit)
 }
 
@@ -18,6 +21,38 @@ export function getCommunityStats(locale = 'es') {
     activeGymCount: activeGyms.length,
     memberCount: members.length,
     provinceCount: new Set(activeGyms.map((gym) => gym.province)).size,
+  }
+}
+
+function fallbackSpotlight(limit = FEED_LIMIT, locale = 'es') {
+  return {
+    members: getRecentMembers(limit, locale),
+    stats: getCommunityStats(locale),
+    source: 'fallback',
+  }
+}
+
+/**
+ * Spotlight del home: intenta Supabase vía API; si falla, usa el mock editorial.
+ */
+export async function fetchCommunitySpotlight(limit = FEED_LIMIT, locale = 'es') {
+  try {
+    const data = await apiGet(`/api/community/spotlight?limit=${encodeURIComponent(limit)}`)
+    const members = Array.isArray(data?.members) ? data.members : []
+    if (members.length === 0) {
+      return fallbackSpotlight(limit, locale)
+    }
+    return {
+      members,
+      stats: {
+        activeGymCount: Number(data?.stats?.activeGymCount ?? 0) || 0,
+        memberCount: Number(data?.stats?.memberCount ?? members.length) || members.length,
+        provinceCount: Number(data?.stats?.provinceCount ?? 0) || 0,
+      },
+      source: 'supabase',
+    }
+  } catch {
+    return fallbackSpotlight(limit, locale)
   }
 }
 
