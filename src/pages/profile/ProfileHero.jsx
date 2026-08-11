@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import DigitalCredential from '../../components/ui/DigitalCredential.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
@@ -51,7 +52,8 @@ export default function ProfileHero({ athlete, membership, athleteRegistrations,
             className="account-hero__edit-link"
             onClick={() => onNavigateSection('account-personal-data')}
           >
-            {t('account.hero.editData')}
+            <Pencil size={14} strokeWidth={1.75} aria-hidden />
+            <span>{t('account.hero.editData')}</span>
           </button>
         </div>
 

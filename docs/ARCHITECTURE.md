@@ -140,6 +140,7 @@ Componentes actuales:
 | Capa | Archivos |
 |------|----------|
 | Store de eventos | `payment_integration_events`, `embedded_payment_attempts` (Supabase) |
+| Auditoría operativa | `operational_event_logs`: identidad, Brick, ledger, webhooks y emails |
 | Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
 | Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
 | Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
@@ -167,6 +168,11 @@ varias instancias sin procesar dos veces el mismo trabajo.
 Los intentos del Brick distinguen pagos de suscripciones. Sólo los pagos se
 reconcilian con `/v1/payments/{id}`; las suscripciones se recuperan mediante sus
 eventos `subscription_preapproval` y `subscription_authorized_payment`.
+
+Los errores de inicialización/render del Brick se reportan con una capacidad de
+orden válida y sin datos de tarjeta. El ledger canónico emite eventos append-only
+para todos sus estados, incluidos rechazo, cancelación y reembolso. Altas y
+sesiones se registran en la misma vista de auditoría bajo la fuente `identity`.
 
 El panel Finanzas consume endpoints protegidos por rol para mostrar fallas,
 reintentos, conciliaciones pendientes y suscripciones en mora. Un operador

@@ -15,6 +15,11 @@ import {
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import {
+  anonymousIdentityId,
+  recordOperationalAuditEvent,
+  requestAuditMetadata,
+} from '../modules/audit/operationalAuditWriter.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -29,6 +34,13 @@ import {
   verifyEmailVerificationToken,
   EMAIL_VERIFICATION_TTL_MS,
 } from '../services/emailVerificationToken.js'
+import {
+  createEmailVerificationOtp,
+  hashEmailVerificationOtp,
+  normalizeEmailVerificationOtp,
+  EMAIL_OTP_MAX_ATTEMPTS,
+  EMAIL_OTP_TTL_MS,
+} from '../services/emailVerificationOtp.js'
 import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
@@ -227,6 +239,25 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
 
+  function recordFailedLogin(req, email) {
+    let auditClient = null
+    try {
+      auditClient = client()
+    } catch {
+      auditClient = null
+    }
+    return recordOperationalAuditEvent(auditClient, {
+      source: 'identity',
+      action: 'auth.login_failed',
+      entityType: 'athlete',
+      entityId: anonymousIdentityId('email', email),
+      actorType: 'anonymous',
+      status: 'failed',
+      severity: 'warning',
+      metadata: requestAuditMetadata(req, { method: 'password', reason: 'invalid_credentials' }),
+    })
+  }
+
   // Un solo dispatcher para los emails de esta ruta. Sin Supabase queda en
   // modo degradado (envía sin log) en vez de romper el armado de la app.
   function mailDispatcher() {
@@ -254,28 +285,28 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   }
 
   async function sendOnboardingEmails(row) {
-    return Promise.allSettled([
-      sendBestEffort('welcome', {
-        to: row.email,
-        toName: row.full_name,
-        entityType: 'athlete',
-        entityId: row.id,
-        idempotencyKey: `email:welcome:${row.id}`,
-        params: {
-          name: row.full_name,
-          accountUrl: `${appUrl}/mi-cuenta`,
-        },
-      }),
-      sendVerificationEmail(row),
-    ])
+    // Un solo mail de alta: bienvenida + confirmación + OTP.
+    // Antes salían `welcome` y `email_verification` en paralelo y duplicaban
+    // la bandeja del atleta con dos asuntos distintos.
+    return sendVerificationEmail(row)
   }
 
-  function sendVerificationEmail(row) {
+  async function sendVerificationEmail(row) {
     const token = createEmailVerificationToken({
       athleteId: row.id,
       expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
       secret: env.AUTH_SECRET,
     })
+    const verificationCode = createEmailVerificationOtp()
+    const codeHash = hashEmailVerificationOtp(verificationCode)
+    const otpExpiresAt = new Date(Date.now() + EMAIL_OTP_TTL_MS)
+
+    try {
+      await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)
+    } catch (error) {
+      console.warn('[email:otp] no se pudo guardar el código', error?.message ?? error)
+    }
+
     return sendBestEffort('email_verification', {
       to: row.email,
       toName: row.full_name,
@@ -287,6 +318,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       params: {
         name: row.full_name,
         verificationUrl: buildEmailVerificationUrl(env.APP_URL ?? env.VITE_APP_URL ?? '', token),
+        verificationCode,
       },
     })
   }
@@ -407,6 +439,61 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     } catch (error) { next(error) }
   })
 
+  // Confirma el correo con el OTP del mail cuando el deep link no abre.
+  router.post(
+    '/me/verify-email-code',
+    athleteWriteLimiter,
+    validateBody(
+      z.object({
+        code: z
+          .string()
+          .trim()
+          .regex(/^\d{6}$/, 'Ingresá el código de 6 dígitos del correo.'),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const code = normalizeEmailVerificationOtp(req.validatedBody.code)
+        if (!code) {
+          throw new HttpError(400, 'Ingresá el código de 6 dígitos del correo.')
+        }
+
+        const result = await repo().verifyEmailWithOtp(
+          auth.athleteId,
+          hashEmailVerificationOtp(code),
+          EMAIL_OTP_MAX_ATTEMPTS,
+        )
+
+        if (result?.verified) {
+          res.json({
+            ok: true,
+            email: result.email,
+            alreadyVerified: Boolean(result.alreadyVerified),
+          })
+          return
+        }
+
+        const reason = result?.reason
+        if (reason === 'locked') {
+          throw new HttpError(429, 'Demasiados intentos. Pedí un código nuevo desde Mi cuenta.', {
+            code: 'EMAIL_OTP_LOCKED',
+          })
+        }
+        if (reason === 'expired') {
+          throw new HttpError(400, 'El código venció. Pedí uno nuevo desde Mi cuenta.', {
+            code: 'EMAIL_OTP_EXPIRED',
+          })
+        }
+        throw new HttpError(400, 'El código no es válido. Revisalo e intentá de nuevo.', {
+          code: 'EMAIL_OTP_INVALID',
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   // Preset de riesgo de autenticación (no el de escritura pública, que era más
   // permisivo), pero con instancia propia: `authLimiter` lo comparte el login
   // de staff, que el cliente prueba primero en cada intento (ver
@@ -419,6 +506,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
 
       if (!row || row.status === 'bloqueado' || !passwordMatches) {
+        await recordFailedLogin(req, req.validatedBody.email)
         throw new HttpError(401, 'Credenciales invalidas.')
       }
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
@@ -603,11 +691,13 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const canReadPayments = hasPermission(req.auth.user, 'admin.payments.read')
 
       res.json({
-        ...data,
         athletes: canReadAthletes ? data.athletes : [],
         memberships: canReadMemberships ? data.memberships : [],
         registrations: canReadRegistrations ? data.registrations : [],
-        payments: canReadPayments ? data.payments : [],
+        // El adaptador del frontend normaliza `paymentOrders`. Antes se
+        // agregaba `payments: []`, pero `...data` seguía exponiendo las
+        // órdenes aunque el rol no tuviera admin.payments.read.
+        paymentOrders: canReadPayments ? data.paymentOrders : [],
       })
     } catch (error) { next(error) }
   })

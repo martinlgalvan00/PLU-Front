@@ -47,6 +47,18 @@ export function getFeaturedEvent(events = []) {
   return events.find((event) => event.featured) ?? getNextUpcomingEvent(events)
 }
 
+/**
+ * Pitbull conserva su pagina editorial propia. Cualquier otro evento
+ * destacado abre la ficha generica por slug; atar siempre el destacado a la
+ * vista Pitbull hacia que un evento nuevo marcado desde el panel terminara en
+ * la competencia equivocada.
+ */
+export function getFeaturedEventDestination(event) {
+  if (!event?.slug) return { view: 'events', options: {} }
+  if (event.slug === 'pitbull-classic-2026') return { view: 'pitbull', options: {} }
+  return { view: 'events', options: { eventSlug: event.slug } }
+}
+
 export function getDaysUntilEvent(event, now = new Date()) {
   const eventTime = eventDateTime(event)
   if (!Number.isFinite(eventTime)) return null

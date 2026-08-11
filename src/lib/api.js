@@ -102,6 +102,10 @@ export function loginRequest(credentials) {
   return apiPost('/api/auth/login', credentials)
 }
 
+export function acceptStaffInvitationRequest({ token, password }) {
+  return apiPost('/api/auth/accept-staff-invitation', { token, password })
+}
+
 export function createSecurityUserRequest({ name, email, eventId, sendEmail = false }) {
   return apiPost('/api/auth/security-users', { name, email, eventId, sendEmail })
 }
@@ -130,10 +134,8 @@ export function updateSecurityUserStatusRequest(userId, status) {
   return apiPatch(`/api/auth/security-users/${encodeURIComponent(userId)}/status`, { status })
 }
 
-// Cuentas de staff del panel (admin/operador/viewer). El alta emite una
-// contraseña temporal que se manda por mail y que sólo habilita a cambiarla
-// (ver server/routes/users.js). La respuesta la devuelve una única vez para
-// mostrarla en pantalla cuando el envío no salió.
+// Cuentas de staff del panel (admin/operador/viewer). El alta manda un enlace
+// firmado y de un solo uso para que la persona elija su contraseña.
 export function listStaffUsersRequest() {
   return apiGet('/api/users')
 }

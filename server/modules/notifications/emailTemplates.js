@@ -21,10 +21,16 @@
  * - Sin gradientes: Outlook los ignora. La firma de marca (`--gradient-brand`)
  *   se reproduce como dos celdas sólidas celeste + dorado.
  * - Logo: emblema circular croppeado (`/brand/plu-argentina-email.png`).
+ *   Si `APP_URL` es localhost/privada, se embebe como data URI porque los
+ *   clientes de correo no pueden fetchear `http://localhost/...`.
  *   Header negro = solo marca. Título del mail en el cuerpo (ink sobre blanco).
  *
  * Previews abribles: `npm run email:previews` → `docs/email-previews/`.
  */
+
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // Paleta — espejo de src/styles/tokens/palette.css
 const INK_900 = '#1a1c22'
@@ -50,6 +56,17 @@ const MONO_STACK = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
 
 /** Ruta pública del emblema circular PLU Argentina (header negro). */
 export const EMAIL_LOGO_PATH = '/brand/plu-argentina-email.png'
+
+const EMAIL_LOGO_FILE = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../..',
+  'public',
+  'brand',
+  'plu-argentina-email.png',
+)
+
+/** Cache del data URI: el PNG es chico (~47 KB) y se reusa en cada render. */
+let embeddedLogoDataUri = null
 
 /** Escapa texto para interpolar en el cuerpo del HTML. */
 export function escapeHtml(value) {
@@ -78,10 +95,50 @@ export function safeUrl(value) {
   }
 }
 
+function isUnreachableEmailHost(appUrl) {
+  const base = String(appUrl ?? '').trim()
+  if (!base) return true
+  try {
+    const { hostname, protocol } = new URL(base)
+    if (protocol !== 'http:' && protocol !== 'https:') return true
+    const host = hostname.toLowerCase()
+    return (
+      host === 'localhost'
+      || host === '127.0.0.1'
+      || host === '0.0.0.0'
+      || host === '::1'
+      || host.endsWith('.local')
+    )
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Embebe el PNG del logo como data URI. Los clientes de correo no pueden
+ * pedir imágenes a localhost; sin esto el header muestra el ícono roto.
+ */
+export function loadEmbeddedEmailLogo() {
+  if (embeddedLogoDataUri !== null) return embeddedLogoDataUri
+  try {
+    const bytes = readFileSync(EMAIL_LOGO_FILE)
+    embeddedLogoDataUri = `data:image/png;base64,${bytes.toString('base64')}`
+  } catch {
+    embeddedLogoDataUri = ''
+  }
+  return embeddedLogoDataUri
+}
+
+/** Solo tests: limpia la cache del data URI. */
+export function resetEmbeddedEmailLogoCache() {
+  embeddedLogoDataUri = null
+}
+
 /**
  * Arma la URL del logo para el `<img>`.
  * Acepta http(s), rutas relativas (previews locales) o data:image.
- * Sin base válida devuelve cadena vacía → wordmark tipográfico.
+ * Si `appUrl` es local/privada, embebe el PNG para que el mail muestre marca.
+ * Sin base válida y sin archivo cae a cadena vacía → wordmark tipográfico.
  */
 export function buildEmailLogoUrl(appUrl, logoUrl) {
   const override = String(logoUrl ?? '').trim()
@@ -92,12 +149,16 @@ export function buildEmailLogoUrl(appUrl, logoUrl) {
     }
     return safeUrl(override)
   }
+
+  if (isUnreachableEmailHost(appUrl)) {
+    return loadEmbeddedEmailLogo()
+  }
+
   const base = String(appUrl ?? '').trim().replace(/\/$/, '')
-  if (!base) return ''
   try {
     return safeUrl(new URL(EMAIL_LOGO_PATH, `${base}/`).toString())
   } catch {
-    return ''
+    return loadEmbeddedEmailLogo()
   }
 }
 
@@ -326,12 +387,19 @@ const BODIES = {
   }),
 
   email_verification: (p) => ({
-    title: 'Confirmá tu correo',
+    title: 'Te damos la bienvenida a PLU Argentina',
     preheader: 'Confirmá tu correo para activar tu cuenta.',
     body: [
-      paragraph(`${greeting(p.name)} confirmá tu correo para activar tu cuenta.`),
+      paragraph(
+        `${greeting(p.name)} tu cuenta ya está creada. Confirmá tu correo para afiliarte e inscribirte a torneos.`,
+      ),
       button(p.verificationUrl, 'Confirmar correo'),
       fallbackLink(p.verificationUrl),
+      credentialPanel({
+        label: 'Código de verificación',
+        value: p.verificationCode,
+        caption: 'Si el botón no abre, ingresá este código en Mi cuenta.',
+      }),
       paragraph('Si no creaste esta cuenta, ignorá este correo.', { muted: true }),
     ].join(''),
   }),
@@ -367,27 +435,22 @@ const BODIES = {
 
   staff_invitation: (p) => ({
     title: 'Tu acceso al panel',
-    preheader: `Contraseña temporal para entrar por primera vez${
+    preheader: `Activá tu acceso al panel${
       p.expiresInDays ? ` · vence en ${p.expiresInDays} días` : ''
     }.`,
     body: [
       paragraph(
         `${greeting(p.name)} te dimos de alta en el panel de PLU Argentina${
           p.roleName ? ` con el rol <strong>${escapeHtml(p.roleName)}</strong>` : ''
-        }. Entrás con tu email y esta contraseña:`,
+        }. Usá el siguiente enlace personal para elegir tu contraseña:`,
       ),
-      credentialPanel({
-        meta: { label: 'Usuario', value: p.email },
-        label: 'Contraseña temporal',
-        value: p.tempPassword,
-        caption: p.expiresInDays
-          ? `Vence en ${escapeHtml(p.expiresInDays)} días. Después de eso pedile al administrador que te la reenvíe.`
-          : '',
-      }),
-      button(p.loginUrl, 'Entrar al panel'),
-      fallbackLink(p.loginUrl),
+      dataPanel([['Usuario', p.email], ...(p.roleName ? [['Rol', p.roleName]] : [])]),
+      button(p.invitationUrl, 'Crear mi contraseña'),
+      fallbackLink(p.invitationUrl),
       noticePanel(
-        'Es una contraseña de un solo uso: el panel te va a pedir que elijas una propia antes de dejarte operar. Después podés cambiar también tu email desde Mi cuenta.',
+        `El enlace es personal, se puede usar una sola vez${
+          p.expiresInDays ? ` y vence en ${escapeHtml(p.expiresInDays)} días` : ''
+        }. Si no esperabas esta invitación, ignorá el correo.`,
       ),
     ].join(''),
   }),

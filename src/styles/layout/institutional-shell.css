@@ -41,6 +41,18 @@
 /* ── Header ─────────────────────────────────────── */
 
 .site-header-shell--institutional {
+  /* Morph de marca al scroll: solo el wordmark se retrae.
+     El emblema mantiene escala plena (sello institucional). */
+  --brand-wordmark-open: calc(1 - var(--header-scroll-progress, 0));
+  /* Fade adelantado al clip: el letterhead se apaga antes de terminar de colapsar. */
+  --brand-wordmark-fade: clamp(0, calc(1 - (var(--header-scroll-progress, 0) * 1.4)), 1);
+  --brand-emblem-base: 1;
+  /* Fluido por viewport: crece en desktop, se retrae en phone. */
+  --brand-emblem-size: clamp(44px, 2.2vw + 28px, 52px);
+  --brand-nav-row: 46px;
+  /* Ancho real del letterhead en nav (~height 20 × aspect 3.75), sin columna muerta. */
+  --brand-wordmark-size: 5rem;
+  --brand-wordmark-track: calc(var(--brand-wordmark-open) * var(--brand-wordmark-size));
   isolation: isolate;
   margin: 0 auto;
   max-width: calc(100% - 32px);
@@ -98,7 +110,11 @@
 }
 
 .site-header {
-  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Nav institucional: siempre visible al scrollear (pill compacta). El auto-hide
@@ -111,20 +127,23 @@
 
 .site-header--institutional.site-header--scrolled,
 .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  background: rgba(10, 10, 12, 0.65);
-  backdrop-filter: blur(48px) saturate(180%);
-  -webkit-backdrop-filter: blur(48px) saturate(180%);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(9, 11, 14, 0.94);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border-color: rgba(255, 255, 255, 0.11);
+  box-shadow:
+    0 16px 40px -16px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
 }
 
 [data-theme='light'] .site-header--institutional.site-header--scrolled,
 [data-theme='light'] .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  backdrop-filter: blur(16px) saturate(100%);
-  -webkit-backdrop-filter: blur(16px) saturate(100%);
-  background: color-mix(in srgb, #fff 94%, var(--plu-warm-50));
-  border-color: rgba(15, 17, 23, 0.08);
-  box-shadow: 0 12px 28px -18px rgba(15, 17, 23, 0.16);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  background: color-mix(in srgb, #fff 96%, var(--plu-warm-50));
+  border-color: rgba(15, 17, 23, 0.1);
+  box-shadow: 0 12px 28px -16px rgba(15, 17, 23, 0.18);
 }
 
 /* Lux + institutional */
@@ -132,75 +151,92 @@
 .plu-global-nav {
   align-items: center;
   display: flex;
-  gap: clamp(12px, 1.5vw, 24px);
-  padding: 0 12px 0 20px;
-  min-height: 56px;
-  transition: min-height var(--motion-base) var(--ease-out);
-}
-
-.site-header--scrolled .plu-global-nav {
-  min-height: 50px;
+  /* Compactación ligada al progreso de scroll (sin transition: evita lag). */
+  gap: calc(8px + (6px * var(--brand-wordmark-open, 1)));
+  min-height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
+  /* Izquierda más justa cuando queda solo el emblema. */
+  padding:
+    0
+    10px
+    0
+    calc(6px + (6px * var(--brand-wordmark-open, 1)));
 }
 
 .plu-global-nav__brand {
+  --brand-emblem-hover: 1;
   animation: institutional-header-item-enter 420ms var(--ease-out) 40ms both;
   align-items: center;
-  display: inline-flex;
+  display: inline-grid;
   flex: none;
-  gap: 10px;
+  gap: calc(8px * var(--brand-wordmark-open, 1));
+  /* max-content: el botón abraza emblema + letterhead; el clip va por max-width del wordmark. */
+  grid-template-columns: auto max-content;
   justify-self: start;
-  max-width: min(100%, 300px);
-  min-height: var(--institution-control-height);
+  max-width: min(100%, 12rem);
+  min-height: 0;
   min-width: 0;
   padding: 0;
   text-align: left;
+  width: max-content;
 }
 
+/* Emblema: sello estable. Sobresale levemente de la pill (jewel) sin inflar el layout. */
 .plu-global-nav__emblem {
+  background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 0;
+  box-shadow: none;
   flex: none;
-  height: 36px;
-  object-fit: cover;
-  transition:
-    box-shadow var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-out);
-  width: 36px;
+  height: var(--brand-emblem-size, 56px);
+  margin-block: calc((var(--brand-nav-row, 46px) - var(--brand-emblem-size, 56px)) / 2);
+  object-fit: contain;
+  object-position: center;
+  transform: translateZ(0) scale(calc(var(--brand-emblem-base, 1) * var(--brand-emblem-hover, 1)));
+  transition: transform var(--motion-instant) var(--ease-out);
+  width: var(--brand-emblem-size, 56px);
 }
 
-.plu-global-nav__brand:hover .plu-global-nav__emblem {
-  transform: scale(1.04);
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .plu-global-nav,
+  .plu-global-nav__brand,
+  .plu-global-nav__brand > span,
+  .plu-global-nav__wordmark,
+  .plu-global-nav__emblem,
+  .plu-global-nav__letterhead {
+    transition: none;
+  }
 }
 
-.plu-global-nav__brand:active .plu-global-nav__emblem {
-  transform: scale(0.98);
+.plu-global-nav__brand:hover {
+  --brand-emblem-hover: 1.03;
 }
 
-.plu-global-nav__brand > span {
+.plu-global-nav__brand:active {
+  --brand-emblem-hover: 0.98;
+}
+
+/* Letterhead: clip por max-width + fade adelantado + leve slide hacia el emblema. */
+.plu-global-nav__wordmark {
+  align-self: center;
   display: grid;
   gap: 0;
+  max-width: var(--brand-wordmark-track, var(--brand-wordmark-size, 5rem));
   min-width: 0;
-  max-width: 300px;
-  opacity: 1;
-  transform: translateX(0);
-  transition: max-width 400ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: var(--brand-wordmark-fade, 1);
   overflow: hidden;
-  white-space: nowrap;
-}
-
-.site-header--scrolled .plu-global-nav__brand > span {
-  max-width: 0;
-  opacity: 0;
-  transform: translateX(-10px);
   pointer-events: none;
+  transform: translate3d(calc(var(--header-scroll-progress, 0) * -8px), 0, 0);
+  transform-origin: left center;
+  width: max-content;
+  white-space: nowrap;
 }
 
 .plu-global-nav__letterhead {
   display: block;
-  height: clamp(22px, 1.7vw, 26px);
-  max-width: 100%;
+  height: clamp(17px, 1.25vw, 20px);
+  /* Capar max-content del PNG (si no, la columna hereda el ancho intrínseco enorme). */
+  max-width: var(--brand-wordmark-size, 5rem);
   object-fit: contain;
   object-position: left center;
   width: auto;
@@ -210,48 +246,67 @@
   display: none;
 }
 
+/* Rail editorial: separa sello de la navegación; gana presencia al compactar. */
+.plu-global-nav__rail {
+  align-self: center;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--institution-border-strong) 70%, transparent) 22%,
+    color-mix(in srgb, var(--institution-gold) 42%, transparent) 50%,
+    color-mix(in srgb, var(--institution-border-strong) 70%, transparent) 78%,
+    transparent 100%
+  );
+  flex: none;
+  height: calc(12px + (6px * var(--brand-wordmark-open, 1)));
+  opacity: calc(0.28 + (0.52 * (1 - var(--brand-wordmark-open, 1))));
+  width: 1px;
+}
+
 .plu-global-nav__desktop {
   animation: institutional-header-item-enter 420ms var(--ease-out) 85ms both;
   align-items: stretch;
   display: flex;
+  flex: 1 1 auto;
   height: 100%;
   justify-content: center;
   min-width: 0;
   position: relative;
 }
 
-/* Indicador compartido: Motion lo desplaza entre enlaces mediante layoutId.
-   La línea y el peso tipográfico evitan depender solo del color. */
+/* Indicador activo: regla dorada corta bajo el label (editorial, no full-bleed). */
 .plu-global-nav__indicator {
   background: var(--institution-gold);
   border-radius: 1px;
-  bottom: 2px;
-  height: 1.5px;
-  left: 12px;
-  opacity: 0.92;
+  bottom: calc(4px + (2px * var(--brand-wordmark-open, 1)));
+  height: 1px;
+  left: 22%;
+  opacity: 0.95;
   pointer-events: none;
   position: absolute;
-  right: 12px;
+  right: 22%;
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--institution-gold) 28%, transparent);
 }
 
+/* El emblema ya es un sello cerrado: sin anillo dorado extra en activo. */
 .plu-global-nav__brand.is-active .plu-global-nav__emblem,
 .plu-drawer__brand.is-active .plu-drawer__emblem {
-  border-color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-border-strong));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--institution-gold) 13%, transparent);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .plu-global-nav__link {
   align-items: center;
   border-radius: 0;
-  color: var(--institution-text-muted);
+  color: color-mix(in srgb, var(--institution-text-muted) 92%, transparent);
   display: inline-flex;
-  font-size: 12px;
+  font-size: calc(11.25px + (0.75px * var(--brand-wordmark-open, 1)));
   font-weight: 600;
   gap: 5px;
   justify-content: center;
-  letter-spacing: 0.07em;
-  min-height: var(--institution-control-height);
-  padding: 0 clamp(10px, 1.1vw, 15px);
+  letter-spacing: calc(0.045em + (0.03em * var(--brand-wordmark-open, 1)));
+  min-height: calc(40px + (6px * var(--brand-wordmark-open, 1)));
+  padding: 0 calc(8px + (5px * var(--brand-wordmark-open, 1)));
   position: relative;
   text-transform: uppercase;
   transition:
@@ -267,17 +322,18 @@
   gap: 5px;
 }
 
+/* Hover: wash mínimo + morfología compartida (layoutId). Sin pill SaaS pesada. */
 .plu-global-nav__hover-pill {
   position: absolute;
-  inset: 6px 0;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--border-radius-sm);
+  inset: calc(7px - (1px * var(--brand-wordmark-open, 1))) 2px;
+  background: color-mix(in srgb, var(--institution-text) 5.5%, transparent);
+  border-radius: 999px;
   pointer-events: none;
   z-index: 0;
 }
 
 [data-theme='light'] .plu-global-nav__hover-pill {
-  background: rgba(15, 17, 23, 0.05);
+  background: color-mix(in srgb, var(--institution-text) 4.5%, transparent);
 }
 
 .plu-global-nav__link-icon {
@@ -305,7 +361,7 @@
 /* Afiliación: acento editorial en el nav (sin caja dorada ni ícono) */
 .plu-global-nav__link--affiliate {
   color: var(--institution-text-secondary);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.04em + (0.025em * var(--brand-wordmark-open, 1)));
 }
 
 .plu-global-nav__link--affiliate:hover,
@@ -315,13 +371,13 @@
 
 .plu-global-nav__link--affiliate::after {
   background: color-mix(in srgb, var(--institution-gold) 55%, transparent);
-  bottom: 10px;
+  bottom: calc(8px + (2px * var(--brand-wordmark-open, 1)));
   content: '';
   height: 1px;
-  left: clamp(10px, 1.1vw, 15px);
+  left: calc(8px + (5px * var(--brand-wordmark-open, 1)));
   opacity: 0;
   position: absolute;
-  right: clamp(10px, 1.1vw, 15px);
+  right: calc(8px + (5px * var(--brand-wordmark-open, 1)));
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -613,7 +669,7 @@
   align-items: center;
   display: flex;
   flex: none;
-  gap: 8px;
+  gap: 6px;
   justify-self: end;
 }
 
@@ -621,10 +677,10 @@
   align-items: center;
   border-right: 1px solid var(--institution-border);
   display: flex;
-  gap: 4px;
-  margin-right: 4px;
-  opacity: 0.88;
-  padding-right: 10px;
+  gap: 2px;
+  margin-right: 2px;
+  opacity: calc(0.72 + (0.16 * var(--brand-wordmark-open, 1)));
+  padding-right: calc(6px + (4px * var(--brand-wordmark-open, 1)));
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -681,12 +737,12 @@
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  height: 32px;
+  height: calc(30px + (2px * var(--brand-wordmark-open, 1)));
   justify-content: center;
   letter-spacing: 0.08em;
   line-height: 1;
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: calc(30px + (2px * var(--brand-wordmark-open, 1)));
+  padding: 0 calc(8px + (2px * var(--brand-wordmark-open, 1)));
   text-decoration: none;
   text-transform: uppercase;
   transition:
@@ -861,10 +917,10 @@ html.plu-drawer-open body {
 }
 
 .plu-drawer {
-  backdrop-filter: blur(48px) saturate(180%);
-  -webkit-backdrop-filter: blur(48px) saturate(180%);
-  background: color-mix(in srgb, var(--institution-surface) 65%, transparent);
-  border: 1px solid color-mix(in srgb, var(--institution-border) 20%, transparent);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  background: color-mix(in srgb, var(--institution-surface) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--institution-border) 55%, transparent);
   border-radius: 24px;
   box-shadow: -20px 0 60px color-mix(in srgb, var(--color-shadow-tint) 70%, transparent), inset 1px 1px 0 rgba(255, 255, 255, 0.1);
   color: var(--institution-text);
@@ -902,20 +958,22 @@ html.plu-drawer-open body {
 
 /* Drawer dark — grafito profundo, un acento, sin wash */
 [data-theme='dark'] .plu-drawer-backdrop {
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  background: rgba(0, 0, 0, 0.68);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.78);
 }
 
 [data-theme='dark'] .plu-drawer {
-  background: color-mix(in srgb, #090b0e 65%, transparent);
-  border-color: rgba(255, 255, 255, 0.055);
-  box-shadow: -28px 0 72px rgba(0, 0, 0, 0.78), inset 1px 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: color-mix(in srgb, #090b0e 96%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: -28px 0 72px rgba(0, 0, 0, 0.82), inset 1px 1px 0 rgba(255, 255, 255, 0.06);
   color: #ecece8;
 }
 
 [data-theme='dark'] .plu-drawer__head {
-  background: transparent;
+  background: #090b0e;
   border-bottom-color: rgba(255, 255, 255, 0.05);
 }
 
@@ -1016,7 +1074,7 @@ html.plu-drawer-open body {
 }
 
 [data-theme='dark'] .plu-drawer__footer {
-  background: #07090c;
+  background: #090b0e;
   border-top-color: rgba(255, 255, 255, 0.05);
   row-gap: 10px;
 }
@@ -1086,7 +1144,7 @@ html.plu-drawer-open body {
 .plu-drawer__head {
   border-bottom: 1px solid var(--institution-border);
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding:
     calc(10px + env(safe-area-inset-top))
     20px
@@ -1098,7 +1156,7 @@ html.plu-drawer-open body {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  min-height: 48px;
+  min-height: clamp(44px, 12vw, 52px);
 }
 
 .plu-drawer__brand {
@@ -1106,18 +1164,22 @@ html.plu-drawer-open body {
   display: inline-flex;
   gap: 12px;
   max-width: calc(100% - 48px);
-  min-height: 44px;
+  min-height: clamp(44px, 12vw, 52px);
   min-width: 0;
   padding: 0;
   text-align: left;
 }
 
 .plu-drawer__emblem {
-  border-radius: 50%;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   flex: none;
-  height: 34px;
-  object-fit: cover;
-  width: 34px;
+  height: clamp(36px, 10vw, 48px);
+  object-fit: contain;
+  object-position: center;
+  width: clamp(36px, 10vw, 48px);
 }
 
 .plu-drawer__logo {
@@ -1164,14 +1226,14 @@ html.plu-drawer-open body {
   transform: scale(0.94);
 }
 
-/* ── Body — nav sin scroll; secundaria al pie ──── */
+/* ── Body — nav sin scroll; caben masthead + utilidad ──── */
 
 .plu-drawer__scroll {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 2px 20px 8px;
+  padding: 4px 20px 10px;
 }
 
 /* ── Afiliarme — invitación editorial sticky ───── */
@@ -1186,7 +1248,7 @@ html.plu-drawer-open body {
   justify-content: space-between;
   margin: 0;
   min-height: 0;
-  padding: 4px 0 16px;
+  padding: 2px 0 14px;
   position: relative;
   text-align: left;
   transition:
@@ -1251,7 +1313,7 @@ html.plu-drawer-open body {
 .plu-drawer__cta-copy strong {
   color: var(--institution-text);
   font-family: var(--font-display);
-  font-size: clamp(24px, 6.5vw, 28px);
+  font-size: clamp(22px, 5.8vw, 26px);
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 0.95;
@@ -1362,19 +1424,19 @@ html.plu-drawer-open body {
 
 .plu-drawer__nav-primary .plu-drawer__row--flush {
   border-top: 0;
-  padding: 12px 0;
+  padding: 10px 0;
 }
 
 .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
   color: var(--institution-text-muted);
   display: inline-block;
   font-family: var(--font-display);
-  font-size: clamp(22px, 6.6vw, 27px);
+  font-size: clamp(20px, 5.8vw, 24px);
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.05;
@@ -1408,12 +1470,11 @@ html.plu-drawer-open body {
 }
 
 .plu-drawer__nav-primary .plu-drawer__row-indicator {
-  bottom: 14px;
-  top: 14px;
+  bottom: 12px;
+  top: 12px;
 }
 
-/* Secundario — línea de utilidad, no una lista: texto corrido
-   separado por puntos, discreto frente al masthead de arriba. */
+/* Secundario — línea de utilidad horizontal: texto corrido separado por puntos. */
 
 .plu-drawer__nav-secondary {
   align-items: baseline;
@@ -1422,7 +1483,7 @@ html.plu-drawer-open body {
   display: flex;
   flex-wrap: wrap;
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 14px;
   row-gap: 2px;
 }
 
@@ -2190,31 +2251,115 @@ html.plu-drawer-open body {
   padding-top: 32px;
 }
 
-/* ── Responsive shell ───────────────────────────── */
+/* ── Responsive shell: bandas notebook ─────────────────
+   <900 mobile cluster | 900–1099 mid (links+menú) |
+   1100–1500 compact snap | >1500 morph pleno
+   ───────────────────────────────────────────────────── */
 
-@media (min-width: 1100px) and (max-width: 1320px) {
-  .plu-global-nav {
-    gap: 10px;
-    padding-inline: clamp(20px, 2.3vw, 30px);
+/* Snap compartido notebook (sin morph continuo). */
+@media (min-width: 900px) and (max-width: 1500px) {
+  .site-header-shell--institutional {
+    max-width: calc(100% - 24px);
+    --brand-emblem-base: 1;
+    --brand-wordmark-open: 1;
+    --brand-wordmark-fade: 1;
+    --brand-wordmark-track: var(--brand-wordmark-size, 5rem);
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-wordmark-open: 0;
+    --brand-wordmark-fade: 0;
+    --brand-wordmark-track: 0px;
   }
 
   .plu-global-nav__brand {
-    gap: 7px;
+    transition: gap 200ms var(--ease-out);
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav__brand {
+    gap: 0;
+  }
+
+  .plu-global-nav__wordmark {
+    transform: none;
+    transition:
+      max-width 200ms var(--ease-out),
+      opacity 140ms var(--ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plu-global-nav__brand,
+    .plu-global-nav__wordmark,
+    .plu-global-nav__rail {
+      transition: none;
+    }
+  }
+}
+
+/* Desktop compacto 1100–1500 */
+@media (min-width: 1100px) and (max-width: 1500px) {
+  .site-header-shell--institutional {
+    --brand-emblem-size: clamp(46px, 2.8vw + 18px, 50px);
+    --brand-nav-row: 48px;
+    --brand-wordmark-size: 4.75rem;
+  }
+
+  .plu-global-nav {
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 12px;
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav {
+    gap: 8px;
+    min-height: 48px;
+    padding-left: 10px;
+  }
+
+  .plu-global-nav__brand {
+    gap: 8px;
   }
 
   .plu-global-nav__emblem {
-    height: 32px;
-    width: 32px;
+    height: var(--brand-emblem-size);
+    margin-block: calc((var(--brand-nav-row, 48px) - var(--brand-emblem-size)) / 2);
+    width: var(--brand-emblem-size);
   }
 
   .plu-global-nav__letterhead {
-    height: 21px;
+    height: 18px;
+    max-width: var(--brand-wordmark-size);
+  }
+
+  .plu-global-nav__rail {
+    height: 14px;
+    opacity: 0.36;
+    transition: opacity 200ms var(--ease-out);
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav__rail {
+    opacity: 0.62;
   }
 
   .plu-global-nav__link {
-    font-size: 11.25px;
-    letter-spacing: 0.025em;
-    padding-inline: clamp(5px, 0.55vw, 8px);
+    font-size: 11px;
+    letter-spacing: 0.045em;
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+
+  .plu-global-nav__link--affiliate {
+    letter-spacing: 0.04em;
+  }
+
+  .plu-global-nav__link--affiliate::after {
+    bottom: 9px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .plu-global-nav__indicator {
+    bottom: 5px;
   }
 
   .plu-global-nav__actions {
@@ -2222,10 +2367,144 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__preferences {
-    padding-right: 5px;
+    opacity: 0.72;
+    padding-right: 8px;
+  }
+
+  .plu-global-nav__login {
+    height: 30px;
+    min-height: 30px;
+    padding-inline: 9px;
   }
 }
 
+/* Notebook mid 900–1099: links primarios + Acceder + menú (no chrome de celular). */
+@media (min-width: 900px) and (max-width: 1099px) {
+  .site-header-shell--institutional {
+    --brand-emblem-size: clamp(42px, 3.6vw + 12px, 46px);
+    --brand-nav-row: 48px;
+    --brand-wordmark-size: 4.5rem;
+    width: 100%;
+  }
+
+  .site-header--institutional {
+    width: 100%;
+  }
+
+  .plu-global-nav {
+    gap: 6px;
+    justify-content: flex-start;
+    min-height: 52px;
+    padding: 0 10px;
+    width: 100%;
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav {
+    gap: 4px;
+    min-height: 48px;
+    padding-left: 8px;
+  }
+
+  .plu-global-nav__brand {
+    gap: 6px;
+    max-width: none;
+  }
+
+  .plu-global-nav__emblem {
+    height: var(--brand-emblem-size);
+    margin-block: calc((var(--brand-nav-row, 48px) - var(--brand-emblem-size)) / 2);
+    width: var(--brand-emblem-size);
+  }
+
+  .plu-global-nav__letterhead {
+    height: 16px;
+    max-width: var(--brand-wordmark-size);
+  }
+
+  .plu-global-nav__rail {
+    display: none;
+  }
+
+  .plu-global-nav__desktop {
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  /* Competencias / Recursos → drawer (evita wrap en 900–960). */
+  .plu-global-nav__dropdown--secondary,
+  .plu-global-nav__dropdown:has(#plu-competitions-menu-trigger),
+  .plu-global-nav__dropdown:has(#plu-resources-menu-trigger) {
+    display: none;
+  }
+
+  .plu-global-nav__link {
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    min-height: 42px;
+    padding-inline: 6px;
+  }
+
+  .plu-global-nav__link--affiliate {
+    letter-spacing: 0.035em;
+  }
+
+  .plu-global-nav__link--affiliate::after {
+    bottom: 8px;
+    left: 6px;
+    right: 6px;
+  }
+
+  .plu-global-nav__indicator {
+    bottom: 4px;
+  }
+
+  .plu-global-nav__actions {
+    display: flex;
+    flex: none;
+    gap: 4px;
+  }
+
+  .plu-global-nav__preferences {
+    display: none;
+  }
+
+  .plu-global-nav__login {
+    height: 30px;
+    min-height: 30px;
+    padding-inline: 8px;
+  }
+
+  .plu-global-nav__profile {
+    height: 34px;
+    width: 34px;
+  }
+
+  .plu-global-nav__profile > span {
+    font-size: 11px;
+  }
+
+  .plu-global-nav__mobile-actions {
+    align-items: center;
+    display: flex;
+    flex: none;
+  }
+
+  .plu-global-nav__mobile-cluster {
+    gap: 0;
+  }
+
+  .plu-global-nav__mobile-prefs,
+  .plu-global-nav__mobile-divider,
+  .plu-global-nav__mobile-login,
+  .plu-global-nav__mobile-affiliate,
+  .plu-global-nav__mobile-actions .plu-global-nav__session-skeleton {
+    display: none;
+  }
+}
+
+/* Menú / drawer chrome compartido mid + mobile */
 @media (max-width: 1099px) {
   .site-header-shell--institutional.site-header-shell--menu-open {
     pointer-events: auto;
@@ -2233,6 +2512,122 @@ html.plu-drawer-open body {
 
   .site-header-shell--institutional.site-header-shell--menu-open .site-header--institutional {
     display: block;
+  }
+
+  /* Menú — ghost tipográfico: solo el glifo, sin caja (el acento del cluster es Afiliar) */
+  .plu-global-nav__menu-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    box-shadow: none;
+    color: var(--institution-text-secondary);
+    display: inline-flex;
+    flex: none;
+    height: 40px;
+    justify-content: center;
+    min-height: 40px;
+    min-width: 40px;
+    padding: 0;
+    position: relative;
+    transition:
+      background-color var(--motion-fast) var(--ease-out),
+      color var(--motion-fast) var(--ease-out);
+    width: 40px;
+  }
+
+  .plu-global-nav__menu-button:hover,
+  .plu-global-nav__menu-button[aria-expanded='true'] {
+    background: transparent;
+    color: var(--institution-text);
+  }
+
+  .plu-global-nav__menu-button:focus-visible {
+    outline: 2px solid var(--institution-focus);
+    outline-offset: 2px;
+  }
+
+  .plu-global-nav__menu-icon {
+    display: block;
+    height: 10px;
+    position: relative;
+    width: 18px;
+  }
+
+  .plu-global-nav__menu-line {
+    background: currentColor;
+    border-radius: 99px;
+    display: block;
+    height: 1px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    transform-origin: center;
+    transition:
+      transform var(--motion-base) var(--ease-emphasized),
+      opacity var(--motion-fast) var(--ease-out);
+    width: 100%;
+  }
+
+  .plu-global-nav__menu-line:nth-child(1) {
+    top: 0;
+  }
+
+  .plu-global-nav__menu-line:nth-child(2) {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .plu-global-nav__menu-line:nth-child(3) {
+    bottom: 0;
+  }
+
+  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(1) {
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(3) {
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%) rotate(-45deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plu-global-nav__menu-line,
+    .plu-global-nav__menu-button,
+    .plu-global-nav__emblem,
+    .plu-global-nav__link-icon,
+    .plu-global-nav__mobile-cluster .locale-switch__segment-thumb {
+      transition: none;
+    }
+
+    .plu-global-nav__brand:hover,
+    .plu-global-nav__brand:active {
+      --brand-emblem-hover: 1;
+    }
+
+    .plu-global-nav__link:hover .plu-global-nav__link-icon {
+      transform: none;
+    }
+  }
+
+
+  .institutional-hero__inner { padding-top: 34px; }
+}
+
+@media (max-width: 899px) {
+  .site-header-shell--institutional {
+    --brand-emblem-base: 1;
+    /* Phone / tablet angosto: ~36px en 360, ~42 en 430, tope 46. */
+    --brand-emblem-size: clamp(36px, 7vw + 10px, 46px);
+    --brand-nav-row: 46px;
+    --brand-wordmark-size: clamp(3.5rem, 12vw, 5rem);
+    --brand-wordmark-track: calc(var(--brand-wordmark-open, 1) * var(--brand-wordmark-size));
   }
 
   .plu-global-nav {
@@ -2538,116 +2933,63 @@ html.plu-drawer-open body {
     outline-offset: 2px;
   }
 
-  /* Menú — ghost tipográfico: solo el glifo, sin caja (el acento del cluster es Afiliar) */
-  .plu-global-nav__menu-button {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-radius: 8px;
-    box-shadow: none;
-    color: var(--institution-text-secondary);
-    display: inline-flex;
-    flex: none;
-    height: 40px;
-    justify-content: center;
-    min-height: 40px;
-    min-width: 40px;
-    padding: 0;
-    position: relative;
-    transition:
-      background-color var(--motion-fast) var(--ease-out),
-      color var(--motion-fast) var(--ease-out);
-    width: 40px;
+  .plu-global-nav__emblem {
+    height: var(--brand-emblem-size);
+    margin-block: calc((var(--brand-nav-row, 46px) - var(--brand-emblem-size)) / 2);
+    width: var(--brand-emblem-size);
   }
 
-  .plu-global-nav__menu-button:hover,
-  .plu-global-nav__menu-button[aria-expanded='true'] {
-    background: transparent;
+  .plu-global-nav__rail { display: none; }
+
+  .plu-global-nav__wordmark {
+    display: grid;
+  }
+
+  /* Ya afiliado: estado (celeste), no CTA de conversión */
+  .plu-global-nav__mobile-affiliate--member {
+    color: var(--institution-text-secondary);
+  }
+
+  .plu-global-nav__mobile-affiliate--member .plu-global-nav__mobile-affiliate-label::after {
+    background: var(--institution-blue, var(--color-brand-celeste));
+    opacity: 0.7;
+  }
+
+  .plu-global-nav__mobile-affiliate--member:hover {
     color: var(--institution-text);
   }
 
-  .plu-global-nav__menu-button:focus-visible {
-    outline: 2px solid var(--institution-focus);
-    outline-offset: 2px;
+  .plu-global-nav__mobile-affiliate--member:hover .plu-global-nav__mobile-affiliate-label::after,
+  .plu-global-nav__mobile-affiliate--member.is-active .plu-global-nav__mobile-affiliate-label::after {
+    opacity: 1;
   }
 
-  .plu-global-nav__menu-icon {
-    display: block;
-    height: 10px;
-    position: relative;
-    width: 18px;
+  .plu-global-nav__mobile-affiliate--member.is-active {
+    color: var(--institution-text);
   }
-
-  .plu-global-nav__menu-line {
-    background: currentColor;
-    border-radius: 99px;
-    display: block;
-    height: 1px;
-    left: 0;
-    position: absolute;
-    right: 0;
-    transform-origin: center;
-    transition:
-      transform var(--motion-base) var(--ease-emphasized),
-      opacity var(--motion-fast) var(--ease-out);
-    width: 100%;
-  }
-
-  .plu-global-nav__menu-line:nth-child(1) {
-    top: 0;
-  }
-
-  .plu-global-nav__menu-line:nth-child(2) {
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .plu-global-nav__menu-line:nth-child(3) {
-    bottom: 0;
-  }
-
-  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(1) {
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-  }
-
-  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(2) {
-    opacity: 0;
-  }
-
-  .plu-global-nav__menu-button[aria-expanded='true'] .plu-global-nav__menu-line:nth-child(3) {
-    bottom: auto;
-    top: 50%;
-    transform: translateY(-50%) rotate(-45deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .plu-global-nav__menu-line,
-    .plu-global-nav__menu-button,
-    .plu-global-nav__emblem,
-    .plu-global-nav__link-icon,
-    .plu-global-nav__mobile-cluster .locale-switch__segment-thumb {
-      transition: none;
-    }
-
-    .plu-global-nav__brand:hover .plu-global-nav__emblem,
-    .plu-global-nav__link:hover .plu-global-nav__link-icon {
-      transform: none;
-    }
-  }
-
-  .institutional-hero__inner { padding-top: 34px; }
 }
 
 @media (max-width: 760px) {
-  .plu-global-nav { padding-inline: 16px; }
-  .plu-global-nav__brand {
-    gap: 8px;
-    /* Controles sueltos a la derecha: más aire para el letterhead */
-    max-width: min(100%, calc(100vw - 12rem));
+  .plu-global-nav {
+    padding-inline: 12px;
   }
-  .plu-global-nav__emblem { height: 32px; width: 32px; }
-  .plu-global-nav__letterhead { height: clamp(20px, 5.2vw, 23px); }
+  .plu-global-nav__brand {
+    max-width: min(100%, calc(100vw - 11rem));
+  }
+  .site-header-shell--institutional {
+    --brand-emblem-size: clamp(36px, 7.5vw + 8px, 42px);
+    --brand-nav-row: 44px;
+    --brand-wordmark-size: clamp(3.25rem, 11vw, 4.5rem);
+  }
+  .plu-global-nav__emblem {
+    height: var(--brand-emblem-size);
+    margin-block: calc((var(--brand-nav-row, 44px) - var(--brand-emblem-size)) / 2);
+    width: var(--brand-emblem-size);
+  }
+  .plu-global-nav__letterhead {
+    height: clamp(16px, 4.5vw, 20px);
+    max-width: var(--brand-wordmark-size, 4.5rem);
+  }
 
   .institutional-hero__inner {
     padding: 28px 18px 46px;
@@ -2725,10 +3067,18 @@ html.plu-drawer-open body {
 }
 
 @media (max-width: 520px) {
-  /* Letterhead pelea con prefs + CTA: priorizar emblema */
-  .plu-global-nav__brand > span { display: none; }
+  /* Letterhead pelea con prefs + CTA: priorizar emblema, más chico en phone. */
+  .plu-global-nav__wordmark { display: none; }
   .plu-global-nav__brand { max-width: none; }
-  .plu-global-nav__emblem { height: 34px; width: 34px; }
+  .site-header-shell--institutional {
+    --brand-emblem-size: clamp(34px, 9.5vw, 40px);
+    --brand-nav-row: 42px;
+  }
+  .plu-global-nav__emblem {
+    height: var(--brand-emblem-size);
+    margin-block: calc((var(--brand-nav-row, 42px) - var(--brand-emblem-size)) / 2);
+    width: var(--brand-emblem-size);
+  }
 }
 
 @media (max-width: 420px) {

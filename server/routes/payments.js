@@ -66,6 +66,14 @@ const embeddedPaymentSchema = z.object({
   }),
 })
 
+const paymentClientEventSchema = z.object({
+  paymentOrderId: z.string().uuid(),
+  orderAccessToken: z.string().trim().min(32).optional(),
+  stage: z.enum(['initialization', 'render']),
+  errorCode: z.string().trim().max(80).optional(),
+  message: z.string().trim().max(240).optional(),
+})
+
 const embeddedSubscriptionSchema = z.object({
   paymentOrderId: z.string().uuid(),
   orderAccessToken: z.string().trim().min(32).optional(),
@@ -106,17 +114,21 @@ export function createPaymentRoutes(deps = {}) {
   const router = Router()
   const env = deps.env ?? process.env
   const prisma = deps.getPrisma?.() ?? getPrisma()
+  const resolveSupabaseAdmin = () =>
+    Object.prototype.hasOwnProperty.call(deps, 'supabaseAdmin')
+      ? deps.supabaseAdmin
+      : getSupabaseAdmin()
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
 
   function repository() {
-    const client = deps.supabaseAdmin ?? getSupabaseAdmin()
+    const client = resolveSupabaseAdmin()
     if (!deps.repository && !client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
     return deps.repository ?? createSupabasePaymentRepository(client)
   }
 
   function services({ notifications = false } = {}) {
-    const client = deps.supabaseAdmin ?? getSupabaseAdmin()
+    const client = resolveSupabaseAdmin()
     const result = {
       repository: repository(),
       mercadoPago: deps.mercadoPago ?? createPaymentProviderAdapter({ env }),
@@ -141,7 +153,7 @@ export function createPaymentRoutes(deps = {}) {
       return order
     }
     const athleteSession = await readAthleteSession({
-      client: deps.supabaseAdmin ?? getSupabaseAdmin(),
+      client: resolveSupabaseAdmin(),
       token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
     })
     if (!athleteSession || athleteSession.athleteId !== order.athleteId) {
@@ -172,6 +184,17 @@ export function createPaymentRoutes(deps = {}) {
       await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await processEmbeddedPayment(req.validatedBody, services({ notifications: true }))
       res.status(result.duplicate ? 200 : 201).json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/telemetry', checkoutLimiter, validateBody(paymentClientEventSchema), async (req, res, next) => {
+    try {
+      const { paymentOrderId, orderAccessToken, ...event } = req.validatedBody
+      const order = await requireOrderAccess(req, paymentOrderId, orderAccessToken)
+      await repository().recordClientEvent({ order, ...event })
+      res.status(202).json({ accepted: true })
     } catch (error) {
       next(error)
     }

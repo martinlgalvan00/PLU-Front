@@ -34,6 +34,8 @@ function toCamelAthlete(row) {
     category: row.category,
     estimatedWeight: row.estimated_weight,
     status: row.status,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    updatedAt: row.updated_at ?? row.updatedAt ?? null,
     photoPath: row.photo_path,
     photoUrl: row.photo_url ?? null,
     // Afiliarse e inscribirse exigen correo confirmado (ver
@@ -60,6 +62,8 @@ function toCamelMembership(row) {
     memberCode: row.member_code,
     qrToken: row.qr_token,
     paymentOrderId: row.payment_order_id,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    updatedAt: row.updated_at ?? row.updatedAt ?? null,
   }
 }
 
@@ -74,9 +78,10 @@ function toCamelPaymentOrder(row) {
     method: row.method,
     status: row.status,
     reference: row.reference,
-    paymentProofPath: row.payment_proof_path,
-    paymentProofUploadedAt: row.payment_proof_uploaded_at,
-    createdAt: row.created_at,
+    paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
+    paymentProofUploadedAt:
+      row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    createdAt: row.created_at ?? row.createdAt ?? null,
   }
 }
 
@@ -95,6 +100,8 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     bodyweight: registration.bodyweight_kg,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
+    createdAt: registration.created_at ?? registration.createdAt ?? null,
+    updatedAt: registration.updated_at ?? registration.updatedAt ?? null,
     checkedInAt: checkIn?.scanned_at ?? null,
     // Día y tanda asignados. null mientras la organización no armó la grilla.
     schedule: toCamelSchedule(schedule ?? registration.schedule),
@@ -124,7 +131,7 @@ const CONCEPT_LABELS = {
  * esperaban los componentes (incluye el array `payments`, que antes vivía
  * suelto en localStorage).
  */
-function mapAthleteData({ athletes, athlete, memberships, registrations, paymentOrders }) {
+export function mapAthleteData({ athletes, athlete, memberships, registrations, paymentOrders }) {
   const athleteRows = (athletes ?? (athlete ? [athlete] : [])).map(toCamelAthlete)
   const membershipRows = (memberships ?? []).map(toCamelMembership)
   const registrationRows = (registrations ?? []).map(toCamelRegistrationEntry)
@@ -144,7 +151,10 @@ function mapAthleteData({ athletes, athlete, memberships, registrations, payment
       method: order.method,
       status: order.status,
       reference: order.reference,
-      createdAt: order.created_at,
+      paymentProofPath: order.payment_proof_path ?? order.paymentProofPath ?? null,
+      paymentProofUploadedAt:
+        order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      createdAt: order.created_at ?? order.createdAt ?? null,
     }
   })
 
@@ -233,6 +243,11 @@ export function verifyAthleteEmail(token) {
 /** Reenvía el enlace de confirmación al atleta con sesión iniciada. */
 export function resendAthleteVerification() {
   return apiPost('/api/athletes/me/resend-verification', {})
+}
+
+/** Confirma el correo con el OTP del mail (fallback si el link no abre). */
+export function verifyAthleteEmailCode(code) {
+  return apiPost('/api/athletes/me/verify-email-code', { code })
 }
 
 /** Snapshot completo para el panel admin/seguridad. */

@@ -2,7 +2,7 @@ import { History } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 
-export default function HistorySection({ athleteRegistrations }) {
+export default function HistorySection({ athleteRegistrations, onNavigateSection }) {
   const { t } = useI18n()
 
   return (
@@ -22,7 +22,19 @@ export default function HistorySection({ athleteRegistrations }) {
           ))}
         </div>
       ) : (
-        <p className="account-section__empty">{t('account.historyEmpty')}</p>
+        <div className="account-empty">
+          <p className="account-empty__title">{t('account.history.emptyTitle')}</p>
+          <p className="account-empty__lead">{t('account.history.emptyLead')}</p>
+          {typeof onNavigateSection === 'function' ? (
+            <button
+              type="button"
+              className="account-empty__action"
+              onClick={() => onNavigateSection('account-events')}
+            >
+              {t('account.history.emptyAction')}
+            </button>
+          ) : null}
+        </div>
       )}
     </section>
   )

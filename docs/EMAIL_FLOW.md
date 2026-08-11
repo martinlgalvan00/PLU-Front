@@ -48,10 +48,13 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 
 | Tipo | Disparador | Opt-out |
 |---|---|---|
-| `welcome` | Registro de atleta | no |
+| `welcome` | Legacy (ya no se dispara en el alta; se mantiene el template) | no |
 | `email_verification` | Registro + `POST /api/athletes/me/resend-verification` | no (crítico) |
 | `password_reset` | `POST /api/athletes/forgot-password` | no (crítico) |
 | `security_access` | Alta de cuenta de seguridad | no (crítico) |
+| `staff_invitation` | Alta o reenvío de acceso al panel | no (crítico) |
+| `staff_email_change` | Solicitud de cambio de email del staff | no (crítico) |
+| `staff_email_changed` | Aviso a la casilla anterior | no (crítico) |
 | `affiliation_started` | Pago de membresía acreditado que no dejó afiliación activa | no |
 | `affiliation_approved` | Afiliación activada, por Mercado Pago o aprobación manual | no |
 | `affiliation_cancelled` | Afiliación cancelada o reintegrada | no |
@@ -80,14 +83,15 @@ inscribirse** (`assertEmailVerified` en `routes/athletes.js`), que son las dos a
 terminan en un pago. Un typo en la dirección ahí deja al atleta sin comprobante y sin forma de
 reclamar.
 
-- Registro → manda `welcome` + `email_verification` (dos emails: el segundo tiene una sola acción
-  y se perdería mezclado en el primero).
+- Registro → manda **un solo** `email_verification` (asunto *Bienvenido a PLU ARG: confirma tu
+  correo*; título *Te damos la bienvenida a PLU Argentina* + CTA + OTP de 6 dígitos).
 - El link es `/?verificar=<token>`, con token HMAC de 7 días, resuelto por
   `EmailVerificationNotice.jsx`.
-- Reenvío: `POST /api/athletes/me/resend-verification`.
-- A diferencia del reset de contraseña, **no se persiste el hash del token**: reabrir el link
-  sobre una cuenta ya verificada es idempotente y no otorga ninguna credencial. El `typ` del
-  payload impide cruzar un token de reset con uno de verificación aunque compartan `AUTH_SECRET`.
+- Fallback OTP: código de 6 dígitos (hash en `athletes.email_otp_*`, TTL 24 h). Se ingresa en
+  Mi cuenta (`POST /api/athletes/me/verify-email-code`).
+- Reenvío: `POST /api/athletes/me/resend-verification` (regenera link + OTP).
+- El link HMAC sigue sin persistirse: reabrir sobre una cuenta ya verificada es idempotente.
+  El OTP sí se hashea en DB y se invalida al usarlo o al emitir uno nuevo.
 - La migración marca como verificadas las cuentas preexistentes: bloquearlas retroactivamente les
   cortaría la afiliación sin aviso.
 
@@ -137,6 +141,10 @@ email:event_announcement:<eventId>:<athleteId>
 `claim_retryable_emails` reserva el lote con `for update skip locked`, así que dos instancias no
 mandan el mismo email. También rescata filas colgadas en `processing` hace más de 15 minutos
 (instancia que murió a mitad de envío).
+
+Los emails que contienen un enlace bearer o un código de verificación no se reintentan desde el
+outbox: sus valores se redactan antes de persistir. Ante una falla se reemite una credencial nueva
+desde el flujo de origen (Usuarios, recuperación o Seguridad), invalidando la anterior.
 
 > **Limitación en Vercel Hobby**: los cron jobs admiten una sola corrida diaria (contrato
 > verificado en `tests/deploymentConfig.test.js`), así que el backoff colapsa a un intento por
@@ -224,11 +232,14 @@ considera sana una instalación que solo puede observar el `201` inicial.
 
 - `BREVO_API_KEY` vive **solo** en el servidor. El frontend no habla con Brevo; pide envíos a
   `/api/emails`. `tests/env.test.js` verifica que no reaparezca `VITE_BREVO_API_KEY`.
-- Los tipos de cuenta (`welcome`, `password_reset`, `security_access`) **no** se pueden disparar
+- Los tipos de cuenta (`welcome`, `password_reset`, `security_access`, `staff_invitation`) **no** se pueden disparar
   desde `POST /api/emails/send`: permitir un `password_reset` a mano sería una vía de phishing
   con nuestro propio remitente verificado.
 - Los params se escapan al renderizar el HTML y las URLs se validan por protocolo
   (`javascript:` y `data:` se descartan).
+- Contraseñas, OTP y URLs firmadas se usan solamente en memoria. En
+  `transactional_email_logs.payload` quedan como `[REDACTED]`; las claves de idempotencia usan
+  huellas SHA-256 y nunca fragmentos del secreto.
 
 ## Variables de entorno
 

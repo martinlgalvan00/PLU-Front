@@ -25,6 +25,7 @@ export const demoAthletes = [
     category: 'Raw',
     estimatedWeight: '67.5',
     status: 'afiliado_activo',
+    createdAt: '2026-08-08T13:30:00Z',
   },
   {
     id: 'ath-002',
@@ -42,6 +43,7 @@ export const demoAthletes = [
     category: 'Raw With Wraps',
     estimatedWeight: '82.5',
     status: 'registrado',
+    createdAt: '2026-08-10T16:45:00Z',
   },
 ]
 
@@ -72,6 +74,7 @@ export const demoRegistrations = [
     paymentStatus: 'aprobado',
     notes: 'Afiliación e inscripción pagadas por Mercado Pago.',
     checkedInAt: null,
+    createdAt: '2026-08-09T14:10:00Z',
   },
   {
     id: 'reg-002',
@@ -85,6 +88,7 @@ export const demoRegistrations = [
     paymentStatus: 'validacion_manual',
     notes: 'Pendiente de validación manual.',
     checkedInAt: null,
+    createdAt: '2026-08-10T17:20:00Z',
   },
 ]
 

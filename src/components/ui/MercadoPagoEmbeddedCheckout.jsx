@@ -2,12 +2,14 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { CardPayment, Payment, initMercadoPago } from '@mercadopago/sdk-react'
 import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
+import { money } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   processEmbeddedPayment,
   processEmbeddedSubscription,
   getPaymentOrderStatus,
   notifyMockPayment,
+  reportPaymentClientEvent,
 } from '../../services/paymentService.js'
 
 let initializedPublicKey = null
@@ -71,7 +73,7 @@ function buildMockFormData(order, paymentMethodId) {
   }
 }
 
-export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
+export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentation = 'default' }) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
   const [result, setResult] = useState(null)
@@ -83,6 +85,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
   const isMock = env.payments.isMock
+  const isModal = presentation === 'modal'
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
   const initialization = useMemo(() => ({
     amount: Number(order?.amount ?? 0),
@@ -182,7 +185,18 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
   }, [onResult, order?.orderAccessToken, orderId, result?.data?.payment?.id, t])
 
   const handleReady = useCallback(() => setReady(true), [])
-  const handleRenderError = useCallback(() => setError(t('payments.embeddedRenderError')), [t])
+  const handleRenderError = useCallback((brickError) => {
+    setError(t('payments.embeddedRenderError'))
+    void reportPaymentClientEvent({
+      paymentOrderId: orderId,
+      orderAccessToken: order?.orderAccessToken,
+      stage: 'render',
+      errorCode: brickError?.type ?? brickError?.name ?? 'brick_render_error',
+      message: brickError?.message ?? t('payments.embeddedRenderError'),
+    }).catch(() => {
+      // La telemetria no debe reemplazar el error original ni bloquear el reintento.
+    })
+  }, [order?.orderAccessToken, orderId, t])
   const refreshStatus = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setChecking(true)
     try {
@@ -233,9 +247,18 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
       : t(isSubscription ? 'payments.subscriptionPendingCharge' : 'payments.paymentPending')
   const mockPaymentId = result?.data?.payment?.id ?? null
   const payerEmail = resolvePayerEmail(order)
+  const mockPrimary = MOCK_OUTCOMES.find((outcome) => outcome.variant === 'success')
+  const mockSecondary = MOCK_OUTCOMES.filter((outcome) => outcome.variant !== 'success')
+  const formattedAmount = money(Number(order?.amount ?? 0), locale)
+  const summaryLabel = order?.plan?.name
+    || order?.description
+    || t(isSubscription ? 'payments.subscriptionTitle' : 'payments.embeddedTitle')
 
   return (
-    <section className="mp-embedded-checkout" aria-labelledby={`mp-checkout-title-${orderId}`}>
+    <section
+      className={`mp-embedded-checkout${isModal ? ' mp-embedded-checkout--modal' : ''}`}
+      aria-labelledby={`mp-checkout-title-${orderId}`}
+    >
       <header className="mp-embedded-checkout__header">
         <span className="mp-embedded-checkout__icon"><ShieldCheck size={20} aria-hidden /></span>
         <div>
@@ -246,66 +269,105 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
         </div>
       </header>
 
-      {isMock && (
-        <p className="mp-embedded-checkout__mock-banner" role="status">
-          {t('payments.mockBanner')}
-        </p>
-      )}
-
-      {isMock && (
-        <dl className="mp-embedded-checkout__mock-meta">
-          <div>
-            <dt>{t('payments.mockOrderId')}</dt>
-            <dd><code>{orderId}</code></dd>
-          </div>
-          <div>
-            <dt>{t('payments.mockPayerEmail')}</dt>
-            <dd><code>{payerEmail}</code></dd>
-          </div>
-          {order?.status ? (
-            <div>
-              <dt>{t('payments.mockOrderStatus')}</dt>
-              <dd><code>{order.status}</code></dd>
-            </div>
-          ) : null}
-          {mockPaymentId ? (
-            <div>
-              <dt>{t('payments.mockPaymentId')}</dt>
-              <dd><code>{mockPaymentId}</code></dd>
-            </div>
-          ) : null}
-        </dl>
-      )}
-
       {!isMock && !ready && !result && <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>}
       {isMock && simulating && !result && (
         <p className="mp-embedded-checkout__loading">{t('payments.mockProcessing')}</p>
       )}
 
       {!result && isMock && (
-        <div className="mp-embedded-checkout__mock-panel">
-          {isSubscription ? (
-            <button
-              type="button"
-              className="btn"
-              disabled={simulating}
-              onClick={() => void simulateOutcome('mock_approved')}
-            >
-              {t('payments.mockAuthorizeSubscription')}
-            </button>
-          ) : (
-            MOCK_OUTCOMES.map((outcome) => (
+        <div className="mp-embedded-checkout__mock">
+          <div className="mp-embedded-checkout__mock-summary">
+            <div className="mp-embedded-checkout__mock-summary-top">
+              <span className="mp-embedded-checkout__mock-summary-label">{summaryLabel}</span>
+              <span className="mp-embedded-checkout__mock-chip" role="status">
+                {t('payments.mockChip')}
+              </span>
+            </div>
+            <strong className="mp-embedded-checkout__mock-amount">{formattedAmount}</strong>
+            <p className="mp-embedded-checkout__mock-payer">{payerEmail}</p>
+          </div>
+
+          {!isModal ? (
+            <details className="mp-embedded-checkout__mock-details">
+              <summary>{t('payments.mockDetails')}</summary>
+              <dl className="mp-embedded-checkout__mock-meta">
+                <div>
+                  <dt>{t('payments.mockOrderId')}</dt>
+                  <dd><code>{orderId}</code></dd>
+                </div>
+                {order?.status ? (
+                  <div>
+                    <dt>{t('payments.mockOrderStatus')}</dt>
+                    <dd><code>{order.status}</code></dd>
+                  </div>
+                ) : null}
+                {mockPaymentId ? (
+                  <div>
+                    <dt>{t('payments.mockPaymentId')}</dt>
+                    <dd><code>{mockPaymentId}</code></dd>
+                  </div>
+                ) : null}
+              </dl>
+            </details>
+          ) : null}
+
+          <div className="mp-embedded-checkout__mock-panel">
+            {isSubscription ? (
               <button
-                key={outcome.id}
                 type="button"
-                className={outcome.variant === 'success' ? 'btn' : 'btn btn--outline'}
+                className="mp-embedded-checkout__mock-cta"
                 disabled={simulating}
-                onClick={() => void simulateOutcome(outcome.id)}
+                onClick={() => void simulateOutcome('mock_approved')}
               >
-                {t(outcome.labelKey)}
+                {t('payments.mockAuthorizeSubscription')}
               </button>
-            ))
-          )}
+            ) : (
+              <>
+                {mockPrimary ? (
+                  <button
+                    type="button"
+                    className="mp-embedded-checkout__mock-cta"
+                    disabled={simulating}
+                    onClick={() => void simulateOutcome(mockPrimary.id)}
+                  >
+                    {t(mockPrimary.labelKey)}
+                  </button>
+                ) : null}
+                {isModal ? (
+                  <details className="mp-embedded-checkout__mock-more">
+                    <summary>{t('payments.mockMoreOutcomes')}</summary>
+                    <div className="mp-embedded-checkout__mock-alts" role="group" aria-label={t('payments.mockAltsLabel')}>
+                      {mockSecondary.map((outcome) => (
+                        <button
+                          key={outcome.id}
+                          type="button"
+                          className="mp-embedded-checkout__mock-alt"
+                          disabled={simulating}
+                          onClick={() => void simulateOutcome(outcome.id)}
+                        >
+                          {t(outcome.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                ) : (
+                  <div className="mp-embedded-checkout__mock-alts" role="group" aria-label={t('payments.mockAltsLabel')}>
+                    {mockSecondary.map((outcome) => (
+                      <button
+                        key={outcome.id}
+                        type="button"
+                        className="mp-embedded-checkout__mock-alt"
+                        disabled={simulating}
+                        onClick={() => void simulateOutcome(outcome.id)}
+                      >
+                        {t(outcome.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -368,9 +430,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult }) {
           {t('payments.reloadCheckout')}
         </button>
       )}
-      <small className="mp-embedded-checkout__security">
-        {t(isMock ? 'payments.mockSecurity' : 'payments.embeddedSecurity')}
-      </small>
+      {!isModal ? (
+        <small className="mp-embedded-checkout__security">
+          {t(isMock ? 'payments.mockSecurity' : 'payments.embeddedSecurity')}
+        </small>
+      ) : null}
     </section>
   )
 }

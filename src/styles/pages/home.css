@@ -4155,7 +4155,21 @@
   justify-content: center;
   letter-spacing: 0.04em;
   line-height: 1;
+  overflow: hidden;
   width: 34px;
+}
+
+.community-spotlight__avatar--photo {
+  background: var(--color-bg-elevated, #1a1c22);
+  border-color: color-mix(in oklab, var(--color-brand-gold) 34%, transparent);
+  padding: 0;
+}
+
+.community-spotlight__avatar--photo img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .community-spotlight__index {

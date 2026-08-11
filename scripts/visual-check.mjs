@@ -12,12 +12,10 @@
  * Qué valida:
  *   - Overflow horizontal en notebook/mobile/desktop, light y dark.
  *   - Errores de consola (page errors) durante navegación e interacción.
- *   - Selección de pasos del stepper de "Camino del competidor" (incluida
- *     la transición de fase "antes del meet" → "día de competencia").
- *   - Selector de jornada en "Cómo corre el meet".
+ *   - Navegación entre las seis secciones del dossier actual del evento.
  *   - Reduced motion: el contenido debe quedar completo sin animación.
  *   - Tamaño mínimo de targets táctiles (44×44px) en los controles
- *     interactivos del stepper, el selector de jornada y los lanes del meet.
+ *     interactivos de navegación, inscripción, reglamento y mapas.
  *
  * No reemplaza una suite de Playwright Test formal (el repo no tiene
  * @playwright/test como dependencia); usa la librería `playwright`, que
@@ -81,10 +79,12 @@ async function checkOverflow(page, label) {
 
 async function checkTapTargets(page, label) {
   const selectors = [
-    '.pitbull-stepper__node',
-    '.pitbull-meet__lane-hit',
-    '.segmented-switch__option',
-    '.pitbull-doc__nav-item',
+    '.pitbull-section-nav__item',
+    '.pitbull-hero-masthead__cta',
+    '.pitbull-inscription__cta',
+    '.pitbull-venue__directions',
+    '.pitbull-cat__rulebook',
+    '.pitbull-tickets-band__cta',
   ]
   for (const selector of selectors) {
     const boxes = await page.$$eval(selector, (els) =>
@@ -119,29 +119,21 @@ async function run() {
       await checkOverflow(page, label)
 
       if (bp.width >= 1024) {
-        // Stepper: recorrer los 5 pasos, incluida la transición de fase.
-        const nodes = await page.$$('.pitbull-stepper__node')
-        if (nodes.length !== 5) {
-          fail(`Se esperaban 5 pasos en el stepper (${label}), se encontraron ${nodes.length}`)
-        }
-        for (let i = 0; i < nodes.length; i += 1) {
-          await nodes[i].click()
-          await page.waitForTimeout(150)
-        }
-        pass(`Stepper: recorrido de 5 pasos + transición de fase OK — ${label}`)
-
-        // Selector de jornada del meet.
-        const dayOptions = await page.$$('.pitbull-meet__switch .segmented-switch__option')
-        if (dayOptions.length >= 2) {
-          await dayOptions[1].click()
-          await page.waitForTimeout(200)
-          await dayOptions[0].click()
-          await page.waitForTimeout(200)
-          pass(`Selector de jornada funcional — ${label}`)
+        // Dossier actual: las seis anclas deben navegar y quedar activas.
+        const navItems = await page.$$('.pitbull-section-nav__item')
+        if (navItems.length !== 6) {
+          fail(`Se esperaban 6 secciones en el dossier (${label}), se encontraron ${navItems.length}`)
         } else {
-          fail(`Selector de jornada no encontrado o incompleto — ${label}`)
+          for (let i = 0; i < navItems.length; i += 1) {
+            await navItems[i].click()
+            await page.waitForTimeout(150)
+            const current = await navItems[i].getAttribute('aria-current')
+            if (current !== 'location') {
+              fail(`La sección ${i + 1} no quedó activa al navegar (${label})`)
+            }
+          }
+          pass(`Navegación del dossier: 6 secciones funcionales — ${label}`)
         }
-
         await checkTapTargets(page, label)
       }
 
@@ -159,11 +151,11 @@ async function run() {
     const page = await ctx.newPage()
     page.on('pageerror', (e) => consoleErrors.push(`[reduced-motion] ${e.message}`))
     await gotoPitbull(page, { theme: 'dark', reducedMotion: true })
-    const stepsVisible = await page.$$eval('.pitbull-stepper__node', (els) => els.length)
-    if (stepsVisible === 5) {
-      pass('Reduced motion: los 5 pasos del stepper están presentes sin interacción')
+    const sectionsVisible = await page.$$eval('.pitbull-section-nav__item', (els) => els.length)
+    if (sectionsVisible === 6) {
+      pass('Reduced motion: las 6 secciones del dossier están presentes sin interacción')
     } else {
-      fail(`Reduced motion: se esperaban 5 pasos, se encontraron ${stepsVisible}`)
+      fail(`Reduced motion: se esperaban 6 secciones, se encontraron ${sectionsVisible}`)
     }
     await page.screenshot({ path: join(OUT_DIR, 'reduced-motion.png') })
     await ctx.close()

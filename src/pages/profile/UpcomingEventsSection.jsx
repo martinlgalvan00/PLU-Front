@@ -12,10 +12,15 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
   const hasActiveMembership = isMembershipCurrent(membership)
 
   return (
-    <section id="account-events" className="account-section account-section--gold">
+    <section id="account-events" className="account-section account-section--events">
       <div className="account-section__heading">
-        <div className="account-section__icon account-section__icon--gold"><Trophy size={21} /></div>
-        <div><span>{t('account.events.eyebrow')}</span><h2>{t('account.events.title')}</h2></div>
+        <div className="account-section__icon account-section__icon--gold" aria-hidden>
+          <Trophy size={18} strokeWidth={1.7} />
+        </div>
+        <div>
+          <span>{t('account.events.eyebrow')}</span>
+          <h2>{t('account.events.title')}</h2>
+        </div>
       </div>
       {availableEvents.length ? (
         <div className="account-events-list">
@@ -25,13 +30,17 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
             const membershipPending = needsMembership && !hasActiveMembership
 
             return (
-              <article key={event.slug}>
+              <article key={event.slug} className="account-events-list__row">
                 <time dateTime={event.dateISO}>{event.date}</time>
-                <div>
+                <div className="account-events-list__body">
                   <h3>{event.title}</h3>
-                  <p>{event.venue} · {event.location}</p>
+                  <p>
+                    {event.venue} · {event.location}
+                  </p>
                   {membershipPending ? (
-                    <p className="account-event-membership-note">{t('account.events.membershipRequiredText')}</p>
+                    <p className="account-event-membership-note">
+                      {t('account.events.membershipRequiredText')}
+                    </p>
                   ) : null}
                 </div>
                 <span className="account-event-status">
@@ -43,6 +52,7 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
                 </span>
                 <button
                   type="button"
+                  className={`account-events-list__cta${registered ? ' is-registered' : ''}`}
                   onClick={() => onNavigate('competition')}
                   disabled={registered}
                 >

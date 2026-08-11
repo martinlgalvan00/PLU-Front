@@ -95,6 +95,30 @@ export function createSupabasePaymentRepository(
   return {
     getOrder,
 
+    async recordClientEvent({ order, stage, errorCode, message }) {
+      return assertResult(
+        await client.from('operational_event_logs').insert({
+          organization_id: order.organizationId ?? organizationId,
+          source: 'payment',
+          action: 'payment_brick.error',
+          entity_type: order.kind === 'ticket' ? 'ticket_order' : 'athlete_payment_order',
+          entity_id: order.id,
+          actor_type: order.kind === 'ticket' ? 'buyer' : 'athlete',
+          actor_id: order.athleteId ?? order.payerEmail ?? null,
+          status: 'failed',
+          severity: 'danger',
+          metadata: {
+            stage,
+            errorCode: errorCode ?? null,
+            error: message ?? null,
+            payerEmail: order.payerEmail ?? null,
+            reference: order.reference,
+          },
+        }),
+        'No se pudo registrar el error del Brick.',
+      )
+    },
+
     async assertTicketOrderAccess(orderId, accessToken) {
       if (!accessToken) throw new HttpError(401, 'Falta el token de acceso de la orden.')
       const tokenHash = createHash('sha256').update(accessToken).digest('hex')

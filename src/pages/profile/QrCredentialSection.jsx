@@ -194,8 +194,8 @@ export default function QrCredentialSection({
                   qrAlt={t('account.qr.imageAlt')}
                   qrCaption={t('account.qr.cardScanHint')}
                   validUntil={validUntil ? t('account.qr.validUntil', { date: validUntil }) : null}
-                  flipToBackLabel={t('account.credential.viewBack')}
-                  flipToFrontLabel={t('account.credential.viewFront')}
+                  flipToBackLabel={t('account.qr.cardFlipToBack')}
+                  flipToFrontLabel={t('account.qr.cardFlipToFront')}
                   flipAriaLabel={t('account.qr.cardFlipAria')}
                 />
               </div>
@@ -251,6 +251,7 @@ export default function QrCredentialSection({
                   <Share2 size={15} aria-hidden />
                   {t('account.qr.shareAction')}
                 </button>
+                <p className="account-qr__share-hint">{t('account.qr.shareHint')}</p>
               </div>
             </div>
           )}

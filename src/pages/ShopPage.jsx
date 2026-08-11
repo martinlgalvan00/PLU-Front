@@ -4,7 +4,6 @@ import { ArrowRight, CalendarDays, ChevronRight, ClipboardCheck, MapPin, Shoppin
 import shopHeroPhoto from '../assets/DSC00392-display.jpg'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
-import SpotlightCard from '../components/ui/SpotlightCard.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -18,9 +17,9 @@ import '../styles/pages/design-phase2.css'
 import '../styles/pages/shop.css'
 
 /**
- * Una card por evento publicado: nada acá está hardcodeado a un evento
+ * Fila editorial por evento publicado: nada acá está hardcodeado a un evento
  * puntual, así que un evento nuevo dado de alta en el panel de admin
- * aparece solo en esta grilla apenas se publica, sin tocar código.
+ * aparece solo en esta lista apenas se publica, sin tocar código.
  * Tocarla abre el detalle rápido (entradas + merch) en un panel lateral.
  */
 function shopTicketPriceLabel(salesOpen, fromPrice, locale, t) {
@@ -29,15 +28,14 @@ function shopTicketPriceLabel(salesOpen, fromPrice, locale, t) {
   return t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 }
 
-function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
+function ShopEventCard({ event, locale, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
   const salesOpen = isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
 
   return (
-    <SpotlightCard
-      as="article"
+    <article
       className="shop-event-card"
       role="button"
       tabIndex={0}
@@ -49,31 +47,23 @@ function ShopEventCard({ event, index, locale, onOpenDetail, t }) {
         }
       }}
     >
-      <span className="shop-event-card__index" aria-hidden>
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      <div className="shop-event-card__head">
-        <h3 className="shop-event-card__title">{event.title}</h3>
-        <StatusPill value={event.status} />
+      <span className="shop-event-card__date">{event.date}</span>
+      <div className="shop-event-card__main">
+        <div className="shop-event-card__head">
+          <h3 className="shop-event-card__title">{event.title}</h3>
+          <StatusPill value={event.status} />
+        </div>
+        <p className="shop-event-card__meta">{event.venue}</p>
+        <TicketAvailabilityBadge remaining={remaining} className="shop-event-card__availability" />
       </div>
-      <p className="shop-event-card__meta">
-        <CalendarDays size={13} aria-hidden />
-        {event.date}
-        <span className="shop-event-card__meta-sep" aria-hidden>
-          ·
-        </span>
-        <MapPin size={13} aria-hidden />
-        {event.venue}
-      </p>
-      <TicketAvailabilityBadge remaining={remaining} />
       <div className="shop-event-card__foot">
         <p className="shop-event-card__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
         <span className="shop-event-card__hint">
           {t('pages.shop.cardHint')}
-          <ChevronRight size={15} aria-hidden />
+          <ArrowRight size={14} aria-hidden />
         </span>
       </div>
-    </SpotlightCard>
+    </article>
   )
 }
 
@@ -247,8 +237,8 @@ function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
           </div>
 
           <div className="shop-hero__buy">
-            <TicketAvailabilityBadge remaining={remaining} />
             <p className="shop-hero__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
+            <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
             <div className="shop-hero__actions">
               <button
                 type="button"
@@ -256,12 +246,12 @@ function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
                 disabled={!salesOpen || soldOut}
                 onClick={onBuyTickets}
               >
-                <Ticket size={15} aria-hidden />
-                {t('pages.shop.buyTickets')}
+                <span>{t('pages.shop.buyTickets')}</span>
+                <ArrowRight size={16} aria-hidden />
               </button>
-              <button type="button" className="btn btn--outline shop-hero__secondary-cta" onClick={onViewDetail}>
+              <button type="button" className="shop-hero__secondary-cta" onClick={onViewDetail}>
                 {t('pages.shop.featuredViewDetail')}
-                <ArrowRight size={14} aria-hidden />
+                <ChevronRight size={15} aria-hidden />
               </button>
             </div>
           </div>
@@ -375,20 +365,30 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                 />
               ) : null}
 
-              <section className="shop-section" aria-labelledby="shop-tickets-title">
-                <div className="shop-section__header">
-                  <h2 id="shop-tickets-title" className="shop-section__title">
-                    {t('pages.shop.ticketsHeading')}
-                  </h2>
+              <section className="shop-section shop-section--tickets" aria-labelledby="shop-tickets-title">
+                <div className="shop-section__header shop-section__header--tickets">
+                  <span className="shop-section__eyebrow">{t('pages.shop.emptyEyebrow')}</span>
+                  <div className="shop-section__heading">
+                    <h2 id="shop-tickets-title" className="shop-section__title">
+                      {t('pages.shop.ticketsHeading')}
+                    </h2>
+                    {shopEvents.length > 0 ? (
+                      <span
+                        className="shop-section__count"
+                        aria-label={t('pages.shop.dockCount', { count: shopEvents.length })}
+                      >
+                        {String(shopEvents.length).padStart(2, '0')}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="shop-section__lead">{t('pages.shop.ticketsLead')}</p>
                 </div>
                 {shopEvents.length > 0 ? (
                   <div className="shop-events-grid">
-                    {shopEvents.map((event, index) => (
+                    {shopEvents.map((event) => (
                       <ShopEventCard
                         key={event.slug ?? event.id ?? event.title}
                         event={event}
-                        index={index}
                         locale={locale}
                         onOpenDetail={setDetailEvent}
                         t={t}

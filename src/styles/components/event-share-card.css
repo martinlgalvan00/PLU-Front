@@ -197,12 +197,14 @@
 .share-card__logo {
   height: 92px;
   width: auto;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
-  filter: brightness(1.1);
+  /* Sin filter: html2canvas + scale del preview lo ablandan y se ve pixelado. */
+  flex-shrink: 0;
 }
 
 .share-card--story .share-card__logo {
-  height: 118px;
+  height: 128px;
 }
 
 .share-card__brand-name {
@@ -560,7 +562,196 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   MEMBERSHIP — jerarquía editorial (solo variante membership)
+   Marca más presente, afiliación con peso, footer mínimo.
+   Hex/rgba planos: html2canvas no rasteriza color-mix.
+   Square 1080×1080 es ajustado: los bumps fuertes van en story.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.share-card--membership .share-card__logo {
+  height: 112px;
+}
+
+.share-card--membership.share-card--story .share-card__logo {
+  height: 152px;
+}
+
+.share-card--membership .share-card__brand-name {
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.share-card--membership.share-card--story .share-card__brand-name {
+  font-size: 34px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.share-card--membership .share-card__status {
+  padding: 10px 18px;
+  background: transparent;
+  border-color: rgba(242, 183, 5, 0.32);
+  font-size: 17px;
+  letter-spacing: 0.14em;
+}
+
+/* Story: header institucional limpio — status como firma, sin pill. */
+.share-card--membership.share-card--story .share-card__header {
+  align-items: flex-start;
+  padding-top: 200px;
+}
+
+.share-card--membership.share-card--story .share-card__brand {
+  gap: 22px;
+}
+
+.share-card--membership.share-card--story .share-card__status {
+  border: none;
+  padding: 6px 0 0;
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.62);
+  background: transparent;
+}
+
+.share-card--membership .share-card__body {
+  gap: 36px;
+  padding-top: 40px;
+  padding-bottom: 28px;
+}
+
+/* Story body: composición editorial — aire, tipografía, menos cajas. */
+.share-card--membership.share-card--story .share-card__body {
+  gap: 72px;
+  justify-content: flex-start;
+  padding: 120px 80px 40px;
+}
+
+.share-card--membership .share-card__event-section {
+  gap: 12px;
+  padding: 28px 36px;
+}
+
+.share-card--membership.share-card--story .share-card__event-section {
+  background: transparent;
+  border: none;
+  border-left: 2px solid rgba(242, 183, 5, 0.55);
+  border-radius: 0;
+  flex: 1 1 auto;
+  gap: 20px;
+  justify-content: center;
+  min-height: 0;
+  padding: 12px 0 12px 36px;
+}
+
+.share-card--membership .share-card__event-eyebrow {
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.share-card--membership.share-card--story .share-card__event-eyebrow {
+  font-size: 20px;
+  letter-spacing: 0.24em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.share-card--membership .share-card__event-title {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.share-card--membership.share-card--story .share-card__event-title {
+  font-size: 64px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.share-card--membership .share-card__event-meta {
+  font-size: 24px;
+}
+
+.share-card--membership.share-card--story .share-card__event-meta {
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.share-card--membership .share-card__event-category {
+  font-size: 18px;
+  margin-top: 4px;
+  color: rgba(242, 183, 5, 0.88);
+  letter-spacing: 0.08em;
+}
+
+.share-card--membership.share-card--story .share-card__event-category {
+  font-size: 20px;
+  margin-top: 10px;
+  letter-spacing: 0.12em;
+}
+
+.share-card--membership.share-card--story .share-card__athlete-name {
+  letter-spacing: -0.04em;
+}
+
+.share-card--membership.share-card--story .share-card__divider {
+  width: 48px;
+}
+
+/* Footer membership: sin placa — QR + firma fina sobre una regla. */
+.share-card--membership .share-card__footer {
+  margin: 0 72px 48px;
+  padding: 22px 0 0;
+  gap: 24px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  background: transparent;
+}
+
+.share-card--membership.share-card--story .share-card__footer {
+  margin-top: 40px;
+  margin-bottom: 186px;
+  padding-top: 36px;
+  gap: 28px;
+}
+
+.share-card--membership .share-card__tagline {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.share-card--membership.share-card--story .share-card__tagline {
+  font-size: 18px;
+  letter-spacing: 0.18em;
+}
+
+.share-card--membership .share-card__qr-caption {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.share-card--membership .share-card__url {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.36);
+}
+
+.share-card--membership .share-card__qr-chip {
+  box-shadow: 0 0 0 1px rgba(242, 183, 5, 0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    MODAL DE PREVIEW
+   Siempre cabe en viewport: max-height + preview que encoge.
    ═══════════════════════════════════════════════════════════════════ */
 
 .card-modal-overlay {
@@ -568,13 +759,15 @@
   inset: 0;
   z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
-  background: rgba(10, 11, 13, 0.88);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(10, 11, 13, 0.9);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: card-modal-fade-in 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
-  padding: 24px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes card-modal-fade-in {
@@ -583,116 +776,149 @@
 }
 
 .card-modal {
-  width: min(520px, 100%);
-  background: #141518;
+  width: min(480px, 100%);
+  max-height: min(92vh, 720px);
+  max-height: min(92dvh, 720px);
+  min-height: 0;
+  margin: auto;
+  background: #121316;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow:
-    0 32px 64px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+    0 24px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
   animation: card-modal-slide-up 280ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
 }
 
 @keyframes card-modal-slide-up {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Header del modal */
+/* Header del modal — chrome compacto */
 .card-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+  flex-shrink: 0;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .card-modal__title {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  color: #fff;
-  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .card-modal__close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 150ms var(--ease-out, ease), color 150ms var(--ease-out, ease);
   font-size: 18px;
   line-height: 1;
 }
 
 .card-modal__close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
-/* Selector de formato (cuadrada / historia) — el modal es siempre oscuro sin
-   importar el tema del sitio, así que forzamos la paleta oscura del switch
-   (si no, hereda el tema claro global y queda un pill blanco fuera de lugar). */
+.card-modal__close:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.5);
+  outline-offset: 2px;
+}
+
+/* Selector de formato — track fino, tipografía quieta */
 .card-modal__format-switch {
-  padding: 14px 20px 0;
+  flex-shrink: 0;
+  padding: 10px 16px 0;
 }
 
 .card-modal__format-switch .segmented-switch,
 [data-theme='light'] .card-modal__format-switch .segmented-switch {
-  --switch-track-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.012) 100%), #1a1c22;
-  --switch-track-border: rgba(255, 255, 255, 0.1);
-  --switch-thumb-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.07) 100%);
-  --switch-thumb-border: rgba(255, 255, 255, 0.22);
-  --switch-option-fg: rgba(255, 255, 255, 0.55);
+  --switch-pad: 2px;
+  --switch-track-bg: #1a1c22;
+  --switch-track-border: rgba(255, 255, 255, 0.08);
+  --switch-thumb-bg: rgba(255, 255, 255, 0.1);
+  --switch-thumb-border: rgba(255, 255, 255, 0.14);
+  --switch-thumb-shadow: none;
+  --switch-option-fg: rgba(255, 255, 255, 0.45);
   --switch-option-active-fg: #ffffff;
+}
+
+.card-modal__format-switch .segmented-switch__thumb::after {
+  display: none;
+}
+
+.card-modal__format-switch .segmented-switch__option {
+  min-height: 30px;
+  padding: 4px 2px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
 }
 
 [data-theme='light'] .card-modal__format-switch .segmented-switch__option.is-active {
   color: #ffffff;
 }
 
-/* Preview de la card */
+/* Preview: ocupa el aire restante y se encoge antes de overflowar */
 .card-modal__preview-wrap {
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.3);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden;
 }
 
 .card-modal__preview-inner {
-  border-radius: 10px;
+  width: 100%;
+  max-width: min(100%, 42vh);
+  max-width: min(100%, 42dvh);
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  /* La card interna se auto-escala vía aspect-ratio */
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
 
-/* La historia es 9:16 — a lo ancho completo del modal quedaría enorme,
-   así que angostamos el marco para que el modal no se vuelva gigante. */
+/* Historia 9:16: ancho acotado para no empujar el modal */
 .card-modal__preview-inner--story {
-  max-width: 220px;
+  max-width: min(200px, 26vh);
+  max-width: min(200px, 26dvh);
   margin: 0 auto;
 }
 
-/* Hint de compartir */
+/* Hint de compartir — una línea discreta */
 .card-modal__hint {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.38);
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .card-modal__hint-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #3d9a62;
   flex-shrink: 0;
@@ -702,12 +928,31 @@
 .card-modal__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 16px 20px 20px;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 16px 14px;
 }
 
 .card-modal__actions .btn {
   justify-content: center;
+  min-height: 44px;
+}
+
+.card-modal__feedback {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.card-modal__feedback--error {
+  color: #ff3b36;
+}
+
+.card-modal__feedback--done {
+  color: #8fd4a8;
 }
 
 /* Estado de generando */
@@ -716,16 +961,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  flex-shrink: 0;
+  padding: 28px 16px;
   gap: 12px;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .card-modal__spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid rgba(255, 255, 255, 0.1);
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-top-color: #f2b705;
   border-radius: 50%;
   animation: card-spin 700ms linear infinite;
@@ -735,72 +981,86 @@
   to { transform: rotate(360deg); }
 }
 
-/* Botón de generar card (en ConfirmationScreen y perfil) */
+/* Botón de generar card (ConfirmationScreen y perfil) */
 .card-trigger-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.15), rgba(116, 172, 223, 0.10));
-  border: 1px solid rgba(242, 183, 5, 0.3);
+  min-height: 44px;
+  padding: 12px 18px;
+  background: transparent;
+  border: 1px solid rgba(242, 183, 5, 0.38);
   border-radius: 10px;
-  color: #fff;
+  color: var(--color-text-primary, #fff);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: background 200ms ease, border-color 200ms ease, transform 150ms ease;
+  transition:
+    background 200ms var(--ease-out, ease),
+    border-color 200ms var(--ease-out, ease),
+    color 200ms var(--ease-out, ease);
   width: 100%;
   justify-content: center;
 }
 
 .card-trigger-btn:hover {
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.22), rgba(116, 172, 223, 0.15));
-  border-color: rgba(242, 183, 5, 0.5);
-  transform: translateY(-1px);
+  background: rgba(242, 183, 5, 0.1);
+  border-color: rgba(242, 183, 5, 0.55);
 }
 
 .card-trigger-btn:active {
-  transform: translateY(0);
+  background: rgba(242, 183, 5, 0.14);
+}
+
+.card-trigger-btn:focus-visible {
+  outline: 2px solid rgba(116, 172, 223, 0.45);
+  outline-offset: 2px;
 }
 
 .card-trigger-btn__icon {
-  color: var(--plu-gold-500);
+  color: var(--color-brand-gold, var(--plu-gold-500));
   flex: none;
 }
 
-/* Sección "Mi card" en el perfil */
+/* Sección "Mi card" en el perfil — strip editorial quieto */
 .account-card-share {
   position: relative;
-  background: linear-gradient(135deg, rgba(242, 183, 5, 0.08) 0%, rgba(116, 172, 223, 0.06) 100%);
-  border: 1px solid rgba(242, 183, 5, 0.2);
-  border-radius: 14px;
-  padding: 24px;
+  background: var(--color-bg-elevated, #141518);
+  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 22px 22px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .account-card-share__label {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #a9790f;
+  color: var(--color-brand-gold, #f2b705);
 }
 
 .account-card-share h2 {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary, #fff);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .account-card-share p {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  margin: 0 0 4px;
   line-height: 1.5;
+  max-width: 36em;
+}
+
+.account-card-share .card-trigger-btn {
+  margin-top: 4px;
 }

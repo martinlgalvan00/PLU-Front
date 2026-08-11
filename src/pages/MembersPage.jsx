@@ -10,11 +10,36 @@ import MembersProcessStepper from '../components/ui/MembersProcessStepper.jsx'
 import MembersRequirementsCarousel from '../components/ui/MembersRequirementsCarousel.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { env } from '../config/env.js'
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
+
+function mapLivePlan(plan, featureTemplate, t) {
+  const isRecurring = plan.collectionMode === 'recurring'
+  const isMonthly = plan.billingFrequency === 'monthly'
+  return {
+    id: plan.id ?? plan.code,
+    code: plan.code,
+    title: plan.name,
+    kicker: isRecurring
+      ? t('account.membership.planModeAutomatic')
+      : isMonthly
+        ? t('pages.members.planMonthly')
+        : t('pages.membershipCard.periodAnnual'),
+    price: plan.price,
+    period: isMonthly
+      ? t('pages.members.planMonthly')
+      : t('pages.membershipCard.periodAnnual'),
+    features: featureTemplate,
+    highlighted: true,
+    procedureType: 'membership',
+    collectionMode: isRecurring ? 'recurring' : 'one_time',
+    billingFrequency: plan.billingFrequency ?? 'annual',
+  }
+}
 
 export default function MembersPage({ memberships = [], onNavigate, session }) {
   const {
@@ -29,6 +54,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
   const [livePlans, setLivePlans] = useState([])
   const [plansLoaded, setPlansLoaded] = useState(false)
   const [plansError, setPlansError] = useState('')
+  const [billingMode, setBillingMode] = useState('one_time')
   const validityNotes = messages.pages.members.validityNotes
 
   const loadPlans = useCallback(async ({ force = false, signal } = {}) => {
@@ -50,30 +76,68 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
     return () => controller.abort()
   }, [loadPlans])
 
-  const visiblePlans = useMemo(() => {
-    if (!livePlans.length) return env.appProduction ? [] : MEMBERSHIP_PLANS
+  const catalogPlans = useMemo(() => {
     const featureTemplate = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete')?.features ?? []
-    return livePlans.map((plan) => ({
-      id: plan.id,
-      title: plan.name,
-      kicker: plan.billingFrequency === 'monthly'
-        ? t('pages.members.planMonthly')
-        : t('pages.membershipCard.periodAnnual'),
-      price: plan.price,
-      period: plan.billingFrequency === 'monthly'
-        ? t('pages.members.planMonthly')
-        : t('pages.membershipCard.periodAnnual'),
-      features: featureTemplate,
-      highlighted: false,
-      procedureType: 'membership',
+    if (livePlans.length) {
+      return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
+    }
+    if (env.appProduction) return []
+    return MEMBERSHIP_PLANS.map((plan) => ({
+      ...plan,
+      collectionMode: plan.collectionMode ?? 'one_time',
+      highlighted: Boolean(plan.highlighted),
     }))
   }, [MEMBERSHIP_PLANS, livePlans, t])
+
+  const oneTimePlans = useMemo(
+    () => catalogPlans.filter((plan) => plan.collectionMode !== 'recurring'),
+    [catalogPlans],
+  )
+  const recurringPlans = useMemo(
+    () => catalogPlans.filter((plan) => plan.collectionMode === 'recurring'),
+    [catalogPlans],
+  )
+  const billingSwitchEnabled = oneTimePlans.length > 0 && recurringPlans.length > 0
+
+  useEffect(() => {
+    if (!billingSwitchEnabled) return
+    setBillingMode((current) => {
+      if (current === 'recurring' && recurringPlans.length) return 'recurring'
+      if (current === 'one_time' && oneTimePlans.length) return 'one_time'
+      return oneTimePlans.length ? 'one_time' : 'recurring'
+    })
+  }, [billingSwitchEnabled, oneTimePlans.length, recurringPlans.length])
+
+  const billingOptions = useMemo(() => ([
+    [
+      'one_time',
+      t('account.membership.planModeAnnual'),
+      t('account.membership.planModeAnnualShort'),
+    ],
+    [
+      'recurring',
+      t('account.membership.planModeAutomatic'),
+      t('account.membership.planModeAutomaticShort'),
+    ],
+  ]), [t])
+
+  const billingHint = billingMode === 'recurring'
+    ? t('account.membership.planModeAutomaticHint')
+    : t('account.membership.planModeAnnualHint')
+
+  const visiblePlans = useMemo(() => {
+    if (!catalogPlans.length) return []
+    if (!billingSwitchEnabled) return catalogPlans
+    const pool = billingMode === 'recurring' ? recurringPlans : oneTimePlans
+    const preferred = pool[0]
+    return preferred ? [{ ...preferred, highlighted: true }] : []
+  }, [billingMode, billingSwitchEnabled, catalogPlans, oneTimePlans, recurringPlans])
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
-  const livePlansUnavailable = env.appProduction && (!plansLoaded || visiblePlans.length === 0)
+  const livePlansUnavailable = env.appProduction && (!plansLoaded || catalogPlans.length === 0)
   const affiliationCta = isLoggedInAthlete
     ? hasActiveMembership
       ? t('pages.members.ctaAlreadyAffiliated')
@@ -81,8 +145,17 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
     : t('pages.members.ctaGuest')
   const goToAffiliation = () => {
     if (hasActiveMembership) return
+    if (billingSwitchEnabled && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('plu.membership.billingMode', billingMode)
+    }
     onNavigate(isLoggedInAthlete ? 'membership' : 'register')
   }
+
+  const gridClassName = [
+    'membership-grid',
+    'membership-grid--plu',
+    visiblePlans.length > 1 ? 'membership-grid--plu-multi' : 'membership-grid--plu-solo',
+  ].join(' ')
 
   return (
     <main className="page page--design members-page members-page--plu-ref">
@@ -103,7 +176,21 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
             <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
             <p className="members-plu-block__lead">{t('pages.members.plansLead')}</p>
           </header>
-          <div className="membership-grid membership-grid--plu">
+
+          {billingSwitchEnabled ? (
+            <div className="members-plu-plans__billing">
+              <SegmentedSwitch
+                active={billingMode}
+                ariaLabel={t('account.membership.planModeLegend')}
+                className="segmented-switch--membership members-plu-plans__switch"
+                onChange={setBillingMode}
+                options={billingOptions}
+              />
+              <p className="members-plu-plans__billing-hint">{billingHint}</p>
+            </div>
+          ) : null}
+
+          <div className={gridClassName}>
             {visiblePlans.map((plan) => (
               <MembershipCard
                 key={plan.id}
@@ -120,7 +207,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {env.appProduction && plansLoaded && visiblePlans.length === 0 ? (
+          {env.appProduction && plansLoaded && catalogPlans.length === 0 ? (
             <div className="members-plans-feedback" role={plansError ? 'alert' : 'status'}>
               <span>{plansError || t('pages.members.plansComingSoon')}</span>
               {plansError ? (

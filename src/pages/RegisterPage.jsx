@@ -267,6 +267,30 @@ function RegisterMembershipAside({ athlete, locale, t, total }) {
   )
 }
 
+function RegisterCompetitionAside({ athlete, form, locale, t, total }) {
+  const pending = t('pages.register.competitionSummaryPending')
+  const picks = [form.division, form.category, form.estimatedWeight ? `${form.estimatedWeight} kg` : '']
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <aside className="register-competition-aside" aria-label={t('pages.register.competitionTitle')}>
+      <div className="register-competition-ticket">
+        <p className="register-competition-ticket__athlete">
+          {athlete?.fullName?.trim() || pending}
+        </p>
+        <p className={`register-competition-ticket__picks${picks ? '' : ' is-pending'}`.trim()}>
+          {picks || pending}
+        </p>
+        <div className="register-competition-ticket__total">
+          <span>{t('pages.register.total')}</span>
+          <strong>{money(total, locale)}</strong>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
 export default function RegisterPage({
   athlete,
   createdOrder,
@@ -298,7 +322,9 @@ export default function RegisterPage({
   const [wizardDirection, setWizardDirection] = useState(1)
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const availabilityRequestRef = useRef(0)
+  const submissionInFlightRef = useRef(false)
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -313,6 +339,8 @@ export default function RegisterPage({
     setProfileErrorStepIndex(null)
     setProfileSubmitAttempted(false)
     setShowPassword(false)
+    setSubmitting(false)
+    submissionInFlightRef.current = false
     setSubmitError('')
   }, [flow])
 
@@ -555,6 +583,8 @@ export default function RegisterPage({
 
   async function submit(eventObject) {
     eventObject.preventDefault()
+    if (submitting || submissionInFlightRef.current) return
+    submissionInFlightRef.current = true
     if (flow === 'profile') setProfileSubmitAttempted(true)
 
     const validation =
@@ -589,6 +619,7 @@ export default function RegisterPage({
         }))
       }
 
+      submissionInFlightRef.current = false
       return
     }
 
@@ -603,11 +634,21 @@ export default function RegisterPage({
         setProfileStepIndex(0)
         setProfileErrorStepIndex(0)
         focusFirstError(takenErrors)
+        submissionInFlightRef.current = false
         return
       }
     }
 
-    const result = await onSubmit(eventObject, event)
+    setSubmitting(true)
+    let result
+    try {
+      result = await onSubmit(eventObject, event)
+    } catch (error) {
+      result = { error: error?.message ?? t('common.errorMessage') }
+    } finally {
+      setSubmitting(false)
+      submissionInFlightRef.current = false
+    }
     if (result?.error) {
       const fieldErrors = {}
       if (result.fields?.email === 'taken') fieldErrors.email = takenMessage('email')
@@ -624,10 +665,8 @@ export default function RegisterPage({
           setProfileErrorStepIndex(0)
         }
         focusFirstError(fieldErrors)
-        setSubmitError(result.error)
-      } else {
-        setSubmitError(result.error)
       }
+      setSubmitError(result.error)
       setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
       setResendState('idle')
     } else if (flow === 'profile') onNavigate?.('profile')
@@ -668,6 +707,23 @@ export default function RegisterPage({
           {t('pages.register.membershipDesc', { name: athlete?.fullName ?? '' })}
         </p>
       </header>
+    ) : flow === 'competition' ? (
+      <header className="register-intro register-intro--competition">
+        <p className="register-intro__eyebrow">{t('pages.register.competitionEyebrow')}</p>
+        <h1 className="register-intro__title">{event?.title || content[0]}</h1>
+        <p className="register-intro__desc">
+          {t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
+        </p>
+        <div className="register-intro__meta register-intro__meta--competition">
+          {athlete?.fullName ? (
+            <strong className="register-intro__athlete">{athlete.fullName}</strong>
+          ) : null}
+          {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
+          {(event?.venue || event?.location) ? (
+            <span>{event?.venue || event?.location}</span>
+          ) : null}
+        </div>
+      </header>
     ) : (
       <header className={`register-intro${flow === 'profile' ? ' register-intro--profile' : ''}`.trim()}>
         {flow === 'profile' ? (
@@ -675,13 +731,6 @@ export default function RegisterPage({
         ) : null}
         <h1 className="register-intro__title">{content[0]}</h1>
         <p className="register-intro__desc">{content[1]}</p>
-
-        {flow !== 'profile' ? (
-          <div className="register-intro__meta">
-            <strong>{event?.title}</strong>
-            <span>{athlete?.fullName}</span>
-          </div>
-        ) : null}
       </header>
     )
 
@@ -692,43 +741,48 @@ export default function RegisterPage({
         : t('pages.register.membershipPaymentHintMp')
       : ''
 
-  const registerStatus = flow !== 'profile' && !(flow === 'membership' && visibleOrder) && (
-    <div className="register-status">
-      {visibleOrder ? (
-        <div className="register-status__body register-status__body--success">
-          <span className="register-status__name">{visibleOrder.athleteName}</span>
+  // En competencia sin orden el total vive en el aside + footer: el hint vacío
+  // solo sumaba ruido al viewport.
+  const registerStatus =
+    flow !== 'profile' &&
+    !(flow === 'membership' && visibleOrder) &&
+    (flow !== 'competition' || visibleOrder) && (
+      <div className="register-status">
+        {visibleOrder ? (
+          <div className="register-status__body register-status__body--success">
+            <span className="register-status__name">{visibleOrder.athleteName}</span>
 
-          <strong>{money(visibleOrder.amount, locale)}</strong>
-          <p>{visibleOrder.concept}</p>
-          <StatusPill value={visibleOrder.status} />
-          <code>{visibleOrder.reference}</code>
-          {visibleOrder.paymentMethod === 'mercado_pago' ? (
-            <p>{t('payments.embeddedLead')}</p>
-          ) : (
-            <>
-              <p className="manual-note">{t('pages.register.manualNote')}</p>
-            </>
-          )}
-          {cardData && (
-            <>
-              <button
-                type="button"
-                className="card-trigger-btn"
-                onClick={() => setCardOpen(true)}
-                id="register-generate-card-btn"
-              >
-                <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
-                {t('pages.register.generateCard')}
-              </button>
-              <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
-            </>
-          )}
-        </div>
-      ) : (
-        <p className="register-status__hint">{t('pages.register.orderHint')}</p>
-      )}
-    </div>
-  )
+            <strong>{money(visibleOrder.amount, locale)}</strong>
+            <p>{visibleOrder.concept}</p>
+            <StatusPill value={visibleOrder.status} />
+            <code>{visibleOrder.reference}</code>
+            {visibleOrder.paymentMethod === 'mercado_pago' ? (
+              <p>{t('payments.embeddedLead')}</p>
+            ) : (
+              <>
+                <p className="manual-note">{t('pages.register.manualNote')}</p>
+              </>
+            )}
+            {cardData && (
+              <>
+                <button
+                  type="button"
+                  className="card-trigger-btn"
+                  onClick={() => setCardOpen(true)}
+                  id="register-generate-card-btn"
+                >
+                  <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
+                  {t('pages.register.generateCard')}
+                </button>
+                <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="register-status__hint">{t('pages.register.orderHint')}</p>
+        )}
+      </div>
+    )
 
   const registerProgress =
     flow === 'profile' && !visibleOrder ? (
@@ -747,18 +801,26 @@ export default function RegisterPage({
     <main
       className={`page auth-immersive-page register-page register-page--design register-page--premium${
         flow === 'profile' ? ' register-page--profile' : ''
-      }${flow === 'membership' ? ' register-page--membership' : ''}`.trim()}
+      }${flow === 'competition' ? ' register-page--competition' : ''}${
+        flow === 'membership' ? ' register-page--membership' : ''
+      }`.trim()}
     >
       <div className="auth-immersive-glass auth-immersive-glass--wide register-shell">
-        {(flow === 'profile' || flow === 'membership') && onNavigate && (
+        {(flow === 'profile' || flow === 'membership' || flow === 'competition') && onNavigate && (
           <nav className="register-topbar" aria-label={t('pages.register.navAria')}>
             <button
               type="button"
               className="register-topbar__back"
-              onClick={() => onNavigate(flow === 'membership' ? 'members' : 'members')}
+              onClick={() =>
+                onNavigate(flow === 'competition' ? 'events' : 'members')
+              }
             >
               <ArrowLeft size={15} aria-hidden />
-              {flow === 'membership' ? t('pages.register.backToPlans') : t('pages.register.backMembership')}
+              {flow === 'membership'
+                ? t('pages.register.backToPlans')
+                : flow === 'competition'
+                  ? t('nav.events')
+                  : t('pages.register.backMembership')}
             </button>
             {flow === 'profile' && (
               <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
@@ -774,6 +836,15 @@ export default function RegisterPage({
           {flow === 'profile' && !visibleOrder && <RegisterLiveCredential form={form} t={t} />}
           {flow === 'membership' && !visibleOrder && (
             <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
+          )}
+          {flow === 'competition' && !visibleOrder && (
+            <RegisterCompetitionAside
+              athlete={athlete}
+              form={form}
+              locale={locale}
+              t={t}
+              total={total}
+            />
           )}
           {registerProgress}
           {registerStatus}
@@ -990,11 +1061,7 @@ export default function RegisterPage({
             )}
 
             {flow === 'competition' && (
-              <FormSection
-                step="01"
-                title={event?.title ?? ''}
-                description={t('pages.register.competitionDataDesc')}
-              >
+              <div className="register-competition-form">
                 {membershipGatePending && (
                   <div className="register-eligibility-alert" role="status">
                     <strong>{t('pages.register.membershipRequiredTitle')}</strong>
@@ -1006,50 +1073,57 @@ export default function RegisterPage({
                     )}
                   </div>
                 )}
-                <div className="form-grid">
-                  <Select
-                    error={errors.division}
-                    label={t('pages.register.division')}
-                    name="division"
-                    value={form.division}
-                    onBlur={blurField}
-                    onChange={changeField}
-                    options={formOptions.division}
-                  />
-                  <Select
-                    error={errors.category}
-                    label={t('pages.register.category')}
-                    name="category"
-                    value={form.category}
-                    onBlur={blurField}
-                    onChange={changeField}
-                    options={formOptions.category}
-                  />
-                  <Field
-                    error={errors.estimatedWeight}
-                    inputMode="decimal"
-                    label={t('pages.register.bodyWeight')}
-                    name="estimatedWeight"
-                    placeholder={t('pages.register.bodyWeightPlaceholder')}
-                    value={form.estimatedWeight}
-                    onBlur={blurField}
-                    onChange={changeField}
-                  />
-                  <div className="field field--readonly">
-                    <span>{t('pages.register.procedureType')}</span>
-                    <strong>{t('pages.register.procedureRegistration', { event: event.title })}</strong>
+
+                <FormSection
+                  step="01"
+                  title={t('pages.register.competitionFormTitle')}
+                  description={t('pages.register.competitionFormDesc')}
+                >
+                  <div className="register-competition-fields">
+                    <ChoiceField
+                      className="register-competition-choice register-competition-choice--division"
+                      error={errors.division}
+                      label={t('pages.register.division')}
+                      name="division"
+                      value={form.division}
+                      onBlur={blurField}
+                      onChange={changeField}
+                      options={formOptions.division}
+                    />
+                    <ChoiceField
+                      className="register-competition-choice register-competition-choice--category"
+                      error={errors.category}
+                      label={t('pages.register.category')}
+                      name="category"
+                      value={form.category}
+                      onBlur={blurField}
+                      onChange={changeField}
+                      options={formOptions.category}
+                    />
+                    <Field
+                      className="register-competition-weight"
+                      error={errors.estimatedWeight}
+                      inputMode="decimal"
+                      label={t('pages.register.bodyWeight')}
+                      name="estimatedWeight"
+                      placeholder={t('pages.register.bodyWeightPlaceholder')}
+                      value={form.estimatedWeight}
+                      onBlur={blurField}
+                      onChange={changeField}
+                    />
+                    <ChoiceField
+                      className="register-competition-choice register-competition-choice--payment"
+                      error={errors.paymentMethod}
+                      label={t('pages.register.paymentMethod')}
+                      name="paymentMethod"
+                      value={form.paymentMethod}
+                      onBlur={blurField}
+                      onChange={changeField}
+                      options={formOptions.paymentMethod}
+                    />
                   </div>
-                  <Select
-                    error={errors.paymentMethod}
-                    label={t('pages.register.paymentMethod')}
-                    name="paymentMethod"
-                    value={form.paymentMethod}
-                    onBlur={blurField}
-                    onChange={changeField}
-                    options={formOptions.paymentMethod}
-                  />
-                </div>
-              </FormSection>
+                </FormSection>
+              </div>
             )}
 
             {flow === 'membership' && (
@@ -1139,12 +1213,13 @@ export default function RegisterPage({
                     'btn register-card__submit',
                     flow === 'profile' && profileProgress?.complete ? 'register-card__submit--ready' : '',
                     flow === 'membership' ? 'register-card__submit--membership' : '',
+                    flow === 'competition' ? 'register-card__submit--competition' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  disabled={flow === 'profile' && Boolean(visibleOrder)}
+                  disabled={submitting || (flow === 'profile' && Boolean(visibleOrder))}
                 >
-                  {content[2]}
+                  {submitting ? t('common.loading') : content[2]}
                   <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                 </button>
               )}

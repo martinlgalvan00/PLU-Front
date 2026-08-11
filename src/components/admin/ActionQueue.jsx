@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Ticket } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import PaymentValidationDialog from './PaymentValidationDialog.jsx'
 
 const PRIORITY_ORDER = ['high', 'medium', 'low']
 
@@ -23,6 +24,9 @@ export default function ActionQueue({
   canEdit,
 }) {
   const { t } = useI18n()
+  const [reviewItem, setReviewItem] = useState(null)
+  const [confirmBusy, setConfirmBusy] = useState(false)
+  const [confirmError, setConfirmError] = useState('')
 
   const groups = useMemo(
     () =>
@@ -42,6 +46,40 @@ export default function ActionQueue({
     .join(' ')
 
   const Wrapper = embedded ? 'div' : 'section'
+
+  function openReview(item) {
+    setConfirmError('')
+    setReviewItem(item)
+  }
+
+  function closeReview() {
+    if (confirmBusy) return
+    setReviewItem(null)
+    setConfirmError('')
+  }
+
+  async function confirmReview() {
+    if (!reviewItem || confirmBusy) return
+    setConfirmBusy(true)
+    setConfirmError('')
+    try {
+      let result
+      if (reviewItem.paymentId) {
+        result = await onApprovePayment?.(reviewItem.paymentId)
+      } else if (reviewItem.orderId) {
+        result = await onApproveTicketOrder?.(reviewItem.orderId)
+      }
+      if (result?.error) {
+        setConfirmError(result.error)
+        return
+      }
+      setReviewItem(null)
+    } catch (error) {
+      setConfirmError(error?.message ?? t('admin.paymentValidation.confirmError'))
+    } finally {
+      setConfirmBusy(false)
+    }
+  }
 
   if (!items.length) {
     return (
@@ -107,52 +145,51 @@ export default function ActionQueue({
                     <div className="action-queue__card-body">
                       <strong className="action-queue__subject">{item.subject}</strong>
                       <span className="action-queue__meta">
-                        {/* Con acción primaria visible, el summary ("Validar pago
-                            manual") repite lo que el botón ya comunica: solo se
-                            muestra cuando no hay acción y es la única pista. */}
                         {!hasPrimaryAction && item.summary ? (
                           <span className="action-queue__meta-item">{item.summary}</span>
                         ) : null}
-                        {item.detail && <span className="action-queue__meta-item">{item.detail}</span>}
-                        {item.meta && (
-                          <span className="action-queue__meta-item action-queue__meta-item--accent">
-                            {item.meta}
-                          </span>
-                        )}
+                        {item.detail ? (
+                          <span className="action-queue__meta-item">{item.detail}</span>
+                        ) : null}
                       </span>
                     </div>
 
+                    {item.meta ? (
+                      <span className="action-queue__amount action-queue__meta-item--accent">
+                        {item.meta}
+                      </span>
+                    ) : (
+                      <span className="action-queue__amount action-queue__amount--empty" aria-hidden />
+                    )}
+
                     <div className="action-queue__actions">
-                      {item.paymentId && canEdit && (
+                      {item.paymentId && canEdit ? (
                         <button
                           type="button"
                           className="btn btn--small action-queue__btn action-queue__btn--primary"
                           onClick={(event) => {
                             event.stopPropagation()
-                            onApprovePayment?.(item.paymentId)
+                            openReview(item)
                           }}
                         >
                           {t('admin.actions.validate')}
                         </button>
-                      )}
-                      {item.orderId && canEdit && (
+                      ) : null}
+                      {item.orderId && canEdit ? (
                         <button
                           type="button"
                           className="btn btn--small action-queue__btn action-queue__btn--primary"
                           onClick={(event) => {
                             event.stopPropagation()
-                            onApproveTicketOrder?.(item.orderId)
+                            openReview(item)
                           }}
                         >
                           {t('admin.actions.validate')}
                         </button>
-                      )}
+                      ) : null}
                       <button
                         type="button"
                         className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
-                        // El id viaja con la navegación para que la sección
-                        // destino pueda enfocar la fila: antes "ver" llevaba a
-                        // una pantalla donde el ítem ni siquiera figuraba.
                         onClick={() => onNavigate?.(item.section, item.paymentId ?? item.orderId ?? null)}
                       >
                         {t('admin.actions.view')}
@@ -166,6 +203,16 @@ export default function ActionQueue({
           </section>
         ))}
       </div>
+
+      {reviewItem ? (
+        <PaymentValidationDialog
+          item={reviewItem}
+          busy={confirmBusy}
+          error={confirmError}
+          onCancel={closeReview}
+          onConfirm={() => void confirmReview()}
+        />
+      ) : null}
     </Wrapper>
   )
 }

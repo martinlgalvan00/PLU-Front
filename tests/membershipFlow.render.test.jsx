@@ -292,4 +292,37 @@ describe('sección de afiliación de la cuenta', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('No se pudo crear la orden.'))
     expect(screen.getByRole('button', { name: /continuar con mercado pago/i }).disabled).toBe(false)
   })
+
+  it('abre Mercado Pago en un modal y permite reabrirlo sin cancelar la orden', async () => {
+    const onStartMembershipPayment = vi.fn(async () => ({
+      createdOrder: {
+        paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+        amount: 38000,
+        preferenceId: 'pref-membership',
+        paymentMode: 'payment',
+        status: 'pendiente',
+        payerEmail: 'ana@pluarg.local',
+      },
+    }))
+    renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar con mercado pago/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /completá el pago/i })).toBeTruthy()
+    })
+    expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
+    expect(screen.queryByText(/terminá el checkout de mercado pago debajo/i)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /cerrar checkout/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /completá el pago/i })).toBeNull()
+    })
+
+    const reopen = screen.getByRole('button', { name: /continuar el pago/i })
+    expect(reopen.disabled).toBe(false)
+    fireEvent.click(reopen)
+    expect(screen.getByRole('dialog', { name: /completá el pago/i })).toBeTruthy()
+    expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
+  })
 })

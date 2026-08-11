@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getRoleHierarchyLevel } from '../../src/lib/permissions.js'
+import { buildStaffInvitationUrl } from '../../src/lib/staffInvitationRoute.js'
 import { updateUserAccessRoleSchema } from '../../src/lib/schemas/accessControl.js'
 import {
   createStaffUserSchema,
@@ -7,12 +8,17 @@ import {
   updateStaffUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
 import { HttpError } from '../lib/errors.js'
+import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission, requireRole } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createStaffAccountNotificationService } from '../modules/notifications/staffAccountNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import {
+  recordOperationalAuditEvent,
+  requestAuditMetadata,
+} from '../modules/audit/operationalAuditWriter.js'
 import {
   ACCESS_ROLE_INCLUDE,
   resolveAssignableRole,
@@ -24,6 +30,10 @@ import {
   tempPasswordExpiry,
 } from '../services/passwordService.js'
 import { revokeSessionsForUser, serializeUser } from '../services/sessionService.js'
+import {
+  createStaffInvitationToken,
+  staffInvitationFingerprint,
+} from '../services/staffInvitationToken.js'
 import { deleteStaffUser } from '../services/staffUserDeletionService.js'
 
 // Los roles configurables conservan uno de estos roles base para Auth y las
@@ -97,6 +107,20 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
   const writeGuard = requirePermission('admin.users.write', { prisma })
   const deleteGuard = requireRole(['admin_maximal'], { prisma })
 
+  async function recordIdentity(event, req) {
+    let client = null
+    try {
+      client = getSupabaseAdmin?.() ?? null
+    } catch {
+      client = null
+    }
+    return recordOperationalAuditEvent(client, {
+      source: 'identity',
+      ...event,
+      metadata: requestAuditMetadata(req, event.metadata),
+    })
+  }
+
   // Igual que en routes/auth.js: en producción estas dependencias no se
   // inyectan, así que se construyen acá. Sin Supabase se sigue sin repositorio
   // (modo degradado, sin log de emails) en vez de romper el armado de la app.
@@ -117,8 +141,8 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
   })
 
   // Best-effort: el alta ya se confirmó en la base antes de llegar acá, así
-  // que un fallo de Brevo no puede tirar el request. Devuelve true sólo si el
-  // envío se confirmó; con false el panel muestra la clave en pantalla.
+  // que un fallo de Brevo no puede tirar el request. La invitación se puede
+  // reemitir desde Usuarios sin exponer contraseñas ni tokens en la respuesta.
   async function dispatchInvitation(payload) {
     try {
       const result = await staffNotifications.notifyStaffInvitation(payload)
@@ -128,12 +152,30 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
     }
   }
 
-  async function issueTempPassword() {
-    const tempPassword = generateTempPassword()
+  async function issueInvitationCredential() {
+    // La credencial aleatoria existe sólo para versionar/inutilizar la
+    // invitación. Nunca se devuelve, loguea ni manda por email.
+    const internalCredential = generateTempPassword()
     return {
-      tempPassword,
-      passwordHash: await hashPassword(tempPassword),
+      passwordHash: await hashPassword(internalCredential),
       passwordExpiresAt: tempPasswordExpiry(),
+    }
+  }
+
+  function buildInvitation({ userId, passwordHash, passwordExpiresAt, req }) {
+    const token = createStaffInvitationToken({
+      userId,
+      credentialHash: passwordHash,
+      expiresAt: passwordExpiresAt,
+      secret: (env ?? process.env).AUTH_SECRET,
+    })
+    const configuredUrl = resolveDeploymentAppUrl(env ?? process.env)
+    const requestOrigin = req?.get?.('origin') ?? ''
+    const appUrl = configuredUrl || (/^https?:\/\//i.test(requestOrigin) ? requestOrigin : '')
+
+    return {
+      invitationUrl: buildStaffInvitationUrl(appUrl, token),
+      idempotencyKey: `email:staff-invitation:${userId}:${staffInvitationFingerprint(token)}`,
     }
   }
 
@@ -172,7 +214,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
         }
 
         const { firstName, lastName } = splitName(name)
-        const { tempPassword, passwordHash, passwordExpiresAt } = await issueTempPassword()
+        const { passwordHash, passwordExpiresAt } = await issueInvitationCredential()
         const created = await prismaClient.user.create({
           data: {
             email,
@@ -183,7 +225,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
             ...(prismaClient.accessRole
               ? { accessRole: { connect: { id: accessRole.id } } }
               : {}),
-            status: 'active',
+            status: 'invited',
             profile: {
               create: { firstName, lastName, displayName: `${firstName} ${lastName}`.trim() },
             },
@@ -203,17 +245,39 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
           reason: 'invitation',
         })
 
+        await recordIdentity({
+          action: 'account.created',
+          entityType: 'staff_user',
+          entityId: created.id,
+          actorType: 'staff',
+          actorId: req.auth.user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: {
+            accountKind: 'staff',
+            channel: 'invitation',
+            roleKey: accessRole.key,
+          },
+        }, req)
+
         const user = serializeUser(created.accessRole?.key ? created : { ...created, accessRole })
+        const invitation = buildInvitation({
+          userId: created.id,
+          passwordHash,
+          passwordExpiresAt,
+          req,
+        })
         const emailed = sendEmail
           ? await dispatchInvitation({
               user,
-              tempPassword,
+              invitationUrl: invitation.invitationUrl,
+              idempotencyKey: invitation.idempotencyKey,
               roleName: accessRole.name,
               expiresInDays: TEMP_PASSWORD_TTL_DAYS,
             })
           : false
 
-        res.status(201).json({ user, tempPassword, emailed })
+        res.status(201).json({ user, emailed })
       } catch (error) {
         next(error)
       }
@@ -348,10 +412,9 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
     },
   )
 
-  // Reenvío de invitación / reseteo de credencial. Emite una contraseña
-  // temporal nueva, vuelve a exigir el cambio y corta las sesiones abiertas:
-  // si se resetea porque la credencial se filtró, dejar viva la sesión del
-  // atacante haría inútil el reseteo.
+  // Reenvío de invitación / reseteo de credencial. Rota la credencial interna,
+  // vuelve a exigir la activación y corta las sesiones abiertas. La persona
+  // recibe un enlace nuevo; el anterior queda inválido por versión.
   router.post(
     '/:userId/reset-password',
     ...writeGuard,
@@ -386,7 +449,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
           throw new HttpError(403, 'No tenés jerarquía suficiente sobre esa cuenta.')
         }
 
-        const { tempPassword, passwordHash, passwordExpiresAt } = await issueTempPassword()
+        const { passwordHash, passwordExpiresAt } = await issueInvitationCredential()
         const updated = await prismaClient.user.update({
           where: { id: target.id },
           data: { passwordHash, mustChangePassword: true, passwordExpiresAt },
@@ -401,16 +464,23 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
         await revokeSessionsForUser({ prisma: prismaClient, userId: target.id })
 
         const user = serializeUser(updated)
+        const invitation = buildInvitation({
+          userId: updated.id,
+          passwordHash,
+          passwordExpiresAt,
+          req,
+        })
         const emailed = req.validatedBody.sendEmail
           ? await dispatchInvitation({
               user,
-              tempPassword,
+              invitationUrl: invitation.invitationUrl,
+              idempotencyKey: invitation.idempotencyKey,
               roleName: updated.accessRole?.name ?? null,
               expiresInDays: TEMP_PASSWORD_TTL_DAYS,
             })
           : false
 
-        res.json({ user, tempPassword, emailed })
+        res.json({ user, emailed })
       } catch (error) {
         next(error)
       }

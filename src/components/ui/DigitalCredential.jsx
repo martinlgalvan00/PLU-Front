@@ -1,21 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
+import TiltCard from '../../motion/TiltCard.tsx'
 
 export default function DigitalCredential({ athlete, membership }) {
   const { t } = useI18n()
   const [flipped, setFlipped] = useState(false)
-  const tiltRef = useRef(null)
-  const animationFrameRef = useRef(null)
   const membershipActive = membership?.status === 'activa'
   const location = [athlete.city, athlete.province].filter(Boolean).join(', ')
-
-  useEffect(
-    () => () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
-    },
-    [],
-  )
+  const watermarkYear = String(new Date().getFullYear()).slice(-2)
 
   const backFields = [
     { key: 'document', label: t('account.credential.document'), value: athlete.documentId },
@@ -44,61 +37,55 @@ export default function DigitalCredential({ athlete, membership }) {
     },
   ]
 
-  function resetTilt() {
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
-
-    const tilt = tiltRef.current
-    if (!tilt) return
-
-    tilt.classList.remove('is-tilting')
-    tilt.style.removeProperty('--credential-tilt-x')
-    tilt.style.removeProperty('--credential-tilt-y')
-    tilt.style.removeProperty('--credential-glow-x')
-    tilt.style.removeProperty('--credential-glow-y')
+  function toggleFlip() {
+    setFlipped((value) => !value)
   }
 
-  function handlePointerMove(event) {
-    if (event.pointerType === 'touch') return
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-    const tilt = tiltRef.current
-    if (!tilt) return
-
-    const bounds = tilt.getBoundingClientRect()
-    const horizontal = (event.clientX - bounds.left) / bounds.width
-    const vertical = (event.clientY - bounds.top) / bounds.height
-    const rotateX = (0.5 - vertical) * 9
-    const rotateY = (horizontal - 0.5) * 11
-
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
-    animationFrameRef.current = requestAnimationFrame(() => {
-      tilt.classList.add('is-tilting')
-      tilt.style.setProperty('--credential-tilt-x', `${rotateX.toFixed(2)}deg`)
-      tilt.style.setProperty('--credential-tilt-y', `${rotateY.toFixed(2)}deg`)
-      tilt.style.setProperty('--credential-glow-x', `${(horizontal * 100).toFixed(1)}%`)
-      tilt.style.setProperty('--credential-glow-y', `${(vertical * 100).toFixed(1)}%`)
-    })
+  function handleCardKeyDown(event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      toggleFlip()
+    }
   }
 
   return (
     <article className="account-credential">
-      <div
-        ref={tiltRef}
+      <TiltCard
         className="account-credential__tilt"
-        onPointerMove={handlePointerMove}
-        onPointerLeave={resetTilt}
-        onPointerCancel={resetTilt}
+        innerClassName="tilt-card__inner account-credential__tilt-inner"
+        maxTilt={flipped ? 0 : 3}
       >
-        <div className={`account-credential__card${flipped ? ' is-flipped' : ''}`}>
-          <div className="account-credential__face account-credential__front" aria-hidden={flipped}>
+        <div
+          className="account-credential__card"
+          data-flipped={flipped ? '1' : '0'}
+          role="button"
+          tabIndex={0}
+          aria-pressed={flipped}
+          aria-label={
+            flipped ? t('account.credential.viewFront') : t('account.credential.viewBack')
+          }
+          onClick={toggleFlip}
+          onKeyDown={handleCardKeyDown}
+        >
+          <div
+            className="account-credential__face account-credential__face--front"
+            aria-hidden={flipped}
+          >
+            <span className="account-credential__grain" aria-hidden />
+            <span className="account-credential__watermark" aria-hidden>
+              {watermarkYear}
+            </span>
+
             <div className="account-credential__brand">
-              <div className="account-credential__monogram">PLU</div>
-              <div>
+              <span className="account-credential__monogram" aria-hidden>
+                PLU
+              </span>
+              <div className="account-credential__brand-copy">
                 <strong>Powerlifting United</strong>
                 <span>{t('account.credential.brandLine')}</span>
               </div>
             </div>
+
             <div className="account-credential__identity">
               <span
                 className={`account-credential__avatar${athlete.photoUrl ? ' has-photo' : ''}`}
@@ -110,21 +97,32 @@ export default function DigitalCredential({ athlete, membership }) {
                   initials(athlete.fullName)
                 )}
               </span>
-              <div>
+              <div className="account-credential__identity-copy">
                 <small>{t('account.credential.athlete')}</small>
                 <h2>{athlete.fullName}</h2>
-                {membership?.memberCode && <p>{membership.memberCode}</p>}
+                {membership?.memberCode ? <p>{membership.memberCode}</p> : null}
               </div>
             </div>
-            <span
-              className={`account-credential__status ${membershipActive ? 'is-active' : 'is-inactive'}`}
-            >
-              <span className="account-credential__status-dot" aria-hidden />
-              {membershipActive ? t('account.membershipActive') : t('account.membershipInactive')}
-            </span>
+
+            <div className="account-credential__foot">
+              <span
+                className={`account-credential__status ${membershipActive ? 'is-active' : 'is-inactive'}`}
+              >
+                <span className="account-credential__status-dot" aria-hidden />
+                {membershipActive ? t('account.membershipActive') : t('account.membershipInactive')}
+              </span>
+            </div>
           </div>
 
-          <div className="account-credential__face account-credential__back" aria-hidden={!flipped}>
+          <div
+            className="account-credential__face account-credential__face--back"
+            aria-hidden={!flipped}
+          >
+            <span className="account-credential__grain" aria-hidden />
+            <div className="account-credential__back-head">
+              <span className="account-credential__back-eyebrow">{t('account.credential.athlete')}</span>
+              <p className="account-credential__back-name">{athlete.fullName}</p>
+            </div>
             <dl className="account-credential__fields">
               {backFields.map(({ key, label, value }) => (
                 <div key={key} className="account-credential__row">
@@ -136,14 +134,25 @@ export default function DigitalCredential({ athlete, membership }) {
             <p className="account-credential__footer">{t('account.credential.footer')}</p>
           </div>
         </div>
-      </div>
+      </TiltCard>
+
+      <p className="account-credential__hint" aria-hidden="true">
+        {flipped ? t('account.credential.tapFrontHint') : t('account.credential.tapBackHint')}
+      </p>
+
       <button
         type="button"
         className="account-credential__flip"
         aria-pressed={flipped}
-        onClick={() => setFlipped((value) => !value)}
+        onClick={toggleFlip}
       >
-        {flipped ? t('account.credential.viewFront') : t('account.credential.viewBack')}
+        <span className="account-credential__flip-label">
+          {flipped ? t('account.credential.viewFront') : t('account.credential.viewBack')}
+        </span>
+        <span className="account-credential__flip-faces" aria-hidden>
+          <span className={`account-credential__flip-face${!flipped ? ' is-active' : ''}`} />
+          <span className={`account-credential__flip-face${flipped ? ' is-active' : ''}`} />
+        </span>
       </button>
     </article>
   )

@@ -21,6 +21,14 @@ const migration = readFileSync(
   'utf8',
 )
 
+const yearConflictFix = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260811134322_membership_order_year_conflict_fix.sql',
+  ),
+  'utf8',
+)
+
 const phase2 = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260715000100_phase2_rpc_functions.sql'),
   'utf8',
@@ -147,6 +155,41 @@ describe('reuso de orden de afiliación', () => {
   })
 })
 
+describe('conflicto athlete_id + year al crear orden de afiliación', () => {
+  const body = functionBody(
+    yearConflictFix,
+    'create or replace function public.create_membership_order_v2(',
+  )
+
+  it('reusa cualquier afiliación pendiente, no solo la del mismo plan', () => {
+    // Cambiar anual ↔ automática dejaba la fila del año ocupada y el INSERT
+    // siguiente explotaba con memberships_athlete_id_year_key.
+    expect(body).toContain("m.status = 'pendiente_pago'")
+    expect(body).toContain('m.plan_id is not distinct from v_plan.id')
+    expect(body).not.toMatch(
+      /where m\.athlete_id = p_athlete_id and m\.plan_id = v_plan\.id and m\.status = 'pendiente_pago'/,
+    )
+  })
+
+  it('actualiza la fila del mismo año en vez de insertar otra', () => {
+    expect(body).toContain('v_same_year')
+    expect(body).toContain('and m.year = v_year')
+    expect(body).toContain("status = 'pendiente_pago'")
+    expect(body).toContain('when unique_violation then')
+  })
+
+  it('no pisa una afiliación vigente o programada del mismo año', () => {
+    expect(body).toContain('PLU13')
+    expect(body).toContain('afiliacion vigente')
+    expect(body).toContain('afiliacion programada')
+  })
+
+  it('al reusar una orden abierta devuelve la membership vinculada, no la última cobrada', () => {
+    // Antes devolvía v_existing aunque la orden apuntara a la pendiente.
+    expect(body).toContain('coalesce(v_membership, v_pending, v_existing)')
+  })
+})
+
 describe('rate limit del login de atleta', () => {
   it('tiene instancia propia, separada de la del login de staff', () => {
     // Compartir `authLimiter` hacía que cada intento gastara dos cupos: el
@@ -171,8 +214,10 @@ describe('alta de atleta', () => {
     expect(respondsAt).toBeGreaterThan(-1)
     expect(sendsAt).toBeGreaterThan(-1)
     expect(respondsAt).toBeGreaterThan(sendsAt)
-    expect(athleteRoutes).toContain("sendBestEffort('welcome'")
+    expect(athleteRoutes).not.toContain("sendBestEffort('welcome'")
     expect(athleteRoutes).toContain('sendVerificationEmail(row)')
+    expect(athleteRoutes).toContain('verificationCode')
+    expect(athleteRoutes).toContain("'/me/verify-email-code'")
   })
 
   it('expone check de disponibilidad y marca ATHLETE_EXISTS con campos', () => {

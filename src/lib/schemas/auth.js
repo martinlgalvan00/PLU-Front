@@ -14,8 +14,8 @@ export const loginSchema = z.object({
 })
 
 // Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean con
-// una contraseña temporal que se manda por mail y que sólo habilita a
-// cambiarla (ver `mustChangePassword`). Auth0 sigue soportado para quien ya
+// una credencial interna aleatoria que nunca se expone y reciben por mail un
+// enlace firmado para elegir su contraseña. Auth0 sigue soportado para quien ya
 // tenga identidad vinculada, pero no es requisito: nunca estuvo configurado y
 // las cuentas creadas por acá quedaban sin ninguna forma de entrar.
 // seguridad_plu_arg queda afuera a propósito -- esas cuentas van por
@@ -39,6 +39,11 @@ const strongPassword = z
   .string()
   .min(12, 'Elegí una contraseña de al menos 12 caracteres.')
   .max(72, 'La contraseña no puede superar los 72 caracteres.')
+
+export const acceptStaffInvitationSchema = z.object({
+  token: z.string().trim().min(40).max(2000),
+  password: strongPassword,
+})
 
 export const changeOwnPasswordSchema = z
   .object({

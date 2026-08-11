@@ -12,9 +12,9 @@ import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseR
  * y guardado en localStorage, distinto para cada operador y perdido al limpiar
  * el navegador.
  *
- * Es solo lectura a propósito. Nadie escribe auditoría desde la API: la
- * escriben las RPC dentro de la misma transacción que aplica el efecto, que es
- * lo que hace que el registro no pueda divergir del hecho.
+ * Este repositorio es solo lectura a propósito. Los efectos transaccionales
+ * los auditan triggers/RPC; la API agrega únicamente eventos de borde que no
+ * existen en Postgres (login fallido y error de render del Brick).
  */
 export function createSupabaseAuditRepository(
   client,

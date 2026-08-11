@@ -61,6 +61,31 @@ export function generateCredentialQr(url) {
 }
 
 /**
+ * Detecta códigos de vista previa / showcase (no verificables en backend).
+ * Prefijo PREV- usado por Members, Home, Storybook y TicketPassPreview.
+ * @param {string | null | undefined} code
+ * @returns {boolean}
+ */
+export function isPreviewCredentialCode(code) {
+  if (!code || typeof code !== 'string') return false
+  return code.trim().toUpperCase().startsWith('PREV-')
+}
+
+/**
+ * Código preview aleatorio por visita (Members showcase / easter egg).
+ * @param {string} [prefix='PREV-MEMBERS']
+ * @returns {string}
+ */
+export function buildRandomPreviewCredentialCode(prefix = 'PREV-MEMBERS') {
+  const entropy =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().replace(/-/g, '')
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`
+  const id = entropy.slice(0, 8).toUpperCase()
+  return `${prefix}-${id}`
+}
+
+/**
  * Lee los params de verificación desde la URL actual (si los hay).
  * @returns {{ code: string, eventSlug: string | null, type: string | null } | null}
  */

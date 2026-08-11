@@ -1,5 +1,6 @@
 import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildSecurityGatePath } from '../../../src/lib/securityGateRoute.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 /**
  * securityAccessNotificationService.js — PLU ARG
@@ -16,7 +17,7 @@ import { buildSecurityGatePath } from '../../../src/lib/securityGateRoute.js'
  */
 export function createSecurityAccessNotificationService({ repository, brevo, dispatcher, env = process.env }) {
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
   return function notifySecurityAccess({ user, tempPassword = null, event, accessUrl = null, idempotencyKey }) {
     // accessUrl (link con token de acceso directo) tiene prioridad sobre el

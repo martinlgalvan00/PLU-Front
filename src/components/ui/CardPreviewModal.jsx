@@ -287,13 +287,13 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
           )}
 
           {status === 'error' && (
-            <p style={{ color: '#ff3b36', fontSize: 13, textAlign: 'center', padding: '0 20px 16px', margin: 0 }}>
+            <p className="card-modal__feedback card-modal__feedback--error">
               {t('cardModal.errorMessage')}
             </p>
           )}
 
           {status === 'done' && !isGenerating && (
-            <p style={{ color: '#8fd4a8', fontSize: 13, textAlign: 'center', padding: '0 20px 16px', margin: 0 }}>
+            <p className="card-modal__feedback card-modal__feedback--done">
               {t('cardModal.doneMessage')}
             </p>
           )}

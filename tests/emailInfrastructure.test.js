@@ -82,6 +82,10 @@ describe('migración de infraestructura de emails', () => {
     join(process.cwd(), 'supabase/migrations/20260730120000_email_infrastructure_hardening.sql'),
     'utf8',
   )
+  const redactionMigration = readFileSync(
+    join(process.cwd(), 'supabase/migrations/20260811153000_email_secret_redaction.sql'),
+    'utf8',
+  )
 
   it('agrega los estados de cola y las columnas de reintento', () => {
     for (const status of ['retrying', 'delivered', 'bounced', 'suppressed']) {
@@ -125,6 +129,15 @@ describe('migración de infraestructura de emails', () => {
     const suppressionBlock = migration.slice(migration.indexOf('if p_event in ('))
     expect(suppressionBlock).toContain("'hard_bounce', 'blocked', 'spam', 'invalid_email', 'unsubscribed'")
     expect(suppressionBlock.slice(0, suppressionBlock.indexOf('then'))).not.toContain('soft_bounce')
+  })
+
+  it('redacta secretos históricos y corta sus reintentos', () => {
+    for (const key of ['tempPassword', 'invitationUrl', 'gateUrl', 'resetUrl']) {
+      expect(redactionMigration).toContain(`'${key}'`)
+    }
+    expect(redactionMigration).toContain("idempotency_key = 'email:redacted:' || id::text")
+    expect(redactionMigration).toContain("status in ('pending', 'processing', 'retrying')")
+    expect(redactionMigration).toContain("'SENSITIVE_PAYLOAD_REDACTED'")
   })
 })
 
@@ -202,12 +215,13 @@ describe('plantillas HTML de fallback', () => {
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
   })
 
-  it('cae al wordmark tipográfico sin appUrl', () => {
+  it('embebe el logo cuando no hay appUrl pública (evita ícono roto en el cliente)', () => {
     const { htmlContent } = renderEmail('welcome', {
       name: 'Ana',
       accountUrl: 'https://plu.example/mi-cuenta',
     })
-    expect(htmlContent).not.toContain('src="')
+    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Te damos la bienvenida</)
     expect(htmlContent).toContain("font-family:'Poppins'")
@@ -226,10 +240,48 @@ describe('plantillas HTML de fallback', () => {
 
   it('arma la URL del logo desde appUrl y rutas relativas', () => {
     expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(`https://plu.example${EMAIL_LOGO_PATH}`)
-    expect(buildEmailLogoUrl('', null)).toBe('')
     expect(buildEmailLogoUrl('', '../../public/brand/plu-argentina-email.png')).toBe(
       '../../public/brand/plu-argentina-email.png',
     )
+  })
+
+  it('embebe el logo cuando APP_URL es localhost (clientes de mail no fetchean local)', () => {
+    const logo = buildEmailLogoUrl('http://localhost:5173', null)
+    expect(logo.startsWith('data:image/png;base64,')).toBe(true)
+    expect(logo.length).toBeGreaterThan(1000)
+
+    const { htmlContent } = renderEmail(
+      'email_verification',
+      {
+        name: 'Agus',
+        verificationUrl: 'http://localhost:5173/?verificar=abc',
+        verificationCode: '123456',
+      },
+      { appUrl: 'http://localhost:5173' },
+    )
+    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).not.toContain('src="http://localhost:5173/brand/')
+  })
+
+  it('sin APP_URL también embebe el logo si el archivo existe', () => {
+    expect(buildEmailLogoUrl('', null).startsWith('data:image/png;base64,')).toBe(true)
+  })
+
+  it('unifica bienvenida + confirmación + OTP en el mail de verificación', () => {
+    const { subject, htmlContent } = renderEmail(
+      'email_verification',
+      {
+        name: 'Agus',
+        verificationUrl: 'https://plu.example/?verificar=token',
+        verificationCode: '482913',
+      },
+      { subject: 'Bienvenido a PLU ARG: confirma tu correo' },
+    )
+    expect(subject).toBe('Bienvenido a PLU ARG: confirma tu correo')
+    expect(htmlContent).toContain('Te damos la bienvenida a PLU Argentina')
+    expect(htmlContent).toContain('Confirmar correo')
+    expect(htmlContent).toContain('482913')
+    expect(htmlContent).toContain('Si el botón no abre, ingresá este código en Mi cuenta.')
   })
 
   it('menciona el QR de perfil en afiliación e inscripción', () => {
@@ -333,6 +385,27 @@ describe('dispatcher de emails', () => {
     expect(payload.templateId).toBeUndefined()
     expect(payload.htmlContent).toContain('PLU Argentina')
     expect(payload.subject).toBe('Te damos la bienvenida a PLU Argentina')
+  })
+
+  it('usa la credencial en memoria pero la redacta del outbox persistido', async () => {
+    const repository = memoryRepository()
+    const send = vi.fn().mockResolvedValue({ messageId: 'm-secret' })
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send },
+      env: { APP_URL: 'https://plu.example' },
+    })
+    const invitationUrl = 'https://plu.example/?invitacion-staff=token-super-secreto'
+
+    await dispatcher.send('staff_invitation', {
+      to: 'admin@example.com',
+      entityId: 'usr-1',
+      params: { email: 'admin@example.com', invitationUrl },
+    })
+
+    expect(send.mock.calls[0][0].params.invitationUrl).toBe(invitationUrl)
+    expect([...repository.rows.values()][0].payload.invitationUrl).toBe('[REDACTED]')
+    expect(JSON.stringify([...repository.rows.values()][0])).not.toContain('token-super-secreto')
   })
 
   it('usa el subject del catálogo en el fallback HTML', async () => {
@@ -459,6 +532,29 @@ describe('dispatcher de emails', () => {
     expect(segundo.next_retry_at).toBeNull()
   })
 
+  it('no reintenta automáticamente emails con bearer redactado', async () => {
+    const repository = memoryRepository()
+    const transitorio = new BrevoError('502', { retryable: true })
+    const dispatcher = createEmailDispatcher({
+      repository,
+      brevo: { configured: true, send: vi.fn().mockRejectedValue(transitorio) },
+      env: {},
+    })
+
+    await expect(
+      dispatcher.send('password_reset', {
+        to: 'a@example.com',
+        entityId: 'ath-1',
+        params: { resetUrl: 'https://plu.example/?reset=secreto' },
+      }),
+    ).rejects.toThrow()
+
+    const emailLog = [...repository.rows.values()][0]
+    expect(emailLog.status).toBe('failed')
+    expect(emailLog.next_retry_at).toBeNull()
+    expect(emailLog.payload.resetUrl).toBe('[REDACTED]')
+  })
+
   it('marca como omitido cuando Brevo no está configurado, sin romper el flujo', async () => {
     const repository = memoryRepository()
     const dispatcher = createEmailDispatcher({
@@ -531,6 +627,24 @@ describe('token de verificación de email', () => {
     const url = buildEmailVerificationUrl('https://plu.example/', token)
     expect(url).toContain('/?verificar=')
     expect(readEmailVerificationToken(new URL(url).search)).toBe(token)
+  })
+})
+
+describe('OTP de verificación de email', () => {
+  it('genera 6 dígitos, hashea estable y normaliza entrada', async () => {
+    const {
+      createEmailVerificationOtp,
+      hashEmailVerificationOtp,
+      normalizeEmailVerificationOtp,
+      EMAIL_OTP_LENGTH,
+    } = await import('../server/services/emailVerificationOtp.js')
+
+    const code = createEmailVerificationOtp()
+    expect(code).toMatch(new RegExp(`^\\d{${EMAIL_OTP_LENGTH}}$`))
+    expect(normalizeEmailVerificationOtp(' 12-34 56 ')).toBe('123456')
+    expect(normalizeEmailVerificationOtp('12345')).toBe('')
+    expect(hashEmailVerificationOtp('482913')).toBe(hashEmailVerificationOtp('482913'))
+    expect(hashEmailVerificationOtp('482913')).not.toBe(hashEmailVerificationOtp('482914'))
   })
 })
 

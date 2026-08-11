@@ -3,7 +3,7 @@
  * invite-doctor.mjs — PLU ARG
  *
  * Diagnóstico del flujo de invitación de staff: dar de alta a alguien con un
- * rol y que reciba por mail una credencial que le abra la aplicación.
+ * rol y que reciba por mail un enlace seguro para elegir su contraseña.
  *
  * `email:doctor` valida la infraestructura de Brevo en general. Este valida la
  * cadena puntual de la invitación, que tiene tres eslabones propios que fallan
@@ -13,8 +13,7 @@
  *      alta revienta con un error de Prisma y nadie sabe por qué.
  *   2. El catálogo de `AccessRole` en la base. `resolveAssignableRole` resuelve
  *      contra esas filas: sin seed, todo rol se rechaza con "no existe".
- *   3. `APP_URL`. Sin esto el mail sale con el botón "Entrar al panel" vacío:
- *      la persona recibe la contraseña pero no sabe a dónde ir.
+ *   3. `APP_URL`. Sin esto el mail sale con el botón de activación vacío.
  *
  * Uso:
  *   npm run invite:doctor
@@ -43,7 +42,6 @@ const { createStaffAccountNotificationService } = await import(
   '../server/modules/notifications/staffAccountNotificationService.js'
 )
 const { resolveTemplateId } = await import('../server/modules/notifications/emailCatalog.js')
-const { generateTempPassword } = await import('../server/services/passwordService.js')
 const { ROLE_HIERARCHY } = await import('../src/lib/permissions.js')
 
 const OK = '[32mOK[0m'
@@ -214,20 +212,21 @@ if (sendIndex !== -1) {
     // Se manda el mail real, con el mismo servicio y template que usa el alta,
     // pero SIN crear la cuenta: esto valida la entrega, no el alta. El alta de
     // verdad se hace desde el panel.
-    const tempPassword = generateTempPassword()
     const notifications = createStaffAccountNotificationService({ brevo, env: process.env })
+    const invitationUrl = `${appUrl}/?invitacion-staff=doctor-${Date.now()}`
 
     try {
       const result = await notifications.notifyStaffInvitation({
         user: { id: `doctor-${Date.now()}`, email: to, name: 'Prueba de invitación' },
-        tempPassword,
+        invitationUrl,
         roleName: 'Administrador',
+        expiresInDays: 7,
       })
 
       if (result?.status === 'sent') {
-        ok(`Aceptado por Brevo · contraseña de la prueba: ${tempPassword}`)
+        ok('Aceptado por Brevo · invitación segura enviada')
         warn(
-          'Ojo: esta contraseña NO corresponde a ninguna cuenta.',
+          'Ojo: este enlace NO corresponde a ninguna cuenta.',
           'El mail valida la entrega y el contenido, no crea usuario. Las altas van por el panel.',
         )
       } else {

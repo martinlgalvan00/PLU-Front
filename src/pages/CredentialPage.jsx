@@ -8,7 +8,10 @@ import { BRAND } from '../lib/brand.js'
 import { formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
 import { getStatusMeta, isGateAccessReady, isRegistrationAdmitted } from '../lib/status.js'
+import { isPreviewCredentialCode } from '../lib/credentialQr.js'
 import { useCredentialVerification } from '../hooks/useCredentialVerification.js'
+import { useContent } from '../hooks/useContent.js'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 import { formatCacheAge } from '../services/credentialCache.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
@@ -76,11 +79,83 @@ function ageFromBirthDate(iso) {
  *   onCheckInRegistration (registrationId: string) => Promise<{outcome, registration?}>
  */
 export default function CredentialPage({ code, eventSlug, type, onCheckIn, onCheckInRegistration }) {
+  if (isPreviewCredentialCode(code)) {
+    return <PreviewCredentialEasterEgg code={code} />
+  }
+
   if (type === 'ticket') {
     return <TicketCredential code={code} onCheckIn={onCheckIn} />
   }
 
   return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+}
+
+/**
+ * Easter egg de showcase: códigos PREV-* (Members / Home / demos).
+ * Misma cáscara que la verificación real, sin pegarle al backend ni ofrecer check-in.
+ */
+function PreviewCredentialEasterEgg({ code }) {
+  const { t } = useI18n()
+  const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
+  const athleteName = MEMBERSHIP_CREDENTIAL_SAMPLE.athlete
+  const memberCode = MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode
+  const season = MEMBERSHIP_CREDENTIAL_SAMPLE.season
+  const status = MEMBERSHIP_CREDENTIAL_SAMPLE.status || t('pages.credentialScan.previewMembershipStatus')
+
+  return (
+    <CredentialShell
+      verdictIcon={CheckCircle2}
+      verdictLabel={t('pages.credentialScan.previewVerdict')}
+      verdictClass="credential-page__verdict--valid"
+      brandMark={t('pages.credentialScan.brandMark')}
+      backHomeLabel={t('pages.credentialScan.backHome')}
+    >
+      <div className="credential-page__body">
+        <aside className="credential-page__preview-banner" role="note">
+          <p className="credential-page__preview-banner-title">
+            {t('pages.credentialScan.previewBannerTitle')}
+          </p>
+          <p className="credential-page__preview-banner-body">
+            {t('pages.credentialScan.previewBannerBody')}
+          </p>
+        </aside>
+
+        <div className="credential-page__identity-hero">
+          <AthletePortrait name={athleteName} photoUrl={null} />
+          <div className="credential-page__identity-hero-copy">
+            <p className="credential-page__athlete-eyebrow">
+              {t('pages.credentialScan.previewAthleteLabel')}
+            </p>
+            <p className="credential-page__athlete-name">{athleteName}</p>
+            <p className="credential-page__member-code">
+              <span className="credential-page__member-code-label">
+                {t('pages.credentialScan.previewMemberCodeLabel')}
+              </span>
+              <span className="credential-page__member-code-value">{memberCode}</span>
+            </p>
+          </div>
+        </div>
+
+        <dl className="credential-page__rows">
+          <div className="credential-page__row">
+            <dt>{t('pages.credentialScan.previewMembershipLabel')}</dt>
+            <dd>
+              <span className="status-pill status-pill--success">{status}</span>
+              {season ? <span className="credential-page__row-meta">{season}</span> : null}
+            </dd>
+          </div>
+          <div className="credential-page__row">
+            <dt>{t('pages.credentialScan.previewCodeLabel')}</dt>
+            <dd>
+              <span className="credential-page__member-code-value">{code}</span>
+            </dd>
+          </div>
+        </dl>
+
+        <p className="credential-page__preview-footnote">{t('pages.credentialScan.previewNoCheckIn')}</p>
+      </div>
+    </CredentialShell>
+  )
 }
 
 /**
@@ -733,7 +808,14 @@ function NotFoundBody({ code }) {
   )
 }
 
-function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictClass }) {
+function CredentialShell({
+  children,
+  verdictIcon: Icon,
+  verdictLabel,
+  verdictClass,
+  brandMark = 'Verificación QR',
+  backHomeLabel = 'Volver al sitio de PLU ARG',
+}) {
   return (
     <main className="credential-page">
       <div className="credential-page__ambient" aria-hidden>
@@ -745,7 +827,7 @@ function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictCla
           <img src={BRAND.logoArgentinaUrl} alt="" className="credential-page__logo" />
           <div className="credential-page__brand-text">
             <span className="credential-page__brand-name">PLU Argentina</span>
-            <span className="credential-page__brand-mark">Verificación QR</span>
+            <span className="credential-page__brand-mark">{brandMark}</span>
           </div>
         </header>
 
@@ -757,7 +839,7 @@ function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictCla
         {children}
 
         <footer className="credential-page__footer">
-          <a href="/">Volver al sitio de PLU ARG</a>
+          <a href="/">{backHomeLabel}</a>
         </footer>
       </div>
     </main>

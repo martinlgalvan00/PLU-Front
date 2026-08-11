@@ -17,7 +17,19 @@ import { apiGet } from '../lib/api.js'
 
 /** Tono de la fila: severidad operativa, no decoración. */
 const ACTION_TONES = {
+  'account.created': 'success',
+  'account.reactivated': 'success',
+  'auth.login_succeeded': 'success',
+  'auth.login_failed': 'warning',
+  'auth.session_started': 'success',
+  'auth.session_ended': 'info',
   'payment.applied': 'success',
+  'payment.aprobado': 'success',
+  'payment.rechazado': 'danger',
+  'payment.reembolsado': 'danger',
+  'payment.cancelado': 'warning',
+  'payment.pendiente': 'info',
+  'payment_brick.error': 'danger',
   'payment.approved_manually': 'success',
   'payment.proof_uploaded': 'info',
   'membership.activated': 'success',
@@ -75,6 +87,14 @@ const SUMMARY_FIELDS = [
   'providerMessageId',
   'resourceId',
   'reconciliationStatus',
+  'payerEmail',
+  'statusDetail',
+  'method',
+  'reason',
+  'roleKey',
+  'accountKind',
+  'ledger',
+  'paymentRecordId',
 ]
 
 export function auditActionTone(action) {

@@ -25,3 +25,22 @@ export function getTransitionDirection(fromView, toView) {
   const toRank = VIEW_RANK[toView] ?? 50
   return toRank >= fromRank ? 'forward' : 'back'
 }
+
+const ATHLETE_DESTINATIONS = new Set(['membership', 'competition'])
+
+/**
+ * Conserva la acción que llevó a una persona al login. El login del atleta
+ * navega a `profile` por defecto; si antes había elegido afiliarse o
+ * inscribirse, se retoma ese destino en vez de perder la intención.
+ */
+export function resolveAfterLoginDestination(nextView, role, pendingDestination) {
+  if (
+    nextView === 'profile' &&
+    role === 'athlete_plu' &&
+    ATHLETE_DESTINATIONS.has(pendingDestination?.view)
+  ) {
+    return pendingDestination
+  }
+
+  return { view: nextView, options: {} }
+}

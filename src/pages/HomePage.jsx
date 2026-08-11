@@ -10,7 +10,7 @@ import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
-import { getFeaturedEvent } from '../lib/eventNavigation.js'
+import { getFeaturedEvent, getFeaturedEventDestination } from '../lib/eventNavigation.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
@@ -28,6 +28,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
   const { reducedMotion } = useMotionConfig()
   const { PITBULL_CLASSIC } = useContent()
   const pitbullEvent = getFeaturedEvent(events)
+  const featuredDestination = getFeaturedEventDestination(pitbullEvent)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
   const { registered: liveRegistered, slots: liveSlots } = useEventRegistrationCapacity(
@@ -39,11 +40,11 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
   )
 
   function handlePitbullRegister() {
-    if (!isLoggedInAthlete) {
-      onNavigate('register')
-      return
-    }
     onSelectEvent?.(pitbullEvent)
+  }
+
+  function openFeaturedEvent() {
+    onNavigate?.(featuredDestination.view, featuredDestination.options)
   }
 
   const TeaserDuo = reducedMotion ? 'div' : m.div
@@ -72,7 +73,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
           <PitbullSpotlight
             variant="home"
             event={pitbullEvent}
-            onDetail={() => onNavigate?.('pitbull')}
+            onDetail={openFeaturedEvent}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onResults={() => onNavigate?.('results')}

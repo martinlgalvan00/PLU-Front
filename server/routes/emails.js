@@ -123,6 +123,10 @@ export function createEmailRoutes(deps = {}) {
   const router = Router()
   const env = deps.env ?? process.env
   const prisma = deps.getPrisma?.()
+  const resolveSupabaseAdmin = () =>
+    Object.prototype.hasOwnProperty.call(deps, 'supabaseAdmin')
+      ? deps.supabaseAdmin
+      : getSupabaseAdmin()
 
   // No existe un permiso propio de emails y no corresponde inventar uno acá:
   // agregarlo tocaría `src/lib/permissions.js` y la matriz de roles. Se mapea
@@ -132,7 +136,7 @@ export function createEmailRoutes(deps = {}) {
   const sendGuard = requirePermission('admin.users.write', { prisma })
 
   const buildRepository = () =>
-    deps.repository ?? createSupabaseNotificationRepository(deps.supabaseAdmin ?? getSupabaseAdmin())
+    deps.repository ?? createSupabaseNotificationRepository(resolveSupabaseAdmin())
 
   const buildDispatcher = () =>
     createEmailDispatcher({
@@ -213,7 +217,7 @@ export function createEmailRoutes(deps = {}) {
         const notifyEvent = createEventNotificationService({
           audienceRepository:
             deps.eventAudienceRepository ??
-            createEventAudienceRepository(deps.supabaseAdmin ?? getSupabaseAdmin()),
+            createEventAudienceRepository(resolveSupabaseAdmin()),
           notificationRepository: repository,
           dispatcher: createEmailDispatcher({
             repository,
