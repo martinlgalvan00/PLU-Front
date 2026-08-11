@@ -30,7 +30,7 @@ webhook firmado es la confirmación canónica y el mecanismo de recuperación.
 
 | Entorno | Webhook |
 |---------|---------|
-| DEV | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
+| DEV | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
 | PROD | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
 
 Detalle de variables y `back_urls`: `docs/PAYMENTS_OPERATIONS.md`.

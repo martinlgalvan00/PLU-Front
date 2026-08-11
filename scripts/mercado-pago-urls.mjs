@@ -17,7 +17,7 @@ const WARN = 'AVISO'
 const ENVIRONMENTS = [
   {
     name: 'DEV (preview rama dev)',
-    appUrl: 'https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app',
+    appUrl: 'https://plu-git-dev-martinlgalvan00s-projects.vercel.app',
     mpEnv: 'sandbox',
   },
   {

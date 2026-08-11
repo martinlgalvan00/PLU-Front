@@ -61,7 +61,7 @@ aplicaciones distintas en Mercado Pago (TEST para DEV, PROD para produccion).
 
 | Entorno | `APP_URL` / `API_URL` | Webhook en panel MP |
 |---------|------------------------|---------------------|
-| DEV (preview rama `dev`) | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app` | `https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
+| DEV (preview rama `dev`) | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app` | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
 | PROD | `https://www.powerliftingunited.ar` | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
 
 En el panel MP (Tu integracion → Webhooks):
@@ -83,8 +83,8 @@ MERCADO_PAGO_ENV=sandbox
 VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
 MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app TEST>
-APP_URL=https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app
-API_URL=https://maximal-strcorp-fn7n-git-dev-martinlgalvan00s-projects.vercel.app
+APP_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
+API_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
 
 # Production (app PROD)
 PAYMENTS_MOCK=false
