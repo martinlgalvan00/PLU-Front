@@ -1,5 +1,5 @@
 import { ApiError, apiPost } from '../lib/api.js'
-import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024
@@ -29,13 +29,14 @@ export async function uploadAthletePhoto(_athleteId, file) {
     throw new ApiError(validation.error, { status: 400 })
   }
 
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     throw new ApiError(
       'Supabase no está configurado. No se puede subir la foto en este entorno.',
       { status: 503 },
     )
   }
 
+  const supabase = await getSupabaseClient()
   const upload = await apiPost('/api/athletes/me/photo-upload', {
     fileName: sanitizeFileName(file.name),
     contentType: file.type,

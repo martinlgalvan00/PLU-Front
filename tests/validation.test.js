@@ -44,6 +44,26 @@ describe('validation', () => {
     expect(result.errors.birthDate).toBeTruthy()
   })
 
+  it('rechaza fecha de nacimiento futura', () => {
+    const result = validateAthleteForm({
+      ...DEFAULT_FORM,
+      fullName: 'Juan Pérez',
+      documentId: '40111222',
+      birthDate: '2999-01-01',
+      email: 'juan@example.com',
+      phone: '+54 11 1234-5678',
+      country: 'Argentina',
+      province: 'Buenos Aires',
+      city: 'CABA',
+      gym: 'Maximal',
+      sex: 'Masculino',
+      password: 'clave-muy-segura-2026',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.errors.birthDate).toBeTruthy()
+  })
+
   it('rechaza DNI numérico demasiado corto', () => {
     const result = validateAthleteForm({
       ...DEFAULT_FORM,

@@ -95,29 +95,31 @@ export default function ActionQueue({
               {groupItems.map((item) => {
                 const TypeIcon = TYPE_ICONS[item.type] ?? ClipboardList
                 const typeLabel = t(`admin.actionQueue.types.${item.type}`)
+                const hasPrimaryAction = Boolean(canEdit && (item.paymentId || item.orderId))
 
                 return (
                   <li key={item.id} className={`action-queue__card action-queue__card--${item.priority}`}>
-                    <div className="action-queue__card-head">
-                      <span className={`action-queue__type action-queue__type--${item.type}`}>
-                        <TypeIcon size={13} aria-hidden />
-                        {typeLabel}
-                      </span>
-                      <span className="action-queue__summary">{item.summary}</span>
-                    </div>
+                    <span className={`action-queue__type action-queue__type--${item.type}`}>
+                      <TypeIcon size={13} aria-hidden />
+                      {typeLabel}
+                    </span>
 
                     <div className="action-queue__card-body">
                       <strong className="action-queue__subject">{item.subject}</strong>
-                      {(item.detail || item.meta) && (
-                        <div className="action-queue__meta">
-                          {item.detail && <span className="action-queue__meta-item">{item.detail}</span>}
-                          {item.meta && (
-                            <span className="action-queue__meta-item action-queue__meta-item--accent">
-                              {item.meta}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <span className="action-queue__meta">
+                        {/* Con acción primaria visible, el summary ("Validar pago
+                            manual") repite lo que el botón ya comunica: solo se
+                            muestra cuando no hay acción y es la única pista. */}
+                        {!hasPrimaryAction && item.summary ? (
+                          <span className="action-queue__meta-item">{item.summary}</span>
+                        ) : null}
+                        {item.detail && <span className="action-queue__meta-item">{item.detail}</span>}
+                        {item.meta && (
+                          <span className="action-queue__meta-item action-queue__meta-item--accent">
+                            {item.meta}
+                          </span>
+                        )}
+                      </span>
                     </div>
 
                     <div className="action-queue__actions">

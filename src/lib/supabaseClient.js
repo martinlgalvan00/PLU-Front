@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { env } from '../config/env.js'
 
 export function assertBrowserSupabaseKeyIsPublic(key) {
@@ -33,12 +32,26 @@ if (!isSupabaseConfigured && env.isDev) {
   )
 }
 
-export const supabase = isSupabaseConfigured
-  ? createClient(env.supabase.url, env.supabase.anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : null
+let supabaseClientPromise = null
+
+/**
+ * Singleton perezoso: @supabase/supabase-js pesa ~110 KB min y el browser sólo
+ * lo necesita en acciones puntuales (canje OTP de staff, RPCs, subida de
+ * comprobantes). El dynamic import lo mantiene fuera del chunk inicial;
+ * la sesión persiste igual porque createClient usa localStorage al crearse.
+ */
+export function getSupabaseClient() {
+  if (!isSupabaseConfigured) return Promise.resolve(null)
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
+      createClient(env.supabase.url, env.supabase.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      }),
+    )
+  }
+  return supabaseClientPromise
+}

@@ -1,5 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
-import { apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
 
 /**
@@ -497,6 +497,15 @@ export async function setMembershipStatus(membershipId, status) {
 export async function rotateAthleteCredentialToken(athleteId) {
   const { athlete } = await apiPost(`/api/athletes/admin/${athleteId}/rotate-credential`, {})
   return { athlete: toCamelAthlete(athlete) }
+}
+
+/**
+ * Borrado definitivo del atleta y todo lo asociado. Solo Super Admin: el
+ * backend lo exige con requireRole(['admin_maximal']).
+ */
+export async function deleteAthleteRequest(athleteId) {
+  const result = await apiDelete(`/api/athletes/admin/${encodeURIComponent(athleteId)}`)
+  return { deletedAthlete: result.deletedAthlete }
 }
 
 export async function registerAthletePhoto(_athleteId, photoPath) {

@@ -291,7 +291,7 @@ const DRAWER_SECONDARY = [
   { key: 'contact', labelKey: 'nav.contact' },
 ]
 
-export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session }) {
+export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session, sessionPending = false }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
   const [hoveredNav, setHoveredNav] = useState(null)
@@ -611,6 +611,8 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   ) : null}
                 </AnimatePresence>
               </div>
+            ) : sessionPending ? (
+              <span className="plu-global-nav__session-skeleton" aria-hidden="true" />
             ) : (
               <button
                 type="button"
@@ -643,6 +645,8 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                     {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
                   </span>
                 </button>
+              ) : sessionPending ? (
+                <span className="plu-global-nav__session-skeleton" aria-hidden="true" />
               ) : (
                 <button
                   type="button"

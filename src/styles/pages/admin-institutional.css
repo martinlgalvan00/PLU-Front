@@ -15,13 +15,15 @@
 }
 
 .admin-shell .admin-shell__sidebar {
-  background: var(--admin-sidebar);
-  border-right: 1px solid var(--admin-sidebar-border);
-  box-shadow: var(--admin-sidebar-shadow);
+  background: var(--admin-glass-sidebar-bg, var(--admin-sidebar));
+  border-right: 1px solid var(--admin-glass-border, var(--admin-sidebar-border));
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
+  backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
 }
 
 .admin-shell .admin-shell__brand {
-  border-bottom-color: var(--admin-sidebar-border);
+  border-bottom-color: var(--admin-glass-border, var(--admin-sidebar-border));
   padding: 16px 16px 14px;
 }
 
@@ -440,16 +442,18 @@
 }
 
 .admin-shell .admin-shell__collapse-toggle {
-  background: var(--admin-sidebar-surface);
-  border-color: var(--admin-sidebar-border);
+  background: var(--admin-glass-bg-strong, var(--admin-sidebar-surface));
+  border-color: var(--admin-glass-border, var(--admin-sidebar-border));
   border-radius: 999px;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--admin-sidebar-text) 6%, transparent);
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
   color: var(--admin-sidebar-muted);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.1);
+  backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.1);
 }
 
 .admin-shell .admin-shell__collapse-toggle:hover {
-  background: var(--admin-sidebar);
-  border-color: color-mix(in srgb, var(--admin-premium) 30%, var(--admin-sidebar-border));
+  background: var(--admin-glass-bg, var(--admin-sidebar));
+  border-color: color-mix(in srgb, var(--admin-accent) 32%, var(--admin-glass-border, var(--admin-sidebar-border)));
   color: var(--admin-accent);
 }
 
@@ -461,8 +465,8 @@
   .admin-shell--collapsed .admin-shell__account {
     display: flex;
     justify-content: center;
-    min-height: 18px;
-    padding: 4px 0 0;
+    min-height: 16px;
+    padding: 2px 0;
     width: auto;
   }
 
@@ -480,7 +484,7 @@
     border: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     justify-content: center;
     min-height: 0;
     padding: 0;
@@ -493,7 +497,7 @@
     border: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     padding: 0;
     width: 100%;
   }
@@ -502,25 +506,25 @@
   .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact,
   .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
     align-items: center;
-    background: color-mix(in srgb, var(--admin-sidebar-text) 3.5%, transparent);
-    border: 1px solid var(--admin-sidebar-border);
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: 10px;
     box-shadow: none;
     color: var(--admin-sidebar-muted);
     display: inline-flex;
-    height: 42px;
+    height: 36px;
     justify-content: center;
-    min-height: 42px;
-    min-width: 42px;
+    min-height: 36px;
+    min-width: 36px;
     padding: 0;
-    width: 42px;
+    width: 36px;
   }
 
   .admin-shell--collapsed .admin-shell__prefs .pref-toggle:hover,
   .admin-shell--collapsed .admin-shell__prefs .pref-toggle--compact:hover,
   .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph:hover {
-    background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
-    border-color: color-mix(in srgb, var(--admin-accent) 24%, transparent);
+    background: color-mix(in srgb, var(--admin-accent) 10%, transparent);
+    border-color: transparent;
     color: var(--admin-sidebar-text);
     transform: none;
   }
@@ -534,21 +538,21 @@
   }
 
   .admin-shell--collapsed .admin-shell__prefs .locale-switch--glyph {
-    --locale-track-bg: color-mix(in srgb, var(--admin-sidebar-text) 3.5%, transparent);
-    --locale-track-border: var(--admin-sidebar-border);
+    --locale-track-bg: transparent;
+    --locale-track-border: transparent;
     --locale-track-shadow: none;
-    --locale-hover-border: color-mix(in srgb, var(--admin-premium) 36%, transparent);
+    --locale-hover-border: transparent;
     --locale-focus-ring: color-mix(in srgb, var(--admin-premium) 28%, transparent);
     --locale-code-active: color-mix(in srgb, var(--admin-premium) 82%, var(--admin-sidebar-text));
     align-items: center;
     color: var(--locale-code-active);
     display: inline-flex;
-    height: 42px;
+    height: 36px;
     justify-content: center;
-    min-height: 42px;
-    min-width: 42px;
+    min-height: 36px;
+    min-width: 36px;
     padding: 0;
-    width: 42px;
+    width: 36px;
   }
 
   .admin-shell--collapsed .admin-shell__nav button::before {
@@ -567,8 +571,13 @@
   }
 
   .admin-shell--collapsed .admin-shell__nav button.active {
-    background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
-    border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-sidebar-border));
+    background: color-mix(in srgb, var(--admin-accent) 8%, transparent);
+    border-color: transparent;
+  }
+
+  .admin-shell--collapsed .admin-shell__nav button:hover {
+    background: color-mix(in srgb, var(--admin-sidebar-text) 5%, transparent);
+    border-color: transparent;
   }
 
   .admin-shell--collapsed .admin-shell__nav-label {
@@ -576,20 +585,26 @@
   }
 
   .admin-shell--collapsed .admin-shell__exit {
-    border: 1px solid var(--admin-sidebar-border);
-    height: 42px;
+    background: transparent;
+    border: 1px solid transparent;
+    height: 36px;
     justify-content: center;
     margin-inline: 0;
     margin-top: 0;
-    min-height: 42px;
+    min-height: 36px;
     padding: 0;
-    width: 42px;
+    width: 36px;
+  }
+
+  .admin-shell--collapsed .admin-shell__exit:hover {
+    background: color-mix(in srgb, var(--admin-accent) 10%, transparent);
+    border-color: transparent;
   }
 
   .admin-shell--collapsed .admin-shell__brand-home .admin-shell__brand-mark,
   .admin-shell--collapsed .admin-shell__brand-mark {
-    height: 40px;
-    width: 40px;
+    height: 36px;
+    width: 36px;
   }
 }
 

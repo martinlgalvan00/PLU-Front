@@ -158,10 +158,10 @@ describe('rate limit del login de atleta', () => {
 })
 
 describe('alta de atleta', () => {
-  it('responde antes de mandar los mails de onboarding', () => {
-    // Dos envíos secuenciales con reintentos podían superar el maxDuration de
-    // la función: el atleta quedaba creado en la base y el browser veía un
-    // error de red, sin poder registrarse de nuevo (PLU07).
+  it('reserva los mails de onboarding antes de responder', () => {
+    // El dispatcher persiste el outbox antes de contactar a Brevo. Esperarlo
+    // evita que una función serverless termine sin envío ni reintento durable;
+    // el best-effort mantiene exitoso el alta aunque el proveedor esté caído.
     const handler = athleteRoutes.slice(
       athleteRoutes.indexOf("router.post('/register'"),
       athleteRoutes.indexOf("router.post('/verify-email'"),
@@ -169,7 +169,10 @@ describe('alta de atleta', () => {
     const respondsAt = handler.indexOf('res.status(201).json')
     const sendsAt = handler.indexOf('sendOnboardingEmails(row)')
     expect(respondsAt).toBeGreaterThan(-1)
-    expect(sendsAt).toBeGreaterThan(respondsAt)
+    expect(sendsAt).toBeGreaterThan(-1)
+    expect(respondsAt).toBeGreaterThan(sendsAt)
+    expect(athleteRoutes).toContain("sendBestEffort('welcome'")
+    expect(athleteRoutes).toContain('sendVerificationEmail(row)')
   })
 
   it('expone check de disponibilidad y marca ATHLETE_EXISTS con campos', () => {

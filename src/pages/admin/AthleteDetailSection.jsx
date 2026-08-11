@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, BadgeCheck } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
+import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
@@ -36,10 +38,15 @@ export default function AthleteDetailSection({
   onBack,
   canEdit,
   canRotateCredential = false,
+  canDelete = false,
+  onDelete,
   onApprovePayment,
 }) {
   const { locale, t } = useI18n()
   const [activeTab, setActiveTab] = useState('profile')
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const {
     athlete,
     memberships = [],
@@ -101,6 +108,26 @@ export default function AthleteDetailSection({
     return null
   }
 
+  function closeDeleteDialog() {
+    if (deleteBusy) return
+    setIsDeleteDialogOpen(false)
+    setDeleteError('')
+  }
+
+  async function handleDeleteAthlete() {
+    if (!onDelete || !athlete?.id) return
+    setDeleteError('')
+    setDeleteBusy(true)
+    try {
+      // En éxito el panel vuelve al listado (el atleta ya no existe) y esta
+      // vista se desmonta: no hay estado que limpiar.
+      await onDelete(athlete.id)
+    } catch (error) {
+      setDeleteError(error?.message ?? t('admin.athleteDetail.delete.error'))
+      setDeleteBusy(false)
+    }
+  }
+
   return (
     <div className="athlete-detail">
       <button type="button" className="athlete-detail__back" onClick={onBack}>
@@ -129,29 +156,53 @@ export default function AthleteDetailSection({
       />
 
       {activeTab === 'profile' && (
-        <div className="athlete-detail__sheet">
-          {profileGroups.map((group) => (
+        <>
+          <div className="athlete-detail__sheet">
+            {profileGroups.map((group) => (
+              <section
+                key={group.id}
+                className={`athlete-detail__group athlete-detail__group--${group.id}`}
+                aria-labelledby={`athlete-group-${group.id}`}
+              >
+                <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
+                  {group.title}
+                </h3>
+                <dl className="athlete-detail__rows">
+                  {group.fields.map((field) => (
+                    <div key={field.key} className="athlete-detail__row">
+                      <dt>{field.label}</dt>
+                      <dd title={typeof field.value === 'string' ? field.value : undefined}>
+                        {profileValue(field.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+          </div>
+
+          {canDelete ? (
             <section
-              key={group.id}
-              className={`athlete-detail__group athlete-detail__group--${group.id}`}
-              aria-labelledby={`athlete-group-${group.id}`}
+              className="athlete-detail__danger"
+              aria-labelledby="athlete-detail-danger-title"
             >
-              <h3 id={`athlete-group-${group.id}`} className="athlete-detail__group-title">
-                {group.title}
-              </h3>
-              <dl className="athlete-detail__rows">
-                {group.fields.map((field) => (
-                  <div key={field.key} className="athlete-detail__row">
-                    <dt>{field.label}</dt>
-                    <dd title={typeof field.value === 'string' ? field.value : undefined}>
-                      {profileValue(field.value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="athlete-detail__danger-copy">
+                <h3 id="athlete-detail-danger-title">
+                  {t('admin.athleteDetail.delete.title')}
+                </h3>
+                <p>{t('admin.athleteDetail.delete.description')}</p>
+              </div>
+              <Button
+                type="button"
+                className="athlete-detail__danger-action"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 size={15} aria-hidden />
+                {t('admin.athleteDetail.delete.action')}
+              </Button>
             </section>
-          ))}
-        </div>
+          ) : null}
+        </>
       )}
 
       {activeTab === 'memberships' && (
@@ -278,6 +329,27 @@ export default function AthleteDetailSection({
           />
         </div>
       )}
+
+      {isDeleteDialogOpen ? (
+        <AdminDeleteConfirmDialog
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void handleDeleteAthlete()}
+          title={t('admin.athleteDetail.delete.confirmTitle')}
+          description={t('admin.athleteDetail.delete.confirmDescription', {
+            name: athlete.fullName,
+            documentId: athlete.documentId,
+            memberships: memberships.length,
+            registrations: registrations.length,
+            payments: payments.length,
+          })}
+          warning={t('admin.athleteDetail.delete.warning')}
+          cancelLabel={t('admin.athleteDetail.delete.cancel')}
+          confirmLabel={t('admin.athleteDetail.delete.confirm')}
+          busyLabel={t('admin.athleteDetail.delete.deleting')}
+        />
+      ) : null}
     </div>
   )
 }

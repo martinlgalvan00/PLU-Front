@@ -1,3 +1,6 @@
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/events.css'
+import '../styles/layout/design-page-notebook.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'

@@ -19,6 +19,40 @@
   max-width: none;
 }
 
+/* =============================================
+   ADMIN GLASS — primitiva compartida
+   Una sola receta de vidrio para las superficies
+   del panel: fondo translúcido, blur, hairline y
+   highlight superior. Los tokens (--admin-glass-*)
+   viven en dark.css / light.css; acá solo se
+   define cómo se combinan. No suma acento de
+   color: el material es el efecto.
+   ============================================= */
+
+.admin-glass {
+  background: var(--admin-glass-bg);
+  border: 1px solid var(--admin-glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight),
+    var(--admin-glass-shadow);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+}
+
+/* Variante más opaca: drawers, flyouts y superficies que flotan
+   sobre contenido scrolleable y necesitan lectura garantizada. */
+.admin-glass--strong {
+  background: var(--admin-glass-bg-strong);
+  border-color: var(--admin-glass-border-strong);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .admin-page:has(.admin-dashboard--compact) {
   gap: 0;
   padding: var(--layout-gutter-sm) var(--layout-gutter) var(--layout-gutter);
@@ -3636,47 +3670,47 @@
   gap: 0;
 }
 
+/* Filtros de eventos: pills de vidrio con transición de estado — el
+   activo se lee como material, no como subrayado. */
 .admin-list-shell--events .admin-filter-chip {
   background: transparent;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
   box-shadow: none;
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
   min-height: 34px;
-  padding: 6px 11px 8px;
+  padding: 6px 13px;
   position: relative;
-}
-
-.admin-list-shell--events .admin-filter-chip::after {
-  background: transparent;
-  bottom: 0;
-  content: '';
-  height: 2px;
-  left: 10px;
-  position: absolute;
-  right: 10px;
-  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-list-shell--events .admin-filter-chip:hover {
-  background: transparent;
+  background: var(--admin-glass-bg, rgba(255, 255, 255, 0.04));
+  border-color: var(--admin-glass-border, var(--color-border-subtle));
   color: var(--color-text-primary);
+  transform: translateY(-1px);
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active,
 .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 36%, transparent);
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
   color: var(--color-text-primary);
   font-weight: 600;
 }
 
-.admin-list-shell--events .admin-filter-chip.is-active::after,
-.admin-list-shell--events .admin-filter-chip[aria-pressed='true']::after {
-  background: var(--color-brand-celeste);
+.admin-list-shell--events .admin-filter-chip.is-active:hover,
+.admin-list-shell--events .admin-filter-chip[aria-pressed='true']:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 44%, transparent);
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active .admin-filter-chip__count,
@@ -6840,32 +6874,234 @@
   }
 }
 
-.admin-users__temp-password {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: var(--border-radius-md, 8px);
-  color: var(--color-success-text, var(--color-text-primary));
+/* Mi cuenta — mismo material y tokens que el diálogo de eliminación, con el
+   icono en celeste (navegación/identidad) en vez del rojo de peligro. */
+.admin-account-dialog {
+  align-items: center;
   display: grid;
-  gap: 10px;
-  margin: -8px 0 12px;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1200;
+}
+
+.admin-account-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 76%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.admin-account-dialog__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: calc(100dvh - 2 * var(--space-md));
+  max-width: 520px;
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 28px);
+  position: relative;
+  width: 100%;
+}
+
+.admin-account-dialog__head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.admin-account-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-account-dialog__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-account-dialog__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-account-dialog__copy h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-account-dialog__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.admin-account-dialog__close {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-account-dialog__close:hover:not(:disabled) {
+  border-color: var(--color-brand-celeste);
+  color: var(--color-brand-celeste);
+}
+
+.admin-account-dialog__meta {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-account-dialog__meta > div {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+}
+
+.admin-account-dialog__meta dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-account-dialog__meta dd {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.admin-account-dialog__notice {
+  align-items: start;
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 26%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: flex;
+  font-size: 13px;
+  gap: var(--space-sm);
+  line-height: 1.5;
+  margin: 0;
   padding: 12px 14px;
 }
 
-.admin-users__temp-password-title {
+.admin-account-dialog__form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.admin-account-dialog__error {
+  color: var(--color-danger-text);
   font-size: 13px;
-  font-weight: 700;
+  line-height: 1.5;
   margin: 0;
+}
+
+.admin-account-dialog__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.admin-account-dialog__actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 540px) {
+  .admin-account-dialog__head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-account-dialog__close {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .admin-account-dialog__copy {
+    grid-column: 1 / -1;
+  }
+
+  .admin-account-dialog__actions {
+    display: grid;
+  }
+
+  .admin-account-dialog__actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Credencial recién emitida. No es un toast de éxito: es un dato que hay que
+   transcribir, así que la jerarquía la da la monoespaciada y el tamaño, sobre
+   superficie neutra. El verde anterior venía de rgba sueltos, fuera del
+   sistema de tokens, y además leía como "listo" cuando todavía falta pasarla. */
+.admin-users__temp-password {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: var(--space-sm);
+  margin: -8px 0 12px;
+  padding: 14px 16px;
+}
+
+.admin-users__temp-password-title {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .admin-users__temp-password-meta {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   margin: 0;
 }
 
 .admin-users__temp-password-meta > div {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -6873,27 +7109,27 @@
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .admin-users__temp-password-meta dd {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
   margin: 0;
   overflow-wrap: anywhere;
 }
 
+/* La contraseña es el dato protagonista del bloque. */
 .admin-users__temp-password-meta code {
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 6px;
+  color: var(--color-text-primary);
+  display: inline-block;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  padding: 4px 8px;
-}
-
-[data-theme='light'] .admin-users__temp-password-meta code {
-  background: rgba(15, 17, 23, 0.06);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .admin-users__temp-password-note {
@@ -11211,41 +11447,51 @@
   padding: 0 6px;
 }
 
+/* Fila editorial de una línea: [tipo] [sujeto + meta] [acciones].
+   La prioridad es una marca de 2px a la izquierda (sin borde de card). */
 .action-queue__card {
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
+  border: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  align-items: center;
   display: grid;
-  gap: 10px;
+  gap: 6px 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   list-style: none;
-  padding: 12px;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
+  padding: 11px 2px 11px 14px;
+  position: relative;
+  transition: background var(--transition-fast);
 }
 
-.action-queue__card--high {
-  border-left: 2px solid rgba(225, 6, 0, 0.45);
+.action-queue__card::before {
+  border-radius: 2px;
+  bottom: 11px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 11px;
+  width: 2px;
 }
 
-.action-queue__card--medium {
-  border-left: 2px solid rgba(242, 183, 5, 0.45);
+.action-queue__card--high::before {
+  background: color-mix(in srgb, var(--color-brand-red) 70%, transparent);
 }
 
-.action-queue__card--low {
-  border-left: 2px solid rgba(116, 172, 223, 0.45);
+.action-queue__card--medium::before {
+  background: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+}
+
+.action-queue__card--low::before {
+  background: color-mix(in srgb, var(--color-brand-celeste) 70%, transparent);
+}
+
+.action-queue__list > .action-queue__card:first-child {
+  border-top: 0;
 }
 
 .action-queue--drawer .action-queue__list {
-  gap: 8px;
-}
-
-.action-queue__card-head {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  justify-content: space-between;
+  gap: 0;
 }
 
 .action-queue__type {
@@ -11254,15 +11500,17 @@
   border: 0;
   color: var(--color-text-muted);
   display: inline-flex;
+  flex: none;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   gap: 5px;
-  letter-spacing: 0;
+  letter-spacing: 0.06em;
   padding: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .action-queue__type--payment {
-  border-color: rgba(225, 6, 0, 0.18);
   color: #ff8a8a;
 }
 
@@ -11271,7 +11519,6 @@
 }
 
 .action-queue__type--registration {
-  border-color: rgba(242, 183, 5, 0.22);
   color: #dbc98a;
 }
 
@@ -11288,32 +11535,29 @@
   color: var(--color-brand-celeste);
 }
 
-.action-queue__summary {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
-  text-align: right;
-}
-
 .action-queue__card-body {
-  display: grid;
-  gap: 6px;
+  align-items: baseline;
+  display: flex;
+  gap: 6px 12px;
   min-width: 0;
 }
 
 .action-queue__subject {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-queue__meta {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: baseline;
+  display: inline-flex;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .action-queue__meta-item {
@@ -11321,7 +11565,8 @@
   border: 0;
   border-radius: 0;
   color: var(--color-text-muted);
-  font-size: 11px;
+  flex: none;
+  font-size: 11.5px;
   font-weight: 400;
   line-height: 1.2;
   max-width: 100%;
@@ -11346,13 +11591,11 @@
 
 .action-queue__actions {
   align-items: center;
-  border-top: 1px solid var(--color-border-subtle);
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
+  flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 2px;
-  padding-top: 10px;
 }
 
 .action-queue__btn--primary {
@@ -11361,26 +11604,30 @@
 
 @media (hover: hover) and (pointer: fine) {
   .action-queue__card:hover {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: var(--color-border-light);
+    background: rgba(255, 255, 255, 0.025);
   }
 }
 
-[data-theme='light'] .action-queue__card {
-  background: rgba(15, 17, 23, 0.02);
-}
-
 [data-theme='light'] .action-queue__card:hover {
-  background: rgba(15, 17, 23, 0.035);
-  box-shadow: 0 6px 18px rgba(15, 17, 23, 0.06);
-}
-
-[data-theme='light'] .action-queue__type {
   background: rgba(15, 17, 23, 0.03);
 }
 
-[data-theme='light'] .action-queue__meta-item {
-  background: rgba(15, 17, 23, 0.03);
+/* En pantallas angostas la fila se parte: las acciones ocupan su propia línea. */
+@media (max-width: 640px) {
+  .action-queue__card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 12px 2px 12px 14px;
+  }
+
+  .action-queue__card .action-queue__type {
+    grid-column: 1 / -1;
+  }
+
+  .action-queue__card .action-queue__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 0;
+  }
 }
 
 [data-theme='light'] .admin-action-drawer {
@@ -11621,7 +11868,7 @@
 }
 
 .action-queue--compact .action-queue__list {
-  gap: 8px;
+  gap: 0;
 }
 
 .action-queue--compact .action-queue__groups {
@@ -11629,26 +11876,19 @@
 }
 
 .action-queue--compact .action-queue__card {
-  gap: 8px;
-  padding: 10px 11px;
+  gap: 6px 12px;
 }
 
 .action-queue--compact .action-queue__subject {
-  font-size: 14px;
-}
-
-.action-queue--compact .action-queue__summary {
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .action-queue--compact .action-queue__meta-item {
-  font-size: 10px;
-  padding: 3px 8px;
+  font-size: 11px;
 }
 
 .action-queue--compact .action-queue__actions {
   gap: 6px;
-  padding-top: 8px;
 }
 
 .action-queue--compact .action-queue__btn {
@@ -12085,6 +12325,60 @@
 
 .athlete-detail__group--contact .athlete-detail__row dd {
   font-variant-numeric: tabular-nums;
+}
+
+/* Zona de peligro: borrado definitivo del atleta (solo visible para Super Admin) */
+.athlete-detail__danger {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-danger-text) 5%, var(--admin-surface, var(--color-bg-surface)));
+  border: 1px solid color-mix(in srgb, var(--color-danger-text) 32%, transparent);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 12px 14px;
+}
+
+.athlete-detail__danger-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.athlete-detail__danger-copy h3 {
+  color: var(--color-danger-text);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.athlete-detail__danger-copy p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.athlete-detail__danger-action {
+  align-items: center;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-danger-text) 55%, transparent);
+  color: var(--color-danger-text);
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-sm);
+}
+
+.athlete-detail__danger-action:hover:not(:disabled) {
+  background: var(--color-danger-text);
+  border-color: var(--color-danger-text);
+  color: var(--admin-on-action, var(--plu-ink-inverse));
 }
 
 /* Competencia: filas simples, jerarquÃ­a por color (sin negrita) */

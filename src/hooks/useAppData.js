@@ -5,7 +5,10 @@ import {
   createSecurityAccessLinkRequest,
   createSecurityUserRequest,
   createSecurityUsersBulkRequest,
+  changeOwnPasswordRequest,
   createStaffUserRequest,
+  requestEmailChangeRequest,
+  resetStaffPasswordRequest,
   deleteStaffUserRequest,
   deactivateAllSecurityUsersRequest,
   listAccessRolesRequest,
@@ -31,12 +34,13 @@ import {
   PERMISSION_CATALOG,
 } from '../lib/permissions.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
-import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import {
   approveAthletePaymentOrder as approveAthletePaymentOrderRequest,
   checkInRegistration as checkInRegistrationRequest,
   createCompetitionRegistration as createCompetitionRegistrationRequest,
   createMembershipOrder as createMembershipOrderRequest,
+  deleteAthleteRequest,
   fetchAdminAthleteData,
   fetchAthleteSession,
   fetchAthleteSnapshot,
@@ -57,6 +61,7 @@ import {
 } from '../services/demoAthleteSeed.js'
 import {
   applyPaymentUpdate,
+  clearMembershipPlansCache,
   createPreference as createPreferenceRequest,
   reconcileCreatedOrder,
 } from '../services/paymentService.js'
@@ -78,7 +83,7 @@ import {
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
-import { canDeleteUsers } from '../lib/roles.js'
+import { canDeleteAthletes, canDeleteUsers } from '../lib/roles.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -121,9 +126,10 @@ import {
 // El backend genera un magic-link de un solo uso al loguear staff; acá lo
 // canjeamos para tener una sesión real de Supabase Auth en el cliente.
 async function establishSupabaseSession(supabaseAuth) {
-  if (!supabaseAuth || !isSupabaseConfigured || !supabase) return
+  if (!supabaseAuth || !isSupabaseConfigured) return
 
   try {
+    const supabase = await getSupabaseClient()
     await supabase.auth.verifyOtp({
       email: supabaseAuth.email,
       token: supabaseAuth.tokenHash,
@@ -138,6 +144,9 @@ export function useAppData() {
   const oauth = usePluOAuth()
   const storedData = useMemo(() => readStorage(), [])
   const [session, setSessionState] = useState(null)
+  // Restauración de sesión en vuelo (cookie httpOnly: no se puede saber de
+  // forma síncrona si el visitante tiene sesión). En demo no hay probe.
+  const [sessionPending, setSessionPending] = useState(() => !env.demoMode)
   const sessionRef = useRef(null)
   const setSession = useCallback((next) => {
     sessionRef.current = next
@@ -408,6 +417,11 @@ export function useAppData() {
         }
 
         console.warn('No se pudo restaurar la sesion.', error)
+      })
+      .finally(() => {
+        // Si el SDK de Auth0 sigue inicializando, el efecto se re-ejecuta al
+        // cambiar `oauth` y este finally vuelve a correr en ese momento.
+        if (active && !(oauth.configured && oauth.isLoading)) setSessionPending(false)
       })
 
     async function restoreAthleteOrOAuth() {
@@ -1015,13 +1029,37 @@ export function useAppData() {
   )
 
   // Alta real de staff (admin/operador/viewer): pega al backend, que crea la
-  // cuenta sin contraseña para que entre por Auth0. Devuelve el usuario creado
-  // y lo suma al listado. seguridad_plu_arg no pasa por acá (tiene su propio
-  // flujo por evento en UsersSection/AdminEventEditor).
+  // cuenta con una contraseña temporal y se la manda por mail. Devuelve
+  // también `tempPassword` y `emailed` -- la clave viaja una sola vez, para
+  // mostrarla en pantalla cuando el envío no salió. seguridad_plu_arg no pasa
+  // por acá (tiene su propio flujo por evento en UsersSection/AdminEventEditor).
   const createUserAction = useCallback(async (draft) => {
-    const { user } = await createStaffUserRequest(draft)
+    const { user, tempPassword, emailed } = await createStaffUserRequest(draft)
     setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
-    return user
+    return { user, tempPassword, emailed }
+  }, [])
+
+  // Reenvío de invitación / reseteo: misma credencial de un solo uso, y el
+  // titular vuelve a quedar obligado a elegir una propia.
+  const resetStaffPasswordAction = useCallback(async (userId, sendEmail = true) => {
+    const { user, tempPassword, emailed } = await resetStaffPasswordRequest(userId, sendEmail)
+    setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
+    return { user, tempPassword, emailed }
+  }, [])
+
+  // Mi cuenta. El backend rota la cookie de sesión, así que se refresca la
+  // sesión local con el usuario ya sin `mustChangePassword`.
+  const changeOwnPasswordAction = useCallback(
+    async (payload) => {
+      const { user } = await changeOwnPasswordRequest(payload)
+      setSession(user)
+      return user
+    },
+    [setSession],
+  )
+
+  const requestEmailChangeAction = useCallback(async (payload) => {
+    return requestEmailChangeRequest(payload)
   }, [])
 
   const deleteUserAction = useCallback(
@@ -1037,6 +1075,34 @@ export function useAppData() {
       const { deletedUser } = await deleteStaffUserRequest(userId)
       setUsers((current) => deleteUser(current, deletedUser.id))
       return deletedUser
+    },
+    [session],
+  )
+
+  // Borrado definitivo del atleta: la cascada real la hace la RPC
+  // delete_athlete en Supabase; acá se espeja la limpieza en el estado local
+  // para que el panel no siga mostrando filas huérfanas hasta el próximo
+  // refetch.
+  const deleteAthleteAction = useCallback(
+    async (athleteId) => {
+      const applyLocalRemoval = () => {
+        setAthletes((current) => current.filter((item) => item.id !== athleteId))
+        setMemberships((current) => current.filter((item) => item.athleteId !== athleteId))
+        setRegistrations((current) => current.filter((item) => item.athleteId !== athleteId))
+        setPayments((current) => current.filter((item) => item.athleteId !== athleteId))
+      }
+
+      if (isDemoSession(session)) {
+        if (!canDeleteAthletes(session)) {
+          throw new Error('Solo Super Admin puede eliminar atletas.')
+        }
+        applyLocalRemoval()
+        return { id: athleteId }
+      }
+
+      const { deletedAthlete } = await deleteAthleteRequest(athleteId)
+      applyLocalRemoval()
+      return deletedAthlete
     },
     [session],
   )
@@ -1364,7 +1430,8 @@ export function useAppData() {
         if (error.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
       })
     } else if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured) {
+        const supabase = await getSupabaseClient()
         await supabase.auth.signOut().catch(() => {})
       }
 
@@ -1710,6 +1777,7 @@ export function useAppData() {
     }
     try {
       const created = await createMembershipPlanVersionRequest(plan)
+      clearMembershipPlansCache()
       await refreshPricingConfiguration()
       return { plan: created }
     } catch (error) {
@@ -1723,6 +1791,7 @@ export function useAppData() {
     }
     try {
       const plan = await setMembershipPlanActiveRequest(planId, active)
+      clearMembershipPlansCache()
       await refreshPricingConfiguration()
       return { plan }
     } catch (error) {
@@ -1772,6 +1841,7 @@ export function useAppData() {
   return {
     role,
     session,
+    sessionPending,
     getSession,
     login,
     logout,
@@ -1837,7 +1907,11 @@ export function useAppData() {
     updateUserRoleAction,
     updateUserStatusAction,
     createUserAction,
+    changeOwnPasswordAction,
+    requestEmailChangeAction,
+    resetStaffPasswordAction,
     deleteUserAction,
+    deleteAthleteAction,
     createAccessRoleAction,
     updateAccessRolePermissionsAction,
     createSecurityUserAction,

@@ -1,3 +1,10 @@
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/pitbull.css'
+import '../styles/pages/pitbull-journey.css'
+import '../styles/pages/pitbull-meet.css'
+import '../styles/pages/pitbull-categories.css'
+import '../styles/layout/design-page-notebook.css'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowRight,
   FileText,
@@ -76,17 +83,57 @@ function PitbullDossierSection({
 }
 
 function PitbullSectionNav({ items, t }) {
+  const [activeId, setActiveId] = useState(items[0]?.id ?? null)
+  const trackRef = useRef(null)
+  const { reducedMotion } = useMotionConfig()
+  // Los ids son estables; los labels cambian con el locale. Observar por key
+  // evita reconectar el IntersectionObserver en cada render de la página.
+  const itemIdsKey = items.map((item) => item.id).join('|')
+
+  useEffect(() => {
+    const ids = itemIdsKey.split('|').filter(Boolean)
+    const sections = ids.map((id) => document.getElementById(id)).filter(Boolean)
+    if (!sections.length) return undefined
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const topmost = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+        if (topmost) setActiveId(topmost.target.id)
+      },
+      // Banda de lectura: la sección que cruza el tercio superior manda.
+      { rootMargin: '-18% 0px -58% 0px' },
+    )
+    sections.forEach((section) => observer.observe(section))
+    return () => observer.disconnect()
+  }, [itemIdsKey])
+
+  function handleSelect(id) {
+    setActiveId(id)
+    scrollToSection(id)
+    // En mobile el track scrollea: el ítem elegido queda centrado, no cortado.
+    const item = trackRef.current?.querySelector(`[data-section-id="${CSS.escape(id)}"]`)
+    item?.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
+  }
+
   return (
     <nav className="pitbull-section-nav" aria-label={t('pages.pitbull.pageNavAria')}>
       <div className="pitbull-section-nav__inner">
         <span className="pitbull-section-nav__label">{t('pages.pitbull.pageNavLabel')}</span>
-        <div className="pitbull-section-nav__track">
+        <div className="pitbull-section-nav__track" ref={trackRef}>
           {items.map((item) => (
             <button
               key={item.id}
               type="button"
-              className="pitbull-section-nav__item"
-              onClick={() => scrollToSection(item.id)}
+              data-section-id={item.id}
+              className={`pitbull-section-nav__item${activeId === item.id ? ' is-active' : ''}`}
+              aria-current={activeId === item.id ? 'location' : undefined}
+              onClick={() => handleSelect(item.id)}
             >
               <span className="pitbull-section-nav__index" aria-hidden>
                 {item.index}

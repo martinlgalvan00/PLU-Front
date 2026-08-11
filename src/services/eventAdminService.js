@@ -1,6 +1,6 @@
 import { DEFAULT_EVENT_PRICING, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { apiGet, apiPost } from '../lib/api.js'
 
 const DEFAULT_SLOTS = 80
@@ -573,8 +573,9 @@ const PUBLISHED_EVENTS_SELECT = `
 /** Eventos visibles al público — usado por EventsPage para enriquecer los
  * eventos mock con startsAt/endsAt/live antes de renderizarlos. */
 export async function fetchPublishedEvents() {
-  if (!isSupabaseConfigured || !supabase) return []
+  if (!isSupabaseConfigured) return []
 
+  const supabase = await getSupabaseClient()
   const { data, error } = await supabase
     .from('events')
     .select(PUBLISHED_EVENTS_SELECT)

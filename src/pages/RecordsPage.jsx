@@ -1,3 +1,5 @@
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/records.css'
 import { ArrowRight, Mail } from 'lucide-react'
 import Button from '../components/ui/Button.jsx'
 import PluPageHero from '../components/layout/PluPageHero.jsx'

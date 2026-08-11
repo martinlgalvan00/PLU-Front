@@ -95,6 +95,16 @@ Reglas:
 Todo cambio sensible debe generar `audit_log` con: acción, entidad, actor,
 timestamp. Esto incluye cambios de permisos y reasignación de roles de usuario.
 
+Las transiciones técnicas de emails, webhooks y conciliación de pagos se guardan
+en `operational_event_logs`, de forma append-only. El estado actual puede cambiar,
+pero su historia no se sobrescribe. Un intento inválido, suprimido, rechazado o
+agotado también debe quedar registrado con código de error y próximo reintento.
+
+La auditoría operativa debe poder detectar, como mínimo, pagos aprobados sin
+afiliación activa y afiliaciones activas sin confirmación de entrega del email.
+Que el proveedor acepte un email no equivale a que el destinatario lo haya
+recibido: la confirmación es el evento `delivered` del webhook.
+
 ## Duplicados
 
 No permitir registro con mismo email o documento que atleta existente.

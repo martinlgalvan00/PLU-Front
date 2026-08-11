@@ -3,8 +3,10 @@ const FILTER_LABEL_KEYS = {
   allExpiring: 'admin.filters.allExpiring',
   expiringSoon: 'admin.filters.expiringSoon',
   membershipActive: 'admin.filters.membershipActive',
+  membershipScheduled: 'admin.filters.membershipScheduled',
   membershipExpired: 'admin.filters.membershipExpired',
   membershipCancelled: 'admin.filters.membershipCancelled',
+  membershipRefunded: 'admin.filters.membershipRefunded',
   paymentApproved: 'admin.filters.paymentApproved',
 }
 
@@ -56,5 +58,7 @@ export function auditLabels(messages) {
     actor: (value) => audit.actors?.[value] ?? value,
     entity: (value) => audit.entities?.[value] ?? value,
     field: (value) => audit.fields?.[value] ?? value,
+    source: (value) => audit.sources?.[value] ?? value,
+    status: (value) => audit.statuses?.[value] ?? value,
   }
 }

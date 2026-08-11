@@ -40,6 +40,14 @@ const BORDER_NEUTRAL = '#e4e3df'
 
 const FONT_STACK = "'Poppins','Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 
+/**
+ * Monoespaciada para credenciales. No es decorativo: en Poppins la `l`
+ * minúscula, la `I` mayúscula y el `1` son casi idénticas, y una contraseña
+ * temporal se transcribe a mano. `SFMono`/`Consolas` cubren macOS y Windows,
+ * que es de donde se leen estos mails.
+ */
+const MONO_STACK = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
+
 /** Ruta pública del emblema circular PLU Argentina (header negro). */
 export const EMAIL_LOGO_PATH = '/brand/plu-argentina-email.png'
 
@@ -163,6 +171,38 @@ function dataPanel(rows, { accent = null } = {}) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
       ${accentRule}
       ${body}
+    </table>`
+}
+
+/**
+ * Panel de credencial: el dato que el destinatario tiene que copiar.
+ *
+ * Se separa de `dataPanel` porque ahí la contraseña quedaba como una fila más
+ * entre "Usuario" y "Rol", con el mismo peso que datos que sólo se leen. Acá
+ * la jerarquía la dan el tamaño, la monoespaciada y el aire -- no un color de
+ * acento: el oro queda reservado al CTA, que es la única acción del mail.
+ */
+function credentialPanel({ label, value, meta = null, caption = '' }) {
+  if (!value) return ''
+  // El usuario va adentro del mismo panel y no en una ficha aparte: son el par
+  // que se copia junto, y separarlos dejaba una fila de datos suelta.
+  const metaRow = meta?.value
+    ? `
+          <p style="margin:0 0 14px;font-family:${FONT_STACK};font-size:13px;line-height:1.4;color:${INK_700};">
+            <span style="color:${INK_500};">${escapeHtml(meta.label)}:</span> <strong style="color:${INK_900};">${escapeHtml(meta.value)}</strong>
+          </p>`
+    : ''
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+      <tr>
+        <td style="background-color:${WARM_100};border:1px solid ${BORDER_NEUTRAL};border-radius:6px;padding:18px 20px;">
+          ${metaRow}
+          <p style="margin:0 0 8px;font-family:${FONT_STACK};font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${INK_500};">${escapeHtml(label)}</p>
+          <p style="margin:0;font-family:${MONO_STACK};font-size:24px;font-weight:700;letter-spacing:0.06em;line-height:1.3;color:${INK_900};word-break:break-all;">${escapeHtml(value)}</p>
+          ${caption ? `<p style="margin:10px 0 0;font-family:${FONT_STACK};font-size:12px;line-height:1.5;color:${INK_500};">${caption}</p>` : ''}
+        </td>
+      </tr>
     </table>`
 }
 
@@ -325,6 +365,61 @@ const BODIES = {
     ].join(''),
   }),
 
+  staff_invitation: (p) => ({
+    title: 'Tu acceso al panel',
+    preheader: `Contraseña temporal para entrar por primera vez${
+      p.expiresInDays ? ` · vence en ${p.expiresInDays} días` : ''
+    }.`,
+    body: [
+      paragraph(
+        `${greeting(p.name)} te dimos de alta en el panel de PLU Argentina${
+          p.roleName ? ` con el rol <strong>${escapeHtml(p.roleName)}</strong>` : ''
+        }. Entrás con tu email y esta contraseña:`,
+      ),
+      credentialPanel({
+        meta: { label: 'Usuario', value: p.email },
+        label: 'Contraseña temporal',
+        value: p.tempPassword,
+        caption: p.expiresInDays
+          ? `Vence en ${escapeHtml(p.expiresInDays)} días. Después de eso pedile al administrador que te la reenvíe.`
+          : '',
+      }),
+      button(p.loginUrl, 'Entrar al panel'),
+      fallbackLink(p.loginUrl),
+      noticePanel(
+        'Es una contraseña de un solo uso: el panel te va a pedir que elijas una propia antes de dejarte operar. Después podés cambiar también tu email desde Mi cuenta.',
+      ),
+    ].join(''),
+  }),
+
+  staff_email_change: (p) => ({
+    title: 'Confirmá tu nuevo email',
+    preheader: 'Confirmá el cambio para empezar a usar esta dirección.',
+    body: [
+      paragraph(
+        `${greeting(p.name)} pediste usar <strong>${escapeHtml(p.newEmail)}</strong> como email de tu cuenta del panel.`,
+      ),
+      button(p.verificationUrl, 'Confirmar el cambio'),
+      fallbackLink(p.verificationUrl),
+      noticePanel(
+        'El enlace vence en 24 horas. Hasta que lo confirmes seguís entrando con tu email anterior. Si no pediste este cambio, ignorá el correo.',
+      ),
+    ].join(''),
+  }),
+
+  staff_email_changed: (p) => ({
+    title: 'Se cambió el email de tu cuenta',
+    preheader: 'Aviso de seguridad de tu cuenta del panel.',
+    body: [
+      paragraph(
+        `${greeting(p.name)} el email de tu cuenta del panel pasó a ser <strong>${escapeHtml(p.newEmail)}</strong>. A partir de ahora tenés que entrar con esa dirección.`,
+      ),
+      noticePanel(
+        'Si no pediste este cambio, escribinos ahora mismo respondiendo este correo: tu cuenta puede estar comprometida.',
+      ),
+    ].join(''),
+  }),
+
   affiliation_started: (p) => ({
     title: 'Afiliación en curso',
     preheader: 'Estamos procesando tu afiliación.',
@@ -352,6 +447,20 @@ const BODIES = {
       ),
       paragraph('En tu perfil te espera el código QR asociado a tu afiliación.'),
       button(p.accountUrl, 'Ver credencial'),
+    ].join(''),
+  }),
+
+  affiliation_cancelled: (p) => ({
+    title: p.status === 'reembolsada' ? 'Afiliación reintegrada' : 'Afiliación cancelada',
+    preheader: 'Registramos un cambio en el estado de tu afiliación.',
+    body: [
+      paragraph(`${greeting(p.name)} tu afiliación cambió de estado.`),
+      dataPanel([
+        ['Número de socio', p.memberCode],
+        ['Estado', p.status === 'reembolsada' ? 'Reintegrada' : 'Cancelada'],
+      ]),
+      p.accountUrl ? button(p.accountUrl, 'Ver mi cuenta') : '',
+      paragraph('Si no reconocés este cambio, respondé este correo para que podamos revisarlo.', { muted: true }),
     ].join(''),
   }),
 
@@ -401,6 +510,20 @@ const BODIES = {
       p.receiptUrl ? button(p.receiptUrl, 'Descargar') : '',
       p.receiptUrl ? fallbackLink(p.receiptUrl) : '',
       paragraph('No es una factura electrónica AFIP.', { muted: true }),
+    ].join(''),
+  }),
+
+  payment_refunded: (p) => ({
+    title: 'Pago reintegrado',
+    preheader: `Reintegro de ${formatArs(p.amount)} registrado.`,
+    body: [
+      paragraph(`${greeting(p.name)} registramos el reintegro de tu pago.`),
+      dataPanel([
+        ['Concepto', p.concept],
+        ['Importe', formatArs(p.amount)],
+        ['Referencia', p.reference],
+      ]),
+      paragraph('La acreditación final puede demorar según el medio de pago.', { muted: true }),
     ].join(''),
   }),
 

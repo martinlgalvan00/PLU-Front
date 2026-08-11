@@ -77,6 +77,38 @@ export const EMAIL_CATALOG = Object.freeze({
     optOutAllowed: false,
     critical: true,
   },
+  staff_invitation: {
+    category: EMAIL_CATEGORIES.account,
+    templateEnv: 'BREVO_TEMPLATE_STAFF_INVITATION',
+    subject: 'Tu acceso al panel de PLU ARG',
+    entityType: 'staff_user',
+    requiredParams: ['email', 'tempPassword'],
+    optOutAllowed: false,
+    // Crítico: es la única vía por la que la cuenta recién creada recibe su
+    // credencial. Una desuscripción vieja no puede dejar a un admin afuera.
+    critical: true,
+  },
+  staff_email_change: {
+    category: EMAIL_CATEGORIES.account,
+    templateEnv: 'BREVO_TEMPLATE_STAFF_EMAIL_CHANGE',
+    subject: 'Confirmá tu nuevo email · PLU ARG',
+    entityType: 'staff_user',
+    requiredParams: ['verificationUrl', 'newEmail'],
+    optOutAllowed: false,
+    critical: true,
+  },
+  staff_email_changed: {
+    category: EMAIL_CATEGORIES.account,
+    templateEnv: 'BREVO_TEMPLATE_STAFF_EMAIL_CHANGED',
+    subject: 'Se cambió el email de tu cuenta · PLU ARG',
+    entityType: 'staff_user',
+    requiredParams: ['newEmail'],
+    optOutAllowed: false,
+    // Aviso a la casilla que se deja de usar. Es el único canal que le queda a
+    // alguien cuya sesión fue secuestrada para enterarse del cambio, así que
+    // sale sí o sí.
+    critical: true,
+  },
 
   // ------------------------------------------------------------ afiliación
   affiliation_started: {
@@ -93,7 +125,16 @@ export const EMAIL_CATALOG = Object.freeze({
     templateEnv: 'BREVO_TEMPLATE_AFFILIATION_APPROVED',
     subject: 'Tu afiliación quedó activa · PLU ARG',
     entityType: 'membership',
-    requiredParams: ['name'],
+    requiredParams: ['name', 'memberCode', 'expirationDate'],
+    optOutAllowed: false,
+    critical: false,
+  },
+  affiliation_cancelled: {
+    category: EMAIL_CATEGORIES.membership,
+    templateEnv: 'BREVO_TEMPLATE_AFFILIATION_CANCELLED',
+    subject: 'Cambio en tu afiliación · PLU ARG',
+    entityType: 'membership',
+    requiredParams: ['name', 'memberCode', 'status'],
     optOutAllowed: false,
     critical: false,
   },
@@ -141,6 +182,15 @@ export const EMAIL_CATALOG = Object.freeze({
     subject: 'No pudimos procesar tu pago · PLU ARG',
     entityType: 'payment',
     requiredParams: ['name'],
+    optOutAllowed: false,
+    critical: false,
+  },
+  payment_refunded: {
+    category: EMAIL_CATEGORIES.billing,
+    templateEnv: 'BREVO_TEMPLATE_PAYMENT_REFUNDED',
+    subject: 'Tu pago fue reintegrado · PLU ARG',
+    entityType: 'payment',
+    requiredParams: ['name', 'amount', 'reference'],
     optOutAllowed: false,
     critical: false,
   },

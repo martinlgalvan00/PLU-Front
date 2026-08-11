@@ -98,21 +98,27 @@
 }
 
 /* Administración: canvas quieto, sidebar material y paneles con una
-   sola lectura de profundidad. No hay glow decorativo. */
+   sola lectura de profundidad. No hay glow decorativo.
+   La atmósfera vive en el shell completo (no solo en main): el sidebar
+   es vidrio translúcido y necesita el wash detrás para leerse como tal. */
 [data-theme='dark'] .admin-shell {
-  background-color: var(--admin-canvas, var(--color-page-canvas));
-}
-
-[data-theme='dark'] .admin-shell .admin-shell__main {
   background-color: var(--admin-canvas, var(--color-page-canvas));
   background-image: var(--theme-atmosphere-stack-admin);
   background-repeat: no-repeat;
+  background-attachment: fixed;
   background-size: 100% 100%;
 }
 
+[data-theme='dark'] .admin-shell .admin-shell__main {
+  background: transparent;
+}
+
 [data-theme='dark'] .admin-shell .admin-shell__sidebar {
+  background-color: var(--admin-glass-sidebar-bg);
   background-image: var(--theme-sidebar-satin);
   background-repeat: no-repeat;
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
 }
 
 [data-theme='dark']
@@ -180,9 +186,18 @@
     --theme-footer-satin: none;
     --theme-surface-highlight: transparent;
     --theme-overlay-blur: 0px;
+    /* Vidrio se vuelve material sólido: sin blur y fondo opaco. */
+    --admin-glass-blur: 0px;
+    --admin-glass-bg: var(--plu-cool-800);
+    --admin-glass-bg-strong: var(--plu-cool-750);
+    --admin-glass-sidebar-bg: var(--plu-cool-950);
+    --admin-glass-highlight: transparent;
   }
 
-  [data-theme='dark'] .admin-event-editor-modal__backdrop {
+  [data-theme='dark'] .admin-event-editor-modal__backdrop,
+  [data-theme='dark'] .admin-shell .admin-shell__sidebar,
+  [data-theme='dark'] .admin-shell .admin-shell__collapse-toggle,
+  [data-theme='dark'] .admin-shell .admin-mobile-bar {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

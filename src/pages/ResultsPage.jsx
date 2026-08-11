@@ -1,3 +1,5 @@
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/results.css'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Download, ShieldCheck, Trophy } from 'lucide-react'
 import PluPageHero from '../components/layout/PluPageHero.jsx'

@@ -1,5 +1,3 @@
-import QRCode from 'qrcode'
-
 /**
  * credentialQr.js — PLU ARG
  *
@@ -38,17 +36,25 @@ export function generateCredentialQr(url) {
   const cached = qrDataUrlCache.get(url)
   if (cached) return cached
 
-  const pending = QRCode.toDataURL(url, {
-    width: 320,
-    margin: 1,
-    color: {
-      dark: '#0d0e11',
-      light: '#ffffff',
-    },
-  }).catch((error) => {
-    qrDataUrlCache.delete(url)
-    throw error
-  })
+  // qrcode pesa ~60 KB y solo se necesita al generar (credencial/share):
+  // dynamic import para que readCredentialParams/parseCredentialScan no lo
+  // arrastren al chunk inicial vía App.jsx o el scanner.
+  const pending = import('qrcode')
+    .then((module) => {
+      const QRCode = module.default ?? module
+      return QRCode.toDataURL(url, {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: '#0d0e11',
+          light: '#ffffff',
+        },
+      })
+    })
+    .catch((error) => {
+      qrDataUrlCache.delete(url)
+      throw error
+    })
 
   qrDataUrlCache.set(url, pending)
   return pending

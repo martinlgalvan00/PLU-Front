@@ -13,15 +13,54 @@ export const loginSchema = z.object({
   eventSlug: z.string().trim().min(1).optional(),
 })
 
-// Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean
-// sin contraseña: entran por Auth0 (invitación) y resolveOAuthUser vincula la
-// identidad por email en el primer login. seguridad_plu_arg queda afuera a
-// propósito -- esas cuentas van por createSecurityUserSchema (atadas a un
-// evento y con credencial de puerta).
+// Alta de cuentas de staff del panel (no atletas, no seguridad). Se crean con
+// una contraseña temporal que se manda por mail y que sólo habilita a
+// cambiarla (ver `mustChangePassword`). Auth0 sigue soportado para quien ya
+// tenga identidad vinculada, pero no es requisito: nunca estuvo configurado y
+// las cuentas creadas por acá quedaban sin ninguna forma de entrar.
+// seguridad_plu_arg queda afuera a propósito -- esas cuentas van por
+// createSecurityUserSchema (atadas a un evento y con credencial de puerta).
 export const createStaffUserSchema = z.object({
   name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
   role: z.string().trim().toLowerCase().regex(/^[a-z][a-z0-9_]{2,47}$/),
+  sendEmail: z.boolean().optional().default(true),
+})
+
+/** Reenvío de invitación / reseteo de la credencial de una cuenta de staff. */
+export const resetStaffPasswordSchema = z.object({
+  sendEmail: z.boolean().optional().default(true),
+})
+
+// Mínimo 12 caracteres, igual que el reset de atletas (routes/athletes.js).
+// El máximo de 72 no es cosmético: bcrypt trunca silenciosamente ahí, así que
+// aceptar más largo daría una falsa sensación de fortaleza.
+const strongPassword = z
+  .string()
+  .min(12, 'Elegí una contraseña de al menos 12 caracteres.')
+  .max(72, 'La contraseña no puede superar los 72 caracteres.')
+
+export const changeOwnPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Ingresá tu contraseña actual.').max(200),
+    password: strongPassword,
+  })
+  .refine((value) => value.currentPassword !== value.password, {
+    path: ['password'],
+    message: 'La contraseña nueva tiene que ser distinta de la actual.',
+  })
+
+/**
+ * El cambio de email pide la contraseña actual: la sesión sola no alcanza para
+ * mover la identidad de login de una cuenta con permisos de panel.
+ */
+export const requestEmailChangeSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
+  currentPassword: z.string().min(1, 'Ingresá tu contraseña actual.').max(200),
+})
+
+export const confirmEmailChangeSchema = z.object({
+  token: z.string().trim().min(10, 'Enlace inválido.'),
 })
 
 export const createSecurityUserSchema = z.object({

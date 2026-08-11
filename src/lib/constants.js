@@ -149,9 +149,11 @@ export const CONFIRMED_REGISTRATION_STATUSES = ['confirmada', 'acreditada']
 export const MEMBERSHIP_FILTER_STATUSES = [
   ['all', 'allStatuses'],
   ['activa', 'membershipActive'],
+  ['programada', 'membershipScheduled'],
   ['pendiente_pago', 'status'],
   ['vencida', 'membershipExpired'],
   ['cancelada', 'membershipCancelled'],
+  ['reembolsada', 'membershipRefunded'],
 ]
 
 export const ATHLETE_FILTER_STATUSES = [

@@ -100,17 +100,30 @@ export async function findAccessRole(prisma, roleKey) {
   return templateRole(roleKey)
 }
 
+/**
+ * Quién puede asignar qué rol, por jerarquía.
+ *
+ * Super Admin es el único nivel que puede replicarse a sí mismo. Sin esa
+ * excepción no habría forma de dar de alta un segundo Super Admin desde la
+ * aplicación -- que es exactamente el agujero que dejaba el alta anterior,
+ * donde `admin_maximal` estaba reservado al seed.
+ *
+ * Para todos los demás vale la regla estándar: sólo se asigna estrictamente
+ * por debajo del propio nivel. Un Administrador crea PLU, Seguridad y roles
+ * personalizados, pero nunca otro Administrador ni un Super Admin.
+ */
 export function canActorAssignRole(actor, targetRole) {
-  if (!targetRole?.active || targetRole.key === 'admin_maximal') {
-    return false
-  }
+  if (!targetRole?.active) return false
 
   const actorKey = getAccessRoleKey(actor)
   if (actorKey === 'admin_maximal') return true
+  if (targetRole.key === 'admin_maximal') return false
+
+  const actorLevel = getRoleHierarchyLevel(actor)
   return (
-    actorKey === 'admin_plu_arg' &&
+    actorLevel <= 2 &&
     targetRole.assignableByAdmin === true &&
-    canManageRolePermissions(actor, targetRole)
+    actorLevel < getRoleHierarchyLevel(targetRole)
   )
 }
 

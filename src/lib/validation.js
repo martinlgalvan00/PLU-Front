@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+function todayInBuenosAires() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
 function buildAthleteProfileSchema(t) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
   const isoDate = z
@@ -15,6 +26,9 @@ function buildAthleteProfileSchema(t) {
         date.getDate() === day
       )
     }, msg('dateFormat') ?? 'Seleccioná una fecha válida.')
+    .refine((value) => {
+      return value <= todayInBuenosAires()
+    }, msg('dateFuture') ?? 'La fecha de nacimiento no puede ser futura.')
 
   return z.object({
     fullName: z.string().trim().min(3, msg('fullName') ?? 'Ingresá tu nombre y apellido.'),
@@ -38,7 +52,10 @@ function buildAthleteProfileSchema(t) {
     phone: z
       .string()
       .refine(
-        (value) => value.replace(/\D/g, '').length >= 8,
+        (value) => {
+          const digits = value.replace(/\D/g, '')
+          return digits.length >= 8 && digits.length <= 15
+        },
         msg('phone') ?? 'Ingresá un teléfono válido con código de área.',
       ),
     country: z.string().trim().min(2, msg('country') ?? 'Ingresá tu país.'),
@@ -55,8 +72,12 @@ function buildCompetitionSchema(t) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
 
   return z.object({
-    division: z.string().min(1, msg('division') ?? 'Seleccioná una división.'),
-    category: z.string().min(1, msg('category') ?? 'Seleccioná una categoría.'),
+    division: z.enum(['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'], {
+      message: msg('division') ?? 'Seleccioná una división válida.',
+    }),
+    category: z.enum(['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'], {
+      message: msg('category') ?? 'Seleccioná una categoría válida.',
+    }),
     estimatedWeight: z.string().refine((value) => {
       const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
       return Number.isFinite(weight) && weight >= 10 && weight <= 250

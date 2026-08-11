@@ -130,14 +130,20 @@ export function updateSecurityUserStatusRequest(userId, status) {
   return apiPatch(`/api/auth/security-users/${encodeURIComponent(userId)}/status`, { status })
 }
 
-// Cuentas de staff del panel (admin/operador/viewer). Alta por invitación
-// Auth0 -- se crean sin contraseña y entran por OAuth (ver server/routes/users.js).
+// Cuentas de staff del panel (admin/operador/viewer). El alta emite una
+// contraseña temporal que se manda por mail y que sólo habilita a cambiarla
+// (ver server/routes/users.js). La respuesta la devuelve una única vez para
+// mostrarla en pantalla cuando el envío no salió.
 export function listStaffUsersRequest() {
   return apiGet('/api/users')
 }
 
-export function createStaffUserRequest({ name, email, role }) {
-  return apiPost('/api/users', { name, email, role })
+export function createStaffUserRequest({ name, email, role, sendEmail = true }) {
+  return apiPost('/api/users', { name, email, role, sendEmail })
+}
+
+export function resetStaffPasswordRequest(userId, sendEmail = true) {
+  return apiPost(`/api/users/${encodeURIComponent(userId)}/reset-password`, { sendEmail })
 }
 
 export function updateStaffUserRoleRequest(userId, roleKey) {
@@ -168,6 +174,21 @@ export function updateAccessRolePermissionsRequest(roleId, permissionKeys) {
 
 export function meRequest() {
   return apiRequest('/api/auth/me')
+}
+
+// Mi cuenta. `changeOwnPassword` es el único endpoint alcanzable mientras la
+// cuenta arrastra una contraseña temporal; el resto del panel responde 403 con
+// code `password_change_required` hasta que se resuelva.
+export function changeOwnPasswordRequest({ currentPassword, password }) {
+  return apiPost('/api/auth/me/password', { currentPassword, password })
+}
+
+export function requestEmailChangeRequest({ email, currentPassword }) {
+  return apiPost('/api/auth/me/email', { email, currentPassword })
+}
+
+export function confirmEmailChangeRequest(token) {
+  return apiPost('/api/auth/verify-email-change', { token })
 }
 
 export function logoutRequest() {

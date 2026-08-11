@@ -35,6 +35,7 @@
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",
     "email:doctor": "node scripts/email-doctor.mjs",
+    "invite:doctor": "node scripts/invite-doctor.mjs",
     "email:previews": "node scripts/render-email-previews.mjs",
     "share-cards:previews": "node scripts/render-share-card-previews.mjs",
     "mercado-pago:doctor": "node scripts/mercado-pago-doctor.mjs",
@@ -48,6 +49,8 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.20.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@mercadopago/sdk-react": "^1.0.7",
     "@prisma/client": "^6.16.2",
     "@supabase/supabase-js": "^2.45.4",

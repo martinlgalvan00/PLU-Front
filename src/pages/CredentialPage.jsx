@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react'
 import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } from 'lucide-react'
+// El watermark pesa ~1 MB: se importa acá (página lazy) y no en brand.js,
+// para que no entre al grafo estático del entry vía BrandLogo.
+import pluArgentinaMark from '../assets/PLU Argentina.png'
 import { BRAND } from '../lib/brand.js'
 import { formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
@@ -734,7 +737,7 @@ function CredentialShell({ children, verdictIcon: Icon, verdictLabel, verdictCla
   return (
     <main className="credential-page">
       <div className="credential-page__ambient" aria-hidden>
-        <img src={BRAND.logoArgentinaMarkUrl} alt="" className="credential-page__watermark" />
+        <img src={pluArgentinaMark} alt="" className="credential-page__watermark" />
       </div>
 
       <div className="credential-page__panel">

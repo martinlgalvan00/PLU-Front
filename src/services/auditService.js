@@ -6,8 +6,9 @@ import { apiGet } from '../lib/api.js'
  * Bitácora real del sistema. Hasta ahora el panel mostraba un historial que se
  * construía en el browser y se guardaba en localStorage: distinto para cada
  * operador, perdido al limpiar el navegador y sin relación con lo que había
- * pasado de verdad. Acá se lee `domain_audit_logs`, que las RPC escriben en la
- * misma transacción que aplica cada efecto de dominio.
+ * pasado de verdad. Acá se lee `operational_audit_events`, que unifica los
+ * efectos transaccionales de dominio con las transiciones append-only de
+ * emails, webhooks y pagos.
  *
  * El servicio no traduce: devuelve la clave de acción y el componente resuelve
  * la etiqueta con i18n. Así una acción nueva en una RPC aparece igual en el
@@ -20,6 +21,8 @@ const ACTION_TONES = {
   'payment.approved_manually': 'success',
   'payment.proof_uploaded': 'info',
   'membership.activated': 'success',
+  'membership.activated_manually': 'success',
+  'membership.cancelled_manually': 'danger',
   'membership.revoked': 'danger',
   'membership.expired': 'warning',
   'membership.qr_rotated': 'warning',
@@ -33,6 +36,18 @@ const ACTION_TONES = {
   'ticket.checked_in': 'success',
   'ticket_addon.redeemed': 'info',
   'event.upserted': 'info',
+  'email.sent': 'success',
+  'email.delivered': 'success',
+  'email.retrying': 'warning',
+  'email.suppressed': 'warning',
+  'email.failed': 'danger',
+  'email.rejected': 'danger',
+  'email.bounced': 'danger',
+  'email.skipped': 'danger',
+  'payment_webhook.processed': 'success',
+  'payment_webhook.failed': 'danger',
+  'payment_attempt.failed': 'danger',
+  'payment_reconciliation.failed': 'danger',
 }
 
 /**
@@ -51,6 +66,15 @@ const SUMMARY_FIELDS = [
   'status',
   'eventId',
   'expirationDate',
+  'templateKey',
+  'recipientEmail',
+  'attempt',
+  'errorCode',
+  'error',
+  'nextRetryAt',
+  'providerMessageId',
+  'resourceId',
+  'reconciliationStatus',
 ]
 
 export function auditActionTone(action) {
@@ -67,21 +91,24 @@ function summarize(metadata) {
 export function normalizeAuditEntry(row) {
   return {
     id: row.id,
+    source: row.source ?? 'domain',
     action: row.action,
     entityType: row.entity_type,
     entityId: row.entity_id,
     actorType: row.actor_type,
     actorId: row.actor_id ?? null,
+    status: row.status ?? null,
+    severity: row.severity ?? null,
     metadata: row.metadata ?? {},
     summary: summarize(row.metadata),
-    tone: auditActionTone(row.action),
+    tone: row.severity ?? auditActionTone(row.action),
     createdAt: row.created_at,
   }
 }
 
 export async function fetchAuditEntries(filters = {}) {
   const params = new URLSearchParams()
-  for (const key of ['action', 'entityType', 'entityId', 'actorType', 'search', 'before']) {
+  for (const key of ['action', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before']) {
     if (filters[key]) params.set(key, filters[key])
   }
   if (filters.entityIds?.length) params.set('entityIds', filters.entityIds.join(','))
@@ -94,6 +121,10 @@ export async function fetchAuditEntries(filters = {}) {
 
 export async function fetchAuditFacets() {
   return apiGet('/api/audit/facets')
+}
+
+export async function fetchAuditOverview() {
+  return apiGet('/api/audit/overview')
 }
 
 /**

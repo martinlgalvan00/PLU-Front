@@ -1,5 +1,5 @@
 import { ApiError } from './api.js'
-import { isSupabaseConfigured, supabase } from './supabaseClient.js'
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.js'
 
 /**
  * rpcErrors.js — PLU ARG
@@ -66,13 +66,14 @@ export function throwAsApiError(error) {
 }
 
 export async function callRpc(fn, args) {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     throw new ApiError(
       'Supabase no está configurado. Agregá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu .env.',
       { status: 503 },
     )
   }
 
+  const supabase = await getSupabaseClient()
   let result
   try {
     result = await supabase.rpc(fn, args)

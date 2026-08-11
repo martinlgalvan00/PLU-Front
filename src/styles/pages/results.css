@@ -3568,7 +3568,12 @@
 }
 
 .results-event-panel--editorial .results-lifters-table tbody tr {
-  transition: all var(--motion-fast) ease;
+  transition:
+    background-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
   position: relative;
 }
 

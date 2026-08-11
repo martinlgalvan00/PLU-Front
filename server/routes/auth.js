@@ -1,11 +1,13 @@
-import { randomBytes } from 'node:crypto'
 import { Router } from 'express'
 import {
+  changeOwnPasswordSchema,
+  confirmEmailChangeSchema,
   createSecurityAccessLinkSchema,
   createSecurityUserSchema,
   createSecurityUsersBulkSchema,
   deactivateAllSecurityUsersSchema,
   loginSchema,
+  requestEmailChangeSchema,
   securityGateSchema,
   updateSecurityUserStatusSchema,
 } from '../../src/lib/schemas/auth.js'
@@ -13,14 +15,24 @@ import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
 import { HttpError } from '../lib/errors.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
+import { createStaffAccountNotificationService } from '../modules/notifications/staffAccountNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
+import {
+  createStaffEmailChangeToken,
+  verifyStaffEmailChangeToken,
+} from '../services/staffEmailChangeToken.js'
 import { fetchSupabaseEvent, requireSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission } from '../middleware/auth.js'
+import { requireAuth, requirePermission } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
-import { hashPassword, verifyPassword } from '../services/passwordService.js'
+import {
+  generateTempPassword,
+  hashPassword,
+  isTempPasswordExpired,
+  verifyPassword,
+} from '../services/passwordService.js'
 import { ensureSupabaseSessionToken } from '../services/supabaseAuthBridge.js'
 import { ACCESS_ROLE_INCLUDE } from '../services/accessControlService.js'
 import {
@@ -29,6 +41,7 @@ import {
   getSessionCookieOptions,
   readSessionFromRequest,
   revokeSession,
+  revokeSessionsForUser,
   serializeUser,
   SESSION_COOKIE_NAME,
 } from '../services/sessionService.js'
@@ -47,10 +60,6 @@ function resolveAccessLinkExpiry(event, now = new Date()) {
     return new Date(eventEnd.getTime() + ACCESS_LINK_POST_EVENT_MS)
   }
   return new Date(now.getTime() + ACCESS_LINK_DEFAULT_TTL_MS)
-}
-
-function generateTempPassword() {
-  return randomBytes(9).toString('base64url')
 }
 
 function splitName(name) {
@@ -101,6 +110,11 @@ export function createAuthRoutes({
   }
 
   const notifySecurityAccess = createSecurityAccessNotificationService({
+    repository: resolveNotificationRepository(),
+    brevo: brevo ?? createBrevoAdapter({ env: env ?? process.env }),
+    env: env ?? process.env,
+  })
+  const staffNotifications = createStaffAccountNotificationService({
     repository: resolveNotificationRepository(),
     brevo: brevo ?? createBrevoAdapter({ env: env ?? process.env }),
     env: env ?? process.env,
@@ -232,6 +246,19 @@ export function createAuthRoutes({
         return
       }
 
+      // El aviso de vencimiento se da recién acá, con la contraseña ya
+      // validada: quien lo ve es porque tenía la credencial correcta, así que
+      // no revela la existencia de ninguna cuenta. Decirlo importa -- con el
+      // 401 genérico la persona reintenta creyendo que se equivocó al copiar.
+      if (isTempPasswordExpired(user)) {
+        next(
+          new HttpError(401, 'Tu invitación venció. Pedile al administrador que te la reenvíe.', {
+            code: 'temp_password_expired',
+          }),
+        )
+        return
+      }
+
       // El alcance por evento pertenece a la cuenta, no al nombre del rol.
       // Esto también cubre futuros roles personalizados de operación.
       if (user.eventId && user.eventSlug !== eventSlug) {
@@ -309,6 +336,197 @@ export function createAuthRoutes({
       next(error)
     }
   })
+
+  // --------------------------------------------------------------- mi cuenta
+
+  // Único endpoint alcanzable con una contraseña temporal: es la salida del
+  // estado `mustChangePassword`, así que no puede quedar detrás del corte.
+  router.post(
+    '/me/password',
+    requireAuth({ prisma: getPrisma(), allowPasswordChangePending: true }),
+    authLimiter,
+    validateBody(changeOwnPasswordSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { currentPassword, password } = req.validatedBody
+        const current = await prisma.user.findUnique({ where: { id: req.auth.user.id } })
+
+        if (!(await verifyPassword(currentPassword, current?.passwordHash))) {
+          next(new HttpError(400, 'La contraseña actual no coincide.'))
+          return
+        }
+
+        await prisma.user.update({
+          where: { id: current.id },
+          data: {
+            passwordHash: await hashPassword(password),
+            mustChangePassword: false,
+            // La contraseña elegida por el usuario no caduca.
+            passwordExpiresAt: null,
+          },
+        })
+
+        // Se cortan las demás sesiones (no la propia): si la temporal circuló
+        // por mail, cambiarla tiene que expulsar a quien la haya usado.
+        await revokeSessionsForUser({ prisma, userId: current.id })
+        const session = await createSession({ prisma, userId: current.id, req })
+        const refreshed = await prisma.user.findUnique({
+          where: { id: current.id },
+          include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+        })
+
+        res
+          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+          .json({ user: serializeUser(refreshed) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Cambio de email en dos pasos. No se toca la cuenta acá: sólo se emite un
+  // token firmado y se manda a la casilla nueva. Hasta que se confirme, el
+  // usuario sigue entrando con la dirección vieja.
+  router.post(
+    '/me/email',
+    requireAuth({ prisma: getPrisma() }),
+    authLimiter,
+    validateBody(requestEmailChangeSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { email, currentPassword } = req.validatedBody
+        const current = await prisma.user.findUnique({
+          where: { id: req.auth.user.id },
+          include: { profile: true },
+        })
+
+        // La sesión sola no alcanza para mover la identidad de login de una
+        // cuenta con permisos de panel.
+        if (!(await verifyPassword(currentPassword, current?.passwordHash))) {
+          next(new HttpError(400, 'La contraseña actual no coincide.'))
+          return
+        }
+        if (email === current.email) {
+          next(new HttpError(400, 'Ese ya es el email de tu cuenta.'))
+          return
+        }
+
+        const taken = await prisma.user.findUnique({ where: { email } })
+        if (taken) {
+          next(new HttpError(409, 'Ese email ya está en uso.'))
+          return
+        }
+
+        const token = createStaffEmailChangeToken({
+          userId: current.id,
+          email,
+          secret: accessLinkSecret,
+        })
+
+        let emailed = false
+        try {
+          const result = await staffNotifications.notifyStaffEmailChange({
+            user: serializeUser(current),
+            newEmail: email,
+            token,
+          })
+          emailed = result?.status === 'sent' || result?.emailLog?.status === 'sent'
+        } catch {
+          emailed = false
+        }
+
+        res.json({ pendingEmail: email, emailed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Confirmación del cambio. Es pública a propósito: el link se abre desde la
+  // casilla nueva, que puede no ser el navegador donde está la sesión.
+  router.post(
+    '/verify-email-change',
+    authLimiter,
+    validateBody(confirmEmailChangeSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const payload = verifyStaffEmailChangeToken(req.validatedBody.token, {
+          secret: accessLinkSecret,
+        })
+        if (!payload) {
+          next(new HttpError(400, 'El enlace es inválido o venció.'))
+          return
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { id: payload.uid },
+          include: { profile: true },
+        })
+        if (!user || user.status !== 'active') {
+          next(new HttpError(400, 'El enlace es inválido o venció.'))
+          return
+        }
+        // Idempotente: reabrir el link ya usado no es un error.
+        if (user.email === payload.eml) {
+          res.json({ email: user.email, alreadyApplied: true })
+          return
+        }
+
+        // Se revalida acá y no sólo al pedirlo: entre el pedido y la
+        // confirmación pueden haber pasado 24 h y otra alta pudo tomar la
+        // dirección.
+        const taken = await prisma.user.findUnique({ where: { email: payload.eml } })
+        if (taken) {
+          next(new HttpError(409, 'Ese email ya está en uso.'))
+          return
+        }
+
+        const previousEmail = user.email
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { email: payload.eml },
+        })
+
+        if (prisma.auditLog?.create) {
+          await prisma.auditLog.create({
+            data: {
+              action: 'user.email_changed',
+              entityType: 'user',
+              entityId: user.id,
+              actorId: user.id,
+              before: { email: previousEmail },
+              after: { email: payload.eml },
+            },
+          })
+        }
+
+        // El email es la identidad de login: las sesiones abiertas se cortan
+        // para que el próximo ingreso se haga con la dirección nueva.
+        await revokeSessionsForUser({ prisma, userId: user.id })
+
+        // Aviso a la casilla que se deja de usar: es el único canal que le
+        // queda a alguien cuya sesión fue secuestrada para enterarse.
+        try {
+          await staffNotifications.notifyStaffEmailChanged({
+            user: serializeUser(user),
+            previousEmail,
+            newEmail: payload.eml,
+          })
+        } catch {
+          // Best-effort: el cambio ya se aplicó.
+        }
+
+        res.json({ email: payload.eml, alreadyApplied: false })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // ------------------------------------------------------------- seguridad
 
   router.post(
     '/security-users',

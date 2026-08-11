@@ -1787,10 +1787,6 @@
     padding-top: calc(var(--header-height) + clamp(8px, 2vw, 14px));
   }
 
-  .home-teaser-duo {
-    grid-template-columns: 1fr;
-  }
-
   .home-membership-band {
     grid-template-columns: 1fr;
   }
@@ -2689,9 +2685,9 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
 }
 
-@media (max-width: 720px) {
-  /* Repetida acá a propósito: la regla de colapso mobile de la línea ~1681
-     queda antes que esta base en el archivo y el cascade la pisaba. */
+/* Única regla de colapso del dúo (antes duplicada por cascade). A 860px la
+   columna angosta ya comprimía la planilla: apilado gana aire y lectura. */
+@media (max-width: 860px) {
   .home-teaser-duo {
     grid-template-columns: 1fr;
   }
@@ -2799,7 +2795,6 @@
   position: relative;
   transform-origin: center top;
   transition: border-color var(--motion-base, 0.24s) var(--ease-out);
-  will-change: transform, opacity, filter;
 }
 
 .home-teaser-card--results:hover .home-teaser-card__sheet {

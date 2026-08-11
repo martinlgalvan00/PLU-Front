@@ -397,6 +397,49 @@ export function createSupabaseAthleteRepository(
       }
       return addSignedPhotoUrls(payload)
     },
+
+    /**
+     * Borrado definitivo (solo Super Admin, ver el endpoint). La cascada y la
+     * auditoría las resuelve la RPC delete_athlete en una sola transacción;
+     * acá queda lo que SQL no alcanza: el storage. Fotos bajo `<athleteId>/`
+     * y comprobantes bajo `<orderId>/` (ver createPaymentProofUpload). Es
+     * best-effort: si un archivo queda huérfano no revierte el borrado.
+     */
+    async deleteAthlete(athleteId, actor) {
+      const orders = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('id')
+          .eq('athlete_id', athleteId),
+        'No se pudieron leer las órdenes del atleta.',
+      )
+
+      const deleted = await rpc('delete_athlete', {
+        p_athlete_id: athleteId,
+        p_actor: actor,
+      }, 'No se pudo eliminar el atleta.')
+
+      const removePrefix = async (bucket, prefix) => {
+        const listed = await client.storage.from(bucket).list(prefix, { limit: 100 })
+        if (listed.error) {
+          console.warn(`No se pudieron listar archivos de ${bucket}/${prefix}:`, listed.error.message)
+          return
+        }
+        const paths = (listed.data ?? []).map((file) => `${prefix}/${file.name}`)
+        if (paths.length === 0) return
+        const removal = await client.storage.from(bucket).remove(paths)
+        if (removal.error) {
+          console.warn(`No se pudieron borrar archivos de ${bucket}/${prefix}:`, removal.error.message)
+        }
+      }
+
+      await Promise.all([
+        removePrefix(PHOTO_BUCKET, athleteId),
+        ...(orders ?? []).map((order) => removePrefix(PAYMENT_PROOF_BUCKET, order.id)),
+      ])
+
+      return deleted
+    },
   }
 }
 

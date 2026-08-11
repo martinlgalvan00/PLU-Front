@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { CalendarClock } from 'lucide-react'
+import '../styles/pages/design-phase2.css'
+import '../styles/pages/members.css'
+import '../styles/layout/design-page-notebook.css'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CalendarClock, RefreshCw } from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
 import MembersBenefitsShowcase from '../components/ui/MembersBenefitsShowcase.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
@@ -25,20 +28,27 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
   const { messages, t } = useI18n()
   const [livePlans, setLivePlans] = useState([])
   const [plansLoaded, setPlansLoaded] = useState(false)
+  const [plansError, setPlansError] = useState('')
   const validityNotes = messages.pages.members.validityNotes
 
+  const loadPlans = useCallback(async ({ force = false, signal } = {}) => {
+    setPlansLoaded(false)
+    setPlansError('')
+    try {
+      const { plans } = await listMembershipPlans({ force })
+      if (!signal?.aborted) setLivePlans(plans ?? [])
+    } catch (error) {
+      if (!signal?.aborted) setPlansError(error?.message ?? t('pages.members.plansLoadError'))
+    } finally {
+      if (!signal?.aborted) setPlansLoaded(true)
+    }
+  }, [t])
+
   useEffect(() => {
-    let active = true
-    listMembershipPlans()
-      .then(({ plans }) => {
-        if (active) setLivePlans(plans ?? [])
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setPlansLoaded(true)
-      })
-    return () => { active = false }
-  }, [])
+    const controller = new AbortController()
+    void loadPlans({ signal: controller.signal })
+    return () => controller.abort()
+  }, [loadPlans])
 
   const visiblePlans = useMemo(() => {
     if (!livePlans.length) return env.appProduction ? [] : MEMBERSHIP_PLANS
@@ -63,6 +73,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  const livePlansUnavailable = env.appProduction && (!plansLoaded || visiblePlans.length === 0)
   const affiliationCta = isLoggedInAthlete
     ? hasActiveMembership
       ? t('pages.members.ctaAlreadyAffiliated')
@@ -80,7 +91,7 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
           onNavigate={onNavigate}
           session={session}
           affiliationCta={affiliationCta}
-          ctaDisabled={hasActiveMembership}
+          ctaDisabled={hasActiveMembership || (isLoggedInAthlete && livePlansUnavailable)}
           onAffiliate={goToAffiliation}
         />
       </Reveal>
@@ -98,16 +109,27 @@ export default function MembersPage({ memberships = [], onNavigate, session }) {
                 key={plan.id}
                 {...plan}
                 ctaLabel={affiliationCta}
-                ctaDisabled={hasActiveMembership}
+                ctaDisabled={hasActiveMembership || livePlansUnavailable}
                 onSelect={goToAffiliation}
                 variant="plu"
               />
             ))}
           </div>
-          {env.appProduction && plansLoaded && visiblePlans.length === 0 ? (
-            <p className="members-plu-block__lead" role="status">
-              {t('pages.members.plansComingSoon')}
+          {env.appProduction && !plansLoaded ? (
+            <p className="members-plans-feedback" role="status">
+              {t('pages.members.plansLoading')}
             </p>
+          ) : null}
+          {env.appProduction && plansLoaded && visiblePlans.length === 0 ? (
+            <div className="members-plans-feedback" role={plansError ? 'alert' : 'status'}>
+              <span>{plansError || t('pages.members.plansComingSoon')}</span>
+              {plansError ? (
+                <button type="button" onClick={() => loadPlans({ force: true })}>
+                  <RefreshCw size={14} aria-hidden />
+                  {t('pages.members.plansRetry')}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </section>
 

@@ -3,6 +3,7 @@ import { Ban, CircleCheck, LoaderCircle, QrCode } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
 import {
   AdminIdentityCell,
@@ -13,7 +14,13 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { MEMBERSHIP_EXPIRING_FILTER_OPTIONS, MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatShortMemberCode } from '../../lib/format.js'
-import { filterMemberships, getMembershipStats } from '../../services/membershipService.js'
+import {
+  filterMemberships,
+  getMembershipLifecycle,
+  getMembershipOperationalStatus,
+  getMembershipStats,
+  MEMBERSHIP_LIFECYCLE,
+} from '../../services/membershipService.js'
 
 export default function MembershipsSection({
   memberships,
@@ -30,19 +37,32 @@ export default function MembershipsSection({
   const [credentialTarget, setCredentialTarget] = useState(null)
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState('')
+  const [cancelTarget, setCancelTarget] = useState(null)
 
   async function applyStatus(membershipId, nextStatus) {
     setPendingId(membershipId)
     setActionError('')
-    const result = await onSetMembershipStatus?.(membershipId, nextStatus)
-    setPendingId(null)
-    if (result?.error) setActionError(result.error)
+    try {
+      const result = await onSetMembershipStatus?.(membershipId, nextStatus)
+      if (result?.error) {
+        setActionError(result.error)
+        return false
+      }
+      if (nextStatus === 'cancelada') setCancelTarget(null)
+      return true
+    } catch (error) {
+      setActionError(error?.message ?? t('admin.sections.memberships.actionError'))
+      return false
+    } finally {
+      setPendingId(null)
+    }
   }
 
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)
     for (const item of memberships) {
-      counts[item.status] = (counts[item.status] ?? 0) + 1
+      const operationalStatus = getMembershipOperationalStatus(item)
+      counts[operationalStatus] = (counts[operationalStatus] ?? 0) + 1
     }
     return counts
   }, [memberships])
@@ -64,17 +84,33 @@ export default function MembershipsSection({
 
   const rows = useMemo(
     () =>
-      filterMemberships(memberships, { query, status, expiring }).map((item) => ({
-        id: item.id,
-        athlete: item.athlete?.fullName ?? '—',
-        athleteId: item.athleteId,
-        document: item.athlete?.documentId ?? '—',
-        memberCode: item.memberCode,
-        year: item.year,
-        status: item.status,
-        startDate: item.startDate,
-        expirationDate: item.expirationDate,
-      })),
+      filterMemberships(memberships, { query, status, expiring }).map((item) => {
+        const lifecycle = getMembershipLifecycle(item)
+        return {
+          id: item.id,
+          athlete: item.athlete?.fullName ?? '—',
+          athleteId: item.athleteId,
+          document: item.athlete?.documentId ?? '—',
+          memberCode: item.memberCode,
+          year: item.year,
+          status: item.status,
+          operationalStatus: getMembershipOperationalStatus(item),
+          lifecycle,
+          startDate: item.startDate,
+          expirationDate: item.expirationDate,
+          canViewCredential: [
+            MEMBERSHIP_LIFECYCLE.CURRENT,
+            MEMBERSHIP_LIFECYCLE.EXPIRING,
+          ].includes(lifecycle),
+          canActivate:
+            item.status !== 'activa' && lifecycle !== MEMBERSHIP_LIFECYCLE.REFUNDED,
+          canCancel: [
+            MEMBERSHIP_LIFECYCLE.CURRENT,
+            MEMBERSHIP_LIFECYCLE.EXPIRING,
+            MEMBERSHIP_LIFECYCLE.SCHEDULED,
+          ].includes(lifecycle),
+        }
+      }),
     [memberships, query, status, expiring],
   )
 
@@ -195,7 +231,7 @@ export default function MembershipsSection({
             desktop: 'status',
             sortable: true,
             mobileSortable: false,
-            render: (row) => <StatusBadge value={row.status} />,
+            render: (row) => <StatusBadge value={row.operationalStatus} />,
           },
           {
             key: 'actions',
@@ -212,16 +248,18 @@ export default function MembershipsSection({
                 onClick={(event) => event.stopPropagation()}
                 role="presentation"
               >
-                <AdminIconButton
-                  className={credentialTarget?.id === row.id ? 'is-active' : ''}
-                  icon={QrCode}
-                  label={t('admin.sections.memberships.viewCredential')}
-                  onClick={() =>
-                    setCredentialTarget({ id: row.id, athleteName: row.athlete })
-                  }
-                  variant="ghost"
-                />
-                {canManage && row.status !== 'activa' && (
+                {row.canViewCredential && (
+                  <AdminIconButton
+                    className={credentialTarget?.id === row.id ? 'is-active' : ''}
+                    icon={QrCode}
+                    label={t('admin.sections.memberships.viewCredential')}
+                    onClick={() =>
+                      setCredentialTarget({ id: row.id, athleteName: row.athlete })
+                    }
+                    variant="ghost"
+                  />
+                )}
+                {canManage && row.canActivate && (
                   <AdminIconButton
                     disabled={pendingId === row.id}
                     icon={pendingId === row.id ? LoaderCircle : CircleCheck}
@@ -234,7 +272,7 @@ export default function MembershipsSection({
                     variant="celeste"
                   />
                 )}
-                {canManage && row.status === 'activa' && (
+                {canManage && row.canCancel && (
                   <AdminIconButton
                     disabled={pendingId === row.id}
                     icon={pendingId === row.id ? LoaderCircle : Ban}
@@ -243,7 +281,10 @@ export default function MembershipsSection({
                         ? t('admin.sections.memberships.applying')
                         : t('admin.sections.memberships.cancel')
                     }
-                    onClick={() => applyStatus(row.id, 'cancelada')}
+                    onClick={() => {
+                      setActionError('')
+                      setCancelTarget(row)
+                    }}
                     variant="ghost"
                   />
                 )}
@@ -254,7 +295,7 @@ export default function MembershipsSection({
         rows={rows}
         emptyMessage={t('admin.sections.memberships.empty')}
         onRowClick={(row) => row.athleteId && onSelectAthlete?.(row.athleteId)}
-        rowClassName="data-table__row--clickable"
+        rowClassName="data-table__row--clickable data-table__row--membership"
       />
 
       {actionError ? (
@@ -269,6 +310,25 @@ export default function MembershipsSection({
           canRotate={canManage}
           membershipId={credentialTarget.id}
           onClose={() => setCredentialTarget(null)}
+        />
+      ) : null}
+
+      {cancelTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingId === cancelTarget.id}
+          error={actionError}
+          onCancel={() => {
+            if (pendingId !== cancelTarget.id) setCancelTarget(null)
+          }}
+          onConfirm={() => applyStatus(cancelTarget.id, 'cancelada')}
+          title={t('admin.sections.memberships.cancelConfirmTitle')}
+          description={t('admin.sections.memberships.cancelConfirmDescription', {
+            athlete: cancelTarget.athlete,
+          })}
+          warning={t('admin.sections.memberships.cancelConfirmWarning')}
+          cancelLabel={t('admin.sections.memberships.keepActive')}
+          confirmLabel={t('admin.sections.memberships.confirmCancel')}
+          busyLabel={t('admin.sections.memberships.applying')}
         />
       ) : null}
     </AdminListSection>

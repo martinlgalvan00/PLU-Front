@@ -7,6 +7,7 @@ import '../styles/pages/admin-dashboard-bento.css'
 import '../styles/pages/admin-audit.css'
 import '../styles/pages/admin-pricing.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
+import AccountDialog from '../components/admin/AccountDialog.jsx'
 import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
 // `DashboardSection` es la vista de entrada para casi todos los roles, así
 // que queda eager -- lazy-cargarla solo agregaría un flash de Suspense sin
@@ -39,6 +40,7 @@ export default function AdminPage({
   adminEventsError,
   allowedSections = [],
   authorization,
+  canDeleteAthletes,
   canDeleteUsers,
   canManageUsers,
   dashboardOverview,
@@ -65,6 +67,7 @@ export default function AdminPage({
   onUpdateSecurityUserStatus,
   onCreateUser,
   onDeleteUser,
+  onDeleteAthlete,
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
@@ -93,8 +96,11 @@ export default function AdminPage({
   roleLabel,
   isPluUsaPartner = false,
   isCheckinOnly = false,
+  onRequestEmailChange,
+  onResetStaffPassword,
   onExit,
 }) {
+  const [accountOpen, setAccountOpen] = useState(false)
   const preferredSection = isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard'
   const [section, setSection] = useState(() =>
     allowedSections.includes(preferredSection)
@@ -174,6 +180,10 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           onApproveTicketOrder={onApproveTicketPurchase}
           canEdit={hasPermission(authorization, 'admin.payments.approve')}
+          canDeleteAthletes={canDeleteAthletes}
+          onDeleteAthlete={onDeleteAthlete}
+          onSelectAthlete={handleSelectAthlete}
+          getAthleteDetail={getAthleteDetail}
           globalSearch={globalSearch}
           onGlobalSearchChange={setGlobalSearch}
           onGlobalSearchSubmit={handleDashboardSearchSubmit}
@@ -189,6 +199,11 @@ export default function AdminPage({
             onBack={() => setSelectedAthleteId(null)}
             canEdit={hasPermission(authorization, 'admin.athletes.write')}
             canRotateCredential={hasPermission(authorization, 'admin.memberships.write')}
+            canDelete={canDeleteAthletes && Boolean(onDeleteAthlete)}
+            onDelete={async (athleteId) => {
+              await onDeleteAthlete?.(athleteId)
+              setSelectedAthleteId(null)
+            }}
             onApprovePayment={onApprovePayment}
           />
         )
@@ -284,6 +299,7 @@ export default function AdminPage({
           onNavigateRoles={
             allowedSections.includes('roles') ? () => setSection('roles') : undefined
           }
+          onResetPassword={onResetStaffPassword}
           onUpdateRole={onUpdateUserRole}
           onUpdateStatus={onUpdateUserStatus}
           users={users}
@@ -376,8 +392,16 @@ export default function AdminPage({
       navBadges={adminNavBadges}
       roleLabel={roleLabel}
       allowedSections={allowedSections}
+      onOpenAccount={onRequestEmailChange ? () => setAccountOpen(true) : undefined}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
     >
+      {accountOpen ? (
+        <AccountDialog
+          session={authorization}
+          onRequestEmailChange={onRequestEmailChange}
+          onClose={() => setAccountOpen(false)}
+        />
+      ) : null}
       <div
         className="admin-page admin-section-enter"
         key={`${section}-${selectedAthleteId ?? 'list'}`}

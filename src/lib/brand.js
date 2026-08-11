@@ -4,7 +4,6 @@
  */
 import pluOfficialLogo from '../assets/brand/plu-official-logo.png'
 import pluArgentinaEmblem from '../assets/brand/plu-argentina-emblem-display.png'
-import pluArgentinaMark from '../assets/PLU Argentina.png'
 
 export const BRAND = {
   /** Powerlifting United — letterhead horizontal (fondo negro) */
@@ -12,8 +11,6 @@ export const BRAND = {
   logoLetterheadUrl: pluOfficialLogo,
   /** Emblema circular PLU Argentina (display, sin padding negro) */
   logoArgentinaUrl: pluArgentinaEmblem,
-  /** Emblema oficial completo — watermark / ambiente de verificación */
-  logoArgentinaMarkUrl: pluArgentinaMark,
   logoAlt: 'PLU ARG — Powerlifting United',
   logoArgentinaAlt: 'PLU Argentina — emblema oficial',
   faviconUrl: '/brand/plu-favicon.svg',

@@ -2,9 +2,11 @@
    admin-board.css — PLU ARG
    Armado de la grilla del torneo (sección Grilla del panel)
 
-   Workspace operativo editorial: ledger de pendientes, paneles abiertos
-   (sin cards anidadas) y empty states con CTA a Eventos. El orden de
-   lectura es cuánto falta repartir → días con carga → roster por tanda.
+   Workspace operativo sobre vidrio: bolsa y días como paneles glass
+   (clase compartida .admin-glass), tandas como bloques reglados dentro
+   del día, drag & drop con estados de drop zone y la MoveBar sticky
+   como camino de teclado/lote. El orden de lectura es cuánto falta
+   repartir → días con carga → roster por tanda.
    ═══════════════════════════════════════════════════════════════════ */
 
 .admin-board {
@@ -81,7 +83,8 @@
 
 .admin-board__event-picker > span,
 .admin-board__movebar-field > span,
-.admin-board__autofill-field > span {
+.admin-board__autofill-field > span,
+.admin-board__session-edit-field > span {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -91,7 +94,8 @@
 
 .admin-board__event-picker select,
 .admin-board__movebar-field select,
-.admin-board__autofill-field input {
+.admin-board__autofill-field input,
+.admin-board__session-edit-field input {
   min-height: 38px;
   padding: 7px 10px;
   background: transparent;
@@ -106,7 +110,8 @@
 
 .admin-board__event-picker select:focus-visible,
 .admin-board__movebar-field select:focus-visible,
-.admin-board__autofill-field input:focus-visible {
+.admin-board__autofill-field input:focus-visible,
+.admin-board__session-edit-field input:focus-visible {
   outline: none;
   border-bottom-color: var(--color-brand-celeste);
 }
@@ -292,17 +297,31 @@
   gap: var(--space-sm);
 }
 
-/* ── Barra de movimiento ────────────────────────────────────────────── */
+/* ── Barra de movimiento ──────────────────────────────────────────────
+   Glass fuerte + sticky: aparece con la selección y acompaña el scroll
+   del roster. El filo celeste inferior la marca como superficie de
+   acción, no como un panel más. */
 .admin-board__movebar {
+  position: sticky;
+  top: var(--space-sm);
+  z-index: 40;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-md);
-  padding: 12px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--color-brand-celeste);
-  border-radius: 0;
+  padding: 12px var(--space-md);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--color-brand-celeste) 65%, transparent),
+    var(--admin-glass-shadow, 0 12px 32px rgba(0, 0, 0, 0.18));
+}
+
+.admin-board__drag-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .admin-board__movebar-count {
@@ -359,10 +378,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-radius: 16px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .admin-board__pool {
@@ -370,8 +391,6 @@
   top: var(--space-md);
   max-height: calc(100vh - var(--space-2xl));
   overflow-y: auto;
-  padding-right: var(--space-md);
-  border-right: 1px solid var(--color-border-subtle);
 }
 
 .admin-board__days {
@@ -379,16 +398,6 @@
   flex-direction: column;
   gap: var(--space-lg);
   min-width: 0;
-}
-
-.admin-board__day {
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.admin-board__day:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
 }
 
 .admin-board__panel-head {
@@ -450,20 +459,124 @@
 }
 
 /* ── Tandas ─────────────────────────────────────────────────────────
-   Bloques reglados, no cards: el día ya es la unidad. */
+   Bloques reglados dentro del día glass; el borde transparente reserva
+   el espacio para que el estado de drop no mueva el layout. */
 .admin-board__session {
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--color-border-subtle);
+  margin: 0 calc(-1 * var(--space-sm));
+  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+  border: 1px solid transparent;
+  border-top-color: var(--color-border-subtle);
+  border-radius: 10px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .admin-board__session--pending {
   border-top-color: var(--color-brand-gold);
 }
 
+/* Drop zones: mientras hay arrastre se insinúan; la que está bajo el
+   puntero se confirma con celeste. */
+.admin-board__layout--dragging .admin-board__session {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 20%, transparent);
+}
+
+.admin-board__session.is-drop-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 48%, transparent);
+}
+
+.admin-board__pool.is-drop-active,
+.admin-board__day.is-drop-active {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
 .admin-board__session-head {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* Lápiz de edición inline: aparece al hover para no ensuciar 200 filas;
+   en touch (sin hover) queda visible pero atenuado. */
+.admin-board__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.admin-board__session-head:hover .admin-board__icon-btn,
+.admin-board__icon-btn:focus-visible {
+  opacity: 1;
+}
+
+.admin-board__icon-btn:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-board__icon-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .admin-board__icon-btn {
+    opacity: 0.75;
+  }
+}
+
+/* ── Edición inline de tanda ────────────────────────────────────────── */
+.admin-board__session--editing {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, transparent);
+  background: color-mix(in srgb, var(--color-brand-celeste) 4%, transparent);
+}
+
+.admin-board__session-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: 2px;
+}
+
+.admin-board__session-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.admin-board__session-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-board__session-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+@media (max-width: 900px) {
+  .admin-board__session-edit-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-board__session-name {
@@ -508,6 +621,51 @@
 
 .admin-board__athlete:hover {
   background: color-mix(in srgb, var(--color-bg-elevated) 55%, transparent);
+}
+
+/* Arrastre: pan-y deja scrollear la lista en touch; el drag se activa
+   con el delay del TouchSensor, no con bloquear el gesto. */
+.admin-board__athlete--draggable {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.admin-board__athlete--draggable:active {
+  cursor: grabbing;
+}
+
+/* La fila origen se atenúa mientras el chip flota con el puntero. */
+.admin-board__athlete.is-dragging {
+  opacity: 0.35;
+}
+
+.admin-board__drag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: min(320px, 80vw);
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  cursor: grabbing;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight, transparent),
+    var(--admin-glass-shadow, 0 12px 32px rgba(0, 0, 0, 0.22));
+}
+
+.admin-board__drag-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__drag-chip-count {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-brand-celeste);
 }
 
 .admin-board__athlete:focus-within {
@@ -607,10 +765,6 @@
   .admin-board__pool {
     position: static;
     max-height: none;
-    padding-right: 0;
-    border-right: none;
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--color-border-subtle);
   }
 }
 
@@ -622,5 +776,42 @@
 
   .admin-board__totals {
     gap: var(--space-md) var(--space-lg);
+  }
+
+  .admin-board__pool,
+  .admin-board__day {
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    border-radius: 14px;
+  }
+}
+
+/* ── Entrada one-shot: ledger → bolsa → días, 260–420ms ─────────────── */
+.admin-board__totals,
+.admin-board__pool,
+.admin-board__days > * {
+  animation: admin-block-enter 0.36s var(--ease-out, ease) backwards;
+}
+
+.admin-board__pool {
+  animation-delay: 45ms;
+}
+
+.admin-board__days > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.admin-board__days > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.admin-board__days > *:nth-child(n + 4) {
+  animation-delay: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__totals,
+  .admin-board__pool,
+  .admin-board__days > * {
+    animation: none;
   }
 }

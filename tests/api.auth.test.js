@@ -99,6 +99,7 @@ describe('auth api', () => {
         'admin.roles.read',
       ]),
       status: 'active',
+      mustChangePassword: false,
       eventId: null,
       eventSlug: null,
       lastLoginAt: expect.any(String),

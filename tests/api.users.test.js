@@ -47,6 +47,7 @@ function createPrismaDouble(seedUsers) {
           role: data.role,
           status: data.status,
           passwordHash: data.passwordHash ?? null,
+          mustChangePassword: data.mustChangePassword ?? false,
           eventId: data.eventId ?? null,
           eventSlug: data.eventSlug ?? null,
           profile: data.profile?.create ?? null,
@@ -116,7 +117,7 @@ async function loginAdmin(url) {
 }
 
 describe('alta de staff (/api/users)', () => {
-  it('un admin crea una cuenta PLU sin contraseña (invitación Auth0)', async () => {
+  it('un admin crea una cuenta PLU con contraseña temporal de un solo uso', async () => {
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV }))
 
@@ -135,13 +136,22 @@ describe('alta de staff (/api/users)', () => {
         role: 'operador_plu_arg',
         roleKey: 'plu_arg',
         status: 'active',
+        mustChangePassword: true,
       })
+      // La credencial vuelve una sola vez, para mostrarla en pantalla cuando
+      // el mail no sale. Nunca se persiste en claro.
+      expect(body.tempPassword).toEqual(expect.any(String))
+      expect(body.tempPassword.length).toBeGreaterThanOrEqual(12)
+
+      const created = prisma._state.users.find((user) => user.email === 'plu@pluarg.test')
+      expect(created.passwordHash).toEqual(expect.any(String))
+      expect(created.passwordHash).not.toContain(body.tempPassword)
     } finally {
       await target.close()
     }
   })
 
-  it('rechaza (400) crear un admin_maximal desde el endpoint (reservado al seed)', async () => {
+  it('deja que un Super Admin cree otro Super Admin', async () => {
     const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
     const target = listen(createApp({ prisma, env: ENV }))
 
@@ -152,8 +162,34 @@ describe('alta de staff (/api/users)', () => {
         headers: authHeaders(cookie),
         body: JSON.stringify({ name: 'Otro Max', email: 'max2@pluarg.test', role: 'admin_maximal' }),
       })
+      const body = await response.json()
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(201)
+      expect(body.user).toMatchObject({ roleKey: 'admin_maximal', mustChangePassword: true })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('impide que un Administrador cree un Super Admin o un par suyo', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_plu_arg')])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const superAdmin = await fetch(`${target.url}/api/users`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ name: 'Otro Max', email: 'max2@pluarg.test', role: 'admin_maximal' }),
+      })
+      const peer = await fetch(`${target.url}/api/users`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ name: 'Otro Admin', email: 'admin2@pluarg.test', role: 'admin_plu_arg' }),
+      })
+
+      expect(superAdmin.status).toBe(403)
+      expect(peer.status).toBe(403)
     } finally {
       await target.close()
     }
@@ -349,6 +385,95 @@ describe('alta de staff (/api/users)', () => {
 
       expect(response.status).toBe(403)
       expect(prisma._state.users.some((user) => user.id === 'usr-test')).toBe(true)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('reemite la credencial de una cuenta y vuelve a exigir el cambio', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin(),
+      {
+        id: 'usr-plu',
+        email: 'equipo@pluarg.test',
+        passwordHash: await hashPassword('clave-vieja-del-equipo'),
+        mustChangePassword: false,
+        role: 'operador_plu_arg',
+        status: 'active',
+        profile: { firstName: 'Equipo', lastName: 'PLU' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-plu/reset-password`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ sendEmail: false }),
+      })
+      const body = await response.json()
+      const target_ = prisma._state.users.find((user) => user.id === 'usr-plu')
+
+      expect(response.status).toBe(200)
+      expect(body.tempPassword).toEqual(expect.any(String))
+      expect(body.user.mustChangePassword).toBe(true)
+      expect(target_.mustChangePassword).toBe(true)
+      expect(target_.passwordHash).not.toBe(await hashPassword('clave-vieja-del-equipo'))
+      expect(prisma._state.auditLogs).toContainEqual(
+        expect.objectContaining({ action: 'user.credential_issued', entityId: 'usr-plu' }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('bloquea (400) resetear la propia contraseña desde Usuarios', async () => {
+    const prisma = createPrismaDouble([await buildAdmin()])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-admin/reset-password`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ sendEmail: false }),
+      })
+
+      expect(response.status).toBe(400)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('impide que un Administrador resetee la credencial de un Super Admin', async () => {
+    const prisma = createPrismaDouble([
+      await buildAdmin('admin_plu_arg'),
+      {
+        id: 'usr-max',
+        email: 'max@pluarg.test',
+        passwordHash: await hashPassword('clave-del-super-admin'),
+        mustChangePassword: false,
+        role: 'admin_maximal',
+        status: 'active',
+        profile: { firstName: 'Super', lastName: 'Admin' },
+        eventId: null,
+        eventSlug: null,
+      },
+    ])
+    const target = listen(createApp({ prisma, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/users/usr-max/reset-password`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ sendEmail: false }),
+      })
+
+      expect(response.status).toBe(403)
     } finally {
       await target.close()
     }

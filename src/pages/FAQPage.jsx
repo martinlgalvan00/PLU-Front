@@ -1,3 +1,5 @@
+import '../styles/pages/faq.css'
+import '../styles/pages/institutional-pages.css'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Search, X } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'

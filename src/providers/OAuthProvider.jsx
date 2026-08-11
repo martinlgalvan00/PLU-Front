@@ -1,61 +1,26 @@
-import { useMemo } from 'react'
-import { Auth0Provider, useAuth0 } from '@auth0/auth0-react'
+import { lazy, Suspense } from 'react'
 import { env } from '../config/env.js'
 import { disabledOAuth, OAuthContext } from './oauthContext.js'
 
-function Auth0Bridge({ children }) {
-  const { error, getAccessTokenSilently, isAuthenticated, isLoading, loginWithRedirect, logout } =
-    useAuth0()
-
-  const value = useMemo(
-    () => ({
-      configured: true,
-      error,
-      isAuthenticated,
-      isLoading,
-      login: () =>
-        loginWithRedirect({
-          appState: { returnTo: 'admin' },
-          authorizationParams: {
-            prompt: 'login',
-          },
-        }),
-      logout: () =>
-        logout({
-          logoutParams: {
-            returnTo: env.appUrl,
-          },
-        }),
-      getAccessToken: () =>
-        getAccessTokenSilently({
-          authorizationParams: {
-            audience: env.auth0.audience,
-          },
-        }),
-    }),
-    [error, getAccessTokenSilently, isAuthenticated, isLoading, loginWithRedirect, logout],
-  )
-
-  return <OAuthContext.Provider value={value}>{children}</OAuthContext.Provider>
-}
+// Auth0 es un camino de login opcional: el SDK (~60 KB) solo se descarga
+// cuando hay credenciales configuradas; si no, ni siquiera entra al grafo.
+const OAuthProviderAuth0 = lazy(() => import('./OAuthProviderAuth0.jsx'))
 
 export function OAuthProvider({ children }) {
   if (!env.auth0.configured) {
     return <OAuthContext.Provider value={disabledOAuth}>{children}</OAuthContext.Provider>
   }
 
+  // Mientras carga el chunk, la UI monta con OAuth deshabilitado y se
+  // rehidrata solo: evita bloquear el primer render por una dependencia
+  // de autenticación alternativa.
   return (
-    <Auth0Provider
-      domain={env.auth0.domain}
-      clientId={env.auth0.clientId}
-      authorizationParams={{
-        redirect_uri: env.auth0.redirectUri,
-        audience: env.auth0.audience,
-      }}
-      cacheLocation="memory"
-      useRefreshTokens={false}
+    <Suspense
+      fallback={
+        <OAuthContext.Provider value={disabledOAuth}>{children}</OAuthContext.Provider>
+      }
     >
-      <Auth0Bridge>{children}</Auth0Bridge>
-    </Auth0Provider>
+      <OAuthProviderAuth0>{children}</OAuthProviderAuth0>
+    </Suspense>
   )
 }

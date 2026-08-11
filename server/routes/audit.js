@@ -10,8 +10,8 @@ import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRep
  *
  * La sección Auditoría del panel era un placeholder y el timeline del atleta
  * se armaba en el browser sobre localStorage. Acá se expone la bitácora real
- * de `domain_audit_logs`, que es la que las RPC escriben en la misma
- * transacción que aplica cada efecto de dominio.
+ * de `operational_audit_events`, que unifica los efectos transaccionales de
+ * dominio con las transiciones append-only de emails, webhooks y pagos.
  *
  * Solo lectura y detrás de `admin.audit.read`: la auditoría no se edita desde
  * ningún lado, ni siquiera con permisos totales.
@@ -29,6 +29,8 @@ const listQuerySchema = z.object({
     .transform((value) => value.split(',').map((id) => id.trim()).filter(Boolean).slice(0, 50))
     .optional(),
   actorType: z.string().trim().min(1).max(40).optional(),
+  source: z.enum(['domain', 'email', 'payment']).optional(),
+  status: z.string().trim().min(1).max(40).optional(),
   search: z
     .string()
     .trim()
@@ -37,6 +39,7 @@ const listQuerySchema = z.object({
     // El término entra en un `or(...ilike...)` de PostgREST, donde la coma y
     // el paréntesis son sintaxis del filtro, no texto.
     .transform((value) => value.replace(/[,()*]/g, ''))
+    .refine((value) => value.length > 0)
     .optional(),
   before: z.string().datetime({ offset: true }).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
@@ -75,6 +78,14 @@ export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
   router.get('/facets', ...auditGuard, staffLimiter, async (_req, res, next) => {
     try {
       res.json(await repo().facets())
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.get('/overview', ...auditGuard, staffLimiter, async (_req, res, next) => {
+    try {
+      res.json(await repo().overview())
     } catch (error) {
       next(error)
     }
