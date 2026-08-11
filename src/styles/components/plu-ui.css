@@ -1484,9 +1484,9 @@
     font-weight: 600;
     gap: 6px;
     max-width: 100%;
-    min-height: 34px;
+    min-height: 44px;
     min-width: 0;
-    padding: 0 12px;
+    padding: 0 14px;
     transition:
       background var(--transition-fast),
       border-color var(--transition-fast),
@@ -1530,8 +1530,8 @@
     font-family: var(--font-family);
     font-size: 12px;
     font-weight: 600;
-    min-height: 34px;
-    padding: 0 6px;
+    min-height: 44px;
+    padding: 0 8px;
   }
 
   .data-table-mobile-toolbar__clear:hover {
@@ -1563,8 +1563,8 @@
     font-size: 12px;
     font-weight: 500;
     gap: 5px;
-    min-height: 32px;
-    padding: 0 11px;
+    min-height: 40px;
+    padding: 0 12px;
     transition:
       background var(--transition-fast),
       border-color var(--transition-fast),

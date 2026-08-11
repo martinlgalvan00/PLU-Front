@@ -41,6 +41,20 @@ Cada transición de `transactional_email_logs` se copia además a
 `operational_audit_events` y su resumen de salud detecta reintentos, fallos, pagos sin afiliación
 activa y afiliaciones activas sin confirmación de entrega.
 
+## Política de consolidación
+
+Una misma transición de negocio genera **un solo correo por destinatario**:
+
+- alta de atleta: bienvenida + verificación + OTP en `email_verification`;
+- pago aprobado: comprobante + afiliación + inscripción o entrada en `payment_confirmation`;
+- reintegro: importe reintegrado + baja de afiliación en `payment_refunded`.
+
+Los correos que ocurren en otro momento o exigen una acción propia permanecen separados: acceso,
+recuperación de contraseña, pago pendiente/rechazado, recordatorios y cambios de seguridad. Así un
+combo de afiliación e inscripción baja de cuatro envíos consecutivos a uno, sin perder contenido ni
+trazabilidad. El log de `payment_confirmation` guarda `membershipId` y `registrationId` en su payload
+para relacionar la única entrega con todos los derechos habilitados.
+
 ## Catálogo de tipos
 
 Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega un cuerpo en
@@ -55,17 +69,18 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 | `staff_invitation` | Alta o reenvío de acceso al panel | no (crítico) |
 | `staff_email_change` | Solicitud de cambio de email del staff | no (crítico) |
 | `staff_email_changed` | Aviso a la casilla anterior | no (crítico) |
-| `affiliation_started` | Pago de membresía acreditado que no dejó afiliación activa | no |
-| `affiliation_approved` | Afiliación activada, por Mercado Pago o aprobación manual | no |
-| `affiliation_cancelled` | Afiliación cancelada o reintegrada | no |
-| `membership_renewal` | Job de renovación (30/7/1/0 días) | sí |
-| `payment_approved` | Pago acreditado | no |
-| `payment_receipt` | Pago acreditado (comprobante) | no (crítico) |
+| `affiliation_started` | Legacy; su estado ahora se incluye en `payment_confirmation` | no |
+| `affiliation_approved` | Activación administrativa directa, fuera de un pago | no |
+| `affiliation_cancelled` | Cancelación administrativa o de un pago sin reintegro | no |
+| `membership_renewal` | Job de renovación (30/7/0 días) | sí |
+| `payment_approved` | Legacy; reemplazado por `payment_confirmation` | no |
+| `payment_receipt` | Legacy; reemplazado por `payment_confirmation` | no (crítico) |
+| `payment_confirmation` | Pago aprobado por Mercado Pago o aprobación manual, con todos sus derechos | no (crítico) |
 | `payment_pending` | Pago pendiente de acreditación | no |
 | `payment_rejected` | Pago rechazado | no |
-| `payment_refunded` | Pago reintegrado por el proveedor | no |
-| `registration_confirmed` | Inscripción confirmada | no |
-| `ticket_confirmation` | Compra de entrada | no (crítico) |
+| `payment_refunded` | Pago reintegrado por el proveedor, incluyendo la baja asociada | no |
+| `registration_confirmed` | Legacy; la confirmación se incluye en `payment_confirmation` | no |
+| `ticket_confirmation` | Legacy; la entrada se incluye en `payment_confirmation` | no (crítico) |
 | `event_announcement` | Manual, desde el panel | sí |
 | `event_reminder` | Manual, desde el panel | sí |
 | `admin_notification` | Alertas operativas | no |
@@ -75,6 +90,11 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 
 `admin_notification` y `export_ready` existen y funcionan, pero todavía no los dispara ningún
 flujo: solo salen a mano por `POST /api/emails/send`.
+
+El endpoint genérico `/api/emails/send` acepta únicamente `event_announcement`,
+`event_reminder`, `admin_notification` y `export_ready`. Las confirmaciones de pagos,
+afiliaciones e inscripciones sólo salen desde sus workflows; un operador no puede recrearlas a
+mano y duplicar el correo que ya emitió el evento de negocio.
 
 ## Verificación de email
 
@@ -127,7 +147,8 @@ del webhook de Mercado Pago no puede generar un segundo comprobante. Las claves 
 identificador externo estable, no al de la orden:
 
 ```
-email:payment-receipt:<externalPaymentId>
+email:payment-confirmation:<externalPaymentId>
+email:payment-confirmation:manual:<orderId>
 email:membership-renewal:<notificationId>   # incluye el umbral: expires_in_30, expired
 email:event_announcement:<eventId>:<athleteId>
 ```
@@ -150,6 +171,14 @@ desde el flujo de origen (Usuarios, recuperación o Seguridad), invalidando la a
 > verificado en `tests/deploymentConfig.test.js`), así que el backoff colapsa a un intento por
 > día. El primer envío sigue siendo inmediato; solo se demora la recuperación de un fallo
 > transitorio. Con proceso residente o Vercel Pro (cron horario) el backoff se respeta.
+
+## Frecuencia de renovaciones
+
+Cada ciclo de afiliación puede generar como máximo tres recordatorios: **30 días**, **7 días** y
+**el día del vencimiento**. La política anterior sumaba 1 día y otro aviso posterior de
+"vencida", llegando a cinco correos por ciclo. Los avisos viejos todavía pendientes quedan como
+`cancelled` en `membership_renewal_notifications`: no se borran y conservan la evidencia
+operativa, pero el job ya no puede enviarlos.
 
 ## El 201 de Brevo no garantiza entrega
 
@@ -190,6 +219,9 @@ npm run email:doctor -- --send tu@email.com   # envía una prueba real
 
 | Punto | Antes | Ahora |
 |---|---|---|
+| Pago aprobado | 2 a 4 emails por orden | 1 `payment_confirmation` contextual |
+| Pago reintegrado con afiliación | 2 emails | 1 `payment_refunded` consolidado |
+| Renovación por ciclo | Hasta 5 recordatorios | 3 hitos: 30, 7 y 0 días |
 | Reserva de la fila (`beginEmail`) | SELECT + INSERT | INSERT y el conflicto 23505 como señal de duplicado |
 | Supresiones en un envío masivo | 1 consulta por destinatario | 1 consulta para toda la audiencia, cacheada en memoria |
 | Aviso a una audiencia | Secuencial (~100 s para 500, **excedía** el `maxDuration` de 60 s de Vercel) | 8 en paralelo, ~12 s |
@@ -232,9 +264,9 @@ considera sana una instalación que solo puede observar el `201` inicial.
 
 - `BREVO_API_KEY` vive **solo** en el servidor. El frontend no habla con Brevo; pide envíos a
   `/api/emails`. `tests/env.test.js` verifica que no reaparezca `VITE_BREVO_API_KEY`.
-- Los tipos de cuenta (`welcome`, `password_reset`, `security_access`, `staff_invitation`) **no** se pueden disparar
-  desde `POST /api/emails/send`: permitir un `password_reset` a mano sería una vía de phishing
-  con nuestro propio remitente verificado.
+- Cuenta, pagos, afiliaciones e inscripciones **no** se pueden disparar desde
+  `POST /api/emails/send`: los tipos sensibles abrirían una vía de phishing y los estados de
+  negocio permitirían duplicar confirmaciones desde el panel.
 - Los params se escapan al renderizar el HTML y las URLs se validan por protocolo
   (`javascript:` y `data:` se descartan).
 - Contraseñas, OTP y URLs firmadas se usan solamente en memoria. En

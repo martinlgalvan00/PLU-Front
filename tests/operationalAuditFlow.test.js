@@ -7,6 +7,10 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260810180000_operational_audit_email_flow.sql'),
   'utf8',
 )
+const consolidatedPaymentMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260811160000_consolidated_payment_confirmation.sql'),
+  'utf8',
+)
 
 describe('auditoría operativa del flujo de afiliación', () => {
   it('captura en una bitácora append-only emails, webhooks e intentos de pago', () => {
@@ -34,6 +38,13 @@ describe('auditoría operativa del flujo de afiliación', () => {
     expect(migration).toContain("p.concept in ('membership', 'combo')")
     expect(migration).toContain("'approvedOrdersWithoutActiveMembership'")
     expect(migration).toContain("'activeMembershipsWithoutConfirmation'")
+  })
+
+  it('reconoce el único mail de pago como confirmación de la afiliación', () => {
+    expect(consolidatedPaymentMigration).toContain("l.template_key = 'payment_confirmation'")
+    expect(consolidatedPaymentMigration).toContain("l.payload ->> 'membershipId' = m.id::text")
+    expect(consolidatedPaymentMigration).toContain('l.entity_id = m.payment_order_id::text')
+    expect(consolidatedPaymentMigration).toContain('l.delivered_at >= m.updated_at')
   })
 
   it('normaliza la evidencia técnica para la tabla del panel', () => {

@@ -1,6 +1,77 @@
 import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildEventPagePath } from '../../../src/lib/eventPageRoute.js'
 
+function displayPaymentConcept(concept) {
+  if (concept === 'membership') return 'Afiliación PLU'
+  if (concept === 'registration') return 'Inscripción a competencia'
+  if (concept === 'combo') return 'Afiliación + inscripción'
+  if (concept === 'tickets') return 'Entradas'
+  return 'Pago PLU ARG'
+}
+
+function displayPaymentMethod(method) {
+  if (method === 'mercado_pago') return 'Mercado Pago'
+  if (method === 'manual_link') return 'Transferencia / aprobación manual'
+  return method || 'No informado'
+}
+
+/**
+ * Contrato único para la confirmación posterior a un pago. El mismo payload
+ * alimenta Mercado Pago y la aprobación manual, y permite que comprobante,
+ * afiliación, inscripción y entrada convivan en un solo correo.
+ */
+export function buildPaymentConfirmationParams({
+  order,
+  payment = {},
+  result = {},
+  recipientName,
+  appUrl = '',
+  registrationEvent = null,
+}) {
+  const membership = result?.membership ?? null
+  const registration = order?.registration ?? result?.registration ?? null
+  const event = registration?.event ?? registrationEvent ?? order?.event ?? null
+  const includesMembership = order?.kind === 'athlete' && ['membership', 'combo'].includes(order?.concept)
+  const includesRegistration = order?.kind === 'athlete' && ['registration', 'combo'].includes(order?.concept)
+  const includesTicket = order?.kind === 'ticket'
+  const baseUrl = String(appUrl ?? '').replace(/\/$/, '')
+  const eventUrl = event?.slug ? `${baseUrl}${buildEventPagePath(event.slug)}` : ''
+
+  return {
+    name: recipientName,
+    amount: payment.amount ?? order?.amount,
+    concept: order?.displayConcept ?? displayPaymentConcept(order?.concept),
+    reference: order?.reference,
+    paidAt: payment.raw?.date_approved ?? payment.paidAt ?? order?.approved_at ?? new Date().toISOString(),
+    paymentMethod:
+      payment.raw?.payment_method_id
+      ?? displayPaymentMethod(payment.paymentMethod ?? order?.method),
+
+    // Identificadores no visibles que también relacionan el único envío con
+    // cada derecho en la auditoría operativa.
+    membershipId: membership?.id ?? '',
+    registrationId: registration?.id ?? '',
+    includesMembership,
+    includesRegistration,
+    includesTicket,
+
+    memberCode: membership?.member_code ?? '',
+    expirationDate: membership?.expiration_date ?? '',
+    membershipPending: includesMembership && !membership?.id,
+    accountUrl: includesMembership ? `${baseUrl}/mi-cuenta` : '',
+
+    eventTitle: event?.title ?? '',
+    eventDate: event?.starts_at ?? '',
+    venue: event?.venue ?? '',
+    division: registration?.division ?? '',
+    category: registration?.category ?? '',
+    eventUrl,
+
+    ticketQuantity: Array.isArray(result?.tickets) ? result.tickets.length : '',
+    ticketUrl: includesTicket ? eventUrl : '',
+  }
+}
+
 /**
  * paymentNotificationService.js — PLU ARG
  *
@@ -61,6 +132,7 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
 
     if (payment.status === 'reembolsado' || payment.status === 'cancelado') {
       const jobs = []
+      const membership = result?.membership
       if (payment.status === 'reembolsado') {
         jobs.push(
           mailer.send('payment_refunded', {
@@ -71,13 +143,23 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
               amount: payment.amount,
               concept: order.displayConcept,
               reference: order.reference,
+              membershipId: membership?.id ?? '',
+              memberCode: membership?.member_code ?? '',
+              membershipStatus: membership?.status ?? '',
+              accountUrl: membership?.id ? `${appUrl}/mi-cuenta` : '',
             },
           }),
         )
       }
 
-      const membership = result?.membership
-      if (order.kind === 'athlete' && membership?.id && ['membership', 'combo'].includes(order.concept)) {
+      // En un reintegro, la baja de la afiliación forma parte del mismo mail.
+      // Una cancelación sin reintegro sigue usando el aviso de afiliación.
+      if (
+        payment.status === 'cancelado'
+        && order.kind === 'athlete'
+        && membership?.id
+        && ['membership', 'combo'].includes(order.concept)
+      ) {
         jobs.push(
           mailer.send('affiliation_cancelled', {
             ...common,
@@ -99,112 +181,21 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
 
     if (payment.status !== 'aprobado') return []
 
-    const jobs = [
-      mailer.send('payment_approved', {
+    // Una aprobación es un único hecho para la persona. El comprobante y los
+    // derechos que habilitó viajan juntos; antes un combo generaba cuatro
+    // correos consecutivos desde el mismo webhook.
+    return Promise.allSettled([
+      mailer.send('payment_confirmation', {
         ...common,
-        idempotencyKey: `email:payment-approved:${payment.externalPaymentId}`,
-        params: {
-          name: recipientName,
-          amount: payment.amount,
-          concept: order.displayConcept,
-          reference: order.reference,
-        },
-      }),
-      // El comprobante va aparte del aviso: es el documento que el socio
-      // guarda, y está marcado como crítico en el catálogo.
-      mailer.send('payment_receipt', {
-        ...common,
-        idempotencyKey: `email:payment-receipt:${payment.externalPaymentId}`,
-        params: {
-          name: recipientName,
-          amount: payment.amount,
-          concept: order.displayConcept,
-          reference: order.reference,
-          // `appliedPayment` no expone estos dos campos; viven en el pago
-          // crudo de Mercado Pago que viaja en `raw`.
-          paidAt: payment.raw?.date_approved ?? new Date().toISOString(),
-          paymentMethod: payment.raw?.payment_method_id ?? 'Mercado Pago',
-        },
-      }),
-    ]
-
-    // La RPC de acreditación deja la afiliación `activa` en la misma
-    // transacción, así que el aviso correcto es el de afiliación aprobada —
-    // el que lleva el código de socio. Antes salía `affiliation_started` ("en
-    // curso"), y como ese es el camino principal, quien pagaba con tarjeta
-    // recibía el comprobante pero nunca su código ni la confirmación.
-    const membership = result?.membership
-    if (order.kind === 'athlete' && ['membership', 'combo'].includes(order.concept)) {
-      jobs.push(
-        membership?.id
-          ? mailer.send('affiliation_approved', {
-              ...common,
-              entityType: 'membership',
-              entityId: membership.id,
-              // Anclada en la afiliación y no en el pago: una renovación del
-              // mismo socio es un derecho nuevo y merece su propio aviso, pero
-              // un reintento del webhook sobre el mismo ciclo no.
-              idempotencyKey: `email:affiliation-approved:${membership.id}`,
-              params: {
-                name: order.athlete?.full_name ?? recipientName,
-                memberCode: membership.member_code,
-                expirationDate: membership.expiration_date,
-                accountUrl: `${appUrl}/mi-cuenta`,
-              },
-            })
-          : mailer.send('affiliation_started', {
-              ...common,
-              idempotencyKey: `email:affiliation-started:${payment.externalPaymentId}`,
-              params: {
-                name: order.athlete?.full_name ?? recipientName,
-                reference: order.reference,
-                accountUrl: `${appUrl}/mi-cuenta`,
-              },
-            }),
-      )
-    }
-
-    // Faltaba: por Mercado Pago (el camino principal) el atleta recibía el
-    // comprobante pero nunca la confirmación de su inscripción, que sí salía
-    // por la aprobación manual. Los dos caminos ahora avisan lo mismo.
-    const registration = order.registration
-    if (order.kind === 'athlete' && ['registration', 'combo'].includes(order.concept) && registration?.event?.title) {
-      jobs.push(
-        mailer.send('registration_confirmed', {
-          ...common,
-          entityType: 'event_registration',
-          entityId: registration.id,
-          idempotencyKey: `email:registration-confirmed:${registration.id}`,
-          params: {
-            name: recipientName,
-            eventTitle: registration.event.title,
-            eventDate: registration.event.starts_at,
-            venue: registration.event.venue ?? '',
-            division: registration.division,
-            category: registration.category,
-            eventUrl: `${appUrl}${buildEventPagePath(registration.event.slug)}`,
-          },
+        idempotencyKey: `email:payment-confirmation:${payment.externalPaymentId}`,
+        params: buildPaymentConfirmationParams({
+          order,
+          payment,
+          result,
+          recipientName,
+          appUrl,
         }),
-      )
-    }
-
-    // Compra de entradas: hasta ahora el comprador pagaba y no recibía la
-    // entrada por email, solo el comprobante.
-    if (order.kind === 'ticket' && order.event?.title) {
-      jobs.push(
-        mailer.send('ticket_confirmation', {
-          ...common,
-          idempotencyKey: `email:ticket-confirmation:${payment.externalPaymentId}`,
-          params: {
-            name: recipientName,
-            eventTitle: order.event.title,
-            reference: order.reference,
-            ticketUrl: `${appUrl}${buildEventPagePath(order.event.slug)}`,
-          },
-        }),
-      )
-    }
-
-    return Promise.allSettled(jobs)
+      }),
+    ])
   }
 }
