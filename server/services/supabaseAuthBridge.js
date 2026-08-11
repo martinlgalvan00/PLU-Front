@@ -64,19 +64,29 @@ function usesDefaultPermissionSet(role, permissions) {
   )
 }
 
-export async function ensureSupabaseSessionToken({ email, permissions, role }) {
+export async function ensureSupabaseSessionToken({
+  email,
+  permissions,
+  role,
+  admin: injectedAdmin,
+  env = process.env,
+}) {
   // public.profiles todavía expresa el RBAC histórico. Sólo se entrega una
   // sesión Supabase cuando el rol conserva exactamente esa matriz; un rol
   // configurable o restringido opera exclusivamente a través de Express.
   if (
     !email ||
     !BRIDGED_ROLES.has(role) ||
-    !usesDefaultPermissionSet(role, permissions) ||
-    !isSupabaseAdminConfigured()
+    !usesDefaultPermissionSet(role, permissions)
   ) return null
 
+  const admin =
+    injectedAdmin === undefined
+      ? (isSupabaseAdminConfigured(env) ? getSupabaseAdmin() : null)
+      : injectedAdmin
+  if (!admin?.auth?.admin) return null
+
   const normalizedEmail = email.trim().toLowerCase()
-  const admin = getSupabaseAdmin()
 
   try {
     const user = await ensureSupabaseUser(admin, normalizedEmail)

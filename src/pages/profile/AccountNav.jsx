@@ -1,5 +1,7 @@
 import { History, KeyRound, QrCode, ShieldCheck, Trophy, UserRound } from 'lucide-react'
+import { LayoutGroup, m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 const ITEMS = [
   { id: 'account-qr', icon: QrCode, labelKey: 'qr' },
@@ -17,26 +19,47 @@ const ITEMS = [
  */
 export default function AccountNav({ activeId, onChange }) {
   const { t } = useI18n()
+  const { reducedMotion } = useMotionConfig()
 
   return (
     <nav className="account-nav" aria-label={t('account.eyebrow')}>
-      <div className="account-nav__inner" role="tablist">
-        {ITEMS.map(({ id, icon: Icon, labelKey }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`${id}-tab`}
-            aria-controls={id}
-            aria-selected={activeId === id}
-            className={`account-nav__item${activeId === id ? ' is-active' : ''}`}
-            onClick={() => onChange(id)}
-          >
-            <Icon size={15} aria-hidden />
-            {t(`account.nav.${labelKey}`)}
-          </button>
-        ))}
-      </div>
+      <LayoutGroup id="account-nav-tabs">
+        <div className="account-nav__inner" role="tablist">
+          {ITEMS.map(({ id, icon: Icon, labelKey }) => {
+            const isActive = activeId === id
+
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`${id}-tab`}
+                aria-controls={id}
+                aria-selected={isActive}
+                className={`account-nav__item${isActive ? ' is-active' : ''}`}
+                onClick={() => onChange(id)}
+              >
+                {isActive ? (
+                  <m.span
+                    className="account-nav__thumb"
+                    layoutId="account-nav-active-thumb"
+                    aria-hidden
+                    transition={
+                      reducedMotion
+                        ? { duration: 0.01 }
+                        : { type: 'spring', stiffness: 460, damping: 38, mass: 0.7 }
+                    }
+                  />
+                ) : null}
+                <span className="account-nav__item-content">
+                  <Icon size={15} aria-hidden />
+                  {t(`account.nav.${labelKey}`)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </LayoutGroup>
     </nav>
   )
 }

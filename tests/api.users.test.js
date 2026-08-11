@@ -48,6 +48,7 @@ function createPrismaDouble(seedUsers) {
           status: data.status,
           passwordHash: data.passwordHash ?? null,
           mustChangePassword: data.mustChangePassword ?? false,
+          passwordExpiresAt: data.passwordExpiresAt ?? null,
           eventId: data.eventId ?? null,
           eventSlug: data.eventSlug ?? null,
           profile: data.profile?.create ?? null,
@@ -117,7 +118,7 @@ async function loginAdmin(url) {
 }
 
 describe('alta de staff (/api/users)', () => {
-  it('un admin crea una cuenta PLU con contraseña temporal de un solo uso', async () => {
+  it('un admin crea una cuenta PLU invitada sin exponer credenciales', async () => {
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV }))
 
@@ -135,17 +136,14 @@ describe('alta de staff (/api/users)', () => {
         email: 'plu@pluarg.test',
         role: 'operador_plu_arg',
         roleKey: 'plu_arg',
-        status: 'active',
+        status: 'invited',
         mustChangePassword: true,
       })
-      // La credencial vuelve una sola vez, para mostrarla en pantalla cuando
-      // el mail no sale. Nunca se persiste en claro.
-      expect(body.tempPassword).toEqual(expect.any(String))
-      expect(body.tempPassword.length).toBeGreaterThanOrEqual(12)
+      expect(body).not.toHaveProperty('tempPassword')
 
       const created = prisma._state.users.find((user) => user.email === 'plu@pluarg.test')
       expect(created.passwordHash).toEqual(expect.any(String))
-      expect(created.passwordHash).not.toContain(body.tempPassword)
+      expect(created.passwordExpiresAt).toBeInstanceOf(Date)
     } finally {
       await target.close()
     }
@@ -418,7 +416,7 @@ describe('alta de staff (/api/users)', () => {
       const target_ = prisma._state.users.find((user) => user.id === 'usr-plu')
 
       expect(response.status).toBe(200)
-      expect(body.tempPassword).toEqual(expect.any(String))
+      expect(body).not.toHaveProperty('tempPassword')
       expect(body.user.mustChangePassword).toBe(true)
       expect(target_.mustChangePassword).toBe(true)
       expect(target_.passwordHash).not.toBe(await hashPassword('clave-vieja-del-equipo'))

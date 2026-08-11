@@ -16,6 +16,10 @@ import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
 } from './lib/staffEmailChangeRoute.js'
+import {
+  clearStaffInvitationToken,
+  readStaffInvitationToken,
+} from './lib/staffInvitationRoute.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
 import {
@@ -27,7 +31,7 @@ import {
 import { PRICING } from './lib/constants.js'
 import { getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
-import { getTransitionDirection } from './lib/navigation.js'
+import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
 import {
   canCheckIn,
   canDeleteAthletes,
@@ -60,6 +64,7 @@ const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
 const StaffEmailChangePage = lazy(() => import('./pages/StaffEmailChangePage.jsx'))
+const StaffInvitationPage = lazy(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePage.jsx'))
 const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
@@ -90,6 +95,7 @@ export default function App() {
   })
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
+  const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
   const [ticketEventSlug, setTicketEventSlug] = useState(() =>
     matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
   )
@@ -97,6 +103,7 @@ export default function App() {
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
   const app = useAppData()
+  const getSession = app.getSession
   const publicEvents = app.adminEvents.filter((event) => event.published !== false)
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
 
@@ -135,34 +142,48 @@ export default function App() {
 
   const navigate = useCallback(
     (nextView, options = {}) => {
-      const currentSession = app.getSession()
+      const currentSession = getSession()
       const currentRole = currentSession?.role
-      const adminRequired = nextView === 'admin'
-      const athleteRequired = ['profile', 'membership', 'competition'].includes(nextView)
+      const afterLogin = resolveAfterLoginDestination(
+        nextView,
+        currentRole,
+        pendingAthleteDestination,
+      )
+      const requestedView = afterLogin.view
+      const requestedOptions = afterLogin.view === nextView ? options : afterLogin.options
+      const resumedAthleteDestination = requestedView !== nextView
+      const adminRequired = requestedView === 'admin'
+      const athleteRequired = ['profile', 'membership', 'competition'].includes(requestedView)
       const blocked =
         (adminRequired && !canViewAdmin(currentSession)) ||
         (athleteRequired && currentRole !== 'athlete_plu')
-      const resolvedView = blocked ? 'login' : nextView
+      const resolvedView = blocked ? 'login' : requestedView
+
+      if (blocked && athleteRequired) {
+        setPendingAthleteDestination({ view: requestedView, options: requestedOptions })
+      } else if (resumedAthleteDestination || (view === 'login' && resolvedView !== 'login')) {
+        setPendingAthleteDestination(null)
+      }
 
       if (resolvedView === 'tickets') {
-        pushTicketsRoute(options.eventSlug)
-        setTicketEventSlug(options.eventSlug ?? null)
+        pushTicketsRoute(requestedOptions.eventSlug)
+        setTicketEventSlug(requestedOptions.eventSlug ?? null)
       } else if (view === 'tickets') {
         clearTicketsRoute()
       }
 
-      if (resolvedView === 'events' && options.eventSlug) {
-        pushEventPageRoute(options.eventSlug)
-        setEventPageSlug(options.eventSlug)
+      if (resolvedView === 'events' && requestedOptions.eventSlug) {
+        pushEventPageRoute(requestedOptions.eventSlug)
+        setEventPageSlug(requestedOptions.eventSlug)
       } else if (view === 'events' && resolvedView !== 'events') {
         clearEventPageRoute()
         setEventPageSlug(null)
       }
 
       // openTickets en pitbull: ir a la página completa de entradas
-      if (resolvedView === 'pitbull' && options.openTickets) {
-        pushTicketsRoute(options.eventSlug)
-        setTicketEventSlug(options.eventSlug ?? null)
+      if (resolvedView === 'pitbull' && requestedOptions.openTickets) {
+        pushTicketsRoute(requestedOptions.eventSlug)
+        setTicketEventSlug(requestedOptions.eventSlug ?? null)
         setTransitionDirection(getTransitionDirection(view, 'tickets'))
         setView('tickets')
         return
@@ -171,11 +192,19 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [app.getSession, view],
+    [getSession, pendingAthleteDestination, view],
   )
 
   function selectEvent(event) {
     setSelectedEvent(event)
+    if (getSession()?.role !== 'athlete_plu') {
+      // Conserva el evento elegido mientras la persona crea su ficha. Al
+      // terminar el alta, `navigate('profile')` retoma automáticamente la
+      // inscripción en vez de mandarla a empezar de nuevo desde el calendario.
+      setPendingAthleteDestination({ view: 'competition', options: {} })
+      navigate('register')
+      return
+    }
     navigate('competition')
   }
 
@@ -225,6 +254,26 @@ export default function App() {
           onDone={async () => {
             clearStaffEmailChangeToken()
             await app.logout()
+            setView('login')
+          }}
+        />
+      </Suspense>
+    )
+  }
+
+  const staffInvitationToken = readStaffInvitationToken()
+  if (staffInvitationToken) {
+    return (
+      <Suspense fallback={<PageLoadFallback />}>
+        <StaffInvitationPage
+          token={staffInvitationToken}
+          onAccept={async (payload) => {
+            await app.acceptStaffInvitationAction(payload)
+            clearStaffInvitationToken()
+            setView('admin')
+          }}
+          onCancel={() => {
+            clearStaffInvitationToken()
             setView('login')
           }}
         />
@@ -297,6 +346,8 @@ export default function App() {
           adminEvents={app.adminEvents}
           adminEventsLoading={app.adminEventsLoading}
           adminEventsError={app.adminEventsError}
+          athleteDataLoading={app.athleteDataLoading}
+          athleteDataError={app.athleteDataError}
           filters={app.filters}
           filteredRegistrations={app.filteredRegistrations}
           enrichedMemberships={app.enrichedMemberships}
@@ -312,6 +363,7 @@ export default function App() {
           onRefreshTickets={app.refreshTickets}
           onRefreshPendingTicketOrders={app.refreshPendingTicketOrders}
           onRefreshAdminEvents={app.refreshAdminEvents}
+          onRefreshAthleteData={app.refreshAthleteData}
           pricingConfiguration={app.pricingConfiguration}
           pricingLoading={app.pricingLoading}
           pricingError={app.pricingError}
@@ -495,6 +547,7 @@ export default function App() {
       <NavbarPublic
         activeView={view}
         latestEvent={nextEvent}
+        memberships={app.memberships}
         onLogout={app.logout}
         onNavigate={navigate}
         session={app.session}
@@ -525,6 +578,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
           getNextUpcomingEvent(app.adminEvents.filter((event) => event.published !== false)) ??
           UPCOMING_EVENTS[0]
         }
+        memberships={app.memberships}
         onLogout={() => {
           app.logout()
           navigate('home')

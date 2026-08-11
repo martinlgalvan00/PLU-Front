@@ -1,12 +1,14 @@
+import { createHash } from 'node:crypto'
 import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildStaffEmailChangeUrl } from '../../../src/lib/staffEmailChangeRoute.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 /**
  * staffAccountNotificationService.js — PLU ARG
  *
  * Los tres mails del ciclo de vida de una cuenta del panel:
  *
- *  - `staff_invitation`   alta (o reset): usuario + contraseña temporal.
+ *  - `staff_invitation`   alta (o reset): enlace firmado para elegir clave.
  *  - `staff_email_change` link firmado a la casilla **nueva** para confirmar.
  *  - `staff_email_changed` aviso a la casilla **vieja** de que ya no manda.
  *
@@ -26,24 +28,21 @@ export function createStaffAccountNotificationService({
   env = process.env,
 }) {
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
-  function notifyStaffInvitation({ user, tempPassword, roleName = null, idempotencyKey }) {
+  function notifyStaffInvitation({ user, invitationUrl, roleName = null, expiresInDays = null, idempotencyKey }) {
     return mailer.send('staff_invitation', {
       to: user.email,
       toName: user.name,
       entityType: 'staff_user',
       entityId: user.id,
-      // Sin clave en la key, un reset posterior chocaría con el log del alta y
-      // el dispatcher lo descartaría por idempotente: el usuario nunca
-      // recibiría la contraseña nueva.
-      idempotencyKey: idempotencyKey ?? `email:staff-invitation:${user.id}:${tempPassword.slice(-8)}`,
+      idempotencyKey: idempotencyKey ?? `email:staff-invitation:${user.id}`,
       params: {
         name: user.name,
         email: user.email,
-        tempPassword,
         roleName: roleName ?? '',
-        loginUrl: appUrl || '',
+        invitationUrl: invitationUrl || appUrl || '',
+        expiresInDays: expiresInDays ?? '',
       },
     })
   }
@@ -58,7 +57,7 @@ export function createStaffAccountNotificationService({
       toName: user.name,
       entityType: 'staff_user',
       entityId: user.id,
-      idempotencyKey: `email:staff-email-change:${user.id}:${token.slice(-16)}`,
+      idempotencyKey: `email:staff-email-change:${user.id}:${createHash('sha256').update(token).digest('hex').slice(0, 24)}`,
       params: {
         name: user.name,
         newEmail,

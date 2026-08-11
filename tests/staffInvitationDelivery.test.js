@@ -6,9 +6,8 @@ import { hashPassword } from '../server/services/passwordService.js'
  * Entrega de la invitación de staff, de punta a punta.
  *
  * El resto de los tests verifican las piezas por separado. Este cierra el lazo
- * que importa operativamente: **la credencial que sale por mail es la que abre
- * la aplicación**. Si el alta generase una contraseña y el mail llevase otra
- * (o ninguna), todo lo demás pasaría en verde y nadie podría entrar.
+ * que importa operativamente: **el enlace que sale por mail permite elegir la
+ * contraseña y abre la aplicación** sin exponer credenciales en logs/respuestas.
  */
 
 const ENV = {
@@ -30,7 +29,7 @@ function authHeaders(cookie) {
   return {
     // El guard de mutación valida el origen contra process.env, no contra el
     // env inyectado: se usa el loopback que ya está en la allowlist. APP_URL
-    // igual queda distinto a propósito, para verificar el loginUrl del mail.
+    // igual queda distinto a propósito, para verificar el link del mail.
     Origin: 'http://localhost:5173',
     'Content-Type': 'application/json',
     'X-PLU-Request': 'browser',
@@ -63,6 +62,7 @@ function createPrismaDouble(seedUsers) {
           status: data.status,
           passwordHash: data.passwordHash ?? null,
           mustChangePassword: data.mustChangePassword ?? false,
+          passwordExpiresAt: data.passwordExpiresAt ?? null,
           eventId: null,
           eventSlug: null,
           profile: data.profile?.create ?? null,
@@ -134,8 +134,21 @@ function inviteUser(url, cookie, body) {
   })
 }
 
+function invitationTokenFrom(send, callIndex = 0) {
+  const invitationUrl = send.mock.calls[callIndex][0].params.invitationUrl
+  return new URL(invitationUrl).searchParams.get('invitacion-staff')
+}
+
+function acceptInvitation(url, token, password = 'Nueva-clave-segura-2026') {
+  return fetch(`${url}/api/auth/accept-staff-invitation`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ token, password }),
+  })
+}
+
 describe('entrega de la invitación de staff', () => {
-  it('manda al email indicado una credencial que efectivamente abre la app', async () => {
+  it('manda un enlace de un solo uso que permite elegir la clave y abrir la app', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'brevo-1' })
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV, brevo: { configured: true, send } }))
@@ -156,27 +169,23 @@ describe('entrega de la invitación de staff', () => {
       const payload = send.mock.calls[0][0]
       expect(payload.to).toBe('nuevo@pluarg.test')
 
-      // La contraseña que viaja en el mail es exactamente la que devolvió el
-      // alta -- no una segunda credencial ni un placeholder.
-      expect(payload.params.tempPassword).toBe(body.tempPassword)
       expect(payload.params.email).toBe('nuevo@pluarg.test')
-      expect(payload.params.loginUrl).toBe('https://panel.pluarg.test')
+      expect(payload.params.invitationUrl).toMatch(
+        /^https:\/\/panel\.pluarg\.test\/\?invitacion-staff=/,
+      )
+      expect(body).not.toHaveProperty('tempPassword')
+      expect(payload.params).not.toHaveProperty('tempPassword')
+      expect(payload.htmlContent).not.toContain('Contraseña temporal')
 
-      // Y está escrita en el cuerpo, no sólo en los params: sin template de
-      // Brevo cargado el mail sale con el fallback HTML del repo.
-      expect(payload.htmlContent).toContain(body.tempPassword)
-      expect(payload.textContent).toContain(body.tempPassword)
+      const accepted = await acceptInvitation(target.url, invitationTokenFrom(send))
+      const session = await accepted.json()
 
-      // El lazo: esa credencial abre la aplicación.
-      const login = await fetch(`${target.url}/api/auth/login`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: 'nuevo@pluarg.test', password: body.tempPassword }),
-      })
-      const session = await login.json()
+      expect(accepted.status).toBe(200)
+      expect(accepted.headers.get('set-cookie')).toContain('plu_session=')
+      expect(session.user).toMatchObject({ status: 'active', mustChangePassword: false })
 
-      expect(login.status).toBe(200)
-      expect(session.user.mustChangePassword).toBe(true)
+      const reused = await acceptInvitation(target.url, invitationTokenFrom(send), 'Otra-clave-segura-2026')
+      expect(reused.status).toBe(400)
     } finally {
       await target.close()
     }
@@ -196,18 +205,12 @@ describe('entrega de la invitación de staff', () => {
       })
       const body = await response.json()
 
-      // La cuenta existe y la credencial vuelve para mostrarla en pantalla:
-      // ése es el respaldo cuando el mail no sale.
+      // La cuenta queda invitada y no se filtra una vía alternativa. El admin
+      // puede reemitir el enlace cuando Brevo vuelva.
       expect(response.status).toBe(201)
       expect(body.emailed).toBe(false)
-      expect(body.tempPassword).toEqual(expect.any(String))
-
-      const login = await fetch(`${target.url}/api/auth/login`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: 'nuevo@pluarg.test', password: body.tempPassword }),
-      })
-      expect(login.status).toBe(200)
+      expect(body).not.toHaveProperty('tempPassword')
+      expect(body.user.status).toBe('invited')
     } finally {
       await target.close()
     }
@@ -233,7 +236,7 @@ describe('entrega de la invitación de staff', () => {
     }
   })
 
-  it('respeta sendEmail:false y entrega la credencial sólo por pantalla', async () => {
+  it('respeta sendEmail:false sin exponer una credencial por pantalla', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'brevo-1' })
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV, brevo: { configured: true, send } }))
@@ -250,13 +253,14 @@ describe('entrega de la invitación de staff', () => {
 
       expect(response.status).toBe(201)
       expect(send).not.toHaveBeenCalled()
-      expect(body.tempPassword).toEqual(expect.any(String))
+      expect(body).not.toHaveProperty('tempPassword')
+      expect(body.user.status).toBe('invited')
     } finally {
       await target.close()
     }
   })
 
-  it('el reenvío manda una credencial nueva y no repite la del alta', async () => {
+  it('el reenvío invalida el enlace anterior y manda uno nuevo', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'brevo-1' })
     const prisma = createPrismaDouble([await buildAdmin()])
     const target = listen(createApp({ prisma, env: ENV, brevo: { configured: true, send } }))
@@ -280,26 +284,19 @@ describe('entrega de la invitación de staff', () => {
 
       expect(reset.status).toBe(200)
       expect(reissued.emailed).toBe(true)
-      expect(reissued.tempPassword).not.toBe(created.tempPassword)
+      expect(reissued).not.toHaveProperty('tempPassword')
 
       // Dos envíos distintos: la idempotencia del dispatcher no puede tragarse
       // el reenvío, o el usuario nunca recibiría la credencial nueva.
       expect(send).toHaveBeenCalledTimes(2)
-      expect(send.mock.calls[1][0].params.tempPassword).toBe(reissued.tempPassword)
+      const firstToken = invitationTokenFrom(send, 0)
+      const secondToken = invitationTokenFrom(send, 1)
+      expect(secondToken).not.toBe(firstToken)
 
-      // Y la vieja deja de servir.
-      const conVieja = await fetch(`${target.url}/api/auth/login`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: 'nuevo@pluarg.test', password: created.tempPassword }),
-      })
-      const conNueva = await fetch(`${target.url}/api/auth/login`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: 'nuevo@pluarg.test', password: reissued.tempPassword }),
-      })
+      const conVieja = await acceptInvitation(target.url, firstToken)
+      const conNueva = await acceptInvitation(target.url, secondToken)
 
-      expect(conVieja.status).toBe(401)
+      expect(conVieja.status).toBe(400)
       expect(conNueva.status).toBe(200)
     } finally {
       await target.close()

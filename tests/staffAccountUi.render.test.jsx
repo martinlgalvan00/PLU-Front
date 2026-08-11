@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AccountDialog from '../src/components/admin/AccountDialog.jsx'
 import StaffPasswordChangePage from '../src/pages/StaffPasswordChangePage.jsx'
+import StaffInvitationPage from '../src/pages/StaffInvitationPage.jsx'
 import UsersSection from '../src/pages/admin/UsersSection.jsx'
 
 const SESSION = {
@@ -84,6 +85,33 @@ describe('StaffPasswordChangePage', () => {
         password: 'mi-clave-propia-2026',
       }),
     )
+  })
+})
+
+describe('StaffInvitationPage', () => {
+  it('permite definir la contraseña sin pedir una credencial temporal', async () => {
+    const onAccept = vi.fn().mockResolvedValue({})
+    render(
+      <I18nProvider>
+        <StaffInvitationPage token="token-firmado" onAccept={onAccept} onCancel={() => {}} />
+      </I18nProvider>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Contraseña nueva'), {
+      target: { value: 'Nueva-clave-segura-2026' },
+    })
+    fireEvent.change(screen.getByLabelText('Repetí la contraseña nueva'), {
+      target: { value: 'Nueva-clave-segura-2026' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Crear contraseña y entrar/ }))
+
+    await waitFor(() =>
+      expect(onAccept).toHaveBeenCalledWith({
+        token: 'token-firmado',
+        password: 'Nueva-clave-segura-2026',
+      }),
+    )
+    expect(screen.queryByLabelText('Contraseña actual')).toBeNull()
   })
 })
 
@@ -170,37 +198,36 @@ describe('UsersSection — credencial temporal', () => {
     )
   }
 
-  it('no ofrece reenviar credencial sin handler', () => {
+  it('no ofrece reenviar invitación sin handler', () => {
     renderUsers()
-    expect(screen.queryByLabelText('Reenviar credencial')).toBeNull()
+    expect(screen.queryByLabelText('Reenviar invitación')).toBeNull()
   })
 
-  it('muestra la credencial en pantalla y avisa cuando el mail no salió', async () => {
+  it('no expone credenciales y avisa cuando el mail no salió', async () => {
     const onResetPassword = vi.fn(async () => ({
       user: USERS[0],
-      tempPassword: 'Zx9-temporal',
       emailed: false,
     }))
     renderUsers({ onResetPassword })
 
-    fireEvent.click(screen.getAllByLabelText('Reenviar credencial')[0])
+    fireEvent.click(screen.getAllByLabelText('Reenviar invitación')[0])
 
-    await waitFor(() => expect(screen.getByText('Zx9-temporal')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Invitación reemitida')).toBeTruthy())
+    expect(screen.queryByText('Zx9-temporal')).toBeNull()
     expect(screen.getByText(/No pudimos enviar el mail/)).toBeTruthy()
   })
 
   it('confirma el envío cuando el mail sí salió', async () => {
     const onResetPassword = vi.fn(async () => ({
       user: USERS[0],
-      tempPassword: 'Zx9-temporal',
       emailed: true,
     }))
     renderUsers({ onResetPassword })
 
-    fireEvent.click(screen.getAllByLabelText('Reenviar credencial')[0])
+    fireEvent.click(screen.getAllByLabelText('Reenviar invitación')[0])
 
     await waitFor(() =>
-      expect(screen.getByText(/Le enviamos las credenciales a test@pluarg\.test/)).toBeTruthy(),
+      expect(screen.getByText(/Le enviamos un enlace personal a test@pluarg\.test/)).toBeTruthy(),
     )
   })
 })

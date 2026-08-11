@@ -28,6 +28,45 @@ function paymentOrder() {
 }
 
 describe('Mercado Pago Checkout Bricks', () => {
+  it('audita un error de render del Brick sin recibir datos de tarjeta', async () => {
+    const recordClientEvent = vi.fn(async () => undefined)
+    const repository = {
+      getOrder: vi.fn(async () => ({
+        ...paymentOrder(),
+        organizationId: '2a101541-0674-4a35-a840-56ed879d0440',
+        kind: 'ticket',
+        athleteId: null,
+      })),
+      assertTicketOrderAccess: vi.fn(async () => ({ id: ORDER_ID })),
+      recordClientEvent,
+    }
+    const target = listen(createApp({ paymentRepository: repository }))
+
+    const response = await fetch(`${target.url}/api/payments/telemetry`, {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:5173',
+        'Content-Type': 'application/json',
+        'X-PLU-Request': 'browser',
+      },
+      body: JSON.stringify({
+        paymentOrderId: ORDER_ID,
+        orderAccessToken: 'test-order-access-token-with-enough-entropy',
+        stage: 'render',
+        errorCode: 'brick_mount_failed',
+        message: 'No se pudo montar el checkout',
+      }),
+    })
+    await target.close()
+
+    expect(response.status).toBe(202)
+    expect(recordClientEvent).toHaveBeenCalledWith(expect.objectContaining({
+      stage: 'render',
+      errorCode: 'brick_mount_failed',
+    }))
+    expect(recordClientEvent.mock.calls[0][0]).not.toHaveProperty('cardToken')
+  })
+
   it('descarta el monto del navegador y procesa la orden autoritativa', async () => {
     let received
     const repository = {

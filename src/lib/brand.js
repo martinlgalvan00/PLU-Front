@@ -9,12 +9,12 @@ export const BRAND = {
   /** Powerlifting United — letterhead horizontal (fondo negro) */
   logoUrl: pluOfficialLogo,
   logoLetterheadUrl: pluOfficialLogo,
-  /** Emblema circular PLU Argentina (display, sin padding negro) */
+  /** Emblema circular PLU Argentina — crop display (sin padding muerto) */
   logoArgentinaUrl: pluArgentinaEmblem,
   logoAlt: 'PLU ARG — Powerlifting United',
   logoArgentinaAlt: 'PLU Argentina — emblema oficial',
-  faviconUrl: '/brand/plu-favicon.svg',
-  appleTouchIconUrl: '/brand/plu-official-logo.png',
+  faviconUrl: '/brand/plu-argentina-favicon.png',
+  appleTouchIconUrl: '/brand/plu-argentina-favicon.png',
 }
 
 /** Nombres de custom properties semánticas (referencia para CSS-in-JS) */

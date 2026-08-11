@@ -26,16 +26,18 @@ export function buildPendingActions({
 
   pendingTicketOrders.forEach((order) => {
     const attendeeLabel = order.attendees?.[0]?.name ?? 'Comprador'
+    const hasProof = Boolean(order.paymentProofPath)
     actions.push({
       id: `action-tord-${order.orderId}`,
       type: 'ticket_order',
-      priority: order.paymentProofPath ? 'high' : 'medium',
+      priority: hasProof ? 'high' : 'medium',
       subject: attendeeLabel,
-      summary: order.paymentProofPath ? 'Validar transferencia de entrada' : 'Entrada pendiente de pago',
+      summary: hasProof ? 'Validar transferencia de entrada' : 'Entrada pendiente de pago',
       detail: order.eventTitle ?? order.reference,
       meta: money(order.amount),
       section: 'payments',
       orderId: order.orderId,
+      hasProof,
     })
   })
 
@@ -43,6 +45,7 @@ export function buildPendingActions({
     .filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status))
     .forEach((payment) => {
       const athlete = athletes.find((item) => item.id === payment.athleteId)
+      const hasProof = Boolean(payment.paymentProofPath)
       actions.push({
         id: `action-pay-${payment.id}`,
         type: 'payment',
@@ -54,6 +57,7 @@ export function buildPendingActions({
         meta: money(payment.amount),
         section: 'payments',
         paymentId: payment.id,
+        hasProof,
       })
     })
 
@@ -274,6 +278,24 @@ export function buildDashboardOverview({
       }
     })
 
+  const recentRegistrations = [...registrations]
+    .filter((registration) => registration.createdAt)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5)
+    .map((registration) => {
+      const athlete = athletes.find((item) => item.id === registration.athleteId)
+      return {
+        id: registration.id,
+        athleteId: registration.athleteId,
+        fullName: athlete?.fullName ?? '—',
+        event: registration.event ?? '—',
+        category: registration.category,
+        division: registration.division,
+        status: registration.status,
+        createdAt: registration.createdAt,
+      }
+    })
+
   const eventLeaderboard = [...events]
     .filter((event) => event.status !== 'finalizado' && event.slots > 0)
     .map((event) => ({
@@ -403,6 +425,9 @@ export function buildDashboardOverview({
     },
     recentMemberships: {
       items: recentMemberships,
+    },
+    recentRegistrations: {
+      items: recentRegistrations,
     },
     eventLeaderboard: {
       items: eventLeaderboard,

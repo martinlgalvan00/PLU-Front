@@ -122,58 +122,64 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
         </div>
       </div>
 
-      <div className="form-grid">
-        <div className="field field--readonly">
-          <span>{t('account.personalData.fullName')}</span>
-          <span className="field__value">{athlete.fullName}</span>
+      <div className="account-data-group">
+        <p className="account-data-group__label">{t('account.personalData.officialGroup')}</p>
+        <div className="form-grid">
+          <div className="field field--readonly">
+            <span>{t('account.personalData.fullName')}</span>
+            <span className="field__value">{athlete.fullName}</span>
+          </div>
+          <div className="field field--readonly">
+            <span>{t('account.personalData.documentId')}</span>
+            <span className="field__value">{athlete.documentId}</span>
+          </div>
+          <div className="field field--readonly">
+            <span>{t('account.personalData.birthDate')}</span>
+            <span className="field__value">{formatShortDate(athlete.birthDate)}</span>
+          </div>
         </div>
-        <div className="field field--readonly">
-          <span>{t('account.personalData.documentId')}</span>
-          <span className="field__value">{athlete.documentId}</span>
-        </div>
-        <div className="field field--readonly">
-          <span>{t('account.personalData.birthDate')}</span>
-          <span className="field__value">{formatShortDate(athlete.birthDate)}</span>
-        </div>
+        <p className="account-data-group__note">{t('account.personalData.readonlyNote')}</p>
       </div>
-      <p className="account-security-note">{t('account.personalData.readonlyNote')}</p>
 
-      <form className="form-grid" onSubmit={handleSubmit} noValidate>
-        <Field
-          error={errors.email}
-          label={t('account.personalData.email')}
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={changeField}
-        />
-        <Field
-          error={errors.phone}
-          label={t('account.personalData.phone')}
-          name="phone"
-          value={form.phone}
-          onChange={changeField}
-        />
-        <Field
-          label={t('account.personalData.gym')}
-          name="gym"
-          value={form.gym}
-          onChange={changeField}
-        />
-        <Field
-          label={t('account.personalData.city')}
-          name="city"
-          value={form.city}
-          onChange={changeField}
-        />
-        <Field
-          label={t('account.personalData.province')}
-          name="province"
-          value={form.province}
-          onChange={changeField}
-        />
-        <div className="account-security-actions">
-          <button type="submit" className="account-primary-action">{t('account.personalData.save')}</button>
+      <form className="account-data-group" onSubmit={handleSubmit} noValidate>
+        <p className="account-data-group__label">{t('account.personalData.contactGroup')}</p>
+        <div className="form-grid">
+          <Field
+            error={errors.email}
+            label={t('account.personalData.email')}
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={changeField}
+          />
+          <Field
+            error={errors.phone}
+            label={t('account.personalData.phone')}
+            name="phone"
+            value={form.phone}
+            onChange={changeField}
+          />
+          <Field
+            label={t('account.personalData.gym')}
+            name="gym"
+            value={form.gym}
+            onChange={changeField}
+          />
+          <Field
+            label={t('account.personalData.city')}
+            name="city"
+            value={form.city}
+            onChange={changeField}
+          />
+          <Field
+            label={t('account.personalData.province')}
+            name="province"
+            value={form.province}
+            onChange={changeField}
+          />
+          <div className="account-security-actions">
+            <button type="submit" className="account-primary-action">{t('account.personalData.save')}</button>
+          </div>
         </div>
       </form>
       {message && <p className="account-checkout-message" role="status">{message}</p>}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MailWarning } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { resendAthleteVerification } from '../../services/athleteApi.js'
+import { resendAthleteVerification, verifyAthleteEmailCode } from '../../services/athleteApi.js'
 
 /**
  * EmailVerificationBanner — PLU ARG
@@ -15,10 +15,16 @@ import { resendAthleteVerification } from '../../services/athleteApi.js'
  *
  * Va arriba de las secciones de la cuenta y no dentro de la de afiliación: el
  * bloqueo también alcanza a la inscripción a torneos.
+ *
+ * Además del reenvío del enlace, acepta el OTP de 6 dígitos del mismo mail
+ * cuando el deep link no abre en el cliente de correo.
  */
 export default function EmailVerificationBanner({ athlete }) {
   const { t } = useI18n()
   const [state, setState] = useState('idle')
+  const [code, setCode] = useState('')
+  const [otpState, setOtpState] = useState('idle')
+  const [otpError, setOtpError] = useState('')
 
   // `emailVerifiedAt` llega del snapshot; si el backend todavía no lo informa
   // no se muestra nada, para no acusar de "sin verificar" a una cuenta que sí
@@ -27,11 +33,45 @@ export default function EmailVerificationBanner({ athlete }) {
 
   async function resend() {
     setState('sending')
+    setOtpError('')
     try {
       const result = await resendAthleteVerification()
       setState(result?.alreadyVerified ? 'verified' : 'sent')
+      if (result?.alreadyVerified) {
+        window.dispatchEvent(new CustomEvent('plu:email-verified'))
+      }
     } catch {
       setState('error')
+    }
+  }
+
+  async function submitCode(event) {
+    event.preventDefault()
+    const normalized = code.replace(/\D/g, '').slice(0, 6)
+    if (normalized.length !== 6) {
+      setOtpError(t('account.emailVerification.otpInvalid'))
+      return
+    }
+
+    setOtpState('verifying')
+    setOtpError('')
+    try {
+      const result = await verifyAthleteEmailCode(normalized)
+      setOtpState('verified')
+      setState('verified')
+      window.dispatchEvent(new CustomEvent('plu:email-verified', {
+        detail: { email: result?.email, alreadyVerified: result?.alreadyVerified },
+      }))
+    } catch (error) {
+      setOtpState('idle')
+      const apiCode = error?.body?.code ?? error?.code
+      if (apiCode === 'EMAIL_OTP_LOCKED') {
+        setOtpError(t('account.emailVerification.otpLocked'))
+      } else if (apiCode === 'EMAIL_OTP_EXPIRED') {
+        setOtpError(t('account.emailVerification.otpExpired'))
+      } else {
+        setOtpError(t('account.emailVerification.otpInvalid'))
+      }
     }
   }
 
@@ -43,6 +83,8 @@ export default function EmailVerificationBanner({ athlete }) {
     error: t('account.emailVerification.error'),
   }[state]
 
+  const showActions = state !== 'verified' && otpState !== 'verified'
+
   return (
     <aside className="account-verify" role="status" aria-live="polite">
       <span className="account-verify__icon" aria-hidden>
@@ -50,10 +92,43 @@ export default function EmailVerificationBanner({ athlete }) {
       </span>
       <div className="account-verify__copy">
         <p className="account-verify__title">{t('account.emailVerification.title')}</p>
-        <p className="account-verify__lead">{message}</p>
-        <p className="account-verify__email">{athlete.email}</p>
+        <p className="account-verify__lead">
+          {message}
+          {athlete.email ? <span className="account-verify__email">{athlete.email}</span> : null}
+        </p>
+        {showActions ? (
+          <form className="account-verify__otp" onSubmit={submitCode}>
+            <label className="account-verify__otp-label" htmlFor="account-verify-otp">
+              {t('account.emailVerification.otpLabel')}
+            </label>
+            <div className="account-verify__otp-row">
+              <input
+                id="account-verify-otp"
+                className="account-verify__otp-input"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                placeholder="000000"
+                value={code}
+                disabled={otpState === 'verifying'}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+              />
+              <button
+                type="submit"
+                className="account-verify__otp-submit"
+                disabled={otpState === 'verifying' || code.replace(/\D/g, '').length !== 6}
+              >
+                {otpState === 'verifying'
+                  ? t('account.emailVerification.otpVerifying')
+                  : t('account.emailVerification.otpSubmit')}
+              </button>
+            </div>
+            {otpError ? <p className="account-verify__otp-error">{otpError}</p> : null}
+          </form>
+        ) : null}
       </div>
-      {state !== 'sent' && state !== 'verified' ? (
+      {showActions ? (
         <button
           type="button"
           className="account-verify__action"

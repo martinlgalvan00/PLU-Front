@@ -95,10 +95,16 @@ Reglas:
 Todo cambio sensible debe generar `audit_log` con: acción, entidad, actor,
 timestamp. Esto incluye cambios de permisos y reasignación de roles de usuario.
 
-Las transiciones técnicas de emails, webhooks y conciliación de pagos se guardan
-en `operational_event_logs`, de forma append-only. El estado actual puede cambiar,
-pero su historia no se sobrescribe. Un intento inválido, suprimido, rechazado o
-agotado también debe quedar registrado con código de error y próximo reintento.
+Las transiciones técnicas de identidad, emails, webhooks y conciliación de pagos
+se guardan en `operational_event_logs`, de forma append-only. El estado actual
+puede cambiar, pero su historia no se sobrescribe. La bitácora de identidad
+incluye alta de cuentas, login exitoso o fallido y cierre de sesión; los intentos
+anónimos usan fingerprints y nunca guardan contraseñas, cookies ni tokens.
+
+Cada cambio del ledger de Mercado Pago —pendiente, aprobado, rechazado,
+cancelado o reembolsado— genera una entrada propia. Un error de carga del Brick,
+un intento inválido, suprimido, rechazado o agotado también debe quedar
+registrado con código de error y próximo reintento cuando corresponda.
 
 La auditoría operativa debe poder detectar, como mínimo, pagos aprobados sin
 afiliación activa y afiliaciones activas sin confirmación de entrega del email.

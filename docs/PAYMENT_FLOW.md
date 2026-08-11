@@ -87,6 +87,10 @@ recurso. Los webhooks se deduplican por proveedor + notification ID, y cada
 - Worker seguro para despliegues con múltiples instancias.
 - Panel de operación protegido para observar y reintentar.
 - Polling corto desde el Brick para dar feedback sin reemplazar al webhook.
+- Telemetría autenticada por orden para errores de render del Brick, sin enviar
+  números de tarjeta, token efímero ni cookies.
+- Historial append-only de cada estado canónico del ledger: pendiente, aprobado,
+  rechazado, cancelado y reembolsado.
 
 ## Migraciones de operación
 
@@ -104,6 +108,11 @@ transferencia—, audita todo el ciclo de cobro en `domain_audit_logs`
 (acreditación, activación, revocación, vencimiento, comprobante) y separa la
 proyección de credencial en dos: la pública sin PII ni `qr_token` y una de staff
 con documento.
+
+`20260811140000_identity_payment_audit.sql` agrega el historial canónico de los
+ledgers de entradas y atletas, y unifica altas/sesiones con la auditoría
+operativa. El endpoint `POST /api/payments/telemetry` completa la observabilidad
+de errores que ocurren antes de que Mercado Pago reciba el intento.
 
 Antes del despliegue se revisa el historial y se hace un dry run:
 

@@ -29,6 +29,7 @@ const FIXTURES = {
   email_verification: {
     name: 'Ana Gómez',
     verificationUrl: `${appUrl}/?verificar=preview-token`,
+    verificationCode: '482913',
   },
   password_reset: {
     name: 'Ana Gómez',
@@ -38,9 +39,8 @@ const FIXTURES = {
   staff_invitation: {
     name: 'Ana Gómez',
     email: 'ana.gomez@pluarg.com.ar',
-    tempPassword: 'k7Qm-2xRt9Lp',
     roleName: 'Administrador',
-    loginUrl: appUrl,
+    invitationUrl: `${appUrl}/?invitacion-staff=preview-token`,
     expiresInDays: 7,
   },
   staff_email_change: {

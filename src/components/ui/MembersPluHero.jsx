@@ -3,9 +3,11 @@ import Button from './Button.jsx'
 import CredentialCard from './CredentialCard.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
-
-const PREVIEW_CREDENTIAL_CODE = 'PREV-MEMBERS-CRED'
+import {
+  buildCredentialUrl,
+  buildRandomPreviewCredentialCode,
+  generateCredentialQr,
+} from '../../lib/credentialQr.js'
 
 function scrollToId(id) {
   const target = document.getElementById(id)
@@ -23,13 +25,14 @@ export default function MembersPluHero({
   const { t } = useI18n()
   const { MEMBERSHIP_CREDENTIAL_SAMPLE } = useContent()
   const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const [previewCode] = useState(() => buildRandomPreviewCredentialCode())
   const [credentialQrSrc, setCredentialQrSrc] = useState(null)
 
   useEffect(() => {
     let cancelled = false
-    // QR de vista previa (código PREV-*, no verificable) — mismo patrón que
-    // el showcase de home; nunca un código real de atleta.
-    generateCredentialQr(buildCredentialUrl({ code: PREVIEW_CREDENTIAL_CODE }))
+    // QR de vista previa (código PREV-*, no verificable) — aleatorio por visita
+    // para que al escanear se abra el easter egg de CredentialPage.
+    generateCredentialQr(buildCredentialUrl({ code: previewCode }))
       .then((dataUrl) => {
         if (!cancelled) setCredentialQrSrc(dataUrl)
       })
@@ -39,7 +42,7 @@ export default function MembersPluHero({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [previewCode])
 
   const quickLinks = [
     { id: 'afiliarme', label: t('pages.members.quickNavAffiliate'), onClick: () => scrollToId('planes') },
@@ -113,6 +116,7 @@ export default function MembersPluHero({
             flipAriaLabel={t('pages.members.credentialFlipAria', {
               name: MEMBERSHIP_CREDENTIAL_SAMPLE.athlete,
             })}
+            maxTilt={4.5}
           />
           <p className="members-cred__caption">{t('pages.members.credentialPreviewNote')}</p>
         </div>

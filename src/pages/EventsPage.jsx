@@ -245,6 +245,21 @@ export default function EventsPage({
   const [filter, setFilter] = useState('all')
   const [calendarFocus, setCalendarFocus] = useState(pitbull?.dateISO ?? '2026-12-01')
 
+  // El catálogo público llega de forma asíncrona. Si el deep-link apunta a
+  // un evento que todavía no estaba en el seed inicial, no hay que perder ese
+  // slug ni dejar seleccionado el fallback (antes /evento/test-2026 terminaba
+  // mostrando Pitbull). Apenas aparece el evento real, lo enfocamos.
+  useEffect(() => {
+    if (!initialEventSlug) return
+    const linkedEvent = events.find((event) => event.slug === initialEventSlug)
+    if (!linkedEvent) return
+
+    setSelectedSlug((current) => (current === linkedEvent.slug ? current : linkedEvent.slug))
+    setCalendarFocus((current) =>
+      current === linkedEvent.dateISO ? current : linkedEvent.dateISO,
+    )
+  }, [events, initialEventSlug])
+
   const filters = useMemo(
     () => [
       ['all', t('pages.events.filters.all'), t('pages.events.filters.allShort')],
@@ -301,10 +316,6 @@ export default function EventsPage({
   const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
 
   function handleRegister(event) {
-    if (!isAthleteLoggedIn) {
-      onNavigate('register')
-      return
-    }
     onSelectEvent?.(event)
   }
 

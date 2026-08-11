@@ -87,7 +87,12 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
       />
     ),
-    'account-history': <HistorySection athleteRegistrations={athleteRegistrations} />,
+    'account-history': (
+      <HistorySection
+        athleteRegistrations={athleteRegistrations}
+        onNavigateSection={setActiveTab}
+      />
+    ),
     'account-membership': (
       <MembershipPurchaseSection
         athlete={athlete}
@@ -117,6 +122,7 @@ export default function AthleteProfilePage({
           membership={membership}
           athleteRegistrations={athleteRegistrations}
           nextEvent={nextEvent}
+          onNavigateSection={setActiveTab}
         />
       </Reveal>
       <EmailVerificationBanner athlete={athlete} />
@@ -125,7 +131,11 @@ export default function AthleteProfilePage({
         onCompleteMembership={() => setActiveTab('account-membership')}
       />
       <AccountNav activeId={activeTab} onChange={setActiveTab} />
-      {tabContent[activeTab]}
+      <div className="account-sections">
+        <div key={activeTab} className="account-tab-panel">
+          {tabContent[activeTab]}
+        </div>
+      </div>
     </main>
   )
 }

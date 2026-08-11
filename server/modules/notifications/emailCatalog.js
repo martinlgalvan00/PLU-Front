@@ -20,6 +20,8 @@
  * - `entityType`    Entidad de negocio a la que se ancla el log, para auditoría.
  * - `requiredParams` Params sin los cuales el email sale incompleto. Se validan
  *                   antes de gastar una llamada a Brevo.
+ * - `sensitiveParams` Credenciales bearer que se usan sólo en memoria y se
+ *                    redactan antes de persistir el outbox.
  * - `optOutAllowed` `true` = comunicación que el destinatario puede cortar. Los
  *                   transaccionales críticos (contraseña, acceso, comprobante)
  *                   van en `false`: no se pueden desuscribir de ellos.
@@ -53,7 +55,8 @@ export const EMAIL_CATALOG = Object.freeze({
     templateEnv: 'BREVO_TEMPLATE_EMAIL_VERIFICATION',
     subject: 'Bienvenido a PLU ARG: confirma tu correo',
     entityType: 'athlete',
-    requiredParams: ['verificationUrl'],
+    requiredParams: ['verificationUrl', 'verificationCode'],
+    sensitiveParams: ['verificationUrl', 'verificationCode'],
     optOutAllowed: false,
     // Crítico: sin este mail el atleta no puede afiliarse ni inscribirse. Una
     // desuscripción vieja no puede dejarlo trabado.
@@ -65,6 +68,7 @@ export const EMAIL_CATALOG = Object.freeze({
     subject: 'Restablecé tu contraseña · PLU ARG',
     entityType: 'athlete',
     requiredParams: ['resetUrl'],
+    sensitiveParams: ['resetUrl'],
     optOutAllowed: false,
     critical: true,
   },
@@ -74,6 +78,7 @@ export const EMAIL_CATALOG = Object.freeze({
     subject: 'Tu acceso de control en puerta · PLU ARG',
     entityType: 'security_user',
     requiredParams: ['email'],
+    sensitiveParams: ['gateUrl', 'tempPassword'],
     optOutAllowed: false,
     critical: true,
   },
@@ -82,7 +87,8 @@ export const EMAIL_CATALOG = Object.freeze({
     templateEnv: 'BREVO_TEMPLATE_STAFF_INVITATION',
     subject: 'Tu acceso al panel de PLU ARG',
     entityType: 'staff_user',
-    requiredParams: ['email', 'tempPassword'],
+    requiredParams: ['email', 'invitationUrl'],
+    sensitiveParams: ['invitationUrl'],
     optOutAllowed: false,
     // Crítico: es la única vía por la que la cuenta recién creada recibe su
     // credencial. Una desuscripción vieja no puede dejar a un admin afuera.
@@ -94,6 +100,7 @@ export const EMAIL_CATALOG = Object.freeze({
     subject: 'Confirmá tu nuevo email · PLU ARG',
     entityType: 'staff_user',
     requiredParams: ['verificationUrl', 'newEmail'],
+    sensitiveParams: ['verificationUrl'],
     optOutAllowed: false,
     critical: true,
   },
@@ -249,6 +256,7 @@ export const EMAIL_CATALOG = Object.freeze({
     subject: 'Tu exportación está lista · PLU ARG',
     entityType: 'export_job',
     requiredParams: ['downloadUrl'],
+    sensitiveParams: ['downloadUrl'],
     optOutAllowed: false,
     critical: false,
   },

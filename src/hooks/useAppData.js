@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
+  acceptStaffInvitationRequest,
   createAccessRoleRequest,
   createSecurityAccessLinkRequest,
   createSecurityUserRequest,
@@ -159,10 +160,14 @@ export function useAppData() {
   // la pantalla de login nunca pasan por el backend real (ver
   // demoAthleteSeed.js); una sesión real los reemplaza por datos remotos
   // en el efecto de refreshAthleteData de más abajo.
-  const [athletes, setAthletes] = useState(demoAthletes)
-  const [memberships, setMemberships] = useState(demoMemberships)
-  const [registrations, setRegistrations] = useState(demoRegistrations)
-  const [payments, setPayments] = useState(demoPayments)
+  const [athletes, setAthletes] = useState(() => (env.demoMode ? demoAthletes : []))
+  const [memberships, setMemberships] = useState(() => (env.demoMode ? demoMemberships : []))
+  const [registrations, setRegistrations] = useState(() =>
+    env.demoMode ? demoRegistrations : [],
+  )
+  const [payments, setPayments] = useState(() => (env.demoMode ? demoPayments : []))
+  const [athleteDataLoading, setAthleteDataLoading] = useState(false)
+  const [athleteDataError, setAthleteDataError] = useState(null)
   // Las entradas viven en Postgres, no en localStorage â€” este estado es
   // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
   const [tickets, setTickets] = useState([])
@@ -295,6 +300,8 @@ export function useAppData() {
     ])
 
     if (canReadAthleteData) {
+      setAthleteDataLoading(true)
+      setAthleteDataError(null)
       tasks.push(
         fetchAdminAthleteData()
           .then((data) => {
@@ -303,9 +310,17 @@ export function useAppData() {
             setRegistrations(data.registrations)
             setPayments(data.payments)
           })
-          .catch((error) => console.error('refreshAthleteData:', error)),
+          .catch((error) => {
+            setAthleteDataError(
+              error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
+            )
+            console.error('refreshAthleteData:', error)
+          })
+          .finally(() => setAthleteDataLoading(false)),
       )
     } else {
+      setAthleteDataLoading(false)
+      setAthleteDataError(null)
       setAthletes([])
       setMemberships([])
       setRegistrations([])
@@ -1028,24 +1043,29 @@ export function useAppData() {
     [session, users],
   )
 
-  // Alta real de staff (admin/operador/viewer): pega al backend, que crea la
-  // cuenta con una contraseña temporal y se la manda por mail. Devuelve
-  // también `tempPassword` y `emailed` -- la clave viaja una sola vez, para
-  // mostrarla en pantalla cuando el envío no salió. seguridad_plu_arg no pasa
-  // por acá (tiene su propio flujo por evento en UsersSection/AdminEventEditor).
+  // Alta real de staff (admin/operador/viewer): el backend crea la cuenta
+  // invitada y manda un enlace firmado para elegir contraseña.
   const createUserAction = useCallback(async (draft) => {
-    const { user, tempPassword, emailed } = await createStaffUserRequest(draft)
+    const { user, emailed } = await createStaffUserRequest(draft)
     setUsers((current) => [user, ...current.filter((item) => item.id !== user.id)])
-    return { user, tempPassword, emailed }
+    return { user, emailed }
   }, [])
 
-  // Reenvío de invitación / reseteo: misma credencial de un solo uso, y el
-  // titular vuelve a quedar obligado a elegir una propia.
+  // Reenvío de invitación / reseteo: rota el enlace anterior y corta sesiones.
   const resetStaffPasswordAction = useCallback(async (userId, sendEmail = true) => {
-    const { user, tempPassword, emailed } = await resetStaffPasswordRequest(userId, sendEmail)
+    const { user, emailed } = await resetStaffPasswordRequest(userId, sendEmail)
     setUsers((current) => current.map((item) => (item.id === user.id ? user : item)))
-    return { user, tempPassword, emailed }
+    return { user, emailed }
   }, [])
+
+  const acceptStaffInvitationAction = useCallback(
+    async (payload) => {
+      const { user } = await acceptStaffInvitationRequest(payload)
+      setSession(user)
+      return user
+    },
+    [setSession],
+  )
 
   // Mi cuenta. El backend rota la cookie de sesión, así que se refresca la
   // sesión local con el usuario ya sin `mustChangePassword`.
@@ -1849,6 +1869,9 @@ export function useAppData() {
     memberships,
     registrations,
     payments,
+    athleteDataLoading,
+    athleteDataError,
+    refreshAthleteData,
     tickets,
     pendingTicketOrders,
     pendingTicketOrdersLoading,
@@ -1907,6 +1930,7 @@ export function useAppData() {
     updateUserRoleAction,
     updateUserStatusAction,
     createUserAction,
+    acceptStaffInvitationAction,
     changeOwnPasswordAction,
     requestEmailChangeAction,
     resetStaffPasswordAction,

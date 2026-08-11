@@ -82,6 +82,12 @@ export default function PricingSection({
   )
   const selectedEvent = events.find((event) => event.slug === selectedEventSlug) ?? events[0] ?? null
   const selectedPlan = oneTimePlans.find((plan) => plan.id === comboDraft.membershipPlanId) ?? null
+  const separatePrice =
+    Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
+  const comboPriceValue = Number(comboDraft.price)
+  const comboSavings =
+    Number.isInteger(comboPriceValue) && comboPriceValue > 0 ? separatePrice - comboPriceValue : null
+  const comboOverLimit = comboSavings != null && comboSavings < 0
 
   useEffect(() => {
     if (!selectedEventSlug && events[0]) setSelectedEventSlug(events[0].slug)
@@ -184,17 +190,17 @@ export default function PricingSection({
   return (
     <section className="admin-pricing" aria-labelledby="admin-pricing-title">
       <header className="admin-pricing__hero">
-        <div>
+        <div className="admin-pricing__hero-copy">
           <p className="admin-pricing__eyebrow">
             <BadgeDollarSign size={14} aria-hidden />
             {t('admin.sections.pricing.eyebrow')}
           </p>
           <h1 id="admin-pricing-title">{t('admin.sections.pricing.title')}</h1>
-          <p>{t('admin.sections.pricing.subtitle')}</p>
+          <p className="admin-pricing__subtitle">{t('admin.sections.pricing.subtitle')}</p>
         </div>
         <button
           type="button"
-          className="admin-pricing__refresh"
+          className="admin-pricing__btn admin-pricing__btn--ghost"
           onClick={() => onRefresh?.()}
           disabled={isLoading}
         >
@@ -219,7 +225,9 @@ export default function PricingSection({
         </div>
       ) : null}
       {notice ? <div className="admin-pricing__message" role="status">{notice}</div> : null}
-      {isLoading && plans.length === 0 ? <p>{t('admin.sections.pricing.loading')}</p> : null}
+      {isLoading && plans.length === 0 ? (
+        <p className="admin-pricing__loading">{t('admin.sections.pricing.loading')}</p>
+      ) : null}
 
       <section className="admin-pricing__block" aria-labelledby="pricing-plans-title">
         <header className="admin-pricing__block-head">
@@ -227,40 +235,64 @@ export default function PricingSection({
             <h2 id="pricing-plans-title">{t('admin.sections.pricing.plansTitle')}</h2>
             <p>{t('admin.sections.pricing.plansLead')}</p>
           </div>
-          <button type="button" onClick={() => openPlanForm()} disabled={locked}>
+          <button
+            type="button"
+            className="admin-pricing__btn admin-pricing__btn--primary"
+            onClick={() => openPlanForm()}
+            disabled={locked}
+          >
             <CirclePlus size={15} aria-hidden />
             {t('admin.sections.pricing.newPlan')}
           </button>
         </header>
 
-        <div className="admin-pricing__plan-list">
+        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.plansTitle')}>
           {plans.map((plan) => {
             const status = planStatus(plan, now)
+            const effectiveLabel = plan.effectiveFrom
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(plan.effectiveFrom))
+              : '—'
+
             return (
-              <article className="admin-pricing__plan-row" key={plan.id}>
-                <div className="admin-pricing__plan-identity">
-                  <span className={`admin-pricing__status admin-pricing__status--${status}`}>
-                    {t(`admin.sections.pricing.${status}`)}
-                  </span>
-                  <h3>{plan.name}</h3>
-                  <p>{plan.familyCode} · {t('admin.sections.pricing.currentVersion', { version: plan.version })}</p>
+              <article
+                className={`admin-pricing__plan-row admin-pricing__plan-row--${status}`}
+                key={plan.id}
+              >
+                <div className="admin-pricing__plan-main">
+                  <div className="admin-pricing__plan-title-row">
+                    <span className={`admin-pricing__status admin-pricing__status--${status}`}>
+                      {t(`admin.sections.pricing.${status}`)}
+                    </span>
+                    <h3>{plan.name}</h3>
+                  </div>
+                  <p className="admin-pricing__plan-meta">
+                    <span><code>{plan.familyCode}</code></span>
+                    <span>{t('admin.sections.pricing.currentVersion', { version: plan.version })}</span>
+                    <span>{t(`admin.sections.pricing.${plan.billingFrequency}`)}</span>
+                    <span>
+                      {t(`admin.sections.pricing.${plan.collectionMode === 'recurring' ? 'recurring' : 'oneTime'}`)}
+                    </span>
+                    <span className="admin-pricing__plan-meta-date">
+                      <CalendarClock size={12} aria-hidden />
+                      {effectiveLabel}
+                    </span>
+                  </p>
                 </div>
-                <div className="admin-pricing__plan-price">
-                  <strong>{money(plan.price, locale)}</strong>
-                  <span>
-                    {t(`admin.sections.pricing.${plan.billingFrequency}`)} · {t(`admin.sections.pricing.${plan.collectionMode === 'recurring' ? 'recurring' : 'oneTime'}`)}
-                  </span>
-                </div>
-                <div className="admin-pricing__plan-date">
-                  <CalendarClock size={14} aria-hidden />
-                  <span>{plan.effectiveFrom ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(plan.effectiveFrom)) : '—'}</span>
-                </div>
+
+                <strong className="admin-pricing__plan-amount">{money(plan.price, locale)}</strong>
+
                 <div className="admin-pricing__plan-actions">
-                  <button type="button" onClick={() => openPlanForm(plan)} disabled={locked}>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => openPlanForm(plan)}
+                    disabled={locked}
+                  >
                     {t('admin.sections.pricing.newVersion')}
                   </button>
                   <button
                     type="button"
+                    className={`admin-pricing__btn admin-pricing__btn--quiet${plan.active ? ' is-danger' : ''}`}
                     onClick={() => togglePlan(plan)}
                     disabled={locked || pendingAction === plan.id}
                   >
@@ -270,15 +302,19 @@ export default function PricingSection({
               </article>
             )
           })}
-          {!isLoading && plans.length === 0 ? <p>{t('admin.sections.pricing.plansEmpty')}</p> : null}
+          {!isLoading && plans.length === 0 ? (
+            <p className="admin-pricing__empty">{t('admin.sections.pricing.plansEmpty')}</p>
+          ) : null}
         </div>
 
         {planDraft ? (
           <form className="admin-pricing__form" onSubmit={submitPlan} noValidate>
             <header>
-              <h3>{planDraft.sourcePlanId
-                ? t('admin.sections.pricing.formTitleVersion', { name: planDraft.name })
-                : t('admin.sections.pricing.formTitleNew')}</h3>
+              <h3>
+                {planDraft.sourcePlanId
+                  ? t('admin.sections.pricing.formTitleVersion', { name: planDraft.name })
+                  : t('admin.sections.pricing.formTitleNew')}
+              </h3>
             </header>
             <fieldset disabled={locked || pendingAction === 'plan'}>
               <label>
@@ -294,15 +330,32 @@ export default function PricingSection({
               </label>
               <label>
                 <span>{t('admin.sections.pricing.name')}</span>
-                <input name="name" value={planDraft.name} onChange={(event) => setPlanDraft({ ...planDraft, name: event.target.value })} required />
+                <input
+                  name="name"
+                  value={planDraft.name}
+                  onChange={(event) => setPlanDraft({ ...planDraft, name: event.target.value })}
+                  required
+                />
               </label>
               <label className="admin-pricing__wide">
                 <span>{t('admin.sections.pricing.description')}</span>
-                <textarea value={planDraft.description} onChange={(event) => setPlanDraft({ ...planDraft, description: event.target.value })} rows={3} />
+                <textarea
+                  value={planDraft.description}
+                  onChange={(event) => setPlanDraft({ ...planDraft, description: event.target.value })}
+                  rows={3}
+                />
               </label>
               <label>
                 <span>{t('admin.sections.pricing.price')}</span>
-                <input type="number" min="1" max="10000000" step="1" value={planDraft.price} onChange={(event) => setPlanDraft({ ...planDraft, price: event.target.value })} required />
+                <input
+                  type="number"
+                  min="1"
+                  max="10000000"
+                  step="1"
+                  value={planDraft.price}
+                  onChange={(event) => setPlanDraft({ ...planDraft, price: event.target.value })}
+                  required
+                />
               </label>
               <label>
                 <span>{t('admin.sections.pricing.currency')}</span>
@@ -310,35 +363,69 @@ export default function PricingSection({
               </label>
               <label>
                 <span>{t('admin.sections.pricing.billingFrequency')}</span>
-                <select value={planDraft.billingFrequency} onChange={(event) => setPlanDraft({ ...planDraft, billingFrequency: event.target.value })}>
+                <select
+                  value={planDraft.billingFrequency}
+                  onChange={(event) => setPlanDraft({ ...planDraft, billingFrequency: event.target.value })}
+                >
                   <option value="annual">{t('admin.sections.pricing.annual')}</option>
                   <option value="monthly">{t('admin.sections.pricing.monthly')}</option>
                 </select>
               </label>
               <label>
                 <span>{t('admin.sections.pricing.collectionMode')}</span>
-                <select value={planDraft.collectionMode} onChange={(event) => setPlanDraft({ ...planDraft, collectionMode: event.target.value })}>
+                <select
+                  value={planDraft.collectionMode}
+                  onChange={(event) => setPlanDraft({ ...planDraft, collectionMode: event.target.value })}
+                >
                   <option value="one_time">{t('admin.sections.pricing.oneTime')}</option>
                   <option value="recurring">{t('admin.sections.pricing.recurring')}</option>
                 </select>
               </label>
               <label>
                 <span>{t('admin.sections.pricing.intervalCount')}</span>
-                <input type="number" min="1" max="24" step="1" value={planDraft.intervalCount} onChange={(event) => setPlanDraft({ ...planDraft, intervalCount: event.target.value })} />
+                <input
+                  type="number"
+                  min="1"
+                  max="24"
+                  step="1"
+                  value={planDraft.intervalCount}
+                  onChange={(event) => setPlanDraft({ ...planDraft, intervalCount: event.target.value })}
+                />
               </label>
               <label>
                 <span>{t('admin.sections.pricing.graceDays')}</span>
-                <input type="number" min="0" max="90" step="1" value={planDraft.graceDays} onChange={(event) => setPlanDraft({ ...planDraft, graceDays: event.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  max="90"
+                  step="1"
+                  value={planDraft.graceDays}
+                  onChange={(event) => setPlanDraft({ ...planDraft, graceDays: event.target.value })}
+                />
               </label>
               <label>
                 <span>{t('admin.sections.pricing.effectiveFrom')}</span>
-                <input type="datetime-local" value={planDraft.effectiveFrom} onChange={(event) => setPlanDraft({ ...planDraft, effectiveFrom: event.target.value })} />
+                <input
+                  type="datetime-local"
+                  value={planDraft.effectiveFrom}
+                  onChange={(event) => setPlanDraft({ ...planDraft, effectiveFrom: event.target.value })}
+                />
               </label>
             </fieldset>
             {planError ? <p className="admin-pricing__form-error" role="alert">{planError}</p> : null}
             <div className="admin-pricing__form-actions">
-              <button type="button" onClick={() => setPlanDraft(null)}>{t('admin.sections.pricing.cancel')}</button>
-              <button type="submit" disabled={locked || pendingAction === 'plan'}>
+              <button
+                type="button"
+                className="admin-pricing__btn admin-pricing__btn--ghost"
+                onClick={() => setPlanDraft(null)}
+              >
+                {t('admin.sections.pricing.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="admin-pricing__btn admin-pricing__btn--primary"
+                disabled={locked || pendingAction === 'plan'}
+              >
                 <Save size={15} aria-hidden />
                 {pendingAction === 'plan' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.publish')}
               </button>
@@ -347,53 +434,156 @@ export default function PricingSection({
         ) : null}
       </section>
 
-      <section className="admin-pricing__block" aria-labelledby="pricing-combo-title">
+      <section className="admin-pricing__block admin-pricing__block--combo" aria-labelledby="pricing-combo-title">
         <header className="admin-pricing__block-head">
           <div>
             <h2 id="pricing-combo-title">{t('admin.sections.pricing.comboTitle')}</h2>
             <p>{t('admin.sections.pricing.comboLead')}</p>
           </div>
+          {selectedEvent ? (
+            <span
+              className={`admin-pricing__offer-pill${comboDraft.active ? ' is-on' : ''}`.trim()}
+            >
+              {comboDraft.active
+                ? t('admin.sections.pricing.comboOfferOn')
+                : t('admin.sections.pricing.comboOfferOff')}
+            </span>
+          ) : null}
         </header>
-        {events.length === 0 ? <p>{t('admin.sections.pricing.noEvents')}</p> : (
+
+        {events.length === 0 ? (
+          <p className="admin-pricing__empty">{t('admin.sections.pricing.noEvents')}</p>
+        ) : (
           <form className="admin-pricing__form admin-pricing__form--combo" onSubmit={submitCombo} noValidate>
-            <fieldset disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}>
-              <label>
+            <div className="admin-pricing__combo-toolbar">
+              <label className="admin-pricing__combo-event">
                 <span>{t('admin.sections.pricing.event')}</span>
-                <select value={selectedEvent?.slug ?? ''} onChange={(event) => setSelectedEventSlug(event.target.value)}>
-                  {events.map((item) => <option key={item.id} value={item.slug}>{item.title}</option>)}
+                <select
+                  value={selectedEvent?.slug ?? ''}
+                  onChange={(event) => setSelectedEventSlug(event.target.value)}
+                  disabled={locked || pendingAction === 'combo'}
+                >
+                  {events.map((item) => (
+                    <option key={item.id} value={item.slug}>
+                      {item.title}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label>
+              <label className="admin-pricing__combo-plan">
                 <span>{t('admin.sections.pricing.membershipPlan')}</span>
-                <select value={comboDraft.membershipPlanId} onChange={(event) => setComboDraft({ ...comboDraft, membershipPlanId: event.target.value })} required>
-                  {oneTimePlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {money(plan.price, locale)}</option>)}
+                <select
+                  value={comboDraft.membershipPlanId}
+                  onChange={(event) => setComboDraft({ ...comboDraft, membershipPlanId: event.target.value })}
+                  disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+                  required
+                >
+                  {oneTimePlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} · {money(plan.price, locale)}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label>
-                <span>{t('admin.sections.pricing.registrationPrice')}</span>
-                <input value={money(selectedEvent?.registrationPrice ?? 0, locale)} disabled />
-              </label>
-              <label>
-                <span>{t('admin.sections.pricing.comboPrice')}</span>
-                <input type="number" min="1" max="10000000" step="1" value={comboDraft.price} onChange={(event) => setComboDraft({ ...comboDraft, price: event.target.value })} required />
-              </label>
+            </div>
+
+            {selectedPlan && selectedEvent ? (
+              <div
+                className={`admin-pricing__combo-board${comboOverLimit ? ' is-invalid' : ''}`.trim()}
+                aria-live="polite"
+              >
+                <div className="admin-pricing__combo-stack">
+                  <div className="admin-pricing__combo-line">
+                    <span>{t('admin.sections.pricing.membershipPlan')}</span>
+                    <strong>{money(selectedPlan.price, locale)}</strong>
+                  </div>
+                  <div className="admin-pricing__combo-op" aria-hidden>
+                    {t('admin.sections.pricing.comboPlus')}
+                  </div>
+                  <div className="admin-pricing__combo-line">
+                    <span>{t('admin.sections.pricing.registrationPrice')}</span>
+                    <strong>{money(selectedEvent.registrationPrice ?? 0, locale)}</strong>
+                  </div>
+                  <div className="admin-pricing__combo-op" aria-hidden>
+                    {t('admin.sections.pricing.comboEquals')}
+                  </div>
+                  <div className="admin-pricing__combo-line admin-pricing__combo-line--total">
+                    <span>{t('admin.sections.pricing.separateTotal')}</span>
+                    <strong>{money(separatePrice, locale)}</strong>
+                  </div>
+                </div>
+
+                <div className="admin-pricing__combo-decision">
+                  <label>
+                    <span>{t('admin.sections.pricing.comboPrice')}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10000000"
+                      step="1"
+                      value={comboDraft.price}
+                      onChange={(event) => setComboDraft({ ...comboDraft, price: event.target.value })}
+                      disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+                      required
+                    />
+                  </label>
+                  <p className="admin-pricing__combo-max">
+                    {t('admin.sections.pricing.comboMax', { amount: money(separatePrice, locale) })}
+                  </p>
+                  {comboSavings != null ? (
+                    <p className={`admin-pricing__combo-delta${comboOverLimit ? ' is-invalid' : ''}`.trim()}>
+                      {comboOverLimit
+                        ? t('admin.sections.pricing.comboOverLimit')
+                        : t('admin.sections.pricing.comboSavings')}
+                      {': '}
+                      <strong>{money(Math.abs(comboSavings), locale)}</strong>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            <fieldset
+              className="admin-pricing__combo-window"
+              disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+            >
               <label>
                 <span>{t('admin.sections.pricing.comboStarts')}</span>
-                <input type="datetime-local" value={comboDraft.startsAt} onChange={(event) => setComboDraft({ ...comboDraft, startsAt: event.target.value })} />
+                <input
+                  type="datetime-local"
+                  value={comboDraft.startsAt}
+                  onChange={(event) => setComboDraft({ ...comboDraft, startsAt: event.target.value })}
+                />
               </label>
               <label>
                 <span>{t('admin.sections.pricing.comboEnds')}</span>
-                <input type="datetime-local" value={comboDraft.endsAt} onChange={(event) => setComboDraft({ ...comboDraft, endsAt: event.target.value })} />
+                <input
+                  type="datetime-local"
+                  value={comboDraft.endsAt}
+                  onChange={(event) => setComboDraft({ ...comboDraft, endsAt: event.target.value })}
+                />
               </label>
-              <label className="admin-pricing__toggle admin-pricing__wide">
-                <input type="checkbox" checked={comboDraft.active} onChange={(event) => setComboDraft({ ...comboDraft, active: event.target.checked })} />
+              <label className="admin-pricing__toggle">
+                <input
+                  type="checkbox"
+                  checked={comboDraft.active}
+                  onChange={(event) => setComboDraft({ ...comboDraft, active: event.target.checked })}
+                />
                 <span>{t('admin.sections.pricing.comboActive')}</span>
               </label>
             </fieldset>
-            {oneTimePlans.length === 0 ? <p className="admin-pricing__form-error">{t('admin.sections.pricing.noOneTimePlans')}</p> : null}
+
+            {oneTimePlans.length === 0 ? (
+              <p className="admin-pricing__form-error">{t('admin.sections.pricing.noOneTimePlans')}</p>
+            ) : null}
             {comboError ? <p className="admin-pricing__form-error" role="alert">{comboError}</p> : null}
+
             <div className="admin-pricing__form-actions">
-              <button type="submit" disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}>
+              <button
+                type="submit"
+                className="admin-pricing__btn admin-pricing__btn--primary"
+                disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0 || comboOverLimit}
+              >
                 <Save size={15} aria-hidden />
                 {pendingAction === 'combo' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.saveCombo')}
               </button>

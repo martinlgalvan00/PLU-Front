@@ -31,15 +31,29 @@ const rosterItem = {
   },
 }
 
+function RosterAvatar({ member }) {
+  if (member.photoUrl) {
+    return (
+      <span className="community-spotlight__avatar community-spotlight__avatar--photo" aria-hidden>
+        <img src={member.photoUrl} alt="" />
+      </span>
+    )
+  }
+
+  return (
+    <span className="community-spotlight__avatar" aria-hidden>
+      {memberInitials(member.name)}
+    </span>
+  )
+}
+
 function RosterList({ members, recentLabel, locale, reducedMotion, listVariants }) {
   if (reducedMotion) {
     return (
       <ul className="community-spotlight__list" aria-label={recentLabel}>
         {members.map((member, index) => (
           <li key={member.id} className="community-spotlight__row">
-            <span className="community-spotlight__avatar" aria-hidden>
-              {memberInitials(member.name)}
-            </span>
+            <RosterAvatar member={member} />
             <span className="community-spotlight__index" aria-hidden>
               {String(index + 1).padStart(2, '0')}
             </span>
@@ -81,9 +95,7 @@ function RosterList({ members, recentLabel, locale, reducedMotion, listVariants 
           className="community-spotlight__row"
           variants={rosterItem}
         >
-          <span className="community-spotlight__avatar" aria-hidden>
-            {memberInitials(member.name)}
-          </span>
+          <RosterAvatar member={member} />
           <span className="community-spotlight__index" aria-hidden>
             {String(index + 1).padStart(2, '0')}
           </span>

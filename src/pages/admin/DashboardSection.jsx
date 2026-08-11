@@ -388,6 +388,56 @@ function RecentMembershipsCard({
   )
 }
 
+function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAthlete, t }) {
+  if (!registrations?.items?.length) return null
+
+  return (
+    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentRegistrationsTitle')}>
+      <header className="admin-ops__chart-head">
+        <div>
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.recentRegistrationsEyebrow')}</p>
+          <h3>{t('admin.dashboard.recentRegistrationsTitle')}</h3>
+          <p>{t('admin.dashboard.recentRegistrationsSubtitle')}</p>
+        </div>
+        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+          {t('admin.actions.view')}
+          <ArrowRight size={12} aria-hidden />
+        </button>
+      </header>
+
+      <ul className="admin-ops__recent-list">
+        {registrations.items.map((registration) => (
+          <li key={registration.id} className="admin-ops__recent-item">
+            <button
+              type="button"
+              className="admin-ops__recent-open"
+              onClick={() => onSelectAthlete?.(registration.athleteId)}
+            >
+              <span className="admin-ops__recent-avatar" aria-hidden>
+                {initials(registration.fullName)}
+              </span>
+              <span className="admin-ops__recent-body">
+                <strong>{registration.fullName}</strong>
+                <span>
+                  {[registration.event, registration.category, registration.division]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+              <span className="admin-ops__recent-date">
+                <StatusBadge value={registration.status} />
+                <time dateTime={registration.createdAt.slice(0, 10)}>
+                  {formatDayMonth(registration.createdAt.slice(0, 10), locale)}
+                </time>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function LeaderboardCard({
   eyebrow,
   title,
@@ -454,6 +504,7 @@ export default function DashboardSection({
     primary,
     recentAthletes,
     recentMemberships,
+    recentRegistrations,
     spotlightEvent,
     topGyms,
   } = dashboardOverview
@@ -721,24 +772,38 @@ export default function DashboardSection({
             ) : null}
           </div>
 
-          <RecentAthletesCard
-            athletes={recentAthletes}
-            locale={locale}
-            onNavigate={onNavigate}
-            onSelectAthlete={onSelectAthlete}
-            t={t}
-          />
+          {recentAthletes?.items?.length ||
+          recentMemberships?.items?.length ||
+          recentRegistrations?.items?.length ? (
+            <div className="admin-ops__recents">
+              <RecentAthletesCard
+                athletes={recentAthletes}
+                locale={locale}
+                onNavigate={onNavigate}
+                onSelectAthlete={onSelectAthlete}
+                t={t}
+              />
 
-          <RecentMembershipsCard
-            memberships={recentMemberships}
-            locale={locale}
-            onNavigate={onNavigate}
-            onSelectAthlete={onSelectAthlete}
-            canDeleteAthlete={canDeleteAthletes}
-            onDeleteAthlete={onDeleteAthlete}
-            getAthleteDetail={getAthleteDetail}
-            t={t}
-          />
+              <RecentMembershipsCard
+                memberships={recentMemberships}
+                locale={locale}
+                onNavigate={onNavigate}
+                onSelectAthlete={onSelectAthlete}
+                canDeleteAthlete={canDeleteAthletes}
+                onDeleteAthlete={onDeleteAthlete}
+                getAthleteDetail={getAthleteDetail}
+                t={t}
+              />
+
+              <RecentRegistrationsCard
+                registrations={recentRegistrations}
+                locale={locale}
+                onNavigate={onNavigate}
+                onSelectAthlete={onSelectAthlete}
+                t={t}
+              />
+            </div>
+          ) : null}
 
           <div className="admin-ops__stats-row">
             <LeaderboardCard

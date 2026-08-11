@@ -16,6 +16,7 @@
 @import './components/cards.css';
 @import './components/forms.css';
 @import './components/status.css';
+@import './components/ticket-availability.css';
 @import './components/plu-ui.css';
 @import './components/plu-motif.css';
 @import './components/plu-page-hero.css';

@@ -66,6 +66,12 @@ function createAthleteRepoDouble() {
   const calls = []
   return {
     calls,
+    adminData: async () => ({
+      athletes: [{ id: ATHLETE_ID, full_name: 'Atleta visible' }],
+      memberships: [],
+      registrations: [],
+      paymentOrders: [{ id: 'pay-sensitive', amount: 45000 }],
+    }),
     deleteAthlete: async (athleteId, actor) => {
       calls.push({ athleteId, actor })
       if (athleteId === MISSING_ATHLETE_ID) {
@@ -196,6 +202,31 @@ describe('borrado de atletas (DELETE /api/athletes/admin/:athleteId)', () => {
 
       expect(response.status).toBe(401)
       expect(athleteRepository.calls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('lectura segmentada del padrón (GET /api/athletes/admin)', () => {
+  it('no expone órdenes si el rol puede ver el dashboard pero no pagos', async () => {
+    const user = await buildAdmin('operador_plu_arg')
+    user.accessRole = { key: 'plu_arg', name: 'PLU' }
+    const prisma = createPrismaDouble([user])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin`, {
+        headers: authHeaders(cookie),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.athletes).toHaveLength(1)
+      expect(body.paymentOrders).toEqual([])
+      expect(body).not.toHaveProperty('payments')
     } finally {
       await target.close()
     }

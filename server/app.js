@@ -23,6 +23,15 @@ import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 
 export function createApp(deps = {}) {
   const app = express()
+  // Los tests unitarios montan la app con dobles parciales. Nunca deben caer
+  // por omisión al cliente admin configurado en el .env local, porque un login
+  // de fixture terminaría creando usuarios o auditoría en Supabase real.
+  const resolveSupabaseAdmin = () => {
+    if (Object.prototype.hasOwnProperty.call(deps, 'supabaseAdmin')) {
+      return deps.supabaseAdmin
+    }
+    return process.env.NODE_ENV === 'test' ? null : getSupabaseAdmin()
+  }
 
   app.disable('x-powered-by')
   // Detras del proxy de Vercel, req.ip es la IP interna del edge salvo que se
@@ -48,7 +57,7 @@ export function createApp(deps = {}) {
   app.use(requireTrustedMutation)
   const healthRoutes = () => createHealthRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
   })
   app.use(healthRoutes())
   app.use('/api', healthRoutes())
@@ -56,7 +65,7 @@ export function createApp(deps = {}) {
     '/api/internal',
     createInternalJobRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
-      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
       env: deps.env ?? process.env,
       runners: deps.jobRunners,
     }),
@@ -65,7 +74,7 @@ export function createApp(deps = {}) {
     '/api/auth',
     createAuthRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
-      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
       auth0JwtCheck: deps.auth0JwtCheck ?? createOptionalAuth0JwtCheck(),
       brevo: deps.brevo,
       notificationRepository: deps.notificationRepository,
@@ -76,7 +85,7 @@ export function createApp(deps = {}) {
     '/api/users',
     createUserRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
-      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
       brevo: deps.brevo,
       notificationRepository: deps.notificationRepository,
       env: deps.env,
@@ -91,7 +100,7 @@ export function createApp(deps = {}) {
   app.use(
     '/api/payments',
     createPaymentRoutes({
-      supabaseAdmin: deps.supabaseAdmin,
+      supabaseAdmin: resolveSupabaseAdmin(),
       repository: deps.paymentRepository,
       mercadoPago: deps.mercadoPago,
       notificationRepository: deps.notificationRepository,
@@ -105,7 +114,7 @@ export function createApp(deps = {}) {
     '/api/emails',
     createEmailRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
-      supabaseAdmin: deps.supabaseAdmin,
+      supabaseAdmin: resolveSupabaseAdmin(),
       repository: deps.notificationRepository,
       brevo: deps.brevo,
       env: deps.env,
@@ -115,7 +124,7 @@ export function createApp(deps = {}) {
     '/api/athletes',
     createAthleteRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
-      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
       repository: deps.athleteRepository,
       env: deps.env,
       brevo: deps.brevo,
@@ -123,28 +132,28 @@ export function createApp(deps = {}) {
   )
   app.use('/api/tickets', createTicketRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
     repository: deps.ticketRepository,
     athleteRepository: deps.athleteRepository,
   }))
   app.use('/api/audit', createAuditRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
     repository: deps.auditRepository,
   }))
   app.use('/api/events', createEventRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
   }))
   app.use('/api/pricing', createPricingRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
     env: deps.env ?? process.env,
   }))
   app.use(
     '/api/community',
     createCommunityRoutes({
-      getSupabaseAdmin: () => deps.supabaseAdmin ?? getSupabaseAdmin(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
       communityRepository: deps.communityRepository,
     }),
   )

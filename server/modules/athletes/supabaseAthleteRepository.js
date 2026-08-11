@@ -191,6 +191,29 @@ export function createSupabaseAthleteRepository(
 
     verifyEmail: (athleteId) =>
       rpc('verify_athlete_email', { p_athlete_id: athleteId }, 'No se pudo verificar el correo.'),
+
+    storeEmailOtp: (athleteId, codeHash, expiresAt) =>
+      rpc(
+        'store_athlete_email_otp',
+        {
+          p_athlete_id: athleteId,
+          p_code_hash: codeHash,
+          p_expires_at: expiresAt instanceof Date ? expiresAt.toISOString() : expiresAt,
+        },
+        'No se pudo guardar el código de verificación.',
+      ),
+
+    verifyEmailWithOtp: (athleteId, codeHash, maxAttempts = 8) =>
+      rpc(
+        'verify_athlete_email_with_otp',
+        {
+          p_athlete_id: athleteId,
+          p_code_hash: codeHash,
+          p_max_attempts: maxAttempts,
+        },
+        'No se pudo verificar el código.',
+      ),
+
     async findEventSummary(eventId) {
       return assertSupabaseResult(
         await client.from('events').select('id, title, slug, starts_at, venue').eq('id', eventId).maybeSingle(),

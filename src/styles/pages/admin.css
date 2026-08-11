@@ -6874,6 +6874,211 @@
   }
 }
 
+/* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
+.payment-validation-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1300;
+}
+
+.payment-validation-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.payment-validation-dialog__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: min(92vh, 880px);
+  max-width: 640px;
+  overflow: auto;
+  padding: clamp(20px, 3.5vw, 28px);
+  position: relative;
+  width: min(100%, 640px);
+}
+
+.payment-validation-dialog__head {
+  display: grid;
+  gap: 6px;
+}
+
+.payment-validation-dialog__eyebrow {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.payment-validation-dialog__head h2 {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.payment-validation-dialog__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.payment-validation-dialog__meta {
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin: 0;
+}
+
+.payment-validation-dialog__meta > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.payment-validation-dialog__meta dt {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.payment-validation-dialog__meta dd {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-validation-dialog__amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-validation-dialog__proof {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: 12px;
+  min-height: 120px;
+  padding: 12px;
+}
+
+.payment-validation-dialog__empty,
+.payment-validation-dialog__loading {
+  align-items: flex-start;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: flex;
+  gap: 10px;
+}
+
+.payment-validation-dialog__empty strong,
+.payment-validation-dialog__loading span {
+  color: var(--admin-ink, var(--color-text-primary));
+  display: block;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.payment-validation-dialog__empty p {
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.payment-validation-dialog__preview {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-validation-dialog__image {
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius-sm);
+  display: block;
+  max-height: 360px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.payment-validation-dialog__frame {
+  background: var(--color-bg-primary);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  height: min(52vh, 380px);
+  width: 100%;
+}
+
+.payment-validation-dialog__preview-fallback {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.payment-validation-dialog__open {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 650;
+  gap: 6px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.payment-validation-dialog__open:hover {
+  text-decoration: underline;
+}
+
+.payment-validation-dialog__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.payment-validation-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.payment-validation-dialog__actions .btn {
+  min-height: 40px;
+}
+
+.payment-validation-dialog .is-spinning {
+  animation: spin 0.9s linear infinite;
+}
+
+@media (max-width: 540px) {
+  .payment-validation-dialog__actions {
+    display: grid;
+  }
+
+  .payment-validation-dialog__actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 /* Mi cuenta — mismo material y tokens que el diálogo de eliminación, con el
    icono en celeste (navegación/identidad) en vez del rojo de peligro. */
 .admin-account-dialog {
@@ -11447,7 +11652,7 @@
   padding: 0 6px;
 }
 
-/* Fila editorial de una línea: [tipo] [sujeto + meta] [acciones].
+/* Fila editorial: [tipo] [sujeto + detalle] [monto] [acciones].
    La prioridad es una marca de 2px a la izquierda (sin borde de card). */
 .action-queue__card {
   background: transparent;
@@ -11456,10 +11661,10 @@
   border-radius: 0;
   align-items: center;
   display: grid;
-  gap: 6px 14px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   list-style: none;
-  padding: 11px 2px 11px 14px;
+  padding: 12px 2px 12px 14px;
   position: relative;
   transition: background var(--transition-fast);
 }
@@ -11536,9 +11741,8 @@
 }
 
 .action-queue__card-body {
-  align-items: baseline;
-  display: flex;
-  gap: 6px 12px;
+  display: grid;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -11546,7 +11750,7 @@
   font-size: 13.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11554,10 +11758,10 @@
 
 .action-queue__meta {
   align-items: baseline;
-  display: inline-flex;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   min-width: 0;
-  overflow: hidden;
 }
 
 .action-queue__meta-item {
@@ -11568,12 +11772,28 @@
   flex: none;
   font-size: 11.5px;
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.35;
   max-width: 100%;
   overflow: hidden;
   padding: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.action-queue__amount {
+  color: var(--color-text-secondary);
+  flex: none;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  justify-self: end;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.action-queue__amount--empty {
+  min-width: 0;
+  width: 0;
 }
 
 .action-queue__meta-item--accent {
@@ -11583,6 +11803,7 @@
   font-weight: 500;
 }
 
+.action-queue__card--high .action-queue__amount,
 .action-queue__card--high .action-queue__meta-item--accent {
   background: transparent;
   border: 0;
@@ -11593,9 +11814,14 @@
   align-items: center;
   display: flex;
   flex: none;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.action-queue__btn {
+  flex: none;
+  width: auto;
 }
 
 .action-queue__btn--primary {
@@ -11612,9 +11838,10 @@
   background: rgba(15, 17, 23, 0.03);
 }
 
-/* En pantallas angostas la fila se parte: las acciones ocupan su propia línea. */
+/* En pantallas angostas: tipo → cuerpo+monto → acciones (sin botones a 100%). */
 @media (max-width: 640px) {
   .action-queue__card {
+    align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 12px 2px 12px 14px;
   }
@@ -11623,10 +11850,26 @@
     grid-column: 1 / -1;
   }
 
+  .action-queue__card .action-queue__card-body {
+    grid-column: 1;
+  }
+
+  .action-queue__card .action-queue__amount {
+    align-self: start;
+    grid-column: 2;
+    justify-self: end;
+    padding-top: 1px;
+  }
+
   .action-queue__card .action-queue__actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
     padding-left: 0;
+  }
+
+  .action-queue__card .action-queue__btn {
+    flex: 0 0 auto;
+    width: auto;
   }
 }
 
@@ -11887,13 +12130,19 @@
   font-size: 11px;
 }
 
+.action-queue--compact .action-queue__amount {
+  font-size: 12px;
+}
+
 .action-queue--compact .action-queue__actions {
   gap: 6px;
 }
 
 .action-queue--compact .action-queue__btn {
+  flex: none;
   min-height: 32px;
   padding-inline: 10px;
+  width: auto;
 }
 
 .recent-activity--compact {

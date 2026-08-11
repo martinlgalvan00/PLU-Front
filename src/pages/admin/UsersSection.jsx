@@ -192,10 +192,10 @@ export default function UsersSection({
     setIsSubmitting(true)
     try {
       if (!isSecurityRole) {
-        const { user, tempPassword: password, emailed } = await onCreateUser(draft)
+        const { user, emailed } = await onCreateUser(draft)
         setTempPassword({
           email: user?.email ?? draft.email.trim().toLowerCase(),
-          password,
+          password: null,
           emailed,
           mode: 'invitation',
         })
@@ -227,16 +227,15 @@ export default function UsersSection({
     }
   }
 
-  // Reenviar invitación / resetear credencial. La clave nueva se muestra en
-  // pantalla igual que en el alta, porque el envío es best-effort.
+  // Reenvía una invitación nueva. Ninguna contraseña ni token vuelve al panel.
   async function handleResetPassword(user) {
     if (!onResetPassword) return
     setFormError('')
     setTempPassword(null)
     setUpdatingUserId(user.id)
     try {
-      const { tempPassword: password, emailed } = await onResetPassword(user.id)
-      setTempPassword({ email: user.email, password, emailed, mode: 'reset' })
+      const { emailed } = await onResetPassword(user.id)
+      setTempPassword({ email: user.email, password: null, emailed, mode: 'reset' })
     } catch (error) {
       setFormError(error?.message ?? t('admin.users.errorReset'))
     } finally {
@@ -432,16 +431,15 @@ export default function UsersSection({
               <dt>{t('admin.users.email')}</dt>
               <dd>{tempPassword.email}</dd>
             </div>
-            <div>
-              <dt>{t('admin.users.tempPasswordLabel')}</dt>
-              <dd>
-                <code>{tempPassword.password}</code>
-              </dd>
-            </div>
+            {tempPassword.password ? (
+              <div>
+                <dt>{t('admin.users.tempPasswordLabel')}</dt>
+                <dd>
+                  <code>{tempPassword.password}</code>
+                </dd>
+              </div>
+            ) : null}
           </dl>
-          {/* El envío es best-effort. Si Brevo no confirmó, la credencial en
-              pantalla es el único respaldo -- decirlo explícito evita que el
-              admin cierre la vista dando por hecho que el mail salió. */}
           <p className="admin-users__temp-password-note">
             {tempPassword.mode === 'security'
               ? t('admin.users.tempPasswordWarn')

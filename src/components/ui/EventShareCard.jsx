@@ -180,6 +180,9 @@ export default function EventShareCard({
             src={BRAND.logoArgentinaUrl}
             alt="PLU Argentina"
             className="share-card__logo"
+            width={152}
+            height={152}
+            decoding="async"
             crossOrigin="anonymous"
           />
           <span className="share-card__brand-name">{t('shareCard.brandName')}</span>

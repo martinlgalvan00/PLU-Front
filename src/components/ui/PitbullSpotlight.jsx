@@ -42,7 +42,7 @@ export default function PitbullSpotlight({
   slots,
 }) {
   const { PITBULL_CLASSIC } = useContent()
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const resolvedRegisterLabel = registerLabel ?? t('pages.events.register')
   const isHome = variant === 'home'
@@ -152,6 +152,36 @@ export default function PitbullSpotlight({
     ]
 
     const eventStatus = event?.status ?? 'proximamente'
+    const isPitbullEvent = !event?.slug || event.slug === 'pitbull-classic-2026'
+    const startsAt = event?.startsAt ?? event?.dateISO
+    const startsDate = startsAt ? new Date(String(startsAt).includes('T') ? startsAt : `${startsAt}T12:00:00`) : null
+    const validStartsDate = startsDate && !Number.isNaN(startsDate.getTime()) ? startsDate : null
+    const dateParts = validStartsDate
+      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }).formatToParts(validStartsDate)
+      : []
+    const datePart = (type, fallback = '') =>
+      dateParts.find((part) => part.type === type)?.value?.replace('.', '') ?? fallback
+    const homeTitle = event?.title ?? PITBULL_CLASSIC.title
+    const homeLead = event?.description || t('pages.pitbull.heroLead')
+    const homeVenue = event?.venue ?? PITBULL_CLASSIC.venue
+    const homeLocation = event?.location ?? PITBULL_CLASSIC.location
+    const homeDateLabel = event?.displayDate ?? event?.date ?? PITBULL_CLASSIC.date
+    const homeDateTime = event?.startsAt ?? event?.dateISO ?? '2026-12-12'
+    const homeDateDay = isPitbullEvent
+      ? PITBULL_CLASSIC.dateDay
+      : datePart('day', String(homeDateLabel).split(' ')[0])
+    const homeDateMonth = isPitbullEvent
+      ? dateMonthLabel
+      : [datePart('month'), datePart('year')].filter(Boolean).join(' ')
+    const homeCategories = Array.isArray(event?.categories)
+      ? event.categories
+      : isPitbullEvent
+        ? PITBULL_CLASSIC.categories
+        : []
     const { label: statusLabel } = getStatusMeta(eventStatus, t)
     const registrationOpen = isRegistrationOpen(eventStatus)
     const isFinished = eventStatus === 'finalizado'
@@ -195,8 +225,8 @@ export default function PitbullSpotlight({
                 <button
                   type="button"
                   className="pitbull-spotlight__home-hero-frame pitbull-spotlight__home-hero-frame--link"
-                  aria-label={primaryLabel}
-                  onClick={() => primaryAction?.()}
+                  aria-label={t('pages.pitbull.spotlight.viewFullCard')}
+                  onClick={() => onDetail?.()}
                 >
                   <picture>
                     {/* Tablet/notebook (640-1599): foto landscape para la caja
@@ -218,8 +248,8 @@ export default function PitbullSpotlight({
                     {t('pages.pitbull.spotlight.featured')}
                   </span>
                   <EventDatePlate
-                    day={PITBULL_CLASSIC.dateDay}
-                    month={dateMonthLabel}
+                    day={homeDateDay}
+                    month={homeDateMonth}
                     className="pitbull-spotlight__home-date"
                     as="div"
                     tilt={false}
@@ -258,8 +288,8 @@ export default function PitbullSpotlight({
                     </span>
                     <span>{statusLabel}</span>
                   </p>
-                  <h2 className="pitbull-spotlight__home-title">{PITBULL_CLASSIC.title}</h2>
-                  <p className="pitbull-spotlight__home-lead">{t('pages.pitbull.heroLead')}</p>
+                  <h2 className="pitbull-spotlight__home-title">{homeTitle}</h2>
+                  <p className="pitbull-spotlight__home-lead">{homeLead}</p>
                 </header>
               </PanelItem>
 
@@ -268,29 +298,31 @@ export default function PitbullSpotlight({
                   <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--date">
                     <dt>{t('pages.pitbull.quickFactsDate')}</dt>
                     <dd>
-                      <time dateTime="2026-12-12/2026-12-13">{PITBULL_CLASSIC.date}</time>
+                      <time dateTime={homeDateTime}>{homeDateLabel}</time>
                     </dd>
                   </div>
                   <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--venue">
                     <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
                     <dd>
-                      <span className="pitbull-spotlight__home-fact-primary">{PITBULL_CLASSIC.venue}</span>
+                      <span className="pitbull-spotlight__home-fact-primary">{homeVenue}</span>
                       <span className="pitbull-spotlight__home-fact-sep" aria-hidden>
                         ·
                       </span>
-                      <span className="pitbull-spotlight__home-fact-secondary">{PITBULL_CLASSIC.location}</span>
+                      <span className="pitbull-spotlight__home-fact-secondary">{homeLocation}</span>
                     </dd>
                   </div>
                 </dl>
               </PanelItem>
 
-              <PanelItem {...panelItemProps}>
-                <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
-                  {PITBULL_CLASSIC.categories.map((category) => (
-                    <li key={category}>{category}</li>
-                  ))}
-                </ul>
-              </PanelItem>
+              {homeCategories.length > 0 ? (
+                <PanelItem {...panelItemProps}>
+                  <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
+                    {homeCategories.map((category) => (
+                      <li key={category}>{category}</li>
+                    ))}
+                  </ul>
+                </PanelItem>
+              ) : null}
 
               <PanelItem {...panelItemProps}>
                 <footer className="pitbull-spotlight__home-actions">

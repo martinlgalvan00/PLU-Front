@@ -22,6 +22,7 @@
 
 import { loadEnvFile } from 'node:process'
 import { createBrevoAdapter } from '../server/modules/notifications/brevoAdapter.js'
+import { applyDeploymentEnvironmentDefaults } from '../server/lib/deploymentEnvironment.js'
 import { describeCatalog } from '../server/modules/notifications/emailCatalog.js'
 import { renderEmail } from '../server/modules/notifications/emailTemplates.js'
 
@@ -30,6 +31,10 @@ try {
 } catch {
   // Las variables también pueden venir del entorno del proceso.
 }
+
+// En Vercel APP_URL/API_URL se derivan de las variables del sistema. El
+// diagnóstico debe evaluar el mismo entorno efectivo que usa la API.
+applyDeploymentEnvironmentDefaults(process.env)
 
 const OK = '[32mOK[0m'
 const WARN = '[33mAVISO[0m'

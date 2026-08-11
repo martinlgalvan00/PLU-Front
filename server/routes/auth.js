@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto'
 import { Router } from 'express'
 import {
+  acceptStaffInvitationSchema,
   changeOwnPasswordSchema,
   confirmEmailChangeSchema,
   createSecurityAccessLinkSchema,
@@ -13,15 +15,25 @@ import {
 } from '../../src/lib/schemas/auth.js'
 import { buildSecurityGatePath } from '../../src/lib/securityGateRoute.js'
 import { HttpError } from '../lib/errors.js'
+import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createSecurityAccessNotificationService } from '../modules/notifications/securityAccessNotificationService.js'
 import { createStaffAccountNotificationService } from '../modules/notifications/staffAccountNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import {
+  anonymousIdentityId,
+  recordOperationalAuditEvent,
+  requestAuditMetadata,
+} from '../modules/audit/operationalAuditWriter.js'
 import { createAccessToken, verifyAccessToken } from '../services/securityAccessToken.js'
 import {
   createStaffEmailChangeToken,
   verifyStaffEmailChangeToken,
 } from '../services/staffEmailChangeToken.js'
+import {
+  readStaffInvitationSubject,
+  verifyStaffInvitationToken,
+} from '../services/staffInvitationToken.js'
 import { fetchSupabaseEvent, requireSupabaseEvent } from '../services/securityEventService.js'
 import { validateBody } from '../lib/validate.js'
 import { requireAuth, requirePermission } from '../middleware/auth.js'
@@ -78,6 +90,34 @@ export function createAuthRoutes({
   const router = Router()
   const manageUsersGuard = requirePermission('admin.users.write', { prisma: getPrisma() })
 
+  function auditClient() {
+    try {
+      return getSupabaseAdmin?.() ?? null
+    } catch {
+      return null
+    }
+  }
+
+  function recordIdentity(event, req) {
+    return recordOperationalAuditEvent(auditClient(), {
+      source: 'identity',
+      ...event,
+      metadata: requestAuditMetadata(req, event.metadata),
+    })
+  }
+
+  function recordFailedLogin(req, email, reason, method = 'password') {
+    return recordIdentity({
+      action: 'auth.login_failed',
+      entityType: 'staff_user',
+      entityId: anonymousIdentityId('email', email),
+      actorType: 'anonymous',
+      status: 'failed',
+      severity: 'warning',
+      metadata: { method, reason },
+    }, req)
+  }
+
   // Los eventos viven en Supabase (public.events, id uuid). El panel entrega
   // ese uuid como eventId al dar de alta seguridad, asi que la validacion y
   // los datos del evento (slug/title/endsAt para credenciales y scoping)
@@ -120,10 +160,9 @@ export function createAuthRoutes({
     env: env ?? process.env,
   })
   const configuredAppUrl = (
-    env?.APP_URL ??
-    env?.VITE_APP_URL ??
-    process.env.APP_URL ??
-    process.env.VITE_APP_URL ??
+    resolveDeploymentAppUrl(env ?? process.env) ||
+    env?.VITE_APP_URL ||
+    process.env.VITE_APP_URL ||
     ''
   ).replace(/\/$/, '')
   const accessLinkSecret = env?.AUTH_SECRET ?? process.env.AUTH_SECRET
@@ -224,6 +263,90 @@ export function createAuthRoutes({
     }
   }
 
+  router.post(
+    '/accept-staff-invitation',
+    authLimiter,
+    validateBody(acceptStaffInvitationSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { token, password } = req.validatedBody
+        const userId = readStaffInvitationSubject(token)
+        const user = userId
+          ? await prisma.user.findUnique({
+              where: { id: userId },
+              include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+            })
+          : null
+        const payload = user
+          ? verifyStaffInvitationToken(token, {
+              credentialHash: user.passwordHash,
+              secret: accessLinkSecret,
+            })
+          : null
+        const canAccept =
+          payload?.uid === user?.id &&
+          user.mustChangePassword === true &&
+          ['active', 'invited'].includes(user.status) &&
+          !isTempPasswordExpired(user)
+
+        if (!canAccept) {
+          await recordIdentity({
+            action: 'auth.invitation_failed',
+            entityType: 'staff_user',
+            entityId: anonymousIdentityId('invitation', token),
+            actorType: 'anonymous',
+            status: 'failed',
+            severity: 'warning',
+            metadata: { reason: 'invalid_expired_or_used' },
+          }, req)
+          throw new HttpError(400, 'La invitación es inválida, ya fue utilizada o venció.', {
+            code: 'staff_invitation_invalid',
+          })
+        }
+
+        const now = new Date()
+        await revokeSessionsForUser({ prisma, userId: user.id, now })
+        const updated = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: await hashPassword(password),
+            mustChangePassword: false,
+            passwordExpiresAt: null,
+            status: 'active',
+            lastLoginAt: now,
+          },
+          include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+        })
+        const session = await createSession({ prisma, userId: user.id, req, now })
+        const serialized = serializeUser(updated)
+        const supabaseAuth = await ensureSupabaseSessionToken({
+          admin: auditClient(),
+          email: serialized.email,
+          permissions: serialized.permissions,
+          role: serialized.roleKey,
+        })
+
+        await recordIdentity({
+          action: 'auth.invitation_accepted',
+          entityType: 'staff_user',
+          entityId: user.id,
+          actorType: 'staff',
+          actorId: user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: { roleKey: serialized.roleKey },
+        }, req)
+
+        res
+          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+          .json({ user: serialized, supabaseAuth })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
     try {
       const prisma = getPrisma()
@@ -242,6 +365,7 @@ export function createAuthRoutes({
       const passwordMatches = await verifyPassword(password, user?.passwordHash)
 
       if (!user || user.status !== 'active' || !passwordMatches) {
+        await recordFailedLogin(req, email, 'invalid_credentials')
         next(invalidCredentials())
         return
       }
@@ -251,6 +375,7 @@ export function createAuthRoutes({
       // no revela la existencia de ninguna cuenta. Decirlo importa -- con el
       // 401 genérico la persona reintenta creyendo que se equivocó al copiar.
       if (isTempPasswordExpired(user)) {
+        await recordFailedLogin(req, email, 'temporary_credential_expired')
         next(
           new HttpError(401, 'Tu invitación venció. Pedile al administrador que te la reenvíe.', {
             code: 'temp_password_expired',
@@ -262,6 +387,7 @@ export function createAuthRoutes({
       // El alcance por evento pertenece a la cuenta, no al nombre del rol.
       // Esto también cubre futuros roles personalizados de operación.
       if (user.eventId && user.eventSlug !== eventSlug) {
+        await recordFailedLogin(req, email, 'event_scope_mismatch')
         next(invalidCredentials())
         return
       }
@@ -275,10 +401,22 @@ export function createAuthRoutes({
 
       const serialized = serializeUser(user)
       const supabaseAuth = await ensureSupabaseSessionToken({
+        admin: auditClient(),
         email: serialized.email,
         permissions: serialized.permissions,
         role: serialized.roleKey,
       })
+
+      await recordIdentity({
+        action: 'auth.login_succeeded',
+        entityType: 'staff_user',
+        entityId: user.id,
+        actorType: 'staff',
+        actorId: user.id,
+        status: 'succeeded',
+        severity: 'success',
+        metadata: { method: 'password', roleKey: serialized.roleKey },
+      }, req)
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -313,10 +451,22 @@ export function createAuthRoutes({
 
       const serialized = serializeOAuthUser(user)
       const supabaseAuth = await ensureSupabaseSessionToken({
+        admin: auditClient(),
         email: serialized.email,
         permissions: serialized.permissions,
         role: serialized.roleKey,
       })
+
+      await recordIdentity({
+        action: 'auth.login_succeeded',
+        entityType: 'staff_user',
+        entityId: user.id,
+        actorType: 'staff',
+        actorId: user.id,
+        status: 'succeeded',
+        severity: 'success',
+        metadata: { method: 'oauth', roleKey: serialized.roleKey },
+      }, req)
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -330,7 +480,20 @@ export function createAuthRoutes({
     try {
       const prisma = getPrisma()
       const token = req.cookies?.[SESSION_COOKIE_NAME]
+      const current = await readSessionFromRequest({ prisma, req })
       await revokeSession({ prisma, token })
+      if (current?.user?.id) {
+        await recordIdentity({
+          action: 'auth.session_ended',
+          entityType: 'staff_user',
+          entityId: current.user.id,
+          actorType: 'staff',
+          actorId: current.user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: { reason: 'logout' },
+        }, req)
+      }
       res.clearCookie(SESSION_COOKIE_NAME, getClearSessionCookieOptions()).status(204).end()
     } catch (error) {
       next(error)
@@ -561,6 +724,20 @@ export function createAuthRoutes({
           event,
           existing,
         })
+        await recordIdentity({
+          action: reused ? 'account.reactivated' : 'account.created',
+          entityType: 'staff_user',
+          entityId: user.id,
+          actorType: 'staff',
+          actorId: req.auth.user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: {
+            accountKind: 'security',
+            eventId: event.id,
+            roleKey: 'seguridad_plu_arg',
+          },
+        }, req)
         const access = createPersonalAccess(user, event, req)
         const emailed = sendEmail
           ? await dispatchAccessEmail({ user, event, accessUrl: access.url })
@@ -649,6 +826,24 @@ export function createAuthRoutes({
 
         // Envío de credenciales best-effort, en paralelo, recién después de
         // crear todas las cuentas.
+        await Promise.all(
+          created.map((item) => recordIdentity({
+            action: item.reused ? 'account.reactivated' : 'account.created',
+            entityType: 'staff_user',
+            entityId: item.user.id,
+            actorType: 'staff',
+            actorId: req.auth.user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: {
+              accountKind: 'security',
+              eventId: event.id,
+              roleKey: 'seguridad_plu_arg',
+              bulk: true,
+            },
+          }, req)),
+        )
+
         if (sendEmail && created.length) {
           const emailResults = await Promise.allSettled(
             created.map((item) =>
@@ -779,7 +974,7 @@ export function createAuthRoutes({
               user: serializeUser(user),
               event,
               accessUrl: access.url,
-              idempotencyKey: `email:security-access-link:${user.id}:${access.token.slice(-16)}`,
+              idempotencyKey: `email:security-access-link:${user.id}:${createHash('sha256').update(access.token).digest('hex').slice(0, 24)}`,
             })
           : false
 
@@ -807,6 +1002,15 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
         if (!payload) {
+          await recordIdentity({
+            action: 'auth.login_failed',
+            entityType: 'staff_user',
+            entityId: anonymousIdentityId('access_token', req.validatedBody.token),
+            actorType: 'anonymous',
+            status: 'failed',
+            severity: 'warning',
+            metadata: { method: 'security_gate', reason: 'invalid_or_expired_token' },
+          }, req)
           next(new HttpError(401, 'Credencial inválida o vencida.'))
           return
         }
@@ -821,6 +1025,15 @@ export function createAuthRoutes({
           user.status !== 'active' ||
           user.eventId !== payload.eid
         ) {
+          await recordIdentity({
+            action: 'auth.login_failed',
+            entityType: 'staff_user',
+            entityId: payload.uid,
+            actorType: 'anonymous',
+            status: 'failed',
+            severity: 'warning',
+            metadata: { method: 'security_gate', reason: 'account_or_scope_mismatch' },
+          }, req)
           next(new HttpError(401, 'Credencial inválida o vencida.'))
           return
         }
@@ -830,10 +1043,22 @@ export function createAuthRoutes({
 
         const serialized = serializeUser(user)
         const supabaseAuth = await ensureSupabaseSessionToken({
+          admin: auditClient(),
           email: serialized.email,
           permissions: serialized.permissions,
           role: serialized.roleKey,
         })
+
+        await recordIdentity({
+          action: 'auth.login_succeeded',
+          entityType: 'staff_user',
+          entityId: user.id,
+          actorType: 'staff',
+          actorId: user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: { method: 'security_gate', roleKey: serialized.roleKey, eventId: user.eventId },
+        }, req)
 
         res
           .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())

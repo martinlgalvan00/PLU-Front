@@ -29,7 +29,7 @@ const listQuerySchema = z.object({
     .transform((value) => value.split(',').map((id) => id.trim()).filter(Boolean).slice(0, 50))
     .optional(),
   actorType: z.string().trim().min(1).max(40).optional(),
-  source: z.enum(['domain', 'email', 'payment']).optional(),
+  source: z.enum(['domain', 'email', 'payment', 'identity']).optional(),
   status: z.string().trim().min(1).max(40).optional(),
   search: z
     .string()

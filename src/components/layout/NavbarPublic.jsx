@@ -20,6 +20,7 @@ import {
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
 import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
 import { canViewAdmin } from '../../lib/roles.js'
+import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -43,6 +44,14 @@ const NAV_ICON = {
 
 const COMPETITIONS_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
 const RESOURCES_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
+
+/** Línea utilitaria horizontal del drawer (mismo set corto que el diseño editorial). */
+const DRAWER_SECONDARY = [
+  { key: 'rulebook', labelKey: 'nav.rulebook' },
+  { key: 'faq', labelKey: 'nav.faq' },
+  { key: 'community', labelKey: 'nav.community' },
+  { key: 'contact', labelKey: 'nav.contact' },
+]
 
 function SharedActiveIndicator() {
   const { reducedMotion } = useMotionConfig()
@@ -114,7 +123,7 @@ function NavDropdownItem({ active = false, description, icon: Icon, label, onCli
   )
 }
 
-function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuId, open, onClose, onToggle, variant = 'compact' }) {
+function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuId, open, onClose, onToggle, variant = 'compact', secondary = false }) {
   const rootRef = useRef(null)
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
@@ -166,7 +175,7 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
   }
 
   return (
-    <div className="plu-global-nav__dropdown" data-open={open || undefined} ref={rootRef}>
+    <div className={`plu-global-nav__dropdown${secondary ? ' plu-global-nav__dropdown--secondary' : ''}`} data-open={open || undefined} ref={rootRef}>
       <button
         type="button"
         id={`${menuId}-trigger`}
@@ -284,14 +293,15 @@ function DrawerRow({ active = false, children, delay = 0, description, feature =
   )
 }
 
-const DRAWER_SECONDARY = [
-  { key: 'rulebook', labelKey: 'nav.rulebook' },
-  { key: 'faq', labelKey: 'nav.faq' },
-  { key: 'community', labelKey: 'nav.community' },
-  { key: 'contact', labelKey: 'nav.contact' },
-]
-
-export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavigate, session, sessionPending = false }) {
+export default function NavbarPublic({
+  activeView,
+  latestEvent,
+  memberships = [],
+  onLogout,
+  onNavigate,
+  session,
+  sessionPending = false,
+}) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dropdown, setDropdown] = useState(null)
   const [hoveredNav, setHoveredNav] = useState(null)
@@ -302,7 +312,8 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
   const profileMenuRef = useRef(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
-  const { scrolled } = useHeaderScroll(shellRef, { autoHide: false })
+  /* Rango un poco más largo: el letterhead se retrae con elegancia, no de golpe. */
+  const { scrolled } = useHeaderScroll(shellRef, { autoHide: false, range: 112, threshold: 96 })
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
 
@@ -310,7 +321,9 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
-  const competitionsActive = COMPETITIONS_NAVIGATION.views.includes(activeView)
+  const hasActiveMembership =
+    session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
+  const competitionsActive = ['results', 'records'].includes(activeView)
   const resourcesActive = RESOURCES_NAVIGATION.views.includes(activeView)
 
   const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
@@ -477,12 +490,14 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
             aria-label={t('nav.home')}
             onClick={() => go('home')}
           >
-            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={34} />
-            <span>
-              <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={24} />
+            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={72} />
+            <span className="plu-global-nav__wordmark" aria-hidden={scrolled || undefined}>
+              <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={22} />
               <small>{t('brand.federationLine')}</small>
             </span>
           </button>
+
+          <span className="plu-global-nav__rail" aria-hidden />
 
           <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')}>
             <LayoutGroup id={`plu-public-navigation-${locale}`}>
@@ -502,23 +517,23 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               open={dropdown === 'competitions'}
               onClose={() => setDropdown(null)}
               onToggle={() => setDropdown((current) => current === 'competitions' ? null : 'competitions')}
+              secondary
             >
-              <p className="plu-nav-menu__label">{t('nav.competitionMenuLabel')}</p>
-              {COMPETITIONS_NAVIGATION.items.map(({ key, featured, icon }) => {
-                const isFeaturedEvent = key === 'pitbull'
-                const Icon = NAV_ICON[icon]
-                return (
-                  <NavDropdownItem
-                    key={key}
-                    active={isFeaturedEvent ? latestEventActive : [key, 'tickets'].includes(activeView)}
-                    description={isFeaturedEvent && latestEvent?.date ? `${latestEvent.date} · ${latestEvent.venue}` : t(`nav.${key}Hint`)}
-                    icon={Icon}
-                    label={isFeaturedEvent ? latestEventTitle : t(`nav.${key}`)}
-                    onClick={() => go(isFeaturedEvent ? latestEventView : key)}
-                    tone={featured ? 'featured' : 'default'}
-                  />
-                )
-              })}
+              {COMPETITIONS_NAVIGATION.items
+                .filter(({ featured }) => !featured)
+                .map(({ key, icon }) => {
+                  const Icon = NAV_ICON[icon]
+                  return (
+                    <NavDropdownItem
+                      key={key}
+                      active={activeView === key}
+                      description={t(`nav.${key}Hint`)}
+                      icon={Icon}
+                      label={t(`nav.${key}`)}
+                      onClick={() => go(key)}
+                    />
+                  )
+                })}
               </NavDropdown>
               <NavLink active={['shop', 'tickets'].includes(activeView)} hovered={hoveredNav === 'shop'} onHover={() => setHoveredNav('shop')} onLeave={() => setHoveredNav(null)} onClick={() => go('shop')}>{t('nav.shop')}</NavLink>
               <NavDropdown
@@ -532,6 +547,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               onClose={() => setDropdown(null)}
               onToggle={() => setDropdown((current) => current === 'resources' ? null : 'resources')}
               variant="resources"
+              secondary
             >
               <div className="plu-resources-menu__head" role="presentation">
                 <div><p>{t('nav.resourcesMenuLabel')}</p><span>{t('nav.resourcesMenuIntro')}</span></div>
@@ -660,13 +676,37 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
                 type="button"
-                className={`plu-global-nav__mobile-affiliate${activeView === 'members' ? ' is-active' : ''}`}
-                aria-current={activeView === 'members' ? 'page' : undefined}
-                aria-label={t('nav.affiliate')}
-                title={t('nav.affiliate')}
-                onClick={() => go('members')}
+                className={`plu-global-nav__mobile-affiliate${
+                  hasActiveMembership
+                    ? ' plu-global-nav__mobile-affiliate--member'
+                    : ''
+                }${
+                  hasActiveMembership
+                    ? activeView === 'profile'
+                      ? ' is-active'
+                      : ''
+                    : activeView === 'members'
+                      ? ' is-active'
+                      : ''
+                }`}
+                aria-current={
+                  hasActiveMembership
+                    ? activeView === 'profile'
+                      ? 'page'
+                      : undefined
+                    : activeView === 'members'
+                      ? 'page'
+                      : undefined
+                }
+                aria-label={
+                  hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')
+                }
+                title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
+                onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
               >
-                <span className="plu-global-nav__mobile-affiliate-label">{t('nav.affiliateShort')}</span>
+                <span className="plu-global-nav__mobile-affiliate-label">
+                  {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
+                </span>
               </button>
               <span className="plu-global-nav__mobile-divider" aria-hidden />
               <button
@@ -731,7 +771,7 @@ export default function NavbarPublic({ activeView, latestEvent, onLogout, onNavi
                   aria-label={t('nav.home')}
                   onClick={() => go('home')}
                 >
-                  <BrandLogo variant="argentina" imgClassName="plu-drawer__emblem" height={34} />
+                  <BrandLogo variant="argentina" imgClassName="plu-drawer__emblem" height={72} />
                   <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
                 </button>
                 <button

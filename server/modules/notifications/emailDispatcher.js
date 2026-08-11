@@ -1,4 +1,5 @@
 import { HttpError } from '../../lib/errors.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 import { findMissingParams, getEmailDefinition, resolveTemplateId } from './emailCatalog.js'
 import { hasHtmlFallback, renderEmail } from './emailTemplates.js'
 
@@ -48,8 +49,19 @@ export function buildIdempotencyKey(type, { entityType, entityId, to }) {
   return `email:${type}:${entityType ?? 'none'}:${entityId ?? to}`
 }
 
+export function redactSensitiveEmailParams(type, params = {}) {
+  const sensitive = getEmailDefinition(type)?.sensitiveParams ?? []
+  if (sensitive.length === 0) return params
+
+  const stored = { ...params }
+  for (const key of sensitive) {
+    if (Object.hasOwn(stored, key) && stored[key] !== '') stored[key] = '[REDACTED]'
+  }
+  return stored
+}
+
 export function createEmailDispatcher({ repository, brevo, env = process.env, logger = console } = {}) {
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
   /**
    * Decide con qué contenido sale el email.
@@ -142,7 +154,9 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       idempotencyKey,
       templateId: resolveTemplateId(type, env),
       category: definition.category,
-      params,
+      // Los links firmados, códigos y contraseñas sólo existen durante este
+      // request. El outbox conserva el contexto auditable, nunca el bearer.
+      params: redactSensitiveEmailParams(type, params),
     })
 
     // Ya existía: otro proceso (o un reintento de webhook) lo tomó primero.
@@ -207,7 +221,7 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       const emailLog = await repository.completeEmail(started.emailLog.id, { status: 'sent', response })
       return { status: 'sent', created: true, emailLog, response }
     } catch (error) {
-      const emailLog = await recordFailure(started.emailLog, error, 1)
+      const emailLog = await recordFailure(started.emailLog, error, 1, definition)
       // Se propaga para que el llamador decida. Todos los callers de negocio lo
       // atrapan: el email nunca revierte la operación que lo disparó.
       error.emailLog = emailLog
@@ -232,8 +246,13 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
     })
   }
 
-  async function recordFailure(emailLog, error, attempt) {
-    const retryable = error?.retryable === true && attempt < MAX_EMAIL_ATTEMPTS
+  async function recordFailure(emailLog, error, attempt, definition) {
+    // Un outbox persistente no puede reintentar una credencial sin guardarla en
+    // claro. Esos emails se reemiten desde su flujo de negocio, generando un
+    // token nuevo; los emails sin secretos conservan el backoff automático.
+    const containsCredential = (definition?.sensitiveParams?.length ?? 0) > 0
+    const retryable =
+      !containsCredential && error?.retryable === true && attempt < MAX_EMAIL_ATTEMPTS
     return repository.completeEmail(emailLog.id, {
       status: retryable ? 'retrying' : 'failed',
       error: error?.message ?? String(error),
@@ -260,6 +279,15 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       })
     }
 
+    if ((definition.sensitiveParams?.length ?? 0) > 0) {
+      return repository.completeEmail(emailLog.id, {
+        status: 'failed',
+        error: 'La credencial fue redactada. Reemití el email desde su flujo de origen.',
+        errorCode: 'SENSITIVE_PAYLOAD_REDACTED',
+        attempt,
+      })
+    }
+
     if (!brevo?.configured) {
       return repository.completeEmail(emailLog.id, { status: 'skipped', error: 'Brevo no está configurado.', attempt })
     }
@@ -280,7 +308,7 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       const response = await deliver({ type, to, definition, params, content })
       return repository.completeEmail(emailLog.id, { status: 'sent', response, attempt })
     } catch (error) {
-      return recordFailure(emailLog, error, attempt)
+      return recordFailure(emailLog, error, attempt, definition)
     }
   }
 

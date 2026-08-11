@@ -9,6 +9,8 @@ import '../styles/pages/admin-pricing.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
 import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
+import LoadingState from '../components/ui/LoadingState.jsx'
+import ErrorState from '../components/ui/ErrorState.jsx'
 // `DashboardSection` es la vista de entrada para casi todos los roles, así
 // que queda eager -- lazy-cargarla solo agregaría un flash de Suspense sin
 // bajar bytes reales. El resto de las secciones se cargan bajo demanda: un
@@ -38,6 +40,8 @@ export default function AdminPage({
   adminEvents,
   adminEventsLoading,
   adminEventsError,
+  athleteDataLoading = false,
+  athleteDataError = null,
   allowedSections = [],
   authorization,
   canDeleteAthletes,
@@ -55,6 +59,7 @@ export default function AdminPage({
   onApproveTicketPurchase,
   onRefreshPendingTicketOrders,
   onRefreshAdminEvents,
+  onRefreshAthleteData,
   onRefreshPricing,
   onCreateMembershipPlanVersion,
   onSetMembershipPlanActive,
@@ -170,6 +175,14 @@ export default function AdminPage({
   }
 
   function renderSection() {
+    const athleteDataSections = ['dashboard', 'athletes', 'memberships', 'registrations', 'plu-usa']
+    if (athleteDataSections.includes(section)) {
+      if (athleteDataLoading) return <LoadingState />
+      if (athleteDataError) {
+        return <ErrorState message={athleteDataError} onRetry={onRefreshAthleteData} />
+      }
+    }
+
     if (section === 'dashboard') {
       return (
         <DashboardSection

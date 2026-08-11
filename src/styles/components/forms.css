@@ -307,7 +307,7 @@
   width: 100%;
   padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid color-mix(in srgb, var(--color-border, #d8d8d8) 82%, transparent);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
   background: var(--color-surface, #fff);
 }
 
@@ -323,6 +323,13 @@
   margin: 0;
 }
 
+.mp-embedded-checkout__header h3 {
+  color: var(--color-text-primary, #111);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
 .mp-embedded-checkout__header p,
 .mp-embedded-checkout__security,
 .mp-embedded-checkout__loading {
@@ -336,8 +343,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 999px;
-  color: #087bc1;
-  background: #e6f4ff;
+  color: var(--color-brand-celeste, #087bc1);
+  background: color-mix(in srgb, var(--color-brand-celeste, #087bc1) 14%, transparent);
 }
 
 .mp-embedded-checkout__brick:not(.is-ready) {
@@ -380,23 +387,112 @@
   border: 1px solid color-mix(in srgb, var(--color-warning, #a66b00) 35%, transparent);
 }
 
+.mp-embedded-checkout__mock {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.mp-embedded-checkout__mock-chip {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold, #f2b705) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold, #f2b705) 28%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-secondary, #555);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.mp-embedded-checkout__mock-summary {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.mp-embedded-checkout__mock-summary-top {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.mp-embedded-checkout__mock-summary-label {
+  color: var(--color-text-muted, #666);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mp-embedded-checkout__mock-amount {
+  color: var(--color-text-primary, #111);
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.75rem, 3.4vw, 2.15rem);
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.mp-embedded-checkout__mock-payer {
+  color: var(--color-text-secondary, #555);
+  font-size: 0.875rem;
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.mp-embedded-checkout__mock-details {
+  border-top: 1px solid color-mix(in srgb, var(--color-border, #d8d8d8) 80%, transparent);
+  margin: 0;
+  padding-top: 0.35rem;
+}
+
+.mp-embedded-checkout__mock-details > summary {
+  color: var(--color-text-muted, #666);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  list-style: none;
+  min-height: 36px;
+  padding: 0.45rem 0;
+}
+
+.mp-embedded-checkout__mock-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mp-embedded-checkout__mock-details[open] > summary {
+  color: var(--color-text-secondary, #555);
+}
+
 .mp-embedded-checkout__mock-meta {
   display: grid;
-  gap: 0.45rem;
+  gap: 0;
   margin: 0;
+  padding-bottom: 0.35rem;
 }
 
 .mp-embedded-checkout__mock-meta > div {
-  display: grid;
-  grid-template-columns: 7.5rem 1fr;
-  gap: 0.5rem;
   align-items: baseline;
+  border-top: 1px solid color-mix(in srgb, var(--color-border, #d8d8d8) 70%, transparent);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  padding: 0.55rem 0;
 }
 
 .mp-embedded-checkout__mock-meta dt {
   margin: 0;
   color: var(--color-text-muted, #666);
-  font-size: 0.85rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .mp-embedded-checkout__mock-meta dd {
@@ -405,13 +501,106 @@
 }
 
 .mp-embedded-checkout__mock-meta code {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .mp-embedded-checkout__mock-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.mp-embedded-checkout__mock-cta {
+  align-items: center;
+  background: var(--color-brand-action, #f2b705);
+  border: 1px solid var(--color-brand-action, #f2b705);
+  border-radius: 10px;
+  color: var(--color-brand-action-text, #14181f);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  transition:
+    background var(--transition-fast, 150ms ease),
+    border-color var(--transition-fast, 150ms ease),
+    opacity var(--transition-fast, 150ms ease);
+  width: 100%;
+}
+
+.mp-embedded-checkout__mock-cta:hover:not(:disabled) {
+  background: var(--color-brand-action-hover, #ffd23f);
+  border-color: var(--color-brand-action-hover, #ffd23f);
+}
+
+.mp-embedded-checkout__mock-cta:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mp-embedded-checkout__mock-cta:focus-visible {
+  outline: 3px solid var(--color-focus-ring, #74acdf);
+  outline-offset: 3px;
+}
+
+.mp-embedded-checkout__mock-alts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.35rem 1rem;
+  justify-content: center;
+}
+
+.mp-embedded-checkout__mock-more {
+  margin: 0;
+}
+
+.mp-embedded-checkout__mock-more > summary {
+  color: var(--color-text-muted, #666);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  list-style: none;
+  min-height: 36px;
+  padding: 0.25rem 0;
+  text-align: center;
+}
+
+.mp-embedded-checkout__mock-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mp-embedded-checkout__mock-alt {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--color-text-muted, #666);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  min-height: 36px;
+  padding: 0.2rem 0;
+  transition:
+    border-color var(--transition-fast, 150ms ease),
+    color var(--transition-fast, 150ms ease);
+}
+
+.mp-embedded-checkout__mock-alt:hover:not(:disabled) {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-celeste, #087bc1) 55%, transparent);
+  color: var(--color-brand-celeste, #087bc1);
+}
+
+.mp-embedded-checkout__mock-alt:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mp-embedded-checkout__mock-alt:focus-visible {
+  outline: 3px solid var(--color-focus-ring, #74acdf);
+  outline-offset: 3px;
 }
 
 .mp-embedded-checkout__retry {

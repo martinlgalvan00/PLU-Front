@@ -77,6 +77,22 @@ export async function processEmbeddedPayment({ paymentOrderId, orderAccessToken,
   return apiPost('/api/payments/embedded/process', { paymentOrderId, orderAccessToken, formData })
 }
 
+export async function reportPaymentClientEvent({
+  paymentOrderId,
+  orderAccessToken,
+  stage,
+  errorCode,
+  message,
+}) {
+  return apiPost('/api/payments/telemetry', {
+    paymentOrderId,
+    orderAccessToken,
+    stage,
+    ...(errorCode ? { errorCode } : {}),
+    ...(message ? { message } : {}),
+  })
+}
+
 export async function getPaymentOrderStatus(paymentOrderId, orderAccessToken) {
   return apiRequest(`/api/payments/orders/${encodeURIComponent(paymentOrderId)}/status`, {
     headers: orderAccessToken ? { 'X-Order-Access-Token': orderAccessToken } : {},
