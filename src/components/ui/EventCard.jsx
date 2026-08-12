@@ -16,6 +16,7 @@ export default function EventCard({
   onAction,
   onSelect,
   actionLabel = 'Inscribirme',
+  variant = 'default',
 }) {
   const { t } = useI18n()
   const closed = status === 'cerrado' || status === 'finalizado'
@@ -23,12 +24,14 @@ export default function EventCard({
   const { label: statusLabel, tone } = getStatusMeta(status, t)
   const isLive = LIVE_STATUSES.has(status)
   const secondaryLabel = t('pages.events.listViewEvent')
+  const isMinimal = variant === 'minimal'
 
   return (
     <SpotlightCard
       as="article"
       className={[
         'event-card',
+        isMinimal ? 'event-card--minimal' : '',
         featured ? 'event-card--featured' : '',
         selected ? 'event-card--selected' : '',
       ]
@@ -54,7 +57,7 @@ export default function EventCard({
       </div>
 
       <div className="event-card__body">
-        {status ? (
+        {!isMinimal && status ? (
           <p className="event-card__status" data-tone={tone}>
             <span className="event-card__status-dot" aria-hidden />
             {statusLabel}
@@ -64,6 +67,16 @@ export default function EventCard({
         <h3 className="event-card__title">{title}</h3>
 
         <p className="event-card__meta">
+          {isMinimal && status ? (
+            <>
+              <span className="event-card__status event-card__status--inline" data-tone={tone}>
+                {statusLabel}
+              </span>
+              <span className="event-card__meta-sep" aria-hidden>
+                ·
+              </span>
+            </>
+          ) : null}
           <span>{venue}</span>
           {location ? (
             <>

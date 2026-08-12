@@ -323,12 +323,13 @@ export default function NavbarPublic({
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
-  const competitionsActive = ['results', 'records'].includes(activeView)
+  const competitionsActive = COMPETITIONS_NAVIGATION.views.includes(activeView)
   const resourcesActive = RESOURCES_NAVIGATION.views.includes(activeView)
 
   const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
   const latestEventView = latestEvent?.featured || latestEvent?.slug === 'pitbull-classic-2026' ? 'pitbull' : 'events'
   const latestEventActive = activeView === latestEventView
+  const latestEventHint = latestEvent?.date ?? t('nav.pitbullHint')
 
   const resourceGroups = RESOURCES_NAVIGATION.groups.map((group) => ({
     label: t(group.labelKey),
@@ -345,6 +346,8 @@ export default function NavbarPublic({
     label: t(item.labelKey),
     active: activeView === item.key || (item.key === 'rulebook' && activeView === 'resources'),
   }))
+
+  const competitionMenuFeatured = COMPETITIONS_NAVIGATION.items.filter(({ featured }) => featured)
 
   function go(view) {
     restoreDrawerFocusRef.current = false
@@ -490,7 +493,7 @@ export default function NavbarPublic({
             aria-label={t('nav.home')}
             onClick={() => go('home')}
           >
-            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={72} />
+            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={56} />
             <span className="plu-global-nav__wordmark" aria-hidden={scrolled || undefined}>
               <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={22} />
               <small>{t('brand.federationLine')}</small>
@@ -519,21 +522,27 @@ export default function NavbarPublic({
               onToggle={() => setDropdown((current) => current === 'competitions' ? null : 'competitions')}
               secondary
             >
-              {COMPETITIONS_NAVIGATION.items
-                .filter(({ featured }) => !featured)
-                .map(({ key, icon }) => {
-                  const Icon = NAV_ICON[icon]
-                  return (
-                    <NavDropdownItem
-                      key={key}
-                      active={activeView === key}
-                      description={t(`nav.${key}Hint`)}
-                      icon={Icon}
-                      label={t(`nav.${key}`)}
-                      onClick={() => go(key)}
-                    />
-                  )
-                })}
+              {competitionMenuFeatured.map(({ key, icon }) => {
+                const Icon = NAV_ICON[icon]
+                return (
+                  <NavDropdownItem
+                    key={key}
+                    active={latestEventActive}
+                    description={latestEventHint}
+                    icon={Icon}
+                    label={latestEventTitle}
+                    tone="featured"
+                    onClick={() => go(latestEventView)}
+                  />
+                )
+              })}
+              <NavDropdownItem
+                active={activeView === 'events'}
+                description={t('nav.eventsHint')}
+                icon={CalendarDays}
+                label={t('nav.viewAllEvents')}
+                onClick={() => go('events')}
+              />
               </NavDropdown>
               <NavLink active={['shop', 'tickets'].includes(activeView)} hovered={hoveredNav === 'shop'} onHover={() => setHoveredNav('shop')} onLeave={() => setHoveredNav(null)} onClick={() => go('shop')}>{t('nav.shop')}</NavLink>
               <NavDropdown
@@ -708,23 +717,22 @@ export default function NavbarPublic({
                   {hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliateShort')}
                 </span>
               </button>
-              <span className="plu-global-nav__mobile-divider" aria-hidden />
-              <button
-                type="button"
-                className="plu-global-nav__menu-button"
-                aria-controls="plu-mobile-drawer"
-                aria-expanded={drawerOpen}
-                aria-label={drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')}
-                ref={menuButtonRef}
-                onClick={drawerOpen ? () => closeDrawer(true) : openDrawer}
-              >
-                <span className="plu-global-nav__menu-icon" aria-hidden>
-                  <span className="plu-global-nav__menu-line" />
-                  <span className="plu-global-nav__menu-line" />
-                  <span className="plu-global-nav__menu-line" />
-                </span>
-              </button>
             </div>
+            <button
+              type="button"
+              className="plu-global-nav__menu-button"
+              aria-controls="plu-mobile-drawer"
+              aria-expanded={drawerOpen}
+              aria-label={drawerOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+              ref={menuButtonRef}
+              onClick={drawerOpen ? () => closeDrawer(true) : openDrawer}
+            >
+              <span className="plu-global-nav__menu-icon" aria-hidden>
+                <span className="plu-global-nav__menu-line" />
+                <span className="plu-global-nav__menu-line" />
+                <span className="plu-global-nav__menu-line" />
+              </span>
+            </button>
           </div>
         </div>
       </header>
