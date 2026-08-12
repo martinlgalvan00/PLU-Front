@@ -124,31 +124,66 @@ function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLe
   )
 }
 
-function NavDropdownItem({ active = false, description, icon: Icon, label, onClick, tone = 'default' }) {
+function NavDropdownItem({
+  active = false,
+  description,
+  icon: Icon,
+  label,
+  onClick,
+  tone = 'default',
+  instant = false,
+}) {
   const { reducedMotion } = useMotionConfig()
+  const className = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`
+  const content = (
+    <>
+      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
+      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
+      <ArrowRight size={14} aria-hidden />
+    </>
+  )
+
+  /* Mega-menú resources: sin variants (el panel solo hace fade; evita cascada trabada). */
+  if (instant || reducedMotion) {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        className={className}
+        aria-current={active ? 'page' : undefined}
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    )
+  }
 
   return (
     <m.button
       type="button"
       role="menuitem"
       variants={{
-        hidden: { opacity: 0, y: reducedMotion ? 0 : 5 },
+        hidden: { opacity: 0, y: 5 },
         visible: {
           opacity: 1,
           y: 0,
           transition: {
-            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+            duration: MOTION_DURATION.fast,
             ease: MOTION_EASE.out,
           },
         },
+        exit: {
+          opacity: 0,
+          transition: { duration: 0.01 },
+        },
       }}
-      className={`plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`}
+      whileHover={{ x: 4 }}
+      transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
+      className={className}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
-      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
-      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
-      <ArrowRight size={14} aria-hidden />
+      {content}
     </m.button>
   )
 }
@@ -158,6 +193,7 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
   const { reducedMotion } = useMotionConfig()
+  const isResources = variant === 'resources'
 
   useEffect(() => {
     if (!open) return undefined
@@ -204,12 +240,60 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
     }
   }
 
+  /* Resources: solo opacity (sin scale/y) para no pelear con translate CSS ni trabar con stagger. */
+  const panelVariants = isResources
+    ? {
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+            ease: MOTION_EASE.out,
+          },
+        },
+        exit: {
+          opacity: 0,
+          transition: {
+            duration: reducedMotion ? 0.01 : 0.12,
+            ease: MOTION_EASE.standard,
+          },
+        },
+      }
+    : {
+        hidden: {
+          opacity: 0,
+          y: reducedMotion ? 0 : 6,
+          scale: reducedMotion ? 1 : 0.98,
+        },
+        visible: {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: {
+            duration: reducedMotion ? 0.06 : MOTION_DURATION.base,
+            ease: MOTION_EASE.cinematic,
+            when: 'beforeChildren',
+            delayChildren: reducedMotion ? 0 : 0.02,
+            staggerChildren: reducedMotion ? 0 : 0.02,
+          },
+        },
+        exit: {
+          opacity: 0,
+          y: reducedMotion ? 0 : 4,
+          scale: reducedMotion ? 1 : 0.99,
+          transition: {
+            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+            ease: MOTION_EASE.standard,
+          },
+        },
+      }
+
   return (
     <div className={`plu-global-nav__dropdown${secondary ? ' plu-global-nav__dropdown--secondary' : ''}`} data-open={open || undefined} ref={rootRef}>
       <button
         type="button"
         id={`${menuId}-trigger`}
-        className={`plu-global-nav__link plu-global-nav__trigger${active ? ' is-active' : ''}`}
+        className={`plu-global-nav__link plu-global-nav__trigger${active ? ' is-active' : ''}${open ? ' is-open' : ''}`}
         aria-controls={menuId}
         aria-current={active ? 'page' : undefined}
         aria-expanded={open}
@@ -231,7 +315,7 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
           />
         ) : null}
         <span className="plu-global-nav__link-content">
-          {label}<ChevronDown size={13} aria-hidden />
+          {label}<ChevronDown size={13} aria-hidden className="plu-global-nav__chevron" />
         </span>
         {active ? <SharedActiveIndicator /> : null}
       </button>
@@ -244,36 +328,11 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
             ref={menuRef}
             role="menu"
             aria-labelledby={`${menuId}-trigger`}
-            style={{
-              /* Origin alinea el settle con el trigger (resources usa translate -58%). */
-              transformOrigin: variant === 'resources' ? '58% top' : 'top center',
-            }}
+            style={isResources ? undefined : { transformOrigin: 'top center' }}
             initial="hidden"
             animate="visible"
-            exit="hidden"
-            variants={{
-              hidden: {
-                opacity: 0,
-                y: reducedMotion ? 0 : 6,
-                scale: reducedMotion ? 1 : 0.98,
-                transition: {
-                  duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-                  ease: MOTION_EASE.standard,
-                },
-              },
-              visible: {
-                opacity: 1,
-                y: 0,
-                scale: 1,
-                transition: {
-                  duration: reducedMotion ? 0.06 : MOTION_DURATION.base,
-                  ease: MOTION_EASE.cinematic,
-                  when: 'beforeChildren',
-                  delayChildren: reducedMotion ? 0 : 0.03,
-                  staggerChildren: reducedMotion ? 0 : 0.028,
-                },
-              },
-            }}
+            exit="exit"
+            variants={panelVariants}
             onKeyDown={handleMenuKeyDown}
           >
             {children}
@@ -616,21 +675,7 @@ export default function NavbarPublic({
                       variant="resources"
                       secondary
                     >
-                      <m.div
-                        className="plu-resources-menu__head"
-                        role="presentation"
-                        variants={{
-                          hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
-                          visible: {
-                            opacity: 1,
-                            y: 0,
-                            transition: {
-                              duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-                              ease: MOTION_EASE.out,
-                            },
-                          },
-                        }}
-                      >
+                      <div className="plu-resources-menu__head" role="presentation">
                         <div>
                           <p>{t('nav.moreMenuLabel')}</p>
                           <span>{t('nav.moreMenuIntro')}</span>
@@ -639,39 +684,13 @@ export default function NavbarPublic({
                           {t('nav.viewResources')}
                           <ArrowRight size={14} aria-hidden />
                         </button>
-                      </m.div>
-                      <m.div
-                        className="plu-resources-menu__groups"
-                        role="presentation"
-                        variants={{
-                          hidden: { opacity: 0 },
-                          visible: {
-                            opacity: 1,
-                            transition: {
-                              when: 'beforeChildren',
-                              staggerChildren: reducedMotion ? 0 : 0.03,
-                            },
-                          },
-                        }}
-                      >
+                      </div>
+                      <div className="plu-resources-menu__groups" role="presentation">
                         {moreGroups.map((group) => (
-                          <m.div
+                          <div
                             key={group.label}
                             className="plu-resources-menu__group"
                             role="presentation"
-                            variants={{
-                              hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
-                              visible: {
-                                opacity: 1,
-                                y: 0,
-                                transition: {
-                                  duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-                                  ease: MOTION_EASE.out,
-                                  when: 'beforeChildren',
-                                  staggerChildren: reducedMotion ? 0 : 0.02,
-                                },
-                              },
-                            }}
                           >
                             <p>{group.label}</p>
                             {group.items.map((navItem) => (
@@ -680,14 +699,15 @@ export default function NavbarPublic({
                                 active={navItem.active}
                                 description={navItem.hint}
                                 icon={navItem.icon}
+                                instant
                                 label={navItem.label}
                                 tone={navItem.featured ? 'featured' : 'default'}
                                 onClick={() => navigateNavItem(navItem)}
                               />
                             ))}
-                          </m.div>
+                          </div>
                         ))}
-                      </m.div>
+                      </div>
                     </NavDropdown>
                   )
                 }

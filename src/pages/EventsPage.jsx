@@ -238,15 +238,51 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
   const ticketPrice = cheapestTicketTypePrice(pricing)
   const hasPublishedPrice = event?.pricing?.ticketsEnabled !== false && ticketPrice != null
 
+  if (minimal) {
+    return (
+      <section
+        className="events-public-tickets events-public-tickets--minimal"
+        aria-labelledby="events-public-tickets-title"
+      >
+        <h3 id="events-public-tickets-title" className="events-public-tickets__title">
+          {t('pages.events.publicTicketsTitleShort')}
+        </h3>
+        <div className="events-public-tickets__row">
+          <p className="events-public-tickets__price">
+            {hasPublishedPrice ? (
+              <>
+                <span className="events-public-tickets__price-caption">
+                  {t('pages.events.publicTicketsFromCaption')}
+                </span>
+                <span className="events-public-tickets__price-value">{money(ticketPrice, locale)}</span>
+              </>
+            ) : (
+              <span className="events-public-tickets__price-closed">{t('pages.events.publicTicketsClosed')}</span>
+            )}
+          </p>
+          <button
+            type="button"
+            className="events-public-tickets__text-link motion-icon-shift"
+            onClick={onBuyTickets}
+            disabled={!hasPublishedPrice}
+          >
+            {t('pages.events.publicTicketsCta')}
+            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section
-      className={`events-public-tickets${minimal ? ' events-public-tickets--minimal' : ''}`}
+      className="events-public-tickets"
       aria-labelledby="events-public-tickets-title"
     >
       <div className="events-public-tickets__copy">
-        {!minimal ? <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span> : null}
+        <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span>
         <h3 id="events-public-tickets-title">{t('pages.events.publicTicketsTitle')}</h3>
-        {!minimal ? <p>{t('pages.events.publicTicketsLead')}</p> : null}
+        <p>{t('pages.events.publicTicketsLead')}</p>
       </div>
       <div className="events-public-tickets__aside">
         <p className="events-public-tickets__price">
@@ -254,28 +290,16 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
             : t('pages.events.publicTicketsClosed')}
         </p>
-        {minimal ? (
-          <button
-            type="button"
-            className="events-public-tickets__text-link"
-            onClick={onBuyTickets}
-            disabled={!hasPublishedPrice}
-          >
-            {t('pages.events.publicTicketsCta')}
-            <ArrowRight size={14} aria-hidden />
-          </button>
-        ) : (
-          <Button
-            variant="outline"
-            className="events-public-tickets__cta motion-icon-shift"
-            onClick={onBuyTickets}
-            disabled={!hasPublishedPrice}
-          >
-            <Ticket size={14} aria-hidden />
-            {t('pages.events.publicTicketsCta')}
-            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          className="events-public-tickets__cta motion-icon-shift"
+          onClick={onBuyTickets}
+          disabled={!hasPublishedPrice}
+        >
+          <Ticket size={14} aria-hidden />
+          {t('pages.events.publicTicketsCta')}
+          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+        </Button>
       </div>
     </section>
   )

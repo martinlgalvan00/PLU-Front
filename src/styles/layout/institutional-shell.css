@@ -342,6 +342,23 @@
   gap: 5px;
 }
 
+.plu-global-nav__chevron {
+  flex: none;
+  opacity: 0.72;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.plu-global-nav__trigger.is-open .plu-global-nav__chevron,
+.plu-global-nav__dropdown[data-open] .plu-global-nav__chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plu-global-nav__chevron {
+    transition: none;
+  }
+}
+
 /* Hover: hairline dorado editorial (layoutId compartido). Sin pill SaaS. */
 .plu-global-nav__hover-pill {
   position: absolute;
@@ -491,7 +508,7 @@
   background: color-mix(in srgb, var(--institution-text) 3%, transparent);
   border-color: color-mix(in srgb, var(--institution-text) 6%, transparent);
   color: var(--institution-text);
-  transform: translateX(4px);
+  /* translateX vive en Motion (whileHover) para no pelear con transform inline */
 }
 
 .plu-nav-menu__item--featured {
@@ -652,7 +669,7 @@
 
 .plu-resources-menu__groups {
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr;
+  grid-template-columns: 1.25fr 1fr;
   padding: 8px;
 }
 

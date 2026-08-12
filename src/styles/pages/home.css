@@ -4823,6 +4823,71 @@
   opacity: 0.5;
 }
 
+/* Ocupación live del torneo. Sin card: una cifra, una regla y una línea de
+   nombres, en el mismo acento oro que el kicker y el CTA del bloque. */
+.pitbull-spotlight__home-live {
+  display: grid;
+  gap: 8px;
+  max-width: min(38ch, 100%);
+}
+
+.pitbull-spotlight__home-live-count {
+  align-items: baseline;
+  color: rgba(255, 255, 255, 0.72);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: clamp(12px, 1.3vw, 13px);
+  gap: 0.45em;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.pitbull-spotlight__home-live-count strong {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.pitbull-spotlight__home-live-track {
+  background: rgba(255, 255, 255, 0.18);
+  block-size: 2px;
+  border-radius: 999px;
+  display: block;
+  inline-size: 100%;
+  overflow: hidden;
+}
+
+.pitbull-spotlight__home-live-fill {
+  background: var(--plu-gold-500, var(--color-brand-gold));
+  block-size: 100%;
+  border-radius: inherit;
+  display: block;
+  /* El ancho llega del servidor: se interpola para que un alta nueva se lea
+     como avance y no como salto. Reduced motion lo anula la regla global de
+     animations.css. */
+  transition: inline-size var(--motion-slow, 480ms) var(--ease-out, ease);
+}
+
+.pitbull-spotlight__home-live-names {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pitbull-spotlight__home-live-names-label {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  margin-inline-end: 0.6em;
+  text-transform: uppercase;
+}
+
 .pitbull-spotlight__home-actions {
   align-items: center;
   display: flex;

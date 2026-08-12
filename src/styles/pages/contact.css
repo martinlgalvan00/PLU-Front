@@ -196,25 +196,47 @@
   padding-top: 14px;
 }
 
-/* Contenido principal */
-.contact-page__inner {
+/* Contenido principal — shell institucional (sin solapar el hero) */
+.contact-page--premium .contact-page__inner,
+.contact-page--institutional .contact-page__inner {
   margin: 0 auto;
-  max-width: var(--max-width-content);
-  padding: 0 clamp(20px, 5vw, 64px) clamp(56px, 8vw, 112px);
+  max-width: var(--institution-content-max, 1180px);
+  padding: clamp(46px, 7vw, 88px) var(--institution-gutter, clamp(18px, 4.6vw, 64px))
+    clamp(70px, 9vw, 116px);
   position: relative;
+  width: 100%;
   z-index: 2;
 }
 
-.contact-layout {
+.contact-page--premium .contact-layout,
+.contact-page--institutional .contact-layout {
   align-items: start;
   display: grid;
-  gap: clamp(28px, 5vw, 76px);
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
-  margin-top: clamp(-112px, -8vw, -56px);
+  gap: clamp(40px, 5vw, 64px);
+  /* Lectura + riel meta: no estirar el sidebar ni heredar padding de design-phase2 */
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  width: 100%;
 }
 
-/* Formulario — flujo editorial abierto (sin card) */
-.contact-form {
+.contact-page--premium .contact-layout > *,
+.contact-page--institutional .contact-layout > * {
+  min-width: 0;
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .contact-page--premium .contact-layout,
+  .contact-page--institutional .contact-layout {
+    gap: 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 250px);
+  }
+}
+
+/* Neutraliza card/legacy si design-phase2 quedó en el cascade del SPA */
+.contact-page--premium .contact-form,
+.contact-page--institutional .contact-form {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -222,9 +244,20 @@
   display: grid;
   gap: clamp(28px, 3.6vw, 40px);
   margin: 0;
+  max-width: none;
   overflow: visible;
   padding: 0;
   position: relative;
+}
+
+.contact-page--premium .contact-sidebar,
+.contact-page--institutional .contact-sidebar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  max-width: none;
 }
 
 .contact-form::before {
@@ -745,13 +778,16 @@
     font-size: clamp(3rem, 8vw, 5.3rem);
   }
 
-  .contact-layout {
-    gap: 24px;
+  .contact-page--premium .contact-layout,
+  .contact-page--institutional .contact-layout {
+    gap: 36px;
     grid-template-columns: 1fr;
-    margin-top: clamp(-72px, -8vw, -40px);
+    margin: 0;
+    padding: 0;
   }
 
-  .contact-sidebar {
+  .contact-page--premium .contact-sidebar,
+  .contact-page--institutional .contact-sidebar {
     position: static;
   }
 }
@@ -800,12 +836,14 @@
     padding: 18px;
   }
 
-  .contact-page__inner {
-    padding: 0 16px 56px;
+  .contact-page--premium .contact-page__inner,
+  .contact-page--institutional .contact-page__inner {
+    padding: 48px 18px 72px;
   }
 
-  .contact-layout {
-    margin-top: -26px;
+  .contact-page--premium .contact-layout,
+  .contact-page--institutional .contact-layout {
+    margin: 0;
   }
 
   .contact-form,
@@ -860,4 +898,23 @@
   .contact-form__motive.is-active::after {
     transform: none;
   }
+}
+
+/* Escudo de cascade: gana a design-phase2 si esa hoja quedó viva en el SPA */
+.contact-page.contact-page--premium .contact-layout,
+.contact-page.contact-page--institutional .contact-layout {
+  margin: 0;
+  max-width: none;
+  padding: 0;
+}
+
+.contact-page.contact-page--premium .contact-form,
+.contact-page.contact-page--institutional .contact-form,
+.contact-page.contact-page--premium .contact-sidebar,
+.contact-page.contact-page--institutional .contact-sidebar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }

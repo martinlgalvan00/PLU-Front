@@ -47,7 +47,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .records-sheet__stamp {
@@ -60,7 +60,11 @@
 }
 
 .records-sheet__export {
+  align-items: center;
+  display: inline-flex;
   flex-shrink: 0;
+  justify-content: center;
+  line-height: 0;
 }
 
 .records-sheet__toolbar {
@@ -200,46 +204,56 @@
   display: none;
 }
 
-.records-sheet__pills.filter-pills--refined {
+/* Reset track/pill SaaS (events + design-phase2 usan radius 999px). */
+.records-page--federated .records-sheet__pills.filter-pills,
+.records-page--federated .records-sheet__pills.filter-pills--refined {
   background: transparent;
   border: 0;
+  border-radius: 0;
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
   padding: 0;
 }
 
-.records-sheet__pills.filter-pills--refined .filter-pills__item {
+.records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item {
+  align-items: center;
   background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
+  box-shadow: none;
   color: var(--color-text-secondary);
+  display: inline-flex;
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 600;
+  justify-content: center;
   letter-spacing: -0.01em;
+  line-height: 1;
   min-height: 36px;
   padding: 0 12px;
   white-space: nowrap;
 }
 
-.records-sheet__pills.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+.records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
   border-color: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
   color: var(--color-text-primary);
 }
 
-.records-sheet__pills.filter-pills--refined .filter-pills__item.is-active {
+.records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item.is-active {
   background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
   border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, transparent);
+  box-shadow: none;
   color: var(--color-text-primary);
 }
 
 /* Sexo: rail tipográfico (sin track/pill SaaS), acento oro en activo. */
-.records-sheet__pills--sex.filter-pills--refined {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined {
   gap: 0;
 }
 
-.records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -254,23 +268,25 @@
   text-transform: uppercase;
 }
 
-.records-sheet__pills--sex.filter-pills--refined .filter-pills__item + .filter-pills__item {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item + .filter-pills__item {
   margin-left: 2px;
 }
 
-.records-sheet__pills--sex.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+  background: transparent;
   border-bottom-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
   color: var(--color-text-secondary);
 }
 
-.records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
   background: transparent;
   border-bottom-color: var(--color-brand-gold);
+  box-shadow: none;
   color: var(--color-text-primary);
   font-weight: 700;
 }
 
-.records-sheet__pills--sex.filter-pills--refined .filter-pills__item:focus-visible {
+.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
 }
@@ -683,15 +699,15 @@
 [data-theme='light'] .records-sheet__lift,
 [data-theme='light'] .records-sheet__card,
 [data-theme='light'] .records-sheet__search,
-[data-theme='light'] .records-sheet__pills.filter-pills--refined .filter-pills__item {
+[data-theme='light'] .records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item {
   background-color: rgba(15, 17, 23, 0.025);
 }
 
-[data-theme='light'] .records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
+[data-theme='light'] .records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
   background: transparent;
 }
 
-[data-theme='light'] .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+[data-theme='light'] .records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
   border-bottom-color: var(--color-brand-gold);
   color: var(--color-text-primary);
 }

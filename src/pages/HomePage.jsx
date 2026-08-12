@@ -31,20 +31,32 @@ const teaserDuoVariants = {
   },
 }
 
-export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
+export default function HomePage({
+  onNavigate,
+  onSelectEvent,
+  events = [],
+  session,
+  memberships = [],
+}) {
   const { reducedMotion } = useMotionConfig()
   const { PITBULL_CLASSIC } = useContent()
   const launchEvent = getPitbullClassicEvent(events) ?? getFeaturedEvent(events)
   const featuredDestination = getFeaturedEventDestination(launchEvent)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
-  const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
-  const { registered: liveRegistered, slots: liveSlots } = useEventRegistrationCapacity(
-    launchEvent?.slug ?? 'pitbull-classic-2026',
-    {
-      fallbackRegistered: PITBULL_CLASSIC.registered,
-      fallbackSlots: PITBULL_CLASSIC.slots,
-    },
-  )
+  const hasActiveMembership =
+    isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  const {
+    status: capacityStatus,
+    registered: liveRegistered,
+    slots: liveSlots,
+    recent: recentRegistrants,
+  } = useEventRegistrationCapacity(launchEvent?.slug ?? 'pitbull-classic-2026', {
+    // El contador solo refresca mientras la banda del torneo está a la vista:
+    // en el resto del scroll de la landing no hay polling.
+    observeRoot: 'torneo-destacado',
+    fallbackRegistered: PITBULL_CLASSIC.registered,
+    fallbackSlots: PITBULL_CLASSIC.slots,
+  })
 
   function handlePitbullRegister() {
     onSelectEvent?.(launchEvent)
@@ -67,9 +79,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
 
   const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env)
   const isRegistrationDisabled =
-    !paidCheckoutOpen
-    || !launchEvent
-    || launchEvent.status === 'proximamente'
+    !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
 
   return (
     <main className="home-page">
@@ -81,11 +91,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
           id="apertura-inscripciones"
         >
           <div className="home-section__inner">
-            <LaunchRegistrationTeaser
-              event={launchEvent}
-              onNavigate={onNavigate}
-              variant="hero"
-            />
+            <LaunchRegistrationTeaser event={launchEvent} onNavigate={onNavigate} variant="hero" />
           </div>
         </section>
       ) : null}
@@ -96,15 +102,20 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
         </div>
       </section>
 
-      <section className="home-section home-section--immersive home-section--pitbull-home home-section--pitbull-bleed">
+      <section
+        className="home-section home-section--immersive home-section--pitbull-home home-section--pitbull-bleed"
+        id="torneo-destacado"
+      >
         <div className="home-section__inner home-section__inner--bleed">
           <PitbullSpotlight
             variant="home"
+            capacityStatus={capacityStatus}
             event={launchEvent}
             onDetail={openFeaturedEvent}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onResults={() => onNavigate?.('results')}
+            recent={recentRegistrants}
             registered={liveRegistered}
             slots={liveSlots}
           />

@@ -19,6 +19,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>PLU Argentina — Powerlifting United</title>
+    <script>
+      /* Tema antes del primer paint. Sin esto el documento pinta el default
+         (dark) y recién al ejecutar main.jsx cambia a light: con la transición
+         de tema activa, ese salto se ve como un flash animado en cada carga.
+         Misma lógica que src/lib/theme.js (resolveTheme('system')). */
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('plu-arg-theme')
+          var theme =
+            stored === 'dark' || stored === 'light'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark'
+          document.documentElement.setAttribute('data-theme', theme)
+          document.documentElement.style.colorScheme = theme
+        } catch (error) {
+          document.documentElement.setAttribute('data-theme', 'dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

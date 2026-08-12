@@ -187,9 +187,15 @@
 
 .export-btn--icon-only {
   gap: 0;
+  justify-content: center;
   min-width: 38px;
   padding: 0;
   width: 38px;
+}
+
+.export-btn--icon-only svg {
+  display: block;
+  flex: none;
 }
 
 /* =============================================

@@ -60,6 +60,11 @@ import {
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
 import {
+  invalidateEventLiveData,
+  invalidateEventRegistrationSummary,
+  invalidateTicketAvailability,
+} from '../services/eventLiveStore.js'
+import {
   demoAthletes,
   demoMemberships,
   demoPayments,
@@ -406,6 +411,10 @@ export function useAppData() {
           return updated.createdOrder
         })
         setTickets((current) => applyPaymentUpdate(null, current, event.detail).tickets)
+        // El pago puede haber pasado a aprobado o rechazado: el detalle no
+        // trae el evento, así que se vencen las dos caches públicas y el
+        // próximo lector vuelve a preguntarle al servidor.
+        invalidateEventLiveData()
       }
       void refreshAthleteData()
     }
@@ -763,6 +772,10 @@ export function useAppData() {
           eventSlug: selectedEvent.slug,
         }
         setRegistrations((current) => [enrichedRegistration, ...current])
+        // El cupo público de ese evento acaba de cambiar: la landing y el
+        // dossier de Pitbull lo repintan sin esperar el próximo tick de
+        // polling. El número sigue saliendo del servidor, no de acá.
+        invalidateEventRegistrationSummary(selectedEvent.slug)
         if (membership) {
           setMemberships((current) => [
             membership,
@@ -857,6 +870,9 @@ export function useAppData() {
             : null
         const mappedTickets = createdTickets.map((ticket) => mapApiTicket(ticket, purchaseEvent))
         setTickets((current) => [...mappedTickets, ...current])
+        // Las entradas creadas ya ocupan cupo en el backend: el aviso de
+        // disponibilidad tiene que dejar de mostrar el remaining anterior.
+        invalidateTicketAvailability(purchaseEvent.slug)
         const nextOrder = {
           type: 'tickets',
           orderId: order.id,

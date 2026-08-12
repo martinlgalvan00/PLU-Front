@@ -175,6 +175,26 @@
     box-shadow var(--transition-fast);
 }
 
+/* El toggle es un chip chico a propósito (la barra mide 52-62px de alto y un
+   control de 44px la desbalancea), pero en touch el área sensible no puede
+   quedar en 34-40px. El pseudoelemento la lleva a 44×44 sin cambiar el dibujo
+   ni empujar a los vecinos del cluster.
+   Solo en punteros gruesos: el mínimo de 44px es para el dedo, y con mouse
+   ampliar el área invadiría el switch de idioma, que queda a 2px. */
+@media (pointer: coarse) {
+  .pref-toggle::before {
+    content: '';
+    height: 100%;
+    left: 50%;
+    min-height: 44px;
+    min-width: 44px;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+  }
+}
+
 .pref-toggle:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--color-border-light);

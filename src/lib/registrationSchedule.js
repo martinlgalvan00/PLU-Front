@@ -44,17 +44,20 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
   if (!Number.isFinite(date.getTime())) return null
 
   const tag = locale === 'en' ? 'en-US' : 'es-AR'
+  const timeZone = 'America/Argentina/Buenos_Aires'
   const day = date
     .toLocaleDateString(tag, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone,
     })
     .replace(/\.$/, '')
   const time = date.toLocaleTimeString(tag, {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
   })
 
   return { day, time }

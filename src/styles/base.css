@@ -78,10 +78,6 @@ body {
   min-width: 320px;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  /* Transición suave de todos los tokens al cambiar tema */
-  transition:
-    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 h1,
@@ -107,12 +103,6 @@ a {
   color: inherit;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-}
-
 button,
 input,
 select,
@@ -133,11 +123,32 @@ button:disabled {
 }
 
 .app-shell {
-  background: var(--color-bg-primary);
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
+  isolation: isolate;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Atmósfera dark en capa aparte: solo opacity interpola (no background-image).
+   z-index -1 + isolation en el shell evita tapar el contenido sin forzar
+   position en hijos (rompe sticky del header). */
+.app-shell::before {
+  background-image: var(--theme-atmosphere-layer);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+[data-theme='dark'] .app-shell::before {
+  opacity: 1;
 }
 
 /* =============================================
@@ -146,111 +157,131 @@ button:disabled {
 
 /* ── Duración del cambio de tema (usada en toda la capa) */
 :root {
-  --transition-theme: 160ms ease-out;
+  --transition-theme: var(--motion-base) var(--ease-out);
+  --transition-theme-vt-out: 220ms;
+  --transition-theme-vt-in: 280ms;
 }
 
-/* Fallback: transición CSS en todos los elementos afectados por tema
-   (solo activa cuando View Transition API no está disponible) */
-.site-header,
-.app-shell,
-.stat-block,
-.event-card,
-.events-stat,
-.events-detail,
-.event-calendar,
-.filter-pills,
-.filter-pills__item,
-.events-sidebar-card,
-.events-list--design .event-card,
-.result-card,
-.results-podium,
-.podium-card,
-.results-table-row,
-.community-card,
-.membership-card,
-.account-hero,
-.account-nav__inner,
-.account-section,
-.account-credential__flip,
-.admin-metric,
-.admin-shell__sidebar,
-.admin-page-toolbar,
-.admin-quick-dock,
-.admin-kpi-board,
-.admin-command-center__pane,
-.admin-list-shell,
-.admin-roles__create,
-.admin-roles__workspace,
-.admin-roles__matrix-panel,
-.admin-action-drawer,
-.admin-filters,
-.admin-filter-chip,
-.admin-filters__search,
-.admin-filters__select,
-.data-table--admin,
-.data-table-card--admin,
-.data-table-mobile-toolbar,
-.member-profile-card,
-.detail-tabs,
-.athlete-detail__sheet,
-.athlete-detail__panel,
-.athlete-detail__back,
-.admin-payment-ops,
-.admin-payment-ops__metric,
-.admin-event-editor-modal__panel,
-.admin-event-form__actions,
-.admin-event-preview,
-.admin-event-security,
-.admin-event-security__item,
-.security-team-builder,
-.security-team-builder__row,
-.security-team-delivery,
-.admin-api-notice,
-.checkin-app,
-.checkin-app__top,
-.checkin-app__metric,
-.checkin-app__list,
-.mp-embedded-checkout,
-.admin-welcome,
-.action-queue,
-.recent-activity,
-.faq-item,
-.cta-section__inner,
-.about-pillar,
-.pitbull-spotlight,
-.competition-map,
-.competition-map__selection,
-.competition-map__fallback,
-.competition-map__event,
-.design-page-hero,
-.site-footer__main,
-.site-footer__bottom,
-:where(
-  .institutional-page,
-  .institutional-hero,
-  .site-header--institutional,
-  .plu-nav-menu,
-  .plu-drawer,
-  .plu-drawer-backdrop,
-  .resource-feature,
-  .resource-support__note,
-  .community-manifesto,
-  .community-venue-note,
-  .community-honest-state,
-  .faq-search,
-  .faq-categories button,
-  .faq-empty-state,
-  .rulebook-doc-panel,
-  .rulebook-summary__card,
-  .rulebook-lift-card,
-  .rulebook-index-mobile select,
-  .contact-form,
-  .contact-sidebar,
-  .contact-form__motive,
-  .contact-form__field input,
-  .contact-form__field textarea,
-  .contact-success
-) {
+/* Fallback CSS para navegadores sin View Transition API.
+   ‼ Todo va dentro de `html[data-theme-transition]`, que ThemeProvider prende
+   solo durante el cambio de tema y apaga al terminar. Antes esta lista aplicaba
+   siempre: cada hover sobre una card, un chip, una fila de tabla o un filtro
+   del panel interpolaba background + border + box-shadow + color durante
+   240ms. Eso volvía el feedback de hover pastoso y, en mobile, agregaba
+   trabajo de paint en el peor momento (scroll con el dedo apoyado).
+   Fuera del cambio de tema, estos elementos vuelven a responder al instante y
+   cada componente conserva sus propias transiciones donde las declaró. */
+
+/* La atmósfera del dark interpola solo `opacity` (nunca `background-image`):
+   es lo que el compositor resuelve en GPU sin repintar el documento entero. */
+[data-theme-transition] .app-shell::before {
+  transition: opacity var(--transition-theme);
+}
+
+[data-theme-transition]
+  :is(
+    body,
+    .app-shell,
+    .site-header,
+    .stat-block,
+    .event-card,
+    .events-stat,
+    .events-detail,
+    .event-calendar,
+    .filter-pills,
+    .filter-pills__item,
+    .events-sidebar-card,
+    .events-list--design .event-card,
+    .result-card,
+    .results-podium,
+    .podium-card,
+    .results-table-row,
+    .community-card,
+    .membership-card,
+    .account-hero,
+    .account-nav__inner,
+    .account-section,
+    .account-credential__flip,
+    .admin-metric,
+    .admin-shell__sidebar,
+    .admin-page-toolbar,
+    .admin-quick-dock,
+    .admin-kpi-board,
+    .admin-command-center__pane,
+    .admin-list-shell,
+    .admin-roles__create,
+    .admin-roles__workspace,
+    .admin-roles__matrix-panel,
+    .admin-action-drawer,
+    .admin-filters,
+    .admin-filter-chip,
+    .admin-filters__search,
+    .admin-filters__select,
+    .data-table--admin,
+    .data-table-card--admin,
+    .data-table-mobile-toolbar,
+    .member-profile-card,
+    .detail-tabs,
+    .athlete-detail__sheet,
+    .athlete-detail__panel,
+    .athlete-detail__back,
+    .admin-payment-ops,
+    .admin-payment-ops__metric,
+    .admin-event-editor-modal__panel,
+    .admin-event-form__actions,
+    .admin-event-preview,
+    .admin-event-security,
+    .admin-event-security__item,
+    .security-team-builder,
+    .security-team-builder__row,
+    .security-team-delivery,
+    .admin-api-notice,
+    .checkin-app,
+    .checkin-app__top,
+    .checkin-app__metric,
+    .checkin-app__list,
+    .mp-embedded-checkout,
+    .admin-welcome,
+    .action-queue,
+    .recent-activity,
+    .faq-item,
+    .cta-section__inner,
+    .about-pillar,
+    .pitbull-spotlight,
+    .competition-map,
+    .competition-map__selection,
+    .competition-map__fallback,
+    .competition-map__event,
+    .design-page-hero,
+    .site-footer__main,
+    .site-footer__bottom,
+    :where(
+      .institutional-page,
+      .institutional-hero,
+      .site-header--institutional,
+      .plu-nav-menu,
+      .plu-drawer,
+      .plu-drawer-backdrop,
+      .resource-feature,
+      .resource-support__note,
+      .community-manifesto,
+      .community-venue-note,
+      .community-honest-state,
+      .faq-search,
+      .faq-categories button,
+      .faq-empty-state,
+      .rulebook-doc-panel,
+      .rulebook-summary__card,
+      .rulebook-lift-card,
+      .rulebook-index-mobile select,
+      .contact-form,
+      .contact-sidebar,
+      .contact-form__motive,
+      .contact-form__field input,
+      .contact-form__field textarea,
+      .contact-success
+    )
+  ) {
   transition:
     background var(--transition-theme),
     background-color var(--transition-theme),
@@ -286,13 +317,13 @@ button:disabled {
 }
 
 ::view-transition-old(root) {
-  animation: 130ms ease-out both theme-fade-out;
+  animation: var(--transition-theme-vt-out) var(--ease-out) both theme-fade-out;
   mix-blend-mode: normal;
   z-index: 1;
 }
 
 ::view-transition-new(root) {
-  animation: 170ms ease-out both theme-fade-in;
+  animation: var(--transition-theme-vt-in) var(--ease-out) both theme-fade-in;
   mix-blend-mode: normal;
   z-index: 2;
 }
@@ -337,26 +368,16 @@ button:disabled {
   animation: theme-icon-swap 0.5s var(--ease-spring) forwards;
 }
 
+/* Reduced motion: las transiciones de la capa de tema ya las anula la regla
+   global de animations.css (`*, *::before, *::after`), y ThemeProvider además
+   no entra por la rama animada. Acá solo queda lo que esa regla no alcanza:
+   los pseudoelementos de View Transition viven fuera del árbol del documento.
+   Antes este bloque repetía la lista de selectores del fallback para ponerles
+   `transition-duration: 0.01ms`, que era una tercera copia de lo mismo. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
   ::view-transition-new(root),
   .pref-toggle--switching svg {
     animation: none;
-  }
-
-  body,
-  .site-header,
-  .app-shell,
-  :where(
-    .institutional-page,
-    .institutional-hero,
-    .plu-nav-menu,
-    .contact-form,
-    .contact-sidebar,
-    .contact-form__motive,
-    .contact-form__field input,
-    .contact-form__field textarea
-  ) {
-    transition-duration: 0.01ms;
   }
 }
