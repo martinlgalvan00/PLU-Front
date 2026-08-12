@@ -1,8 +1,9 @@
 /**
  * recordsService.js — PLU ARG
  *
- * Padrón público de mejores marcas derivado solo de meets con resultados
- * publicados. No inventa marcas: lee planillas ya expuestas en resultados.
+ * Padrón público de mejores marcas. Hoy el padrón oficial está vacío
+ * (sin mockear fixtures). Resultados sigue usando planillas publicadas.
+ * Cuando exista fuente federativa, cablear buildRecordsRegisterFromMeets.
  */
 
 import {
@@ -45,6 +46,20 @@ function weightClassSortValue(weightClass = '') {
 }
 
 /**
+ * Padrón público: vacío hasta fuente oficial (no deriva fixtures de Resultados).
+ * @returns {{ entries: Array<object>, meetCount: number, sourceMeets: string[] }}
+ */
+export function buildRecordsRegister() {
+  return {
+    entries: [],
+    meetCount: 0,
+    sourceMeets: [],
+  }
+}
+
+/**
+ * Deriva mejores marcas desde planillas publicadas (helper para fuente oficial).
+ * @param {Array<object>} [meets]
  * @returns {{
  *   entries: Array<{
  *     id: string
@@ -66,11 +81,11 @@ function weightClassSortValue(weightClass = '') {
  *   sourceMeets: string[]
  * }}
  */
-export function buildRecordsRegister() {
+export function buildRecordsRegisterFromMeets(meets = listPublishedEventResults()) {
   const best = new Map()
   const sourceMeets = []
 
-  for (const meet of listPublishedEventResults()) {
+  for (const meet of meets) {
     if (meet?.eventTitle) sourceMeets.push(meet.eventTitle)
 
     for (const division of meet.divisions ?? []) {

@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Los tests de migración comparan el SQL como texto plano con saltos \n:
+# con core.autocrlf=true en Windows el checkout los dejaba en CRLF y las
+# aserciones fallaban solo en local. Forzamos LF en disco.
+*.sql text eol=lf
+*.sh text eol=lf

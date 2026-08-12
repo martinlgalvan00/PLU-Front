@@ -3204,7 +3204,9 @@ body:has(.auth-layout) {
   width: 100%;
 }
 
-/* Mobile / tablet: ocupa todo el panel sin scroll interno */
+/* Mobile / tablet: ocupa todo el panel. Scroll interno como red de seguridad —
+   con el teclado abierto el viewport dinámico se achica y, con overflow
+   oculto, el CTA quedaba fuera de alcance sin forma de llegar. */
 .auth-layout .auth-immersive-page {
   align-items: stretch;
   align-self: stretch;
@@ -3217,7 +3219,9 @@ body:has(.auth-layout) {
   justify-content: flex-start;
   max-width: none;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding:
     calc(var(--header-height) + clamp(10px, 1.8vh, 20px))
     clamp(14px, 3.5vw, 24px)
@@ -3243,6 +3247,7 @@ body:has(.auth-layout) {
 
 .auth-layout .auth-immersive-glass {
   /* Superficie sólida editorial: sin glass/blur. Lujo = restricción. */
+  --auth-field-surface: var(--color-bg-elevated, #12141a);
   background: var(--color-bg-elevated, #12141a);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -3260,7 +3265,7 @@ body:has(.auth-layout) {
   margin-inline: 0;
   max-width: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   padding: clamp(18px, 3vh, 34px) clamp(18px, 4vw, 32px) clamp(16px, 2.6vh, 30px);
   position: relative;
   width: 100%;
@@ -3746,8 +3751,13 @@ body:has(.auth-layout) {
     justify-content: flex-start;
     max-width: none;
     min-height: 0;
-    overflow: hidden;
+    /* Scroll interno en vez de `hidden`: recuperar/restablecer con errores
+       visibles supera el alto del panel en notebooks y quedaba recortado. */
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--auth-panel-pad-top) var(--auth-panel-pad-x) var(--auth-panel-pad-bottom);
+    scrollbar-gutter: stable;
     width: 100%;
   }
 
@@ -3755,7 +3765,10 @@ body:has(.auth-layout) {
     display: none;
   }
 
+  /* Columna de lectura acotada y centrada en el eje vertical: el formulario
+     medía ~590px de ancho y quedaba pegado arriba con medio panel vacío. */
   .auth-layout__content .auth-immersive-glass {
+    --auth-field-surface: var(--color-page-canvas);
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -3763,13 +3776,14 @@ body:has(.auth-layout) {
     border-radius: 0;
     box-shadow: none;
     box-sizing: border-box;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     gap: clamp(12px, 2vh, 20px);
     justify-content: flex-start;
-    margin: 0;
-    max-width: 100%;
+    margin-block: auto;
+    margin-inline: 0;
+    max-width: 26rem;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
     padding: 0;
     width: 100%;
     animation: auth-form-enter var(--motion-slow) var(--ease-out) both;
@@ -3850,11 +3864,13 @@ body:has(.auth-layout) {
     right: 0;
     width: 100%;
     margin: 0;
-    padding: 0 clamp(36px, 5vw, 64px);
+    padding: 0 var(--auth-panel-pad-x);
     z-index: 20;
     letter-spacing: 0.04em;
     white-space: nowrap;
-    text-align: center;
+    /* Alineado al borde izquierdo de la columna del formulario, no al centro
+       del panel: centrado quedaba desfasado respecto del bloque de lectura. */
+    text-align: left;
   }
 
   .auth-layout__content .login-page__footer.auth-layout__footer button {
@@ -3973,31 +3989,68 @@ body:has(.auth-layout) {
   }
 }
 
+/* Light: la portada conserva su material oscuro en lugar de seguir al tema.
+   Con el lavado claro (canvas al 94%) la foto perdía todo el contraste y el
+   eslogan flotaba sobre una imagen desteñida. Se comporta como tapa impresa:
+   el panel fotográfico es siempre oscuro, el panel de formulario sí sigue el
+   tema. Así light y dark terminan con el mismo nivel de contraste. */
 [data-theme='light'] .auth-layout__visual-scrim {
   background:
     linear-gradient(
       105deg,
-      color-mix(in srgb, var(--color-page-canvas) 94%, transparent) 0%,
-      color-mix(in srgb, var(--color-page-canvas) 78%, transparent) 44%,
-      color-mix(in srgb, var(--color-page-canvas) 42%, transparent) 74%,
-      color-mix(in srgb, var(--color-page-canvas) 28%, transparent) 100%
+      color-mix(in srgb, var(--plu-cool-950) 88%, transparent) 0%,
+      color-mix(in srgb, var(--plu-cool-950) 66%, transparent) 44%,
+      color-mix(in srgb, var(--plu-cool-950) 32%, transparent) 74%,
+      color-mix(in srgb, var(--plu-cool-950) 18%, transparent) 100%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-page-canvas) 62%, transparent) 0%,
+      color-mix(in srgb, var(--plu-cool-950) 52%, transparent) 0%,
       transparent 30%,
       transparent 56%,
-      color-mix(in srgb, var(--color-page-canvas) 82%, transparent) 100%
+      color-mix(in srgb, var(--plu-cool-950) 74%, transparent) 100%
     ),
     radial-gradient(
       ellipse 48% 36% at 28% 18%,
-      color-mix(in oklab, var(--plu-gold-500) 12%, transparent),
+      color-mix(in oklab, var(--plu-gold-500) 10%, transparent),
       transparent 72%
     );
 }
 
 [data-theme='light'] .auth-layout__visual {
-  border-right-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-right-color: color-mix(in srgb, var(--plu-cool-950) 14%, transparent);
+}
+
+/* El letterhead se pinta en negro en light (brightness(0)); sobre la portada
+   oscura tiene que volver a su versión clara. */
+[data-theme='light'] .auth-layout__emblem {
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, #000 30%, transparent));
+  opacity: 1;
+}
+
+[data-theme='light'] .auth-layout__slogan {
+  color: var(--plu-ink-inverse);
+}
+
+[data-theme='light'] .auth-layout__slogan-line {
+  color: color-mix(in srgb, var(--plu-gold-400) 92%, var(--plu-ink-inverse));
+}
+
+[data-theme='light'] .auth-layout__lead {
+  color: color-mix(in srgb, var(--plu-ink-inverse) 82%, transparent);
+}
+
+[data-theme='light'] .auth-layout__signals li {
+  border-top-color: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
+  color: color-mix(in srgb, var(--plu-ink-inverse) 92%, transparent);
+}
+
+[data-theme='light'] .auth-layout__signals li:last-child {
+  border-bottom-color: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
+}
+
+[data-theme='light'] .auth-layout__meta {
+  color: color-mix(in srgb, var(--plu-ink-inverse) 62%, transparent);
 }
 
 /* =========================================================================
@@ -4195,36 +4248,82 @@ body:has(.auth-layout) {
   opacity: 1;
 }
 
+/* Acción principal: color plano de marca, sin gradiente ni glow. La caja alta
+   con tracking la desalineaba del resto del flujo (registro usa sentence case)
+   y el uppercase queda reservado para eyebrows. */
 .auth-immersive-glass .login-submit,
 .auth-immersive-glass .register-nav button {
-  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-400) 100%);
-  border: none;
-  border-radius: 4px;
-  box-shadow: 0 4px 14px rgba(242, 183, 5, 0.15);
-  color: #14161c;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: -0.005em;
   min-height: 52px;
-  text-transform: uppercase;
+  text-transform: none;
   transform: none;
   transition:
-    background 180ms var(--ease-out),
-    box-shadow 180ms var(--ease-out),
-    color 180ms var(--ease-out);
+    background-color 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   margin-top: 16px;
 }
 
 .auth-immersive-glass .login-submit:hover:not(:disabled),
 .auth-immersive-glass .register-nav button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--plu-gold-500) 90%, white);
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
   box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.auth-immersive-glass .login-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Flecha: micro-interacción de dirección, no decoración */
+.auth-immersive-glass .login-submit__mark {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  height: 16px;
+  justify-content: center;
+  transition: transform 180ms var(--ease-out);
+  width: 16px;
+}
+
+.auth-immersive-glass .login-submit:hover:not(:disabled) .login-submit__mark {
+  transform: translateX(3px);
+}
+
+.auth-immersive-glass .login-submit[aria-busy='true'] .login-submit__mark {
+  transform: none;
+}
+
+.auth-immersive-glass .login-submit:disabled {
+  cursor: progress;
+  opacity: 0.78;
+  transform: none;
+}
+
+.login-submit__spinner {
+  animation: auth-spin 620ms linear infinite;
+  block-size: 15px;
+  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  display: block;
+  inline-size: 15px;
 }
 
 /* Premium Labels & Grid */
@@ -4273,21 +4372,31 @@ body:has(.auth-layout) {
   align-items: center;
 }
 
+/* Enlace de servicio, no segunda acción: caja alta + tracking lo ponían a
+   competir con el label del campo. Sentence case y peso normal lo devuelven
+   a su jerarquía. */
 .auth-immersive-glass .login-field__forgot {
   background: transparent;
   border: none;
-  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  border-radius: 4px;
+  color: color-mix(in oklab, var(--color-text-muted) 88%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
   cursor: pointer;
-  padding: 0;
-  text-transform: uppercase;
-  transition: color 180ms var(--ease-out);
+  padding: 2px 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-text-muted) 34%, transparent);
+  text-transform: none;
+  text-underline-offset: 3px;
+  transition:
+    color 180ms var(--ease-out),
+    text-decoration-color 180ms var(--ease-out);
 }
 
 .auth-immersive-glass .login-field__forgot:hover {
-  color: var(--plu-gold-500);
+  color: var(--color-brand-celeste);
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 60%, transparent);
 }
 
 .auth-immersive-glass .login-field__control {
@@ -4389,16 +4498,20 @@ body:has(.auth-layout) {
   margin-top: 4px;
 }
 
+/* rgba(255,255,255) fijo dejaba borde y texto blancos sobre canvas claro:
+   el "volver" desaparecía en light. Tokens semánticos en ambos temas. */
 .auth-immersive-glass .login-form__back {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 14%, transparent);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition: border-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  letter-spacing: 0;
+  text-transform: none;
+  transition:
+    border-color 180ms var(--ease-out),
+    color 180ms var(--ease-out);
   width: 100%;
   min-height: 48px;
   display: flex;
@@ -4409,6 +4522,179 @@ body:has(.auth-layout) {
 }
 
 .auth-immersive-glass .login-form__back:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  border-color: color-mix(in oklab, var(--color-text-primary) 30%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* =========================================================================
+   AUTH — TRANSICIONES DE MODO, ESTADOS Y FOCO
+   Una sola capa: acá viven el crossfade login ↔ recuperar ↔ restablecer,
+   la cascada de entrada de campos y el anillo de foco del flujo de acceso.
+   ========================================================================= */
+
+/* Los paneles comparten celda: con AnimatePresence mode="sync" el saliente
+   sigue montado durante el crossfade y, apilado en flujo, empujaba la tarjeta. */
+.auth-mode-swap {
+  display: grid;
+  min-width: 0;
+}
+
+.auth-mode-swap > .auth-mode-swap__panel {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.login-submit__label {
+  display: inline-block;
+}
+
+/* Bloq Mayús: aviso operativo, no error. Tono de atención, no rojo. */
+.auth-immersive-glass .login-field__hint {
+  align-items: center;
+  color: color-mix(in oklab, var(--color-brand-gold) 76%, var(--color-text-muted));
+  display: flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
+.auth-immersive-glass .login-field__hint svg {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Cascada de entrada: una sola secuencia one-shot por panel, con el mismo
+     paso que --stagger-step. Se reejecuta al cambiar de modo porque el panel
+     se vuelve a montar. */
+  .auth-immersive-glass .login-form > * {
+    animation: auth-field-enter var(--motion-base) var(--ease-out) both;
+  }
+
+  .auth-immersive-glass .login-form > *:nth-child(1) { animation-delay: 40ms; }
+  .auth-immersive-glass .login-form > *:nth-child(2) { animation-delay: 100ms; }
+  .auth-immersive-glass .login-form > *:nth-child(3) { animation-delay: 160ms; }
+  .auth-immersive-glass .login-form > *:nth-child(4) { animation-delay: 220ms; }
+  .auth-immersive-glass .login-form > *:nth-child(n + 5) { animation-delay: 260ms; }
+
+  .auth-immersive-glass__title,
+  .auth-immersive-glass__lead {
+    animation: auth-copy-enter var(--motion-base) var(--ease-out) both;
+  }
+
+  .auth-immersive-glass__lead {
+    animation-delay: 60ms;
+  }
+
+  .login-field__hint {
+    animation: auth-field-enter var(--motion-fast) var(--ease-out) both;
+  }
+}
+
+@keyframes auth-field-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-copy-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Foco: mismo anillo que la capa institucional, en toda la superficie de acceso */
+.auth-layout :where(button, a, input, select, [tabindex='0']):focus-visible,
+.auth-immersive-glass :where(button, a, input, select, [tabindex='0']):focus-visible {
+  border-radius: 6px;
+  outline: var(--institution-focus-width) solid var(--institution-focus);
+  outline-offset: var(--institution-focus-offset);
+}
+
+/* El input vive dentro del control con su propia línea inferior: el anillo
+   completo se dibuja sobre el control, no sobre el input desnudo. */
+.auth-immersive-glass .login-field__control input:focus-visible {
+  outline: none;
+}
+
+.auth-immersive-glass .login-field__control:has(input:focus-visible) {
+  border-radius: 4px;
+  outline: 2px solid var(--institution-focus);
+  outline-offset: 4px;
+}
+
+/* Autocompletado de Chrome: pinta un fondo celeste propio que rompe el campo
+   de línea inferior. `inset` gigante lo tapa con el color del tema y
+   text-fill-color devuelve el texto a la tipografía del formulario. */
+.auth-immersive-glass .login-field__control input:-webkit-autofill,
+.auth-immersive-glass .login-field__control input:-webkit-autofill:hover,
+.auth-immersive-glass .login-field__control input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--auth-field-surface, var(--color-page-canvas)) inset;
+  -webkit-text-fill-color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
+  transition: background-color 100000s ease 0s;
+}
+
+/* Targets táctiles: el ojo y los enlaces de servicio quedaban bajo 44px.
+   Padding + margen negativo agranda el área sin mover la maqueta. */
+@media (pointer: coarse) {
+  .auth-immersive-glass .login-field__toggle {
+    height: 44px;
+    width: 44px;
+  }
+
+  .auth-immersive-glass .login-field__forgot,
+  .auth-immersive-glass .login-join__link {
+    margin-block: -13px;
+    padding-block: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-immersive-glass .login-form > *,
+  .auth-immersive-glass__title,
+  .auth-immersive-glass__lead,
+  .login-field__hint {
+    animation: none;
+  }
+
+  .auth-immersive-glass .login-submit,
+  .auth-immersive-glass .login-submit__mark {
+    transition: none;
+  }
+
+  .auth-immersive-glass .login-submit:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .auth-immersive-glass .login-submit:hover:not(:disabled) .login-submit__mark {
+    transform: none;
+  }
+
+  /* El spinner comunica un estado real en curso: se conserva, pero sin giro
+     continuo — la etiqueta "Ingresando…" ya lo declara. */
+  .login-submit__spinner {
+    animation: none;
+    border-top-color: color-mix(in oklab, currentColor 28%, transparent);
+    opacity: 0.6;
+  }
 }

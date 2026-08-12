@@ -53,7 +53,7 @@ export default function AnimatedNumber({
     )
     observer.observe(node)
     return () => observer.disconnect()
-  }, [])
+  }, [observerAvailable])
 
   useEffect(() => {
     if (!inView) return undefined

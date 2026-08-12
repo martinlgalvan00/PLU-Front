@@ -169,8 +169,11 @@ export function createApp(deps = {}) {
   app.use(
     '/api/launch-interest',
     createLaunchInterestRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       launchInterestRepository: deps.launchInterestRepository,
+      brevo: deps.brevo,
+      env: deps.env ?? process.env,
     }),
   )
   app.use(notFoundHandler)

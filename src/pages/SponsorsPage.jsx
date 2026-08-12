@@ -11,8 +11,11 @@ import {
 } from '../data/sponsors.js'
 
 export default function SponsorsPage({ onNavigate }) {
-  const { t } = useI18n()
+  const { messages, t } = useI18n()
   const published = hasPublishedSponsors()
+  const benefits = Array.isArray(messages.pages?.sponsors?.benefits)
+    ? messages.pages.sponsors.benefits
+    : []
 
   return (
     <main className="institutional-page sponsors-page--institutional">
@@ -34,9 +37,33 @@ export default function SponsorsPage({ onNavigate }) {
           </section>
         </Reveal>
 
+        <section className="sponsors-benefits" aria-labelledby="sponsors-benefits-title">
+          <header className="institutional-section-head">
+            <p className="institutional-kicker">02 / {t('pages.sponsors.benefitsEyebrow')}</p>
+            <div>
+              <h2 id="sponsors-benefits-title">{t('pages.sponsors.benefitsTitle')}</h2>
+              <p>{t('pages.sponsors.benefitsDesc')}</p>
+            </div>
+          </header>
+
+          <ol className="sponsors-benefits__list">
+            {benefits.map((item, index) => (
+              <li key={item.id} className="sponsors-benefits__item">
+                <span className="sponsors-benefits__index" aria-hidden>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="sponsors-benefits__body">
+                  <h3>{item.title}</h3>
+                  <p>{item.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
         <section className="sponsors-tiers" aria-labelledby="sponsors-tiers-title">
           <header className="institutional-section-head">
-            <p className="institutional-kicker">02 / {t('pages.sponsors.tiersEyebrow')}</p>
+            <p className="institutional-kicker">03 / {t('pages.sponsors.tiersEyebrow')}</p>
             <div>
               <h2 id="sponsors-tiers-title">{t('pages.sponsors.tiersTitle')}</h2>
               <p>{t('pages.sponsors.tiersDesc')}</p>
@@ -81,17 +108,24 @@ export default function SponsorsPage({ onNavigate }) {
         </section>
 
         <Reveal delay={40}>
-          <div className="institutional-cta-row">
-            <button type="button" className="institutional-cta" onClick={() => onNavigate?.('contact')}>
-              <Mail size={16} aria-hidden />
-              <span>{t('pages.sponsors.ctaContact')}</span>
-              <ArrowRight size={14} aria-hidden />
-            </button>
-            <button type="button" className="institutional-cta institutional-cta--ghost" onClick={() => onNavigate?.('events')}>
-              <span>{t('pages.sponsors.ctaCalendar')}</span>
-              <ArrowRight size={14} aria-hidden />
-            </button>
-          </div>
+          <section className="sponsors-close team-close" aria-labelledby="sponsors-close-title">
+            <div className="team-close__copy">
+              <p className="institutional-kicker">04 / {t('pages.sponsors.closeEyebrow')}</p>
+              <h2 id="sponsors-close-title">{t('pages.sponsors.closeTitle')}</h2>
+              <p>{t('pages.sponsors.closeLead')}</p>
+            </div>
+            <div className="team-close__actions">
+              <button type="button" className="team-close__primary" onClick={() => onNavigate?.('contact')}>
+                <Mail size={16} aria-hidden />
+                <span>{t('pages.sponsors.ctaContact')}</span>
+                <ArrowRight size={14} aria-hidden />
+              </button>
+              <button type="button" className="team-close__secondary" onClick={() => onNavigate?.('events')}>
+                <span>{t('pages.sponsors.ctaCalendar')}</span>
+                <ArrowRight size={13} aria-hidden />
+              </button>
+            </div>
+          </section>
         </Reveal>
       </div>
     </main>

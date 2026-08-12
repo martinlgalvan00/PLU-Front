@@ -93,6 +93,7 @@ export default function TeamPage({ onNavigate }) {
             <div className="team-close__copy">
               <p className="institutional-kicker">03 / {t('pages.team.closeEyebrow')}</p>
               <h2 id="team-close-title">{t('pages.team.closeTitle')}</h2>
+              <p>{t('pages.team.closeLead')}</p>
             </div>
             <div className="team-close__actions">
               <button type="button" className="team-close__primary" onClick={() => onNavigate?.('contact')}>

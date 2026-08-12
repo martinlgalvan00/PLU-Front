@@ -108,7 +108,7 @@ export default function ContactForm() {
       <div className="contact-form__actions">
         <button type="submit" className="contact-form__submit">
           <span>{t('contact.submit')}</span>
-          <ArrowRight size={14} aria-hidden />
+          <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
         </button>
         <p className="contact-form__note">{t('contact.submitNote')}</p>
       </div>

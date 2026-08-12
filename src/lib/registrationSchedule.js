@@ -37,6 +37,21 @@ export function resolveLaunchOpenAt({ event, targetDate = null } = {}) {
 }
 
 /**
+ * Fecha futura para countdown de marketing (teaser soft-launch).
+ * Prefiere `registrationOpensAt` del evento si todavía no venció;
+ * si ya pasó o falta, usa `fallback` (catálogo local / fecha de campaña).
+ */
+export function resolveFutureLaunchAt(event, { fallback = null, now = new Date() } = {}) {
+  const nowMs = now instanceof Date ? now.getTime() : Number(now)
+  for (const raw of [event?.registrationOpensAt, fallback]) {
+    if (!raw) continue
+    const ms = toValidMs(raw)
+    if (ms != null && ms > nowMs) return String(raw)
+  }
+  return null
+}
+
+/**
  * Label legible para datetime ISO completo (no usa formatShortDate date-only).
  */
 export function formatRegistrationOpenMoment(iso, locale = 'es') {

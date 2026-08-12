@@ -151,25 +151,57 @@ function PitbullSectionNav({ items, t }) {
   )
 }
 
-function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone, t, variant = 'default' }) {
+function PitbullInscriptionCounter({
+  registered,
+  slots,
+  statusLabel,
+  statusTone,
+  t,
+  variant = 'default',
+  softLaunch = false,
+  capacityLive = false,
+}) {
   const { reducedMotion } = useMotionConfig()
-  const pct = slots > 0 ? Math.round((registered / slots) * 100) : 0
+  const showMeter = capacityLive && !softLaunch
+  const pct = showMeter && slots > 0 ? Math.round((registered / slots) * 100) : 0
   const isCompact = variant === 'compact'
+  const ariaLabel = softLaunch
+    ? t('pages.pitbull.inscriptionCounterPendingAria')
+    : t('pages.pitbull.inscriptionCounterAria', { registered, slots })
 
   return (
     <div
-      className={`pitbull-inscription-counter${isCompact ? ' pitbull-inscription-counter--compact' : ''}`}
+      className={[
+        'pitbull-inscription-counter',
+        isCompact ? 'pitbull-inscription-counter--compact' : '',
+        softLaunch ? 'pitbull-inscription-counter--soon' : '',
+      ].filter(Boolean).join(' ')}
       role="meter"
-      aria-label={t('pages.pitbull.inscriptionCounterAria', { registered, slots })}
-      aria-valuenow={registered}
+      aria-label={ariaLabel}
+      aria-valuenow={showMeter ? registered : 0}
       aria-valuemin={0}
-      aria-valuemax={slots}
+      aria-valuemax={slots || 0}
     >
       <div className="pitbull-inscription-counter__row">
         <div className="pitbull-inscription-counter__stat">
-          <AnimatedNumber className="pitbull-inscription-counter__value" value={registered} />
-          <span className="pitbull-inscription-counter__of">/ {slots}</span>
-          <span className="pitbull-inscription-counter__unit">{t('pages.pitbull.slots')}</span>
+          {showMeter ? (
+            <>
+              <AnimatedNumber className="pitbull-inscription-counter__value" value={registered} />
+              <span className="pitbull-inscription-counter__of">/ {slots}</span>
+            </>
+          ) : (
+            <>
+              <span className="pitbull-inscription-counter__value pitbull-inscription-counter__value--pending" aria-hidden>
+                —
+              </span>
+              {slots > 0 ? (
+                <span className="pitbull-inscription-counter__of">/ {slots}</span>
+              ) : null}
+            </>
+          )}
+          <span className="pitbull-inscription-counter__unit">
+            {softLaunch ? t('pages.pitbull.slotsPending') : t('pages.pitbull.slots')}
+          </span>
         </div>
         {reducedMotion ? (
           <span className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}>
@@ -189,19 +221,23 @@ function PitbullInscriptionCounter({ registered, slots, statusLabel, statusTone,
           </m.span>
         )}
       </div>
-      <div className="pitbull-inscription-counter__bar" aria-hidden>
-        {reducedMotion ? (
-          <div className="pitbull-inscription-counter__fill" style={{ transform: `scaleX(${pct / 100})` }} />
-        ) : (
-          <m.div
-            className="pitbull-inscription-counter__fill"
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: pct / 100 }}
-            viewport={MOTION_VIEWPORT}
-            transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
-          />
-        )}
-      </div>
+      {showMeter ? (
+        <div className="pitbull-inscription-counter__bar" aria-hidden>
+          {reducedMotion ? (
+            <div className="pitbull-inscription-counter__fill" style={{ transform: `scaleX(${pct / 100})` }} />
+          ) : (
+            <m.div
+              className="pitbull-inscription-counter__fill"
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: pct / 100 }}
+              viewport={MOTION_VIEWPORT}
+              transition={{ duration: MOTION_DURATION.slow, ease: MOTION_EASE.out }}
+            />
+          )}
+        </div>
+      ) : (
+        <p className="pitbull-inscription-counter__hint">{t('pages.pitbull.inscriptionCounterPending')}</p>
+      )}
     </div>
   )
 }
@@ -524,6 +560,7 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
 function PitbullInscriptionSection({
   canRegister,
   capacityStatus,
+  checkoutLocked = false,
   comboOffer = null,
   event,
   eventStatus,
@@ -537,8 +574,12 @@ function PitbullInscriptionSection({
   t,
 }) {
   const { reducedMotion } = useMotionConfig()
-  const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
-  const comboLive = Boolean(comboOffer)
+  const softLaunch = checkoutLocked || eventStatus === 'proximamente'
+  const capacityLive = capacityStatus === 'live'
+  const statusMeta = getStatusMeta(eventStatus, t)
+  const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
+  const statusTone = softLaunch ? 'neutral' : statusMeta.tone
+  const comboLive = Boolean(comboOffer) && !softLaunch
   const separateTotal = Number(pricing.membership) + Number(pricing.registration)
   const comboSavings = comboLive ? Math.max(0, separateTotal - Number(comboOffer.price)) : 0
   const comboEndsLabel = comboOffer?.endsAt
@@ -569,7 +610,7 @@ function PitbullInscriptionSection({
       title={t('pages.pitbull.inscriptionTitle')}
       tone="ops"
     >
-      {eventStatus === 'proximamente' || !canRegister ? (
+      {softLaunch ? (
         <LaunchRegistrationTeaser
           event={event ?? { title: 'Pitbull Classic 2026' }}
           onNavigate={onNavigate}
@@ -578,18 +619,27 @@ function PitbullInscriptionSection({
           className="launch-teaser--dossier"
           indexLabel={t('pages.pitbull.inscriptionIndex')}
           hideShare
+          countdownLabel={t('pages.pitbull.promoSoonCountdown')}
           intro={{
             eyebrow: t('pages.pitbull.inscriptionEyebrow'),
-            title: t('launchTeaser.title'),
-            lead: t('launchTeaser.countdownHeld'),
+            title: t('pages.pitbull.promoSoonTitle'),
+            lead: t('pages.pitbull.promoSoonLead'),
           }}
         />
       ) : null}
 
-      <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
+      <div
+        className={[
+          'pitbull-inscription-shell',
+          'pitbull-inscription-shell--compact',
+          softLaunch ? 'pitbull-inscription-shell--soon' : '',
+        ].filter(Boolean).join(' ')}
+      >
         <PitbullInscriptionCounter
+          capacityLive={capacityLive}
           registered={registered}
           slots={slots}
+          softLaunch={softLaunch}
           statusLabel={statusLabel}
           statusTone={statusTone}
           t={t}
@@ -623,7 +673,9 @@ function PitbullInscriptionSection({
             <p className="pitbull-inscription-shell__desc">
               {canRegister
                 ? (comboLive ? t('pages.pitbull.cardDescCombo') : t('pages.pitbull.cardDescOpen'))
-                : t('pages.pitbull.cardDescClosed')}
+                : softLaunch
+                  ? t('pages.pitbull.cardDescComingSoon')
+                  : t('pages.pitbull.cardDescClosed')}
             </p>
             {comboLive && comboSavings > 0 ? (
               <p className="pitbull-inscription-shell__combo-hint">
@@ -650,22 +702,39 @@ function PitbullInscriptionSection({
                     {t('pages.pitbull.viewMembershipPlans')}
                   </button>
                 </>
+              ) : softLaunch ? (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary pitbull-inscription__cta--soon"
+                    disabled
+                  >
+                    {t('pages.pitbull.ctaComingSoon')}
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate('register')}
+                  >
+                    {t('launchTeaser.createAccountCta')}
+                  </button>
+                </>
               ) : (
                 <>
                   <button
                     type="button"
                     className="pitbull-inscription__cta pitbull-inscription__cta--primary"
-                    onClick={() => (comboLive ? onRegister() : onNavigate('members'))}
+                    onClick={() => onNavigate('members')}
                   >
-                    {comboLive ? t('pages.pitbull.registerCombo') : t('pages.pitbull.joinNow')}
+                    {t('pages.pitbull.joinNow')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
                   <button
                     type="button"
                     className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
-                    onClick={() => onNavigate(comboLive ? 'members' : 'rulebook')}
+                    onClick={() => onNavigate('rulebook')}
                   >
-                    {comboLive ? t('pages.pitbull.viewMembershipPlans') : t('pages.pitbull.viewRulebook')}
+                    {t('pages.pitbull.viewRulebook')}
                   </button>
                 </>
               )}
@@ -674,12 +743,14 @@ function PitbullInscriptionSection({
         </Body>
       </div>
 
-      <PitbullRecentRegistrants
-        capacityStatus={capacityStatus}
-        locale={locale}
-        recent={recent}
-        t={t}
-      />
+      {!softLaunch && capacityLive ? (
+        <PitbullRecentRegistrants
+          capacityStatus={capacityStatus}
+          locale={locale}
+          recent={recent}
+          t={t}
+        />
+      ) : null}
     </PitbullDossierSection>
   )
 }
@@ -827,8 +898,9 @@ export default function PitbullPage({
   } = useEventRegistrationCapacity(eventSlug, {
     enabled: true,
     observeRoot: 'inscripcion',
-    fallbackRegistered: PITBULL_CLASSIC.registered,
-    fallbackSlots: PITBULL_CLASSIC.slots,
+    // Nunca inventar inscritos: el seed (48) distorsiona soft-launch.
+    fallbackRegistered: 0,
+    fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 120,
   })
   const sectionNavItems = [
     { id: 'inscripcion', index: '01', label: t('pages.pitbull.inscriptionEyebrow') },
@@ -896,6 +968,7 @@ export default function PitbullPage({
           <PitbullInscriptionSection
             canRegister={canRegister}
             capacityStatus={capacityStatus}
+            checkoutLocked={checkoutLocked}
             comboOffer={liveComboOffer}
             event={pitbullEvent}
             eventStatus={eventStatus}

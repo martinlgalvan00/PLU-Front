@@ -25,6 +25,18 @@ const PAYMENT_CUSTOMIZATION = {
   },
 }
 
+/**
+ * Nombre del paso de embudo segun el tipo de orden. `membership_checkout_opened`
+ * es uno de los pasos canonicos (`MEMBERSHIP_FUNNEL_STEPS` en
+ * `server/routes/analytics.js`); los otros dos no forman parte de ese embudo
+ * pero sirven para medir que checkout se usa mas.
+ */
+const CHECKOUT_OPENED_STEPS = {
+  membership: 'membership_checkout_opened',
+  competition: 'registration_checkout_opened',
+  tickets: 'tickets_checkout_opened',
+}
+
 const MOCK_TOKEN = 'mock_card_token_local_dev_only'
 const MOCK_OUTCOMES = [
   { id: 'mock_approved', labelKey: 'payments.mockApprove', variant: 'success' },
@@ -138,6 +150,17 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     }
     return undefined
   }, [brickVersion, isMock, locale, order?.orderAccessToken, orderId, t])
+
+  // Paso del embudo "abrio el checkout". Es el eslabon que faltaba entre ver la
+  // pantalla de afiliacion e intentar pagar: sin el, el informe no podia
+  // distinguir a quien miro el precio y se fue de quien llego hasta la tarjeta.
+  // Se emite por orden y no por render (`orderId` en las dependencias), asi el
+  // doble montaje de StrictMode y los reintentos del brick no lo repiten.
+  useEffect(() => {
+    const step = CHECKOUT_OPENED_STEPS[order?.type]
+    if (!step || !orderId) return
+    trackEvent(step, { metadata: { paymentMode: order?.paymentMode ?? 'payment' } })
+  }, [order?.paymentMode, order?.type, orderId])
 
   const submitPayment = useCallback(async (payload) => {
     setError('')

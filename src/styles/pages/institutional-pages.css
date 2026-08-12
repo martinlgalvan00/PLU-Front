@@ -186,53 +186,95 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  position: relative;
+}
+
+/* Rail sutil a la izquierda de los números — comunica secuencia sin dots. */
+.resource-path__list::before {
+  background: var(--institution-border);
+  bottom: 18px;
+  content: '';
+  left: 22px;
+  position: absolute;
+  top: 18px;
+  width: 1px;
 }
 
 .resource-path__list li { border-bottom: 1px solid var(--institution-border); }
 
 .resource-path__list button {
   align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--institution-text-secondary);
+  cursor: pointer;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 46px 42px minmax(0, 1fr) auto;
-  min-height: 92px;
-  padding: 12px 14px 12px 0;
+  gap: clamp(16px, 2.4vw, 28px);
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  min-height: 112px;
+  padding: clamp(22px, 2.8vw, 28px) 8px clamp(22px, 2.8vw, 28px) 0;
+  position: relative;
   text-align: left;
   transition:
     background-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out),
-    transform var(--motion-fast) var(--ease-out);
+    color var(--motion-fast) var(--ease-out);
   width: 100%;
 }
 
-/* transform, no padding — evita forzar reflow en el hover. */
 .resource-path__list button:hover {
   background: var(--institution-blue-soft);
   color: var(--institution-text);
-  transform: translateX(6px);
+}
+
+.resource-path__list button:focus-visible {
+  outline: 2px solid var(--institution-blue);
+  outline-offset: 2px;
 }
 
 .resource-path__number {
+  background: var(--institution-canvas);
   color: var(--institution-gold);
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  padding-block: 10px;
+  position: relative;
+  z-index: 1;
 }
 
-.resource-path__icon {
-  align-items: center;
-  border: 1px solid var(--institution-border);
-  border-radius: 8px;
+.resource-path__copy {
+  display: grid;
+  gap: 8px;
+}
+
+.resource-path__copy h3 {
+  font-size: clamp(16px, 1.6vw, 19px);
+  font-weight: 690;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.resource-path__copy p {
+  color: var(--institution-text-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.resource-path__arrow {
   color: var(--institution-blue);
-  display: inline-flex;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
+  flex-shrink: 0;
+  transition: transform var(--motion-fast) var(--ease-out);
 }
 
-.resource-path__copy { display: grid; gap: 4px; }
-.resource-path__copy strong { font-size: 15px; font-weight: 680; }
-.resource-path__copy small { color: var(--institution-text-muted); font-size: 11.5px; line-height: 1.5; }
+.resource-path__list button:hover .resource-path__arrow {
+  transform: translateX(3px);
+}
 
 .resource-support__layout {
   display: grid;
@@ -959,7 +1001,7 @@
 }
 
 .rulebook-index-mobile { display: none; }
-.rulebook-reading__content { display: grid; gap: 0; min-width: 0; }
+.rulebook-reading__content { display: grid; gap: 0; min-width: 0; max-width: 80ch; }
 
 .rulebook-page--institutional .rulebook-section--document {
   background: transparent;
@@ -1060,7 +1102,13 @@
   .resource-feature__document { display: none; }
   .resource-feature__meta { grid-template-columns: 1fr 1fr 1fr; }
 
-  .resource-path__list button { gap: 10px; grid-template-columns: 32px 40px minmax(0, 1fr) auto; min-height: 104px; }
+  .resource-path__list::before { left: 16px; }
+  .resource-path__list button {
+    gap: 14px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    min-height: 104px;
+  }
+  .resource-path__number { font-size: clamp(24px, 7vw, 32px); }
   .resource-support__row { align-items: start; grid-template-columns: 24px 24px minmax(0, 1fr); }
   .resource-support__row .resource-action-link { grid-column: 3; justify-self: start; }
 
@@ -1134,8 +1182,13 @@
   .resource-feature__meta > div:last-child { border-bottom: 0; }
   .resource-feature__actions { flex-direction: column; }
   .resource-feature__actions .institutional-button { width: 100%; }
-  .resource-path__list button { grid-template-columns: 28px minmax(0, 1fr) auto; }
-  .resource-path__icon { display: none; }
+  .resource-path__list::before { display: none; }
+  .resource-path__list button {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    min-height: 96px;
+    padding-block: 20px;
+  }
+  .resource-path__number { font-size: 24px; }
   .resource-support__note { padding: 24px; }
 
   .community-participation__steps li { padding: 20px; }
@@ -1157,9 +1210,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .resource-action-link svg,
-  .resource-path__list button,
+  .resource-path__arrow,
   .community-action-row { transition-duration: 0.01ms; }
-  .resource-action-link:hover svg { transform: none; }
+  .resource-action-link:hover svg,
+  .resource-path__list button:hover .resource-path__arrow { transform: none; }
 }
 
 /* Contact keeps its focused form system while sharing the institutional shell. */
@@ -1421,14 +1475,14 @@
 
 .team-close__copy {
   display: grid;
-  gap: 10px;
-  max-width: 42ch;
+  gap: 12px;
+  max-width: 44ch;
 }
 
 .team-close__copy h2 {
   color: var(--institution-text);
   font-family: var(--font-display);
-  font-size: clamp(24px, 3.2vw, 34px);
+  font-size: clamp(26px, 3.4vw, 36px);
   font-weight: 760;
   letter-spacing: -0.04em;
   line-height: 1.05;
@@ -1438,9 +1492,11 @@
 
 .team-close__copy > p:not(.institutional-kicker) {
   color: var(--institution-text-muted);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 14.5px;
+  line-height: 1.65;
   margin: 0;
+  max-width: 42ch;
+  text-wrap: pretty;
 }
 
 .team-close__actions {
@@ -1517,6 +1573,66 @@
 
 .team-close__secondary:hover svg {
   transform: translateX(3px);
+}
+
+.sponsors-benefits {
+  display: grid;
+  gap: 0;
+}
+
+.sponsors-benefits__list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+}
+
+.sponsors-benefits__item {
+  align-items: start;
+  border-top: 1px solid var(--institution-border);
+  display: grid;
+  gap: 16px 24px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: 22px 0;
+}
+
+.sponsors-benefits__item:last-child {
+  border-bottom: 1px solid var(--institution-border);
+}
+
+.sponsors-benefits__index {
+  color: var(--institution-text-muted);
+  font-family: var(--font-mono, var(--font-display));
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding-top: 4px;
+}
+
+.sponsors-benefits__body {
+  display: grid;
+  gap: 6px;
+  max-width: 52ch;
+}
+
+.sponsors-benefits__body h3 {
+  color: var(--institution-text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.sponsors-benefits__body p {
+  color: var(--institution-text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.sponsors-close {
+  margin-top: clamp(12px, 2vw, 24px);
 }
 
 .institutional-manifesto {

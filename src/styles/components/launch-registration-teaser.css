@@ -520,38 +520,13 @@
 
 .launch-teaser--compact {
   padding-block: 0.25rem 0.1rem;
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__layout {
+  gap: clamp(1rem, 2.6vw, 1.45rem);
   max-width: min(42rem, 100%);
-  gap: clamp(1.1rem, 2.4vw, 1.55rem);
-}
-
-@media (min-width: 720px) {
-  .launch-teaser--compact .launch-teaser__layout {
-    align-items: end;
-    column-gap: clamp(1.75rem, 4vw, 3rem);
-    grid-template-columns: minmax(0, 1.15fr) minmax(12rem, 0.85fr);
-  }
-
-  .launch-teaser--compact .launch-teaser__copy {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .launch-teaser--compact .launch-teaser__countdown {
-    border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
-    grid-column: 2;
-    grid-row: 1;
-    padding-left: clamp(1.1rem, 2.5vw, 1.75rem);
-  }
-
-  .launch-teaser--compact .launch-teaser__actions {
-    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding-top: 1rem;
-  }
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__eyebrow {
@@ -569,15 +544,15 @@
 }
 
 .launch-teaser--compact .launch-teaser__title {
-  font-size: clamp(1.65rem, 3.6vw, 2.25rem);
+  font-size: clamp(1.55rem, 5.2vw, 2.25rem);
   font-weight: 700;
   letter-spacing: -0.035em;
-  max-width: 11ch;
+  max-width: 14ch;
 }
 
 .launch-teaser--compact .launch-teaser__title--sentence {
-  font-size: clamp(1.3rem, 2.6vw, 1.65rem);
-  max-width: 24ch;
+  font-size: clamp(1.2rem, 3.8vw, 1.65rem);
+  max-width: min(28ch, 100%);
 }
 
 .launch-teaser--compact .launch-teaser__countdown {
@@ -589,33 +564,34 @@
 }
 
 .launch-teaser--compact .launch-teaser__pending {
-  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
+  font-size: clamp(1.05rem, 2.8vw, 1.28rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.3;
-  max-width: 22ch;
+  max-width: min(22ch, 100%);
 }
 
 .launch-teaser--compact .launch-teaser__stage-price {
-  font-size: clamp(1.25rem, 2.8vw, 1.6rem);
+  font-size: clamp(1.25rem, 3.2vw, 1.6rem);
 }
 
 .launch-teaser--compact .launch-teaser__value {
-  font-size: clamp(1.55rem, 3.8vw, 2.15rem);
+  font-size: clamp(1.45rem, 5vw, 2.15rem);
 }
 
 .launch-teaser--compact .launch-teaser__sep {
-  font-size: clamp(1.25rem, 3.2vw, 1.8rem);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
 }
 
 .launch-teaser--compact .launch-teaser__actions {
-  align-items: center;
-  border-top: 0;
+  align-items: stretch;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
+  gap: 0.85rem 1.15rem;
   justify-items: start;
-  padding-top: 0;
+  padding-top: 1rem;
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__cta {
@@ -628,16 +604,22 @@
 }
 
 .launch-teaser--compact .launch-teaser__form {
-  width: min(100%, 26rem);
+  grid-template-columns: 1fr;
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__input,
 .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
   border-radius: 2px;
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
   margin: 0;
+  width: 100%;
 }
 
 .launch-teaser--compact .launch-teaser__link {
@@ -656,25 +638,210 @@
 
 .launch-teaser--compact .launch-teaser__confirmed {
   min-height: 44px;
+  width: 100%;
+}
+
+/* Mobile estrecho: stage debajo del copy, tipografía y CTA a ancho completo */
+@media (max-width: 559px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    gap: 1.05rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__countdown {
+    border-top: 1px solid color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+    padding-top: 0.9rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__title--sentence {
+    max-width: none;
+  }
+
+  .launch-teaser--compact .launch-teaser__cta {
+    width: 100%;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions {
+    gap: 0.75rem;
+  }
+}
+
+/* Tablet / notebook angosto: form en fila, stage aún debajo */
+@media (min-width: 560px) and (max-width: 719px) {
+  .launch-teaser--compact .launch-teaser__form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: min(100%, 34rem);
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    width: auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions {
+    align-items: center;
+  }
+
+  .launch-teaser--compact .launch-teaser__confirmed {
+    width: auto;
+  }
+}
+
+@media (min-width: 560px) {
+  .launch-teaser--compact .launch-teaser__form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    width: auto;
+  }
+}
+
+/* Notebook / desktop: copy | stage, acciones full-bleed abajo */
+@media (min-width: 720px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    --launch-teaser-compact-gap: clamp(1.5rem, 3.5vw, 2.75rem);
+    --launch-teaser-compact-stage-pad: clamp(1rem, 2.4vw, 1.65rem);
+    align-items: end;
+    column-gap: var(--launch-teaser-compact-gap);
+    grid-template-columns: minmax(0, 1.2fr) minmax(11.5rem, 0.8fr);
+    max-width: min(52rem, 100%);
+  }
+
+  .launch-teaser--compact .launch-teaser__copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .launch-teaser--compact .launch-teaser__countdown {
+    border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+    border-top: 0;
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: var(--launch-teaser-compact-stage-pad);
+    padding-top: 0;
+  }
+
+  /* Misma grilla que copy|stage: form ocupa la columna ancha; link bajo el precio. */
+  .launch-teaser--compact .launch-teaser__actions {
+    align-items: end;
+    column-gap: var(--launch-teaser-compact-gap);
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1.2fr) minmax(11.5rem, 0.8fr);
+    row-gap: 0.65rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__form,
+  .launch-teaser--compact .launch-teaser__confirmed {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions > .launch-teaser__cta--primary {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    width: auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__form {
+    max-width: none;
+  }
+
+  .launch-teaser--compact .launch-teaser__error {
+    grid-column: 1;
+  }
+
+  .launch-teaser--compact .launch-teaser__notify-hint {
+    grid-column: 1;
+    margin: 0;
+  }
+
+  .launch-teaser--compact .launch-teaser__secondary {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-start;
+    padding-left: var(--launch-teaser-compact-stage-pad);
+    width: auto;
+  }
+}
+
+@media (min-width: 900px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    --launch-teaser-compact-gap: clamp(2rem, 4vw, 3.25rem);
+    max-width: min(64rem, 100%);
+  }
+
+  .launch-teaser--compact .launch-teaser__title--sentence {
+    font-size: clamp(1.4rem, 1.8vw, 1.75rem);
+    max-width: 30ch;
+  }
+
+  .launch-teaser--compact .launch-teaser__pending {
+    font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    min-width: 9.5rem;
+    padding-inline: 1.35rem;
+  }
 }
 
 /* Members nest */
 
-/* Marco hairline (arriba y abajo, sin fondo/sombra): lee como bloque de
-   anuncio institucional propio, no como una franja cualquiera del flujo. */
+/* Misma columna que planes/combo: hairline editorial, sin card ni atmósfera. */
 .members-launch-gate {
-  border-block: 1px solid color-mix(in srgb, var(--color-brand-gold) 24%, var(--color-border-subtle));
+  border-block: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 55%, var(--color-border-subtle));
   display: grid;
-  gap: clamp(1.35rem, 3vw, 2rem);
-  margin-block: 0.15rem;
-  padding-block: clamp(1.3rem, 2.8vw, 1.9rem);
+  gap: 0;
+  margin: 0 0 clamp(1.75rem, 3.2vw, 2.5rem);
+  max-width: var(--members-plans-col-max, min(100%, 42rem));
+  padding-block: clamp(1.35rem, 3vw, 2.1rem);
+  width: 100%;
 }
 
 .members-launch-gate .launch-teaser--compact {
   padding-block: 0;
 }
 
-/* Inauguración — atmósfera editorial + regla oro */
+.members-launch-gate .launch-teaser--compact .launch-teaser__layout {
+  max-width: none;
+}
+
+.members-launch-gate .launch-teaser--compact.launch-teaser--inauguration {
+  padding-block: 0;
+}
+
+/* Sin fondo degradado: el lujo lo llevan tipografía, oro y espacio. */
+.members-launch-gate .launch-teaser__atmosphere,
+.launch-teaser--compact .launch-teaser__atmosphere {
+  display: none;
+}
+
+.members-launch-gate .launch-teaser__rule {
+  height: 1px;
+  margin-bottom: clamp(1rem, 2vw, 1.35rem);
+  width: min(4.25rem, 26vw);
+  background: var(--color-brand-gold);
+}
+
+@media (max-width: 559px) {
+  .members-launch-gate {
+    margin-bottom: 1.35rem;
+    padding-block: 1.15rem 1.35rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .members-launch-gate {
+    padding-block: clamp(1.55rem, 2.4vw, 2.25rem);
+  }
+}
+
+/* Inauguración — tipografía + regla oro (sin atmósfera) */
 
 .launch-teaser--inauguration {
   isolation: isolate;
@@ -713,7 +880,7 @@
 }
 
 .launch-teaser--inauguration .launch-teaser__eyebrow {
-  color: color-mix(in srgb, var(--color-brand-gold) 55%, var(--color-text-secondary));
+  color: color-mix(in srgb, var(--color-brand-gold) 62%, var(--color-text-secondary));
 }
 
 .launch-teaser--inauguration .launch-teaser__title-line--accent {
@@ -726,26 +893,188 @@
 
 .launch-teaser--inauguration.launch-teaser--full .launch-teaser__layout,
 .launch-teaser--inauguration.launch-teaser--hero .launch-teaser__layout {
-  max-width: min(68rem, 100%);
+  max-width: none;
+  width: 100%;
 }
 
 .launch-teaser--inauguration .launch-teaser__actions {
-  border-top-color: color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
 }
 
 .launch-teaser__title-mask {
   display: block;
 }
 
+/* Compact inauguration — editorial premium (Members / Register) */
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__title--sentence {
+  font-weight: 800;
+  letter-spacing: -0.038em;
+  line-height: 1.12;
+}
+
 .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__lead {
-  margin-top: 0.35rem;
-  max-width: 34ch;
-  font-size: 0.9rem;
-  line-height: 1.45;
+  color: var(--color-text-secondary);
+  font-size: clamp(0.9rem, 2vw, 0.98rem);
+  line-height: 1.55;
+  margin-top: 0.45rem;
+  max-width: min(42ch, 100%);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage {
+  gap: 0.55rem;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-mark {
+  color: var(--color-brand-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding-bottom: 0.35rem;
+}
+
+/* Sin shimmer decorativo: subrayado oro estático */
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-mark::after {
+  animation: none;
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  inset: auto 0 0 0;
+  opacity: 0.85;
+  position: absolute;
+  width: 100%;
+  z-index: 0;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-price {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  height: 2.75rem;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input:hover {
+  border-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input:focus {
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-celeste) 20%, transparent);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__cta--primary {
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__actions {
+  border-top-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  padding-top: 1.15rem;
 }
 
 .launch-teaser--compact .launch-teaser__notify-hint {
   width: 100%;
+}
+
+@media (min-width: 720px) {
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__lead {
+    max-width: 40ch;
+  }
+
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__countdown {
+    align-content: center;
+    min-height: 100%;
+  }
+}
+
+@media (min-width: 900px) {
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__title--sentence {
+    font-size: clamp(1.5rem, 2vw, 1.9rem);
+    max-width: 28ch;
+  }
+
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-price {
+    font-size: clamp(1.85rem, 2.2vw, 2.35rem);
+  }
+}
+
+/* Compact live clock — marketing: dígitos display, label oro, ritmo de campaña */
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown {
+  gap: 0.55rem;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown-label {
+  color: var(--color-brand-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__ticker {
+  align-items: flex-start;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.7rem, 4.2vw, 2.55rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__sep {
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.35rem, 3.4vw, 2rem);
+  font-weight: 700;
+  margin-inline: clamp(0.2rem, 0.8vw, 0.4rem);
+  padding-top: 0.05em;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__unit-label {
+  color: var(--color-text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__when {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  margin-top: 0.15rem;
+}
+
+@media (min-width: 720px) {
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown {
+    align-content: center;
+  }
+
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(1.85rem, 2.4vw, 2.65rem);
+  }
+}
+
+@media (max-width: 559px) {
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__ticker {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(1.55rem, 9vw, 2rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -883,14 +1212,50 @@
   letter-spacing: 0.01em;
 }
 
-/* Home section */
+/* Home section — banda full-bleed: el contenido usa el ancho útil del viewport
+   (solo gutters), sin tope artificial de 1120px. */
 
 .home-section--launch .home-section__inner {
-  max-width: var(--layout-max, 1120px);
+  max-width: none;
+  width: 100%;
 }
 
 .home-section--launch .launch-teaser {
   padding-block: 0;
+  width: 100%;
+}
+
+.home-section--launch .launch-teaser__layout {
+  max-width: none;
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .home-section--launch .launch-teaser--hero .launch-teaser__layout {
+    column-gap: clamp(2.75rem, 5vw, 5.5rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__title {
+    font-size: clamp(2.35rem, 3.4vw, 3.6rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__lead {
+    max-width: min(42rem, 100%);
+  }
+}
+
+@media (min-width: 1600px) {
+  .home-section--immersive.home-section--launch {
+    padding-inline: clamp(48px, 4.5vw, 96px) !important;
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__title {
+    font-size: clamp(2.6rem, 3.2vw, 4rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__value {
+    font-size: clamp(2.8rem, 4vw, 4.2rem);
+  }
 }
 
 /* Cortina siempre oscura, en los dos temas — mismo criterio que
@@ -907,6 +1272,8 @@
   isolation: isolate;
   overflow: clip;
   padding-block: clamp(4rem, 9vw, 6.5rem) !important;
+  padding-inline: clamp(20px, 5vw, 64px);
+  width: 100%;
 }
 
 @media (max-width: 560px) {

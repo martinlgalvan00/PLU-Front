@@ -44,10 +44,14 @@ migración, no delegadas a la aplicación:
 3. **Borrado en cascada real.** `athlete_id` es FK `on delete cascade`, así que `delete_athlete`
    se lleva la analítica de esa persona. Es lo que hace cumplible el derecho de supresión.
 
+El opt-out ya está expuesto: `AnalyticsOptOut` vive en el pie del sitio y llama a `setOptedOut`.
+No se renderiza si el tracker está apagado por configuración, porque ofrecer salir de algo que no
+está midiendo confunde más de lo que informa.
+
 Queda pendiente del lado tuyo, y no es opcional con identidad vinculada:
 
-- Declarar el tratamiento en la política de privacidad del sitio.
-- Exponer el opt-out (`setOptedOut(true)` de `analyticsService.js`) en algún lugar visible.
+- **Declarar el tratamiento en la política de privacidad del sitio.** El sitio todavía no tiene
+  esa página; es copy institucional y no se redactó acá.
 
 ## Qué se mide y qué no
 
@@ -75,6 +79,44 @@ entero:
 
 El tráfico de bots se descarta antes de tocar la base.
 
+## Mapa de integración
+
+Dónde vive cada pieza, para no tener que buscarla:
+
+| Pieza | Archivo | Qué hace |
+|---|---|---|
+| Tracker | `src/services/analyticsService.js` | Encola y descarga eventos; opt-out |
+| Puente con el router | `src/components/layout/AnalyticsTracker.jsx` | Pageview + pasos de vista del embudo |
+| Pasos de pago | `src/components/ui/MercadoPagoEmbeddedCheckout.jsx` | `*_checkout_opened`, `payment_submitted`, `payment_approved` |
+| Opt-out visible | `src/components/ui/AnalyticsOptOut.jsx` | Control en el pie del sitio |
+| Endpoint | `server/routes/analytics.js` | Ingesta + seis lecturas + guard de identidad |
+| Repositorio | `server/modules/analytics/supabaseAnalyticsRepository.js` | Única puerta a las RPC |
+| Identidad de visitante | `server/modules/analytics/visitorIdentity.js` | Hash con sal rotativa; filtro de bots |
+| Normalización de ruta | `server/modules/analytics/normalizePath.js` | Clave de agregación del informe |
+| Esquema y RPC | `supabase/migrations/20260814130000_web_analytics.sql` | Tablas, RPC, rollup, purga, cron |
+| Lectura del panel | `src/services/analyticsReportService.js` | Cliente de las seis lecturas |
+| Panel | `src/pages/admin/AnalyticsSection.jsx` | Informe, mapa de calor, ranking, recorrido |
+
+### Quién emite cada evento
+
+Un paso declarado que nadie emite produce un embudo que miente. La cobertura está fijada por
+test en `tests/analyticsAudit.test.js`: si agregás un paso a `MEMBERSHIP_FUNNEL_STEPS` sin
+instrumentarlo, ese test falla.
+
+| Evento | Lo emite |
+|---|---|
+| `pageview` | `AnalyticsTracker` en cada cambio de vista |
+| `click` | Listener global del tracker (con coordenadas y tamaño del documento) |
+| `scroll` | Listener global; se descarga al salir de la vista |
+| `landing_view` | `AnalyticsTracker` cuando la vista es `home` |
+| `membership_view` | `AnalyticsTracker` cuando la vista es `members` |
+| `membership_checkout_opened` | `MercadoPagoEmbeddedCheckout` con orden de tipo `membership` |
+| `registration_checkout_opened` | Idem con orden de tipo `competition` (fuera del embudo canónico) |
+| `tickets_checkout_opened` | Idem con orden de tipo `tickets` (fuera del embudo canónico) |
+| `payment_submitted` | `MercadoPagoEmbeddedCheckout` al enviar el pago |
+| `payment_approved` | Idem cuando el estado vuelve aprobado |
+| `payment_rejected` | Idem cuando vuelve rechazado |
+
 ## Embudo de afiliación
 
 Pasos canónicos, definidos en `server/routes/analytics.js` para que el panel no pueda pedir
@@ -83,6 +125,11 @@ nombres que el tracker nunca emite:
 ```text
 landing_view → membership_view → membership_checkout_opened → payment_submitted → payment_approved
 ```
+
+El conteo es **monotónico**: un visitante cuenta en el paso *k* solo si hizo los *k-1* anteriores
+y en ese orden, comparando la primera vez de cada paso. Sin eso, quien entraba directo a
+`/afiliarse` sumaba al paso 2 sin haber pasado por el 1, el embudo crecía y las tasas pasaban el
+100% — un informe peor que no tener informe.
 
 Para instrumentar un paso nuevo:
 
@@ -93,8 +140,9 @@ trackEvent('membership_checkout_opened')
 trackConversion('payment_approved', { value: 75000 })
 ```
 
-Si agregás un paso, sumalo también a `MEMBERSHIP_FUNNEL_STEPS` y a las etiquetas
-`admin.analytics.funnelSteps.*` de ambos locales.
+Si agregás un paso, sumalo también a `MEMBERSHIP_FUNNEL_STEPS`, a las etiquetas
+`admin.analytics.funnelSteps.*` de ambos locales, y a quien lo emita (el test de cobertura lo
+exige).
 
 ## Endpoints
 
@@ -104,8 +152,16 @@ Si agregás un paso, sumalo también a `MEMBERSHIP_FUNNEL_STEPS` y a las etiquet
 | GET | `/api/analytics/overview` | `admin.analytics.read` |
 | GET | `/api/analytics/pages` | `admin.analytics.read` |
 | GET | `/api/analytics/flows` | `admin.analytics.read` |
-| GET | `/api/analytics/heatmap?path=…` | `admin.analytics.read` |
+| GET | `/api/analytics/heatmap?path=…&deviceType=…` | `admin.analytics.read` |
 | GET | `/api/analytics/funnel` | `admin.analytics.read` |
+| GET | `/api/analytics/elements` | `admin.analytics.read` |
+| GET | `/api/analytics/athletes/:id/journey` | `admin.analytics.identity` |
+
+Los permisos viven en el catálogo de `src/lib/permissions.js` pero **la autorización los lee de
+la base**: agregar una clave al catálogo no la habilita hasta correr `npm run db:seed`, que hace
+upsert del catálogo y suma las que falten a los roles protegidos (es aditivo: no quita ninguna).
+Si el panel de analítica responde 403 con un rol que debería poder, ese seed es lo primero a
+revisar.
 
 La ingesta tiene limiter propio (`analyticsIngestLimiter`) y **nunca** comparte instancia con
 endpoints de negocio: un 429 de analítica no puede dejar a nadie sin poder afiliarse ni pagar.
@@ -121,6 +177,51 @@ devuelve solo las celdas con peso; el panel dibuja un SVG con esas celdas.
 
 La intensidad se reparte por raíz cuadrada: con escala lineal, un solo punto muy caliente
 aplanaba todo el resto contra el fondo y el mapa dejaba de mostrar los focos secundarios.
+
+### Forma de la página
+
+Normalizar a 0..1 hace comparables los dispositivos, pero **pierde la forma de la página**. Por
+eso cada click viaja con `documentWidth`/`documentHeight`, y la RPC devuelve `aspectRatio`: la
+mediana de alto/ancho de los clicks del período. El panel usa ese valor en el `viewBox`.
+
+Sin esas dimensiones el mapa dibujaba una grilla cuadrada estirada. Como una landing suele medir
+cuatro veces más alto que ancho, todo el largo de la página quedaba comprimido en un cuadrado y
+los focos no caían donde la gente había clickeado. Con datos anteriores a esta columna,
+`aspectRatio` viene nulo, el panel cae a 1:1 y lo avisa en el pie del mapa.
+
+Se usa mediana y no promedio porque un solo click en una vista muy larga (un acordeón abierto,
+una tabla desplegada) corre el promedio entero.
+
+### Filtro por dispositivo
+
+`deviceType` no es un lujo: con coordenadas normalizadas, el mismo 0.5 vertical cae en secciones
+distintas según si el documento mide dos pantallas o cuatro. Mezclar mobile y desktop en una sola
+grilla promedia dos páginas que no son la misma.
+
+## Lo más usado
+
+`get_analytics_elements` responde la pregunta que el mapa de calor no responde: qué control usa
+más la gente **sin importar en qué ruta esté**. Agrupa por selector y no por selector+ruta,
+porque un mismo control (el CTA de afiliación, un link del nav) vive en varias pantallas y
+partirlo por ruta esconde justamente cuánto se usa.
+
+Devuelve `clicks` y `visitors` juntos a propósito: mil clicks de una persona no son mil personas,
+y ordenando solo por clicks un carrusel cliqueado a repetición desplaza al CTA que convierte.
+
+## Recorrido por atleta
+
+Es la **única** lectura del informe que no viene agregada: devuelve por dónde pasó y qué tocó una
+persona identificada. Sirve para reconstruir un reclamo ("no me dejaba pagar") con evidencia.
+
+Tres cosas la separan del resto, y las tres son deliberadas:
+
+1. **Permiso propio** (`admin.analytics.identity`). Ver métricas de producto y abrir la
+   navegación de alguien con nombre y apellido no son el mismo acceso.
+2. **Queda registrada.** Cada consulta escribe en `operational_event_logs` con acción
+   `analytics.athlete_journey_viewed`: quién consultó, a quién y con qué ventana. Un acceso a
+   datos personales que no deja rastro no es defendible ante la propia persona.
+3. **El registro no bloquea.** Si la bitácora falla, se avisa por consola y la consulta responde
+   igual: una falla de observabilidad no puede volverse un 500 del panel.
 
 ## Operación
 

@@ -174,12 +174,13 @@ export default function AdminQrScanner({
 
     startCamera()
 
+    const currentVideo = videoRef.current
     return () => {
       cancelled = true
       cancelAnimationFrame(raf)
       stream?.getTracks().forEach((track) => track.stop())
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
+      if (currentVideo) {
+        currentVideo.srcObject = null
       }
     }
   }, [disabled, emitScan, mode])

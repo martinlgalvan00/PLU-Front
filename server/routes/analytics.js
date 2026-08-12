@@ -5,6 +5,10 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { analyticsIngestLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabaseAnalyticsRepository } from '../modules/analytics/supabaseAnalyticsRepository.js'
+import {
+  recordOperationalAuditEvent,
+  requestAuditMetadata,
+} from '../modules/audit/operationalAuditWriter.js'
 import { normalizePath, normalizeReferrerHost } from '../modules/analytics/normalizePath.js'
 import { describeUserAgent, resolveVisitorId } from '../modules/analytics/visitorIdentity.js'
 import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
@@ -51,6 +55,9 @@ const eventSchema = z.object({
   y: z.coerce.number().min(0).max(1).optional(),
   viewportWidth: z.coerce.number().int().min(0).max(20000).optional(),
   viewportHeight: z.coerce.number().int().min(0).max(20000).optional(),
+  // Techo mas alto que el del viewport: un documento largo lo supera holgado.
+  documentWidth: z.coerce.number().int().min(0).max(200000).optional(),
+  documentHeight: z.coerce.number().int().min(0).max(200000).optional(),
   scrollDepth: z.coerce.number().min(0).max(1).optional(),
   name: z.string().trim().max(80).optional(),
   value: z.coerce.number().optional(),
@@ -83,6 +90,9 @@ const rangeSchema = z.object({
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
   limit: z.coerce.number().int().min(1).max(100).optional().default(25),
   path: z.string().trim().max(300).optional(),
+  // Un mapa de calor que mezcla mobile y desktop promedia dos documentos de
+  // alto distinto: el mismo 0.5 vertical cae en secciones diferentes.
+  deviceType: z.enum(['desktop', 'mobile', 'tablet', 'unknown']).optional(),
 })
 
 /** Ventana efectiva: `from`/`to` explicitos ganan sobre el atajo `days`. */
@@ -95,10 +105,22 @@ function resolveRange({ from, to, days }, now = new Date()) {
   return { from: start.toISOString(), to: end.toISOString() }
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * El timeline se acota aparte del `limit` de las tablas agregadas: 25 filas
+ * alcanzan para un top de paginas, pero reconstruir un recorrido con 25 eventos
+ * no sirve para nada. El techo duro tambien vive en la RPC.
+ */
+function journeyLimit(query) {
+  return Math.min(500, Math.max(50, (query.limit ?? 25) * 8))
+}
+
 export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env }) {
   const router = Router()
   const prisma = getPrisma()
   const analyticsGuard = requirePermission('admin.analytics.read', { prisma })
+  const identityGuard = requirePermission('admin.analytics.identity', { prisma })
 
   function repo() {
     if (repository) return repository
@@ -193,7 +215,23 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
     try {
       const query = parseRange(req)
       if (!query.path) throw new HttpError(400, 'Falta la ruta del mapa de calor.')
-      res.json(await repo().heatmap({ ...resolveRange(query), path: normalizePath(query.path) }))
+      res.json(
+        await repo().heatmap({
+          ...resolveRange(query),
+          path: normalizePath(query.path),
+          deviceType: query.deviceType ?? null,
+        }),
+      )
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /** Lo mas usado del sitio entero, por elemento y no por ruta. */
+  router.get('/elements', ...analyticsGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseRange(req)
+      res.json({ elements: await repo().elements({ ...resolveRange(query), limit: query.limit }) })
     } catch (error) {
       next(error)
     }
@@ -209,6 +247,55 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
       next(error)
     }
   })
+
+  /**
+   * Recorrido de un atleta puntual: la unica lectura del informe que no viene
+   * agregada. Tres cosas la separan del resto:
+   *
+   * - Permiso propio (`admin.analytics.identity`). Ver metricas de producto y
+   *   abrir la navegacion de una persona con nombre no son el mismo acceso.
+   * - Queda registrada en la auditoria operativa: quien consulto, a quien y con
+   *   que ventana. Un acceso a datos personales que no deja rastro no es
+   *   defendible ante la propia persona.
+   * - El registro se escribe antes de responder, pero no bloquea: si la
+   *   bitacora falla, `recordOperationalAuditEvent` lo avisa por consola y no
+   *   convierte una falla de observabilidad en un 500 del panel.
+   */
+  router.get(
+    '/athletes/:athleteId/journey',
+    ...identityGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = String(req.params.athleteId ?? '').trim()
+        if (!UUID_PATTERN.test(athleteId)) {
+          throw new HttpError(400, 'Identificador de atleta invalido.')
+        }
+
+        const query = parseRange(req)
+        const range = resolveRange(query)
+
+        void recordOperationalAuditEvent(getSupabaseAdmin?.(), {
+          source: 'identity',
+          action: 'analytics.athlete_journey_viewed',
+          entityType: 'athlete',
+          entityId: athleteId,
+          actorType: 'staff',
+          actorId: req.auth?.user?.id ?? null,
+          severity: 'info',
+          metadata: requestAuditMetadata(req, {
+            from: range.from,
+            to: range.to,
+            actorEmail: req.auth?.user?.email ?? null,
+          }),
+        })
+
+        res.json(await repo().athleteJourney({ athleteId, ...range, limit: journeyLimit(query) }))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   function parseRange(req) {
     const parsed = rangeSchema.safeParse(req.query)

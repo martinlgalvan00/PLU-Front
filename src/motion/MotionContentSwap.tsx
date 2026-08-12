@@ -1,6 +1,6 @@
 import { AnimatePresence, m } from 'motion/react'
 import type { ReactNode } from 'react'
-import { MOTION_DURATION } from './tokens'
+import { MOTION_DURATION, MOTION_EASE } from './tokens'
 import { useMotionConfig } from './MotionProvider'
 
 type MotionContentSwapProps = {
@@ -9,6 +9,13 @@ type MotionContentSwapProps = {
   swapKey: string
   /** 1 = hacia adelante, -1 = hacia atrás. Si no se pasa, usa fade vertical. */
   direction?: 1 | -1
+  /**
+   * `wait` (default) desmonta el saliente antes de montar el entrante: el
+   * contenedor colapsa un frame. `sync` los superpone — el padre debe ser una
+   * grilla con ambos paneles en `grid-area: 1 / 1` — y evita el salto de alto
+   * en tarjetas centradas o con footer pegado.
+   */
+  mode?: 'wait' | 'sync'
 }
 
 export default function MotionContentSwap({
@@ -16,6 +23,7 @@ export default function MotionContentSwap({
   className = '',
   swapKey,
   direction,
+  mode = 'wait',
 }: MotionContentSwapProps) {
   const { reducedMotion } = useMotionConfig()
 
@@ -25,9 +33,10 @@ export default function MotionContentSwap({
 
   const horizontal = direction === 1 || direction === -1
   const axis = horizontal ? direction : 0
+  const overlapped = mode === 'sync'
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode={mode} initial={false}>
       <m.div
         key={swapKey}
         className={className.trim() || undefined}
@@ -39,10 +48,15 @@ export default function MotionContentSwap({
         animate={{ opacity: 1, x: 0, y: 0 }}
         exit={
           horizontal
-            ? { opacity: 0, x: -14 * axis }
-            : { opacity: 0, y: -6 }
+            ? // Superpuesto el saliente sigue en el DOM: sin pointer-events el
+              // click cae en el panel fantasma durante la transición.
+              { opacity: 0, x: -14 * axis, ...(overlapped ? { pointerEvents: 'none' as const } : null) }
+            : { opacity: 0, y: -6, ...(overlapped ? { pointerEvents: 'none' as const } : null) }
         }
-        transition={{ duration: MOTION_DURATION.fast, ease: [0.22, 1, 0.36, 1] }}
+        transition={{
+          duration: overlapped ? MOTION_DURATION.base : MOTION_DURATION.fast,
+          ease: MOTION_EASE.out,
+        }}
       >
         {children}
       </m.div>

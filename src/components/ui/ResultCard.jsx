@@ -1,4 +1,4 @@
-import { Trophy, Calendar, MapPin, Medal } from 'lucide-react'
+import { Trophy, Calendar, Medal } from 'lucide-react'
 
 const PLACE_MEDALS = {
   '1°': { className: 'result-card__medal--gold' },

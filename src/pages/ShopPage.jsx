@@ -19,6 +19,7 @@ import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent }
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
+import LaunchInterestForm from '../components/ui/LaunchInterestForm.jsx'
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/shop.css'
 
@@ -66,8 +67,16 @@ function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const dateParts = parseShopDateParts(event.date)
 
+  const { reducedMotion } = useMotionConfig()
+
   return (
-    <article
+    <m.article
+      variants={{
+        hidden: reducedMotion ? {} : { opacity: 0, x: -10 },
+        visible: reducedMotion ? {} : { opacity: 1, x: 0 },
+      }}
+      whileHover={reducedMotion ? {} : { x: 8, backgroundColor: 'color-mix(in srgb, var(--color-brand-gold) 4%, transparent)' }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={[
         'shop-event-card',
         checkoutOpen ? '' : 'shop-event-card--preview',
@@ -111,7 +120,7 @@ function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
           <ArrowRight size={14} aria-hidden />
         </span>
       </div>
-    </article>
+    </m.article>
   )
 }
 
@@ -125,7 +134,17 @@ const SHOP_CATEGORIES = [
  * Panel full-width cuando el departamento no tiene catálogo propio
  * (merch / cursos en «próximamente»). Composición editorial, no card de catálogo.
  */
-function ShopDepartmentPanel({ badge, title, titleId, text }) {
+function ShopDepartmentPanel({
+  badge,
+  title,
+  titleId,
+  text,
+  sourceId,
+  primaryLabel,
+  onPrimary,
+  secondaryLabel,
+  onSecondary,
+}) {
   const { reducedMotion } = useMotionConfig()
 
   return (
@@ -151,6 +170,29 @@ function ShopDepartmentPanel({ badge, title, titleId, text }) {
           {title}
         </h2>
         <p className="shop-department-panel__text">{text}</p>
+        {primaryLabel && onPrimary ? (
+          <div className="shop-department-panel__actions">
+            <button
+              type="button"
+              className="shop-department-panel__cta shop-department-panel__cta--primary"
+              onClick={onPrimary}
+            >
+              <span>{primaryLabel}</span>
+              <ArrowRight size={14} aria-hidden />
+            </button>
+            {secondaryLabel && onSecondary ? (
+              <button
+                type="button"
+                className="shop-department-panel__cta shop-department-panel__cta--secondary"
+                onClick={onSecondary}
+              >
+                <span>{secondaryLabel}</span>
+                <ArrowRight size={13} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <LaunchInterestForm source={sourceId || 'shop_generic'} />
       </div>
     </m.article>
   )
@@ -330,6 +372,10 @@ function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDet
                 {checkoutOpen ? t('pages.shop.salesClosed') : t('pages.shop.checkoutSoonNote')}
               </p>
             )}
+            
+            {!checkoutOpen ? (
+              <LaunchInterestForm source="shop_hero" eventSlug={event.slug} />
+            ) : null}
 
             <div className="shop-hero__actions">
               {canBuy ? (
@@ -498,7 +544,15 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                   </p>
                 </div>
                 {shopEvents.length > 0 ? (
-                  <div className="shop-events-grid">
+                  <m.div
+                    className="shop-events-grid"
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      hidden: {},
+                      visible: { transition: { staggerChildren: 0.08 } },
+                    }}
+                  >
                     {shopEvents.map((event) => (
                       <ShopEventCard
                         key={event.slug ?? event.id ?? event.title}
@@ -509,7 +563,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                         t={t}
                       />
                     ))}
-                  </div>
+                  </m.div>
                 ) : (
                   <div className="shop-empty" role="status">
                     <div className="shop-empty__icon" aria-hidden>
@@ -579,6 +633,11 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                   title={t('pages.shop.merchTitle')}
                   titleId="shop-merch-panel-title"
                   text={checkoutOpen ? t('pages.shop.merchText') : t('pages.shop.merchTextSoon')}
+                  sourceId="shop_merch"
+                  primaryLabel={t('pages.shop.merchCtaCalendar')}
+                  onPrimary={() => onNavigate?.('events')}
+                  secondaryLabel={t('pages.shop.merchCtaContact')}
+                  onSecondary={() => onNavigate?.('contact')}
                 />
               )}
             </section>
@@ -591,6 +650,11 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                 title={t('pages.shop.coursesTitle')}
                 titleId="shop-courses-panel-title"
                 text={checkoutOpen ? t('pages.shop.coursesText') : t('pages.shop.coursesTextSoon')}
+                sourceId="shop_courses"
+                primaryLabel={t('pages.shop.coursesCtaContact')}
+                onPrimary={() => onNavigate?.('contact')}
+                secondaryLabel={t('pages.shop.coursesCtaTeam')}
+                onSecondary={() => onNavigate?.('team')}
               />
             </section>
           ) : null}

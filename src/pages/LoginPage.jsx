@@ -4,6 +4,7 @@ import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { clearPasswordResetToken, readPasswordResetToken } from '../lib/passwordResetRoute.js'
 import { usePluOAuth } from '../providers/oauthContext.js'
 import { forgotAthletePassword, resetAthletePassword } from '../services/athleteApi.js'
@@ -14,16 +15,39 @@ function normalizeEmail(value) {
   return String(value ?? '').trim().toLowerCase()
 }
 
+/**
+ * CTA con estado ocupado real: la etiqueta cambia y el spinner reemplaza a la
+ * flecha sin alterar el ancho del botón, así el submit no "salta" al enviar.
+ */
+function AuthSubmit({ busy, busyLabel, className = '', label, ...props }) {
+  return (
+    <button
+      type="submit"
+      className={`login-submit${className ? ` ${className}` : ''}`}
+      aria-busy={busy || undefined}
+      disabled={busy}
+      {...props}
+    >
+      <span className="login-submit__label">{busy ? busyLabel : label}</span>
+      <span className="login-submit__mark" aria-hidden>
+        {busy ? <span className="login-submit__spinner" /> : <ArrowRight size={16} />}
+      </span>
+    </button>
+  )
+}
+
 export default function LoginPage({ onLogin, onNavigate }) {
   const { t } = useI18n()
   const oauth = usePluOAuth()
   const initialResetToken = readPasswordResetToken()
   const [mode, setMode] = useState(initialResetToken ? 'reset' : 'login')
+  const [swapDirection, setSwapDirection] = useState(1)
   const [resetToken, setResetToken] = useState(initialResetToken)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [capsLock, setCapsLock] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
@@ -42,9 +66,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
     setRecoverMessage('')
   }
 
+  // Bloq Mayús con la contraseña oculta es la causa silenciosa más común de
+  // "credenciales inválidas": se avisa mientras se tipea, no después de fallar.
+  function trackCapsLock(event) {
+    const state = event.getModifierState?.('CapsLock')
+    if (typeof state === 'boolean') setCapsLock(state)
+  }
+
   function openRecover() {
     clearErrors()
     setPassword('')
+    setCapsLock(false)
+    setSwapDirection(1)
     setMode('recover')
   }
 
@@ -52,8 +85,10 @@ export default function LoginPage({ onLogin, onNavigate }) {
     clearErrors()
     setPassword('')
     setPasswordConfirm('')
+    setCapsLock(false)
     setResetToken(null)
     clearPasswordResetToken()
+    setSwapDirection(-1)
     setMode('login')
   }
 
@@ -127,6 +162,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
     try {
       const result = await forgotAthletePassword(normalizeEmail(email))
       setRecoverMessage(result?.message || t('login.forgotSentDesc'))
+      setSwapDirection(1)
       setMode('recoverSent')
     } catch (error) {
       setSubmitError(error?.message || t('login.forgotError'))
@@ -152,6 +188,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       setPasswordConfirm('')
       setResetToken(null)
       setRecoverMessage(t('login.resetSuccess'))
+      setSwapDirection(-1)
       setMode('login')
     } catch (error) {
       setSubmitError(error?.message || t('login.resetError'))
@@ -184,6 +221,13 @@ export default function LoginPage({ onLogin, onNavigate }) {
         : mode === 'reset'
           ? t('login.resetLead')
           : t('login.subtitle')
+
+  const capsLockHint = capsLock ? (
+    <span className="login-field__hint" role="status">
+      <AlertCircle size={13} aria-hidden />
+      <span>{t('login.capsLock')}</span>
+    </span>
+  ) : null
 
   return (
     <main className="page auth-layout">
@@ -222,11 +266,23 @@ export default function LoginPage({ onLogin, onNavigate }) {
           <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
           <div className="auth-immersive-glass__copy">
             <span className="auth-immersive-glass__eyebrow">PLU ARGENTINA · FICHA DE ATLETA</span>
-            <h1 id="login-heading" className="auth-immersive-glass__title">{cardTitle}</h1>
-            <p className="auth-immersive-glass__lead">{cardLead}</p>
+            {/* key por modo: React reemplaza el nodo y la animación CSS de
+                entrada vuelve a correr sin montar un AnimatePresence extra
+                (que dejaría dos h1 con el mismo id durante el crossfade). */}
+            <h1 key={`title-${mode}`} id="login-heading" className="auth-immersive-glass__title">
+              {cardTitle}
+            </h1>
+            <p key={`lead-${mode}`} className="auth-immersive-glass__lead">{cardLead}</p>
           </div>
         </header>
 
+        <div className="auth-mode-swap">
+          <MotionContentSwap
+            className="auth-mode-swap__panel"
+            direction={swapDirection}
+            mode="sync"
+            swapKey={mode}
+          >
           {mode === 'login' && (
             <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
               <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
@@ -272,6 +328,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     name="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    onKeyUp={trackCapsLock}
+                    onKeyDown={trackCapsLock}
+                    onBlur={() => setCapsLock(false)}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     aria-invalid={Boolean(fieldErrors.password)}
@@ -282,10 +341,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     className="login-field__toggle"
                     onClick={() => setShowPassword((visible) => !visible)}
                     aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </span>
+                {capsLockHint}
                 {fieldErrors.password ? (
                   <span className="login-field__error" role="alert">
                     <AlertCircle size={14} className="error-icon" />
@@ -294,10 +355,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 ) : null}
               </div>
 
-              <button type="submit" className="login-submit" disabled={isSubmitting}>
-                {isSubmitting ? t('login.submitting') : t('login.submit')}
-                {!isSubmitting && <ArrowRight size={16} aria-hidden />}
-              </button>
+              <AuthSubmit
+                busy={isSubmitting}
+                busyLabel={t('login.submitting')}
+                label={t('login.submit')}
+              />
               {recoverMessage ? (
                 <p className="login-form__notice" role="status">
                   {recoverMessage}
@@ -309,6 +371,37 @@ export default function LoginPage({ onLogin, onNavigate }) {
                   <span>{submitError}</span>
                 </p>
               ) : null}
+
+              {oauth.configured ? (
+                <>
+                  <div className="login-separator" role="separator">
+                    <span>{t('login.separator')}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="login-submit login-submit--oauth"
+                    onClick={handleOAuthLogin}
+                    disabled={oauth.isLoading}
+                    aria-busy={oauth.isLoading || undefined}
+                  >
+                    <span className="login-submit__label">
+                      {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
+                    </span>
+                    {oauth.isLoading ? (
+                      <span className="login-submit__mark" aria-hidden>
+                        <span className="login-submit__spinner" />
+                      </span>
+                    ) : null}
+                  </button>
+                </>
+              ) : null}
+
+              <p className="login-join">
+                {t('login.joinPrompt')}{' '}
+                <button type="button" className="login-join__link" onClick={() => onNavigate('members')}>
+                  {t('login.joinLink')}
+                </button>
+              </p>
             </form>
           )}
 
@@ -317,6 +410,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
                 <span className="login-field__label">{t('login.email')}</span>
                 <span className="login-field__control">
+                  <Mail size={16} className="login-field__icon" aria-hidden />
                   <input
                     type="email"
                     name="email"
@@ -337,10 +431,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 ) : null}
               </label>
 
-              <button type="submit" className="login-submit" disabled={isSubmitting}>
-                {isSubmitting ? t('login.forgotSubmitting') : t('login.forgotSubmit')}
-                {!isSubmitting && <ArrowRight size={16} aria-hidden />}
-              </button>
+              <AuthSubmit
+                busy={isSubmitting}
+                busyLabel={t('login.forgotSubmitting')}
+                label={t('login.forgotSubmit')}
+              />
 
               <button type="button" className="login-form__back" onClick={backToLogin}>
                 <ArrowLeft size={14} aria-hidden />
@@ -363,7 +458,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
               </p>
               <p className="login-form__hint">{t('login.forgotSentHint')}</p>
               <button type="button" className="login-submit" onClick={backToLogin}>
-                {t('login.backToLogin')}
+                <span className="login-submit__label">{t('login.backToLogin')}</span>
               </button>
             </div>
           )}
@@ -373,11 +468,15 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <label className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
                 <span className="login-field__label">{t('login.newPassword')}</span>
                 <span className="login-field__control">
+                  <Lock size={16} className="login-field__icon" aria-hidden />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    onKeyUp={trackCapsLock}
+                    onKeyDown={trackCapsLock}
+                    onBlur={() => setCapsLock(false)}
                     placeholder="••••••••••••"
                     autoComplete="new-password"
                     autoFocus
@@ -389,10 +488,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
                     className="login-field__toggle"
                     onClick={() => setShowPassword((visible) => !visible)}
                     aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </span>
+                {capsLockHint}
                 {fieldErrors.password ? (
                   <span className="login-field__error" role="alert">
                     <AlertCircle size={14} className="error-icon" />
@@ -404,6 +505,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
               <label className={`login-field${fieldErrors.passwordConfirm ? ' is-invalid' : ''}`}>
                 <span className="login-field__label">{t('login.confirmPassword')}</span>
                 <span className="login-field__control">
+                  <Lock size={16} className="login-field__icon" aria-hidden />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="passwordConfirm"
@@ -423,10 +525,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 ) : null}
               </label>
 
-              <button type="submit" className="login-submit" disabled={isSubmitting}>
-                {isSubmitting ? t('login.resetSubmitting') : t('login.resetSubmit')}
-                {!isSubmitting && <ArrowRight size={16} aria-hidden />}
-              </button>
+              <AuthSubmit
+                busy={isSubmitting}
+                busyLabel={t('login.resetSubmitting')}
+                label={t('login.resetSubmit')}
+              />
 
               <button type="button" className="login-form__back" onClick={backToLogin}>
                 <ArrowLeft size={14} aria-hidden />
@@ -441,33 +544,10 @@ export default function LoginPage({ onLogin, onNavigate }) {
               ) : null}
             </form>
           )}
-
-          {mode === 'login' && oauth.configured && (
-            <>
-              <div className="login-separator" role="separator">
-                <span>{t('login.separator')}</span>
-              </div>
-              <button
-                type="button"
-                className="login-submit login-submit--oauth"
-                onClick={handleOAuthLogin}
-                disabled={oauth.isLoading}
-              >
-                {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
-              </button>
-            </>
-          )}
-
-          {mode === 'login' && (
-            <p className="login-join">
-              {t('login.joinPrompt')}{' '}
-              <button type="button" className="login-join__link" onClick={() => onNavigate('members')}>
-                {t('login.joinLink')}
-              </button>
-            </p>
-          )}
+          </MotionContentSwap>
         </div>
-        
+        </div>
+
         <p className="login-page__footer auth-layout__footer">
           {t('login.footerNote')} ·{' '}
           <button type="button" onClick={() => onNavigate('home')}>

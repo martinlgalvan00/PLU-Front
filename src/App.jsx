@@ -4,6 +4,7 @@ import Footer from './components/layout/Footer.jsx'
 import AnalyticsTracker from './components/layout/AnalyticsTracker.jsx'
 import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
+import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
@@ -647,9 +648,11 @@ export default function App() {
         id="main-content"
         tabIndex={-1}
       >
-        <Suspense fallback={<PageLoadFallback />}>
-          <Page {...pageProps} />
-        </Suspense>
+        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={view}>
+          <Suspense fallback={<PageLoadFallback />}>
+            <Page {...pageProps} />
+          </Suspense>
+        </PageErrorBoundary>
       </PageTransition>
       {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
     </div>
@@ -683,7 +686,9 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         id="main-content"
         tabIndex={-1}
       >
-        <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
+        <PageErrorBoundary onGoHome={() => navigate('home')} resetKey={view}>
+          <Suspense fallback={<PageLoadFallback />}>{children}</Suspense>
+        </PageErrorBoundary>
       </PageTransition>
       <Footer onNavigate={navigate} />
     </div>

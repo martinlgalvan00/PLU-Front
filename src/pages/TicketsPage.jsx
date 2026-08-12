@@ -63,7 +63,7 @@ export default function TicketsPage({
 
   useEffect(() => {
     setSelectedEventId(resolveInitialEventId(initialEventSlug, ticketEvents, event))
-  }, [event, initialEventSlug])
+  }, [event, initialEventSlug, ticketEvents])
 
   const Item = reducedMotion ? 'div' : m.div
   const itemProps = reducedMotion ? {} : { variants: heroSequenceItem }

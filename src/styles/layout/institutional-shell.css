@@ -41,19 +41,16 @@
 /* ── Header ─────────────────────────────────────── */
 
 .site-header-shell--institutional {
-  /* Morph de marca al scroll: wordmark se retrae con --header-scroll-progress.
-     Slot de altura fijo: el pill se compacta adentro sin reflow del documento. */
+  /* Morph continuo = solo opacity/transform (GPU). El compactado de layout
+     ocurre una vez con .site-header--scrolled — no height/font por frame. */
   --brand-wordmark-open: calc(1 - var(--header-scroll-progress, 0));
-  /* Fade adelantado al clip, sin apagar tan temprano (1.25 vs 1.4). */
-  --brand-wordmark-fade: clamp(0, calc(1 - (var(--header-scroll-progress, 0) * 1.25)), 1);
-  --brand-emblem-base: 1;
-  /* Sello con presencia: contenido en la pill, sin quedar demasiado fino. */
-  --brand-emblem-size: clamp(44px, 1.7vw + 28px, 50px);
-  /* Piso más alto al compactar (~46px) para que la pill scrolled no se vea fina. */
-  --brand-nav-row: calc(46px + (8px * var(--brand-wordmark-open, 1)));
-  /* Ancho real del letterhead en nav (~height 20 × aspect 3.75), sin columna muerta. */
+  --brand-wordmark-fade: clamp(0, calc(1 - (var(--header-scroll-progress, 0) * 1.08)), 1);
+  /* Anticipa el sello compacto (~8%) antes del snap de layout. */
+  --brand-emblem-base: calc(0.92 + (0.08 * var(--brand-wordmark-open, 1)));
+  --brand-emblem-size: clamp(40px, 1.5vw + 26px, 46px);
+  --brand-nav-row: 54px;
   --brand-wordmark-size: 5rem;
-  --brand-wordmark-track: calc(var(--brand-wordmark-open) * var(--brand-wordmark-size));
+  --brand-wordmark-track: var(--brand-wordmark-size);
   --brand-shell-slot: 58px;
   align-items: center;
   display: flex;
@@ -64,62 +61,83 @@
   min-height: var(--brand-shell-slot);
   pointer-events: auto;
   position: sticky;
-  /* top más bajo al compactar: pill más “adherida”, sin saltar el layout. */
-  top: calc(8px + (8px * var(--brand-wordmark-open, 1)));
+  top: 12px;
   width: max-content;
   z-index: var(--z-header);
 }
 
-.site-header--institutional {
+.site-header-shell--institutional:has(.site-header--scrolled) {
+  --brand-emblem-base: 1;
+  --brand-emblem-size: 32px;
+  --brand-nav-row: 46px;
+  --brand-shell-slot: 50px;
+  top: 8px;
+}
+
+/* Prefijo .site-header para ganar a reglas genéricas de header.css. */
+.site-header.site-header--institutional {
   animation: institutional-header-enter 480ms var(--ease-out) backwards;
-  backdrop-filter: blur(48px) saturate(180%);
-  -webkit-backdrop-filter: blur(48px) saturate(180%);
-  background: color-mix(in srgb, var(--institution-header) 65%, transparent);
-  border: 1px solid color-mix(in srgb, var(--institution-border) 20%, transparent);
+  /* Liquid glass: blur estático (barato). El settle es background/sombra inset,
+     no borde duro ni blur animado por frame. */
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: color-mix(in srgb, var(--institution-header) 56%, transparent);
+  /* 1px transparente: reserva layout sin outline visible. */
+  border: 1px solid transparent;
   border-radius: 9999px;
-  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 10px 28px -14px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.04);
+  contain: layout style;
   margin: 0 auto;
   max-width: 100%;
   overflow: visible;
   pointer-events: auto;
   position: relative;
-  /* Sin scale global: el morph del letterhead es el gesto; translateZ para capa. */
   transform: translateZ(0);
   transform-origin: center top;
   top: auto;
   transition:
-    background-color var(--motion-slow) var(--ease-out),
-    border-color var(--motion-slow) var(--ease-out),
-    box-shadow var(--motion-slow) var(--ease-out),
-    backdrop-filter var(--motion-slow) var(--ease-out),
-    -webkit-backdrop-filter var(--motion-slow) var(--ease-out),
-    max-width var(--motion-base) var(--ease-out);
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
   width: 100%;
   z-index: var(--z-header);
 }
 
-[data-theme='light'] .site-header--institutional {
-  backdrop-filter: blur(18px) saturate(108%);
-  -webkit-backdrop-filter: blur(18px) saturate(108%);
-  background: color-mix(in srgb, var(--institution-header) 96%, transparent);
-  border-color: rgba(15, 17, 23, 0.08);
+[data-theme='light'] .site-header.site-header--institutional {
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  background: color-mix(in srgb, #fff 62%, transparent);
+  border-color: transparent;
   box-shadow:
-    0 10px 28px -16px rgba(15, 17, 23, 0.14),
-    0 0 0 1px rgba(15, 17, 23, 0.03);
+    0 8px 28px -14px rgba(15, 17, 23, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -0.5px 0 rgba(15, 17, 23, 0.04);
 }
 
-.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  background: var(--institution-header-blend);
-  border-color: color-mix(in srgb, var(--institution-border) 50%, transparent);
+.site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  background: color-mix(in srgb, var(--institution-header-blend) 68%, transparent);
+  border-color: transparent;
+  box-shadow:
+    0 10px 28px -16px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.03);
 }
 
-[data-theme='light'] .site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
-  backdrop-filter: blur(16px) saturate(105%);
-  -webkit-backdrop-filter: blur(16px) saturate(105%);
-  background: color-mix(in srgb, var(--plu-warm-50) 88%, #fff);
-  border-color: rgba(15, 17, 23, 0.08);
+[data-theme='light'] .site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) {
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  background: color-mix(in srgb, #fff 52%, transparent);
+  border-color: transparent;
+  box-shadow:
+    0 8px 24px -14px rgba(15, 17, 23, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    inset 0 -0.5px 0 rgba(15, 17, 23, 0.03);
 }
 
 .site-header {
@@ -137,25 +155,52 @@
   visibility: visible;
 }
 
-.site-header--institutional.site-header--scrolled,
-.site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  background: rgba(9, 11, 14, 0.94);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  border-color: rgba(255, 255, 255, 0.11);
+.site-header.site-header--institutional.site-header--scrolled,
+.site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  background: color-mix(in srgb, var(--institution-header) 70%, transparent);
+  border-color: transparent;
   box-shadow:
-    0 16px 40px -16px rgba(0, 0, 0, 0.58),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+    0 12px 32px -14px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.05);
+  transform: translateZ(0) scale(0.992);
 }
 
-[data-theme='light'] .site-header--institutional.site-header--scrolled,
-[data-theme='light'] .site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
-  backdrop-filter: blur(18px) saturate(120%);
-  -webkit-backdrop-filter: blur(18px) saturate(120%);
-  background: color-mix(in srgb, #fff 96%, var(--plu-warm-50));
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow: 0 12px 28px -16px rgba(15, 17, 23, 0.18);
+[data-theme='light'] .site-header.site-header--institutional.site-header--scrolled,
+[data-theme='light'] .site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: color-mix(in srgb, #fff 72%, transparent);
+  border-color: transparent;
+  box-shadow:
+    0 10px 28px -14px rgba(15, 17, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -0.5px 0 rgba(15, 17, 23, 0.05);
+  transform: translateZ(0) scale(0.992);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .site-header.site-header--institutional,
+  .site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled),
+  .site-header.site-header--institutional.site-header--scrolled,
+  .site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--institution-header);
+    border-color: color-mix(in srgb, var(--institution-border) 40%, transparent);
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.28);
+  }
+
+  [data-theme='light'] .site-header.site-header--institutional,
+  [data-theme='light'] .site-header.site-header--institutional.site-header--over-hero:not(.site-header--scrolled),
+  [data-theme='light'] .site-header.site-header--institutional.site-header--scrolled,
+  [data-theme='light'] .site-header.site-header--institutional.site-header--lux.site-header--scrolled:not(.site-header--over-hero) {
+    background: var(--institution-header);
+    border-color: rgba(15, 17, 23, 0.08);
+    box-shadow: 0 8px 22px -14px rgba(15, 17, 23, 0.12);
+  }
 }
 
 /* Lux + institutional */
@@ -163,18 +208,26 @@
 .plu-global-nav {
   align-items: center;
   display: flex;
-  /* Compactación ligada al progreso de scroll (sin transition: evita lag). */
-  gap: calc(8px + (6px * var(--brand-wordmark-open, 1)));
-  height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
-  max-height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
-  min-height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
-  /* Izquierda más justa cuando queda solo el emblema. */
-  padding:
-    0
-    14px
-    0
-    calc(8px + (4px * var(--brand-wordmark-open, 1)));
+  gap: 14px;
+  height: 56px;
+  max-height: 56px;
+  min-height: 56px;
+  padding: 0 14px 0 12px;
+  transition:
+    height var(--duration-base) var(--ease-out),
+    max-height var(--duration-base) var(--ease-out),
+    min-height var(--duration-base) var(--ease-out),
+    gap var(--duration-base) var(--ease-out),
+    padding var(--duration-base) var(--ease-out);
   width: 100%;
+}
+
+.site-header--scrolled .plu-global-nav {
+  gap: 10px;
+  height: 46px;
+  max-height: 46px;
+  min-height: 46px;
+  padding: 0 12px 0 8px;
 }
 
 .plu-global-nav__brand {
@@ -183,8 +236,7 @@
   align-items: center;
   display: inline-grid;
   flex: none;
-  gap: calc(8px * var(--brand-wordmark-open, 1));
-  /* max-content: el botón abraza emblema + letterhead; el clip va por max-width del wordmark. */
+  gap: 8px;
   grid-template-columns: auto max-content;
   justify-self: start;
   max-width: min(100%, 12rem);
@@ -192,37 +244,52 @@
   min-width: 0;
   padding: 0;
   text-align: left;
+  transition: gap var(--duration-base) var(--ease-out);
   width: max-content;
 }
 
-/* Emblema: sello dentro de la pill. margin-block centra respecto a --brand-nav-row. */
+.site-header--scrolled .plu-global-nav__brand {
+  gap: 0;
+}
+
+/* Emblema: sello dentro de la pill. margin-block centra respecto a --brand-nav-row.
+   height/width solo animan al cruzar .scrolled (no por frame). */
 .plu-global-nav__emblem {
   background: transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   flex: none;
-  height: var(--brand-emblem-size, 48px);
-  margin-block: calc((var(--brand-nav-row, 48px) - var(--brand-emblem-size, 48px)) / 2);
+  height: var(--brand-emblem-size, 46px);
+  margin-block: calc((var(--brand-nav-row, 48px) - var(--brand-emblem-size, 46px)) / 2);
   object-fit: contain;
   object-position: center;
   transform: translateZ(0) scale(calc(var(--brand-emblem-base, 1) * var(--brand-emblem-hover, 1)));
-  transition: transform var(--motion-instant) var(--ease-out);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    height var(--duration-base) var(--ease-out),
+    width var(--duration-base) var(--ease-out),
+    margin-block var(--duration-base) var(--ease-out);
   width: var(--brand-emblem-size, 46px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .site-header,
+  .site-header--institutional,
   .plu-global-nav,
   .plu-global-nav__brand,
   .plu-global-nav__brand > span,
   .plu-global-nav__wordmark,
   .plu-global-nav__emblem,
-  .plu-global-nav__letterhead {
+  .plu-global-nav__letterhead,
+  .plu-global-nav__rail,
+  .plu-global-nav__link,
+  .plu-global-nav__login {
     transition: none;
   }
 
-  .site-header--institutional {
+  .site-header--institutional,
+  .site-header--institutional.site-header--scrolled {
     transform: none;
   }
 }
@@ -235,7 +302,7 @@
   --brand-emblem-hover: 0.98;
 }
 
-/* Letterhead: clip + fade adelantado; slide mínimo hacia el emblema (menos ruido). */
+/* Letterhead: morph GPU (opacity + scaleX). Colapso de ancho solo al scrolled. */
 .plu-global-nav__wordmark {
   align-self: center;
   display: grid;
@@ -245,10 +312,26 @@
   opacity: var(--brand-wordmark-fade, 1);
   overflow: hidden;
   pointer-events: none;
-  transform: translate3d(calc(var(--header-scroll-progress, 0) * -4px), 0, 0);
+  transform:
+    translate3d(calc(var(--header-scroll-progress, 0) * -6px), 0, 0)
+    scaleX(calc(1 - (var(--header-scroll-progress, 0) * 0.42)));
   transform-origin: left center;
+  transition:
+    max-width var(--duration-base) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out);
   width: max-content;
   white-space: nowrap;
+}
+
+.site-header-shell--institutional[data-morphing] .plu-global-nav__wordmark,
+.site-header-shell--institutional[data-morphing] .plu-global-nav__emblem {
+  will-change: transform, opacity;
+}
+
+.site-header--scrolled .plu-global-nav__wordmark {
+  max-width: 0;
+  opacity: 0;
+  transform: translate3d(-8px, 0, 0) scaleX(0.55);
 }
 
 .plu-global-nav__letterhead {
@@ -277,8 +360,9 @@
     transparent 100%
   );
   flex: none;
-  height: calc(12px + (6px * var(--brand-wordmark-open, 1)));
-  opacity: calc(0.28 + (0.52 * (1 - var(--brand-wordmark-open, 1))));
+  height: 16px;
+  opacity: calc(0.34 + (0.4 * var(--header-scroll-progress, 0)));
+  transition: opacity var(--motion-fast) var(--ease-out);
   width: 1px;
 }
 
@@ -298,7 +382,7 @@
 .plu-global-nav__indicator {
   background: var(--institution-gold);
   border-radius: 1px;
-  bottom: calc(5px + (1px * var(--brand-wordmark-open, 1)));
+  bottom: 6px;
   height: 1px;
   left: 24%;
   opacity: 0.9;
@@ -306,6 +390,10 @@
   position: absolute;
   right: 24%;
   box-shadow: none;
+}
+
+.site-header--scrolled .plu-global-nav__indicator {
+  bottom: 5px;
 }
 
 /* El emblema ya es un sello cerrado: sin anillo dorado extra en activo. */
@@ -320,18 +408,28 @@
   border-radius: 0;
   color: color-mix(in srgb, var(--institution-text-muted) 92%, var(--institution-text));
   display: inline-flex;
-  font-size: calc(11.25px + (0.75px * var(--brand-wordmark-open, 1)));
+  font-size: 12px;
   font-weight: 650;
   gap: 5px;
   justify-content: center;
-  letter-spacing: calc(0.04em + (0.015em * var(--brand-wordmark-open, 1)));
-  min-height: calc(42px + (6px * var(--brand-wordmark-open, 1)));
-  padding: 0 calc(10px + (5px * var(--brand-wordmark-open, 1)));
+  letter-spacing: 0.032em;
+  min-height: 44px;
+  padding: 0 14px;
   position: relative;
   text-transform: uppercase;
   transition:
     color var(--motion-fast) var(--ease-out),
-    opacity var(--motion-fast) var(--ease-out);
+    opacity var(--motion-fast) var(--ease-out),
+    padding var(--duration-base) var(--ease-out),
+    letter-spacing var(--duration-base) var(--ease-out),
+    font-size var(--duration-base) var(--ease-out);
+}
+
+.site-header--scrolled .plu-global-nav__link {
+  font-size: 11.25px;
+  letter-spacing: 0.028em;
+  min-height: 40px;
+  padding: 0 11px;
 }
 
 .plu-global-nav__link-content {
@@ -362,12 +460,16 @@
 /* Hover: hairline dorado editorial (layoutId compartido). Sin pill SaaS. */
 .plu-global-nav__hover-pill {
   position: absolute;
-  inset: auto 20% calc(5px + (1px * var(--brand-wordmark-open, 1))) 20%;
+  inset: auto 20% 6px 20%;
   background: color-mix(in srgb, var(--institution-gold) 52%, transparent);
   border-radius: 1px;
   height: 1px;
   pointer-events: none;
   z-index: 0;
+}
+
+.site-header--scrolled .plu-global-nav__hover-pill {
+  inset: auto 20% 5px 20%;
 }
 
 [data-theme='light'] .plu-global-nav__hover-pill {
@@ -403,7 +505,7 @@
 /* Afiliación: mismo lenguaje tipográfico; el hairline lo aporta hover-pill / indicator. */
 .plu-global-nav__link--affiliate {
   color: var(--institution-text-secondary);
-  letter-spacing: calc(0.03em + (0.01em * var(--brand-wordmark-open, 1)));
+  letter-spacing: 0.03em;
 }
 
 .plu-global-nav__link--affiliate:hover,
@@ -429,20 +531,31 @@
   position: relative;
 }
 
-.plu-nav-menu {
-  background: color-mix(in srgb, var(--institution-surface) 92%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--institution-border-strong) 40%, transparent);
-  border-radius: 12px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px color-mix(in srgb, var(--institution-gold) 10%, transparent);
+/* Ancla de posicionamiento: translate CSS acá; Motion solo anima opacity en este nodo. */
+.plu-nav-menu-shell {
   left: 50%;
-  overflow: hidden;
-  padding: 8px;
   position: absolute;
   top: calc(100% + 10px);
   transform-origin: top center;
+  translate: -50% 0;
   z-index: var(--z-dropdown);
+}
+
+.plu-nav-menu-shell--resources {
+  transform-origin: 58% top;
+  translate: -58% 0;
+}
+
+.plu-nav-menu {
+  background: color-mix(in srgb, var(--institution-surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--institution-border-strong) 40%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14), 0 0 0 1px color-mix(in srgb, var(--institution-gold) 8%, transparent);
+  overflow: hidden;
+  padding: 8px;
+  position: relative;
 }
 
 [data-theme='light'] .plu-nav-menu {
@@ -456,21 +569,17 @@
 }
 
 .plu-nav-menu > * {
-  /* Enter lo maneja Motion (opacity/transform); evitar doble animación CSS+JS */
+  /* Enter lo maneja Motion (opacity) en el shell; evitar doble animación CSS+JS */
   animation: none;
 }
 
 .plu-nav-menu--compact {
   min-width: 330px;
-  translate: -50% 0;
 }
 
 .plu-nav-menu--resources {
   min-width: min(720px, calc(100vw - 48px));
   padding: 0;
-  /* Coincide con transformOrigin 58% top del panel Motion. */
-  transform-origin: 58% top;
-  translate: -58% 0;
 }
 
 .plu-nav-menu__label,
@@ -508,7 +617,6 @@
   background: color-mix(in srgb, var(--institution-text) 3%, transparent);
   border-color: color-mix(in srgb, var(--institution-text) 6%, transparent);
   color: var(--institution-text);
-  /* translateX vive en Motion (whileHover) para no pelear con transform inline */
 }
 
 .plu-nav-menu__item--featured {
@@ -706,8 +814,8 @@
   display: flex;
   gap: 2px;
   margin-right: 2px;
-  opacity: calc(0.72 + (0.16 * var(--brand-wordmark-open, 1)));
-  padding-right: calc(6px + (4px * var(--brand-wordmark-open, 1)));
+  opacity: 0.84;
+  padding-right: 10px;
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -764,12 +872,12 @@
   font-family: var(--font-display);
   font-size: 10.5px;
   font-weight: 700;
-  height: calc(36px + (2px * var(--brand-wordmark-open, 1)));
+  height: 38px;
   justify-content: center;
   letter-spacing: 0.1em;
   line-height: 1;
-  min-height: calc(36px + (2px * var(--brand-wordmark-open, 1)));
-  padding: 0 calc(14px + (2px * var(--brand-wordmark-open, 1)));
+  min-height: 38px;
+  padding: 0 16px;
   text-decoration: none;
   text-transform: uppercase;
   transition:
@@ -781,17 +889,32 @@
   width: auto;
 }
 
+.site-header--scrolled .plu-global-nav__login {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
 .plu-global-nav__login:hover,
 .plu-global-nav__login.is-active {
   background: var(--institution-gold-soft);
   border-color: color-mix(in srgb, var(--institution-gold) 78%, var(--institution-border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--institution-gold) 18%, transparent);
+  box-shadow: none;
   color: var(--institution-text);
   text-decoration: none;
 }
 
 .plu-global-nav__login:active {
   transform: none;
+}
+
+.site-header--institutional.site-header--over-hero:not(.site-header--scrolled) .plu-global-nav__login {
+  border-color: color-mix(in srgb, var(--institution-gold) 64%, transparent);
+  color: var(--institution-text);
+}
+
+[data-theme='light'] .site-header--institutional.site-header--over-hero:not(.site-header--scrolled) .plu-global-nav__login {
+  border-color: color-mix(in srgb, var(--institution-gold) 55%, rgba(15, 17, 23, 0.18));
 }
 
 .plu-global-nav__account {
@@ -2368,30 +2491,78 @@ html.plu-drawer-open body {
   padding-top: 32px;
 }
 
+/* Salida de la medición de uso. Vive en el pie porque es una preferencia, no
+   una acción de marca: tiene que estar accesible y no competir con nada. */
+.analytics-optout {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: inherit;
+  gap: 6px;
+  letter-spacing: inherit;
+  /* El texto del pie mide 11px; el target táctil no puede medir eso. */
+  min-height: 44px;
+  opacity: 0.72;
+  padding: 0;
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.analytics-optout:hover {
+  opacity: 1;
+}
+
+.analytics-optout:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.analytics-optout span {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+}
+
+/* Activo: el estado se lee sin depender del color (el ícono cambia a un tilde
+   y `aria-pressed` lo expone), pero además se quita el subrayado de acción. */
+.analytics-optout--active {
+  opacity: 1;
+}
+
+.analytics-optout--active span {
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analytics-optout {
+    transition: none;
+  }
+}
+
 /* ── Responsive shell: bandas notebook ─────────────────
-   <800 mobile cluster | 800–1099 mid (Afiliación + Competencia +
-   Resultados + Récords + Más + menú) | 1100–1500 compact | >1500 morph pleno
-   Nota: sin Calendario/Reglamento top-level, 800–980 entra el set completo.
+   <800 mobile cluster | 800–1099 mid | 1100–1500 compact | >1500 pleno
+   Morph continuo = opacity/transform; layout compact solo con --scrolled.
    ───────────────────────────────────────────────────── */
 
-/* Notebook mid: morph continuo vía --header-scroll-progress (sin snap de wordmark).
-   Evitar transition de gap/max-width: el umbral oscilaba y reiniciaba la animación. */
 @media (min-width: 800px) and (max-width: 1500px) {
   .site-header-shell--institutional {
     max-width: calc(100% - 24px);
-    --brand-emblem-base: 1;
     --brand-shell-slot: 54px;
   }
 
-  .plu-global-nav__wordmark {
-    transform: translate3d(calc(var(--header-scroll-progress, 0) * -3px), 0, 0);
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-shell-slot: 48px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .plu-global-nav__brand,
     .plu-global-nav__wordmark,
     .plu-global-nav__rail,
-    .site-header--institutional {
+    .site-header--institutional,
+    .site-header--institutional.site-header--scrolled {
       transition: none;
       transform: none;
     }
@@ -2401,23 +2572,40 @@ html.plu-drawer-open body {
 /* Desktop compacto 1100–1500 */
 @media (min-width: 1100px) and (max-width: 1500px) {
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(40px, 1.9vw + 18px, 44px);
+    --brand-emblem-size: clamp(38px, 1.7vw + 18px, 42px);
     --brand-wordmark-size: 4.75rem;
     --brand-shell-slot: 56px;
   }
 
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-emblem-base: 1;
+    --brand-emblem-size: 30px;
+  }
+
   .plu-global-nav {
-    gap: calc(8px + (4px * var(--brand-wordmark-open, 1)));
-    height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
-    max-height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
-    min-height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
-    padding: 0 14px 0 calc(8px + (4px * var(--brand-wordmark-open, 1)));
+    gap: 12px;
+    height: 54px;
+    max-height: 54px;
+    min-height: 54px;
+    padding: 0 14px 0 12px;
+  }
+
+  .site-header--scrolled .plu-global-nav {
+    gap: 8px;
+    height: 46px;
+    max-height: 46px;
+    min-height: 46px;
+    padding: 0 12px 0 8px;
   }
 
   .plu-global-nav__brand {
     align-items: center;
     display: flex;
-    gap: calc(6px * var(--brand-wordmark-open, 1));
+    gap: 6px;
+  }
+
+  .site-header--scrolled .plu-global-nav__brand {
+    gap: 0;
   }
 
   .plu-global-nav__emblem {
@@ -2432,8 +2620,7 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__rail {
-    height: calc(14px + (4px * var(--brand-wordmark-open, 1)));
-    opacity: calc(0.32 + (0.36 * (1 - var(--brand-wordmark-open, 1))));
+    height: 14px;
   }
 
   .plu-global-nav__desktop {
@@ -2441,23 +2628,30 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__link {
-    font-size: calc(11px + (0.75px * var(--brand-wordmark-open, 1)));
+    font-size: 11.5px;
     font-weight: 650;
-    letter-spacing: calc(0.035em + (0.01em * var(--brand-wordmark-open, 1)));
-    min-height: calc(40px + (8px * var(--brand-wordmark-open, 1)));
-    padding-inline: calc(10px + (3px * var(--brand-wordmark-open, 1)));
+    letter-spacing: 0.028em;
+    min-height: 42px;
+    padding-inline: 12px;
+  }
+
+  .site-header--scrolled .plu-global-nav__link {
+    font-size: 11px;
+    letter-spacing: 0.024em;
+    min-height: 38px;
+    padding-inline: 10px;
   }
 
   .plu-global-nav__link--affiliate {
-    letter-spacing: 0.04em;
+    letter-spacing: 0.026em;
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 22% calc(6px + (2px * var(--brand-wordmark-open, 1))) 22%;
+    inset: auto 22% 6px 22%;
   }
 
   .plu-global-nav__indicator {
-    bottom: calc(6px + (2px * var(--brand-wordmark-open, 1)));
+    bottom: 6px;
   }
 
   .plu-global-nav__actions {
@@ -2465,14 +2659,19 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__preferences {
-    opacity: calc(0.7 + (0.12 * var(--brand-wordmark-open, 1)));
-    padding-right: calc(8px + (2px * var(--brand-wordmark-open, 1)));
+    opacity: 0.82;
+    padding-right: 10px;
   }
 
   .plu-global-nav__login {
-    height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
-    min-height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
+    height: 36px;
+    min-height: 36px;
     padding-inline: 14px;
+  }
+
+  .site-header--scrolled .plu-global-nav__login {
+    height: 34px;
+    min-height: 34px;
   }
 }
 
@@ -2488,13 +2687,13 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__link {
-    font-size: 11px;
-    letter-spacing: 0.03em;
-    padding-inline: 8px;
+    font-size: 10.75px;
+    letter-spacing: 0.022em;
+    padding-inline: 7px;
   }
 
   .plu-global-nav__link--affiliate {
-    letter-spacing: 0.028em;
+    letter-spacing: 0.02em;
   }
 
   .plu-global-nav__login {
@@ -2505,10 +2704,15 @@ html.plu-drawer-open body {
 /* Notebook mid 800–1099: nav desktop + Acceder + menú (no chrome de celular). */
 @media (min-width: 800px) and (max-width: 1099px) {
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(36px, 2.8vw + 12px, 40px);
+    --brand-emblem-size: clamp(34px, 2.6vw + 12px, 38px);
     --brand-wordmark-size: 4.35rem;
     --brand-shell-slot: 54px;
     width: 100%;
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-emblem-base: 1;
+    --brand-emblem-size: 28px;
   }
 
   .site-header--institutional {
@@ -2519,23 +2723,35 @@ html.plu-drawer-open body {
     align-items: center;
     display: flex;
     flex-wrap: nowrap;
-    gap: calc(6px + (2px * var(--brand-wordmark-open, 1)));
-    height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
+    gap: 8px;
+    height: 50px;
     justify-content: flex-start;
-    max-height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
-    min-height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
+    max-height: 50px;
+    min-height: 50px;
     overflow: hidden;
-    padding: 0 12px 0 calc(8px + (2px * var(--brand-wordmark-open, 1)));
+    padding: 0 12px 0 10px;
     width: 100%;
+  }
+
+  .site-header--scrolled .plu-global-nav {
+    gap: 6px;
+    height: 44px;
+    max-height: 44px;
+    min-height: 44px;
+    padding: 0 10px 0 8px;
   }
 
   .plu-global-nav__brand {
     align-items: center;
     display: flex;
     flex: none;
-    gap: calc(5px * var(--brand-wordmark-open, 1));
+    gap: 5px;
     height: auto;
     max-width: none;
+  }
+
+  .site-header--scrolled .plu-global-nav__brand {
+    gap: 0;
   }
 
   .plu-global-nav__emblem {
@@ -2549,11 +2765,9 @@ html.plu-drawer-open body {
     max-width: var(--brand-wordmark-size);
   }
 
-  /* Rail fino: separa marca de links sin restar ancho útil */
   .plu-global-nav__rail {
     display: block;
-    height: calc(12px + (4px * var(--brand-wordmark-open, 1)));
-    opacity: calc(0.34 + (0.28 * (1 - var(--brand-wordmark-open, 1))));
+    height: 12px;
   }
 
   .plu-global-nav__desktop {
@@ -2565,23 +2779,30 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__link {
-    font-size: calc(10.75px + (0.75px * var(--brand-wordmark-open, 1)));
+    font-size: 10.75px;
     font-weight: 650;
-    letter-spacing: calc(0.03em + (0.01em * var(--brand-wordmark-open, 1)));
-    min-height: calc(38px + (8px * var(--brand-wordmark-open, 1)));
-    padding-inline: calc(8px + (2px * var(--brand-wordmark-open, 1)));
+    letter-spacing: 0.02em;
+    min-height: 40px;
+    padding-inline: 8px;
+  }
+
+  .site-header--scrolled .plu-global-nav__link {
+    font-size: 10.5px;
+    letter-spacing: 0.018em;
+    min-height: 36px;
+    padding-inline: 7px;
   }
 
   .plu-global-nav__link--affiliate {
-    letter-spacing: 0.035em;
+    letter-spacing: 0.02em;
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 18% calc(5px + (2px * var(--brand-wordmark-open, 1))) 18%;
+    inset: auto 18% 5px 18%;
   }
 
   .plu-global-nav__indicator {
-    bottom: calc(5px + (2px * var(--brand-wordmark-open, 1)));
+    bottom: 5px;
   }
 
   .plu-global-nav__actions {
@@ -2595,8 +2816,8 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
-    min-height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
+    height: 34px;
+    min-height: 34px;
     padding-inline: 12px;
   }
 
@@ -2752,31 +2973,43 @@ html.plu-drawer-open body {
 @media (max-width: 799px) {
   .site-header-shell--institutional {
     --brand-emblem-base: 1;
-    --brand-emblem-size: clamp(36px, 5.8vw + 14px, 42px);
-    --brand-nav-row: calc(40px + (6px * var(--brand-wordmark-open, 1)));
+    --brand-emblem-size: clamp(34px, 5.2vw + 12px, 38px);
+    --brand-nav-row: 46px;
     --brand-wordmark-size: clamp(3.5rem, 12vw, 5rem);
-    --brand-wordmark-track: calc(var(--brand-wordmark-open, 1) * var(--brand-wordmark-size));
+    --brand-wordmark-track: var(--brand-wordmark-size);
     /* 36→~40 entre phones anchos y tablet angosta (≤799). */
     --nav-mobile-control: clamp(36px, 32px + 1vw, 40px);
     --brand-shell-slot: calc(var(--nav-mobile-control) + 14px);
     max-width: calc(100% - 18px);
-    top: calc(6px + (4px * var(--brand-wordmark-open, 1)));
+    top: 8px;
     width: max-content;
   }
 
-  .site-header--institutional {
-    border-color: color-mix(in srgb, var(--institution-border) 55%, transparent);
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-emblem-base: 1;
+    --brand-emblem-size: 30px;
+    --brand-nav-row: 40px;
+    top: 6px;
+  }
+
+  .site-header.site-header--institutional {
+    /* Mobile: mismo liquid glass; sin reintroducir borde duro. */
+    border-color: transparent;
     box-shadow:
-      0 10px 28px -18px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+      0 10px 28px -18px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -0.5px 0 rgba(255, 255, 255, 0.04);
     max-width: 100%;
     transform: translateZ(0);
     width: max-content;
   }
 
-  [data-theme='light'] .site-header--institutional {
-    border-color: rgba(15, 17, 23, 0.08);
-    box-shadow: 0 8px 22px -16px rgba(15, 17, 23, 0.16);
+  [data-theme='light'] .site-header.site-header--institutional {
+    border-color: transparent;
+    box-shadow:
+      0 8px 22px -16px rgba(15, 17, 23, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -0.5px 0 rgba(15, 17, 23, 0.04);
   }
 
   /* Pill compacta: brand | cluster + menú, sin columna 1fr fantasma */
@@ -3157,14 +3390,13 @@ html.plu-drawer-open body {
     max-width: min(100%, calc(100vw - 11rem));
   }
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(34px, 7vw + 10px, 38px);
+    --brand-emblem-size: clamp(32px, 6.5vw + 10px, 36px);
     --brand-nav-row: 42px;
     --brand-wordmark-size: clamp(3.25rem, 11vw, 4.5rem);
   }
-  .plu-global-nav__emblem {
-    height: var(--brand-emblem-size);
-    margin-block: calc((var(--brand-nav-row, 42px) - var(--brand-emblem-size)) / 2);
-    width: var(--brand-emblem-size);
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-emblem-base: 1;
+    --brand-emblem-size: 28px;
   }
   .plu-global-nav__letterhead {
     height: clamp(16px, 4.5vw, 20px);
@@ -3251,10 +3483,17 @@ html.plu-drawer-open body {
   .plu-global-nav__wordmark { display: none; }
   .plu-global-nav__brand { max-width: none; }
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(38px, 8.5vw, 42px);
-    --brand-nav-row: calc(40px + (4px * var(--brand-wordmark-open, 1)));
+    --brand-emblem-size: clamp(34px, 7.5vw, 38px);
+    --brand-nav-row: 44px;
     max-width: calc(100% - 14px);
-    top: calc(5px + (3px * var(--brand-wordmark-open, 1)));
+    top: 6px;
+  }
+
+  .site-header-shell--institutional:has(.site-header--scrolled) {
+    --brand-emblem-base: 1;
+    --brand-emblem-size: 28px;
+    --brand-nav-row: 40px;
+    top: 5px;
   }
   .plu-global-nav {
     gap: 4px;

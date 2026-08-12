@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { LazyMotion, domAnimation } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useMemo } from 'react'

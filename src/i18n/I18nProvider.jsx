@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { I18nContext } from './context.js'
 import es from './locales/es.js'

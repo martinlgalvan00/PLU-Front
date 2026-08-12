@@ -43,7 +43,14 @@ import {
   validateMembershipForm,
 } from '../lib/validation.js'
 
-function PasswordStrengthMeter({ password }) {
+const PASSWORD_STRENGTH_LABEL_KEYS = [
+  'pages.register.passwordStrengthWeak',
+  'pages.register.passwordStrengthFair',
+  'pages.register.passwordStrengthStrong',
+  'pages.register.passwordStrengthExcellent',
+]
+
+function PasswordStrengthMeter({ password, t }) {
   const str = String(password ?? '')
   if (!str) return null
 
@@ -53,25 +60,31 @@ function PasswordStrengthMeter({ password }) {
   if (/[A-Z]/.test(str) || /[0-9]/.test(str)) score += 1
   if (/[^A-Za-z0-9]/.test(str)) score += 1
 
-  const labels = ['Muy corta', 'Aceptable', 'Segura', 'Excelente']
-  const label = labels[Math.max(0, score - 1)] ?? ''
+  const labelKey = PASSWORD_STRENGTH_LABEL_KEYS[Math.max(0, score - 1)]
+  const label = labelKey ? t(labelKey) : ''
+  const meetsRequirement = str.length >= 12
 
   return (
-    <div className="password-strength" aria-live="polite">
+    <div className={`password-strength password-strength--score-${score}`} aria-live="polite">
       <div className="password-strength__bar">
         {[1, 2, 3, 4].map((step) => (
           <span
             key={step}
-            className={`password-strength__segment${step <= score ? ` is-active-${score}` : ''}`}
+            className={`password-strength__segment${step <= score ? ' is-active' : ''}`}
           />
         ))}
       </div>
       <div className="password-strength__meta">
         <small className="password-strength__label">{label}</small>
-        {str.length < 12 ? (
-          <small className="password-strength__hint">Requerido: mínimo 12 caracteres</small>
+        {meetsRequirement ? (
+          <small className="password-strength__hint password-strength__hint--valid">
+            <Check size={12} strokeWidth={2.5} aria-hidden />
+            {t('pages.register.passwordStrengthMet')}
+          </small>
         ) : (
-          <small className="password-strength__hint password-strength__hint--valid">✓ Cumple requisito de seguridad</small>
+          <small className="password-strength__hint">
+            {t('pages.register.passwordStrengthRequirement')}
+          </small>
         )}
       </div>
     </div>
@@ -327,6 +340,7 @@ export default function RegisterPage({
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [advancing, setAdvancing] = useState(false)
   const [purchaseType, setPurchaseType] = useState('registration')
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
@@ -345,6 +359,7 @@ export default function RegisterPage({
     setProfileSubmitAttempted(false)
     setShowPassword(false)
     setSubmitting(false)
+    setAdvancing(false)
     submissionInFlightRef.current = false
     setSubmitError('')
   }, [flow])
@@ -565,6 +580,7 @@ export default function RegisterPage({
   }
 
   async function advanceProfileStep() {
+    if (advancing) return
     const step = profileSteps[profileStepIndex]
     const validation = validateAthleteFields(form, step.fields, t)
     if (!validation.success) {
@@ -578,7 +594,15 @@ export default function RegisterPage({
       return
     }
 
-    const takenErrors = await ensureStepAvailability(step.fields)
+    // `ensureStepAvailability` es una llamada a la API: sin estado ocupado el
+    // botón quedaba mudo y se podía disparar el chequeo varias veces.
+    setAdvancing(true)
+    let takenErrors
+    try {
+      takenErrors = await ensureStepAvailability(step.fields)
+    } finally {
+      setAdvancing(false)
+    }
     if (Object.keys(takenErrors).length) {
       setErrors((current) => ({ ...current, ...takenErrors }))
       setTouched((current) => ({
@@ -941,14 +965,18 @@ export default function RegisterPage({
           ) : (
           <form className="register-card athlete-form" onSubmit={submit} noValidate>
             {flow === 'profile' && (
+              // Contenedor en grilla + mode="sync": los dos pasos comparten
+              // celda durante el crossfade, así la tarjeta no colapsa de alto
+              // entre "Datos personales" (6 campos) y "Ubicación" (5).
+              <div className="register-wizard-swap">
               <MotionContentSwap
                 className="register-wizard"
                 direction={wizardDirection}
+                mode="sync"
                 swapKey={activeProfileStep.id}
               >
                 {profileStepIndex === 0 && (
                   <FormSection
-                    step="01"
                     title={t('pages.register.personalTitle')}
                     description={t('pages.register.personalDesc')}
                   >
@@ -1038,7 +1066,7 @@ export default function RegisterPage({
                             </button>
                           }
                         />
-                        <PasswordStrengthMeter password={form.password} />
+                        <PasswordStrengthMeter password={form.password} t={t} />
                       </div>
                     </div>
                   </FormSection>
@@ -1046,7 +1074,6 @@ export default function RegisterPage({
 
                 {profileStepIndex === 1 && (
                   <FormSection
-                    step="02"
                     title={t('pages.register.locationTitle')}
                     description={t('pages.register.locationDesc')}
                   >
@@ -1104,6 +1131,7 @@ export default function RegisterPage({
                   </FormSection>
                 )}
               </MotionContentSwap>
+              </div>
             )}
 
             {flow === 'competition' && (
@@ -1300,9 +1328,19 @@ export default function RegisterPage({
               )}
 
               {flow === 'profile' && !isLastProfileStep ? (
-                <button type="button" className="btn register-card__submit" onClick={advanceProfileStep}>
-                  {t('pages.register.continue')}
-                  <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                <button
+                  type="button"
+                  className="btn register-card__submit"
+                  onClick={advanceProfileStep}
+                  disabled={advancing}
+                  aria-busy={advancing || undefined}
+                >
+                  {advancing ? t('common.loading') : t('pages.register.continue')}
+                  {advancing ? (
+                    <span className="register-card__submit-spinner" aria-hidden />
+                  ) : (
+                    <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                  )}
                 </button>
               ) : (
                 <button
@@ -1316,13 +1354,18 @@ export default function RegisterPage({
                     .filter(Boolean)
                     .join(' ')}
                   disabled={submitting || (flow === 'profile' && Boolean(visibleOrder))}
+                  aria-busy={submitting || undefined}
                 >
                   {submitting
                     ? t('common.loading')
                     : effectivePurchaseType === 'combo'
                       ? t('pages.register.comboSubmit')
                       : content[2]}
-                  <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                  {submitting ? (
+                    <span className="register-card__submit-spinner" aria-hidden />
+                  ) : (
+                    <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                  )}
                 </button>
               )}
             </div>

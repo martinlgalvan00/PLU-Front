@@ -286,6 +286,28 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
     }
   })
 
+  /**
+   * Catálogo público (sin auth): eventos publicados con `registration_opens_at`
+   * y pricing visible. Alimenta countdown / soft-launch del sitio sin depender
+   * del seed local ni de RLS del cliente.
+   */
+  router.get('/catalog', publicReadLimiter, async (_req, res, next) => {
+    try {
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const events = assertSupabaseResult(
+        await client
+          .from('events')
+          .select(EVENT_SELECT)
+          .eq('published', true)
+          .order('starts_at'),
+        'No se pudieron leer los eventos públicos.',
+      )
+      res.json({ events: Array.isArray(events) ? events : [] })
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.get('/:eventSlug/registration-summary', publicReadLimiter, async (req, res, next) => {
     try {
       const slug = parseEventSlug(req.params.eventSlug)

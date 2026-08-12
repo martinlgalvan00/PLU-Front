@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    ADMIN PAGE SHELL
    ============================================= */
 
@@ -30,20 +30,15 @@
    ============================================= */
 
 .admin-glass {
-  background: var(--admin-glass-bg);
-  border: 1px solid var(--admin-glass-border);
-  box-shadow:
-    inset 0 1px 0 var(--admin-glass-highlight),
-    var(--admin-glass-shadow);
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
 }
 
 /* Variante más opaca: drawers, flyouts y superficies que flotan
    sobre contenido scrolleable y necesitan lectura garantizada. */
 .admin-glass--strong {
-  background: var(--admin-glass-bg-strong);
-  border-color: var(--admin-glass-border-strong);
+  background: var(--color-bg-surface);
+  border-color: var(--color-border-subtle);
 }
 
 @media (prefers-reduced-transparency: reduce) {

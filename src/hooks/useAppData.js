@@ -258,12 +258,15 @@ export function useAppData() {
     fetchPublishedEvents()
       .then((remoteEvents) => {
         if (!active || remoteEvents.length === 0) return
-        setAdminEvents((current) =>
-          remoteEvents.map((event) => ({
-            ...current.find((item) => item.slug === event.slug),
+        setAdminEvents((current) => {
+          const bySlug = new Map(current.map((event) => [event.slug, event]))
+          return remoteEvents.map((event) => ({
+            ...bySlug.get(event.slug),
             ...event,
-          })),
-        )
+            // Fecha del panel (`registration_opens_at`): nunca conservar seed local.
+            registrationOpensAt: event.registrationOpensAt ?? null,
+          }))
+        })
       })
       .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
     return () => {

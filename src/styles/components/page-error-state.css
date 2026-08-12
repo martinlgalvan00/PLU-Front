@@ -1,0 +1,112 @@
+/* PageErrorState — fallo de render contenido en el área de contenido.
+   Composición editorial (regla + eyebrow + título + acciones), sin card:
+   el navbar y el footer siguen visibles alrededor, así que una tarjeta
+   flotante agregaría un tercer nivel de superficie sin aportar información.
+   Presupuesto: un solo acento (oro en la acción primaria); el error se
+   comunica por copy y por role="alert", no por color. */
+
+/* Alineado a la grilla del shell institucional (mismo gutter y ancho máximo
+   que el resto de las páginas): el bloque no debe flotar centrado en el
+   viewport, porque queda desprendido de la columna editorial del sitio. */
+.page-error-state {
+  flex: 1;
+  margin: 0 auto;
+  max-width: var(--institution-content-max);
+  min-height: 55vh;
+  padding: clamp(46px, 7vw, 88px) var(--institution-gutter) clamp(70px, 9vw, 116px);
+  width: 100%;
+}
+
+.page-error-state__inner {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-md);
+  justify-items: start;
+  max-width: 52ch;
+  padding-top: var(--space-lg);
+  width: 100%;
+}
+
+.page-error-state__eyebrow {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.page-error-state__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.page-error-state__lead {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.page-error-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+/* Detalle técnico: solo se renderiza en dev (import.meta.env.DEV). */
+.page-error-state__detail {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  width: 100%;
+}
+
+.page-error-state__detail summary {
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  min-height: 32px;
+  text-transform: uppercase;
+}
+
+.page-error-state__detail summary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.page-error-state__detail pre {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  margin: var(--space-sm) 0 0;
+  max-height: 40vh;
+  overflow: auto;
+  padding: var(--space-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .page-error-state {
+    min-height: 45vh;
+    padding: 48px 18px 72px;
+  }
+
+  .page-error-state__actions > .btn {
+    flex: 1 1 100%;
+  }
+}
