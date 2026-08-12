@@ -35,11 +35,10 @@ export default function PaymentsMockBanner() {
 
   return (
     <div className="payments-mock-banner" role="status">
-      <span className="payments-mock-banner__badge">{t('payments.mockDevBadge')}</span>
-      <div className="payments-mock-banner__copy">
+      <p className="payments-mock-banner__copy">
+        <span className="payments-mock-banner__mark" aria-hidden />
         <strong className="payments-mock-banner__title">{t('payments.mockAppTitle')}</strong>
-        <span className="payments-mock-banner__lead">{t('payments.mockAppLead')}</span>
-      </div>
+      </p>
       <button
         type="button"
         className="payments-mock-banner__dismiss"

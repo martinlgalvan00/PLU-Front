@@ -6606,10 +6606,7 @@
 }
 
 .pitbull-inscription-counter--compact .pitbull-inscription-counter__value {
-  /* Contraste de escala deliberado: un solo número grande y confiado
-     contra el resto tipográfico callado del panel — más "editorial
-     premium" que sumar color o adorno. */
-  font-size: clamp(34px, 4.4vw, 46px);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
 }
 
 .pitbull-inscription-counter--compact .pitbull-inscription-counter__of {
@@ -6658,19 +6655,14 @@
   font-size: 13px;
   line-height: 1.45;
   margin: 0;
-  max-width: 42ch;
+  max-width: 52ch;
 }
 
 @media (min-width: 1100px) {
-  .pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
-    align-items: center;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .pitbull-inscription-shell--compact .pitbull-inscription-shell__actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
     min-width: 0;
   }
 }
@@ -11573,7 +11565,7 @@
 }
 
 .pitbull-inscription-counter--compact .pitbull-inscription-counter__value {
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
 }
 
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__body {
@@ -11727,22 +11719,6 @@
 
   .pitbull-journey-visual {
     min-height: 540px;
-  }
-
-  .pitbull-inscription-shell--compact {
-    align-items: stretch;
-    grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
-  }
-
-  .pitbull-inscription-shell--compact .pitbull-inscription-counter {
-    align-content: center;
-    border-bottom: 0;
-    border-right: 1px solid var(--pitbull-chapter-border);
-    display: grid;
-  }
-
-  .pitbull-inscription-shell--compact .pitbull-inscription-shell__body {
-    align-content: center;
   }
 }
 
@@ -12265,20 +12241,192 @@
   }
 }
 
+/* ── Inscripción — banda de conversión: combo protagonista, cupos operativos ── */
+.pitbull-inscription-shell--compact {
+  grid-template-columns: 1fr;
+}
+
+.pitbull-inscription-shell--compact::before {
+  display: none;
+}
+
+.pitbull-inscription-counter--compact {
+  gap: 8px;
+  padding: clamp(14px, 2vw, 20px) 0 clamp(12px, 1.6vw, 16px);
+}
+
+.pitbull-inscription-counter--compact .pitbull-inscription-counter__row {
+  align-items: center;
+}
+
+.pitbull-inscription-counter--compact .pitbull-inscription-counter__value {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__body {
+  display: grid;
+  gap: clamp(18px, 2.4vw, 24px);
+  padding: clamp(18px, 2.6vw, 28px) 0 clamp(24px, 3.2vw, 36px);
+}
+
+.pitbull-inscription-shell__pricing--combo {
+  align-items: end;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pitbull-inscription-shell__price--combo {
+  align-items: end;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  border-left: 0;
+  display: grid;
+  gap: 4px clamp(20px, 3.2vw, 40px);
+  grid-column: 1 / -1;
+  grid-template-columns: max-content auto;
+  justify-content: start;
+  margin: 0 0 clamp(14px, 2vw, 18px);
+  padding: 0 0 clamp(14px, 2vw, 18px);
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__price--combo + .pitbull-inscription-shell__price {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.pitbull-inscription-shell__price--combo dt,
+.pitbull-inscription-shell__price--combo dd {
+  grid-column: 1;
+}
+
 .pitbull-inscription-shell__price--combo dd {
   display: grid;
   gap: 4px;
 }
 
+.pitbull-inscription-shell__combo-amount {
+  color: var(--color-text-primary);
+  font-size: clamp(1.85rem, 3.6vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
 .pitbull-inscription-shell__price--combo small {
+  color: var(--color-text-muted);
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: var(--color-text-muted);
 }
 
 .pitbull-inscription-shell__combo-hint {
-  margin: 0;
-  color: var(--color-text-secondary, var(--color-text-muted));
+  align-self: center;
+  color: var(--color-brand-gold);
   font-size: 0.92rem;
+  font-weight: 650;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  letter-spacing: 0.01em;
+  margin: 0;
+  padding-bottom: 2px;
+  text-align: left;
+}
+
+.pitbull-inscription-shell__desc--combo {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  max-width: 52ch;
+}
+
+.pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) {
+  padding-right: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) + .pitbull-inscription-shell__price {
+  border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  padding-left: clamp(14px, 2vw, 18px);
+  padding-right: 0;
+}
+
+.pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) dd {
+  color: var(--color-text-primary);
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-weight: 650;
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__price dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__desc {
+  max-width: 52ch;
+}
+
+.pitbull-inscription-shell--compact .pitbull-inscription-shell__actions {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.pitbull-inscription-shell__actions .pitbull-inscription__cta--primary:focus-visible,
+.pitbull-inscription-shell__actions .pitbull-inscription__cta--secondary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+[data-theme='light'] .pitbull-inscription-shell__price--combo {
+  border-bottom-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .pitbull-inscription-shell__combo-hint {
+  color: var(--plu-gold-600, var(--color-brand-gold));
+}
+
+[data-theme='light'] .pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) + .pitbull-inscription-shell__price {
+  border-left-color: rgba(15, 17, 23, 0.08);
+}
+
+@media (min-width: 1100px) {
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .pitbull-inscription-shell__price--combo {
+    grid-template-columns: 1fr;
+  }
+
+  .pitbull-inscription-shell__combo-hint {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 2px;
+    text-align: left;
+  }
+
+  .pitbull-inscription-shell--compact .pitbull-inscription-shell__price--combo + .pitbull-inscription-shell__price {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo),
+  .pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) + .pitbull-inscription-shell__price {
+    border-left: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .pitbull-inscription-shell__pricing--combo .pitbull-inscription-shell__price:not(.pitbull-inscription-shell__price--combo) + .pitbull-inscription-shell__price {
+    border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
 }

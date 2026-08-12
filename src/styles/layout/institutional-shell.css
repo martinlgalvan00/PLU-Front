@@ -48,10 +48,10 @@
   /* Anticipa el sello compacto (~8%) antes del snap de layout. */
   --brand-emblem-base: calc(0.92 + (0.08 * var(--brand-wordmark-open, 1)));
   --brand-emblem-size: clamp(40px, 1.5vw + 26px, 46px);
-  --brand-nav-row: 54px;
+  --brand-nav-row: 58px;
   --brand-wordmark-size: 5rem;
   --brand-wordmark-track: var(--brand-wordmark-size);
-  --brand-shell-slot: 58px;
+  --brand-shell-slot: 62px;
   align-items: center;
   display: flex;
   isolation: isolate;
@@ -68,9 +68,9 @@
 
 .site-header-shell--institutional:has(.site-header--scrolled) {
   --brand-emblem-base: 1;
-  --brand-emblem-size: 32px;
-  --brand-nav-row: 46px;
-  --brand-shell-slot: 50px;
+  --brand-emblem-size: 34px;
+  --brand-nav-row: 52px;
+  --brand-shell-slot: 56px;
   top: 8px;
 }
 
@@ -208,11 +208,11 @@
 .plu-global-nav {
   align-items: center;
   display: flex;
-  gap: 14px;
-  height: 56px;
-  max-height: 56px;
-  min-height: 56px;
-  padding: 0 14px 0 12px;
+  gap: 16px;
+  height: 60px;
+  max-height: 60px;
+  min-height: 60px;
+  padding: 0 18px 0 14px;
   transition:
     height var(--duration-base) var(--ease-out),
     max-height var(--duration-base) var(--ease-out),
@@ -223,11 +223,11 @@
 }
 
 .site-header--scrolled .plu-global-nav {
-  gap: 10px;
-  height: 46px;
-  max-height: 46px;
-  min-height: 46px;
-  padding: 0 12px 0 8px;
+  gap: 12px;
+  height: 52px;
+  max-height: 52px;
+  min-height: 52px;
+  padding: 0 16px 0 10px;
 }
 
 .plu-global-nav__brand {
@@ -360,7 +360,7 @@
     transparent 100%
   );
   flex: none;
-  height: 16px;
+  height: 18px;
   opacity: calc(0.34 + (0.4 * var(--header-scroll-progress, 0)));
   transition: opacity var(--motion-fast) var(--ease-out);
   width: 1px;
@@ -371,7 +371,7 @@
   align-items: stretch;
   display: flex;
   flex: 1 1 auto;
-  gap: 2px;
+  gap: 4px;
   height: 100%;
   justify-content: center;
   min-width: 0;
@@ -408,13 +408,13 @@
   border-radius: 0;
   color: color-mix(in srgb, var(--institution-text-muted) 92%, var(--institution-text));
   display: inline-flex;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
   gap: 5px;
   justify-content: center;
   letter-spacing: 0.032em;
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: 48px;
+  padding: 0 16px;
   position: relative;
   text-transform: uppercase;
   transition:
@@ -426,10 +426,10 @@
 }
 
 .site-header--scrolled .plu-global-nav__link {
-  font-size: 11.25px;
+  font-size: 12px;
   letter-spacing: 0.028em;
-  min-height: 40px;
-  padding: 0 11px;
+  min-height: 44px;
+  padding: 0 13px;
 }
 
 .plu-global-nav__link-content {
@@ -872,12 +872,12 @@
   font-family: var(--font-display);
   font-size: 10.5px;
   font-weight: 700;
-  height: 38px;
+  height: 42px;
   justify-content: center;
   letter-spacing: 0.1em;
   line-height: 1;
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 42px;
+  padding: 0 18px;
   text-decoration: none;
   text-transform: uppercase;
   transition:
@@ -890,9 +890,9 @@
 }
 
 .site-header--scrolled .plu-global-nav__login {
-  height: 34px;
-  min-height: 34px;
-  padding: 0 14px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
 }
 
 .plu-global-nav__login:hover,
@@ -938,14 +938,14 @@
   border-radius: 999px;
   box-shadow: none;
   flex: none;
-  height: 36px;
+  height: 40px;
   overflow: hidden;
   padding: 0;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-fast) var(--ease-out);
-  width: 36px;
+  width: 40px;
 }
 
 .plu-global-nav__profile:hover,
@@ -2550,11 +2550,11 @@ html.plu-drawer-open body {
 @media (min-width: 800px) and (max-width: 1500px) {
   .site-header-shell--institutional {
     max-width: calc(100% - 24px);
-    --brand-shell-slot: 54px;
+    --brand-shell-slot: 58px;
   }
 
   .site-header-shell--institutional:has(.site-header--scrolled) {
-    --brand-shell-slot: 48px;
+    --brand-shell-slot: 54px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2574,28 +2574,28 @@ html.plu-drawer-open body {
   .site-header-shell--institutional {
     --brand-emblem-size: clamp(38px, 1.7vw + 18px, 42px);
     --brand-wordmark-size: 4.75rem;
-    --brand-shell-slot: 56px;
+    --brand-shell-slot: 60px;
   }
 
   .site-header-shell--institutional:has(.site-header--scrolled) {
     --brand-emblem-base: 1;
-    --brand-emblem-size: 30px;
+    --brand-emblem-size: 32px;
   }
 
   .plu-global-nav {
-    gap: 12px;
-    height: 54px;
-    max-height: 54px;
-    min-height: 54px;
-    padding: 0 14px 0 12px;
+    gap: 14px;
+    height: 58px;
+    max-height: 58px;
+    min-height: 58px;
+    padding: 0 16px 0 14px;
   }
 
   .site-header--scrolled .plu-global-nav {
-    gap: 8px;
-    height: 46px;
-    max-height: 46px;
-    min-height: 46px;
-    padding: 0 12px 0 8px;
+    gap: 10px;
+    height: 52px;
+    max-height: 52px;
+    min-height: 52px;
+    padding: 0 14px 0 10px;
   }
 
   .plu-global-nav__brand {
@@ -2624,22 +2624,22 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__desktop {
-    gap: 4px;
+    gap: 6px;
   }
 
   .plu-global-nav__link {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 650;
     letter-spacing: 0.028em;
-    min-height: 42px;
-    padding-inline: 12px;
+    min-height: 46px;
+    padding-inline: 14px;
   }
 
   .site-header--scrolled .plu-global-nav__link {
-    font-size: 11px;
+    font-size: 11.5px;
     letter-spacing: 0.024em;
-    min-height: 38px;
-    padding-inline: 10px;
+    min-height: 44px;
+    padding-inline: 12px;
   }
 
   .plu-global-nav__link--affiliate {
@@ -2664,32 +2664,32 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    height: 36px;
-    min-height: 36px;
-    padding-inline: 14px;
+    height: 40px;
+    min-height: 40px;
+    padding-inline: 16px;
   }
 
   .site-header--scrolled .plu-global-nav__login {
-    height: 34px;
-    min-height: 34px;
+    height: 38px;
+    min-height: 38px;
   }
 }
 
 /* Mid estrecho 800–899: set completo compacto (sin ocultar Competencias/Recursos). */
 @media (min-width: 800px) and (max-width: 899px) {
   .plu-global-nav {
-    gap: 6px;
-    padding: 0 10px 0 8px;
+    gap: 8px;
+    padding: 0 12px 0 10px;
   }
 
   .plu-global-nav__desktop {
-    gap: 0;
+    gap: 2px;
   }
 
   .plu-global-nav__link {
-    font-size: 10.75px;
+    font-size: 11px;
     letter-spacing: 0.022em;
-    padding-inline: 7px;
+    padding-inline: 8px;
   }
 
   .plu-global-nav__link--affiliate {
@@ -2697,7 +2697,7 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    padding-inline: 10px;
+    padding-inline: 12px;
   }
 }
 
@@ -2706,13 +2706,13 @@ html.plu-drawer-open body {
   .site-header-shell--institutional {
     --brand-emblem-size: clamp(34px, 2.6vw + 12px, 38px);
     --brand-wordmark-size: 4.35rem;
-    --brand-shell-slot: 54px;
+    --brand-shell-slot: 58px;
     width: 100%;
   }
 
   .site-header-shell--institutional:has(.site-header--scrolled) {
     --brand-emblem-base: 1;
-    --brand-emblem-size: 28px;
+    --brand-emblem-size: 30px;
   }
 
   .site-header--institutional {
@@ -2723,22 +2723,22 @@ html.plu-drawer-open body {
     align-items: center;
     display: flex;
     flex-wrap: nowrap;
-    gap: 8px;
-    height: 50px;
+    gap: 10px;
+    height: 54px;
     justify-content: flex-start;
-    max-height: 50px;
-    min-height: 50px;
+    max-height: 54px;
+    min-height: 54px;
     overflow: hidden;
-    padding: 0 12px 0 10px;
+    padding: 0 14px 0 12px;
     width: 100%;
   }
 
   .site-header--scrolled .plu-global-nav {
-    gap: 6px;
-    height: 44px;
-    max-height: 44px;
-    min-height: 44px;
-    padding: 0 10px 0 8px;
+    gap: 8px;
+    height: 50px;
+    max-height: 50px;
+    min-height: 50px;
+    padding: 0 12px 0 10px;
   }
 
   .plu-global-nav__brand {
@@ -2767,30 +2767,30 @@ html.plu-drawer-open body {
 
   .plu-global-nav__rail {
     display: block;
-    height: 12px;
+    height: 14px;
   }
 
   .plu-global-nav__desktop {
     display: flex;
     flex: 1 1 auto;
-    gap: 2px;
+    gap: 4px;
     justify-content: center;
     min-width: 0;
   }
 
   .plu-global-nav__link {
-    font-size: 10.75px;
+    font-size: 11.25px;
     font-weight: 650;
     letter-spacing: 0.02em;
-    min-height: 40px;
-    padding-inline: 8px;
+    min-height: 44px;
+    padding-inline: 10px;
   }
 
   .site-header--scrolled .plu-global-nav__link {
-    font-size: 10.5px;
+    font-size: 11px;
     letter-spacing: 0.018em;
-    min-height: 36px;
-    padding-inline: 7px;
+    min-height: 42px;
+    padding-inline: 9px;
   }
 
   .plu-global-nav__link--affiliate {
@@ -2816,14 +2816,14 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    height: 34px;
-    min-height: 34px;
-    padding-inline: 12px;
+    height: 38px;
+    min-height: 38px;
+    padding-inline: 14px;
   }
 
   .plu-global-nav__profile {
-    height: 34px;
-    width: 34px;
+    height: 38px;
+    width: 38px;
   }
 
   .plu-global-nav__profile-mark {
