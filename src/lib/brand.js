@@ -13,8 +13,8 @@ export const BRAND = {
   logoArgentinaUrl: pluArgentinaEmblem,
   logoAlt: 'PLU ARG — Powerlifting United',
   logoArgentinaAlt: 'PLU Argentina — emblema oficial',
-  faviconUrl: '/brand/plu-argentina-favicon.png',
-  appleTouchIconUrl: '/brand/plu-argentina-favicon.png',
+  faviconUrl: '/brand/plu-argentina-favicon.svg',
+  appleTouchIconUrl: '/brand/plu-argentina-apple-touch.png',
 }
 
 /** Nombres de custom properties semánticas (referencia para CSS-in-JS) */

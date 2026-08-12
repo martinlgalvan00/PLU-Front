@@ -81,11 +81,9 @@ export const PUBLIC_NAVIGATION = {
       key: 'competitions',
       labelKey: 'nav.competitions',
       type: 'menu',
-      views: ['pitbull', 'tickets', 'results', 'records'],
+      views: ['pitbull', 'tickets'],
       items: [
         { key: 'pitbull', featured: true, icon: 'trophy' },
-        { key: 'results', icon: 'results' },
-        { key: 'records', icon: 'records' },
       ],
     },
     { key: 'shop', labelKey: 'nav.shop', icon: 'shop' },

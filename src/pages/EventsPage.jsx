@@ -27,8 +27,32 @@ function EventStatusBadge({ status, t }) {
   return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
 }
 
-function EventsCountdownChip({ event, days, t }) {
+function EventsCountdownChip({ event, days, t, minimal = false, onSelect }) {
   if (!event || days == null) return null
+
+  if (minimal) {
+    const content = (
+      <>
+        <span className="events-countdown-chip__value">{days}</span>
+        <span className="events-countdown-chip__copy">
+          <span className="events-countdown-chip__label">
+            {days === 1 ? t('pages.events.countdownDay_one') : t('pages.events.countdownDay_other')}
+          </span>
+          <strong className="events-countdown-chip__title">{event.title}</strong>
+        </span>
+      </>
+    )
+
+    if (onSelect) {
+      return (
+        <button type="button" className="events-countdown-chip events-countdown-chip--minimal" onClick={onSelect}>
+          {content}
+        </button>
+      )
+    }
+
+    return <p className="events-countdown-chip events-countdown-chip--minimal">{content}</p>
+  }
 
   return (
     <div className="events-countdown-chip">
@@ -45,33 +69,32 @@ function EventsCountdownChip({ event, days, t }) {
   )
 }
 
-function EventsDetailPanel({ event, isFeaturedSelected, onRegister, onViewPitbull, registerLabel, t }) {
+function EventsDetailPanel({
+  event,
+  isFeaturedSelected,
+  onRegister,
+  onViewPitbull,
+  registerLabel,
+  t,
+  minimal = false,
+}) {
   if (!event) {
     return (
-      <div className="events-detail events-detail--empty">
-        <CalendarDays size={28} strokeWidth={1.5} aria-hidden />
+      <div className={`events-detail events-detail--empty${minimal ? ' events-detail--minimal' : ''}`}>
         <p>{t('pages.events.emptyDetail')}</p>
       </div>
     )
   }
 
-  // El evento destacado ya tiene su ficha completa (título, fecha, sede,
-  // CTA, calendario) en la columna principal — repetir todo acá abajo
-  // competía visualmente con esa pieza. Cuando la selección coincide con
-  // el destacado, mostramos solo un link de vuelta.
   if (isFeaturedSelected) {
     return (
-      <div className="events-detail events-detail--linked">
+      <div className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}>
         <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
         {onViewPitbull ? (
-          <Button
-            variant="outline"
-            className="events-detail__cta events-detail__cta--secondary motion-icon-shift"
-            onClick={onViewPitbull}
-          >
+          <button type="button" className="events-detail__text-link" onClick={onViewPitbull}>
             {t('pages.events.viewFull')}
-            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-          </Button>
+            <ArrowRight size={14} aria-hidden />
+          </button>
         ) : null}
       </div>
     )
@@ -79,6 +102,53 @@ function EventsDetailPanel({ event, isFeaturedSelected, onRegister, onViewPitbul
 
   const canRegister = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   const statusCopy = t(`pages.events.statusCopy.${event.status}`)
+  const hasStatusCopy = statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}`
+
+  if (minimal) {
+    const [day, month] = String(event.displayDate || '').split(' ')
+    const place = [event.venue, event.location].filter(Boolean).join(' · ')
+
+    return (
+      <div className="events-detail events-detail--minimal">
+        <div className="events-detail__spotlight">
+          <div className="events-detail__date-hero" aria-hidden={day ? undefined : true}>
+            <span className="events-detail__date-day">{day || '—'}</span>
+            <span className="events-detail__date-month">{month || ''}</span>
+          </div>
+          <div className="events-detail__spotlight-copy">
+            <p className="events-detail__status-line">
+              <EventStatusBadge status={event.status} t={t} />
+            </p>
+            <h3 className="events-detail__title">{event.title}</h3>
+            {place ? <p className="events-detail__meta-line">{place}</p> : null}
+          </div>
+        </div>
+
+        <div className="events-detail__actions">
+          {canRegister && onRegister ? (
+            <Button className="events-detail__cta events-detail__cta--primary motion-icon-shift" onClick={onRegister}>
+              {registerLabel}
+              <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+            </Button>
+          ) : null}
+          {onViewPitbull ? (
+            <button type="button" className="events-detail__text-link" onClick={onViewPitbull}>
+              {t('pages.events.viewFull')}
+              <ArrowRight size={14} aria-hidden />
+            </button>
+          ) : null}
+        </div>
+
+        <EventLiveStream
+          liveStatus={event.liveStatus}
+          liveStreamUrl={event.liveStreamUrl}
+          liveStreamProvider={event.liveStreamProvider}
+        />
+
+        <EventCalendarActions event={event} className="events-detail__calendar" variant="minimal" />
+      </div>
+    )
+  }
 
   return (
     <div className="events-detail">
@@ -97,9 +167,7 @@ function EventsDetailPanel({ event, isFeaturedSelected, onRegister, onViewPitbul
         </span>
       </p>
 
-      {statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}` ? (
-        <p className="events-detail__status-copy">{statusCopy}</p>
-      ) : null}
+      {hasStatusCopy ? <p className="events-detail__status-copy">{statusCopy}</p> : null}
 
       <div className="events-detail__actions">
         {canRegister && onRegister ? (
@@ -131,20 +199,20 @@ function EventsDetailPanel({ event, isFeaturedSelected, onRegister, onViewPitbul
   )
 }
 
-function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
+function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  // `ticketPrice` es null cuando el evento todavía no tiene tipos de
-  // entrada cargados — antes eso caía en `money(null)` y mostraba
-  // "Desde $ 0", que lee como entrada gratis en vez de "sin publicar".
   const hasPublishedPrice = event?.pricing?.ticketsEnabled !== false && ticketPrice != null
 
   return (
-    <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">
+    <section
+      className={`events-public-tickets${minimal ? ' events-public-tickets--minimal' : ''}`}
+      aria-labelledby="events-public-tickets-title"
+    >
       <div className="events-public-tickets__copy">
-        <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span>
+        {!minimal ? <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span> : null}
         <h3 id="events-public-tickets-title">{t('pages.events.publicTicketsTitle')}</h3>
-        <p>{t('pages.events.publicTicketsLead')}</p>
+        {!minimal ? <p>{t('pages.events.publicTicketsLead')}</p> : null}
       </div>
       <div className="events-public-tickets__aside">
         <p className="events-public-tickets__price">
@@ -152,16 +220,28 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t }) {
             ? t('pages.events.publicTicketsFrom', { price: money(ticketPrice, locale) })
             : t('pages.events.publicTicketsClosed')}
         </p>
-        <Button
-          variant="outline"
-          className="events-public-tickets__cta motion-icon-shift"
-          onClick={onBuyTickets}
-          disabled={!hasPublishedPrice}
-        >
-          <Ticket size={14} aria-hidden />
-          {t('pages.events.publicTicketsCta')}
-          <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-        </Button>
+        {minimal ? (
+          <button
+            type="button"
+            className="events-public-tickets__text-link"
+            onClick={onBuyTickets}
+            disabled={!hasPublishedPrice}
+          >
+            {t('pages.events.publicTicketsCta')}
+            <ArrowRight size={14} aria-hidden />
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            className="events-public-tickets__cta motion-icon-shift"
+            onClick={onBuyTickets}
+            disabled={!hasPublishedPrice}
+          >
+            <Ticket size={14} aria-hidden />
+            {t('pages.events.publicTicketsCta')}
+            <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+          </Button>
+        )}
       </div>
     </section>
   )
@@ -262,10 +342,10 @@ export default function EventsPage({
 
   const filters = useMemo(
     () => [
-      ['all', t('pages.events.filters.all'), t('pages.events.filters.allShort')],
-      ['open', t('pages.events.filters.open'), t('pages.events.filters.openShort')],
-      ['soon', t('pages.events.filters.soon'), t('pages.events.filters.soonShort')],
-      ['done', t('pages.events.filters.done'), t('pages.events.filters.doneShort')],
+      ['all', t('pages.events.filters.allShort')],
+      ['open', t('pages.events.filters.openShort')],
+      ['soon', t('pages.events.filters.soonShort')],
+      ['done', t('pages.events.filters.doneShort')],
     ],
     [t],
   )
@@ -334,7 +414,7 @@ export default function EventsPage({
   const ticketsEvent = selected ?? nextEvent ?? pitbull
 
   return (
-    <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--calendar-first">
+    <main className="page page--design page--plu-ref events-page--design events-page--plu-ref events-page--list-first">
       <PluPageHero
         className="events-page__hero"
         breadcrumbLabel={t('pages.events.heroBreadcrumb')}
@@ -369,44 +449,17 @@ export default function EventsPage({
           </span>
         </div>
 
-        <Reveal variant="from-left" as="section" className="events-calendar-board" aria-label={t('pages.events.heroTitle')}>
-          <EventsCountdownChip event={nextEvent} days={daysUntilNext} t={t} />
-          <div className="events-calendar-board__grid">
-            <div className="events-calendar-board__calendar">
-              <EventCalendar
-                events={filteredEvents}
-                initialDate="2026-12-01"
-                focusDateISO={calendarFocus}
-                selectedEventSlug={selected?.slug}
-                onEventSelect={focusEvent}
-              />
-            </div>
-            <div className="events-calendar-board__panel">
-              <EventsDetailPanel
-                event={selected}
-                isFeaturedSelected={false}
-                onRegister={selected ? () => handleRegister(selected) : undefined}
-                onViewPitbull={
-                  pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined
-                }
-                registerLabel={registerLabel}
-                t={t}
-              />
-              {ticketsEvent ? (
-                <EventsAudienceTicketsPanel
-                  event={ticketsEvent}
-                  locale={locale}
-                  onBuyTickets={() => onNavigate('tickets', { eventSlug: ticketsEvent.slug })}
-                  t={t}
-                />
-              ) : null}
-            </div>
-          </div>
-        </Reveal>
+        <EventsCountdownChip
+          event={nextEvent}
+          days={daysUntilNext}
+          t={t}
+          minimal
+          onSelect={nextEvent ? () => focusEvent(nextEvent) : undefined}
+        />
 
         <MotionContentSwap swapKey={filter} className="events-main-column">
           {listEvents.length > 0 ? (
-            <StaggerReveal className="events-list events-list--design" stagger={70}>
+            <StaggerReveal className="events-list events-list--design events-list--minimal" stagger={48}>
               {listEvents.map((event) => (
                 <EventCard
                   key={event.slug}
@@ -423,6 +476,7 @@ export default function EventsPage({
                       : () => focusEvent(event)
                   }
                   actionLabel={registerLabel}
+                  variant="minimal"
                 />
               ))}
             </StaggerReveal>
@@ -436,6 +490,50 @@ export default function EventsPage({
             </div>
           )}
         </MotionContentSwap>
+
+        <Reveal
+          variant="from-left"
+          as="section"
+          className="events-calendar-board events-calendar-board--secondary"
+          aria-label={t('pages.events.calendarSectionTitle')}
+        >
+          <header className="events-calendar-board__head">
+            <h2 className="events-calendar-board__title">{t('pages.events.calendarSectionTitle')}</h2>
+          </header>
+          <div className="events-calendar-board__grid">
+            <div className="events-calendar-board__calendar">
+              <EventCalendar
+                events={filteredEvents}
+                initialDate="2026-12-01"
+                focusDateISO={calendarFocus}
+                selectedEventSlug={selected?.slug}
+                onEventSelect={focusEvent}
+              />
+            </div>
+            <div className="events-calendar-board__panel">
+              <EventsDetailPanel
+                event={selected}
+                isFeaturedSelected={false}
+                minimal
+                onRegister={selected ? () => handleRegister(selected) : undefined}
+                onViewPitbull={
+                  pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined
+                }
+                registerLabel={registerLabel}
+                t={t}
+              />
+              {ticketsEvent ? (
+                <EventsAudienceTicketsPanel
+                  event={ticketsEvent}
+                  locale={locale}
+                  minimal
+                  onBuyTickets={() => onNavigate('tickets', { eventSlug: ticketsEvent.slug })}
+                  t={t}
+                />
+              ) : null}
+            </div>
+          </div>
+        </Reveal>
       </div>
     </main>
   )
