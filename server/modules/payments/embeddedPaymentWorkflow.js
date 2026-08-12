@@ -30,7 +30,12 @@ export async function processEmbeddedPayment(input, options = {}) {
   const { repository, mercadoPago, notifyPaymentApplied } = options
   if (!repository || !mercadoPago) throw new HttpError(503, 'Checkout embebido no configurado.')
 
-  const order = await repository.getOrder(input.paymentOrderId)
+  // La ruta ya resolvio la orden para validar que pertenece a la sesion; sin
+  // reusarla, cada pago la leia de nuevo con sus joins. Se exige que sea la
+  // misma orden que pide el body para que un caller no pueda desalinearlas.
+  const order = options.order?.id === input.paymentOrderId
+    ? options.order
+    : await repository.getOrder(input.paymentOrderId)
   if (order.method !== 'mercado_pago') throw new HttpError(400, 'La orden no usa Mercado Pago.')
   // Si el proveedor alcanzo a acreditar pero el browser perdio la respuesta,
   // el Brick vuelve a enviar el submit. La orden aprobada es la constancia

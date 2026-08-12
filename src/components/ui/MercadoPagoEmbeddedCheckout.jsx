@@ -11,6 +11,7 @@ import {
   notifyMockPayment,
   reportPaymentClientEvent,
 } from '../../services/paymentService.js'
+import { trackConversion, trackEvent } from '../../services/analyticsService.js'
 
 let initializedPublicKey = null
 const SUBSCRIPTION_CUSTOMIZATION = { paymentMethods: { minInstallments: 1, maxInstallments: 1 } }
@@ -142,6 +143,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     setError('')
     try {
       if (!payload?.formData) throw new Error(t('payments.embeddedError'))
+      // Pasos del embudo. Nunca viaja el token de tarjeta ni el medio de pago:
+      // solo el hecho de que hubo un intento y como termino.
+      trackEvent('payment_submitted', { metadata: { concept: order?.concept ?? null } })
       const response = await processEmbeddedPayment({
         paymentOrderId: orderId,
         orderAccessToken: order?.orderAccessToken,
@@ -150,13 +154,18 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
       setResult({ status, data: response })
       announcePaymentUpdate(orderId, status)
+      if (status === 'approved') {
+        trackConversion('payment_approved', { value: Number(order?.amount ?? 0) })
+      } else if (status === 'rejected') {
+        trackEvent('payment_rejected', { type: 'error' })
+      }
       onResult?.(response)
       return response
     } catch (submitError) {
       setError(controlledPaymentError(submitError, t))
       throw submitError
     }
-  }, [onResult, order?.orderAccessToken, orderId, t])
+  }, [onResult, order?.amount, order?.concept, order?.orderAccessToken, orderId, t])
 
   const submitSubscription = useCallback(async (formData) => {
     setError('')

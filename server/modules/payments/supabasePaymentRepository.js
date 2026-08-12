@@ -162,11 +162,18 @@ export function createSupabasePaymentRepository(
       )
     },
 
-    async attachPreference(orderId, preference, idempotencyKey) {
-      const order = await getOrder(orderId)
+    /**
+     * `orderKind` llega del workflow, que ya resolvio la orden en esta misma
+     * request. Es un dato inmutable de la orden, asi que releerla solo para
+     * elegir la tabla era un round-trip con joins de puro descarte (dos, en
+     * ordenes de entradas: getOrder sondea athlete_payment_orders primero).
+     * El fallback mantiene el contrato para cualquier caller que no lo pase.
+     */
+    async attachPreference(orderId, preference, idempotencyKey, orderKind) {
+      const kind = orderKind ?? (await getOrder(orderId)).kind
       return assertResult(
         await client
-          .from(order.kind === 'ticket' ? 'ticket_orders' : 'athlete_payment_orders')
+          .from(kind === 'ticket' ? 'ticket_orders' : 'athlete_payment_orders')
           .update({
             provider_preference_id: preference.id,
             provider_init_point: preference.initPoint,
@@ -330,10 +337,16 @@ export function createSupabasePaymentRepository(
       ) ?? []
     },
 
+    /**
+     * Idem `attachPreference`: `payment.orderKind` viene de la orden que el
+     * workflow ya valido (monto, moneda y external_reference) antes de llamar.
+     * Este era el tercer getOrder del mismo pago -- webhook, checkout embebido
+     * y conciliacion pasan todos por aca.
+     */
     async applyPayment(payment) {
-      const order = await getOrder(payment.orderId)
+      const kind = payment.orderKind ?? (await getOrder(payment.orderId)).kind
       return assertResult(
-        await client.rpc(order.kind === 'ticket' ? 'apply_ticket_mercado_pago_payment' : 'apply_mercado_pago_payment', {
+        await client.rpc(kind === 'ticket' ? 'apply_ticket_mercado_pago_payment' : 'apply_mercado_pago_payment', {
           p_order_id: payment.orderId,
           p_external_payment_id: String(payment.externalPaymentId),
           p_status: payment.status,

@@ -10,6 +10,7 @@ import { createUserRoutes } from './routes/users.js'
 import { createAccessControlRoutes } from './routes/accessControl.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
+import { createAnalyticsRoutes } from './routes/analytics.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
@@ -142,6 +143,12 @@ export function createApp(deps = {}) {
     getPrisma: () => deps.prisma ?? getPrisma(),
     getSupabaseAdmin: resolveSupabaseAdmin,
     repository: deps.auditRepository,
+  }))
+  app.use('/api/analytics', createAnalyticsRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
+    repository: deps.analyticsRepository,
+    env: deps.env ?? process.env,
   }))
   app.use('/api/events', createEventRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),

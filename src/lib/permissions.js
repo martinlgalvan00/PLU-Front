@@ -224,6 +224,15 @@ export const PERMISSION_CATALOG = [
     description: 'Consultar cambios sensibles del sistema.',
     sortOrder: 130,
   },
+  {
+    key: 'admin.analytics.read',
+    module: 'analytics',
+    moduleLabel: 'Analítica',
+    action: 'read',
+    actionLabel: 'Leer',
+    description: 'Consultar tráfico, recorridos y mapa de calor del sitio.',
+    sortOrder: 131,
+  },
 ]
 
 export const PERMISSION_KEYS = Object.freeze(PERMISSION_CATALOG.map(({ key }) => key))
@@ -311,6 +320,7 @@ export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   users: ['admin.users.read'],
   roles: ['admin.roles.read'],
   audit: ['admin.audit.read'],
+  analytics: ['admin.analytics.read'],
   'plu-usa': ['admin.exports.plu_usa'],
 })
 

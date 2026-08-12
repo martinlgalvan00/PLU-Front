@@ -106,6 +106,40 @@ export const checkoutLimiter = buildLimiter(
   'Demasiados intentos de checkout. Probá nuevamente en unos minutos.',
 )
 
+/**
+ * Telemetría del Brick. Limiter propio y NO `checkoutLimiter`: es diagnóstico
+ * best-effort que se dispara justo cuando el checkout viene fallando, así que
+ * compartir el balde con /preferences y /embedded/process hacía que cada error
+ * de render gastara cupo de pago. Con el Brick reintentando, el atleta agotaba
+ * el límite y recibía "Demasiados intentos de checkout" sin haber llegado a
+ * enviar un solo pago: el reporte del problema se comía la posibilidad de
+ * resolverlo.
+ *
+ * Ventana corta y volumen acotado -- alcanza para instrumentar una sesión de
+ * checkout con problemas y sigue frenando un cliente que loopee reportando.
+ */
+export const paymentTelemetryLimiter = buildLimiter(
+  5 * 60 * 1000,
+  30,
+  'Demasiados reportes de checkout. Proba de nuevo en unos minutos.',
+)
+
+/**
+ * Ingesta de analitica. Volumen alto por diseño: un lote cada pocos segundos
+ * por pestaña activa, y varias personas detras del mismo NAT (wifi del gimnasio
+ * o del venue) comparten clave.
+ *
+ * El limite existe para frenar a alguien inflando metricas a mano, no para
+ * regular navegacion legitima. Por eso es holgado, y por eso la ingesta jamas
+ * comparte instancia con endpoints de negocio: un 429 de analitica no puede
+ * dejar a nadie sin poder afiliarse ni pagar.
+ */
+export const analyticsIngestLimiter = buildLimiter(
+  60 * 1000,
+  120,
+  'Demasiados eventos de analitica. Proba de nuevo en un momento.',
+)
+
 // Escrituras con cookie de atleta ya autenticada (editar perfil, foto) --
 // más generoso que publicWriteLimiter porque ya pasó por requireAthleteSession.
 export const athleteWriteLimiter = buildLimiter(

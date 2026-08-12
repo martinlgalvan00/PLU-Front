@@ -742,6 +742,7 @@ export const ADMIN_NAV_GROUPS = [
       ['users', 'admin.nav.users', 'Shield'],
       ['roles', 'admin.nav.roles', 'KeyRound'],
       ['audit', 'admin.nav.audit', 'ScrollText'],
+      ['analytics', 'admin.nav.analytics', 'Activity'],
     ],
   },
   {

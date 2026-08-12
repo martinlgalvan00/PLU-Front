@@ -60,6 +60,15 @@ export const env = {
     transferCbu: import.meta.env.VITE_PAYMENT_TRANSFER_CBU ?? '',
     transferHolder: import.meta.env.VITE_PAYMENT_TRANSFER_HOLDER ?? '',
   },
+  analytics: {
+    // Kill switch. Se apaga sin redeploy del backend: el tracker deja de
+    // emitir y `/api/analytics/collect` simplemente no recibe nada.
+    enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',
+    // El panel administrativo no se mide: su actividad ya vive en la auditoria
+    // operativa (`/api/audit`), y mezclar navegacion de staff con la del
+    // publico distorsiona visitantes, rebote y embudo.
+    excludedPrefixes: ['/admin'],
+  },
   auth0: {
     domain: auth0Domain,
     clientId: auth0ClientId,

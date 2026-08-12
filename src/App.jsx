@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
+import AnalyticsTracker from './components/layout/AnalyticsTracker.jsx'
 import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
@@ -629,6 +630,7 @@ export default function App() {
             : null
         }
       />
+      <AnalyticsTracker view={view} />
       <NavbarPublic
         activeEventSlug={eventPageSlug}
         activeView={view}
@@ -659,6 +661,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
     <div className="app-shell">
       <PaymentsMockBanner />
       <DocumentMetaSync view={view} />
+      <AnalyticsTracker view={view} />
       <NavbarPublic
         activeView={view}
         latestEvent={

@@ -42,7 +42,7 @@ export async function createPaymentPreference(input, options = {}) {
     apiUrl: input.apiUrl,
     idempotencyKey,
   })
-  await repository.attachPreference(order.id, preference, idempotencyKey)
+  await repository.attachPreference(order.id, preference, idempotencyKey, order.kind)
 
   return {
     paymentOrder: { ...order, idempotencyKey, preferenceId: preference.id, initPoint: preference.initPoint },
@@ -86,7 +86,9 @@ export async function applyCanonicalPayment(payment, order, options = {}) {
     statusDetail: payment.status_detail ?? null,
     raw: payment,
   }
-  const result = await repository.applyPayment(appliedPayment)
+  // `orderKind` viaja aparte del contrato de notificacion: la orden ya se
+  // resolvio y valido aca, y el repositorio la releia solo para elegir la RPC.
+  const result = await repository.applyPayment({ ...appliedPayment, orderKind: order.kind })
   await notifyPaymentApplied?.({ order, payment: appliedPayment, result })
   return { appliedPayment, result }
 }
