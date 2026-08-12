@@ -15,6 +15,11 @@ export default function MembershipCard({
   ctaLabel,
   ctaDisabled = false,
   variant = 'plu',
+  billingToggleEnabled = false,
+  billingAutoRenew = false,
+  onBillingAutoRenewChange,
+  billingToggleLabel,
+  billingToggleHint,
 }) {
   const { locale, t } = useI18n()
   const compareTotal = compareWith.reduce((sum, item) => sum + item.price, 0)
@@ -29,6 +34,9 @@ export default function MembershipCard({
   const resolvedKicker = highlighted
     ? (kicker ?? t('pages.membershipCard.featured'))
     : (kicker ?? t('pages.membershipCard.periodAnnual'))
+  const autoRenewLabel = billingToggleLabel ?? t('pages.members.autoRenewLabel')
+  const autoRenewHint = billingToggleHint
+  const autoRenewId = `membership-auto-renew-${id}`
 
   if (variant === 'plu') {
     return (
@@ -67,6 +75,33 @@ export default function MembershipCard({
           </ul>
 
           <footer className="membership-card__foot">
+            {billingToggleEnabled ? (
+              <div className="members-plu-plans__auto-renew">
+                <div className="members-plu-plans__auto-renew-row">
+                  <div className="members-plu-plans__auto-renew-copy">
+                    <label className="members-plu-plans__auto-renew-label" htmlFor={autoRenewId}>
+                      {autoRenewLabel}
+                    </label>
+                    {autoRenewHint ? (
+                      <p className="members-plu-plans__auto-renew-hint" id={`${autoRenewId}-hint`}>
+                        {autoRenewHint}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    id={autoRenewId}
+                    className="members-plu-plans__auto-renew-switch"
+                    role="switch"
+                    aria-checked={billingAutoRenew}
+                    aria-describedby={autoRenewHint ? `${autoRenewId}-hint` : undefined}
+                    onClick={() => onBillingAutoRenewChange?.(!billingAutoRenew)}
+                  >
+                    <span className="members-plu-plans__auto-renew-thumb" aria-hidden />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <button
               type="button"
               className="membership-card__cta motion-icon-shift"

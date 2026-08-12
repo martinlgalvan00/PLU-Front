@@ -52,6 +52,17 @@
     var(--theme-atmosphere-satin),
     var(--theme-atmosphere-wash-celeste),
     var(--theme-atmosphere-wash-gold);
+  /* Capa persistente para el fade de tema (.app-shell::before en base.css):
+     se arma con los washes crudos, no con `--theme-atmosphere-stack`. Light
+     pone ese stack en `none`, así que apuntar a él hacía que en dark→light el
+     `background-image` desapareciera en el mismo frame del cambio y la
+     atmósfera cortara de golpe en vez de fundirse. Estos washes no se anulan
+     en light: la capa sigue dibujada y lo único que interpola es la opacity. */
+  --theme-atmosphere-layer:
+    var(--theme-atmosphere-vignette),
+    var(--theme-atmosphere-satin),
+    var(--theme-atmosphere-wash-celeste),
+    var(--theme-atmosphere-wash-gold);
   --theme-atmosphere-wash-celeste-admin: radial-gradient(
     ellipse 90% 55% at 8% -4%,
     color-mix(in srgb, var(--plu-celeste-400) 3%, transparent),

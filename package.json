@@ -73,6 +73,9 @@
     "react-dom": "^19.2.7",
     "zod": "^3.25.76"
   },
+  "overrides": {
+    "valibot": "1.4.2"
+  },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
     "@emnapi/core": "1.11.3",

@@ -7,10 +7,7 @@ import logoPitbullClassic from '../../assets/brand/logo-letra-transparente.png'
 import { env } from '../../config/env.js'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import {
-  isPaidCheckoutOpen,
-  resolveLaunchOpenAt,
-} from '../../lib/registrationSchedule.js'
+import { isPaidCheckoutOpen, resolveLaunchOpenAt } from '../../lib/registrationSchedule.js'
 import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
 import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
@@ -47,16 +44,22 @@ const panelContainer = {
 
 const panelItem = {
   hidden: { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: MOTION_DURATION.slow, ease: MOTION_EASE.out },
+  },
 }
 
 export default function PitbullSpotlight({
   variant = 'card',
+  capacityStatus = 'loading',
   event,
   onDetail,
   onRegister,
   onJoin,
   onResults,
+  recent = [],
   registerLabel,
   registered,
   slots,
@@ -128,7 +131,9 @@ export default function PitbullSpotlight({
                   {location}
                 </p>
               </div>
-              <span className={`events-spotlight-card__status events-spotlight-card__status--${statusTone}`}>
+              <span
+                className={`events-spotlight-card__status events-spotlight-card__status--${statusTone}`}
+              >
                 {statusLabel}
               </span>
             </div>
@@ -156,7 +161,11 @@ export default function PitbullSpotlight({
                   {t('pages.pitbull.spotlight.viewDetail')}
                 </Button>
               </div>
-              <EventCalendarActions event={calendarEvent} className="events-spotlight-card__calendar" compact />
+              <EventCalendarActions
+                event={calendarEvent}
+                className="events-spotlight-card__calendar"
+                compact
+              />
             </div>
           </div>
         </div>
@@ -168,7 +177,9 @@ export default function PitbullSpotlight({
     const eventStatus = event?.status ?? 'proximamente'
     const isPitbullEvent = !event?.slug || event.slug === 'pitbull-classic-2026'
     const startsAt = event?.startsAt ?? event?.dateISO
-    const startsDate = startsAt ? new Date(String(startsAt).includes('T') ? startsAt : `${startsAt}T12:00:00`) : null
+    const startsDate = startsAt
+      ? new Date(String(startsAt).includes('T') ? startsAt : `${startsAt}T12:00:00`)
+      : null
     const validStartsDate = startsDate && !Number.isNaN(startsDate.getTime()) ? startsDate : null
     const homeTitle = event?.title ?? PITBULL_CLASSIC.title
     const homeVenue = event?.venue ?? PITBULL_CLASSIC.venue
@@ -192,9 +203,7 @@ export default function PitbullSpotlight({
     const isClosed = eventStatus === 'cerrado'
     const checkoutOpen = isPaidCheckoutOpen(event, env)
     const registrationOpensAt = resolveLaunchOpenAt({ event })
-    const openDayLabel = registrationOpensAt
-      ? formatOpenDayLabel(registrationOpensAt, locale)
-      : ''
+    const openDayLabel = registrationOpensAt ? formatOpenDayLabel(registrationOpensAt, locale) : ''
 
     /** El CTA principal nunca ofrece una acción que el usuario no puede
      * realizar: sigue el estado real del evento + gate de cobros en prod.
@@ -224,6 +233,20 @@ export default function PitbullSpotlight({
 
     const placeLine = [homeVenue, homeLocation].filter(Boolean).join(' · ')
 
+    /** Ocupación real del torneo. Solo con dato live del servidor y con al
+     * menos un inscripto: la landing no muestra un contador en cero ni el
+     * cupo de referencia del contenido estático como si fuera inscripción. */
+    const liveRegistered = Number(registered ?? 0)
+    const liveSlots = Number(slots ?? 0)
+    const showLiveCapacity = capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0
+    const occupancyPct = showLiveCapacity
+      ? Math.min(100, Math.round((liveRegistered / liveSlots) * 100))
+      : 0
+    // Tres nombres alcanzan para dar prueba real sin volver la portada una
+    // lista; el resto queda como "+N" y el detalle completo vive en Pitbull.
+    const recentShown = showLiveCapacity ? recent.slice(0, 3) : []
+    const recentExtra = showLiveCapacity ? Math.max(recent.length - recentShown.length, 0) : 0
+
     const Overlay = reducedMotion ? 'div' : m.div
     const overlayProps = reducedMotion
       ? { className: 'pitbull-spotlight__home-overlay' }
@@ -249,7 +272,10 @@ export default function PitbullSpotlight({
     return (
       <article className={homeArticleClass}>
         <div className="pitbull-spotlight__home-stage">
-          <div className="pitbull-spotlight__home-canvas" aria-hidden={isPitbullEvent ? undefined : true}>
+          <div
+            className="pitbull-spotlight__home-canvas"
+            aria-hidden={isPitbullEvent ? undefined : true}
+          >
             {isPitbullEvent ? (
               <picture>
                 <source media="(min-width: 640px) and (max-width: 1599px)" srcSet={photoLift} />
@@ -315,6 +341,42 @@ export default function PitbullSpotlight({
               </p>
             </OverlayItem>
 
+            {showLiveCapacity ? (
+              <OverlayItem {...overlayItemProps}>
+                <div
+                  className="pitbull-spotlight__home-live"
+                  aria-label={t('pages.home.liveRegisteredAria', {
+                    registered: liveRegistered,
+                    total: liveSlots,
+                  })}
+                >
+                  <p className="pitbull-spotlight__home-live-count">
+                    <strong>{liveRegistered}</strong>
+                    <span>{t('pages.home.liveRegisteredCount', { total: liveSlots })}</span>
+                  </p>
+
+                  <span className="pitbull-spotlight__home-live-track" aria-hidden>
+                    <span
+                      className="pitbull-spotlight__home-live-fill"
+                      style={{ inlineSize: `${occupancyPct}%` }}
+                    />
+                  </span>
+
+                  {recentShown.length ? (
+                    <p className="pitbull-spotlight__home-live-names">
+                      <span className="pitbull-spotlight__home-live-names-label">
+                        {t('pages.home.liveRegisteredRecentLabel')}
+                      </span>
+                      {recentShown.map((item) => item.displayName).join(' · ')}
+                      {recentExtra > 0
+                        ? ` · ${t('pages.home.liveRegisteredMore', { count: recentExtra })}`
+                        : ''}
+                    </p>
+                  ) : null}
+                </div>
+              </OverlayItem>
+            ) : null}
+
             <OverlayItem {...overlayItemProps}>
               <footer className="pitbull-spotlight__home-actions">
                 <Button
@@ -325,9 +387,7 @@ export default function PitbullSpotlight({
                   {primaryLabel}
                   <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
                 </Button>
-                {soonHint ? (
-                  <p className="pitbull-spotlight__home-soon-hint">{soonHint}</p>
-                ) : null}
+                {soonHint ? <p className="pitbull-spotlight__home-soon-hint">{soonHint}</p> : null}
                 {showSecondary ? (
                   <button
                     type="button"

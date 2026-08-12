@@ -11,7 +11,6 @@ import MembersProcessStepper from '../components/ui/MembersProcessStepper.jsx'
 import MembersRequirementsCarousel from '../components/ui/MembersRequirementsCarousel.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
-import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { FEATURE_KEYS, isAppProduction, isFeatureEnabled } from '../lib/featureAvailability.js'
@@ -43,11 +42,9 @@ function mapLivePlan(plan, featureTemplate, t) {
     id: plan.id ?? plan.code,
     code: plan.code,
     title: plan.name,
-    kicker: isRecurring
-      ? t('account.membership.planModeAutomatic')
-      : isMonthly
-        ? t('pages.members.planMonthly')
-        : t('pages.membershipCard.periodAnnual'),
+    kicker: isMonthly
+      ? t('pages.members.planMonthly')
+      : t('pages.membershipCard.periodAnnual'),
     price: plan.price,
     period: isMonthly
       ? t('pages.members.planMonthly')
@@ -176,22 +173,9 @@ export default function MembersPage({
     })
   }, [billingSwitchEnabled, oneTimePlans.length, recurringPlans.length])
 
-  const billingOptions = useMemo(() => ([
-    [
-      'one_time',
-      t('account.membership.planModeAnnual'),
-      t('account.membership.planModeAnnualShort'),
-    ],
-    [
-      'recurring',
-      t('account.membership.planModeAutomatic'),
-      t('account.membership.planModeAutomaticShort'),
-    ],
-  ]), [t])
-
   const billingHint = billingMode === 'recurring'
-    ? t('account.membership.planModeAutomaticHint')
-    : t('account.membership.planModeAnnualHint')
+    ? t('pages.members.autoRenewHintOn')
+    : t('pages.members.autoRenewHintOff')
 
   const visiblePlans = useMemo(() => {
     if (!catalogPlans.length) return []
@@ -325,37 +309,35 @@ export default function MembersPage({
               aria-label={t('pages.members.comboPromoTitle')}
               variant="up"
             >
-              <div className="members-combo-promo__main">
-                <div className="members-combo-promo__copy">
-                  <div className="members-combo-promo__meta">
-                    <p className="members-combo-promo__eyebrow">{t('pages.members.comboPromoEyebrow')}</p>
-                    <p className="members-combo-promo__urgency">{t('pages.members.comboPromoCountdownLabel')}</p>
-                  </div>
-                  <h3 className="members-combo-promo__title">{t('pages.members.comboPromoTitle')}</h3>
-                  <p className="members-combo-promo__lead">{t('pages.members.comboPromoLead')}</p>
+              <div className="members-combo-promo__copy">
+                <div className="members-combo-promo__meta">
+                  <p className="members-combo-promo__eyebrow">{t('pages.members.comboPromoEyebrow')}</p>
+                  <p className="members-combo-promo__urgency">{t('pages.members.comboPromoCountdownLabel')}</p>
                 </div>
+                <h3 className="members-combo-promo__title">{t('pages.members.comboPromoTitle')}</h3>
+                <p className="members-combo-promo__lead">{t('pages.members.comboPromoLead')}</p>
+              </div>
 
-                <div
-                  className="members-combo-promo__countdown"
-                  role="timer"
-                  aria-live="polite"
-                  aria-atomic="true"
-                  aria-label={comboCountdownAria}
-                >
-                  {comboCountdownUnits.map((unit, index) => (
-                    <div key={unit.key} className="members-combo-promo__unit-wrap">
-                      {index > 0 ? (
-                        <span className="members-combo-promo__sep" aria-hidden="true">:</span>
-                      ) : null}
-                      <div className="members-combo-promo__unit">
-                        <span className="members-combo-promo__unit-value" aria-hidden="true">
-                          {unit.value}
-                        </span>
-                        <span className="members-combo-promo__unit-label">{unit.label}</span>
-                      </div>
+              <div
+                className="members-combo-promo__countdown"
+                role="timer"
+                aria-live="polite"
+                aria-atomic="true"
+                aria-label={comboCountdownAria}
+              >
+                {comboCountdownUnits.map((unit, index) => (
+                  <div key={unit.key} className="members-combo-promo__unit-wrap">
+                    {index > 0 ? (
+                      <span className="members-combo-promo__sep" aria-hidden="true">:</span>
+                    ) : null}
+                    <div className="members-combo-promo__unit">
+                      <span className="members-combo-promo__unit-value" aria-hidden="true">
+                        {unit.value}
+                      </span>
+                      <span className="members-combo-promo__unit-label">{unit.label}</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
 
               <div className="members-combo-promo__deal">
@@ -367,24 +349,11 @@ export default function MembersPage({
                     </p>
                   ) : null}
                 </div>
-                <button type="button" className="btn members-combo-promo__cta" onClick={goToCombo}>
+                <button type="button" className="btn btn--gold members-combo-promo__cta" onClick={goToCombo}>
                   {t('pages.members.comboPromoCta')}
                 </button>
               </div>
             </Reveal>
-          ) : null}
-
-          {billingSwitchEnabled && !checkoutLocked ? (
-            <div className="members-plu-plans__billing">
-              <SegmentedSwitch
-                active={billingMode}
-                ariaLabel={t('account.membership.planModeLegend')}
-                className="segmented-switch--membership members-plu-plans__switch"
-                onChange={setBillingMode}
-                options={billingOptions}
-              />
-              <p className="members-plu-plans__billing-hint">{billingHint}</p>
-            </div>
           ) : null}
 
           {!checkoutLocked ? (
@@ -393,13 +362,25 @@ export default function MembersPage({
                 <MembershipCard
                   key={plan.id}
                   {...plan}
+                  billingToggleEnabled={billingSwitchEnabled}
+                  billingAutoRenew={billingMode === 'recurring'}
+                  billingToggleHint={billingHint}
+                  billingToggleLabel={t('pages.members.autoRenewLabel')}
                   ctaLabel={affiliationCta}
                   ctaDisabled={hasActiveMembership || livePlansUnavailable}
+                  onBillingAutoRenewChange={(enabled) => {
+                    setBillingMode(enabled ? 'recurring' : 'one_time')
+                  }}
                   onSelect={goToAffiliation}
                   variant="plu"
                 />
               ))}
             </div>
+          ) : null}
+          {!checkoutLocked && !hasActiveMembership ? (
+            <p className="members-plu-plans__reassure">
+              {t('pages.members.closureReassure')}
+            </p>
           ) : null}
           {isAppProduction() && !plansLoaded ? (
             <p className="members-plans-feedback" role="status">
@@ -422,22 +403,15 @@ export default function MembersPage({
           ) : null}
         </section>
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--closure">
-          <div className="members-plu-closure" aria-labelledby="members-closure-title">
-            <p className="members-plu-closure__eyebrow">{t('pages.members.closureEyebrow')}</p>
-            <h2 className="members-plu-closure__title" id="members-closure-title">
-              {hasActiveMembership
-                ? t('pages.members.closureTitleActive')
-                : t('pages.members.closureTitle')}
-            </h2>
-            <p className="members-plu-closure__lead">
-              {hasActiveMembership
-                ? t('pages.members.closureLeadActive')
-                : checkoutLocked
-                  ? t('pages.members.closureLeadSoon')
-                  : t('pages.members.closureLead')}
-            </p>
-            {hasActiveMembership ? (
+        {hasActiveMembership ? (
+          <Reveal as="section" variant="up" className="members-plu-block members-plu-block--closure members-plu-block--closure-active">
+            <div className="members-plu-closure members-plu-closure--active" aria-labelledby="members-closure-title">
+              <h2 className="members-plu-closure__title" id="members-closure-title">
+                {t('pages.members.closureTitleActive')}
+              </h2>
+              <p className="members-plu-closure__lead">
+                {t('pages.members.closureLeadActive')}
+              </p>
               <div className="members-plu-closure__actions">
                 <button
                   type="button"
@@ -454,20 +428,9 @@ export default function MembersPage({
                   {t('pages.members.afterPayCtaCalendar')}
                 </button>
               </div>
-            ) : !checkoutLocked ? (
-              <div className="members-plu-closure__actions">
-                <button
-                  type="button"
-                  className="btn btn--gold members-plu-closure__cta"
-                  disabled={isLoggedInAthlete && livePlansUnavailable}
-                  onClick={goToAffiliation}
-                >
-                  {affiliationCta}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </Reveal>
+            </div>
+          </Reveal>
+        ) : null}
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--benefits">
           <MembersBenefitsShowcase

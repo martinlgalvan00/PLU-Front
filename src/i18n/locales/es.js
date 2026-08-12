@@ -917,7 +917,10 @@ export default {
         'Un solo pago para afiliarte y competir en el calendario oficial. Se habilita con la apertura de cobros: guardá tu aviso y creá tu cuenta mientras tanto.',
       promoSoonMark: 'Muy pronto',
       plansLeadWithBilling:
-        'Una afiliación. Elegí si pagás una vez por temporada o con renovación automática.',
+        'Una afiliación por temporada. Podés activar la renovación automática al afiliarte.',
+      autoRenewLabel: 'Renovación automática',
+      autoRenewHintOff: 'Pago único por temporada.',
+      autoRenewHintOn: 'Se renueva sola con Mercado Pago.',
       plansLeadWithCombo:
         'Tomá el paquete con Pitbull Classic o afiliate sola para el calendario oficial.',
       comboPlanKicker: 'Hasta el {{date}}',
@@ -950,6 +953,7 @@ export default {
       closureTitle: 'Pago, activación y QR',
       closureTitleActive: 'Tu afiliación está activa',
       closureLead: 'Un solo trámite: pagás, ves el estado activo y usás el mismo QR en el check-in.',
+      closureReassure: 'Pago, estado activo y el mismo QR en el check-in.',
       closureLeadSoon: 'Cuando abramos cobros, el trámite se cierra acá: pago, estado y QR en tu perfil.',
       closureLeadActive: 'Credencial y QR listos en tu perfil. El calendario oficial ya te espera.',
       afterPayCtaCredential: 'Ver mi credencial',
@@ -1152,9 +1156,11 @@ export default {
       viewPitbull: 'Ver Pitbull Classic',
       publicTicketsEyebrow: 'Público y acompañantes',
       publicTicketsTitle: 'Compra de entradas',
+      publicTicketsTitleShort: 'Entradas',
       publicTicketsLead:
         'La entrada para público es independiente de la inscripción del atleta. No requiere afiliación PLU ARG.',
       publicTicketsFrom: 'Desde {{price}}',
+      publicTicketsFromCaption: 'Desde',
       publicTicketsClosed: 'Venta no habilitada',
       publicTicketsCta: 'Comprar entradas',
       spotlightActionsAria: 'Acciones del meet destacado',
@@ -1201,6 +1207,7 @@ export default {
       spotlightLead: 'Dos jornadas de competencia oficial en Buenos Aires.',
       spotlightIndex: '01',
       addToCalendar: 'Agregar a mi calendario',
+      addToCalendarShort: 'Calendario',
       addToGoogleCalendar: 'Google Calendar',
       addToGoogleCalendarShort: 'Google',
       downloadIcs: 'Descargar .ics',
@@ -1548,6 +1555,7 @@ export default {
       languageLabel: 'Idiomas',
       readingEyebrow: 'Consulta documental',
       readingTitle: 'Índice de contenidos',
+      backToIndex: 'Volver al índice',
       readingDesc:
         'Recorré los capítulos en orden o saltá directamente a la sección que necesitás.',
       indexTitle: 'Contenido del reglamento',
@@ -2020,6 +2028,10 @@ export default {
       credentialAria: 'Vista previa de la credencial digital de afiliación',
       currencyPeriod: 'ARS / año',
       communityBadge: 'Red PLU ARG',
+      liveRegisteredCount: 'de {{total}} inscriptos',
+      liveRegisteredAria: '{{registered}} de {{total}} atletas inscriptos al torneo',
+      liveRegisteredRecentLabel: 'Últimos',
+      liveRegisteredMore: '+{{count}}',
     },
     ticketsPage: {
       eyebrow: 'Entrada pública',

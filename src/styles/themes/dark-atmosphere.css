@@ -5,10 +5,9 @@
    ============================================= */
 
 [data-theme='dark'] .app-shell {
+  /* Canvas sólido; la atmósfera vive en ::before (base.css) con opacity. */
   background-color: var(--color-page-canvas);
-  background-image: var(--theme-atmosphere-stack);
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-image: none;
 }
 
 /* Los wrappers dejan ver el canvas global y reciben una luz superior
@@ -175,6 +174,9 @@
   [data-theme='dark'] {
     --theme-atmosphere-stack: none;
     --theme-atmosphere-stack-admin: none;
+    /* La capa de fade del shell se arma aparte (themes/dark.css): sin esto
+       seguiría dibujando los washes que este modo justamente desactiva. */
+    --theme-atmosphere-layer: none;
     --theme-page-sheen: none;
     --theme-section-satin: none;
     --theme-section-wash-celeste: none;
@@ -207,6 +209,9 @@
   [data-theme='dark'] {
     --theme-atmosphere-stack: none;
     --theme-atmosphere-stack-admin: none;
+    /* La capa de fade del shell se arma aparte (themes/dark.css): sin esto
+       seguiría dibujando los washes que este modo justamente desactiva. */
+    --theme-atmosphere-layer: none;
     --theme-page-sheen: none;
     --theme-section-satin: none;
     --theme-section-wash-celeste: none;

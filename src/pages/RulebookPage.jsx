@@ -1,7 +1,7 @@
 import '../styles/pages/rulebook.css'
 import '../styles/pages/institutional-pages.css'
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BookOpen, ChevronDown } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, ChevronDown } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import RulebookDocShell from '../components/rulebook/RulebookDocShell.jsx'
 import RulebookSummary from '../components/rulebook/RulebookSummary.jsx'
@@ -107,7 +107,7 @@ function AgeWeightAppendix({ ageDivisions, weightClasses, t }) {
 function RulebookIndex({ activeId, chapters, label, mobileLabel, onSelect }) {
   return (
     <>
-      <aside className="rulebook-index" aria-label={label}>
+      <aside className="rulebook-index" id="rulebook-index" aria-label={label}>
         <div className="rulebook-index__head">
           <BookOpen size={16} aria-hidden />
           <span>{label}</span>
@@ -128,7 +128,7 @@ function RulebookIndex({ activeId, chapters, label, mobileLabel, onSelect }) {
           ))}
         </ol>
       </aside>
-      <div className="rulebook-index-mobile">
+      <div className="rulebook-index-mobile" id="rulebook-index-mobile">
         <label htmlFor="rulebook-section-select">{mobileLabel}</label>
         <span>
           <select id="rulebook-section-select" value={activeId} onChange={(event) => onSelect(event.target.value)}>
@@ -138,6 +138,49 @@ function RulebookIndex({ activeId, chapters, label, mobileLabel, onSelect }) {
         </span>
       </div>
     </>
+  )
+}
+
+function RulebookBackToIndex({ label }) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    function updateVisibility() {
+      const anchor = document.getElementById('rulebook-reading-title')
+      if (!anchor) {
+        setVisible(false)
+        return
+      }
+      const headerOffset = 96
+      setVisible(anchor.getBoundingClientRect().bottom < headerOffset)
+    }
+
+    updateVisibility()
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+    window.addEventListener('resize', updateVisibility)
+    return () => {
+      window.removeEventListener('scroll', updateVisibility)
+      window.removeEventListener('resize', updateVisibility)
+    }
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <button
+      type="button"
+      className="rulebook-back-top"
+      onClick={() => {
+        const target =
+          document.getElementById('rulebook-reading-title')
+          || document.getElementById('rulebook-index')
+          || document.getElementById('rulebook-index-mobile')
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }}
+    >
+      <ArrowUp size={16} strokeWidth={1.75} aria-hidden />
+      <span>{label}</span>
+    </button>
   )
 }
 
@@ -240,6 +283,8 @@ export default function RulebookPage({ onNavigate }) {
               </RulebookSection>
             ))}
           </div>
+
+          <RulebookBackToIndex label={t('pages.rulebook.backToIndex')} />
         </section>
 
         <section className="rulebook-contact-band" aria-labelledby="rulebook-contact-title">
