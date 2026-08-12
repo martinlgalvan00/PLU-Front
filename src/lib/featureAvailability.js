@@ -41,6 +41,16 @@ export function resolvePaidCheckoutOverride(envLike = appEnv) {
   return null
 }
 
+export function resolvePaymentsMockFlag(envLike = appEnv) {
+  if (typeof envLike?.payments?.mockEnabled === 'boolean') return envLike.payments.mockEnabled
+  if (typeof envLike?.paymentsMock === 'boolean') return envLike.paymentsMock
+  const raw = envLike?.PAYMENTS_MOCK
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null
+  if (isEnabledFlag(raw)) return true
+  if (isDisabledFlag(raw)) return false
+  return null
+}
+
 /**
  * @deprecated La fecha de apertura vive en el evento (admin: registrationOpensAt).
  * Se mantiene por compatibilidad de tests/imports; ya no abre el gate.
@@ -65,6 +75,8 @@ export function resolvePaidCheckoutOpensAt(envLike = appEnv) {
 export function isPaidCheckoutEnabled(envLike = appEnv, now = new Date(), options = {}) {
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
+
+  if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
 
   if (!isAppProduction(envLike)) return true
 
