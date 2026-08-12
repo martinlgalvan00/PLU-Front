@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CalendarDays,
@@ -13,9 +13,11 @@ import {
   ShieldCheck,
   Star,
   Ticket,
+  Trash2,
   Users,
 } from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminEventEditor, {
   AdminEventLivePreview,
 } from '../../components/admin/AdminEventEditor.jsx'
@@ -180,6 +182,7 @@ function EventListRow({
 export default function EventsSection({
   adminEvents,
   canEdit,
+  canDeleteEvents = false,
   canManageUsers,
   isLoading = false,
   loadError = null,
@@ -187,6 +190,8 @@ export default function EventsSection({
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
   onDeactivateAllSecurityUsers,
+  onDeleteEvent,
+  onFetchDeleteImpact,
   onListSecurityUsers,
   onManagePayments,
   onManageRegistrations,
@@ -205,6 +210,14 @@ export default function EventsSection({
   const [editorFocus, setEditorFocus] = useState('details')
   const [previewExpanded, setPreviewExpanded] = useState(false)
   const [message, setMessage] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleteImpact, setDeleteImpact] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [requiresForce, setRequiresForce] = useState(false)
+  // Slug del diálogo abierto: el impacto llega por red y no puede pisar el
+  // estado si mientras tanto se cerró o se abrió el de otro evento.
+  const deleteTargetRef = useRef(null)
 
   useEffect(() => {
     setPreviewExpanded(false)
@@ -325,6 +338,68 @@ export default function EventsSection({
         : t('admin.sections.events.created'),
     })
     return saved
+  }
+
+  /**
+   * Borrado definitivo. El diálogo pide primero el impacto real (dry run en la
+   * base) para que el operador vea qué se lleva puesto; si el evento ya movió
+   * plata o gente, la API rechaza el primer intento y ahí se escala a escribir
+   * el identificador del evento.
+   */
+  function openDeleteDialog(event) {
+    if (!event) return
+    setPendingDelete(event)
+    setDeleteImpact(null)
+    setDeleteError('')
+    setRequiresForce(false)
+    setMessage(null)
+
+    deleteTargetRef.current = event.slug
+    if (!onFetchDeleteImpact) return
+    onFetchDeleteImpact(event.slug)
+      .then((impact) => {
+        if (deleteTargetRef.current !== event.slug) return
+        setDeleteImpact(impact)
+        setRequiresForce(impact?.requiresForce === true)
+      })
+      .catch((error) => {
+        if (deleteTargetRef.current !== event.slug) return
+        setDeleteError(error?.message ?? t('admin.sections.events.delete.error'))
+      })
+  }
+
+  function closeDeleteDialog() {
+    if (deleteBusy) return
+    deleteTargetRef.current = null
+    setPendingDelete(null)
+    setDeleteImpact(null)
+    setDeleteError('')
+    setRequiresForce(false)
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete || !onDeleteEvent) return
+    setDeleteError('')
+    setDeleteBusy(true)
+    try {
+      const result = await onDeleteEvent(pendingDelete.slug, { force: requiresForce })
+      if (result?.error) throw new Error(result.error)
+      deleteTargetRef.current = null
+      setPendingDelete(null)
+      setDeleteImpact(null)
+      setRequiresForce(false)
+      setMessage({
+        tone: 'success',
+        text: t('admin.sections.events.delete.done', { title: pendingDelete.title }),
+      })
+    } catch (error) {
+      // 409 sin force: la base pide consentimiento explícito porque el evento
+      // tiene actividad real. No es un fallo, es el segundo paso.
+      if (error?.status === 409 && !requiresForce) setRequiresForce(true)
+      setDeleteError(error?.message ?? t('admin.sections.events.delete.error'))
+    } finally {
+      setDeleteBusy(false)
+    }
   }
 
   function buildEventLinks(row) {
@@ -566,6 +641,14 @@ export default function EventsSection({
                     </Button>
                   </>
                 ) : null}
+                {canDeleteEvents && onDeleteEvent ? (
+                  <AdminIconButton
+                    icon={Trash2}
+                    label={t('admin.sections.events.delete.action')}
+                    onClick={() => openDeleteDialog(selectedEvent)}
+                    variant="danger"
+                  />
+                ) : null}
               </div>
             </div>
 
@@ -654,6 +737,45 @@ export default function EventsSection({
           onCancel={closeForm}
           onChange={setDraft}
           onSubmit={handleSubmit}
+        />
+      ) : null}
+
+      {pendingDelete ? (
+        <AdminDeleteConfirmDialog
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void handleDelete()}
+          title={t('admin.sections.events.delete.confirmTitle')}
+          description={
+            deleteImpact
+              ? t('admin.sections.events.delete.confirmDescription', {
+                  title: pendingDelete.title,
+                  slug: pendingDelete.slug,
+                  registrations: deleteImpact.impact?.registrations ?? 0,
+                  tickets: deleteImpact.impact?.tickets ?? 0,
+                  orders: deleteImpact.impact?.ticketOrders ?? 0,
+                  checkIns: deleteImpact.impact?.checkIns ?? 0,
+                })
+              : t('admin.sections.events.delete.loading')
+          }
+          warning={
+            requiresForce
+              ? t('admin.sections.events.delete.forceWarning', {
+                  paidRegistrations: deleteImpact?.impact?.paidRegistrations ?? 0,
+                  paidTickets: deleteImpact?.impact?.paidTickets ?? 0,
+                  checkIns: deleteImpact?.impact?.checkIns ?? 0,
+                })
+              : t('admin.sections.events.delete.warning')
+          }
+          confirmPhrase={requiresForce ? pendingDelete.slug : null}
+          confirmPhraseLabel={t('admin.sections.events.delete.phraseLabel')}
+          confirmPhraseHint={t('admin.sections.events.delete.phraseHint', {
+            slug: pendingDelete.slug,
+          })}
+          cancelLabel={t('admin.sections.events.delete.cancel')}
+          confirmLabel={t('admin.sections.events.delete.confirm')}
+          busyLabel={t('admin.sections.events.delete.deleting')}
         />
       ) : null}
     </AdminListSection>

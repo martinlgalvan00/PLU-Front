@@ -46,6 +46,7 @@ import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navi
 import {
   canCheckIn,
   canDeleteAthletes,
+  canDeleteEvents,
   canDeleteUsers,
   canManageUsers,
   canViewAdmin,
@@ -402,6 +403,7 @@ export default function App() {
           canManageUsers={canManageUsers(app.session)}
           canDeleteUsers={canDeleteUsers(app.session)}
           canDeleteAthletes={canDeleteAthletes(app.session)}
+          canDeleteEvents={canDeleteEvents(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
           adminEventsLoading={app.adminEventsLoading}
@@ -447,6 +449,8 @@ export default function App() {
           onExportAdmin={app.exportAdminCsv}
           onExportPluUsa={app.exportPluUsaCsv}
           onSaveEvent={app.saveAdminEvent}
+          onDeleteEvent={app.deleteAdminEvent}
+          onFetchEventDeleteImpact={app.fetchAdminEventDeleteImpact}
           onSetEventState={app.setAdminEventState}
           onSaveShopProduct={app.saveShopProduct}
           onScheduleAssigned={app.handleScheduleAssigned}

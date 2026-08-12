@@ -1569,7 +1569,7 @@
 }
 
 .login-page__footer {
-  color: rgba(255, 255, 255, 0.38);
+  color: color-mix(in oklab, var(--color-text-muted) 80%, transparent);
   font-size: 11.5px;
   font-weight: 400;
   margin: auto 0 0;
@@ -1582,7 +1582,7 @@
 .login-page__footer button {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   padding: 0;
@@ -1591,7 +1591,7 @@
 }
 
 .login-page__footer button:hover {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-primary);
 }
 
 /* ── Login editorial — credential gate (minimal / quiet) ── */
@@ -1860,8 +1860,12 @@
   gap: 10px;
 }
 
+/* Base tematizada: estas reglas las comparten LoginPage, las tres pantallas
+   de staff y la puerta de seguridad. Antes fijaban rgba(255,255,255,…) y una
+   segunda hoja (themes/design-pages-theme.css) las repintaba entera para
+   light. Con tokens semánticos alcanza una sola capa. */
 .login-field__label {
-  color: rgba(255, 255, 255, 0.62);
+  color: color-mix(in oklab, var(--color-text-muted) 96%, transparent);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1869,7 +1873,7 @@
 }
 
 .login-field:focus-within .login-field__label {
-  color: rgba(255, 255, 255, 0.88);
+  color: color-mix(in oklab, var(--color-text-primary) 88%, transparent);
 }
 
 .login-field__row {
@@ -1880,12 +1884,12 @@
 
 .login-field__forgot {
   background: transparent;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
   padding: 0;
   text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.2);
+  text-decoration-color: color-mix(in oklab, var(--color-text-muted) 40%, transparent);
   text-underline-offset: 3px;
   transition:
     color var(--duration-base) var(--ease-design),
@@ -1893,12 +1897,12 @@
 }
 
 .login-field__forgot:hover {
-  color: color-mix(in srgb, var(--color-brand-gold) 78%, #fff);
-  text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  color: var(--color-brand-celeste);
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 55%, transparent);
 }
 
 .login-field__error {
-  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 92%, #fff);
+  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 92%, var(--color-text-primary));
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
@@ -1930,7 +1934,7 @@
   background: color-mix(in srgb, var(--color-brand-red, #e35d5d) 8%, transparent);
   border-left: 2px solid var(--color-brand-red, #e35d5d);
   border-radius: 4px;
-  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 80%, #fff);
+  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 84%, var(--color-text-primary));
   font-size: 13px;
   line-height: 1.5;
   margin-top: 16px;
@@ -1950,7 +1954,7 @@
   align-items: center;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
   font-size: 12.5px;
@@ -1963,11 +1967,11 @@
 }
 
 .login-form__back:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
 }
 
 .login-form__notice {
-  color: color-mix(in srgb, var(--color-brand-gold) 70%, #fff);
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, var(--color-text-primary));
   font-size: 13.5px;
   font-weight: 500;
   line-height: 1.45;
@@ -1975,7 +1979,7 @@
 }
 
 .login-form__hint {
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
@@ -1987,8 +1991,8 @@
 
 .login-field__control {
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
   border-radius: 10px;
   display: flex;
   gap: 12px;
@@ -2005,18 +2009,18 @@
 }
 
 .login-field__control:hover:not(:focus-within) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: color-mix(in oklab, var(--color-text-primary) 5%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent);
 }
 
 .login-field__control:focus-within {
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in oklab, var(--color-text-primary) 6%, transparent);
   border-color: var(--color-brand-gold);
-  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.15);
+  box-shadow: 0 0 0 3px var(--plu-gold-alpha-12);
 }
 
 .login-field__icon {
-  color: rgba(255, 255, 255, 0.38);
+  color: color-mix(in oklab, var(--color-text-muted) 82%, transparent);
   flex: none;
   transition: color var(--duration-base) var(--ease-design);
 }
@@ -2028,8 +2032,8 @@
 .login-field__control input {
   background: transparent;
   border: none;
-  caret-color: color-mix(in srgb, var(--color-brand-gold) 85%, #fff);
-  color: #fff;
+  caret-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
   flex: 1;
   font-family: var(--font-family);
   font-size: 16px;
@@ -2042,7 +2046,7 @@
 }
 
 .login-field__control input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: color-mix(in oklab, var(--color-text-muted) 68%, transparent);
   font-weight: 400;
   opacity: 1;
   transition: opacity var(--duration-base) var(--ease-design);
@@ -2056,7 +2060,7 @@
   align-items: center;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.42);
+  color: color-mix(in oklab, var(--color-text-muted) 88%, transparent);
   display: inline-flex;
   flex: none;
   height: 36px;
@@ -2070,7 +2074,7 @@
 
 .login-field__toggle:hover,
 .login-field__control:focus-within .login-field__toggle {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-primary);
 }
 
 .login-submit {
@@ -2110,16 +2114,16 @@
 
 .login-submit--oauth {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 16%, transparent);
   box-shadow: none;
-  color: rgba(255, 255, 255, 0.88);
+  color: color-mix(in oklab, var(--color-text-primary) 88%, transparent);
   margin-top: 0;
 }
 
 .login-submit--oauth:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #fff;
+  background: color-mix(in oklab, var(--color-text-primary) 5%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 28%, transparent);
+  color: var(--color-text-primary);
 }
 
 .login-separator {
@@ -2131,14 +2135,14 @@
 
 .login-separator::before,
 .login-separator::after {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
   content: '';
   flex: 1;
   height: 1px;
 }
 
 .login-separator span {
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -2146,7 +2150,7 @@
 }
 
 .login-join {
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.55;
   margin: 22px 0 0;
@@ -2170,37 +2174,6 @@
 .login-join__link:hover {
   color: color-mix(in srgb, var(--color-brand-gold) 88%, white);
   text-decoration-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
-}
-
-/* Legacy alias — por si queda referenciado en otro lado */
-.login-join-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 11px;
-  color: rgba(255, 255, 255, 0.72);
-  cursor: pointer;
-  font-family: var(--font-family);
-  font-size: 12.5px;
-  font-weight: 500;
-  line-height: 1.5;
-  padding: 12px 14px;
-  text-align: center;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-  width: 100%;
-}
-
-.login-join-btn span {
-  color: var(--color-brand-celeste);
-  font-weight: 600;
-}
-
-.login-join-btn:hover {
-  background: rgba(116, 172, 223, 0.06);
-  border-color: rgba(116, 172, 223, 0.35);
-  color: #fff;
 }
 
 .login-secure-note__dot {
@@ -3176,11 +3149,24 @@ body:has(.auth-layout) {
   flex-direction: column;
   height: 100%;
   max-width: none;
-  min-height: 0;
+  /* Altura propia: la invitación de staff y la confirmación de cambio de email
+     se montan fuera del app-shell (el deep link se abre sin sesión y sin
+     header), así que `height: 100%` no tenía contra qué resolver y el split
+     colapsaba al alto del contenido dejando una banda vacía abajo. */
+  min-height: 100dvh;
   overflow: hidden;
   padding: 0;
   position: relative;
   width: 100%;
+}
+
+/* Fuera del app-shell no hay header flotante que esquivar. */
+body:not(:has(.app-shell)) .auth-layout {
+  --auth-panel-pad-top: clamp(28px, 6vh, 64px);
+}
+
+body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
+  padding-top: clamp(24px, 4vh, 40px);
 }
 
 /* .page agrega padding global; en login rompe el full-bleed del fondo */
@@ -3513,7 +3499,9 @@ body:has(.auth-layout) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     height: 100%;
-    min-height: 0;
+    /* Dentro del app-shell equivale a `100%`; fuera (staff / cambio de email)
+       es lo único que le da alto al split. `min-height: 0` lo colapsaba. */
+    min-height: 100dvh;
     overflow: hidden;
     width: 100%;
     --auth-panel-pad-top: calc(var(--header-height) + clamp(8px, 1.5vh, 16px));
