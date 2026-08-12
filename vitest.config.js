@@ -34,6 +34,10 @@ export default defineConfig({
       test: {
         name: 'integration',
         environment: 'node',
+        // Estas pruebas hablan con Supabase por red y varias registran atletas
+        // con bcrypt. Cinco segundos vuelve flaky una validacion correcta al
+        // correr toda la suite en paralelo; el limite acompana el costo real.
+        testTimeout: 20000,
         include: ['tests/integration/**/*.test.js'],
         setupFiles: ['tests/integration/setup.js']
       }

@@ -23,7 +23,6 @@ describe('navegación pública', () => {
     expect(new Set(primaryKeys).size).toBe(primaryKeys.length)
     expect(primaryKeys).toEqual([
       'members',
-      'events',
       'competitions',
       'shop',
       'resources',
@@ -42,13 +41,13 @@ describe('navegación pública', () => {
     })
   })
 
-  it('separa calendario, competencias y recursos en estados activos coherentes', () => {
+  it('agrupa calendario bajo competencias y separa recursos en estados activos coherentes', () => {
     const competitions = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
     const resources = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
 
-    expect(competitions.views).toEqual(['pitbull', 'tickets', 'results', 'records'])
+    expect(competitions.views).toEqual(['events', 'pitbull', 'tickets', 'results', 'records'])
     expect(resources.views).toEqual(['resources', 'rulebook', 'faq', 'community', 'contact'])
-    expect(competitions.views).not.toContain('events')
+    expect(competitions.views).toContain('events')
     expect(resources.views).not.toContain('members')
   })
 })

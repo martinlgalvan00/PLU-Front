@@ -3,6 +3,7 @@ import {
   buildAdminEventDraft,
   createAdminEventDraft,
   filterAdminEvents,
+  getInitialAdminEvents,
   getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
   mapSupabaseEventRow,
@@ -10,6 +11,34 @@ import {
 } from '../src/services/eventAdminService.js'
 
 describe('eventAdminService', () => {
+  it('ignora un precio viejo de localStorage en el runtime conectado', () => {
+    const events = getInitialAdminEvents([
+      {
+        slug: 'pitbull-classic-2026',
+        title: 'Pitbull Classic viejo',
+        price: 2,
+        pricing: { registration: 2, membership: 2, combo: 2 },
+      },
+    ], { allowStoredEvents: false })
+
+    const pitbull = events.find((event) => event.slug === 'pitbull-classic-2026')
+    expect(pitbull.price).toBe(75000)
+    expect(pitbull.pricing.registration).toBe(75000)
+  })
+
+  it('conserva el catálogo local solamente para el modo demo', () => {
+    const events = getInitialAdminEvents([
+      {
+        slug: 'pitbull-classic-2026',
+        title: 'Pitbull demo',
+        price: 2,
+        pricing: { registration: 2, membership: 2, combo: 2 },
+      },
+    ], { allowStoredEvents: true })
+
+    expect(events.find((event) => event.slug === 'pitbull-classic-2026').price).toBe(2)
+  })
+
   it('crea drafts independientes para no compartir arrays ni pricing', () => {
     const first = createAdminEventDraft()
     const second = createAdminEventDraft()
@@ -37,7 +66,7 @@ describe('eventAdminService', () => {
       startsAt: '2026-08-15T12:00:00.000Z',
       endsAt: '2026-08-15T20:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
-      pricing: { membership: 38000, registration: 45000, combo: 78000 },
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
       eventDays: [{ id: 'day-1', dayIndex: 0, label: 'Día 1' }],
       ticketTypes: [],
       published: true,
@@ -70,7 +99,7 @@ describe('eventAdminService', () => {
       capacity: 120,
       status: 'proximamente',
       published: false,
-      price: 45000,
+      price: 75000,
       currency: 'ARS',
       rules: {},
       // Mezcla deliberada: solo pendiente_pago/pagada/confirmada bloquean cupo

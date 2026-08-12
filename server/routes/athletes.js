@@ -3,6 +3,12 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
+import {
+  assertComboCheckoutAvailable,
+  assertRecurringMembershipAvailable,
+  isAppProduction,
+  isRecurringMembershipPlan,
+} from '../lib/featureAvailability.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission, requireRole } from '../middleware/auth.js'
 import {
@@ -160,6 +166,7 @@ const registrationSchema = z.object({
   paymentMethod: z.enum(['mercado_pago', 'manual_link']),
   idempotencyKey: z.string().uuid().default(() => randomUUID()),
 })
+const comboRegistrationSchema = registrationSchema
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
@@ -618,7 +625,15 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     try {
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
-      res.status(201).json(await repo().createMembershipOrder(auth.athleteId, req.validatedBody))
+      const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
+      if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
+      if (isAppProduction(env) && isRecurringMembershipPlan(plan)) {
+        assertRecurringMembershipAvailable(env)
+      }
+      res.status(201).json(await repo().createMembershipOrder(auth.athleteId, {
+        ...req.validatedBody,
+        planCode: plan.code,
+      }))
     } catch (error) { next(error) }
   })
   router.post('/me/registrations', publicWriteLimiter, validateBody(registrationSchema), async (req, res, next) => {
@@ -628,6 +643,19 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       res.status(201).json(await repo().createRegistration(auth.athleteId, req.validatedBody))
     } catch (error) { next(error) }
   })
+  router.post(
+    '/me/registration-combos',
+    publicWriteLimiter,
+    validateBody(comboRegistrationSchema),
+    async (req, res, next) => {
+      try {
+        assertComboCheckoutAvailable(env)
+        const auth = await athlete(req)
+        await assertEmailVerified(auth.athleteId)
+        res.status(201).json(await repo().createRegistrationCombo(auth.athleteId, req.validatedBody))
+      } catch (error) { next(error) }
+    },
+  )
   /**
    * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
    * completo (subida firmada + revisión); las de afiliación tenían las

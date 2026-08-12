@@ -2,6 +2,7 @@ import { m } from 'motion/react'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
+import HomeCalendarTeaser from '../components/ui/HomeCalendarTeaser.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
@@ -97,6 +98,17 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
             <HomeResultsTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
             <HomeRulebookTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
           </TeaserDuo>
+        </div>
+      </section>
+
+      <section className="home-section home-section--immersive home-section--calendar">
+        <div className="home-section__inner">
+          <HomeCalendarTeaser
+            events={events}
+            onNavigate={onNavigate}
+            onSelectEvent={onSelectEvent}
+            session={session}
+          />
         </div>
       </section>
 

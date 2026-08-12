@@ -32,7 +32,14 @@ export async function processEmbeddedPayment(input, options = {}) {
 
   const order = await repository.getOrder(input.paymentOrderId)
   if (order.method !== 'mercado_pago') throw new HttpError(400, 'La orden no usa Mercado Pago.')
-  if (['aprobado', 'cancelado', 'reembolsado'].includes(order.status)) {
+  // Si el proveedor alcanzo a acreditar pero el browser perdio la respuesta,
+  // el Brick vuelve a enviar el submit. La orden aprobada es la constancia
+  // canonica: responderla como duplicada evita un segundo cobro y permite que
+  // la pagina cierre el checkout sin mostrar un conflicto falso.
+  if (order.status === 'aprobado') {
+    return { payment: null, order, duplicate: true }
+  }
+  if (['cancelado', 'reembolsado'].includes(order.status)) {
     throw new HttpError(409, 'La orden ya no admite pagos.')
   }
 

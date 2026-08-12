@@ -21,7 +21,7 @@ function auditRow(overrides = {}) {
     entity_id: '11111111-1111-4111-8111-111111111111',
     actor_type: 'webhook',
     actor_id: 'mp-8891',
-    metadata: { amount: 38000, externalPaymentId: 'mp-8891' },
+    metadata: { amount: 75000, externalPaymentId: 'mp-8891' },
     created_at: '2026-08-02T12:00:00.000Z',
     ...overrides
   }

@@ -1,0 +1,168 @@
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+
+const sdk = vi.hoisted(() => ({
+  initMercadoPago: vi.fn(),
+  payment: vi.fn(),
+  cardPayment: vi.fn(),
+}))
+
+const paymentApi = vi.hoisted(() => ({
+  getPaymentOrderStatus: vi.fn(),
+  notifyMockPayment: vi.fn(),
+  processEmbeddedPayment: vi.fn(),
+  processEmbeddedSubscription: vi.fn(),
+  reportPaymentClientEvent: vi.fn(),
+}))
+
+vi.mock('@mercadopago/sdk-react', () => ({
+  initMercadoPago: sdk.initMercadoPago,
+  Payment: (props) => sdk.payment(props),
+  CardPayment: (props) => sdk.cardPayment(props),
+}))
+
+vi.mock('../src/config/env.js', () => ({
+  env: {
+    mercadoPago: { publicKey: 'APP_USR-checkout-test', configured: true },
+    payments: { isMock: false },
+  },
+}))
+
+vi.mock('../src/services/paymentService.js', () => paymentApi)
+
+const MercadoPagoEmbeddedCheckout = (
+  await import('../src/components/ui/MercadoPagoEmbeddedCheckout.jsx')
+).default
+
+const ORDER = {
+  paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+  paymentMethod: 'mercado_pago',
+  paymentMode: 'payment',
+  preferenceId: 'pref-checkout-test',
+  amount: 120000,
+  status: 'pendiente',
+  payerEmail: 'atleta@pluarg.test',
+}
+
+function renderCheckout() {
+  return render(
+    <I18nProvider>
+      <MercadoPagoEmbeddedCheckout order={ORDER} />
+    </I18nProvider>,
+  )
+}
+
+beforeEach(() => {
+  sdk.initMercadoPago.mockReset()
+  sdk.payment.mockReset().mockImplementation(() => <div data-testid="payment-brick" />)
+  sdk.cardPayment.mockReset().mockImplementation(() => <div data-testid="card-payment-brick" />)
+  Object.values(paymentApi).forEach((mock) => mock.mockReset())
+  paymentApi.reportPaymentClientEvent.mockResolvedValue({ accepted: true })
+})
+
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
+
+describe('checkout embebido controlado dentro de la pagina', () => {
+  it('contiene una falla al inicializar el SDK y permite reintentarlo', async () => {
+    sdk.initMercadoPago.mockImplementationOnce(() => {
+      throw new Error('sdk initialization failed')
+    })
+
+    renderCheckout()
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'No se pudo cargar el formulario de Mercado Pago',
+    )
+    expect(paymentApi.reportPaymentClientEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: 'initialization' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recargar checkout' }))
+    await waitFor(() => expect(sdk.initMercadoPago).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('evita una pantalla en blanco si el Brick falla durante el render', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let brickBroken = true
+    sdk.payment.mockImplementation(() => {
+      if (brickBroken) throw new Error('brick render failed')
+      return <div data-testid="payment-brick" />
+    })
+
+    renderCheckout()
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'No se pudo cargar el formulario de Mercado Pago',
+    )
+    expect(paymentApi.reportPaymentClientEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: 'render' }),
+    )
+
+    brickBroken = false
+    fireEvent.click(screen.getByRole('button', { name: 'Recargar checkout' }))
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+    consoleError.mockRestore()
+  })
+
+  it('muestra una falla del proveedor sin exponer el error interno', async () => {
+    let brickProps
+    sdk.payment.mockImplementation((props) => {
+      brickProps = props
+      return <div data-testid="payment-brick" />
+    })
+    paymentApi.processEmbeddedPayment.mockRejectedValue(
+      Object.assign(new Error('Error interno'), { status: 502 }),
+    )
+
+    renderCheckout()
+    await screen.findByTestId('payment-brick')
+
+    await act(async () => {
+      await expect(brickProps.onSubmit({
+        formData: {
+          token: 'token-seguro-de-prueba',
+          payment_method_id: 'visa',
+          payer: { email: ORDER.payerEmail },
+        },
+      })).rejects.toMatchObject({ status: 502 })
+    })
+
+    expect(screen.getByRole('alert').textContent).toContain('No hay un cobro confirmado')
+    expect(screen.queryByText('Error interno')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Recargar checkout' })).toBeTruthy()
+  })
+
+  it('representa un rechazo y deja reabrir el formulario para otro medio', async () => {
+    let brickProps
+    sdk.payment.mockImplementation((props) => {
+      brickProps = props
+      return <div data-testid="payment-brick" />
+    })
+    paymentApi.processEmbeddedPayment.mockResolvedValue({
+      payment: { id: 'payment-rejected', status: 'rejected' },
+      order: { id: ORDER.paymentId, status: 'rechazado' },
+    })
+
+    renderCheckout()
+    await screen.findByTestId('payment-brick')
+    await act(async () => {
+      await brickProps.onSubmit({
+        formData: {
+          token: 'token-rechazado-de-prueba',
+          payment_method_id: 'visa',
+          payer: { email: ORDER.payerEmail },
+        },
+      })
+    })
+
+    expect(screen.getByText(/Mercado Pago rechazó la operación/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Intentar nuevamente' }))
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+  })
+})

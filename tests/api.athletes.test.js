@@ -70,7 +70,7 @@ function createAthleteRepoDouble() {
       athletes: [{ id: ATHLETE_ID, full_name: 'Atleta visible' }],
       memberships: [],
       registrations: [],
-      paymentOrders: [{ id: 'pay-sensitive', amount: 45000 }],
+      paymentOrders: [{ id: 'pay-sensitive', amount: 75000 }],
     }),
     deleteAthlete: async (athleteId, actor) => {
       calls.push({ athleteId, actor })

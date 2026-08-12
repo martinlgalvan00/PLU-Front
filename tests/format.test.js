@@ -3,7 +3,7 @@ import { money, splitFullName, generateId } from '../src/lib/format.js'
 
 describe('format', () => {
   it('formatea moneda ARS', () => {
-    expect(money(38000)).toContain('38')
+    expect(money(75000)).toContain('75')
   })
 
   it('divide nombre completo', () => {

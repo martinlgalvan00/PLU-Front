@@ -6,6 +6,17 @@ let membershipPlansCache = null
 let membershipPlansFetchedAt = 0
 let membershipPlansRequest = null
 
+export function filterMembershipPlansForApp(
+  plans,
+  { appProduction = env.appProduction } = {},
+) {
+  const rows = Array.isArray(plans) ? plans : []
+  if (!appProduction) return rows
+  return rows.filter(
+    (plan) => (plan?.collectionMode ?? plan?.collection_mode) !== 'recurring',
+  )
+}
+
 export function isMercadoPagoConfigured() {
   return env.payments.isMock || env.mercadoPago.configured
 }
@@ -107,9 +118,12 @@ export async function listMembershipPlans({ force = false } = {}) {
 
   membershipPlansRequest = apiGet('/api/payments/plans')
     .then((result) => {
-      membershipPlansCache = result
+      membershipPlansCache = {
+        ...result,
+        plans: filterMembershipPlansForApp(result?.plans),
+      }
       membershipPlansFetchedAt = Date.now()
-      return result
+      return membershipPlansCache
     })
     .finally(() => {
       membershipPlansRequest = null

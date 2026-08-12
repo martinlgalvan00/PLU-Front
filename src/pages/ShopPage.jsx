@@ -9,7 +9,11 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { useParallaxShift } from '../hooks/useMotion.js'
-import { getFeaturedEvent, getUpcomingEventsByDate } from '../lib/eventNavigation.js'
+import {
+  getFeaturedEvent,
+  getFeaturedEventDestination,
+  getUpcomingEventsByDate,
+} from '../lib/eventNavigation.js'
 import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
@@ -307,11 +311,11 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
 
   function handleViewEventDetail(event) {
     setDetailEvent(null)
-    if (event?.featured) {
-      onNavigate('pitbull')
-      return
-    }
-    onNavigate('events', { eventSlug: event.slug ?? event.id })
+    const destination = getFeaturedEventDestination({
+      ...event,
+      slug: event?.slug ?? event?.id,
+    })
+    onNavigate(destination.view, destination.options)
   }
 
   return (

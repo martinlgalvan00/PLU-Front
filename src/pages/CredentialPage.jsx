@@ -1,9 +1,6 @@
 import { useCallback, useState } from 'react'
 import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } from 'lucide-react'
-// El watermark pesa ~1 MB: se importa acá (página lazy) y no en brand.js,
-// para que no entre al grafo estático del entry vía BrandLogo.
-import pluArgentinaMark from '../assets/PLU Argentina.png'
 import { BRAND } from '../lib/brand.js'
 import { formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
@@ -105,12 +102,13 @@ function PreviewCredentialEasterEgg({ code }) {
   return (
     <CredentialShell
       verdictIcon={CheckCircle2}
-      verdictLabel={t('pages.credentialScan.previewVerdict')}
+      verdictMeta={t('pages.credentialScan.previewVerdictMeta')}
+      verdictLabel={t('pages.credentialScan.previewVerdictStatus')}
       verdictClass="credential-page__verdict--valid"
       brandMark={t('pages.credentialScan.brandMark')}
       backHomeLabel={t('pages.credentialScan.backHome')}
     >
-      <div className="credential-page__body">
+      <div className="credential-page__body credential-page__body--preview">
         <aside className="credential-page__preview-banner" role="note">
           <p className="credential-page__preview-banner-title">
             {t('pages.credentialScan.previewBannerTitle')}
@@ -144,13 +142,14 @@ function PreviewCredentialEasterEgg({ code }) {
               {season ? <span className="credential-page__row-meta">{season}</span> : null}
             </dd>
           </div>
-          <div className="credential-page__row">
-            <dt>{t('pages.credentialScan.previewCodeLabel')}</dt>
-            <dd>
-              <span className="credential-page__member-code-value">{code}</span>
-            </dd>
-          </div>
         </dl>
+
+        <p className="credential-page__preview-meta">
+          <span className="credential-page__preview-meta-label">
+            {t('pages.credentialScan.previewCodeLabel')}
+          </span>
+          <span className="credential-page__preview-meta-value">{code}</span>
+        </p>
 
         <p className="credential-page__preview-footnote">{t('pages.credentialScan.previewNoCheckIn')}</p>
       </div>
@@ -812,6 +811,7 @@ function CredentialShell({
   children,
   verdictIcon: Icon,
   verdictLabel,
+  verdictMeta,
   verdictClass,
   brandMark = 'Verificación QR',
   backHomeLabel = 'Volver al sitio de PLU ARG',
@@ -819,7 +819,7 @@ function CredentialShell({
   return (
     <main className="credential-page">
       <div className="credential-page__ambient" aria-hidden>
-        <img src={pluArgentinaMark} alt="" className="credential-page__watermark" />
+        <div className="credential-page__pattern" />
       </div>
 
       <div className="credential-page__panel">
@@ -833,7 +833,12 @@ function CredentialShell({
 
         <p className={`credential-page__verdict ${verdictClass}`} role="status">
           <Icon size={18} aria-hidden />
-          <span>{verdictLabel}</span>
+          <span className="credential-page__verdict-copy">
+            {verdictMeta ? (
+              <span className="credential-page__verdict-meta">{verdictMeta}</span>
+            ) : null}
+            <span className="credential-page__verdict-label">{verdictLabel}</span>
+          </span>
         </p>
 
         {children}

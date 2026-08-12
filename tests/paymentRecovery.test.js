@@ -6,7 +6,7 @@ const order = {
   kind: 'athlete',
   method: 'mercado_pago',
   status: 'pendiente',
-  amount: 38000,
+  amount: 75000,
   currency: 'ARS',
   payerEmail: 'athlete@example.com',
 }
@@ -15,7 +15,7 @@ const payment = {
   id: 'payment-1',
   external_reference: 'order-1',
   status: 'approved',
-  transaction_amount: 38000,
+  transaction_amount: 75000,
   currency_id: 'ARS',
   payer: { email: 'athlete@example.com' },
 }

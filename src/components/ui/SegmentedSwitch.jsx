@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { m } from 'framer-motion'
+import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
 export default function SegmentedSwitch({
   active,
@@ -9,6 +10,7 @@ export default function SegmentedSwitch({
   options,
 }) {
   const layoutId = useId()
+  const { reducedMotion } = useMotionConfig()
 
   return (
     <div
@@ -35,14 +37,28 @@ export default function SegmentedSwitch({
           >
             {isActive && (
               <m.div
-                layoutId={layoutId}
+                layoutId={reducedMotion ? undefined : layoutId}
                 className="segmented-switch__thumb"
-                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 480, damping: 34, mass: 0.7 }
+                }
                 aria-hidden="true"
               />
             )}
-            <span className="segmented-switch__label segmented-switch__label--full" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
-            <span className="segmented-switch__label segmented-switch__label--short" style={{ position: 'relative', zIndex: 1 }}>{displayShort}</span>
+            <span
+              className="segmented-switch__label segmented-switch__label--full"
+              style={{ position: 'relative', zIndex: 1 }}
+            >
+              {label}
+            </span>
+            <span
+              className="segmented-switch__label segmented-switch__label--short"
+              style={{ position: 'relative', zIndex: 1 }}
+            >
+              {displayShort}
+            </span>
           </button>
         )
       })}

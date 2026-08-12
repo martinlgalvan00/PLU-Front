@@ -30,6 +30,7 @@ import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
+import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { resendAthleteVerification, checkAthleteAvailability } from '../services/athleteApi.js'
 import {
   validateAthleteFields,
@@ -323,6 +324,7 @@ export default function RegisterPage({
   const [profileSubmitAttempted, setProfileSubmitAttempted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [purchaseType, setPurchaseType] = useState('registration')
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const profileProgress = useMemo(
@@ -378,6 +380,26 @@ export default function RegisterPage({
   // es la que sigue exigiendo membresía activa.
   const membershipGatePending =
     flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
+  const comboAvailability = useMemo(
+    () => getEventComboAvailability(event, { hasActiveMembership }),
+    [event, hasActiveMembership],
+  )
+  const comboEnabled = flow === 'competition' && comboAvailability.enabled
+  const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
+  const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
+    ? 'combo'
+    : 'registration'
+  const checkoutTotal = effectivePurchaseType === 'combo'
+    ? comboAvailability.offer.price
+    : total
+
+  useEffect(() => {
+    if (flow !== 'competition') {
+      setPurchaseType('registration')
+      return
+    }
+    setPurchaseType(comboEnabled ? 'combo' : 'registration')
+  }, [comboEnabled, event?.slug, flow])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -639,10 +661,15 @@ export default function RegisterPage({
       }
     }
 
+    // Un reintento reemplaza el estado anterior: el usuario ve el progreso
+    // actual y, si vuelve a fallar, el nuevo motivo. Nunca queda un error viejo
+    // conviviendo con una operacion que ya esta en curso.
+    setSubmitError('')
+    setEmailBlocked(false)
     setSubmitting(true)
     let result
     try {
-      result = await onSubmit(eventObject, event)
+      result = await onSubmit(eventObject, event, { purchaseType: effectivePurchaseType })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
     } finally {
@@ -843,7 +870,7 @@ export default function RegisterPage({
               form={form}
               locale={locale}
               t={t}
-              total={total}
+              total={checkoutTotal}
             />
           )}
           {registerProgress}
@@ -1066,12 +1093,64 @@ export default function RegisterPage({
                   <div className="register-eligibility-alert" role="status">
                     <strong>{t('pages.register.membershipRequiredTitle')}</strong>
                     <p>{t('pages.register.membershipRequiredForCompetition')}</p>
-                    {onNavigate && (
+                    {onNavigate && effectivePurchaseType !== 'combo' && (
                       <button type="button" className="btn btn--small btn--outline" onClick={() => onNavigate('membership')}>
                         {t('pages.register.membershipRequiredAction')}
                       </button>
                     )}
                   </div>
+                )}
+
+                {(comboEnabled || comboComingSoon) && (
+                  <fieldset
+                    className={`register-combo-choice${comboComingSoon ? ' is-coming-soon' : ''}`}
+                    aria-disabled={comboComingSoon || undefined}
+                  >
+                    <legend>
+                      <span>{t('account.membership.comboEyebrow')}</span>
+                      {comboComingSoon ? <strong>{t('account.membership.comboComingSoon')}</strong> : null}
+                    </legend>
+                    <div className="register-combo-choice__intro">
+                      <h2>{t('account.membership.comboTitle')}</h2>
+                      <p>
+                        {comboComingSoon
+                          ? t('account.membership.comboComingSoonLead')
+                          : t('account.membership.comboLead')}
+                      </p>
+                      {comboAvailability.offer?.endsAt ? (
+                        <p className="register-combo-choice__until">
+                          {t('account.membership.comboUntil', {
+                            date: formatShortDate(String(comboAvailability.offer.endsAt).slice(0, 10), locale),
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="register-combo-choice__options">
+                      <label className={effectivePurchaseType === 'combo' ? 'is-selected' : ''}>
+                        <input
+                          type="radio"
+                          name="competition-purchase-type"
+                          value="combo"
+                          checked={effectivePurchaseType === 'combo'}
+                          disabled={comboComingSoon}
+                          onChange={() => setPurchaseType('combo')}
+                        />
+                        <span>{t('account.membership.comboOffer')}</span>
+                        <strong>{money(comboAvailability.offer.price, locale)}</strong>
+                      </label>
+                      <label className={effectivePurchaseType === 'registration' ? 'is-selected' : ''}>
+                        <input
+                          type="radio"
+                          name="competition-purchase-type"
+                          value="registration"
+                          checked={effectivePurchaseType === 'registration'}
+                          onChange={() => setPurchaseType('registration')}
+                        />
+                        <span>{t('account.membership.comboSeparate')}</span>
+                        <strong>{money(total, locale)}</strong>
+                      </label>
+                    </div>
+                  </fieldset>
                 )}
 
                 <FormSection
@@ -1190,7 +1269,7 @@ export default function RegisterPage({
               {flow !== 'profile' && (
                 <div className="register-card__total">
                   <span>{t('pages.register.total')}</span>
-                  <strong>{money(total, locale)}</strong>
+                  <strong>{money(checkoutTotal, locale)}</strong>
                 </div>
               )}
 
@@ -1219,7 +1298,11 @@ export default function RegisterPage({
                     .join(' ')}
                   disabled={submitting || (flow === 'profile' && Boolean(visibleOrder))}
                 >
-                  {submitting ? t('common.loading') : content[2]}
+                  {submitting
+                    ? t('common.loading')
+                    : effectivePurchaseType === 'combo'
+                      ? t('pages.register.comboSubmit')
+                      : content[2]}
                   <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                 </button>
               )}

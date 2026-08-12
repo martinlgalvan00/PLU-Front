@@ -3,9 +3,9 @@ import { calculateAmount, findDuplicateAthlete } from '../src/services/athleteSe
 
 describe('athleteService', () => {
   it('calcula montos por tipo de trámite', () => {
-    expect(calculateAmount('both')).toBe(78000)
-    expect(calculateAmount('membership')).toBe(38000)
-    expect(calculateAmount('event')).toBe(45000)
+    expect(calculateAmount('both')).toBe(120000)
+    expect(calculateAmount('membership')).toBe(75000)
+    expect(calculateAmount('event')).toBe(75000)
   })
 
   it('detecta duplicados por email o documento', () => {

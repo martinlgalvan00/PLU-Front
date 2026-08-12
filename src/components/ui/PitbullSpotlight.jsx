@@ -5,6 +5,7 @@ import photoDesk from '../../assets/DSC02483-display.jpg'
 import photoLift from '../../assets/DSC00346-display.jpg'
 import photoMedals from '../../assets/DSC01606-display.jpg'
 import photoSpotters from '../../assets/DSC00286-display.jpg'
+import logoPitbullClassic from '../../assets/brand/logo-letra-transparente.png'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
@@ -12,6 +13,7 @@ import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
+import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
@@ -166,10 +168,22 @@ export default function PitbullSpotlight({
     const datePart = (type, fallback = '') =>
       dateParts.find((part) => part.type === type)?.value?.replace('.', '') ?? fallback
     const homeTitle = event?.title ?? PITBULL_CLASSIC.title
-    const homeLead = event?.description || t('pages.pitbull.heroLead')
+    const homeLead =
+      event?.description || (isPitbullEvent ? t('pages.pitbull.heroLead') : '')
     const homeVenue = event?.venue ?? PITBULL_CLASSIC.venue
     const homeLocation = event?.location ?? PITBULL_CLASSIC.location
-    const homeDateLabel = event?.displayDate ?? event?.date ?? PITBULL_CLASSIC.date
+    const homeDateLabel =
+      event?.displayDate ??
+      event?.date ??
+      (validStartsDate
+        ? new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }).format(validStartsDate)
+        : isPitbullEvent
+          ? PITBULL_CLASSIC.date
+          : '')
     const homeDateTime = event?.startsAt ?? event?.dateISO ?? '2026-12-12'
     const homeDateDay = isPitbullEvent
       ? PITBULL_CLASSIC.dateDay
@@ -216,8 +230,16 @@ export default function PitbullSpotlight({
     const PanelItem = reducedMotion ? 'div' : m.div
     const panelItemProps = reducedMotion ? {} : { variants: panelItem }
 
+    const homeArticleClass = [
+      'pitbull-spotlight',
+      'pitbull-spotlight--home',
+      !isPitbullEvent ? 'pitbull-spotlight--home-template' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
     return (
-      <article className="pitbull-spotlight pitbull-spotlight--home">
+      <article className={homeArticleClass}>
         <div className="pitbull-spotlight__home-tilt">
           <div className="pitbull-spotlight__home-stage">
             <div className="pitbull-spotlight__home-media">
@@ -228,22 +250,49 @@ export default function PitbullSpotlight({
                   aria-label={t('pages.pitbull.spotlight.viewFullCard')}
                   onClick={() => onDetail?.()}
                 >
-                  <picture>
-                    {/* Tablet/notebook (640-1599): foto landscape para la caja
-                        apaisada / overlay. Desktop amplio (≥1600) usa medallas. */}
-                    <source
-                      media="(min-width: 640px) and (max-width: 1599px)"
-                      srcSet={photoLift}
-                    />
-                    <img
-                      src={photoMedals}
-                      alt=""
-                      className="pitbull-spotlight__home-hero-img"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </picture>
-                  <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
+                  {isPitbullEvent ? (
+                    <>
+                      <picture>
+                        {/* Tablet/notebook (640-1599): foto landscape para la caja
+                            apaisada / overlay. Desktop amplio (≥1600) usa medallas. */}
+                        <source
+                          media="(min-width: 640px) and (max-width: 1599px)"
+                          srcSet={photoLift}
+                        />
+                        <img
+                          src={photoMedals}
+                          alt=""
+                          className="pitbull-spotlight__home-hero-img"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </picture>
+                      <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
+                      <img
+                        src={logoPitbullClassic}
+                        alt={t('nav.pitbull')}
+                        className="pitbull-spotlight__home-event-logo"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div className="pitbull-spotlight__home-brand-canvas" aria-hidden>
+                        <span className="pitbull-spotlight__home-brand-wash" />
+                        <span className="pitbull-spotlight__home-brand-rule" />
+                      </div>
+                      <div className="pitbull-spotlight__home-brand-mark">
+                        <BrandLogo
+                          variant="argentina"
+                          height={72}
+                          imgClassName="pitbull-spotlight__home-brand-emblem"
+                          alt=""
+                        />
+                        <p className="pitbull-spotlight__home-brand-label">{t('brand.name')}</p>
+                      </div>
+                    </>
+                  )}
                   <span className="pitbull-spotlight__home-hero-badge">
                     {t('pages.pitbull.spotlight.featured')}
                   </span>
@@ -257,22 +306,24 @@ export default function PitbullSpotlight({
                 </button>
               </MaskReveal>
 
-              <div className="pitbull-spotlight__home-strip" aria-hidden>
-                {stripPhotos.map((photo) => (
-                  <figure
-                    key={photo.key}
-                    className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
-                  >
-                    <img
-                      src={photo.src}
-                      alt=""
-                      className="pitbull-spotlight__home-strip-img"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </figure>
-                ))}
-              </div>
+              {isPitbullEvent ? (
+                <div className="pitbull-spotlight__home-strip" aria-hidden>
+                  {stripPhotos.map((photo) => (
+                    <figure
+                      key={photo.key}
+                      className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
+                    >
+                      <img
+                        src={photo.src}
+                        alt=""
+                        className="pitbull-spotlight__home-strip-img"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </figure>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <Panel {...panelProps}>
@@ -289,7 +340,7 @@ export default function PitbullSpotlight({
                     <span>{statusLabel}</span>
                   </p>
                   <h2 className="pitbull-spotlight__home-title">{homeTitle}</h2>
-                  <p className="pitbull-spotlight__home-lead">{homeLead}</p>
+                  {homeLead ? <p className="pitbull-spotlight__home-lead">{homeLead}</p> : null}
                 </header>
               </PanelItem>
 

@@ -132,8 +132,8 @@ Crear/mantener `docs/QA_CHECKLIST.md` con:
 
 #### Registro público
 
-- [ ] Completar formulario combo → orden creada $78.000
-- [ ] Solo afiliación → $38.000
+- [ ] Completar formulario combo → orden creada $120.000
+- [ ] Solo afiliación → $75.000
 - [ ] Solo inscripción → $45.000
 - [ ] Duplicado email → mensaje error
 - [ ] Duplicado DNI → mensaje error

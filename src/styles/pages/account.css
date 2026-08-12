@@ -1849,75 +1849,8 @@
   max-width: 42ch;
 }
 
-.segmented-switch--membership {
-  --switch-pad: 0;
-  --switch-track-bg: transparent;
-  --switch-track-border: transparent;
-  --switch-thumb-bg: transparent;
-  --switch-thumb-border: transparent;
-  --switch-thumb-shadow: none;
-  --switch-option-fg: var(--color-text-muted);
-  --switch-option-active-fg: var(--color-text-primary);
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-  box-shadow: none;
-  cursor: pointer;
-  max-width: none;
-  padding: 0;
-  width: 100%;
-}
-
-.segmented-switch--membership .segmented-switch__thumb {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.segmented-switch--membership .segmented-switch__thumb::after {
-  background: var(--color-brand-gold);
-  border-radius: 0;
-  bottom: -1px;
-  height: 2px;
-  inset: auto 6% 0;
-  top: auto;
-}
-
-.segmented-switch--membership .segmented-switch__option {
-  border-radius: 0;
-  font-size: 15px;
-  font-weight: 500;
-  justify-content: flex-start;
-  letter-spacing: -0.02em;
-  min-height: 48px;
-  padding: 12px 0 14px;
-  text-transform: none;
-}
-
-.segmented-switch--membership .segmented-switch__option.is-active {
-  font-weight: 600;
-}
-
-.segmented-switch--membership .segmented-switch__option:hover:not(.is-active) {
-  color: var(--color-text-secondary);
-}
-
-.segmented-switch--membership:focus-within {
-  border-color: var(--color-border-subtle);
-  box-shadow: none;
-}
-
-[data-theme='light'] .segmented-switch--membership {
-  --switch-track-bg: transparent;
-  --switch-track-border: transparent;
-  --switch-thumb-bg: transparent;
-  --switch-thumb-border: transparent;
-  --switch-thumb-shadow: none;
-  --switch-option-active-fg: #15171c;
-  border-bottom-color: rgba(15, 17, 23, 0.1);
-}
+/* Estilos de .segmented-switch--membership: components/segmented-switch.css
+   (compartidos con MembersPage). */
 
 .account-primary-action {
   align-items: center;

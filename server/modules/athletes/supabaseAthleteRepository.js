@@ -167,6 +167,26 @@ export function createSupabaseAthleteRepository(
       p_plan_code: data.planCode,
       p_idempotency_key: data.idempotencyKey,
     }, 'No se pudo crear la orden de afiliacion.'),
+    async findMembershipPlan(planCode) {
+      const readPlan = async (column) => assertSupabaseResult(
+        await client
+          .from('membership_plans')
+          .select('id, code, family_code, version, collection_mode, active')
+          .eq('organization_id', organizationId)
+          .eq(column, planCode)
+          .eq('active', true)
+          .order('version', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        'No se pudo validar el plan de afiliacion.',
+      )
+
+      // `code` identifica una version inmutable (plu-annual-v2); la UI y los
+      // enlaces historicos usan el alias estable de familia (plu-annual).
+      // Primero respetamos un code vigente explicito y, si fue retirado o era
+      // un alias, resolvemos la ultima version activa de esa familia.
+      return (await readPlan('code')) ?? readPlan('family_code')
+    },
     createRegistration: (athleteId, data) => rpc('create_competition_registration_v2', {
       p_athlete_id: athleteId,
       p_event_slug: data.eventSlug,
@@ -176,6 +196,19 @@ export function createSupabaseAthleteRepository(
       p_payment_method: data.paymentMethod,
       p_idempotency_key: data.idempotencyKey,
     }, 'No se pudo crear la inscripcion.'),
+    createRegistrationCombo: (athleteId, data) => rpc(
+      'create_membership_registration_combo_order',
+      {
+        p_athlete_id: athleteId,
+        p_event_slug: data.eventSlug,
+        p_division: data.division,
+        p_category: data.category,
+        p_bodyweight_kg: data.bodyweightKg,
+        p_payment_method: data.paymentMethod,
+        p_idempotency_key: data.idempotencyKey,
+      },
+      'No se pudo crear el combo de afiliacion e inscripcion.',
+    ),
     // Datos mínimos de contacto para notificar. No usa get_athlete_snapshot
     // porque ese arma el perfil completo con URLs firmadas de foto.
     async findContact(athleteId) {

@@ -45,7 +45,7 @@ function renderEditor(overrides = {}, { sourceEvent = null } = {}) {
     slots: 120,
     startsAt: '2026-09-15T12:00:00.000Z',
     endsAt: '2026-09-15T23:00:00.000Z',
-    pricing: { membership: 38000, registration: 45000, combo: 78000, ticketsEnabled: true },
+    pricing: { membership: 75000, registration: 75000, combo: 120000, ticketsEnabled: true },
     ...overrides,
   })
 

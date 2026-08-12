@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { Component, useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { CardPayment, Payment, initMercadoPago } from '@mercadopago/sdk-react'
 import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
@@ -32,6 +32,22 @@ const MOCK_OUTCOMES = [
   { id: 'mock_error', labelKey: 'payments.mockError', variant: 'outline' },
 ]
 
+class PaymentBrickErrorBoundary extends Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error) {
+    this.props.onError?.(error)
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
 function ensureMercadoPago(locale) {
   if (!env.mercadoPago.publicKey || initializedPublicKey === env.mercadoPago.publicKey) return
   initMercadoPago(env.mercadoPago.publicKey, {
@@ -45,6 +61,14 @@ function normalizePaymentStatus(status) {
   if (status === 'approved' || status === 'aprobado' || status === 'authorized') return 'approved'
   if (status === 'rejected' || status === 'rechazado' || status === 'cancelled') return 'rejected'
   return 'pending'
+}
+
+function controlledPaymentError(error, t) {
+  const message = String(error?.message ?? '').trim()
+  if (!message || message === 'Error interno' || Number(error?.status) >= 500) {
+    return t('payments.embeddedRetryableError')
+  }
+  return message
 }
 
 function announcePaymentUpdate(orderId, status) {
@@ -97,9 +121,22 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       setReady(true)
       return undefined
     }
-    ensureMercadoPago(locale)
+    try {
+      ensureMercadoPago(locale)
+    } catch (initializationError) {
+      setError(t('payments.embeddedRenderError'))
+      void reportPaymentClientEvent({
+        paymentOrderId: orderId,
+        orderAccessToken: order?.orderAccessToken,
+        stage: 'initialization',
+        errorCode: initializationError?.name ?? 'sdk_initialization_error',
+        message: initializationError?.message ?? t('payments.embeddedRenderError'),
+      }).catch(() => {
+        // La telemetria es best-effort: la pagina ya contiene el error y el reintento.
+      })
+    }
     return undefined
-  }, [isMock, locale])
+  }, [brickVersion, isMock, locale, order?.orderAccessToken, orderId, t])
 
   const submitPayment = useCallback(async (payload) => {
     setError('')
@@ -116,7 +153,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       onResult?.(response)
       return response
     } catch (submitError) {
-      setError(submitError?.message ?? t('payments.embeddedError'))
+      setError(controlledPaymentError(submitError, t))
       throw submitError
     }
   }, [onResult, order?.orderAccessToken, orderId, t])
@@ -137,7 +174,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       onResult?.(response)
       return response
     } catch (submitError) {
-      setError(submitError?.message ?? t('payments.embeddedError'))
+      setError(controlledPaymentError(submitError, t))
       throw submitError
     }
   }, [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t])
@@ -178,7 +215,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       announcePaymentUpdate(orderId, status)
       onResult?.(response)
     } catch (notifyError) {
-      setError(notifyError?.message ?? t('payments.embeddedError'))
+      setError(controlledPaymentError(notifyError, t))
     } finally {
       setSimulating(false)
     }
@@ -209,7 +246,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       }
       return status
     } catch (statusError) {
-      if (!quiet) setError(statusError?.message ?? t('payments.statusError'))
+      if (!quiet) setError(
+        Number(statusError?.status) >= 500
+          ? t('payments.statusError')
+          : controlledPaymentError(statusError, t),
+      )
       return 'pending'
     } finally {
       if (!quiet) setChecking(false)
@@ -372,31 +413,33 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       )}
 
       {!result && !isMock && (
-        <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
-          {isSubscription ? (
-            <CardPayment
-              key={brickVersion}
-              id={`card-payment-brick-${reactId}-${brickVersion}`}
-              initialization={initialization}
-              customization={SUBSCRIPTION_CUSTOMIZATION}
-              locale={localeCode}
-              onReady={handleReady}
-              onError={handleRenderError}
-              onSubmit={submitSubscription}
-            />
-          ) : (
-            <Payment
-              key={brickVersion}
-              id={`payment-brick-${reactId}-${brickVersion}`}
-              initialization={initialization}
-              customization={PAYMENT_CUSTOMIZATION}
-              locale={localeCode}
-              onReady={handleReady}
-              onError={handleRenderError}
-              onSubmit={submitPayment}
-            />
-          )}
-        </div>
+        <PaymentBrickErrorBoundary key={brickVersion} onError={handleRenderError}>
+          <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
+            {isSubscription ? (
+              <CardPayment
+                key={brickVersion}
+                id={`card-payment-brick-${reactId}-${brickVersion}`}
+                initialization={initialization}
+                customization={SUBSCRIPTION_CUSTOMIZATION}
+                locale={localeCode}
+                onReady={handleReady}
+                onError={handleRenderError}
+                onSubmit={submitSubscription}
+              />
+            ) : (
+              <Payment
+                key={brickVersion}
+                id={`payment-brick-${reactId}-${brickVersion}`}
+                initialization={initialization}
+                customization={PAYMENT_CUSTOMIZATION}
+                locale={localeCode}
+                onReady={handleReady}
+                onError={handleRenderError}
+                onSubmit={submitPayment}
+              />
+            )}
+          </div>
+        </PaymentBrickErrorBoundary>
       )}
 
       {result && (

@@ -1,7 +1,11 @@
 import '../../styles/components/event-share-card.css'
 import { useEffect, useRef, useState } from 'react'
 import { BRAND } from '../../lib/brand.js'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import {
+  buildAthleteCredentialUrl,
+  buildCredentialUrl,
+  generateCredentialQr,
+} from '../../lib/credentialQr.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 /**
@@ -23,7 +27,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  *   eventLocation    string  — ej. "Buenos Aires"
  *   category         string? — ej. "Youth"
  *   division         string? — ej. "Clásico"
- *   eventSlug        string? — slug del evento (variant 'event' | 'ticket'), va en la URL del QR
+ *   eventSlug        string? — slug del evento; solo las entradas generales lo incluyen en el QR
  *   membershipSeason      string? — ej. "2026" (variant 'membership')
  *   membershipExpiration  string? — ej. "31 dic 2026" (variant 'membership')
  *   attendeeDocument string? — DNI del asistente (variant 'ticket')
@@ -32,7 +36,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  *                              mostrado en pantalla (ej. ticket.qrToken opaco,
  *                              vs. athleteCode/ticketCode humano). Si no se
  *                              pasa, el QR usa athleteCode como antes.
- *   variant          'event' | 'membership' | 'ticket'
+ *   variant          'event' | 'membership' | 'unified' | 'ticket'
  *   format           'square' | 'story' — 'square' es 1080×1080 (feed/post);
  *                     'story' es 1080×1920 (historia de Instagram, con
  *                     márgenes verticales extra para no chocar con la UI
@@ -64,6 +68,7 @@ export default function EventShareCard({
   const resolvedAthleteName = athleteName ?? t('shareCard.defaultAthlete')
   const resolvedEventTitle = eventTitle ?? t('shareCard.defaultEvent')
   const isMembership = variant === 'membership'
+  const isUnified = variant === 'unified'
   const isTicket = variant === 'ticket'
   const isStory = format === 'story'
   const wrapRef = useRef(null)
@@ -116,11 +121,12 @@ export default function EventShareCard({
     }
     let cancelled = false
     setQrSettled(false)
-    const url = buildCredentialUrl({
-      code: codeForQr,
-      eventSlug: isMembership ? undefined : eventSlug,
-      type: isTicket ? 'ticket' : undefined,
-    })
+    // La credencial del atleta es una identidad estable: afiliación e
+    // inscripciones se consultan en vivo al escanear. Solo las entradas
+    // generales son event-scoped y usan un token separado.
+    const url = isTicket
+      ? buildCredentialUrl({ code: codeForQr, eventSlug, type: 'ticket' })
+      : buildAthleteCredentialUrl(codeForQr)
     generateCredentialQr(url)
       .then((dataUrl) => {
         if (cancelled) return
@@ -133,7 +139,7 @@ export default function EventShareCard({
         setQrSettled(true)
       })
     return () => { cancelled = true }
-  }, [codeForQr, eventSlug, isMembership, isTicket])
+  }, [codeForQr, eventSlug, isTicket])
 
   // En preview, la card se renderiza siempre a su tamaño real (1080×1080) y se
   // reduce con transform: scale() — así el preview es un espejo fiel de lo que
@@ -155,6 +161,7 @@ export default function EventShareCard({
         'share-card',
         preview ? 'share-card--preview' : 'share-card--capture',
         `share-card--${variant}`,
+        isUnified ? 'share-card--membership' : '',
         isStory ? 'share-card--story' : 'share-card--square',
       ].join(' ')}
       style={preview ? { transform: `scale(${scale})` } : undefined}
@@ -189,7 +196,9 @@ export default function EventShareCard({
         </div>
         <span className="share-card__status">
           <span className="share-card__status-dot" aria-hidden />
-          {isMembership
+          {isUnified
+            ? t('shareCard.statusUnified')
+            : isMembership
             ? t('shareCard.statusMembership')
             : isTicket
               ? t('shareCard.statusTicket')
@@ -211,7 +220,9 @@ export default function EventShareCard({
           )}
           <div className="share-card__athlete-text">
             <span className="share-card__eyebrow">
-              {isMembership
+              {isUnified
+                ? t('shareCard.eyebrowUnified')
+                : isMembership
                 ? t('shareCard.eyebrowMembership')
                 : isTicket
                   ? t('shareCard.eyebrowTicket')
@@ -252,9 +263,14 @@ export default function EventShareCard({
                   {eventLocation ? `, ${eventLocation}` : ''}
                 </p>
               )}
-              {(category || division || dayPassLabel) && (
+              {(category || division || dayPassLabel || isUnified) && (
                 <p className="share-card__event-category">
-                  {[category, division, dayPassLabel].filter(Boolean).join(' · ')}
+                  {[
+                    isUnified ? t('shareCard.unifiedMembershipActive') : null,
+                    category,
+                    division,
+                    dayPassLabel,
+                  ].filter(Boolean).join(' · ')}
                 </p>
               )}
             </>

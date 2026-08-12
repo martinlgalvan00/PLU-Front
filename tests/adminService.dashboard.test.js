@@ -102,7 +102,7 @@ describe('buildPendingActions — hasProof', () => {
           athleteId: 'a1',
           status: 'validacion_manual',
           concept: 'Afiliación anual',
-          amount: 38000,
+          amount: 75000,
           paymentProofPath: 'proofs/p1.jpg',
         },
         {

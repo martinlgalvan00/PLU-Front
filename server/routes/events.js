@@ -11,6 +11,7 @@ const EVENT_SELECT = `
   capacityRules:event_capacity_rules(*),
   eventRegistrations:event_registrations(status),
   eventDays:event_days(*),
+  comboOffer:event_combo_offers(*),
   ticketTypes:ticket_types(
     *,
     ticketTypeDays:ticket_type_days(event_day_id),

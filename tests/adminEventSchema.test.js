@@ -16,9 +16,9 @@ function validEvent(overrides = {}) {
     slots: 120,
     featured: true,
     pricing: {
-      membership: 38000,
-      registration: 45000,
-      combo: 78000,
+      membership: 75000,
+      registration: 75000,
+      combo: 120000,
       ticketsEnabled: true,
       ticketAddons: [{ id: 'food', label: 'Comida', price: 12000 }],
     },
@@ -108,7 +108,7 @@ describe('validateAdminEventDraft del editor', () => {
       status: 'proximamente',
       startsAt: '2026-08-15T09:00',
       endsAt: '2026-08-15T20:00',
-      pricing: { membership: 38000, registration: 45000, combo: 78000 },
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
       ...overrides,
     }
   }
@@ -150,9 +150,9 @@ describe('validateAdminEventDraft del editor', () => {
       validDraft({
         eventDays: [{ dayIndex: 0, label: '' }],
         pricing: {
-          membership: 38000,
-          registration: 45000,
-          combo: 78000,
+          membership: 75000,
+          registration: 75000,
+          combo: 120000,
           ticketAddons: [{ id: 'food', label: '', price: -1 }],
         },
         ticketTypes: [{ name: '', price: 1000, dayIndexes: [3], includedAddonIds: ['missing'] }],

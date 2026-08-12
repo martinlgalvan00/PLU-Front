@@ -18,6 +18,7 @@ import {
   User,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
+import { getFeaturedEventDestination } from '../../lib/eventNavigation.js'
 import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
 import { canViewAdmin } from '../../lib/roles.js'
 import { hasCurrentMembership } from '../../services/membershipService.js'
@@ -294,6 +295,7 @@ function DrawerRow({ active = false, children, delay = 0, description, feature =
 }
 
 export default function NavbarPublic({
+  activeEventSlug = null,
   activeView,
   latestEvent,
   memberships = [],
@@ -327,8 +329,14 @@ export default function NavbarPublic({
   const resourcesActive = RESOURCES_NAVIGATION.views.includes(activeView)
 
   const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
-  const latestEventView = latestEvent?.featured || latestEvent?.slug === 'pitbull-classic-2026' ? 'pitbull' : 'events'
-  const latestEventActive = activeView === latestEventView
+  const latestEventDestination = getFeaturedEventDestination(latestEvent)
+  const latestEventView = latestEventDestination.view
+  const latestEventOptions = latestEventDestination.options
+  const latestEventActive =
+    activeView === latestEventView &&
+    (latestEventView !== 'events' ||
+      !latestEventOptions?.eventSlug ||
+      activeEventSlug === latestEventOptions.eventSlug)
   const latestEventHint = latestEvent?.date ?? t('nav.pitbullHint')
 
   const resourceGroups = RESOURCES_NAVIGATION.groups.map((group) => ({
@@ -349,10 +357,10 @@ export default function NavbarPublic({
 
   const competitionMenuFeatured = COMPETITIONS_NAVIGATION.items.filter(({ featured }) => featured)
 
-  function go(view) {
+  function go(view, options = {}) {
     restoreDrawerFocusRef.current = false
     if (drawerOpen) suppressScrollRestoreRef.current = true
-    onNavigate?.(view)
+    onNavigate?.(view, options)
     setDrawerOpen(false)
     setDropdown(null)
     window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
@@ -507,9 +515,6 @@ export default function NavbarPublic({
               <NavLink active={activeView === 'members'} hovered={hoveredNav === 'members'} onHover={() => setHoveredNav('members')} onLeave={() => setHoveredNav(null)} tone="affiliate" onClick={() => go('members')}>
                 {t('nav.members')}
               </NavLink>
-              <NavLink active={activeView === 'events'} hovered={hoveredNav === 'events'} onHover={() => setHoveredNav('events')} onLeave={() => setHoveredNav(null)} onClick={() => go('events')}>
-                {t('nav.calendarOfficial')}
-              </NavLink>
               <NavDropdown
               active={competitionsActive}
               hovered={hoveredNav === 'competitions'}
@@ -532,7 +537,7 @@ export default function NavbarPublic({
                     icon={Icon}
                     label={latestEventTitle}
                     tone="featured"
-                    onClick={() => go(latestEventView)}
+                    onClick={() => go(latestEventView, latestEventOptions)}
                   />
                 )
               })}
@@ -596,10 +601,12 @@ export default function NavbarPublic({
                   aria-controls="plu-profile-menu"
                   aria-expanded={dropdown === 'profile'}
                   aria-haspopup="menu"
-                  aria-label={sessionFullName || t('nav.myProfile', { defaultValue: 'Mi Perfil' })}
+                  aria-label={sessionFullName || t('nav.myProfile')}
                   onClick={() => setDropdown((current) => (current === 'profile' ? null : 'profile'))}
                 >
-                  <span aria-hidden>{sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}</span>
+                  <span className="plu-global-nav__profile-mark" aria-hidden>
+                    {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                  </span>
                 </button>
                 <AnimatePresence initial={false}>
                   {dropdown === 'profile' ? (
@@ -608,11 +615,11 @@ export default function NavbarPublic({
                       id="plu-profile-menu"
                       role="menu"
                       aria-labelledby="plu-profile-menu-trigger"
-                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.985 }}
+                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={reducedMotion
                         ? { opacity: 0, transition: { duration: 0.01 } }
-                        : { opacity: 0, y: 4, scale: 0.995, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
+                        : { opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
                       transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
                     >
                       <div className="plu-profile-menu__header">
@@ -620,16 +627,20 @@ export default function NavbarPublic({
                           {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
                         </div>
                         <div className="plu-profile-menu__info">
-                          <p className="plu-profile-menu__name">{sessionFullName}</p>
-                          <p className="plu-profile-menu__role">{adminSession ? 'Administrador' : 'Atleta Oficial'}</p>
+                          <p className="plu-profile-menu__eyebrow">
+                            {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
+                          </p>
+                          <p className="plu-profile-menu__name">{sessionFullName || t('nav.myProfile')}</p>
                         </div>
                       </div>
                       <div className="plu-profile-menu__actions">
                         <button type="button" role="menuitem" onClick={() => go(adminSession ? 'admin' : 'profile')}>
-                          <User size={14} aria-hidden /> {t('nav.myProfile', { defaultValue: 'Mi Perfil' })}
+                          <User size={15} strokeWidth={1.6} aria-hidden />
+                          <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
                         </button>
                         <button type="button" role="menuitem" onClick={onLogout} className="plu-profile-menu__logout">
-                          <LogOut size={14} aria-hidden /> {t('nav.logout')}
+                          <LogOut size={15} strokeWidth={1.6} aria-hidden />
+                          <span>{t('nav.logout')}</span>
                         </button>
                       </div>
                     </m.div>
@@ -779,7 +790,7 @@ export default function NavbarPublic({
                   aria-label={t('nav.home')}
                   onClick={() => go('home')}
                 >
-                  <BrandLogo variant="argentina" imgClassName="plu-drawer__emblem" height={72} />
+                  <BrandLogo variant="argentina" imgClassName="plu-drawer__emblem" height={38} />
                   <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
                 </button>
                 <button
@@ -822,7 +833,7 @@ export default function NavbarPublic({
                       active={latestEventActive}
                       delay={0.04}
                       description={latestEvent?.date ?? t('nav.pitbullHint')}
-                      onClick={() => go(latestEventView)}
+                      onClick={() => go(latestEventView, latestEventOptions)}
                     >
                       {latestEventTitle}
                     </DrawerRow>
@@ -882,8 +893,8 @@ export default function NavbarPublic({
                     className="plu-drawer__account-chip"
                     aria-label={
                       adminSession
-                        ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.admin')}`
-                        : `${sessionFullName || t('nav.myProfile')} · ${t('nav.myProfile')}`
+                        ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAdmin')}`
+                        : `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAthlete')}`
                     }
                     onClick={() => go(adminSession ? 'admin' : 'profile')}
                   >
@@ -895,7 +906,7 @@ export default function NavbarPublic({
                         {sessionFullName || t('nav.myProfile')}
                       </span>
                       <span className="plu-drawer__account-hint">
-                        {adminSession ? t('nav.admin') : t('nav.myProfile')}
+                        {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
                       </span>
                     </span>
                   </button>

@@ -36,10 +36,27 @@ concepto. El frontend nunca puede enviar el monto autoritativo de una orden.
 
 Una oferta conjunta vive en `event_combo_offers`, referencia una versión de
 afiliación de pago único y no puede superar la suma del plan más la inscripción.
-Su activación y ventana son independientes por evento. Mientras
-`APP_PRODUCTION=true`, el módulo se expone en modo lectura como **Próximamente**
-y Express rechaza toda escritura con `FEATURE_COMING_SOON`; ocultar o desactivar
-controles en el navegador no reemplaza ese bloqueo.
+La compra se crea con `create_membership_registration_combo_order`: bajo una
+misma transacción bloquea atleta, evento, oferta y plan; reserva el cupo; crea
+una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
+afiliación y la inscripción. El precio, la moneda y el plan siempre se releen
+del catálogo en PostgreSQL y nunca llegan como datos autoritativos del browser.
+Su activación y ventana son independientes por evento. La compra del combo está
+disponible también con `APP_PRODUCTION=true` cuando la oferta está activa y
+vigente; la administración del catálogo económico conserva su política de
+escritura separada.
+
+Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
+otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo
+real la afiliación activa y todas las inscripciones visibles. Con contexto de
+evento debe devolver la inscripción de ese torneo y ambos derechos tienen que
+habilitar el check-in cuando el evento exige afiliación. Un ticket de público
+general no comparte este token y mantiene su QR opaco ligado al evento.
+
+Los planes con `collection_mode=recurring` representan afiliación automática
+por Mercado Pago. Con `APP_PRODUCTION=true` no se publican en `/api/payments/plans`
+y Express rechaza tanto la creación de su orden como el procesamiento de la
+suscripción con `FEATURE_COMING_SOON`.
 
 ## Roles
 

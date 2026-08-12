@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
 import { getStatusMeta } from '../../lib/status.js'
+import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 
 /** Tope de expansión de un evento multi-día: guarda ante startsAt/endsAt inconsistentes. */
 const MAX_EVENT_SPAN_DAYS = 45
@@ -131,10 +132,6 @@ export default function EventCalendar({
     return map
   }, [events])
 
-  const nextEvent = useMemo(
-    () => events.find((event) => event.status === 'inscripcion_abierta') ?? events[0],
-    [events],
-  )
 
   const cells = useMemo(() => buildMonthCells(cursor.year, cursor.month), [cursor])
   const todayKey = toDayKey(today)
@@ -197,74 +194,76 @@ export default function EventCalendar({
         ))}
       </div>
 
-      <div className="event-calendar__grid" key={`${cursor.year}-${cursor.month}`}>
-        {cells.map((cell) => {
-          const dayEntries = eventsByDay.get(cell.key) ?? []
-          const hasEvent = dayEntries.length > 0
-          const isSelected = dayEntries.some(({ event }) => event.slug === selectedEventSlug)
-          const className = [
-            'event-calendar__cell',
-            cell.inMonth ? '' : 'event-calendar__cell--outside',
-            cell.key === todayKey ? 'event-calendar__cell--today' : '',
-            hasEvent ? 'event-calendar__cell--event' : '',
-            isSelected ? 'event-calendar__cell--selected' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')
+      <MotionContentSwap swapKey={`${cursor.year}-${cursor.month}`}>
+        <div className="event-calendar__grid">
+          {cells.map((cell) => {
+            const dayEntries = eventsByDay.get(cell.key) ?? []
+            const hasEvent = dayEntries.length > 0
+            const isSelected = dayEntries.some(({ event }) => event.slug === selectedEventSlug)
+            const className = [
+              'event-calendar__cell',
+              cell.inMonth ? '' : 'event-calendar__cell--outside',
+              cell.key === todayKey ? 'event-calendar__cell--today' : '',
+              hasEvent ? 'event-calendar__cell--event' : '',
+              isSelected ? 'event-calendar__cell--selected' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
 
-          const dayNumber = <span className="event-calendar__day">{cell.day}</span>
+            const dayNumber = <span className="event-calendar__day">{cell.day}</span>
 
-          if (!hasEvent) {
+            if (!hasEvent) {
+              return (
+                <div key={cell.key} className={className}>
+                  {dayNumber}
+                </div>
+              )
+            }
+
+            const visible = dayEntries.slice(0, MAX_CHIPS_PER_DAY)
+            const hiddenCount = dayEntries.length - visible.length
+
             return (
-              <div key={cell.key} className={className}>
+              <button
+                key={cell.key}
+                type="button"
+                className={className}
+                onClick={() => onEventSelect?.(dayEntries[0].event)}
+                aria-pressed={isSelected}
+                aria-label={`${dayFormatter.format(cell.date)}: ${dayEntries
+                  .map(({ event }) => event.title)
+                  .join(', ')}`}
+              >
                 {dayNumber}
-              </div>
+                <span className="event-calendar__chips">
+                  {visible.map(({ event, isSpan, isStart, isEnd }) => {
+                    const tone = EVENT_STATUS[event.status]?.tone ?? 'neutral'
+                    return (
+                      <span
+                        key={event.slug}
+                        className={[
+                          'event-calendar__chip',
+                          `event-calendar__chip--${tone}`,
+                          isSpan ? 'event-calendar__chip--span' : '',
+                          isSpan && isStart ? 'event-calendar__chip--span-start' : '',
+                          isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
+                        <span className="event-calendar__chip-label">{event.title}</span>
+                      </span>
+                    )
+                  })}
+                  {hiddenCount > 0 ? (
+                    <span className="event-calendar__chip-more">+{hiddenCount}</span>
+                  ) : null}
+                </span>
+              </button>
             )
-          }
-
-          const visible = dayEntries.slice(0, MAX_CHIPS_PER_DAY)
-          const hiddenCount = dayEntries.length - visible.length
-
-          return (
-            <button
-              key={cell.key}
-              type="button"
-              className={className}
-              onClick={() => onEventSelect?.(dayEntries[0].event)}
-              aria-pressed={isSelected}
-              aria-label={`${dayFormatter.format(cell.date)}: ${dayEntries
-                .map(({ event }) => event.title)
-                .join(', ')}`}
-            >
-              {dayNumber}
-              <span className="event-calendar__chips">
-                {visible.map(({ event, isSpan, isStart, isEnd }) => {
-                  const tone = EVENT_STATUS[event.status]?.tone ?? 'neutral'
-                  return (
-                    <span
-                      key={event.slug}
-                      className={[
-                        'event-calendar__chip',
-                        `event-calendar__chip--${tone}`,
-                        isSpan ? 'event-calendar__chip--span' : '',
-                        isSpan && isStart ? 'event-calendar__chip--span-start' : '',
-                        isSpan && isEnd ? 'event-calendar__chip--span-end' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      <span className="event-calendar__chip-label">{event.title}</span>
-                    </span>
-                  )
-                })}
-                {hiddenCount > 0 ? (
-                  <span className="event-calendar__chip-more">+{hiddenCount}</span>
-                ) : null}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+          })}
+        </div>
+      </MotionContentSwap>
 
       <footer className="event-calendar__footer">
         <div className="event-calendar__legend event-calendar__legend--compact">
@@ -275,19 +274,6 @@ export default function EventCalendar({
             </span>
           ))}
         </div>
-        {nextEvent && (
-          <button
-            type="button"
-            className="event-calendar__jump"
-            onClick={() => onEventSelect?.(nextEvent)}
-          >
-            <span className="event-calendar__jump-copy">
-              <span className="event-calendar__jump-label">{t('pages.events.nextMeet')}</span>
-              <strong>{nextEvent.title}</strong>
-            </span>
-            <ArrowRight size={16} aria-hidden />
-          </button>
-        )}
       </footer>
     </div>
   )
