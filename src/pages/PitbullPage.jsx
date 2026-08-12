@@ -633,6 +633,7 @@ function PitbullInscriptionSection({
           'pitbull-inscription-shell',
           'pitbull-inscription-shell--compact',
           softLaunch ? 'pitbull-inscription-shell--soon' : '',
+          comboLive ? 'pitbull-inscription-shell--combo' : '',
         ].filter(Boolean).join(' ')}
       >
         <PitbullInscriptionCounter
@@ -647,7 +648,39 @@ function PitbullInscriptionSection({
         />
 
         <Body className="pitbull-inscription-shell__body" {...bodyProps}>
-          <Pricing className="pitbull-inscription-shell__pricing" aria-label={t('pages.pitbull.costsAria')} {...childProps}>
+          <Pricing
+            className={[
+              'pitbull-inscription-shell__pricing',
+              comboLive ? 'pitbull-inscription-shell__pricing--combo' : '',
+            ].filter(Boolean).join(' ')}
+            aria-label={t('pages.pitbull.costsAria')}
+            {...childProps}
+          >
+            {comboLive ? (
+              <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--combo">
+                <dt>{t('pages.pitbull.costCombo')}</dt>
+                <dd>
+                  <span className="pitbull-inscription-shell__combo-amount">
+                    {money(comboOffer.price, locale)}
+                  </span>
+                  {comboEndsLabel ? (
+                    <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
+                  ) : null}
+                </dd>
+                {comboSavings > 0 ? (
+                  <p className="pitbull-inscription-shell__combo-hint">
+                    {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
+                  </p>
+                ) : null}
+                <p className="pitbull-inscription-shell__desc pitbull-inscription-shell__desc--combo">
+                  {canRegister
+                    ? t('pages.pitbull.cardDescCombo')
+                    : softLaunch
+                      ? t('pages.pitbull.cardDescComingSoon')
+                      : t('pages.pitbull.cardDescClosed')}
+                </p>
+              </div>
+            ) : null}
             <div className="pitbull-inscription-shell__price">
               <dt>{t('pages.pitbull.costMembership')}</dt>
               <dd>{money(pricing.membership, locale)}</dd>
@@ -656,30 +689,16 @@ function PitbullInscriptionSection({
               <dt>{t('pages.pitbull.costMeet')}</dt>
               <dd>{money(pricing.registration, locale)}</dd>
             </div>
-            {comboLive ? (
-              <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--combo">
-                <dt>{t('pages.pitbull.costCombo')}</dt>
-                <dd>
-                  {money(comboOffer.price, locale)}
-                  {comboEndsLabel ? (
-                    <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
-                  ) : null}
-                </dd>
-              </div>
-            ) : null}
           </Pricing>
 
           <Footer className="pitbull-inscription-shell__footer" {...childProps}>
-            <p className="pitbull-inscription-shell__desc">
-              {canRegister
-                ? (comboLive ? t('pages.pitbull.cardDescCombo') : t('pages.pitbull.cardDescOpen'))
-                : softLaunch
-                  ? t('pages.pitbull.cardDescComingSoon')
-                  : t('pages.pitbull.cardDescClosed')}
-            </p>
-            {comboLive && comboSavings > 0 ? (
-              <p className="pitbull-inscription-shell__combo-hint">
-                {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
+            {!comboLive ? (
+              <p className="pitbull-inscription-shell__desc">
+                {canRegister
+                  ? t('pages.pitbull.cardDescOpen')
+                  : softLaunch
+                    ? t('pages.pitbull.cardDescComingSoon')
+                    : t('pages.pitbull.cardDescClosed')}
               </p>
             ) : null}
 

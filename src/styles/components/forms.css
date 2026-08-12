@@ -609,130 +609,120 @@
 
 .payments-mock-banner {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
   align-items: center;
-  gap: 0.65rem 0.75rem;
-  min-height: 2.25rem;
-  padding: 0.4rem 0.85rem 0.4rem 0.75rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--plu-gold-500, #f2b705) 28%, transparent);
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 16%, transparent) 0,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 16%, transparent) 3px,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 8%, var(--color-bg-primary, #0b0d12)) 3px,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 5%, var(--color-bg-primary, #0b0d12)) 100%
-    );
-  color: var(--color-text-primary, #f5f5f5);
-  font-size: 0.8125rem;
-  line-height: 1.25;
+  min-height: 36px;
+  padding: 0 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 22%, var(--color-border-subtle));
+  background: color-mix(in srgb, var(--color-brand-gold) 6%, var(--color-bg-primary));
+  color: var(--color-text-secondary);
+  animation: payments-mock-banner-in var(--motion-base) var(--ease-out) both;
 }
 
-.payments-mock-banner__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  min-width: 2.1rem;
-  padding: 0.12rem 0.38rem;
-  border: 1px solid color-mix(in srgb, var(--plu-gold-500, #f2b705) 55%, transparent);
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--plu-gold-500, #f2b705) 18%, transparent);
-  color: var(--plu-gold-400, #ffd23f);
-  font-family: var(--font-display, inherit);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+@keyframes payments-mock-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .payments-mock-banner__copy {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.2rem 0.55rem;
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  justify-self: center;
+  margin: 0;
   min-width: 0;
+}
+
+.payments-mock-banner__mark {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-brand-gold);
 }
 
 .payments-mock-banner__title {
   margin: 0;
-  font-family: var(--font-display, inherit);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--color-text-primary, #f5f5f5);
-}
-
-.payments-mock-banner__lead {
-  color: var(--color-text-muted, #9aa0a8);
-  font-size: 0.75rem;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .payments-mock-banner__dismiss {
+  grid-column: 3;
   display: inline-grid;
   place-items: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  justify-self: end;
+  width: 32px;
+  height: 32px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 0.3rem;
+  border-radius: 999px;
   background: transparent;
-  color: var(--color-text-muted, #9aa0a8);
+  color: var(--color-text-muted);
   cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
 .payments-mock-banner__dismiss:hover {
-  color: var(--color-text-primary, #f5f5f5);
-  background: color-mix(in srgb, var(--color-text-primary, #fff) 8%, transparent);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 .payments-mock-banner__dismiss:focus-visible {
-  outline: 2px solid var(--plu-celeste-400, #74acdf);
+  outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
 
 [data-theme='light'] .payments-mock-banner {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--plu-gold-600, #a9790f) 22%, transparent) 0,
-      color-mix(in srgb, var(--plu-gold-600, #a9790f) 22%, transparent) 3px,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 10%, #fff) 3px,
-      color-mix(in srgb, var(--plu-gold-500, #f2b705) 6%, #fff) 100%
-    );
-  border-bottom-color: color-mix(in srgb, var(--plu-gold-600, #a9790f) 24%, transparent);
-  color: var(--color-text-primary, #15171c);
-}
-
-[data-theme='light'] .payments-mock-banner__badge {
-  color: var(--plu-gold-600, #a9790f);
-  background: color-mix(in srgb, var(--plu-gold-500, #f2b705) 22%, #fff);
-  border-color: color-mix(in srgb, var(--plu-gold-600, #a9790f) 35%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, var(--color-bg-primary));
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 26%, var(--color-border-subtle));
 }
 
 [data-theme='light'] .payments-mock-banner__title {
-  color: var(--color-text-primary, #15171c);
-}
-
-[data-theme='light'] .payments-mock-banner__lead,
-[data-theme='light'] .payments-mock-banner__dismiss {
-  color: var(--color-text-muted, #5c6370);
+  color: var(--color-text-secondary);
 }
 
 [data-theme='light'] .payments-mock-banner__dismiss:hover {
-  color: var(--color-text-primary, #15171c);
-  background: color-mix(in srgb, var(--color-text-primary, #15171c) 6%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payments-mock-banner {
+    animation: none;
+  }
+
+  .payments-mock-banner__dismiss {
+    transition: none;
+  }
 }
 
 @media (max-width: 520px) {
   .payments-mock-banner {
-    gap: 0.45rem 0.55rem;
-    padding-inline: 0.65rem;
+    grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem;
+    padding-inline: 6px;
   }
 
-  .payments-mock-banner__copy {
-    flex-direction: column;
-    gap: 0.05rem;
+  .payments-mock-banner__title {
+    letter-spacing: 0.08em;
   }
 }
