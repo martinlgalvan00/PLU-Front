@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import {
   createPaymentProviderAdapter,
   getPaymentsRuntimeStatus,
@@ -242,6 +242,30 @@ describe('mockMercadoPagoAdapter', () => {
 })
 
 describe('processEmbeddedPayment con mock', () => {
+  it('devuelve la orden aprobada sin volver a invocar al proveedor', async () => {
+    const repository = createRepositoryFake({ ...order, status: 'aprobado' })
+    const mercadoPago = createMockMercadoPagoAdapter()
+    const createPayment = mercadoPago.createPayment
+    mercadoPago.createPayment = async (...args) => createPayment(...args)
+    const createPaymentSpy = vi.spyOn(mercadoPago, 'createPayment')
+
+    const result = await processEmbeddedPayment(
+      {
+        paymentOrderId: order.id,
+        formData: {
+          token: 'token-repetido-despues-de-acreditar',
+          payment_method_id: 'mock_approved',
+          payer: { email: order.payerEmail },
+        },
+      },
+      { repository, mercadoPago },
+    )
+
+    expect(result).toMatchObject({ duplicate: true, payment: null })
+    expect(result.order.status).toBe('aprobado')
+    expect(createPaymentSpy).not.toHaveBeenCalled()
+  })
+
   it('acredita una orden aprobada por el camino real', async () => {
     const repository = createRepositoryFake()
     const mercadoPago = createMockMercadoPagoAdapter()

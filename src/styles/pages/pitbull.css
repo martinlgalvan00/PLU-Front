@@ -8626,6 +8626,10 @@
   color: color-mix(in oklab, var(--plu-warm-50) 70%, transparent);
 }
 
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge--success {
+  color: var(--plu-success-500);
+}
+
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__status-badge--warning {
   color: var(--plu-gold-400);
 }
@@ -9314,6 +9318,11 @@
   gap: clamp(10px, 1.4vw, 14px);
 }
 
+/* Logo oficial del meet — usa .pitbull-brand-mark; la clase legacy queda como hook. */
+.pitbull-hero-masthead__event-logo.pitbull-brand-mark {
+  display: inline-flex;
+}
+
 .pitbull-hero-masthead__head-top {
   align-items: center;
   display: flex;
@@ -9358,6 +9367,33 @@
   width: 5px;
 }
 
+@keyframes pitbull-status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--plu-success-500) 55%, transparent);
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--plu-success-500) 0%, transparent);
+    opacity: 0.85;
+    transform: scale(1.15);
+  }
+}
+
+.pitbull-hero-masthead__status-badge--success .pitbull-hero-masthead__status-badge-dot {
+  animation: pitbull-status-pulse 1.6s var(--ease-out) infinite;
+  will-change: transform, opacity, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-hero-masthead__status-badge--success .pitbull-hero-masthead__status-badge-dot {
+    animation: none;
+    will-change: auto;
+  }
+}
+
 .pitbull-hero-masthead__status-badge--info {
   border-color: transparent;
   color: var(--color-brand-celeste);
@@ -9365,7 +9401,7 @@
 
 .pitbull-hero-masthead__status-badge--success {
   border-color: transparent;
-  color: #3d9a62;
+  color: var(--plu-success-500);
 }
 
 .pitbull-hero-masthead__status-badge--warning {
@@ -12120,4 +12156,22 @@
   [data-theme='light'] .pitbull-weighin {
     border-left-color: rgba(15, 17, 23, 0.08);
   }
+}
+
+.pitbull-inscription-shell__price--combo dd {
+  display: grid;
+  gap: 4px;
+}
+
+.pitbull-inscription-shell__price--combo small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.pitbull-inscription-shell__combo-hint {
+  margin: 0;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  font-size: 0.92rem;
 }

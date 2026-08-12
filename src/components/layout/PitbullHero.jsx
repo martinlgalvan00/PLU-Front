@@ -8,6 +8,7 @@ import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
+import PitbullBrandMark from '../ui/PitbullBrandMark.jsx'
 
 const HERO_COLLAGE = [
   {
@@ -42,12 +43,7 @@ function PitbullHeroPanel({
   onHome,
   onRegister,
   onSecondary,
-  date,
-  venue,
-  location,
-  registered,
   registrationFee,
-  slots,
   ticketsOpen,
   t,
   title,
@@ -78,6 +74,15 @@ function PitbullHeroPanel({
 
       <header className="pitbull-hero-masthead__head">
         <Item {...itemProps}>
+          <PitbullBrandMark
+            size="lg"
+            className="pitbull-hero-masthead__event-logo"
+            label={t('nav.pitbull')}
+            priority
+          />
+        </Item>
+
+        <Item {...itemProps}>
           <span
             className={`pitbull-hero-masthead__status-badge pitbull-hero-masthead__status-badge--${statusTone}`}
           >
@@ -94,32 +99,6 @@ function PitbullHeroPanel({
           <p className="pitbull-hero-masthead__lead">{t('pages.pitbull.heroLead')}</p>
         </Item>
       </header>
-
-      <Item {...itemProps}>
-        <div className="pitbull-hero-masthead__meta" aria-label={t('pages.pitbull.heroMetricsAria')}>
-          <p className="pitbull-hero-masthead__kicker">
-            <time dateTime="2026-12-12/2026-12-13">{date}</time>
-            <span aria-hidden> · </span>
-            <span className="pitbull-hero-masthead__kicker-venue">{venue}</span>
-            {location ? (
-              <span className="pitbull-hero-masthead__kicker-loc">
-                <span aria-hidden> · </span>
-                {location}
-              </span>
-            ) : null}
-          </p>
-          <p className="pitbull-hero-masthead__slots">
-            <span className="pitbull-hero-masthead__slots-label">{t('pages.pitbull.heroSlots')}</span>
-            <span className="pitbull-hero-masthead__slots-value">
-              {registered}
-              <span className="pitbull-hero-masthead__slots-sep" aria-hidden>
-                /
-              </span>
-              {slots}
-            </span>
-          </p>
-        </div>
-      </Item>
 
       <Item {...itemProps}>
         <div className="pitbull-hero-masthead__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
@@ -193,12 +172,7 @@ export default function PitbullHero({
   onHome,
   onRegister,
   onSecondary,
-  date,
-  venue,
-  location,
-  registered,
   registrationFee,
-  slots,
   ticketsOpen,
   title,
 }) {
@@ -212,12 +186,7 @@ export default function PitbullHero({
       onHome={onHome}
       onRegister={onRegister}
       onSecondary={onSecondary}
-      date={date}
-      venue={venue}
-      location={location}
-      registered={registered}
       registrationFee={registrationFee}
-      slots={slots}
       ticketsOpen={ticketsOpen}
       t={t}
       title={title}

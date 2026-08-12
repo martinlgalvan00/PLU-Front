@@ -220,7 +220,10 @@ export default function MembershipPurchaseSection({
     billingFrequency: 'annual',
     collectionMode: 'one_time',
   }), [t])
-  const availablePlans = plans.length ? plans : env.appProduction ? [] : [fallbackPlan]
+  const availablePlans = useMemo(
+    () => (plans.length ? plans : env.appProduction ? [] : [fallbackPlan]),
+    [fallbackPlan, plans],
+  )
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
   const checkoutLocked = submitting || Boolean(embeddedOrder)
   const ctaDisabled = !selectedPlan || submitting || (Boolean(embeddedOrder) && mpModalOpen)
@@ -232,7 +235,8 @@ export default function MembershipPurchaseSection({
     () => availablePlans.find((plan) => plan.collectionMode === 'recurring') ?? null,
     [availablePlans],
   )
-  const billingSwitchEnabled = Boolean(oneTimePlan && recurringPlan)
+  // Débito automático: solo fuera de APP_PRODUCTION (WIP hasta habilitarlo en prod).
+  const billingSwitchEnabled = !env.appProduction && Boolean(oneTimePlan && recurringPlan)
   const billingMode = selectedPlan?.collectionMode === 'recurring' ? 'recurring' : 'one_time'
   const billingOptions = useMemo(() => {
     if (!billingSwitchEnabled) {

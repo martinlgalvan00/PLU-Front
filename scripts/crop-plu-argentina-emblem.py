@@ -1,4 +1,4 @@
-"""Crop PLU Argentina emblem to a tight square display asset (keeps transparency)."""
+"""Crop PLU Argentina emblem to a tight square display asset and favicon PNGs."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,11 +9,17 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src/assets/brand/plu-argentina-emblem.png"
 OUT = ROOT / "src/assets/brand/plu-argentina-emblem-display.png"
+PUBLIC_BRAND = ROOT / "public" / "brand"
 OUT_SIZE = 1024
+# Transparent corners (same as emblem-display) so the circle floats on the tab.
+FAVICON_EXPORTS = (
+    (PUBLIC_BRAND / "plu-argentina-favicon.png", 32),
+    (PUBLIC_BRAND / "plu-argentina-favicon-48.png", 48),
+    (PUBLIC_BRAND / "plu-argentina-apple-touch.png", 180),
+)
 
 
-def main() -> None:
-    img = Image.open(SRC).convert("RGBA")
+def square_crop_opaque(img: Image.Image) -> Image.Image:
     arr = np.asarray(img)
     alpha = arr[..., 3]
     ys, xs = np.where(alpha > 16)
@@ -52,12 +58,30 @@ def main() -> None:
         square.paste(cropped, (ox, oy))
         cropped = square
 
-    out = cropped.resize((OUT_SIZE, OUT_SIZE), Image.Resampling.LANCZOS)
+    return cropped
+
+
+def resize_transparent(src: Image.Image, size: int) -> Image.Image:
+    return src.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def main() -> None:
+    img = Image.open(SRC).convert("RGBA")
+    cropped = square_crop_opaque(img)
+
+    out = resize_transparent(cropped, OUT_SIZE)
     out.save(OUT, optimize=True)
     sample = out.getpixel((OUT_SIZE // 2, OUT_SIZE // 2))
     corner = out.getpixel((8, 8))
     print("wrote", OUT, "size", out.size, "bytes", OUT.stat().st_size)
     print("center", sample, "corner", corner)
+
+    PUBLIC_BRAND.mkdir(parents=True, exist_ok=True)
+    for path, size in FAVICON_EXPORTS:
+        fav = resize_transparent(cropped, size)
+        fav.save(path, optimize=True)
+        corner_a = fav.getpixel((0, 0))[3]
+        print("wrote", path, "size", fav.size, "bytes", path.stat().st_size, "corner_alpha", corner_a)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { isAppProduction } from '../lib/featureAvailability.js'
 import { requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -55,12 +56,8 @@ export const comboOfferSchema = z
     }
   })
 
-function isEnabled(value) {
-  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
-}
-
 function assertPricingWritesEnabled(env) {
-  if (isEnabled(env.APP_PRODUCTION)) {
+  if (isAppProduction(env)) {
     throw new HttpError(
       409,
       'La configuración económica está disponible próximamente en producción.',
@@ -93,8 +90,8 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
       res.json({
         ...configuration,
         availability: {
-          editable: !isEnabled(env.APP_PRODUCTION),
-          reason: isEnabled(env.APP_PRODUCTION) ? 'production_coming_soon' : null,
+          editable: !isAppProduction(env),
+          reason: isAppProduction(env) ? 'production_coming_soon' : null,
         },
       })
     } catch (error) {

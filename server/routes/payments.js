@@ -1,6 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import {
+  assertRecurringMembershipAvailable,
+  filterPublicMembershipPlans,
+} from '../lib/featureAvailability.js'
 import { getPrisma } from '../lib/prisma.js'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js'
 import { validateBody } from '../lib/validate.js'
@@ -220,7 +224,7 @@ export function createPaymentRoutes(deps = {}) {
 
   router.get('/plans', publicReadLimiter, async (_req, res, next) => {
     try {
-      const plans = await repository().listPlans()
+      const plans = filterPublicMembershipPlans(await repository().listPlans(), env)
       res.json({ plans: plans.map(serializePlan) })
     } catch (error) {
       next(error)
@@ -292,6 +296,7 @@ export function createPaymentRoutes(deps = {}) {
 
   router.post('/subscriptions/process', checkoutLimiter, validateBody(embeddedSubscriptionSchema), async (req, res, next) => {
     try {
+      assertRecurringMembershipAvailable(env)
       await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await createEmbeddedRecurringSubscription(
         { ...req.validatedBody, appUrl: env.APP_URL ?? env.VITE_APP_URL },

@@ -1,4 +1,4 @@
-import { DEFAULT_EVENT_PRICING, normalizeEventPricingInput } from '../lib/eventPricing.js'
+import { DEFAULT_EVENT_PRICING, isComboOfferLive, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { apiGet, apiPost } from '../lib/api.js'
@@ -197,7 +197,7 @@ export function getEventConsistencyWarnings(draft, sourceEvent = null, now = new
   return warnings
 }
 
-export function getInitialAdminEvents(storedEvents) {
+export function getInitialAdminEvents(storedEvents, { allowStoredEvents = true } = {}) {
   const seed = UPCOMING_EVENTS.map((event, index) => ({
     id: `evt-${index + 1}`,
     ...event,
@@ -205,15 +205,22 @@ export function getInitialAdminEvents(storedEvents) {
     createdOrder: index + 1,
     slots: event.featured ? 120 : DEFAULT_SLOTS,
     registered: event.featured ? 48 : Math.floor(DEFAULT_SLOTS * 0.35),
+    price: event.price ?? DEFAULT_EVENT_PRICING.registration,
+    currency: event.currency ?? 'ARS',
     pricing: { ...DEFAULT_EVENT_PRICING },
     published: event.published ?? true,
     requiresMembership: event.requiresMembership !== false,
   }))
 
-  if (!storedEvents?.length) return seed
+  // En el runtime conectado, eventos y precios pertenecen a Supabase. Un
+  // snapshot viejo de localStorage (por ejemplo Pitbull con price=2) no puede
+  // mostrarse ni cotizar mientras llega el fetch remoto. El storage se conserva
+  // únicamente para el modo demo, donde sí es la persistencia deliberada.
+  const localEvents = allowStoredEvents ? storedEvents : null
+  if (!localEvents?.length) return seed
 
   const seedBySlug = Object.fromEntries(seed.map((event) => [event.slug, event]))
-  const merged = storedEvents.map((event, index) => ({
+  const merged = localEvents.map((event, index) => ({
     ...(seedBySlug[event.slug] ?? {}),
     ...event,
     createdAt:
@@ -500,6 +507,9 @@ function mapSupabaseTicketCatalog(row) {
 
 export function mapSupabaseEventRow(row) {
   const rules = row.rules ?? {}
+  const comboOfferRow = Array.isArray(row.comboOffer)
+    ? (row.comboOffer[0] ?? null)
+    : (row.comboOffer ?? row.combo_offer ?? null)
   const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
   const registrationRows = row.eventRegistrations ?? row.event_registrations
   const registrationCount = Array.isArray(registrationRows)
@@ -523,6 +533,17 @@ export function mapSupabaseEventRow(row) {
     status: row.status,
     published: row.published,
     requiresMembership: row.requires_membership !== false,
+    comboOffer: comboOfferRow
+      ? {
+          id: comboOfferRow.id,
+          membershipPlanId: comboOfferRow.membership_plan_id,
+          price: Number(comboOfferRow.price),
+          currency: comboOfferRow.currency,
+          active: comboOfferRow.active === true,
+          startsAt: comboOfferRow.starts_at ?? null,
+          endsAt: comboOfferRow.ends_at ?? null,
+        }
+      : null,
     price: row.price,
     currency: row.currency,
     liveStreamUrl: row.live_stream_url,
@@ -539,7 +560,14 @@ export function mapSupabaseEventRow(row) {
     pricing: normalizeEventPricingInput({
       registration: row.price,
       membership: rules.membershipPrice,
-      combo: rules.comboPrice,
+      combo: isComboOfferLive({
+        active: comboOfferRow?.active === true,
+        price: comboOfferRow?.price,
+        startsAt: comboOfferRow?.starts_at ?? null,
+        endsAt: comboOfferRow?.ends_at ?? null,
+      })
+        ? Number(comboOfferRow.price)
+        : rules.comboPrice,
       ticketsEnabled: rules.ticketsEnabled,
       ticketAddons: rules.ticketAddons,
     }),
@@ -563,6 +591,7 @@ function mapAdminEventRow(row, index = 0) {
 const PUBLISHED_EVENTS_SELECT = `
   *,
   eventDays:event_days(*),
+  comboOffer:event_combo_offers(*),
   ticketTypes:ticket_types(
     *,
     ticketTypeDays:ticket_type_days(event_day_id),

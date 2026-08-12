@@ -53,9 +53,24 @@ export function getFeaturedEvent(events = []) {
  * vista Pitbull hacia que un evento nuevo marcado desde el panel terminara en
  * la competencia equivocada.
  */
+export const PITBULL_CLASSIC_SLUG = 'pitbull-classic-2026'
+
+export function isPitbullClassicEvent(event) {
+  return event?.slug === PITBULL_CLASSIC_SLUG
+}
+
+/**
+ * La landing editorial de Pitbull siempre representa a Pitbull. No puede usar
+ * `getFeaturedEvent`: el destacado es una eleccion del panel para Home y puede
+ * ser otro torneo con otro precio (o incluso un evento de prueba).
+ */
+export function getPitbullClassicEvent(events = []) {
+  return events.find(isPitbullClassicEvent) ?? null
+}
+
 export function getFeaturedEventDestination(event) {
   if (!event?.slug) return { view: 'events', options: {} }
-  if (event.slug === 'pitbull-classic-2026') return { view: 'pitbull', options: {} }
+  if (isPitbullClassicEvent(event)) return { view: 'pitbull', options: {} }
   return { view: 'events', options: { eventSlug: event.slug } }
 }
 
@@ -68,4 +83,23 @@ export function getDaysUntilEvent(event, now = new Date()) {
   eventDay.setHours(0, 0, 0, 0)
   const diffDays = Math.round((eventDay.getTime() - today.getTime()) / 86400000)
   return diffDays >= 0 ? diffDays : null
+}
+
+/**
+ * Countdown editorial: devuelve { days, hours, minutes, totalMs, isPast }
+ * hasta el startsAt exacto (con hora) del evento. Si el evento solo tiene
+ * dateISO (sin hora), asume mediodía para dar un valor razonable.
+ */
+export function getTimeUntilEvent(event, now = new Date()) {
+  const eventTime = eventDateTime(event)
+  if (!Number.isFinite(eventTime)) return null
+
+  const diff = eventTime - now.getTime()
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, totalMs: 0, isPast: true }
+
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+
+  return { days, hours, minutes, totalMs: diff, isPast: false }
 }

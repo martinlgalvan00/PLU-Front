@@ -8,14 +8,22 @@ import FilterPills from '../components/ui/FilterPills.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Button from '../components/ui/Button.jsx'
 import EventCalendar from '../components/ui/EventCalendar.jsx'
+import EventCountdown from '../components/ui/EventCountdown.jsx'
 import EventCard from '../components/ui/EventCard.jsx'
 import EventLiveStream from '../components/ui/EventLiveStream.jsx'
+import PitbullBrandMark from '../components/ui/PitbullBrandMark.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerReveal from '../components/ui/StaggerReveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
-import { getDaysUntilEvent, getFeaturedEvent, getNextUpcomingEvent } from '../lib/eventNavigation.js'
+import {
+  getDaysUntilEvent,
+  getFeaturedEvent,
+  getFeaturedEventDestination,
+  getNextUpcomingEvent,
+  isPitbullClassicEvent,
+} from '../lib/eventNavigation.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
@@ -107,6 +115,7 @@ function EventsDetailPanel({
   if (minimal) {
     const [day, month] = String(event.displayDate || '').split(' ')
     const place = [event.venue, event.location].filter(Boolean).join(' · ')
+    const { label: statusLabel, tone: statusTone } = getStatusMeta(event.status, t)
 
     return (
       <div className="events-detail events-detail--minimal">
@@ -116,11 +125,29 @@ function EventsDetailPanel({
             <span className="events-detail__date-month">{month || ''}</span>
           </div>
           <div className="events-detail__spotlight-copy">
-            <p className="events-detail__status-line">
-              <EventStatusBadge status={event.status} t={t} />
+            {isPitbullClassicEvent(event) ? (
+              <>
+                <div className="events-detail__brand">
+                  <PitbullBrandMark size="sm" label={event.title} />
+                </div>
+                <h3 className="events-detail__title visually-hidden">{event.title}</h3>
+              </>
+            ) : (
+              <h3 className="events-detail__title">{event.title}</h3>
+            )}
+            <p className="events-detail__meta-line">
+              {statusLabel ? (
+                <span className={`events-detail__status-inline events-detail__status-inline--${statusTone}`}>
+                  {statusLabel}
+                </span>
+              ) : null}
+              {statusLabel && place ? (
+                <span className="events-detail__meta-sep" aria-hidden>
+                  ·
+                </span>
+              ) : null}
+              {place ? <span>{place}</span> : null}
             </p>
-            <h3 className="events-detail__title">{event.title}</h3>
-            {place ? <p className="events-detail__meta-line">{place}</p> : null}
           </div>
         </div>
 
@@ -153,7 +180,16 @@ function EventsDetailPanel({
   return (
     <div className="events-detail">
       <div className="events-detail__head">
-        <h3 className="events-detail__title">{event.title}</h3>
+        {isPitbullClassicEvent(event) ? (
+          <>
+            <div className="events-detail__brand">
+              <PitbullBrandMark size="md" label={event.title} />
+            </div>
+            <h3 className="events-detail__title visually-hidden">{event.title}</h3>
+          </>
+        ) : (
+          <h3 className="events-detail__title">{event.title}</h3>
+        )}
         <EventStatusBadge status={event.status} t={t} />
       </div>
 
@@ -392,11 +428,23 @@ export default function EventsPage({
     setCalendarFocus(event.dateISO)
   }
 
+  /** Abre la ficha del evento: Pitbull a su página editorial; el resto a /evento/:slug. */
+  function openEvent(event) {
+    if (!event?.slug) return
+    focusEvent(event)
+    const destination = getFeaturedEventDestination(event)
+    onNavigate?.(destination.view, destination.options)
+  }
+
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
   const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
 
   function handleRegister(event) {
     onSelectEvent?.(event)
+  }
+
+  function isRegistrationOpen(event) {
+    return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   }
 
   const visibleEventCount = listEvents.length
@@ -454,7 +502,7 @@ export default function EventsPage({
           days={daysUntilNext}
           t={t}
           minimal
-          onSelect={nextEvent ? () => focusEvent(nextEvent) : undefined}
+          onSelect={nextEvent ? () => openEvent(nextEvent) : undefined}
         />
 
         <MotionContentSwap swapKey={filter} className="events-main-column">
@@ -468,12 +516,11 @@ export default function EventsPage({
                   venue={event.venue}
                   location={event.location}
                   status={event.status}
+                  brand={isPitbullClassicEvent(event) ? 'pitbull' : null}
                   selected={selected?.slug === event.slug}
-                  onSelect={() => focusEvent(event)}
+                  onSelect={() => openEvent(event)}
                   onAction={
-                    event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-                      ? () => handleRegister(event)
-                      : () => focusEvent(event)
+                    isRegistrationOpen(event) ? () => handleRegister(event) : () => openEvent(event)
                   }
                   actionLabel={registerLabel}
                   variant="minimal"
@@ -497,9 +544,30 @@ export default function EventsPage({
           className="events-calendar-board events-calendar-board--secondary"
           aria-label={t('pages.events.calendarSectionTitle')}
         >
-          <header className="events-calendar-board__head">
-            <h2 className="events-calendar-board__title">{t('pages.events.calendarSectionTitle')}</h2>
-          </header>
+          {nextEvent ? (
+            <EventCountdown
+              event={nextEvent}
+              className="events-calendar-board__countdown"
+              compact
+              onAction={
+                nextEvent.status === 'inscripcion_abierta' || nextEvent.status === 'cupos_limitados'
+                  ? () => handleRegister(nextEvent)
+                  : undefined
+              }
+              onNavigate={
+                pitbull?.slug && nextEvent.slug === pitbull.slug
+                  ? () => openEvent(pitbull)
+                  : nextEvent
+                    ? () => openEvent(nextEvent)
+                    : undefined
+              }
+              actionLabel={registerLabel}
+            />
+          ) : (
+            <header className="events-calendar-board__head">
+              <h2 className="events-calendar-board__title">{t('pages.events.calendarSectionTitle')}</h2>
+            </header>
+          )}
           <div className="events-calendar-board__grid">
             <div className="events-calendar-board__calendar">
               <EventCalendar
@@ -511,17 +579,21 @@ export default function EventsPage({
               />
             </div>
             <div className="events-calendar-board__panel">
-              <EventsDetailPanel
-                event={selected}
-                isFeaturedSelected={false}
-                minimal
-                onRegister={selected ? () => handleRegister(selected) : undefined}
-                onViewPitbull={
-                  pitbull?.slug && selected?.slug === pitbull.slug ? () => onNavigate('pitbull') : undefined
-                }
-                registerLabel={registerLabel}
-                t={t}
-              />
+              <MotionContentSwap swapKey={selected?.slug || 'none'}>
+                <EventsDetailPanel
+                  event={selected}
+                  isFeaturedSelected={false}
+                  minimal
+                  onRegister={selected ? () => handleRegister(selected) : undefined}
+                  onViewPitbull={
+                    pitbull?.slug && selected?.slug === pitbull.slug
+                      ? () => openEvent(pitbull)
+                      : undefined
+                  }
+                  registerLabel={registerLabel}
+                  t={t}
+                />
+              </MotionContentSwap>
               {ticketsEvent ? (
                 <EventsAudienceTicketsPanel
                   event={ticketsEvent}

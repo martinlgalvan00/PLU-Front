@@ -1,10 +1,10 @@
 export const STORAGE_KEY = 'plu-arg-maximal'
 
 export const PRICING = {
-  membership: 38000,
+  membership: 75000,
   membershipJunior: 28000,
-  event: 45000,
-  combo: 78000,
+  event: 75000,
+  combo: 120000,
 }
 
 export const PROCEDURE_TYPES = {
@@ -76,12 +76,12 @@ export const NAV_SECONDARY = ['pitbull', 'shop', 'rulebook', 'community', 'faq',
 export const PUBLIC_NAVIGATION = {
   primary: [
     { key: 'members', labelKey: 'nav.members' },
-    { key: 'events', labelKey: 'nav.calendarOfficial', icon: 'calendar' },
     {
       key: 'competitions',
       labelKey: 'nav.competitions',
       type: 'menu',
-      views: ['pitbull', 'tickets'],
+      // `events` vive acá (desktop: Ver todos los eventos); no hay link top-level.
+      views: ['events', 'pitbull', 'tickets', 'results', 'records'],
       items: [
         { key: 'pitbull', featured: true, icon: 'trophy' },
       ],

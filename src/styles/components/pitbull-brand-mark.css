@@ -1,0 +1,122 @@
+/* Lockup Pitbull Classic — emblema + wordmark con alpha, sin pastilla. */
+
+.pitbull-brand-mark {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.pitbull-brand-mark__emblem,
+.pitbull-brand-mark__wordmark {
+  display: block;
+  height: auto;
+  object-fit: contain;
+  width: auto;
+}
+
+.pitbull-brand-mark__emblem {
+  aspect-ratio: 1;
+  flex: none;
+}
+
+.pitbull-brand-mark__wordmark {
+  flex: 1 1 auto;
+  min-width: 0;
+  object-position: left center;
+}
+
+/* Lista de eventos */
+.pitbull-brand-mark--sm {
+  gap: 8px;
+}
+
+.pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+  height: 40px;
+}
+
+.pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+  height: 30px;
+  max-width: min(46vw, 168px);
+}
+
+/* Panel detalle / spotlight */
+.pitbull-brand-mark--md {
+  gap: 10px;
+}
+
+.pitbull-brand-mark--md .pitbull-brand-mark__emblem {
+  height: 56px;
+}
+
+.pitbull-brand-mark--md .pitbull-brand-mark__wordmark {
+  height: 42px;
+  max-width: min(52vw, 220px);
+}
+
+/* Hero Pitbull */
+.pitbull-brand-mark--lg {
+  filter: drop-shadow(0 2px 10px color-mix(in oklab, var(--plu-cool-950) 55%, transparent));
+  gap: 12px;
+}
+
+.pitbull-brand-mark--lg .pitbull-brand-mark__emblem {
+  height: clamp(64px, 9vw, 96px);
+}
+
+.pitbull-brand-mark--lg .pitbull-brand-mark__wordmark {
+  height: clamp(44px, 7vw, 78px);
+  max-width: min(58vw, 300px);
+}
+
+.pitbull-hero-masthead--bleed .pitbull-brand-mark--lg {
+  filter: drop-shadow(0 3px 14px color-mix(in oklab, var(--plu-cool-950) 65%, transparent));
+}
+
+[data-theme='light'] .pitbull-brand-mark--lg {
+  filter: drop-shadow(0 2px 8px color-mix(in oklab, var(--plu-cool-950) 35%, transparent));
+}
+
+@media (max-width: 639px) {
+  .pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+    height: 34px;
+  }
+
+  .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+    height: 26px;
+    max-width: min(42vw, 140px);
+  }
+
+  .pitbull-brand-mark--lg {
+    gap: 8px;
+  }
+
+  .pitbull-brand-mark--lg .pitbull-brand-mark__emblem {
+    height: 52px;
+  }
+
+  .pitbull-brand-mark--lg .pitbull-brand-mark__wordmark {
+    height: 38px;
+    max-width: min(52vw, 200px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-brand-mark--lg {
+    filter: none;
+  }
+}
+
+/* Card de eventos con marca Pitbull */
+.event-card--pitbull .event-card__title--brand {
+  margin: 0;
+}
+
+.event-card--pitbull .event-card__brand {
+  margin: 0 0 2px;
+}
+
+.events-detail__brand {
+  margin: 0 0 8px;
+}

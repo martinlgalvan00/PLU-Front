@@ -28,3 +28,22 @@ export const Selected = {
 export const Closed = {
   args: { status: 'cerrado' },
 }
+
+export const Minimal = {
+  args: {
+    variant: 'minimal',
+    selected: true,
+  },
+}
+
+export const PitbullClassic = {
+  args: {
+    date: '12 Dic',
+    title: 'Pitbull Classic',
+    venue: 'Maximal Strength Club',
+    location: 'Buenos Aires',
+    status: 'proximo',
+    brand: 'pitbull',
+    variant: 'minimal',
+  },
+}

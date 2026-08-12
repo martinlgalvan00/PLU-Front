@@ -4,7 +4,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import { buildAthleteCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
 import { formatShortDate } from '../../lib/format.js'
 import {
@@ -75,8 +75,7 @@ export default function QrCredentialSection({
       return undefined
     }
     let cancelled = false
-    const eventSlug = primaryMeet?.eventSlug ?? (membershipCurrent ? 'afiliacion' : undefined)
-    generateCredentialQr(buildCredentialUrl({ code: credentialCode, eventSlug }))
+    generateCredentialQr(buildAthleteCredentialUrl(credentialCode))
       .then((dataUrl) => {
         if (!cancelled) setQrSrc(dataUrl)
       })
@@ -86,7 +85,7 @@ export default function QrCredentialSection({
     return () => {
       cancelled = true
     }
-  }, [credentialCode, hasCredential, membershipCurrent, primaryMeet?.eventSlug])
+  }, [credentialCode, hasCredential])
 
   const cardData = hasCredential
     ? {
@@ -95,7 +94,11 @@ export default function QrCredentialSection({
         athletePhotoUrl: athlete.photoUrl,
         qrCode: credentialCode,
         membershipExpiration: validUntil,
-        variant: membershipCurrent ? 'membership' : 'event',
+        variant: membershipCurrent && primaryMeet
+          ? 'unified'
+          : membershipCurrent
+            ? 'membership'
+            : 'event',
         eventSlug: primaryMeet?.eventSlug ?? 'afiliacion',
         eventTitle: primaryMeet?.event,
       }
@@ -189,7 +192,11 @@ export default function QrCredentialSection({
                   code={memberCode ?? credentialCode}
                   codeLabel={t('account.qr.cardCodeLabel')}
                   season={t('account.qr.cardSeason', { year: credentialSeasonYear })}
-                  status={t('account.membershipActive')}
+                  status={
+                    membershipCurrent && primaryMeet
+                      ? t('account.qr.unifiedStatus')
+                      : t('account.membershipActive')
+                  }
                   qrSrc={qrSrc}
                   qrAlt={t('account.qr.imageAlt')}
                   qrCaption={t('account.qr.cardScanHint')}
@@ -226,12 +233,16 @@ export default function QrCredentialSection({
                         <dd>{validUntil}</dd>
                       </div>
                     )}
-                    {!membershipCurrent && admittedRegistrations.length > 0 && (
-                      <div>
+                    {admittedRegistrations.map((registration) => (
+                      <div key={registration.id ?? registration.eventSlug ?? registration.event}>
                         <dt>{t('account.qr.scanPreviewRegistration')}</dt>
-                        <dd>{admittedRegistrations[0].event ?? t('account.qr.scanPreviewRegistered')}</dd>
+                        <dd>
+                          {registration.event
+                            ? `${registration.event} · ${t('account.qr.scanPreviewRegistered')}`
+                            : t('account.qr.scanPreviewRegistered')}
+                        </dd>
                       </div>
-                    )}
+                    ))}
                   </dl>
                 </aside>
                 <button

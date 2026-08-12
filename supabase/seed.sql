@@ -9,12 +9,12 @@ insert into public.events (
 ) values (
   'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
-  'proximamente', true, 45000, 'ARS',
+  'proximamente', true, 75000, 'ARS',
   '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03'
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',
   '2025-05-18 10:00:00-03', '2025-05-18 20:00:00-03',
-  'finalizado', true, 45000, 'ARS',
+  'finalizado', true, 75000, 'ARS',
   null, null
 );
 

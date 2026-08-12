@@ -20,6 +20,25 @@ export const Home = {
   args: { variant: 'home' },
 }
 
+/** Evento genérico sin foto/logo: template brand PLU (no fotos Pitbull). */
+export const HomeGenericNoMedia = {
+  args: {
+    variant: 'home',
+    event: {
+      slug: 'test-13-ago',
+      title: 'TEST 13-ago',
+      description: 'Meet oficial de prueba · sede por confirmar.',
+      status: 'inscripcion_abierta',
+      venue: 'Sede por confirmar',
+      location: 'Argentina',
+      displayDate: '13 ago 2026',
+      startsAt: '2026-08-13T09:00:00-03:00',
+      dateISO: '2026-08-13',
+      categories: [],
+    },
+  },
+}
+
 /** CTA real: "Inscribirme" — la inscripción está abierta. */
 export const HomeRegistrationOpen = {
   args: { variant: 'home', event: { status: 'inscripcion_abierta' } },

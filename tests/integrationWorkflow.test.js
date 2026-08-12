@@ -13,7 +13,7 @@ describe('integration workflows', () => {
     let order = {
       id: '8e9edb56-2dbf-45fb-9a79-60c31843f6df',
       athleteId: 'ath-001',
-      amount: 38000,
+      amount: 75000,
       currency: 'ARS',
       displayConcept: 'Afiliacion PLU',
       method: 'mercado_pago',
@@ -114,7 +114,7 @@ describe('integration workflows', () => {
     const eventStore = createMemoryIntegrationEventStore()
     const input = {
       to: 'martina.rivas@example.com',
-      params: { name: 'Martina Rivas', amount: 78000 },
+      params: { name: 'Martina Rivas', amount: 120000 },
       entityType: 'payment',
       entityId: 'pay-001',
       idempotencyKey: 'email-payment-approved-pay-001',

@@ -24,6 +24,22 @@ export function buildCredentialUrl({ code, eventSlug, type }) {
 }
 
 /**
+ * URL canónica de la credencial de una persona.
+ *
+ * El QR del atleta no representa una afiliación ni una inscripción puntual:
+ * identifica a la persona con `athletes.credential_token`. Los derechos se
+ * resuelven frescos al escanear. Por eso esta URL nunca lleva `evento`; así la
+ * misma imagen sigue sirviendo después de afiliarse, inscribirse o renovar.
+ * Las entradas generales no usan este helper: conservan tipo + evento.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+export function buildAthleteCredentialUrl(code) {
+  return buildCredentialUrl({ code })
+}
+
+/**
  * Genera el PNG (data URL) del QR para una credencial.
  * Cachea por URL para no re-encodear cuando preview + capture montan
  * dos EventShareCard en el mismo flujo de share (pico CPU en mobile).

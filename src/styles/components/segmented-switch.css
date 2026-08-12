@@ -133,6 +133,93 @@
   min-height: 30px;
 }
 
+/* Membresía: pill oro (Members + Account). Un acento de marca, thumb con presencia. */
+.segmented-switch--membership {
+  --switch-pad: 4px;
+  --switch-track-bg: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+  --switch-track-border: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  --switch-thumb-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--plu-gold-500) 88%, #fff) 0%,
+    var(--plu-gold-500) 100%
+  );
+  --switch-thumb-border: color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+  --switch-thumb-shadow:
+    0 1px 0 color-mix(in oklab, #fff 30%, transparent) inset,
+    0 8px 18px -12px color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  --switch-option-fg: var(--color-text-muted);
+  --switch-option-active-fg: #14181f;
+  background: var(--switch-track-bg);
+  border: 1px solid var(--switch-track-border);
+  border-radius: var(--border-radius-pill);
+  box-shadow: none;
+  cursor: pointer;
+  max-width: none;
+  padding: var(--switch-pad);
+  width: 100%;
+}
+
+.segmented-switch--membership .segmented-switch__thumb {
+  background: var(--switch-thumb-bg);
+  border: 1px solid var(--switch-thumb-border);
+  border-radius: calc(var(--border-radius-pill) - 4px);
+  box-shadow: var(--switch-thumb-shadow);
+}
+
+.segmented-switch--membership .segmented-switch__thumb::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #fff 40%, transparent) 0%,
+    transparent 72%
+  );
+  border-radius: inherit;
+  inset: 1px 3px auto;
+}
+
+.segmented-switch--membership .segmented-switch__option {
+  border-radius: calc(var(--border-radius-pill) - 4px);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 11px;
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: 0.14em;
+  min-height: 44px;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  transition: color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.segmented-switch--membership .segmented-switch__option.is-active {
+  font-weight: 700;
+}
+
+.segmented-switch--membership .segmented-switch__option:hover:not(.is-active) {
+  color: color-mix(in oklab, var(--plu-gold-500) 42%, var(--color-text-secondary));
+}
+
+.segmented-switch--membership:focus-within {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 34%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--plu-gold-500) 10%, transparent);
+}
+
+.segmented-switch--membership .segmented-switch__option:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--plu-gold-500) 48%, transparent);
+  outline-offset: 2px;
+}
+
+[data-theme='light'] .segmented-switch--membership {
+  --switch-track-bg: color-mix(in oklab, var(--color-bg-elevated, #fff) 92%, #f2f3f5);
+  --switch-track-border: rgba(15, 17, 23, 0.1);
+  --switch-thumb-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--plu-gold-600, var(--plu-gold-500)) 76%, #fff) 0%,
+    var(--plu-gold-600, var(--plu-gold-500)) 100%
+  );
+  --switch-thumb-border: color-mix(in oklab, var(--plu-gold-600, var(--plu-gold-500)) 38%, transparent);
+  --switch-option-active-fg: #14181f;
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.04);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .segmented-switch__thumb {
     transition: none !important;

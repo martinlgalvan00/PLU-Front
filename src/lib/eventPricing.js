@@ -11,14 +11,36 @@ export const DEFAULT_EVENT_PRICING = {
   ticketAddons: [],
 }
 
+/** Oferta combo vigente segun active + ventana startsAt/endsAt. */
+export function isComboOfferLive(offer, now = new Date()) {
+  if (!offer || offer.active !== true) return false
+  const price = Number(offer.price)
+  if (!Number.isFinite(price) || price <= 0) return false
+  if (offer.startsAt && new Date(offer.startsAt).getTime() > now.getTime()) return false
+  if (offer.endsAt && new Date(offer.endsAt).getTime() < now.getTime()) return false
+  return true
+}
+
+export function resolveLiveComboOffer(event, now = new Date()) {
+  const offer = event?.comboOffer ?? null
+  return isComboOfferLive(offer, now) ? offer : null
+}
+
 /** Un evento sin días configurados todavía no puede vender entradas. */
 export const DEFAULT_EVENT_DAYS = []
 export const DEFAULT_TICKET_TYPES = []
 
 export function resolveEventPricing(event) {
+  const liveCombo = resolveLiveComboOffer(event)
   const pricing = {
     ...DEFAULT_EVENT_PRICING,
     ...(event?.pricing ?? {}),
+  }
+  if (liveCombo) {
+    pricing.combo = Number(liveCombo.price) || pricing.combo
+  }
+  if (event?.price != null && Number.isFinite(Number(event.price))) {
+    pricing.registration = Number(event.price)
   }
   return {
     ...pricing,

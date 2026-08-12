@@ -45,7 +45,7 @@ describe('normalización del padrón para el panel', () => {
           id: 'pay-1',
           athlete_id: 'ath-1',
           concept: 'registration',
-          amount: 45000,
+          amount: 75000,
           method: 'manual_link',
           status: 'validacion_manual',
           payment_proof_path: 'pay-1/comprobante.pdf',

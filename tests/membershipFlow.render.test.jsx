@@ -109,20 +109,29 @@ function membership(overrides = {}) {
   }
 }
 
-function renderRegister({ memberships = [], registrations = [], flow = 'membership', order = PENDING_ORDER } = {}) {
+function renderRegister({
+  memberships = [],
+  registrations = [],
+  flow = 'membership',
+  order = PENDING_ORDER,
+  event = { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', price: 75000, requiresMembership: true },
+  onSubmit = () => {},
+  total = 75000,
+  form = { paymentMethod: 'mercado_pago', division: 'Open', category: 'Raw', estimatedWeight: '83' },
+} = {}) {
   return render(
     <I18nProvider>
       <RegisterPage
         athlete={ATHLETE}
-        createdOrder={{ ...order, type: flow }}
-        event={{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', price: 25000 }}
+        createdOrder={order ? { ...order, type: flow } : null}
+        event={event}
         flow={flow}
-        form={{ paymentMethod: 'mercado_pago', division: 'Open', category: 'Raw' }}
+        form={form}
         memberships={memberships}
         registrations={registrations}
-        total={25000}
+        total={total}
         onNavigate={() => {}}
-        onSubmit={() => {}}
+        onSubmit={onSubmit}
         onUpdateForm={() => {}}
       />
     </I18nProvider>,
@@ -202,6 +211,25 @@ describe('credencial de inscripción a torneo', () => {
   // mobile), así que la acción aparece más de una vez cuando existe.
   const cardActions = () => screen.queryAllByRole('button', { name: /generar mi card/i })
 
+  it('muestra ARS 75.000 como total de inscripción de Pitbull Classic', () => {
+    const { container } = renderRegister({
+      flow: 'competition',
+      order: null,
+      total: 75000,
+      event: {
+        slug: 'pitbull-classic-2026',
+        title: 'Pitbull Classic 2026',
+        price: 75000,
+        requiresMembership: true,
+      },
+    })
+
+    const displayedTotals = [...container.querySelectorAll('.register-competition-ticket__total strong')]
+      .map((node) => node.textContent.replace(/\s/g, ''))
+    expect(displayedTotals.some((value) => value.includes('75.000'))).toBe(true)
+    expect(displayedTotals.some((value) => /^\$?2$/.test(value))).toBe(false)
+  })
+
   it('no la emite con la inscripción pendiente de pago', () => {
     renderRegister({ flow: 'competition', registrations: [registration()] })
 
@@ -222,6 +250,78 @@ describe('credencial de inscripción a torneo', () => {
     })
 
     expect(cardActions()).toHaveLength(0)
+  })
+
+  it('ofrece y envia el combo como una unica eleccion cuando falta afiliacion', async () => {
+    const onSubmit = vi.fn(async () => ({}))
+    renderRegister({
+      flow: 'competition',
+      order: null,
+      onSubmit,
+      total: 75000,
+      event: {
+        slug: 'pitbull-classic-2026',
+        title: 'Pitbull Classic 2026',
+        price: 75000,
+        requiresMembership: true,
+        comboOffer: {
+          id: 'combo-1',
+          active: true,
+          price: 120000,
+          currency: 'ARS',
+          startsAt: '2026-08-01T00:00:00-03:00',
+          endsAt: '2026-08-28T23:59:59-03:00',
+        },
+      },
+    })
+
+    expect(screen.getByRole('radio', { name: /combo/i }).checked).toBe(true)
+    expect(screen.getByRole('button', { name: /generar combo/i })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /generar combo/i }))
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ slug: 'pitbull-classic-2026' }),
+        { purchaseType: 'combo' },
+      )
+    })
+  })
+
+  it('contiene un error al crear el combo y permite reintentarlo en la misma pagina', async () => {
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('No se pudo iniciar el pago. Reintentá en unos segundos.'))
+      .mockResolvedValueOnce({})
+    renderRegister({
+      flow: 'competition',
+      order: null,
+      onSubmit,
+      total: 75000,
+      event: {
+        slug: 'pitbull-classic-2026',
+        title: 'Pitbull Classic 2026',
+        price: 75000,
+        requiresMembership: true,
+        comboOffer: {
+          id: 'combo-1',
+          active: true,
+          price: 120000,
+          currency: 'ARS',
+          startsAt: '2026-08-01T00:00:00-03:00',
+          endsAt: '2026-08-28T23:59:59-03:00',
+        },
+      },
+    })
+
+    const submit = screen.getByRole('button', { name: /generar combo/i })
+    fireEvent.click(submit)
+    expect((await screen.findByRole('alert')).textContent).toContain('No se pudo iniciar el pago')
+    expect(submit.disabled).toBe(false)
+
+    fireEvent.click(submit)
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
 
@@ -297,7 +397,7 @@ describe('sección de afiliación de la cuenta', () => {
     const onStartMembershipPayment = vi.fn(async () => ({
       createdOrder: {
         paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
-        amount: 38000,
+        amount: 75000,
         preferenceId: 'pref-membership',
         paymentMode: 'payment',
         status: 'pendiente',

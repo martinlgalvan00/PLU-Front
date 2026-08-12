@@ -115,7 +115,7 @@ Requiere rol `athlete_plu`.
 - Registro → creación de perfil
 - Afiliación → orden de pago (`pendiente_pago` → aprobación)
 - Inscripción a evento → orden de pago + estados (`borrador` → `confirmada`)
-- Precios MVP en ARS: afiliación $38.000, juvenil $28.000, evento $45.000, combo $78.000
+- Precios MVP en ARS: afiliación $75.000, juvenil $28.000, evento $75.000, combo $120.000 (promo hasta 28/08/2026)
 
 ### Pitbull Classic — entradas
 

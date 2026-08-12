@@ -317,7 +317,7 @@ describe('plantillas HTML de fallback', () => {
   it('agrupa comprobante, afiliación e inscripción en la confirmación del pago', () => {
     const confirmation = renderEmail('payment_confirmation', {
       name: 'Ana',
-      amount: 78000,
+      amount: 120000,
       concept: 'Afiliación + inscripción',
       reference: 'PLU-2026-14',
       paidAt: '2026-08-11T15:00:00.000Z',
@@ -687,7 +687,7 @@ describe('OTP de verificación de email', () => {
 })
 
 describe('emails de pago (vía Mercado Pago)', () => {
-  const aprobado = { status: 'aprobado', externalPaymentId: 'mp-1', amount: 78000, raw: {} }
+  const aprobado = { status: 'aprobado', externalPaymentId: 'mp-1', amount: 120000, raw: {} }
 
   async function llamadas(order, payment = aprobado, result) {
     const send = vi.fn().mockResolvedValue({ status: 'sent' })
@@ -707,7 +707,7 @@ describe('emails de pago (vía Mercado Pago)', () => {
         id: 'o-manual',
         concept: 'combo',
         reference: 'MAN-1',
-        amount: 78000,
+        amount: 120000,
         method: 'manual_link',
       },
       result: {
@@ -815,7 +815,7 @@ describe('emails de pago (vía Mercado Pago)', () => {
         kind: 'athlete', id: 'o6', concept: 'membership', reference: 'R6',
         payerEmail: 'ana@example.com', athlete: { full_name: 'Ana' }, displayConcept: 'Afiliación anual',
       },
-      { status: 'reembolsado', externalPaymentId: 'mp-6', amount: 38000 },
+      { status: 'reembolsado', externalPaymentId: 'mp-6', amount: 75000 },
       { membership: { id: 'mem-6', member_code: 'PLU-ARG-2026-006', status: 'reembolsada' } },
     )
 

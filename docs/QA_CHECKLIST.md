@@ -26,6 +26,15 @@
 - [ ] Fecha de nacimiento futura/inexistente, teléfono fuera de rango y categoría inválida se rechazan también en la API
 - [ ] Duplicado email/documento muestra error
 - [ ] Combo/afiliación/solo evento calcula monto correcto
+- [ ] Pitbull Classic muestra y crea la orden de inscripción por ARS 75.000 aunque exista un snapshot local viejo
+- [ ] Pitbull Classic está publicado y en `inscripcion_abierta`; la ventana vigente no contradice el estado
+- [ ] Combo crea una sola orden y afiliación + inscripción comparten `payment_order_id`
+- [ ] Repetir la misma idempotency key del combo devuelve la misma orden sin consumir otro cupo
+- [ ] Fallar plan, oferta o cupo revierte el combo completo sin dejar filas huérfanas
+- [ ] Acreditar el combo activa afiliación e inscripción; cancelar/reembolsar revierte ambas
+- [ ] El `credential_token` del atleta no cambia antes/después de acreditar el combo
+- [ ] Ese único QR devuelve afiliación activa + inscripción confirmada, con y sin contexto de evento
+- [ ] Seguridad puede hacer check-in desde la inscripción resuelta por el QR único
 - [ ] Orden se crea y aparece en panel
 - [ ] El alta deja `welcome` y `email_verification` enviados o en reintento antes del 201
 
@@ -70,6 +79,8 @@
 
 ## Integraciones (producción)
 
+- [ ] Con `APP_PRODUCTION=true`, afiliación automática no aparece en planes y sus endpoints responden `FEATURE_COMING_SOON`
+- [ ] Con `APP_PRODUCTION=true`, el combo vigente sigue disponible y crea una única orden para ambos derechos
 - [ ] `npm run email:doctor` termina sin bloqueos: remitente validado, URL HTTPS pública y webhook transaccional activo
 - [ ] Un envío real pasa de `sent` a `delivered` en Auditoría
 - [ ] `npm run mercado-pago:doctor` valida Access Token y secreto del webhook

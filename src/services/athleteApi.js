@@ -349,6 +349,43 @@ export async function createCompetitionRegistration({
   }
 }
 
+export async function createCompetitionRegistrationCombo({
+  eventSlug,
+  division,
+  category,
+  bodyweightKg,
+  paymentMethod,
+  idempotencyKey = crypto.randomUUID(),
+}) {
+  const result = await apiPost('/api/athletes/me/registration-combos', {
+    eventSlug,
+    division,
+    category,
+    bodyweightKg,
+    paymentMethod,
+    idempotencyKey,
+  })
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: toCamelMembership(result.membership),
+    registration: toCamelRegistrationEntry({
+      registration: result.registration,
+      event: { slug: eventSlug },
+    }),
+    plan: toCamelMembershipPlan(result.plan),
+    comboOffer: result.comboOffer
+      ? {
+          id: result.comboOffer.id,
+          membershipPlanId: result.comboOffer.membership_plan_id,
+          price: result.comboOffer.price,
+          currency: result.comboOffer.currency,
+          startsAt: result.comboOffer.starts_at,
+          endsAt: result.comboOffer.ends_at,
+        }
+      : null,
+  }
+}
+
 export async function approveAthletePaymentOrder(orderId) {
   const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {})
   return {

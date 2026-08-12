@@ -29,7 +29,8 @@ import {
   pushTicketsRoute,
 } from './lib/ticketsRoute.js'
 import { PRICING } from './lib/constants.js'
-import { getNextUpcomingEvent } from './lib/eventNavigation.js'
+import { resolveEventPricing } from './lib/eventPricing.js'
+import { getFeaturedEvent, getNextUpcomingEvent } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
 import {
@@ -106,6 +107,14 @@ export default function App() {
   const getSession = app.getSession
   const publicEvents = app.adminEvents.filter((event) => event.published !== false)
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
+  const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
+
+  useEffect(() => {
+    setSelectedEvent((current) => {
+      const canonical = app.adminEvents.find((event) => event.slug === current?.slug)
+      return canonical && canonical !== current ? canonical : current
+    })
+  }, [app.adminEvents])
 
   useEffect(() => {
     // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
@@ -450,6 +459,7 @@ export default function App() {
             : view === 'pitbull'
               ? {
                   onNavigate: navigate,
+                  onSelectEvent: selectEvent,
                   events: publicEvents,
                 }
               : view === 'shop'
@@ -468,7 +478,13 @@ export default function App() {
                   : view === 'results'
                     ? { onNavigate: navigate, events: publicEvents }
                     : view === 'members'
-                      ? { memberships: app.memberships, onNavigate: navigate, session: app.session }
+                      ? {
+                          memberships: app.memberships,
+                          onNavigate: navigate,
+                          onSelectEvent: selectEvent,
+                          session: app.session,
+                          events: publicEvents,
+                        }
                       : { onNavigate: navigate }
 
   if (view === 'profile' && app.session?.role === 'athlete_plu') {
@@ -502,6 +518,10 @@ export default function App() {
   if (['membership', 'competition'].includes(view) && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
     const flow = view
+    const competitionEvent =
+      publicEvents.find((event) => event.slug === selectedEvent?.slug) ??
+      featuredEvent ??
+      selectedEvent
     return (
       <PrivateLayout
         app={app}
@@ -513,7 +533,7 @@ export default function App() {
           <RegisterPage
             athlete={athlete}
             createdOrder={app.createdOrder}
-            event={selectedEvent}
+            event={competitionEvent}
             flow={flow}
             form={app.form}
             memberships={app.memberships}
@@ -530,7 +550,11 @@ export default function App() {
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.
-            total={flow === 'membership' ? PRICING.membership : (selectedEvent?.price ?? PRICING.event)}
+            total={
+              flow === 'membership'
+                ? PRICING.membership
+                : resolveEventPricing(competitionEvent).registration
+            }
           />
         </Suspense>
       </PrivateLayout>
@@ -545,8 +569,9 @@ export default function App() {
       <EmailVerificationNotice />
       <PaymentsMockBanner />
       <NavbarPublic
+        activeEventSlug={eventPageSlug}
         activeView={view}
-        latestEvent={nextEvent}
+        latestEvent={featuredEvent}
         memberships={app.memberships}
         onLogout={app.logout}
         onNavigate={navigate}
@@ -575,7 +600,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
       <NavbarPublic
         activeView={view}
         latestEvent={
-          getNextUpcomingEvent(app.adminEvents.filter((event) => event.published !== false)) ??
+          getFeaturedEvent(app.adminEvents.filter((event) => event.published !== false)) ??
           UPCOMING_EVENTS[0]
         }
         memberships={app.memberships}

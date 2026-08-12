@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
+import PitbullBrandMark from './PitbullBrandMark.jsx'
 import SpotlightCard from './SpotlightCard.jsx'
 
 const LIVE_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
@@ -13,6 +14,7 @@ export default function EventCard({
   status,
   featured = false,
   selected = false,
+  brand = null,
   onAction,
   onSelect,
   actionLabel = 'Inscribirme',
@@ -25,6 +27,8 @@ export default function EventCard({
   const isLive = LIVE_STATUSES.has(status)
   const secondaryLabel = t('pages.events.listViewEvent')
   const isMinimal = variant === 'minimal'
+  const isPitbull = brand === 'pitbull'
+  const hasPlace = Boolean(venue || location)
 
   return (
     <SpotlightCard
@@ -34,6 +38,7 @@ export default function EventCard({
         isMinimal ? 'event-card--minimal' : '',
         featured ? 'event-card--featured' : '',
         selected ? 'event-card--selected' : '',
+        isPitbull ? 'event-card--pitbull' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -64,39 +69,61 @@ export default function EventCard({
           </p>
         ) : null}
 
-        <h3 className="event-card__title">{title}</h3>
+        {isPitbull ? (
+          <>
+            <div className="event-card__brand">
+              <PitbullBrandMark size="sm" label={title} />
+            </div>
+            <h3 className="event-card__title event-card__title--brand visually-hidden">{title}</h3>
+          </>
+        ) : (
+          <h3 className="event-card__title">{title}</h3>
+        )}
 
-        <p className="event-card__meta">
-          {isMinimal && status ? (
-            <>
+        {isMinimal ? (
+          <p className="event-card__meta">
+            {status ? (
               <span className="event-card__status event-card__status--inline" data-tone={tone}>
                 {statusLabel}
               </span>
+            ) : null}
+            {status && hasPlace ? (
               <span className="event-card__meta-sep" aria-hidden>
                 ·
               </span>
-            </>
-          ) : null}
-          <span>{venue}</span>
-          {location ? (
-            <>
+            ) : null}
+            {venue ? <span>{venue}</span> : null}
+            {venue && location ? (
               <span className="event-card__meta-sep" aria-hidden>
                 ·
               </span>
-              <span>{location}</span>
-            </>
-          ) : null}
-        </p>
+            ) : null}
+            {location ? <span>{location}</span> : null}
+          </p>
+        ) : hasPlace ? (
+          <p className="event-card__meta">
+            {venue ? <span>{venue}</span> : null}
+            {venue && location ? (
+              <span className="event-card__meta-sep" aria-hidden>
+                ·
+              </span>
+            ) : null}
+            {location ? <span>{location}</span> : null}
+          </p>
+        ) : null}
       </div>
 
       {onAction && !closed ? (
         <button
           type="button"
-          className={
-            isLive
-              ? 'event-card__action event-card__action--live motion-icon-shift'
-              : 'event-card__action event-card__action--quiet motion-icon-shift'
-          }
+          className={[
+            'event-card__action',
+            'motion-icon-shift',
+            isMinimal ? 'event-card__action--editorial' : '',
+            isLive ? 'event-card__action--live' : 'event-card__action--quiet',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           onClick={(event) => {
             event.stopPropagation()
             onAction?.()

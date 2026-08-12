@@ -4747,6 +4747,314 @@
   z-index: 3;
 }
 
+/* Logo oficial Pitbull Classic — wordmark transparente sobre foto oscura. */
+.pitbull-spotlight__home-event-logo {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  bottom: 12px;
+  box-shadow: none;
+  display: block;
+  filter: drop-shadow(0 2px 10px color-mix(in oklab, var(--plu-cool-950) 60%, transparent));
+  height: auto;
+  left: 12px;
+  max-height: clamp(40px, 9vw, 56px);
+  max-width: min(52%, 260px);
+  object-fit: contain;
+  object-position: left center;
+  padding: 0;
+  position: absolute;
+  width: auto;
+  z-index: 3;
+}
+
+@media (max-width: 959px) {
+  /* Overlay mobile: el copy cubre abajo — logo arriba bajo el badge. */
+  .pitbull-spotlight__home-event-logo {
+    bottom: auto;
+    left: 12px;
+    max-height: 40px;
+    max-width: min(48%, 180px);
+    padding: 0;
+    right: auto;
+    top: 48px;
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1599px) {
+  .pitbull-spotlight__home-event-logo {
+    bottom: clamp(16px, 2.4vw, 24px);
+    left: clamp(16px, 2.4vw, 28px);
+    max-height: clamp(48px, 6vw, 64px);
+    max-width: min(36%, 260px);
+  }
+}
+
+@media (min-width: 1600px) {
+  .pitbull-spotlight__home-event-logo {
+    bottom: 16px;
+    left: 16px;
+    max-height: 64px;
+    max-width: 280px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-spotlight__home-event-logo {
+    filter: none;
+  }
+}
+
+/* Template brand: evento destacado sin foto/logo propio (no-Pitbull).
+   Pieza tipográfica + emblema PLU; no reutiliza fotos de otra competencia. */
+.pitbull-spotlight--home-template .pitbull-spotlight__home-hero-frame {
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in oklab, var(--plu-cool-850, #16181d) 92%, var(--color-brand-celeste)) 0%,
+      var(--plu-cool-900, #121316) 48%,
+      color-mix(in oklab, var(--plu-cool-850, #16181d) 88%, var(--plu-gold-500)) 100%
+    );
+  min-height: min(320px, 58vw);
+}
+
+.pitbull-spotlight__home-brand-canvas {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.pitbull-spotlight__home-brand-wash {
+  background:
+    radial-gradient(
+      70% 55% at 18% 78%,
+      color-mix(in oklab, var(--color-brand-celeste) 18%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      55% 45% at 88% 18%,
+      color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 14%, transparent) 0%,
+      transparent 58%
+    );
+  inset: 0;
+  position: absolute;
+}
+
+.pitbull-spotlight__home-brand-rule {
+  background: linear-gradient(
+    90deg,
+    transparent 8%,
+    color-mix(in srgb, var(--home-spotlight-title, #fff) 18%, transparent) 42%,
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent) 58%,
+    transparent 92%
+  );
+  bottom: 22%;
+  height: 1px;
+  left: 10%;
+  position: absolute;
+  right: 10%;
+}
+
+.pitbull-spotlight__home-brand-mark {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  inset: 0;
+  justify-content: center;
+  padding: clamp(48px, 10vw, 72px) 20px 28px;
+  position: absolute;
+  z-index: 1;
+}
+
+.pitbull-spotlight__home-brand-emblem {
+  display: block;
+  filter: drop-shadow(0 8px 18px rgba(8, 9, 12, 0.35));
+  height: clamp(56px, 12vw, 80px);
+  object-fit: contain;
+  width: auto;
+}
+
+.pitbull-spotlight__home-brand-label {
+  color: color-mix(in srgb, var(--home-spotlight-title, #fff) 78%, transparent);
+  font-family: var(--font-display, inherit);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+[data-theme='light'] .pitbull-spotlight--home-template .pitbull-spotlight__home-hero-frame {
+  /* Canvas institucional oscuro también en light: el copy del overlay
+     (título/CTA) asume contraste sobre plano oscuro, igual que la foto. */
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in oklab, var(--plu-cool-850, #16181d) 86%, var(--color-brand-celeste)) 0%,
+      var(--plu-cool-900, #121316) 48%,
+      color-mix(in oklab, var(--plu-cool-850, #16181d) 84%, var(--plu-gold-500)) 100%
+    );
+  border-color: color-mix(in srgb, var(--color-text-on-light, #1a1c22) 14%, transparent);
+}
+
+[data-theme='light'] .pitbull-spotlight__home-brand-label {
+  color: color-mix(in srgb, #fff 72%, transparent);
+}
+
+[data-theme='light'] .pitbull-spotlight__home-brand-emblem {
+  filter: drop-shadow(0 8px 16px rgba(8, 9, 12, 0.28));
+}
+
+[data-theme='light'] .pitbull-spotlight--home-template .pitbull-spotlight__home-hero-badge {
+  background: rgba(8, 9, 12, 0.48);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+[data-theme='light'] .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-wash {
+  background:
+    radial-gradient(
+      70% 55% at 18% 78%,
+      color-mix(in oklab, var(--color-brand-celeste) 18%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      55% 45% at 88% 18%,
+      color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 14%, transparent) 0%,
+      transparent 58%
+    );
+}
+
+@media (max-width: 959px) {
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-hero-frame {
+    min-height: min(420px, 78vw);
+  }
+
+  /* Overlay: la regla horizontal cortaba el copy/CTA a la mitad. */
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-rule {
+    display: none;
+  }
+
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-mark {
+    display: none;
+  }
+
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-wash {
+    background:
+      radial-gradient(
+        80% 50% at 22% 22%,
+        color-mix(in oklab, var(--color-brand-celeste) 16%, transparent) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        70% 55% at 78% 88%,
+        color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 12%, transparent) 0%,
+        transparent 60%
+      ),
+      linear-gradient(180deg, transparent 42%, rgba(8, 9, 12, 0.72) 100%);
+  }
+
+  [data-theme='light'] .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-wash {
+    background:
+      radial-gradient(
+        80% 50% at 22% 22%,
+        color-mix(in oklab, var(--color-brand-celeste) 16%, transparent) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        70% 55% at 78% 88%,
+        color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 12%, transparent) 0%,
+        transparent 60%
+      ),
+      linear-gradient(180deg, transparent 42%, rgba(8, 9, 12, 0.72) 100%);
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1599px) {
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-hero-frame {
+    aspect-ratio: 2.15 / 1;
+    max-height: clamp(320px, 42vw, 460px);
+    min-height: 280px;
+  }
+
+  /* Overlay notebook: misma regla — no cruzar el panel. */
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-rule {
+    display: none;
+  }
+
+  /* Overlay landscape: emblema a la derecha, lejos del copy. */
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-mark {
+    align-items: flex-end;
+    inset: auto 0 0 auto;
+    justify-content: center;
+    left: 52%;
+    padding: clamp(28px, 4vw, 48px) clamp(28px, 5vw, 56px) clamp(36px, 5vw, 56px);
+    right: 0;
+    top: 0;
+  }
+
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-emblem {
+    height: clamp(72px, 8vw, 104px);
+  }
+
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-wash {
+    background:
+      radial-gradient(
+        55% 70% at 72% 48%,
+        color-mix(in oklab, var(--color-brand-celeste) 14%, transparent) 0%,
+        transparent 62%
+      ),
+      radial-gradient(
+        40% 50% at 18% 70%,
+        color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 12%, transparent) 0%,
+        transparent 58%
+      ),
+      linear-gradient(
+        100deg,
+        rgba(8, 9, 12, 0.55) 0%,
+        rgba(8, 9, 12, 0.18) 42%,
+        transparent 68%
+      );
+  }
+
+  [data-theme='light'] .pitbull-spotlight--home-template .pitbull-spotlight__home-brand-wash {
+    background:
+      radial-gradient(
+        55% 70% at 72% 48%,
+        color-mix(in oklab, var(--color-brand-celeste) 14%, transparent) 0%,
+        transparent 62%
+      ),
+      radial-gradient(
+        40% 50% at 18% 70%,
+        color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 12%, transparent) 0%,
+        transparent 58%
+      ),
+      linear-gradient(
+        100deg,
+        rgba(8, 9, 12, 0.55) 0%,
+        rgba(8, 9, 12, 0.18) 42%,
+        transparent 68%
+      );
+  }
+}
+
+@media (min-width: 1600px) {
+  .pitbull-spotlight--home-template .pitbull-spotlight__home-hero-frame {
+    aspect-ratio: 5 / 4;
+    max-height: min(420px, 48vw);
+    min-height: 280px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitbull-spotlight__home-brand-emblem {
+    filter: none;
+  }
+}
+
 .pitbull-spotlight__home-panel {
   display: flex;
   flex-direction: column;
@@ -5701,6 +6009,15 @@
     border-color: rgba(255, 255, 255, 0.14);
   }
 
+  [data-theme='light'] .pitbull-spotlight__home-cta-secondary {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  [data-theme='light'] .pitbull-spotlight__home-cta-secondary:hover,
+  [data-theme='light'] .pitbull-spotlight__home-cta-secondary:focus-visible {
+    color: #fff;
+  }
+
   [data-theme='light'] .pitbull-spotlight__home-tags li {
     background: transparent;
     border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 34%, rgba(255, 255, 255, 0.14));
@@ -6185,16 +6502,18 @@
   background: var(--plu-gold-500);
   border: 1px solid transparent;
   border-radius: var(--border-radius-pill);
-  box-shadow: var(--elevation-lg);
+  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--plu-gold-500) 55%, transparent);
   color: #14181f;
   display: flex;
+  font-size: 14px;
   font-weight: 700;
   gap: var(--space-sm);
   justify-content: center;
   letter-spacing: 0.02em;
   margin-inline: auto;
   max-width: 420px;
-  padding: 14px 20px;
+  min-height: 48px;
+  padding: 12px 20px;
   transition: background var(--transition-fast), transform var(--transition-fast);
   width: 100%;
 }

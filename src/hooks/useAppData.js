@@ -40,6 +40,7 @@ import {
   approveAthletePaymentOrder as approveAthletePaymentOrderRequest,
   checkInRegistration as checkInRegistrationRequest,
   createCompetitionRegistration as createCompetitionRegistrationRequest,
+  createCompetitionRegistrationCombo as createCompetitionRegistrationComboRequest,
   createMembershipOrder as createMembershipOrderRequest,
   deleteAthleteRequest,
   fetchAdminAthleteData,
@@ -176,7 +177,7 @@ export function useAppData() {
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
   const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
   const [adminEvents, setAdminEvents] = useState(() =>
-    getInitialAdminEvents(storedData?.adminEvents),
+    getInitialAdminEvents(storedData?.adminEvents, { allowStoredEvents: env.demoMode }),
   )
   const [adminEventsLoading, setAdminEventsLoading] = useState(false)
   const [adminEventsError, setAdminEventsError] = useState(null)
@@ -213,6 +214,7 @@ export function useAppData() {
       const status = String(event?.detail?.status ?? '')
       if (status === 'approved' || status === 'aprobado') {
         membershipAttemptRef.current = null
+        registrationAttemptRef.current = null
       }
     }
     window.addEventListener('plu:payment-updated', onPaymentUpdated)
@@ -225,7 +227,14 @@ export function useAppData() {
   // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
   // siendo locales) tampoco necesitan persistirse entre recargas.
   useEffect(() => {
-    writeStorage({ createdOrder, adminEvents, shopProducts, users })
+    writeStorage({
+      createdOrder,
+      // En modo real se elimina también cualquier snapshot legacy que haya
+      // quedado en el navegador: el próximo arranque nace del catálogo vigente.
+      ...(env.demoMode ? { adminEvents } : {}),
+      shopProducts,
+      users,
+    })
   }, [createdOrder, adminEvents, shopProducts, users])
 
   useEffect(() => {
@@ -697,12 +706,13 @@ export function useAppData() {
   )
 
   const submitCompetition = useCallback(
-    async (event, selectedEvent) => {
+    async (event, selectedEvent, options = {}) => {
       event.preventDefault()
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
 
       try {
+        const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
@@ -710,6 +720,7 @@ export function useAppData() {
           form.category,
           form.estimatedWeight,
           form.paymentMethod,
+          purchaseType,
         ])
         if (registrationAttemptRef.current?.fingerprint !== attemptFingerprint) {
           registrationAttemptRef.current = {
@@ -717,7 +728,10 @@ export function useAppData() {
             idempotencyKey: crypto.randomUUID(),
           }
         }
-        const { order, registration } = await createCompetitionRegistrationRequest({
+        const createRegistrationRequest = purchaseType === 'combo'
+          ? createCompetitionRegistrationComboRequest
+          : createCompetitionRegistrationRequest
+        const { order, registration, membership, plan, comboOffer } = await createRegistrationRequest({
           athleteId: athlete.id,
           eventSlug: selectedEvent.slug,
           division: form.division,
@@ -738,10 +752,20 @@ export function useAppData() {
           eventSlug: selectedEvent.slug,
         }
         setRegistrations((current) => [enrichedRegistration, ...current])
+        if (membership) {
+          setMemberships((current) => [
+            membership,
+            ...current.filter(
+              (item) => item.athleteId !== athlete.id || item.year !== membership.year,
+            ),
+          ])
+        }
         const payment = {
           id: order.id,
           athleteId: athlete.id,
-          concept: `Inscripción ${selectedEvent.title}`,
+          concept: purchaseType === 'combo'
+            ? `Afiliación + inscripción ${selectedEvent.title}`
+            : `Inscripción ${selectedEvent.title}`,
           amount: order.amount,
           method: order.method,
           status: order.status,
@@ -759,10 +783,13 @@ export function useAppData() {
           paymentMethod: order.method,
           preferenceId: checkout?.preference?.id ?? null,
           paymentMode: 'payment',
+          purchaseType,
+          plan,
+          comboOffer,
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        return { registration: enrichedRegistration, payment, createdOrder }
+        return { registration: enrichedRegistration, membership, payment, plan, comboOffer, createdOrder }
       } catch (error) {
         // El servidor es la autoridad para el gate de membresía activa
         // (PLU05) y de inscripción duplicada (PLU08) -- antes esos dos

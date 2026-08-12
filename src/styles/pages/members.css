@@ -3635,15 +3635,24 @@
 }
 
 .members-plu-plans__head {
-  margin-bottom: clamp(18px, 3vw, 28px);
-  max-width: 36rem;
+  margin-bottom: clamp(22px, 3.4vw, 32px);
+  max-width: 34rem;
+}
+
+.members-plu-plans__head .members-plu-block__title {
+  letter-spacing: -0.02em;
+}
+
+.members-plu-plans__head .members-plu-block__lead {
+  margin-inline: auto;
+  max-width: 38ch;
 }
 
 .members-plu-plans__billing {
   display: grid;
-  gap: 10px;
-  justify-items: stretch;
-  margin: 0 auto clamp(18px, 3vw, 26px);
+  gap: 12px;
+  justify-items: center;
+  margin: 0 auto clamp(20px, 3.2vw, 28px);
   max-width: 28rem;
   width: 100%;
 }
@@ -3658,15 +3667,18 @@
   letter-spacing: 0.01em;
   line-height: 1.45;
   margin: 0;
+  max-width: none;
   text-align: center;
+  white-space: normal;
+  width: 100%;
 }
 
 .membership-grid--plu {
   display: grid;
-  gap: clamp(14px, 2vw, 18px);
+  gap: clamp(16px, 2.4vw, 22px);
   grid-template-columns: 1fr;
   margin-inline: auto;
-  margin-top: 0;
+  margin-top: 4px;
   width: 100%;
 }
 
@@ -3675,11 +3687,12 @@
 }
 
 .membership-grid--plu-multi {
-  max-width: 44rem;
+  max-width: 52rem;
 }
 
 @media (min-width: 720px) {
   .membership-grid--plu-multi {
+    align-items: stretch;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -3692,16 +3705,19 @@
 }
 
 .membership-card--plu {
-  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 88%, transparent);
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 96%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 12%, transparent);
   border-radius: 12px;
-  box-shadow: none;
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--color-text-primary) 6%, transparent),
+    0 12px 28px rgba(0, 0, 0, 0.18);
   height: 100%;
   position: relative;
   text-align: left;
   transition:
     border-color 0.22s var(--ease-out, ease),
-    background-color 0.22s var(--ease-out, ease);
+    background-color 0.22s var(--ease-out, ease),
+    box-shadow 0.22s var(--ease-out, ease);
 }
 
 .membership-card--plu::before {
@@ -3721,9 +3737,11 @@
 }
 
 .membership-card--plu:hover {
-  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 96%, transparent);
-  border-color: color-mix(in oklab, var(--color-text-primary) 16%, transparent);
-  box-shadow: none;
+  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 98%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 18%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--color-text-primary) 8%, transparent),
+    0 16px 34px rgba(0, 0, 0, 0.22);
   transform: none;
 }
 
@@ -3894,12 +3912,31 @@
 }
 
 .membership-card--plu-featured {
-  background: color-mix(in oklab, var(--plu-gold-500) 5%, transparent);
-  border-color: color-mix(in oklab, var(--plu-gold-500) 38%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--plu-gold-500) 10%, transparent),
+      color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 94%, transparent) 55%
+    );
+  border-color: color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--plu-gold-500) 18%, transparent),
+    0 14px 32px rgba(0, 0, 0, 0.2);
 }
 
 .membership-card--plu-featured::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--plu-gold-500) 88%, transparent),
+    color-mix(in oklab, var(--plu-gold-500) 18%, transparent) 55%,
+    transparent 100%
+  );
+  height: 2px;
   opacity: 1;
+}
+
+.membership-card--plu-featured .membership-card__amount {
+  letter-spacing: -0.04em;
 }
 
 .membership-card--plu-featured .membership-card__title {
@@ -3910,6 +3947,7 @@
   background: var(--plu-gold-500);
   border-color: transparent;
   color: #14181f;
+  min-height: 44px;
 }
 
 .membership-card--plu-featured .membership-card__cta:hover:not(:disabled) {
@@ -3919,16 +3957,25 @@
 [data-theme='light'] .membership-card--plu {
   background: #fff;
   border-color: rgba(15, 23, 42, 0.1);
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(26, 28, 34, 0.08);
 }
 
 [data-theme='light'] .membership-card--plu:hover {
   background: #fff;
   border-color: rgba(15, 23, 42, 0.16);
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.05),
+    0 16px 34px rgba(26, 28, 34, 0.1);
 }
 
 [data-theme='light'] .membership-card--plu-featured {
   background: color-mix(in oklab, var(--plu-gold-500) 6%, #fff);
   border-color: color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--plu-gold-500) 16%, transparent),
+    0 14px 32px rgba(26, 28, 34, 0.09);
 }
 
 [data-theme='light'] .membership-card--plu .membership-card__feature {
@@ -4244,25 +4291,102 @@
 }
 
 .members-plans-feedback {
-  align-items: center;
+  align-items: flex-start;
   color: var(--color-text-muted);
   display: flex;
+  flex-wrap: wrap;
   font-size: 13px;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 14px 18px;
+  margin-top: 20px;
+}
+
+.members-plans-feedback--notice {
+  background:
+    linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--color-brand-gold) 10%, transparent),
+      transparent 48%
+    ),
+    color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, var(--color-border-subtle));
+  border-radius: var(--border-radius-lg, 14px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  margin-inline: auto;
+  max-width: 36rem;
+  padding: clamp(16px, 2.4vw, 22px);
+}
+
+.members-plans-feedback__icon {
+  color: var(--color-brand-gold);
+  flex: none;
+  margin-top: 2px;
+}
+
+.members-plans-feedback__copy {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 6px;
+  min-width: 0;
+}
+
+.members-plans-feedback__eyebrow {
+  color: var(--color-brand-celeste);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.members-plans-feedback__title {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.members-plans-feedback__lead {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
 }
 
 .members-plans-feedback button {
   align-items: center;
+  align-self: center;
   background: transparent;
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 35%, transparent);
+  border-radius: 999px;
   color: var(--color-brand-celeste);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
   font-weight: 600;
   gap: 6px;
-  padding: 4px;
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+.members-plans-feedback button:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+}
+
+[data-theme='light'] .members-plans-feedback--notice {
+  background:
+    linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--color-brand-gold) 8%, transparent),
+      transparent 48%
+    ),
+    #fff;
+  border-color: color-mix(in srgb, var(--color-brand-gold) 26%, var(--color-border-subtle));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 24px rgba(26, 28, 34, 0.06);
 }
 
 .members-plu-block--benefits {
@@ -5739,5 +5863,389 @@
 
   .members-plu-quicknav {
     gap: 8px 10px;
+  }
+}
+
+/* ── Combo promo: liquid glass editorial (banda de conversión) ── */
+.members-combo-promo {
+  --combo-glass-blur: 22px;
+  --combo-glass-sat: 1.2;
+  display: grid;
+  gap: clamp(22px, 3.2vw, 32px);
+  align-items: stretch;
+  grid-template-columns: minmax(0, 1.5fr) minmax(210px, 0.9fr);
+  margin: 0 0 clamp(24px, 3.6vw, 36px);
+  padding: clamp(22px, 3vw, 34px) clamp(22px, 3vw, 34px) clamp(22px, 3vw, 34px) clamp(24px, 3.2vw, 36px);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 34%, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  /* Capas baked-in + acento lateral editorial (sin card anidada) */
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-brand-gold) 0,
+      var(--color-brand-gold) 3px,
+      transparent 3px
+    ),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 26%, transparent 52%),
+    radial-gradient(
+      ellipse 75% 100% at 100% 0%,
+      color-mix(in srgb, var(--color-brand-gold) 38%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 50% 70% at 6% 100%,
+      color-mix(in srgb, var(--color-brand-celeste) 18%, transparent),
+      transparent 60%
+    ),
+    color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 74%, transparent);
+  -webkit-backdrop-filter: blur(var(--combo-glass-blur)) saturate(var(--combo-glass-sat));
+  backdrop-filter: blur(var(--combo-glass-blur)) saturate(var(--combo-glass-sat));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+    0 18px 44px rgba(0, 0, 0, 0.26);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    transform var(--motion-fast, 160ms) var(--ease-out, ease),
+    box-shadow var(--motion-base, 240ms) var(--ease-out, ease);
+}
+
+.members-combo-promo:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 52%, var(--color-border-subtle));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 20px 48px rgba(0, 0, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.members-combo-promo::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-brand-gold) 90%, transparent),
+    color-mix(in srgb, var(--color-brand-gold) 40%, transparent) 42%,
+    transparent 86%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Atmósfera estática única: wash oro hacia el deal */
+.members-combo-promo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 55% 85% at 100% -10%,
+      color-mix(in srgb, var(--color-brand-gold) 42%, transparent) 0%,
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 42% 55% at 0% 110%,
+      color-mix(in srgb, var(--color-brand-celeste) 16%, transparent) 0%,
+      transparent 70%
+    );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+}
+
+.members-combo-promo__main {
+  display: grid;
+  gap: clamp(18px, 2.6vw, 24px);
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.members-combo-promo__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin-bottom: 6px;
+}
+
+.members-combo-promo__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-brand-celeste);
+}
+
+.members-combo-promo__urgency {
+  margin: 0;
+  color: var(--color-brand-gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.members-combo-promo__title {
+  margin: 0 0 8px;
+  font-size: clamp(1.45rem, 2.9vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--color-text);
+}
+
+.members-combo-promo__lead {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.members-combo-promo__countdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 2px 0;
+  padding-top: 2px;
+}
+
+.members-combo-promo__unit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.members-combo-promo__sep {
+  align-self: center;
+  padding-bottom: 0.95em;
+  color: color-mix(in srgb, var(--color-brand-gold) 62%, transparent);
+  font-size: clamp(1.05rem, 2.3vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.members-combo-promo__unit {
+  display: grid;
+  gap: 5px;
+  min-width: 3rem;
+  justify-items: start;
+  text-align: left;
+  padding: 4px 6px 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.members-combo-promo__unit-value {
+  color: var(--color-text);
+  font-size: clamp(1.7rem, 3.8vw, 2.35rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.055em;
+  line-height: 0.92;
+}
+
+.members-combo-promo__unit-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Deal = rail de conversión, no card anidada */
+.members-combo-promo__deal {
+  display: grid;
+  gap: 18px;
+  align-content: center;
+  justify-items: stretch;
+  align-self: stretch;
+  padding: 2px 0 2px clamp(20px, 2.6vw, 30px);
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+
+.members-combo-promo__price-block {
+  display: grid;
+  gap: 8px;
+}
+
+.members-combo-promo__price {
+  display: block;
+  color: var(--color-brand-gold);
+  font-size: clamp(2.05rem, 4.2vw, 2.7rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  text-shadow: 0 0 40px color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+}
+
+.members-combo-promo__savings {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.members-combo-promo__cta {
+  width: 100%;
+  min-height: 48px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  transition:
+    transform var(--motion-fast, 160ms) var(--ease-out, ease),
+    opacity var(--motion-fast, 160ms) var(--ease-out, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.members-combo-promo__cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+}
+
+.members-combo-promo__cta:active:not(:disabled) {
+  transform: translateY(0);
+  opacity: 0.92;
+}
+
+/* Light theme — vidrio más opaco, blur menor, contraste firme */
+[data-theme='light'] .members-combo-promo {
+  --combo-glass-blur: 16px;
+  --combo-glass-sat: 1.1;
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-brand-gold) 0,
+      var(--color-brand-gold) 3px,
+      transparent 3px
+    ),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 58%),
+    radial-gradient(
+      ellipse 75% 100% at 100% 0%,
+      color-mix(in srgb, var(--color-brand-gold) 24%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 50% 70% at 6% 100%,
+      color-mix(in srgb, var(--color-brand-celeste) 12%, transparent),
+      transparent 60%
+    ),
+    color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-brand-gold) 5%);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 36%, var(--color-border-subtle));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(15, 17, 23, 0.04),
+    0 16px 36px rgba(26, 28, 34, 0.1);
+}
+
+[data-theme='light'] .members-combo-promo:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 32%, var(--color-border-subtle));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 14px 32px rgba(26, 28, 34, 0.1);
+}
+
+[data-theme='light'] .members-combo-promo__urgency {
+  color: var(--color-brand-gold-dark, var(--color-brand-gold));
+}
+
+[data-theme='light'] .members-combo-promo::after {
+  opacity: 0.55;
+}
+
+[data-theme='light'] .members-combo-promo__unit {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='light'] .members-combo-promo__deal {
+  border-left-color: color-mix(in srgb, var(--color-brand-gold) 34%, var(--color-border-subtle));
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Fallbacks: sin backdrop-filter / reduced transparency */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .members-combo-promo {
+    /* Sin blur: las capas baked-in ya sostienen el material */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .members-combo-promo {
+    --combo-glass-blur: 0px;
+    /* Conserva washes baked-in; solo apaga blur real */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .members-combo-promo::after {
+    opacity: 0.85;
+  }
+
+  [data-theme='light'] .members-combo-promo::after {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 720px) {
+  .members-combo-promo {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .members-combo-promo__deal {
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, var(--color-border-subtle));
+  }
+
+  .members-combo-promo__unit {
+    min-width: 2.6rem;
+    padding: 4px 2px;
+  }
+
+  .members-combo-promo__price {
+    font-size: clamp(1.75rem, 8vw, 2.2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members-combo-promo,
+  .members-combo-promo__cta {
+    transition: none;
+  }
+
+  .members-combo-promo:hover,
+  .members-combo-promo__cta:hover:not(:disabled),
+  .members-combo-promo__cta:active:not(:disabled) {
+    transform: none;
+  }
+
+  .members-combo-promo__price {
+    text-shadow: none;
+  }
+
+  .members-combo-promo__cta {
+    box-shadow: none;
   }
 }

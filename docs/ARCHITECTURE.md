@@ -143,15 +143,29 @@ Componentes actuales:
 | Auditoría operativa | `operational_event_logs`: identidad, Brick, ledger, webhooks y emails |
 | Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
 | Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
+| Combo afiliación + evento | `create_membership_registration_combo_order` (RPC Supabase) |
+| Credencial única | `athletes.credential_token` + `get_membership_by_code_or_token` (RPC Supabase) |
 | Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |
 | Controllers | `server/routes/payments.js`, `server/routes/emails.js` |
-| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260724000000_*` |
+| Contrato de DB | `prisma/schema.prisma` + migraciones versionadas en `supabase/migrations/` hasta `20260812160000_*` |
 
 El checkout crea la orden primero. El navegador tokeniza el medio de pago con
 MercadoPago.js, pero el backend vuelve a leer monto, moneda, concepto y referencia
 desde la orden. El resultado inmediato se aplica de forma idempotente y el webhook
 firmado actúa como confirmación canónica y mecanismo de recuperación.
+
+El combo de afiliación e inscripción crea una sola orden y ambos derechos en
+una RPC transaccional. La acreditación existente aplica `concept=combo` sobre
+afiliación e inscripción juntas, de modo que no puede quedar confirmado un
+derecho sin el otro por una escritura parcial.
+
+La credencial QR del atleta identifica a la persona, no a una afiliación ni a
+un torneo. Su payload contiene solamente `athletes.credential_token`, que no
+cambia al acreditar el combo o renovar. Al escanear, Supabase proyecta la
+afiliación y las inscripciones vigentes; el puesto de seguridad aporta el evento
+que está acreditando. Las entradas generales conservan un token opaco separado,
+con `tipo=ticket` y contexto de evento.
 
 Para cobros únicos se usa `Payment Brick`. Para planes mensuales o anuales
 recurrentes se usa `Card Payment Brick`, que entrega el token efímero requerido
