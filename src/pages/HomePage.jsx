@@ -6,6 +6,7 @@ import HomeCalendarTeaser from '../components/ui/HomeCalendarTeaser.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
+import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import PitbullSpotlight from '../components/ui/PitbullSpotlight.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
@@ -59,9 +60,23 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
         viewport: { once: true, amount: 0.22 },
       }
 
+  const isRegistrationDisabled = !pitbullEvent || pitbullEvent.status === 'proximamente'
+
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
+
+      {isRegistrationDisabled ? (
+        <section className="home-section home-section--immersive home-section--launch">
+          <div className="home-section__inner">
+            <LaunchRegistrationTeaser
+              event={pitbullEvent}
+              onNavigate={onNavigate}
+              variant="full"
+            />
+          </div>
+        </section>
+      ) : null}
 
       <section className="home-section home-section--immersive home-section--about" id="que-es">
         <div className="home-section__inner">

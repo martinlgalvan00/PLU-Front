@@ -15,6 +15,7 @@ import photoCrowd from '../assets/DSC00392-display.jpg'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
+import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
@@ -565,6 +566,14 @@ function PitbullInscriptionSection({
       title={t('pages.pitbull.inscriptionTitle')}
       tone="ops"
     >
+      {eventStatus === 'proximamente' ? (
+        <LaunchRegistrationTeaser
+          event={{ title: 'Pitbull Classic 2026' }}
+          onNavigate={onNavigate}
+          variant="full"
+        />
+      ) : null}
+
       <div className="pitbull-inscription-shell pitbull-inscription-shell--compact">
         <PitbullInscriptionCounter
           registered={registered}
@@ -828,6 +837,10 @@ export default function PitbullPage({
     }
     if (isFinished) {
       onNavigate('results')
+      return
+    }
+    if (eventStatus === 'proximamente') {
+      scrollToSection('inscripcion')
       return
     }
     onNavigate('members')

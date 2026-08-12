@@ -33,6 +33,7 @@ export const UPCOMING_EVENTS = [
     mapsUrl: PITBULL_VENUE_DATA.mapsUrl,
     slug: 'pitbull-classic-2026',
     status: 'proximamente',
+    registrationOpensAt: '2026-08-15T18:00:00-03:00',
     featured: true,
     requiresMembership: true,
     startsAt: '2026-12-12T09:00:00-03:00',

@@ -1,6 +1,7 @@
 /** Orden lógico de vistas para inferir dirección de transición (forward / back). */
 export const VIEW_RANK = {
   home: 0,
+  notFound: 5,
   members: 10,
   membership: 11,
   register: 12,

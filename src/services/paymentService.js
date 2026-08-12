@@ -1,5 +1,6 @@
 import { env } from '../config/env.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { filterPublicMembershipPlans } from '../lib/featureAvailability.js'
 
 const MEMBERSHIP_PLANS_CACHE_MS = 5 * 60 * 1000
 let membershipPlansCache = null
@@ -10,11 +11,7 @@ export function filterMembershipPlansForApp(
   plans,
   { appProduction = env.appProduction } = {},
 ) {
-  const rows = Array.isArray(plans) ? plans : []
-  if (!appProduction) return rows
-  return rows.filter(
-    (plan) => (plan?.collectionMode ?? plan?.collection_mode) !== 'recurring',
-  )
+  return filterPublicMembershipPlans(plans, { appProduction })
 }
 
 export function isMercadoPagoConfigured() {

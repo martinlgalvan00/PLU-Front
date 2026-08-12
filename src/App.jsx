@@ -10,6 +10,7 @@ import {
   matchEventPageRoute,
   pushEventPageRoute,
 } from './lib/eventPageRoute.js'
+import { isCanonicalPathname, resolvePathnamePublicView } from './lib/canonicalPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
@@ -57,6 +58,7 @@ const EventsPage = lazy(() => import('./pages/EventsPage.jsx'))
 const FAQPage = lazy(() => import('./pages/FAQPage.jsx'))
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
 const MembersPage = lazy(() => import('./pages/MembersPage.jsx'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'))
 const PitbullPage = lazy(() => import('./pages/PitbullPage.jsx'))
 const RecordsPage = lazy(() => import('./pages/RecordsPage.jsx'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'))
@@ -71,6 +73,7 @@ const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
 const PUBLIC_VIEWS = {
   home: HomePage,
+  notFound: NotFoundPage,
   members: MembersPage,
   pitbull: PitbullPage,
   events: EventsPage,
@@ -90,9 +93,7 @@ const PUBLIC_VIEWS = {
 export default function App() {
   const [view, setView] = useState(() => {
     if (readPasswordResetToken()) return 'login'
-    if (matchTicketsRoute()) return 'tickets'
-    if (matchEventPageRoute()) return 'events'
-    return 'home'
+    return resolvePathnamePublicView()
   })
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
@@ -139,9 +140,14 @@ export default function App() {
         setView('events')
         return
       }
+      if (!isCanonicalPathname()) {
+        setView('notFound')
+        return
+      }
       setView((current) => {
         if (current === 'tickets') return 'pitbull'
         if (current === 'events') return 'home'
+        if (current === 'notFound') return 'home'
         return current
       })
     }
@@ -187,6 +193,12 @@ export default function App() {
       } else if (view === 'events' && resolvedView !== 'events') {
         clearEventPageRoute()
         setEventPageSlug(null)
+      }
+
+      if (view === 'notFound' && resolvedView !== 'notFound') {
+        if (typeof window !== 'undefined' && !isCanonicalPathname()) {
+          window.history.pushState({ view: resolvedView }, '', '/')
+        }
       }
 
       // openTickets en pitbull: ir a la página completa de entradas
@@ -424,7 +436,7 @@ export default function App() {
     )
   }
 
-  const Page = PUBLIC_VIEWS[view] || HomePage
+  const Page = PUBLIC_VIEWS[view] || NotFoundPage
 
   const pageProps =
     view === 'register'

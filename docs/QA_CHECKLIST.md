@@ -81,6 +81,8 @@
 
 - [ ] Con `APP_PRODUCTION=true`, afiliación automática no aparece en planes y sus endpoints responden `FEATURE_COMING_SOON`
 - [ ] Con `APP_PRODUCTION=true`, el combo vigente sigue disponible y crea una única orden para ambos derechos
+- [ ] Con `APP_PRODUCTION=true`, el panel de tarifas muestra el aviso “próximamente” y no permite escrituras
+- [ ] Una URL desconocida (p. ej. `/ruta-inventada`) muestra la landing 404 (no Home); deep links `/evento/...` siguen andando
 - [ ] `npm run email:doctor` termina sin bloqueos: remitente validado, URL HTTPS pública y webhook transaccional activo
 - [ ] Un envío real pasa de `sent` a `delivered` en Auditoría
 - [ ] `npm run mercado-pago:doctor` valida Access Token y secreto del webhook
