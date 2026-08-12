@@ -357,6 +357,24 @@ export default {
       createFirst: 'Crear el primer evento',
       created: 'El evento se creó y quedó sincronizado.',
       updated: 'Los cambios quedaron guardados y sincronizados.',
+      delete: {
+        action: 'Eliminar evento',
+        confirmTitle: 'Eliminar evento definitivamente',
+        loading: 'Calculando qué se va a eliminar...',
+        confirmDescription:
+          'Vas a eliminar {{title}} ({{slug}}) junto con {{registrations}} inscripciones, {{tickets}} entradas, {{orders}} órdenes y {{checkIns}} acreditaciones.',
+        warning:
+          'Se borran también las jornadas, tandas, tipos de entrada y las cuentas de puerta del evento. La auditoría del borrado queda registrada. No se puede deshacer.',
+        forceWarning:
+          'Este evento ya movió plata o gente: {{paidRegistrations}} inscripciones pagadas, {{paidTickets}} entradas pagadas y {{checkIns}} acreditaciones. Escribí el identificador del evento para confirmar.',
+        phraseLabel: 'Escribí el identificador del evento',
+        phraseHint: 'Tiene que coincidir exactamente con {{slug}}.',
+        cancel: 'Cancelar',
+        confirm: 'Eliminar definitivamente',
+        deleting: 'Eliminando...',
+        done: '{{title}} se eliminó definitivamente.',
+        error: 'No se pudo eliminar el evento.',
+      },
     },
     users: {
       eyebrow: 'Administración',

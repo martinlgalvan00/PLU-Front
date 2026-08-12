@@ -357,6 +357,24 @@ export default {
       createFirst: 'Create the first event',
       created: 'The event was created and synchronized.',
       updated: 'Changes were saved and synchronized.',
+      delete: {
+        action: 'Delete event',
+        confirmTitle: 'Delete event permanently',
+        loading: 'Calculating what will be deleted...',
+        confirmDescription:
+          'You are about to delete {{title}} ({{slug}}) along with {{registrations}} registrations, {{tickets}} tickets, {{orders}} orders and {{checkIns}} check-ins.',
+        warning:
+          'Event days, sessions, ticket types and gate accounts are deleted as well. The deletion is recorded in the audit log. This cannot be undone.',
+        forceWarning:
+          'This event already handled money or people: {{paidRegistrations}} paid registrations, {{paidTickets}} paid tickets and {{checkIns}} check-ins. Type the event identifier to confirm.',
+        phraseLabel: 'Type the event identifier',
+        phraseHint: 'It must match {{slug}} exactly.',
+        cancel: 'Cancel',
+        confirm: 'Delete permanently',
+        deleting: 'Deleting...',
+        done: '{{title}} was permanently deleted.',
+        error: 'The event could not be deleted.',
+      },
     },
     users: {
       eyebrow: 'Administration',

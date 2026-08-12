@@ -85,6 +85,15 @@ export function createPrismaDouble(users, { events = [] } = {}) {
         matches.forEach((user) => Object.assign(user, data))
         return { count: matches.length }
       },
+      deleteMany: async ({ where }) => {
+        const matches = users.filter((user) => {
+          if (where?.role && user.role !== where.role) return false
+          if (where?.eventId && user.eventId !== where.eventId) return false
+          return true
+        })
+        for (const user of matches) users.splice(users.indexOf(user), 1)
+        return { count: matches.length }
+      },
     },
     session: {
       create: async ({ data }) => {

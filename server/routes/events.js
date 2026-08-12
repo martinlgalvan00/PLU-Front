@@ -1,10 +1,14 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission } from '../middleware/auth.js'
+import { requirePermission, requireRole } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+
+/** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
+const SECURITY_ROLE = 'seguridad_plu_arg'
 
 const EVENT_SELECT = `
   *,
@@ -259,6 +263,28 @@ function parseEventSlug(value) {
   return slug
 }
 
+/**
+ * Comprobantes de transferencia de las órdenes de entradas del evento borrado.
+ * Mismo criterio que el borrado de atletas: es best-effort -- un archivo
+ * huérfano en storage no justifica revertir un borrado que ya se confirmó en
+ * la base, pero sí queda avisado en el log.
+ */
+async function removeTicketProofs(client, orderIds) {
+  for (const orderId of Array.isArray(orderIds) ? orderIds : []) {
+    const listed = await client.storage.from(PROOF_BUCKET).list(orderId, { limit: 100 })
+    if (listed.error) {
+      console.warn(`No se pudieron listar comprobantes de ${orderId}:`, listed.error.message)
+      continue
+    }
+    const paths = (listed.data ?? []).map((file) => `${orderId}/${file.name}`)
+    if (paths.length === 0) continue
+    const removal = await client.storage.from(PROOF_BUCKET).remove(paths)
+    if (removal.error) {
+      console.warn(`No se pudieron borrar comprobantes de ${orderId}:`, removal.error.message)
+    }
+  }
+}
+
 async function readEvents(client) {
   return assertSupabaseResult(
     await client.from('events').select(EVENT_SELECT).order('starts_at'),
@@ -275,6 +301,10 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // arma el reparto de atletas no necesariamente puede editar precios y fechas.
   const registrationsViewGuard = requirePermission('admin.registrations.read', { prisma })
   const registrationsEditGuard = requirePermission('admin.registrations.write', { prisma })
+  // Borrar un evento no es "editarlo mucho": se lleva inscripciones pagadas,
+  // entradas y acreditaciones. Mismo techo que el borrado de atletas y de
+  // cuentas de staff -- solo Super Admin, no `admin.events.write`.
+  const deleteGuard = requireRole(['admin_maximal'], { prisma })
 
   router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
     try {
@@ -393,6 +423,85 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       }
     },
   )
+
+  /**
+   * Impacto del borrado, sin borrar nada: cuántas inscripciones, entradas,
+   * órdenes y acreditaciones se lleva puestas el evento. El panel lo pide al
+   * abrir la confirmación para que el operador decida sobre números reales y
+   * no sobre "esto elimina todo".
+   *
+   * `requiresForce` en true es la señal de que el evento ya movió plata o
+   * gente: ahí el panel exige escribir el identificador antes de confirmar.
+   */
+  router.get(
+    '/:eventSlug/delete-impact',
+    ...deleteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const slug = parseEventSlug(req.params.eventSlug)
+        const client = requireSupabaseClient(getSupabaseAdmin())
+        const impact = assertSupabaseResult(
+          await client.rpc('delete_event', {
+            p_event_slug: slug,
+            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+            p_force: false,
+            p_dry_run: true,
+          }),
+          'No se pudo calcular el impacto del borrado.',
+        )
+        res.json({ impact })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Borrado definitivo del evento y todo lo que cuelga de él. Solo Super
+   * Admin, igual que el borrado de atletas y de cuentas de staff: es
+   * irreversible y se lleva inscripciones, entradas y acreditaciones.
+   *
+   * La cascada y la auditoría viven en la RPC delete_event
+   * (20260815110000_event_hard_delete.sql). Acá queda lo que SQL no alcanza:
+   * los comprobantes en storage y las cuentas de puerta, que viven en Prisma.
+   *
+   * `?force=true` es el consentimiento explícito para eventos con actividad
+   * real; sin él la RPC responde 409 y el panel escala la confirmación.
+   */
+  router.delete('/:eventSlug', ...deleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const deletedEvent = assertSupabaseResult(
+        await client.rpc('delete_event', {
+          p_event_slug: slug,
+          p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          p_force: req.query.force === 'true',
+          p_dry_run: false,
+        }),
+        'No se pudo eliminar el evento.',
+      )
+
+      await removeTicketProofs(client, deletedEvent?.proofOrderIds)
+
+      // Las credenciales de puerta quedarían apuntando a un evento inexistente:
+      // el job de ciclo de vida las trata como huérfanas y las purga igual, pero
+      // esperar a la próxima corrida deja una ventana en la que la credencial
+      // firmada sigue existiendo.
+      const securityUsers = await getPrisma().user.deleteMany({
+        where: { role: SECURITY_ROLE, eventId: deletedEvent.id },
+      })
+
+      const events = await readEvents(client)
+      res.json({
+        deletedEvent: { ...deletedEvent, securityUsers: securityUsers?.count ?? 0 },
+        events,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Grilla del evento: días, tandas y cuántos atletas hay en cada una. El

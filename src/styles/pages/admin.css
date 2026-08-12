@@ -3911,7 +3911,7 @@
 .admin-event-row__slug {
   color: var(--color-text-muted);
   flex-shrink: 0;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0;
   opacity: 0.75;
@@ -6850,8 +6850,46 @@
   border-color: color-mix(in srgb, var(--color-danger-text) 88%, var(--color-bg-primary));
 }
 
-.admin-user-delete-dialog__confirm:disabled svg {
+.admin-user-delete-dialog__confirm.is-busy svg {
   animation: admin-spin 0.9s linear infinite;
+}
+
+/* Confirmación escrita: solo aparece cuando lo borrado no se puede reconstruir
+   (un evento con inscripciones pagadas o acreditaciones). */
+.admin-user-delete-dialog__phrase {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.admin-user-delete-dialog__phrase label {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.admin-user-delete-dialog__phrase input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  width: 100%;
+}
+
+.admin-user-delete-dialog__phrase input:focus-visible {
+  border-color: var(--color-danger-text);
+  outline: 2px solid color-mix(in srgb, var(--color-danger-text) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.admin-user-delete-dialog__phrase small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 @media (max-width: 540px) {

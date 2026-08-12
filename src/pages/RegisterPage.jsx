@@ -1200,8 +1200,9 @@ export default function RegisterPage({
                   </fieldset>
                 )}
 
+                {/* Sin `step`: la inscripción tiene una sola sección. El "01"
+                    prometía una secuencia que no existe. */}
                 <FormSection
-                  step="01"
                   title={t('pages.register.competitionFormTitle')}
                   description={t('pages.register.competitionFormDesc')}
                 >
@@ -1254,7 +1255,6 @@ export default function RegisterPage({
 
             {flow === 'membership' && (
               <FormSection
-                step="01"
                 title={t('pages.register.paymentTitle')}
                 description={t('pages.register.paymentDescLinked')}
               >

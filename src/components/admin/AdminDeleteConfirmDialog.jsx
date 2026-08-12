@@ -1,13 +1,17 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LoaderCircle, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 
 /**
  * Confirmación de borrado definitivo del panel admin (usuarios de staff,
- * atletas). Los textos llegan por props porque cada entidad tiene su propio
- * copy i18n; la estructura y los estilos (`admin-user-delete-dialog`) son
- * compartidos.
+ * atletas, eventos). Los textos llegan por props porque cada entidad tiene su
+ * propio copy i18n; la estructura y los estilos (`admin-user-delete-dialog`)
+ * son compartidos.
+ *
+ * `confirmPhrase` sube el costo del click cuando lo borrado no se puede
+ * reconstruir (un evento con inscripciones pagadas y acreditaciones): hasta
+ * que no se escribe el identificador exacto, el botón no se habilita.
  */
 export default function AdminDeleteConfirmDialog({
   busy,
@@ -20,10 +24,17 @@ export default function AdminDeleteConfirmDialog({
   cancelLabel,
   confirmLabel,
   busyLabel,
+  confirmPhrase = null,
+  confirmPhraseLabel,
+  confirmPhraseHint,
 }) {
   const titleId = useId()
   const descriptionId = useId()
+  const phraseId = useId()
+  const hintId = useId()
   const panelRef = useRef(null)
+  const [phrase, setPhrase] = useState('')
+  const phraseMatches = !confirmPhrase || phrase.trim() === confirmPhrase
   const dialogStateRef = useRef({ busy, onCancel })
   dialogStateRef.current = { busy, onCancel }
 
@@ -41,7 +52,8 @@ export default function AdminDeleteConfirmDialog({
       }
 
       if (event.key !== 'Tab') return
-      const focusable = panelRef.current?.querySelectorAll('button:not(:disabled)') ?? []
+      const focusable =
+        panelRef.current?.querySelectorAll('button:not(:disabled), input:not(:disabled)') ?? []
       if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -62,6 +74,14 @@ export default function AdminDeleteConfirmDialog({
       previousFocus?.focus?.()
     }
   }, [])
+
+  // La confirmación puede aparecer después de abierto el diálogo (el backend
+  // responde que el borrado necesita consentimiento explícito): sin esto el
+  // foco se queda en el botón que acaba de quedar deshabilitado.
+  useEffect(() => {
+    if (!confirmPhrase) return
+    panelRef.current?.querySelector('input')?.focus()
+  }, [confirmPhrase])
 
   return createPortal(
     <div className="admin-user-delete-dialog">
@@ -87,6 +107,26 @@ export default function AdminDeleteConfirmDialog({
           <h2 id={titleId}>{title}</h2>
           <p id={descriptionId}>{description}</p>
           <p className="admin-user-delete-dialog__warning">{warning}</p>
+          {confirmPhrase ? (
+            <div className="admin-user-delete-dialog__phrase">
+              <label htmlFor={phraseId}>{confirmPhraseLabel}</label>
+              <input
+                id={phraseId}
+                type="text"
+                value={phrase}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={busy}
+                placeholder={confirmPhrase}
+                aria-describedby={confirmPhraseHint ? hintId : undefined}
+                onChange={(event) => setPhrase(event.target.value)}
+              />
+              {/* La pista va como descripción y no dentro del label: si formara
+                  parte del nombre accesible, el lector de pantalla anunciaría
+                  el slug completo cada vez que el foco vuelve al campo. */}
+              {confirmPhraseHint ? <small id={hintId}>{confirmPhraseHint}</small> : null}
+            </div>
+          ) : null}
           {error ? (
             <p className="admin-user-delete-dialog__error" role="alert">
               {error}
@@ -99,8 +139,12 @@ export default function AdminDeleteConfirmDialog({
           </Button>
           <Button
             type="button"
-            className="admin-user-delete-dialog__confirm"
-            disabled={busy}
+            className={
+              busy
+                ? 'admin-user-delete-dialog__confirm is-busy'
+                : 'admin-user-delete-dialog__confirm'
+            }
+            disabled={busy || !phraseMatches}
             onClick={onConfirm}
           >
             {busy ? <LoaderCircle size={15} aria-hidden /> : <Trash2 size={15} aria-hidden />}

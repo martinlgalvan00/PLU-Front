@@ -7,6 +7,7 @@ import {
   getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
   mapSupabaseEventRow,
+  removeAdminEvent,
   withEventStart,
 } from '../src/services/eventAdminService.js'
 
@@ -229,5 +230,28 @@ describe('getEventConsistencyWarnings', () => {
     expect(getEventConsistencyWarnings(draft({ status: 'finalizado' }), null, now)).toContain(
       'finishedButNotEnded',
     )
+  })
+})
+
+describe('removeAdminEvent', () => {
+  const events = [
+    { id: 'evt-1', slug: 'pitbull-classic-2026', title: 'Pitbull Classic' },
+    { id: 'evt-2', slug: 'nacional-2026', title: 'Nacional' },
+  ]
+
+  it('saca el evento de la colección y deja el registro de auditoría', () => {
+    const result = removeAdminEvent(events, 'evt-1')
+
+    expect(result.event).toMatchObject({ id: 'evt-1' })
+    expect(result.events.map((event) => event.id)).toEqual(['evt-2'])
+    expect(result.auditLog).toMatchObject({ action: 'event.deleted', entityId: 'evt-1' })
+  })
+
+  it('no toca la colección si el evento ya no está', () => {
+    const result = removeAdminEvent(events, 'evt-inexistente')
+
+    expect(result.event).toBeNull()
+    expect(result.events).toBe(events)
+    expect(result.auditLog).toBeNull()
   })
 })

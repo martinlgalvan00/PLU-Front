@@ -1,7 +1,7 @@
 import { DEFAULT_EVENT_PRICING, isComboOfferLive, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
-import { apiGet, apiPost } from '../lib/api.js'
+import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 
 const DEFAULT_SLOTS = 80
 
@@ -390,6 +390,30 @@ export function updateAdminEvent(events, eventId, payload) {
   }
 }
 
+/**
+ * Baja del evento en la colección local (demo sin backend). El borrado real lo
+ * hace `deleteAdminEventRequest` contra la RPC; esto es solo el espejo en
+ * memoria para que la lista no siga mostrando una fila que ya no existe.
+ */
+export function removeAdminEvent(events, eventId) {
+  const event = events.find((item) => item.id === eventId) ?? null
+
+  return {
+    event,
+    events: event ? events.filter((item) => item.id !== eventId) : events,
+    auditLog: event
+      ? {
+          id: `audit-evt-${Date.now()}`,
+          action: 'event.deleted',
+          entityType: 'event',
+          entityId: eventId,
+          actor: 'admin',
+          createdAt: new Date().toISOString(),
+        }
+      : null,
+  }
+}
+
 export const ADMIN_EVENT_STATUS_OPTIONS = [
   ['all', 'allStatuses'],
   ['proximamente', 'status'],
@@ -679,5 +703,35 @@ export async function setEventStateRequest(slug, { status, published } = {}) {
     event: mapAdminEventRow(response.event),
     events: (response.events ?? [response.event]).map(mapAdminEventRow),
     statusOverridden: response.statusOverridden === true,
+  }
+}
+
+/**
+ * Impacto del borrado antes de borrar: lo que el diálogo de confirmación le
+ * muestra al operador. `requiresForce` viene en true cuando el evento ya movió
+ * plata o gente y la baja necesita consentimiento explícito.
+ */
+export async function fetchEventDeleteImpact(slug) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+
+  const { impact } = await apiGet(`/api/events/${encodeURIComponent(slug)}/delete-impact`)
+  return impact
+}
+
+/**
+ * Borrado definitivo. La cascada (inscripciones, entradas, órdenes, tandas) la
+ * resuelve la RPC `delete_event`; acá solo se propaga el consentimiento y se
+ * devuelve la colección canónica para que el panel no quede con la fila
+ * borrada hasta el próximo refetch.
+ */
+export async function deleteAdminEventRequest(slug, { force = false } = {}) {
+  if (!slug) throw new Error('Falta el slug del evento.')
+
+  const query = force ? '?force=true' : ''
+  const response = await apiDelete(`/api/events/${encodeURIComponent(slug)}${query}`)
+
+  return {
+    deletedEvent: response.deletedEvent,
+    events: (response.events ?? []).map(mapAdminEventRow),
   }
 }
