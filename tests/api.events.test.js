@@ -97,7 +97,7 @@ function canonicalEvent() {
   }
 }
 
-function createSupabaseDouble({ rpcResult, publishedRows } = {}) {
+function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = {}) {
   const rows = [canonicalEvent()]
   const published = publishedRows ?? rows.map((row) => ({ ...row, published: true, registration_opens_at: '2026-08-20T10:00:00-03:00' }))
   const orderAll = vi.fn(async () => ({ data: rows, error: null }))
@@ -105,23 +105,30 @@ function createSupabaseDouble({ rpcResult, publishedRows } = {}) {
   const eq = vi.fn(() => ({ order: orderPublished }))
   const select = vi.fn(() => ({ order: orderAll, eq }))
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
+  const list = vi.fn(async () => ({ data: storageFiles, error: null }))
+  const remove = vi.fn(async () => ({ data: [], error: null }))
+  const storage = { from: vi.fn(() => ({ list, remove })) }
 
   return {
-    client: { from: vi.fn(() => ({ select })), rpc },
+    client: { from: vi.fn(() => ({ select })), rpc, storage },
     rpc,
     eq,
     orderPublished,
+    storage,
+    list,
+    remove,
   }
 }
 
-async function setup(role = 'admin_maximal', supabaseOptions) {
+async function setup(role = 'admin_maximal', supabaseOptions, extraUsers = []) {
   const staff = await buildStaffUser({ role, email: `${role}@events.test` })
-  const prisma = createPrismaDouble([staff])
+  const users = [staff, ...extraUsers]
+  const prisma = createPrismaDouble(users)
   const supabase = createSupabaseDouble(supabaseOptions)
   const target = listen(createApp({ prisma, supabaseAdmin: supabase.client }))
   const { cookie } = await loginStaff(target.url, { email: staff.email })
 
-  return { target, cookie, supabase }
+  return { target, cookie, supabase, prisma, users }
 }
 
 describe('API administrativa de eventos', () => {
@@ -234,6 +241,162 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  it('expone el impacto del borrado sin tocar nada', async () => {
+    const { target, cookie, supabase } = await setup('admin_maximal', {
+      rpcResult: {
+        data: {
+          id: EVENT_ID,
+          slug: 'pitbull-classic-2026',
+          impact: { registrations: 48, tickets: 12, checkIns: 0 },
+          requiresForce: false,
+          deleted: false,
+        },
+        error: null,
+      },
+    })
+
+    try {
+      const response = await fetch(
+        `${target.url}/api/events/pitbull-classic-2026/delete-impact`,
+        { headers: { Cookie: cookie } },
+      )
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.impact).toMatchObject({ requiresForce: false, deleted: false })
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'delete_event',
+        expect.objectContaining({
+          p_event_slug: 'pitbull-classic-2026',
+          p_dry_run: true,
+          p_force: false,
+        }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('elimina el evento, limpia comprobantes y purga las cuentas de puerta', async () => {
+    const securityUser = await buildStaffUser({
+      role: 'seguridad_plu_arg',
+      email: 'puerta@events.test',
+      eventId: EVENT_ID,
+      eventSlug: 'pitbull-classic-2026',
+    })
+    const { target, cookie, supabase, users } = await setup(
+      'admin_maximal',
+      {
+        rpcResult: {
+          data: {
+            id: EVENT_ID,
+            slug: 'pitbull-classic-2026',
+            title: 'Pitbull Classic',
+            proofOrderIds: ['44444444-4444-4444-8444-444444444444'],
+            deleted: true,
+          },
+          error: null,
+        },
+        storageFiles: [{ name: 'comprobante.pdf' }],
+      },
+      [securityUser],
+    )
+
+    try {
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.deletedEvent).toMatchObject({ id: EVENT_ID, deleted: true, securityUsers: 1 })
+      // La colección canónica vuelve en la misma respuesta: el panel no puede
+      // quedar mostrando la fila que acaba de borrar.
+      expect(body.events).toHaveLength(1)
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'delete_event',
+        expect.objectContaining({
+          p_event_slug: 'pitbull-classic-2026',
+          p_dry_run: false,
+          p_force: false,
+          p_actor: expect.stringContaining(':admin_maximal@events.test'),
+        }),
+      )
+      expect(supabase.remove).toHaveBeenCalledWith([
+        '44444444-4444-4444-8444-444444444444/comprobante.pdf',
+      ])
+      expect(users.some((user) => user.role === 'seguridad_plu_arg')).toBe(false)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('propaga el consentimiento explícito a la base', async () => {
+    const { target, cookie, supabase } = await setup()
+
+    try {
+      const response = await fetch(
+        `${target.url}/api/events/pitbull-classic-2026?force=true`,
+        { method: 'DELETE', headers: authHeaders(cookie) },
+      )
+
+      expect(response.status).toBe(200)
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'delete_event',
+        expect.objectContaining({ p_force: true }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('devuelve 409 cuando el evento tiene actividad y falta la confirmación', async () => {
+    const { target, cookie } = await setup('admin_maximal', {
+      rpcResult: {
+        data: null,
+        error: {
+          code: 'PLU03',
+          message: 'El evento ya tiene actividad real (12 inscripciones pagadas...).',
+        },
+      },
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: 'PLU03' })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('reserva el borrado a Super Admin: editar eventos no alcanza', async () => {
+    // admin_plu_arg tiene todos los permisos, incluido admin.events.write: si
+    // el guard fuera por permiso y no por rol, este test pasaría igual.
+    const { target, cookie, supabase } = await setup('admin_plu_arg')
+
+    try {
+      const impact = await fetch(`${target.url}/api/events/pitbull-classic-2026/delete-impact`, {
+        headers: { Cookie: cookie },
+      })
+      const removal = await fetch(`${target.url}/api/events/pitbull-classic-2026`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(impact.status).toBe(403)
+      expect(removal.status).toBe(403)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
   it('separa lectura de escritura por permiso', async () => {
     const { target, cookie, supabase } = await setup('plu_arg')
 
@@ -332,5 +495,52 @@ describe('migración de edición integral y no destructiva', () => {
       'exists (select 1 from public.tickets t where t.ticket_type_id = tt.id)',
     )
     expect(migration).not.toContain('delete from public.ticket_types where event_id = v_event.id;')
+  })
+})
+
+describe('migración 20260815110000 (borrado definitivo de eventos)', () => {
+  const migration = readFileSync(
+    resolve('supabase/migrations/20260815110000_event_hard_delete.sql'),
+    'utf8',
+  )
+
+  it('borra en el orden que exigen las FK restrict', () => {
+    const order = [
+      'delete from public.check_ins',
+      'delete from public.ticket_payments',
+      'delete from public.tickets',
+      'delete from public.ticket_orders',
+      'delete from public.event_registrations',
+      'delete from public.event_sessions',
+      'delete from public.ticket_types',
+      'delete from public.event_days',
+      'delete from public.events',
+    ]
+    const positions = order.map((statement) => migration.indexOf(statement))
+
+    expect(positions.every((position) => position > 0)).toBe(true)
+    // tickets antes que ticket_types y event_sessions antes que event_days: las
+    // dos parejas están unidas por FK restrict aunque caigan por cascade.
+    expect([...positions].sort((left, right) => left - right)).toEqual(positions)
+  })
+
+  it('bloquea la fila, exige confirmación con actividad real y restringe la RPC', () => {
+    expect(migration).toContain('for update')
+    expect(migration).toContain('pg_advisory_xact_lock')
+    expect(migration).toContain("errcode = 'PLU02'")
+    expect(migration).toContain("errcode = 'PLU03'")
+    expect(migration).toContain('if v_requires_force and not coalesce(p_force, false) then')
+    expect(migration).toContain("'event.deleted'")
+    expect(migration).toContain('revoke all on function public.delete_event(text, text, boolean, boolean)')
+    expect(migration).toContain('grant execute on function public.delete_event(text, text, boolean, boolean)')
+    expect(migration).toContain('to service_role')
+  })
+
+  it('el dry run no borra: sale antes de cualquier delete', () => {
+    const dryRunReturn = migration.indexOf('if p_dry_run then')
+    const firstDelete = migration.indexOf('delete from public.check_ins')
+
+    expect(dryRunReturn).toBeGreaterThan(0)
+    expect(dryRunReturn).toBeLessThan(firstDelete)
   })
 })

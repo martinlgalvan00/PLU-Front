@@ -95,7 +95,7 @@ import {
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
-import { canDeleteAthletes, canDeleteUsers } from '../lib/roles.js'
+import { canDeleteAthletes, canDeleteEvents, canDeleteUsers } from '../lib/roles.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -108,11 +108,14 @@ import {
 } from '../services/adminService.js'
 import {
   createAdminEvent,
+  deleteAdminEventRequest,
   fetchAdminEvents,
+  fetchEventDeleteImpact,
   fetchPublishedEvents,
   getInitialAdminEvents,
   isEventFull,
   OPEN_REGISTRATION_STATUSES,
+  removeAdminEvent,
   saveAdminEventRequest,
   setEventStateRequest,
   updateAdminEvent,
@@ -1810,6 +1813,87 @@ export function useAppData() {
     [adminEvents, session],
   )
 
+  /**
+   * Impacto del borrado (dry run). Lo pide el diálogo de confirmación antes de
+   * mostrar nada: sin esto el operador confirmaría a ciegas cuántas
+   * inscripciones y entradas se está llevando puestas.
+   */
+  const fetchAdminEventDeleteImpact = useCallback(
+    async (slug) => {
+      if (!canDeleteEvents(session)) {
+        throw new Error('Solo Super Admin puede eliminar eventos.')
+      }
+
+      if (isDemoSession(session)) {
+        const event = adminEvents.find((item) => item.slug === slug) ?? null
+        if (!event) throw new Error('No se encontró el evento.')
+        return {
+          id: event.id,
+          slug: event.slug,
+          title: event.title,
+          impact: {
+            registrations: event.registered ?? 0,
+            paidRegistrations: 0,
+            tickets: 0,
+            paidTickets: 0,
+            ticketOrders: 0,
+            settledTicketOrders: 0,
+            checkIns: 0,
+            eventDays: event.eventDays?.length ?? 0,
+            eventSessions: 0,
+            ticketTypes: event.ticketTypes?.length ?? 0,
+          },
+          requiresForce: false,
+          deleted: false,
+        }
+      }
+
+      return fetchEventDeleteImpact(slug)
+    },
+    [adminEvents, session],
+  )
+
+  /**
+   * Borrado definitivo del evento: la cascada real (inscripciones, entradas,
+   * órdenes, tandas, acreditaciones) la hace la RPC delete_event; acá se espeja
+   * la baja en el estado local para que el panel no siga mostrando la fila
+   * hasta el próximo refetch.
+   *
+   * `force` es el consentimiento explícito para eventos con actividad real; la
+   * base rechaza el borrado sin él.
+   *
+   * Propaga el error tal cual (no lo envuelve en `{ error }` como
+   * `setAdminEventState`) porque el diálogo necesita el status y el código
+   * operativo para distinguir "falta confirmación" de un fallo real.
+   */
+  const deleteAdminEvent = useCallback(
+    async (slug, { force = false } = {}) => {
+      if (!canDeleteEvents(session)) {
+        throw new Error('Solo Super Admin puede eliminar eventos.')
+      }
+      if (!slug) throw new Error('Falta el slug del evento.')
+
+      if (isDemoSession(session)) {
+        const target = adminEvents.find((item) => item.slug === slug)
+        if (!target) throw new Error('No se encontró el evento.')
+        const result = removeAdminEvent(adminEvents, target.id)
+        setAdminEvents(result.events)
+        return { deletedEvent: { id: target.id, slug, title: target.title }, events: result.events }
+      }
+
+      const result = await deleteAdminEventRequest(slug, { force })
+      setAdminEvents(result.events)
+      // Inscripciones y entradas del evento ya no existen en la base: sin esto
+      // las secciones de inscripciones y entradas siguen mostrando filas de un
+      // evento borrado hasta el próximo refetch.
+      setRegistrations((current) => current.filter((item) => item.eventSlug !== slug))
+      setTickets((current) => current.filter((item) => item.eventSlug !== slug))
+      setAdminEventsError(null)
+      return result
+    },
+    [adminEvents, session],
+  )
+
   const refreshPricingConfiguration = useCallback(async () => {
     const currentSession = sessionRef.current
     if (!currentSession || !hasPermission(currentSession, 'admin.pricing.read')) return null
@@ -1954,6 +2038,8 @@ export function useAppData() {
     saveEventComboOffer,
     shopProducts,
     saveAdminEvent,
+    deleteAdminEvent,
+    fetchAdminEventDeleteImpact,
     setAdminEventState,
     saveShopProduct,
     deleteShopProductAction,

@@ -526,7 +526,18 @@
 }
 
 .register-page--profile.page {
-  padding: clamp(16px, 2.5vw, 28px) clamp(20px, 5vw, 64px) clamp(36px, 5vw, 56px);
+  padding: clamp(20px, 3.5vh, 44px) clamp(20px, 5vw, 64px) clamp(24px, 4vh, 40px);
+}
+
+/* Dos correcciones sobre `.auth-immersive-page`:
+   — `min-height: 100vh` no descontaba el header, así que el alto total daba
+     siempre 100vh + header y la ficha scrolleaba aunque el formulario entrara;
+   — `align-items: center` recentraba todo al cambiar de paso (01 tiene 6
+     campos y 02 tiene 5), y el título "Perfil de atleta" saltaba ~50px. Un
+     wizard tiene que mantener el borde superior quieto. */
+.register-page--profile.auth-immersive-page {
+  align-items: flex-start;
+  min-height: calc(100dvh - var(--header-height));
 }
 
 .register-page--profile .register-topbar {
@@ -546,7 +557,11 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-  gap: clamp(28px, 4vw, 48px);
+  /* Columna y fila con presupuestos distintos: el aire entre aside y
+     formulario tiene que ser generoso, el que separa la barra superior del
+     contenido no — con 48px en ambos ejes la ficha se iba de viewport. */
+  column-gap: clamp(28px, 4vw, 48px);
+  row-gap: clamp(16px, 2.4vh, 24px);
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
   max-width: 1140px;
   padding: clamp(12px, 2.5vw, 28px) 0;
@@ -575,7 +590,7 @@
 
 @media (min-width: 900px) {
   .register-page--profile .register-shell {
-    padding: clamp(28px, 4vw, 48px) 0;
+    padding: clamp(18px, 3vh, 32px) 0;
   }
 }
 
@@ -2332,30 +2347,32 @@
   line-height: 1.45;
 }
 
+/* Definición compartida del CTA del alta: color plano de marca. El halo dorado
+   + brillo interior + brightness() que traía antes era el único elemento con
+   glow de la pantalla y se filtraba a cualquier variante que no lo pisara. */
 .register-card__submit {
   align-items: center;
   background: var(--color-brand-action);
-  border: 1px solid transparent;
-  border-radius: 2px;
-  box-shadow:
-    0 8px 20px var(--plu-gold-alpha-22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
   color: var(--color-brand-action-text);
   display: inline-flex;
   flex: none;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   gap: 8px;
   justify-content: center;
-  letter-spacing: -0.01em;
-  min-height: 46px;
+  letter-spacing: -0.005em;
+  min-height: 48px;
   min-width: min(100%, 200px);
   padding: 0 22px;
   transition:
-    transform 0.25s var(--ease-design),
-    box-shadow 0.25s var(--ease-design),
+    background-color 0.2s var(--ease-design),
+    border-color 0.2s var(--ease-design),
+    color 0.2s var(--ease-design),
     opacity 0.2s ease,
-    filter 0.2s ease;
+    transform 0.2s var(--ease-design);
 }
 
 .register-card__footer--profile .register-card__submit {
@@ -2366,30 +2383,21 @@
 
 .register-card__submit:hover:not(:disabled) {
   background: var(--color-brand-action-hover);
-  box-shadow:
-    0 14px 32px var(--plu-gold-alpha-35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  filter: brightness(1.03);
-  transform: translateY(-2px);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  transform: translateY(-1px);
 }
 
 .register-card__submit:active:not(:disabled) {
-  box-shadow: 0 6px 16px var(--plu-gold-alpha-22);
+  box-shadow: none;
   transform: translateY(0);
 }
 
-.register-card__submit--ready {
-  box-shadow:
-    0 12px 28px var(--plu-gold-alpha-35),
-    0 0 0 1px rgba(242, 183, 5, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
+/* Formulario completo: el estado ya lo comunica el 100% de la barra de
+   progreso y el rótulo del botón. No necesita además un halo. */
+.register-card__submit--ready,
 .register-card__submit--ready:hover:not(:disabled) {
-  box-shadow:
-    0 16px 36px var(--plu-gold-alpha-35),
-    0 0 0 1px rgba(242, 183, 5, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 .register-card__submit-arrow {
@@ -3128,21 +3136,22 @@
   padding: 10px 12px;
 }
 
+/* Mismo CTA que acceso y alta de ficha: color plano, sin gradiente, sin halo
+   ni brillo interior. Los tres pasos del flujo tienen que verse como el mismo
+   botón — el checkout no es un lugar para subir el volumen visual. */
 .register-page--membership .register-card__submit--membership {
-  background: linear-gradient(135deg, var(--plu-gold-500), var(--plu-gold-600));
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.18) inset,
-    0 10px 24px rgba(242, 183, 5, 0.22);
-  color: #14181f;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
 }
 
 .register-page--membership .register-card__submit--membership:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-500));
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.22) inset,
-    0 14px 30px rgba(242, 183, 5, 0.28);
-  color: #14181f;
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
+  color: var(--color-brand-action-text);
   filter: none;
 }
 
@@ -4026,35 +4035,37 @@
 }
 
 .register-page--competition .register-card__submit--competition {
-  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-600) 100%);
-  border: none;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.32);
-  color: #0d0f14;
-  font-size: 14px;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  min-height: 50px;
+  letter-spacing: -0.005em;
+  min-height: 52px;
   min-width: min(100%, 240px);
   transition:
     background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .register-page--competition .register-card__submit--competition:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--plu-gold-400) 0%, var(--plu-gold-500) 100%);
-  box-shadow: 0 12px 32px -4px rgba(242, 183, 5, 0.46);
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
   filter: none;
   transform: translateY(-1px);
 }
 
 .register-page--competition .register-card__submit--competition:hover:not(:disabled) .register-card__submit-arrow {
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .register-page--competition .register-card__submit--competition:active:not(:disabled) {
-  box-shadow: 0 4px 16px -2px rgba(242, 183, 5, 0.28);
+  box-shadow: none;
   transform: translateY(0);
 }
 

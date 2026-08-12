@@ -54,6 +54,13 @@ export function canDeleteAthletes(subject) {
   return getAccessRoleKey(subject) === 'admin_maximal'
 }
 
+// Mismo criterio que canDeleteAthletes: borrar un evento se lleva puestas sus
+// inscripciones, entradas y acreditaciones. `admin.events.write` alcanza para
+// editarlo y cerrarlo, no para hacerlo desaparecer.
+export function canDeleteEvents(subject) {
+  return getAccessRoleKey(subject) === 'admin_maximal'
+}
+
 export function canManageRoles(subject) {
   return hasPermission(subject, 'admin.roles.write')
 }

@@ -47,6 +47,7 @@ export default function AdminPage({
   allowedSections = [],
   authorization,
   canDeleteAthletes,
+  canDeleteEvents,
   canDeleteUsers,
   canManageUsers,
   dashboardOverview,
@@ -75,6 +76,8 @@ export default function AdminPage({
   onCreateUser,
   onDeleteUser,
   onDeleteAthlete,
+  onDeleteEvent,
+  onFetchEventDeleteImpact,
   onCreateRole,
   onExportAdmin,
   onExportPluUsa,
@@ -294,6 +297,9 @@ export default function AdminPage({
           }
           onRefresh={onRefreshAdminEvents}
           onSaveEvent={onSaveEvent}
+          canDeleteEvents={canDeleteEvents}
+          onDeleteEvent={onDeleteEvent}
+          onFetchDeleteImpact={onFetchEventDeleteImpact}
           onSetEventState={onSetEventState}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           tickets={tickets}
