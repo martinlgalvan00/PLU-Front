@@ -1,6 +1,8 @@
 -- Datos de desarrollo local -- espeja src/lib/events.js (UPCOMING_EVENTS)
 -- para que el front tenga los mismos dos eventos de siempre al correr
--- contra Supabase local.
+-- contra Supabase local. Pitbull queda en `inscripcion_abierta` porque
+-- las migraciones 20260812170000/71000 no encuentran el evento todavía
+-- (el seed corre después de las migraciones en `db reset`).
 
 insert into public.events (
   slug, title, venue, location, starts_at, ends_at,
@@ -9,7 +11,7 @@ insert into public.events (
 ) values (
   'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
-  'proximamente', true, 75000, 'ARS',
+  'inscripcion_abierta', true, 75000, 'ARS',
   '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03'
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',

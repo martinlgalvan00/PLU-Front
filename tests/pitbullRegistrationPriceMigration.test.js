@@ -10,6 +10,7 @@ const registrationOpenMigration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260812171000_pitbull_registration_open.sql'),
   'utf8',
 )
+const seed = readFileSync(resolve(process.cwd(), 'supabase/seed.sql'), 'utf8')
 
 describe('precio de inscripción Pitbull Classic', () => {
   it('corrige el catálogo Supabase a ARS 75.000 de forma identificable', () => {
@@ -25,5 +26,11 @@ describe('precio de inscripción Pitbull Classic', () => {
     expect(registrationOpenMigration).toContain("status = 'inscripcion_abierta'")
     expect(registrationOpenMigration).toContain('published = true')
     expect(registrationOpenMigration).toContain("'migration:20260812171000'")
+  })
+
+  it('siembra Pitbull abierto: db reset aplica seed despues de las migraciones', () => {
+    expect(seed).toMatch(
+      /'pitbull-classic-2026'[\s\S]*?'inscripcion_abierta'[\s\S]*?75000,\s*'ARS'/,
+    )
   })
 })
