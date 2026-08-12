@@ -40,7 +40,12 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { requirePermission } from '../middleware/auth.js'
-import { checkoutLimiter, publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import {
+  checkoutLimiter,
+  paymentTelemetryLimiter,
+  publicReadLimiter,
+  staffLimiter,
+} from '../middleware/rateLimit.js'
 import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
 
 const preferenceSchema = z.object({
@@ -203,14 +208,17 @@ export function createPaymentRoutes(deps = {}) {
     try {
       const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
-      const result = await processEmbeddedPayment(req.validatedBody, services({ notifications: true }))
+      const result = await processEmbeddedPayment(req.validatedBody, {
+        ...services({ notifications: true }),
+        order,
+      })
       res.status(result.duplicate ? 200 : 201).json(result)
     } catch (error) {
       next(error)
     }
   })
 
-  router.post('/telemetry', checkoutLimiter, validateBody(paymentClientEventSchema), async (req, res, next) => {
+  router.post('/telemetry', paymentTelemetryLimiter, validateBody(paymentClientEventSchema), async (req, res, next) => {
     try {
       const { paymentOrderId, orderAccessToken, ...event } = req.validatedBody
       const order = await requireOrderAccess(req, paymentOrderId, orderAccessToken)
@@ -373,8 +381,7 @@ export function createPaymentRoutes(deps = {}) {
 
       const resolvedOrderId = orderId ?? payment.external_reference
       if (!resolvedOrderId) throw new HttpError(409, 'Pago mock sin referencia de orden.')
-      await requireOrderAccess(req, resolvedOrderId, req.get('x-order-access-token'))
-      const order = await paymentRepository.getOrder(resolvedOrderId)
+      const order = await requireOrderAccess(req, resolvedOrderId, req.get('x-order-access-token'))
       const applied = await applyCanonicalPayment(payment, order, {
         repository: paymentRepository,
         notifyPaymentApplied,

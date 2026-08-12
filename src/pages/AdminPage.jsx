@@ -5,6 +5,7 @@ import '../styles/pages/admin-institutional.css'
 import '../styles/pages/admin-minimal.css'
 import '../styles/pages/admin-dashboard-bento.css'
 import '../styles/pages/admin-audit.css'
+import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
@@ -22,6 +23,7 @@ import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx'))
 const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
 const AuditSection = lazy(() => import('./admin/AuditSection.jsx'))
+const AnalyticsSection = lazy(() => import('./admin/AnalyticsSection.jsx'))
 const EventsSection = lazy(() => import('./admin/EventsSection.jsx'))
 const MembershipsSection = lazy(() => import('./admin/MembershipsSection.jsx'))
 const PlaceholderSection = lazy(() => import('./admin/PlaceholderSection.jsx'))
@@ -388,6 +390,10 @@ export default function AdminPage({
 
     if (section === 'audit') {
       return <AuditSection />
+    }
+
+    if (section === 'analytics') {
+      return <AnalyticsSection />
     }
 
     if (['results', 'exports'].includes(section)) {

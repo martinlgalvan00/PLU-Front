@@ -88,7 +88,9 @@ recurso. Los webhooks se deduplican por proveedor + notification ID, y cada
 - Panel de operación protegido para observar y reintentar.
 - Polling corto desde el Brick para dar feedback sin reemplazar al webhook.
 - Telemetría autenticada por orden para errores de render del Brick, sin enviar
-  números de tarjeta, token efímero ni cookies.
+  números de tarjeta, token efímero ni cookies. Corre con cupo propio
+  (`paymentTelemetryLimiter`), separado del de checkout: reportar un Brick que
+  falla nunca puede consumir los intentos de pago del atleta.
 - Historial append-only de cada estado canónico del ledger: pendiente, aprobado,
   rechazado, cancelado y reembolsado.
 
