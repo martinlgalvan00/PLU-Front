@@ -1,24 +1,71 @@
 -- Datos de desarrollo local -- espeja src/lib/events.js (UPCOMING_EVENTS)
 -- para que el front tenga los mismos dos eventos de siempre al correr
--- contra Supabase local. Pitbull queda en `inscripcion_abierta` porque
--- las migraciones 20260812170000/71000 no encuentran el evento todavía
--- (el seed corre después de las migraciones en `db reset`).
+-- contra Supabase local.
+--
+-- Importante: `db reset` corre migraciones y DESPUÉS este seed. Las
+-- migraciones 2026081213*/16*/17* que tocan Pitbull no encuentran el
+-- evento todavía, así que acá hay que dejar status, rules y combo listos
+-- para CI (`test:integration`).
 
 insert into public.events (
   slug, title, venue, location, starts_at, ends_at,
-  status, published, price, currency,
+  status, published, price, currency, rules,
   ticket_sales_opens_at, ticket_sales_closes_at
 ) values (
   'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
   'inscripcion_abierta', true, 75000, 'ARS',
+  jsonb_build_object(
+    'membershipPrice', 75000,
+    'comboPrice', 120000,
+    'ticketsEnabled', true,
+    'ticketAddons', '[]'::jsonb,
+    'featured', true
+  ),
   '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03'
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',
   '2025-05-18 10:00:00-03', '2025-05-18 20:00:00-03',
   'finalizado', true, 75000, 'ARS',
+  null,
   null, null
 );
+
+-- Oferta combo vigente (afiliación + inscripción) para checkout productivo.
+-- El plan one_time ya existe por migraciones; acá solo se vincula al evento.
+insert into public.event_combo_offers (
+  organization_id, event_id, membership_plan_id, price, currency,
+  active, starts_at, ends_at
+)
+select
+  e.organization_id,
+  e.id,
+  p.id,
+  120000,
+  'ARS',
+  true,
+  timestamptz '2026-08-01 00:00:00-03',
+  timestamptz '2026-08-28 23:59:59-03'
+from public.events e
+join lateral (
+  select id
+  from public.membership_plans
+  where organization_id = e.organization_id
+    and collection_mode = 'one_time'
+    and active = true
+    and (retired_at is null or retired_at > now())
+  order by version desc
+  limit 1
+) p on true
+where e.slug = 'pitbull-classic-2026'
+on conflict (event_id) do update set
+  membership_plan_id = excluded.membership_plan_id,
+  price = excluded.price,
+  currency = excluded.currency,
+  active = true,
+  starts_at = excluded.starts_at,
+  ends_at = excluded.ends_at,
+  updated_at = now();
 
 -- Días y tipos de entrada de ejemplo para probar el enforcement de
 -- create_ticket_order_v2. day1/day2 tienen cupo propio de 8 (tests de
