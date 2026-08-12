@@ -166,6 +166,7 @@ export default function PaymentsOperationsSection({
     runtimeReady &&
     failedCount === 0 &&
     pendingReconciliations === 0 &&
+    pastDue === 0 &&
     health?.healthy !== false
 
   const ticketPendingCount = pendingTicketOrders?.length ?? 0

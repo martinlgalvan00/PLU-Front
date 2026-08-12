@@ -14,6 +14,9 @@ const PUBLIC_VIEWS = new Set([
   'contact',
   'shop',
   'tickets',
+  'team',
+  'sponsors',
+  'standards',
 ])
 
 describe('navegación pública', () => {
@@ -23,9 +26,10 @@ describe('navegación pública', () => {
     expect(new Set(primaryKeys).size).toBe(primaryKeys.length)
     expect(primaryKeys).toEqual([
       'members',
-      'competitions',
-      'shop',
-      'resources',
+      'competition',
+      'results',
+      'records',
+      'more',
     ])
   })
 
@@ -41,13 +45,28 @@ describe('navegación pública', () => {
     })
   })
 
-  it('agrupa calendario bajo competencias y separa recursos en estados activos coherentes', () => {
-    const competitions = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
-    const resources = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
+  it('expone IA federativa top-level y agrupa el resto en Más', () => {
+    const competition = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competition')
+    const more = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'more')
 
-    expect(competitions.views).toEqual(['events', 'pitbull', 'tickets', 'results', 'records'])
-    expect(resources.views).toEqual(['resources', 'rulebook', 'faq', 'community', 'contact'])
-    expect(competitions.views).toContain('events')
-    expect(resources.views).not.toContain('members')
+    expect(competition.views).toEqual(['events', 'pitbull', 'shop', 'tickets'])
+    expect(competition.views).toContain('pitbull')
+    expect(competition.views).toContain('shop')
+
+    expect(more.views).toEqual([
+      'rulebook',
+      'resources',
+      'faq',
+      'community',
+      'contact',
+      'team',
+      'sponsors',
+      'standards',
+    ])
+    expect(more.views).toContain('rulebook')
+    expect(more.views).toContain('standards')
+    expect(more.views).not.toContain('members')
+    expect(more.views).not.toContain('events')
+    expect(more.views).not.toContain('pitbull')
   })
 })

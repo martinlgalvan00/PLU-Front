@@ -21,6 +21,8 @@ import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
@@ -523,6 +525,7 @@ function PitbullInscriptionSection({
   canRegister,
   capacityStatus,
   comboOffer = null,
+  event,
   eventStatus,
   locale,
   onNavigate,
@@ -566,11 +569,20 @@ function PitbullInscriptionSection({
       title={t('pages.pitbull.inscriptionTitle')}
       tone="ops"
     >
-      {eventStatus === 'proximamente' ? (
+      {eventStatus === 'proximamente' || !canRegister ? (
         <LaunchRegistrationTeaser
-          event={{ title: 'Pitbull Classic 2026' }}
+          event={event ?? { title: 'Pitbull Classic 2026' }}
           onNavigate={onNavigate}
           variant="full"
+          source="pitbull_page"
+          className="launch-teaser--dossier"
+          indexLabel={t('pages.pitbull.inscriptionIndex')}
+          hideShare
+          intro={{
+            eyebrow: t('pages.pitbull.inscriptionEyebrow'),
+            title: t('launchTeaser.title'),
+            lead: t('launchTeaser.countdownHeld'),
+          }}
         />
       ) : null}
 
@@ -799,11 +811,13 @@ export default function PitbullPage({
     title: pitbullEvent?.title ?? PITBULL_CLASSIC.title,
   }
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
-  const canRegister = isRegistrationOpen(eventStatus)
+  const paidCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env)
+  const checkoutLocked = !paidCheckoutOpen
+  const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
-  const liveComboOffer = resolveLiveComboOffer(pitbullEvent)
-  const ticketsOpen = eventPricing.ticketsEnabled !== false
+  const liveComboOffer = paidCheckoutOpen ? resolveLiveComboOffer(pitbullEvent) : null
+  const ticketsOpen = paidCheckoutOpen && eventPricing.ticketsEnabled !== false
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const {
     status: capacityStatus,
@@ -817,11 +831,11 @@ export default function PitbullPage({
     fallbackSlots: PITBULL_CLASSIC.slots,
   })
   const sectionNavItems = [
-    { id: 'experiencia', index: '01', label: 'Experiencia' },
-    { id: 'pesajes', index: '02', label: t('pages.pitbull.weighInsEyebrow') },
-    { id: 'categorias', index: '03', label: t('pages.pitbull.categoriesEyebrow') },
-    { id: 'lugar', index: '04', label: t('pages.pitbull.locationEyebrow') },
-    { id: 'inscripcion', index: '05', label: t('pages.pitbull.inscriptionEyebrow') },
+    { id: 'inscripcion', index: '01', label: t('pages.pitbull.inscriptionEyebrow') },
+    { id: 'experiencia', index: '02', label: t('pages.pitbull.experienceEyebrow') },
+    { id: 'pesajes', index: '03', label: t('pages.pitbull.weighInsEyebrow') },
+    { id: 'categorias', index: '04', label: t('pages.pitbull.categoriesEyebrow') },
+    { id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') },
     { id: 'entradas', index: '06', label: t('pages.pitbull.ticketsEyebrow') },
   ]
 
@@ -839,7 +853,9 @@ export default function PitbullPage({
       onNavigate('results')
       return
     }
-    if (eventStatus === 'proximamente') {
+    // Cobros cerrados (kill switch / schedule) o evento marcado "próximamente":
+    // no empujar a un Members que igual está gateado, quedarse en el aviso.
+    if (checkoutLocked || eventStatus === 'proximamente') {
       scrollToSection('inscripcion')
       return
     }
@@ -863,6 +879,7 @@ export default function PitbullPage({
     <main className="page page--design pitbull-page pitbull-page--premium">
       <PitbullHero
         canRegister={canRegister}
+        checkoutLocked={checkoutLocked}
         eventStatus={eventStatus}
         onHome={() => onNavigate('home')}
         onRegister={handleHeroRegister}
@@ -876,6 +893,22 @@ export default function PitbullPage({
 
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
+          <PitbullInscriptionSection
+            canRegister={canRegister}
+            capacityStatus={capacityStatus}
+            comboOffer={liveComboOffer}
+            event={pitbullEvent}
+            eventStatus={eventStatus}
+            locale={locale}
+            onNavigate={onNavigate}
+            onRegister={handlePitbullRegistration}
+            pricing={eventPricing}
+            recent={recentRegistrants}
+            registered={liveRegistered}
+            slots={liveSlots}
+            t={t}
+          />
+
           <PitbullExperienceSection t={t} />
           
           <PitbullWeighInSnapshot />
@@ -889,21 +922,6 @@ export default function PitbullPage({
           <PitbullLocationSection
             event={pitbullMapEvent}
             venue={PITBULL_VENUE}
-            t={t}
-          />
-
-          <PitbullInscriptionSection
-            canRegister={canRegister}
-            capacityStatus={capacityStatus}
-            comboOffer={liveComboOffer}
-            eventStatus={eventStatus}
-            locale={locale}
-            onNavigate={onNavigate}
-            onRegister={handlePitbullRegistration}
-            pricing={eventPricing}
-            recent={recentRegistrants}
-            registered={liveRegistered}
-            slots={liveSlots}
             t={t}
           />
 

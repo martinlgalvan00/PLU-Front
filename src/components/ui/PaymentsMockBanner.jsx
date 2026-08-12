@@ -20,8 +20,9 @@ function wasDismissed() {
 export default function PaymentsMockBanner() {
   const { t } = useI18n()
   const [dismissed, setDismissed] = useState(wasDismissed)
+  const visible = env.isDev && env.payments.isMock && !dismissed
 
-  if (!env.isDev || !env.payments.isMock || dismissed) return null
+  if (!visible) return null
 
   function dismiss() {
     try {

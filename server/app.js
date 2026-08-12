@@ -14,6 +14,7 @@ import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
 import { createCommunityRoutes } from './routes/community.js'
+import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
@@ -135,6 +136,7 @@ export function createApp(deps = {}) {
     getSupabaseAdmin: resolveSupabaseAdmin,
     repository: deps.ticketRepository,
     athleteRepository: deps.athleteRepository,
+    env: deps.env ?? process.env,
   }))
   app.use('/api/audit', createAuditRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),
@@ -155,6 +157,13 @@ export function createApp(deps = {}) {
     createCommunityRoutes({
       getSupabaseAdmin: resolveSupabaseAdmin,
       communityRepository: deps.communityRepository,
+    }),
+  )
+  app.use(
+    '/api/launch-interest',
+    createLaunchInterestRoutes({
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      launchInterestRepository: deps.launchInterestRepository,
     }),
   )
   app.use(notFoundHandler)

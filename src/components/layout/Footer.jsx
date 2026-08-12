@@ -10,13 +10,17 @@ const FOOTER_GROUPS = [
       { key: 'events', children: [{ key: 'pitbull' }] },
       { key: 'results' },
       { key: 'records' },
+      { key: 'standards' },
     ],
   },
   {
     labelKey: 'navResources',
     items: [{ key: 'resources' }, { key: 'rulebook' }, { key: 'faq' }, { key: 'community' }],
   },
-  { labelKey: 'navInstitution', items: [{ key: 'contact' }, { key: 'login' }] },
+  {
+    labelKey: 'navInstitution',
+    items: [{ key: 'team' }, { key: 'sponsors' }, { key: 'contact' }, { key: 'login' }],
+  },
 ]
 
 function FooterLink({ itemKey, onNavigate, t }) {

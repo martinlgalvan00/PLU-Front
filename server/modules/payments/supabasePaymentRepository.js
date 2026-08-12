@@ -30,7 +30,7 @@ export function createSupabasePaymentRepository(
       // el título real del evento cuando el pago entra por Mercado Pago. Sin
       // este join, ese email solo salía por la aprobación manual.
       .select(
-        '*, athlete:athletes(id, full_name, email, document_id), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue))',
+        '*, athlete:athletes(id, full_name, email, document_id), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at))',
       )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
@@ -65,7 +65,7 @@ export function createSupabasePaymentRepository(
     const ticketData = assertResult(
       await client
         .from('ticket_orders')
-        .select('*, event:events(id, title, slug)')
+        .select('*, event:events(id, title, slug, registration_opens_at)')
         .eq('id', orderId)
         .eq('organization_id', organizationId)
         .maybeSingle(),

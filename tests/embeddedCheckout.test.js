@@ -95,7 +95,11 @@ describe('Mercado Pago Checkout Bricks', () => {
         }
       }),
     }
-    const target = listen(createApp({ paymentRepository: repository, mercadoPago }))
+    const target = listen(createApp({
+      paymentRepository: repository,
+      mercadoPago,
+      env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
+    }))
 
     const response = await fetch(`${target.url}/api/payments/embedded/process`, {
       method: 'POST',

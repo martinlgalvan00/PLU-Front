@@ -1,10 +1,13 @@
 import { isComboOfferLive } from '../lib/eventPricing.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 
 export function getEventComboAvailability(
   event,
   {
     hasActiveMembership = false,
     now = new Date(),
+    envLike = env,
   } = {},
 ) {
   const rawOffer = event?.comboOffer ?? null
@@ -13,10 +16,11 @@ export function getEventComboAvailability(
     ? { ...rawOffer, active: true, price: Number(rawOffer.price) }
     : null
   const relevant = Boolean(offer) && !hasActiveMembership
+  const paidCheckoutOpen = isPaidCheckoutOpen(event, envLike, now)
 
   return {
     offer,
-    enabled: relevant,
-    comingSoon: false,
+    enabled: relevant && paidCheckoutOpen,
+    comingSoon: relevant && !paidCheckoutOpen,
   }
 }

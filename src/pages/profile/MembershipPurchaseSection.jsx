@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowRight,
+  CalendarClock,
   Check,
   CreditCard,
   ImageDown,
@@ -15,6 +16,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PRICING } from '../../lib/constants.js'
 import { formatShortDate, money } from '../../lib/format.js'
 import { env } from '../../config/env.js'
+import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import {
   getMembershipLifecycle,
@@ -24,6 +26,7 @@ import {
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import BrandLogo from '../../components/ui/BrandLogo.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
+import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import TransferProofUpload from '../../components/ui/TransferProofUpload.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 
@@ -166,6 +169,7 @@ export default function MembershipPurchaseSection({
   onCancelMembership,
   onStartMembershipPayment,
   demoMode = false,
+  gateEvent = null,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -193,6 +197,9 @@ export default function MembershipPurchaseSection({
   const membershipCancelled = membershipLifecycle === MEMBERSHIP_LIFECYCLE.CANCELLED
   const membershipRefunded = membershipLifecycle === MEMBERSHIP_LIFECYCLE.REFUNDED
   const membershipCanPurchase = !membershipActive && !membershipScheduled
+  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env)
+  const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
+  const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   const cardData = membershipActive
     ? {
         athleteName: athlete.fullName,
@@ -470,18 +477,24 @@ export default function MembershipPurchaseSection({
               </span>
             </div>
             <h2>{t('account.membership.title')}</h2>
-            <p className="account-section__lead">{t('account.membership.lead')}</p>
+            <p className="account-section__lead">
+              {paidCheckoutOpen
+                ? t('account.membership.lead')
+                : t('account.membership.leadCheckoutSoon')}
+            </p>
             {statusTone !== 'pending' && statusNext ? (
               <p className="account-membership__banner-next">{statusNext}</p>
             ) : null}
             {statusMeta ? <p className="account-membership__banner-meta-line">{statusMeta}</p> : null}
           </div>
-          <div className="account-membership__price">
-            <span className="account-membership__price-label">{t('account.membership.priceLabel')}</span>
-            <p className="account-membership__price-value">
-              {selectedPlan ? money(selectedPlan.price, locale) : '—'}
-            </p>
-          </div>
+          {paidCheckoutOpen ? (
+            <div className="account-membership__price">
+              <span className="account-membership__price-label">{t('account.membership.priceLabel')}</span>
+              <p className="account-membership__price-value">
+                {selectedPlan ? money(selectedPlan.price, locale) : '—'}
+              </p>
+            </div>
+          ) : null}
         </header>
       ) : (
         <header className="account-membership__header">
@@ -524,7 +537,19 @@ export default function MembershipPurchaseSection({
         </div>
       )}
 
-      {membershipCanPurchase && (
+      {showCheckoutSoon ? (
+        <FeatureComingSoon
+          className="account-membership__checkout-soon"
+          eyebrow={t('account.membership.checkoutSoonEyebrow')}
+          icon={CalendarClock}
+          lead={t('account.membership.checkoutSoonLead')}
+          role="status"
+          title={t('account.membership.checkoutSoonTitle')}
+          variant="inline"
+        />
+      ) : null}
+
+      {showPurchaseCheckout && (
         <div className="account-membership__decision account-membership__decision--solo">
           <ul className="account-benefits account-benefits--inline" aria-label={t('account.membership.includes')}>
             <li><Check size={14} aria-hidden /> {t('account.membership.benefitCredential')}</li>
@@ -635,7 +660,7 @@ export default function MembershipPurchaseSection({
       {demoMode && !env.payments.isMock && <div className="account-membership__demo">
         <p className="account-membership__demo-label">{t('account.membership.demoLabel')}</p>
         <div className="account-demo-actions">
-          {membershipCanPurchase && (
+          {showPurchaseCheckout && (
             <button
               type="button"
               className="account-secondary-action account-secondary-action--success"

@@ -9,7 +9,15 @@ const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(file
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [react()],
+  // Prefijo alineado con vite.config: PAID_CHECKOUT_* llega a import.meta.env en tests.
+  envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
   test: {
+    // En unit tests el checkout de pago queda abierto salvo que el caso pase
+    // un env explícito (APP_PRODUCTION + PAID_CHECKOUT_*). Evita que el
+    // APP_PRODUCTION=true del .env local cierre todos los flujos de cobro.
+    env: {
+      PAID_CHECKOUT_ENABLED: 'true',
+    },
     projects: [{
       extends: true,
       // Sin esto, los .jsx de src/ que renderiza un test se transforman con el

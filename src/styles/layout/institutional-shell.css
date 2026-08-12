@@ -41,24 +41,31 @@
 /* ── Header ─────────────────────────────────────── */
 
 .site-header-shell--institutional {
-  /* Morph de marca al scroll: solo el wordmark se retrae.
-     El emblema mantiene escala plena (sello institucional). */
+  /* Morph de marca al scroll: wordmark se retrae con --header-scroll-progress.
+     Slot de altura fijo: el pill se compacta adentro sin reflow del documento. */
   --brand-wordmark-open: calc(1 - var(--header-scroll-progress, 0));
-  /* Fade adelantado al clip: el letterhead se apaga antes de terminar de colapsar. */
-  --brand-wordmark-fade: clamp(0, calc(1 - (var(--header-scroll-progress, 0) * 1.4)), 1);
+  /* Fade adelantado al clip, sin apagar tan temprano (1.25 vs 1.4). */
+  --brand-wordmark-fade: clamp(0, calc(1 - (var(--header-scroll-progress, 0) * 1.25)), 1);
   --brand-emblem-base: 1;
   /* Sello con presencia: contenido en la pill, sin quedar demasiado fino. */
   --brand-emblem-size: clamp(44px, 1.7vw + 28px, 50px);
-  --brand-nav-row: 50px;
+  /* Piso más alto al compactar (~46px) para que la pill scrolled no se vea fina. */
+  --brand-nav-row: calc(46px + (8px * var(--brand-wordmark-open, 1)));
   /* Ancho real del letterhead en nav (~height 20 × aspect 3.75), sin columna muerta. */
   --brand-wordmark-size: 5rem;
   --brand-wordmark-track: calc(var(--brand-wordmark-open) * var(--brand-wordmark-size));
+  --brand-shell-slot: 58px;
+  align-items: center;
+  display: flex;
   isolation: isolate;
+  justify-content: center;
   margin: 0 auto;
   max-width: calc(100% - 32px);
+  min-height: var(--brand-shell-slot);
   pointer-events: auto;
   position: sticky;
-  top: 16px;
+  /* top más bajo al compactar: pill más “adherida”, sin saltar el layout. */
+  top: calc(8px + (8px * var(--brand-wordmark-open, 1)));
   width: max-content;
   z-index: var(--z-header);
 }
@@ -76,12 +83,18 @@
   overflow: visible;
   pointer-events: auto;
   position: relative;
+  /* Sin scale global: el morph del letterhead es el gesto; translateZ para capa. */
+  transform: translateZ(0);
+  transform-origin: center top;
   top: auto;
   transition:
-    background-color var(--motion-base) var(--ease-out),
-    border-color var(--motion-base) var(--ease-out),
-    box-shadow var(--motion-base) var(--ease-out),
+    background-color var(--motion-slow) var(--ease-out),
+    border-color var(--motion-slow) var(--ease-out),
+    box-shadow var(--motion-slow) var(--ease-out),
+    backdrop-filter var(--motion-slow) var(--ease-out),
+    -webkit-backdrop-filter var(--motion-slow) var(--ease-out),
     max-width var(--motion-base) var(--ease-out);
+  width: 100%;
   z-index: var(--z-header);
 }
 
@@ -111,17 +124,16 @@
 
 .site-header {
   transition:
-    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--motion-base) var(--ease-out),
+    background-color var(--motion-slow) var(--ease-out),
+    box-shadow var(--motion-slow) var(--ease-out),
+    border-color var(--motion-slow) var(--ease-out);
 }
 
 /* Nav institucional: siempre visible al scrollear (pill compacta). El auto-hide
    quedaba en conflicto con la animación de entrada y dejaba botones sin click. */
 .site-header--institutional.site-header--hidden {
   pointer-events: auto;
-  transform: none;
   visibility: visible;
 }
 
@@ -152,14 +164,17 @@
   align-items: center;
   display: flex;
   /* Compactación ligada al progreso de scroll (sin transition: evita lag). */
-  gap: calc(10px + (4px * var(--brand-wordmark-open, 1)));
-  min-height: calc(52px + (4px * var(--brand-wordmark-open, 1)));
+  gap: calc(8px + (6px * var(--brand-wordmark-open, 1)));
+  height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
+  max-height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
+  min-height: calc(46px + (10px * var(--brand-wordmark-open, 1)));
   /* Izquierda más justa cuando queda solo el emblema. */
   padding:
     0
     14px
     0
-    calc(10px + (2px * var(--brand-wordmark-open, 1)));
+    calc(8px + (4px * var(--brand-wordmark-open, 1)));
+  width: 100%;
 }
 
 .plu-global-nav__brand {
@@ -206,6 +221,10 @@
   .plu-global-nav__letterhead {
     transition: none;
   }
+
+  .site-header--institutional {
+    transform: none;
+  }
 }
 
 .plu-global-nav__brand:hover {
@@ -216,7 +235,7 @@
   --brand-emblem-hover: 0.98;
 }
 
-/* Letterhead: clip por max-width + fade adelantado + leve slide hacia el emblema. */
+/* Letterhead: clip + fade adelantado; slide mínimo hacia el emblema (menos ruido). */
 .plu-global-nav__wordmark {
   align-self: center;
   display: grid;
@@ -226,7 +245,7 @@
   opacity: var(--brand-wordmark-fade, 1);
   overflow: hidden;
   pointer-events: none;
-  transform: translate3d(calc(var(--header-scroll-progress, 0) * -8px), 0, 0);
+  transform: translate3d(calc(var(--header-scroll-progress, 0) * -4px), 0, 0);
   transform-origin: left center;
   width: max-content;
   white-space: nowrap;
@@ -301,13 +320,13 @@
   border-radius: 0;
   color: color-mix(in srgb, var(--institution-text-muted) 92%, var(--institution-text));
   display: inline-flex;
-  font-size: 12px;
+  font-size: calc(11.25px + (0.75px * var(--brand-wordmark-open, 1)));
   font-weight: 650;
   gap: 5px;
   justify-content: center;
-  letter-spacing: calc(0.045em + (0.01em * var(--brand-wordmark-open, 1)));
-  min-height: calc(46px + (4px * var(--brand-wordmark-open, 1)));
-  padding: 0 calc(12px + (3px * var(--brand-wordmark-open, 1)));
+  letter-spacing: calc(0.04em + (0.015em * var(--brand-wordmark-open, 1)));
+  min-height: calc(42px + (6px * var(--brand-wordmark-open, 1)));
+  padding: 0 calc(10px + (5px * var(--brand-wordmark-open, 1)));
   position: relative;
   text-transform: uppercase;
   transition:
@@ -406,7 +425,6 @@
   position: absolute;
   top: calc(100% + 10px);
   transform-origin: top center;
-  will-change: opacity, transform;
   z-index: var(--z-dropdown);
 }
 
@@ -433,6 +451,8 @@
 .plu-nav-menu--resources {
   min-width: min(720px, calc(100vw - 48px));
   padding: 0;
+  /* Coincide con transformOrigin 58% top del panel Motion. */
+  transform-origin: 58% top;
   translate: -58% 0;
 }
 
@@ -727,11 +747,11 @@
   font-family: var(--font-display);
   font-size: 10.5px;
   font-weight: 700;
-  height: calc(34px + (2px * var(--brand-wordmark-open, 1)));
+  height: calc(36px + (2px * var(--brand-wordmark-open, 1)));
   justify-content: center;
   letter-spacing: 0.1em;
   line-height: 1;
-  min-height: calc(34px + (2px * var(--brand-wordmark-open, 1)));
+  min-height: calc(36px + (2px * var(--brand-wordmark-open, 1)));
   padding: 0 calc(14px + (2px * var(--brand-wordmark-open, 1)));
   text-decoration: none;
   text-transform: uppercase;
@@ -1147,6 +1167,33 @@ html.plu-drawer-open body {
   color: #ecece8;
 }
 
+/* Mobile real: sheet de borde a borde (sin card flotante). Después de temas. */
+@media (max-width: 799px) {
+  .plu-drawer {
+    border-bottom: 0;
+    border-left: 1px solid color-mix(in srgb, var(--institution-border) 55%, transparent);
+    border-radius: 0;
+    border-right: 0;
+    border-top: 0;
+    box-shadow: -24px 0 64px color-mix(in srgb, var(--color-shadow-tint) 80%, transparent);
+    height: 100svh;
+    height: 100dvh;
+    inset: 0 0 0 auto;
+    max-width: min(100%, 420px);
+    width: min(100%, 420px);
+  }
+
+  [data-theme='light'] .plu-drawer {
+    border-left-color: rgba(15, 17, 23, 0.08);
+    box-shadow: -18px 0 48px rgba(15, 17, 23, 0.18);
+  }
+
+  [data-theme='dark'] .plu-drawer {
+    border-left-color: rgba(255, 255, 255, 0.08);
+    box-shadow: -28px 0 72px rgba(0, 0, 0, 0.82);
+  }
+}
+
 /* ── Header — marca + CTA sticky ───────────────── */
 
 .plu-drawer__head {
@@ -1234,14 +1281,57 @@ html.plu-drawer-open body {
   transform: scale(0.94);
 }
 
-/* ── Body — nav sin scroll; caben masthead + utilidad ──── */
+/* ── Body — nav con scroll interno cuando no entra ──── */
 
 .plu-drawer__scroll {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 4px 20px 10px;
+}
+
+@media (max-height: 700px) {
+  .plu-drawer__head {
+    gap: 8px;
+    padding-top: calc(6px + env(safe-area-inset-top));
+  }
+
+  .plu-drawer__cta {
+    padding-bottom: 10px;
+  }
+
+  .plu-drawer__cta-copy strong {
+    font-size: clamp(18px, 5vw, 22px);
+  }
+
+  .plu-drawer__scroll {
+    padding: 2px 18px 8px;
+  }
+
+  .plu-drawer__nav-primary {
+    gap: 2px;
+  }
+
+  .plu-drawer__nav-primary .plu-drawer__row--flush {
+    padding: 7px 0;
+  }
+
+  .plu-drawer__nav-primary .plu-drawer__row--flush .plu-drawer__row-copy strong {
+    font-size: clamp(17px, 5vw, 20px);
+  }
+
+  .plu-drawer__nav-secondary {
+    padding-top: 10px;
+  }
+
+  .plu-drawer__footer {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    padding-top: 8px;
+  }
 }
 
 /* ── Afiliarme — invitación editorial sticky ───── */
@@ -2262,47 +2352,31 @@ html.plu-drawer-open body {
 }
 
 /* ── Responsive shell: bandas notebook ─────────────────
-   <800 mobile cluster | 800–1099 mid (Afiliación + Competencias +
-   Tienda + Recursos + menú) | 1100–1500 compact | >1500 morph pleno
-   Nota: sin Calendario top-level, 800–980 ya entra el set completo.
+   <800 mobile cluster | 800–1099 mid (Afiliación + Competencia +
+   Resultados + Récords + Más + menú) | 1100–1500 compact | >1500 morph pleno
+   Nota: sin Calendario/Reglamento top-level, 800–980 entra el set completo.
    ───────────────────────────────────────────────────── */
 
-/* Snap compartido notebook (sin morph continuo). */
+/* Notebook mid: morph continuo vía --header-scroll-progress (sin snap de wordmark).
+   Evitar transition de gap/max-width: el umbral oscilaba y reiniciaba la animación. */
 @media (min-width: 800px) and (max-width: 1500px) {
   .site-header-shell--institutional {
     max-width: calc(100% - 24px);
     --brand-emblem-base: 1;
-    --brand-wordmark-open: 1;
-    --brand-wordmark-fade: 1;
-    --brand-wordmark-track: var(--brand-wordmark-size, 5rem);
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) {
-    --brand-wordmark-open: 0;
-    --brand-wordmark-fade: 0;
-    --brand-wordmark-track: 0px;
-  }
-
-  .plu-global-nav__brand {
-    transition: gap 200ms var(--ease-out);
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav__brand {
-    gap: 0;
+    --brand-shell-slot: 54px;
   }
 
   .plu-global-nav__wordmark {
-    transform: none;
-    transition:
-      max-width 200ms var(--ease-out),
-      opacity 140ms var(--ease-out);
+    transform: translate3d(calc(var(--header-scroll-progress, 0) * -3px), 0, 0);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .plu-global-nav__brand,
     .plu-global-nav__wordmark,
-    .plu-global-nav__rail {
+    .plu-global-nav__rail,
+    .site-header--institutional {
       transition: none;
+      transform: none;
     }
   }
 }
@@ -2310,31 +2384,23 @@ html.plu-drawer-open body {
 /* Desktop compacto 1100–1500 */
 @media (min-width: 1100px) and (max-width: 1500px) {
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(42px, 1.9vw + 20px, 46px);
-    --brand-nav-row: 50px;
+    --brand-emblem-size: clamp(40px, 1.9vw + 18px, 44px);
     --brand-wordmark-size: 4.75rem;
+    --brand-shell-slot: 56px;
   }
 
   .plu-global-nav {
-    gap: 12px;
-    height: 52px;
-    max-height: 56px;
-    min-height: 52px;
-    padding: 0 16px 0 12px;
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav {
-    gap: 10px;
-    height: 48px;
-    max-height: 48px;
-    min-height: 48px;
-    padding-left: 10px;
+    gap: calc(8px + (4px * var(--brand-wordmark-open, 1)));
+    height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
+    max-height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
+    min-height: calc(46px + (8px * var(--brand-wordmark-open, 1)));
+    padding: 0 14px 0 calc(8px + (4px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__brand {
     align-items: center;
     display: flex;
-    gap: 8px;
+    gap: calc(6px * var(--brand-wordmark-open, 1));
   }
 
   .plu-global-nav__emblem {
@@ -2349,13 +2415,8 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__rail {
-    height: 18px;
-    opacity: 0.4;
-    transition: opacity 200ms var(--ease-out);
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav__rail {
-    opacity: 0.68;
+    height: calc(14px + (4px * var(--brand-wordmark-open, 1)));
+    opacity: calc(0.32 + (0.36 * (1 - var(--brand-wordmark-open, 1))));
   }
 
   .plu-global-nav__desktop {
@@ -2363,11 +2424,11 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__link {
-    font-size: 11.75px;
+    font-size: calc(11px + (0.75px * var(--brand-wordmark-open, 1)));
     font-weight: 650;
-    letter-spacing: 0.045em;
-    min-height: 48px;
-    padding-inline: 13px;
+    letter-spacing: calc(0.035em + (0.01em * var(--brand-wordmark-open, 1)));
+    min-height: calc(40px + (8px * var(--brand-wordmark-open, 1)));
+    padding-inline: calc(10px + (3px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__link--affiliate {
@@ -2375,11 +2436,11 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 22% 8px 22%;
+    inset: auto 22% calc(6px + (2px * var(--brand-wordmark-open, 1))) 22%;
   }
 
   .plu-global-nav__indicator {
-    bottom: 8px;
+    bottom: calc(6px + (2px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__actions {
@@ -2387,13 +2448,13 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__preferences {
-    opacity: 0.78;
-    padding-right: 10px;
+    opacity: calc(0.7 + (0.12 * var(--brand-wordmark-open, 1)));
+    padding-right: calc(8px + (2px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__login {
-    height: 34px;
-    min-height: 34px;
+    height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
+    min-height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
     padding-inline: 14px;
   }
 }
@@ -2427,9 +2488,9 @@ html.plu-drawer-open body {
 /* Notebook mid 800–1099: nav desktop + Acceder + menú (no chrome de celular). */
 @media (min-width: 800px) and (max-width: 1099px) {
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(38px, 2.8vw + 14px, 42px);
-    --brand-nav-row: 48px;
+    --brand-emblem-size: clamp(36px, 2.8vw + 12px, 40px);
     --brand-wordmark-size: 4.35rem;
+    --brand-shell-slot: 54px;
     width: 100%;
   }
 
@@ -2441,30 +2502,22 @@ html.plu-drawer-open body {
     align-items: center;
     display: flex;
     flex-wrap: nowrap;
-    gap: 8px;
-    height: 52px;
+    gap: calc(6px + (2px * var(--brand-wordmark-open, 1)));
+    height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
     justify-content: flex-start;
-    max-height: 52px;
-    min-height: 52px;
+    max-height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
+    min-height: calc(44px + (8px * var(--brand-wordmark-open, 1)));
     overflow: hidden;
-    padding: 0 14px 0 10px;
+    padding: 0 12px 0 calc(8px + (2px * var(--brand-wordmark-open, 1)));
     width: 100%;
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav {
-    gap: 6px;
-    height: 48px;
-    max-height: 48px;
-    min-height: 48px;
-    padding-left: 8px;
   }
 
   .plu-global-nav__brand {
     align-items: center;
     display: flex;
     flex: none;
-    gap: 6px;
-    height: 40px;
+    gap: calc(5px * var(--brand-wordmark-open, 1));
+    height: auto;
     max-width: none;
   }
 
@@ -2482,12 +2535,8 @@ html.plu-drawer-open body {
   /* Rail fino: separa marca de links sin restar ancho útil */
   .plu-global-nav__rail {
     display: block;
-    height: 16px;
-    opacity: 0.42;
-  }
-
-  .site-header-shell--institutional:has(.site-header--scrolled) .plu-global-nav__rail {
-    opacity: 0.58;
+    height: calc(12px + (4px * var(--brand-wordmark-open, 1)));
+    opacity: calc(0.34 + (0.28 * (1 - var(--brand-wordmark-open, 1))));
   }
 
   .plu-global-nav__desktop {
@@ -2499,11 +2548,11 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__link {
-    font-size: 11.5px;
+    font-size: calc(10.75px + (0.75px * var(--brand-wordmark-open, 1)));
     font-weight: 650;
-    letter-spacing: 0.04em;
-    min-height: 46px;
-    padding-inline: 10px;
+    letter-spacing: calc(0.03em + (0.01em * var(--brand-wordmark-open, 1)));
+    min-height: calc(38px + (8px * var(--brand-wordmark-open, 1)));
+    padding-inline: calc(8px + (2px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__link--affiliate {
@@ -2511,11 +2560,11 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__hover-pill {
-    inset: auto 18% 7px 18%;
+    inset: auto 18% calc(5px + (2px * var(--brand-wordmark-open, 1))) 18%;
   }
 
   .plu-global-nav__indicator {
-    bottom: 7px;
+    bottom: calc(5px + (2px * var(--brand-wordmark-open, 1)));
   }
 
   .plu-global-nav__actions {
@@ -2529,8 +2578,8 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__login {
-    height: 34px;
-    min-height: 34px;
+    height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
+    min-height: calc(34px + (4px * var(--brand-wordmark-open, 1)));
     padding-inline: 12px;
   }
 
@@ -2687,13 +2736,14 @@ html.plu-drawer-open body {
   .site-header-shell--institutional {
     --brand-emblem-base: 1;
     --brand-emblem-size: clamp(36px, 5.8vw + 14px, 42px);
-    --brand-nav-row: 46px;
+    --brand-nav-row: calc(40px + (6px * var(--brand-wordmark-open, 1)));
     --brand-wordmark-size: clamp(3.5rem, 12vw, 5rem);
     --brand-wordmark-track: calc(var(--brand-wordmark-open, 1) * var(--brand-wordmark-size));
     /* 36→~40 entre phones anchos y tablet angosta (≤799). */
     --nav-mobile-control: clamp(36px, 32px + 1vw, 40px);
+    --brand-shell-slot: calc(var(--nav-mobile-control) + 14px);
     max-width: calc(100% - 18px);
-    top: 10px;
+    top: calc(6px + (4px * var(--brand-wordmark-open, 1)));
     width: max-content;
   }
 
@@ -2703,6 +2753,7 @@ html.plu-drawer-open body {
       0 10px 28px -18px rgba(0, 0, 0, 0.45),
       inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
     max-width: 100%;
+    transform: translateZ(0);
     width: max-content;
   }
 
@@ -3184,9 +3235,9 @@ html.plu-drawer-open body {
   .plu-global-nav__brand { max-width: none; }
   .site-header-shell--institutional {
     --brand-emblem-size: clamp(38px, 8.5vw, 42px);
-    --brand-nav-row: 44px;
+    --brand-nav-row: calc(40px + (4px * var(--brand-wordmark-open, 1)));
     max-width: calc(100% - 14px);
-    top: 8px;
+    top: calc(5px + (3px * var(--brand-wordmark-open, 1)));
   }
   .plu-global-nav {
     gap: 4px;

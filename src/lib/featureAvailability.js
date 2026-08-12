@@ -7,10 +7,15 @@ export const FEATURE_KEYS = Object.freeze({
   recurringMembership: 'recurringMembership',
   pricingWrites: 'pricingWrites',
   comboCheckout: 'comboCheckout',
+  paidCheckout: 'paidCheckout',
 })
 
 export function isEnabledFlag(value) {
   return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+function isDisabledFlag(value) {
+  return ['false', '0', 'no'].includes(String(value ?? '').trim().toLowerCase())
 }
 
 /**
@@ -23,10 +28,61 @@ export function isAppProduction(envLike = appEnv) {
 }
 
 /**
- * @param {keyof typeof FEATURE_KEYS | string} featureKey
- * @param {{ appProduction?: boolean, APP_PRODUCTION?: string } | null | undefined} [envLike]
+ * Tri-state: true/false fuerza; null = sin override.
+ * @param {Record<string, unknown> | null | undefined} [envLike]
+ * @returns {boolean | null}
  */
-export function isFeatureEnabled(featureKey, envLike = appEnv) {
+export function resolvePaidCheckoutOverride(envLike = appEnv) {
+  const raw = envLike?.paidCheckoutEnabled ?? envLike?.PAID_CHECKOUT_ENABLED
+  if (typeof raw === 'boolean') return raw
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null
+  if (isEnabledFlag(raw)) return true
+  if (isDisabledFlag(raw)) return false
+  return null
+}
+
+/**
+ * @deprecated La fecha de apertura vive en el evento (admin: registrationOpensAt).
+ * Se mantiene por compatibilidad de tests/imports; ya no abre el gate.
+ * @param {Record<string, unknown> | null | undefined} [envLike]
+ * @returns {string | null}
+ */
+export function resolvePaidCheckoutOpensAt(envLike = appEnv) {
+  const raw = envLike?.paidCheckoutOpensAt ?? envLike?.PAID_CHECKOUT_OPENS_AT
+  const value = String(raw ?? '').trim()
+  return value || null
+}
+
+/**
+ * Gate sync sin evento: kill switch + entorno.
+ * En producción, sin override, queda cerrado — la apertura real la decide
+ * `isPaidCheckoutOpen(event)` / el assert async del server con la fecha admin.
+ *
+ * @param {Record<string, unknown> | null | undefined} [envLike]
+ * @param {Date} [now]
+ * @param {{ registrationOpensAt?: string | null }} [options]
+ */
+export function isPaidCheckoutEnabled(envLike = appEnv, now = new Date(), options = {}) {
+  const override = resolvePaidCheckoutOverride(envLike)
+  if (override !== null) return override
+
+  if (!isAppProduction(envLike)) return true
+
+  const opensAt = options.registrationOpensAt ?? null
+  if (opensAt) {
+    const ms = new Date(opensAt).getTime()
+    if (Number.isFinite(ms)) return now.getTime() >= ms
+  }
+
+  return false
+}
+
+/**
+ * @param {keyof typeof FEATURE_KEYS | string} featureKey
+ * @param {Record<string, unknown> | null | undefined} [envLike]
+ * @param {Date} [now]
+ */
+export function isFeatureEnabled(featureKey, envLike = appEnv, now = new Date()) {
   const production = isAppProduction(envLike)
   switch (featureKey) {
     case FEATURE_KEYS.recurringMembership:
@@ -34,7 +90,9 @@ export function isFeatureEnabled(featureKey, envLike = appEnv) {
     case FEATURE_KEYS.pricingWrites:
       return !production
     case FEATURE_KEYS.comboCheckout:
-      return true
+      return isPaidCheckoutEnabled(envLike, now)
+    case FEATURE_KEYS.paidCheckout:
+      return isPaidCheckoutEnabled(envLike, now)
     default: {
       const _exhaustive = featureKey
       void _exhaustive
@@ -45,11 +103,12 @@ export function isFeatureEnabled(featureKey, envLike = appEnv) {
 
 /**
  * @param {keyof typeof FEATURE_KEYS | string} featureKey
- * @param {{ appProduction?: boolean, APP_PRODUCTION?: string } | null | undefined} [envLike]
+ * @param {Record<string, unknown> | null | undefined} [envLike]
+ * @param {Date} [now]
  * @returns {{ enabled: boolean, reason: 'production_coming_soon' | null }}
  */
-export function getFeatureAvailability(featureKey, envLike = appEnv) {
-  const enabled = isFeatureEnabled(featureKey, envLike)
+export function getFeatureAvailability(featureKey, envLike = appEnv, now = new Date()) {
+  const enabled = isFeatureEnabled(featureKey, envLike, now)
   return {
     enabled,
     reason: enabled ? null : 'production_coming_soon',
@@ -62,7 +121,7 @@ export function isRecurringMembershipPlan(plan) {
 
 /**
  * @param {unknown[]} plans
- * @param {{ appProduction?: boolean, APP_PRODUCTION?: string } | null | undefined} [envLike]
+ * @param {Record<string, unknown> | null | undefined} [envLike]
  */
 export function filterPublicMembershipPlans(plans, envLike = appEnv) {
   const rows = Array.isArray(plans) ? plans : []

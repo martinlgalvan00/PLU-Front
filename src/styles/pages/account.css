@@ -3406,6 +3406,12 @@
   gap: 0;
 }
 
+.account-qr__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .account-qr--locked .account-section__empty {
   margin: 0 0 14px;
   max-width: 34ch;

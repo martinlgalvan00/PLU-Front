@@ -37,6 +37,7 @@ export default function ResourcesPage({ onNavigate }) {
     { key: 'members', icon: IdCard },
     { key: 'events', icon: Flag },
     { key: 'rulebook', icon: ListChecks },
+    { key: 'standards', icon: BookOpen },
     { key: 'results', icon: Trophy },
   ]
 

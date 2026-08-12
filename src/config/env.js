@@ -21,6 +21,13 @@ const appProductionRaw = String(import.meta.env.APP_PRODUCTION ?? '')
   .trim()
   .toLowerCase()
 const appProduction = ['true', '1', 'yes'].includes(appProductionRaw)
+const paidCheckoutEnabledRaw = String(import.meta.env.PAID_CHECKOUT_ENABLED ?? '').trim()
+const paidCheckoutEnabledNormalized = paidCheckoutEnabledRaw.toLowerCase()
+const paidCheckoutEnabled = ['true', '1', 'yes'].includes(paidCheckoutEnabledNormalized)
+  ? true
+  : ['false', '0', 'no'].includes(paidCheckoutEnabledNormalized)
+    ? false
+    : null
 const isConfiguredValue = (value) =>
   Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
@@ -32,6 +39,9 @@ export const env = {
   // Independiente del build: en Vercel Production poné APP_PRODUCTION=true;
   // en Preview y local, false. Con true se ocultan WIPs (recurring + pricing writes).
   appProduction,
+  // Kill switch opcional de cobros. null = usar registrationOpensAt del evento (admin).
+  // true/false fuerza apertura o cierre sin tocar el panel.
+  paidCheckoutEnabled,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true' && !appProduction,
   supabase: {
     url: supabaseUrl,

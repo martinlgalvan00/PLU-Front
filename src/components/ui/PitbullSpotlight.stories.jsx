@@ -39,6 +39,19 @@ export const HomeGenericNoMedia = {
   },
 }
 
+/** CTA gated: "Abren el …" — checkout cerrado, fecha admin. */
+export const HomeRegistrationGated = {
+  args: {
+    variant: 'home',
+    event: {
+      status: 'inscripcion_abierta',
+      registrationOpensAt: '2026-08-14T10:00:00-03:00',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+    },
+  },
+}
+
 /** CTA real: "Inscribirme" — la inscripción está abierta. */
 export const HomeRegistrationOpen = {
   args: { variant: 'home', event: { status: 'inscripcion_abierta' } },

@@ -9,6 +9,8 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { money } from '../lib/format.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../motion/variants.ts'
@@ -47,7 +49,8 @@ export default function TicketsPage({
   const selectedEvent =
     ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
   const pricing = ticketPricingFromEvent(selectedEvent)
-  const ticketSalesOpen = selectedEvent?.pricing?.ticketsEnabled !== false
+  const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env)
+  const ticketSalesOpen = paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled !== false
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title ? createdOrder : null
@@ -294,7 +297,11 @@ export default function TicketsPage({
                 onUploadPaymentProof={onUploadPaymentProof}
               />
             ) : (
-              <p className="tickets-page__closed">{t('pages.ticketsPage.closed')}</p>
+              <p className="tickets-page__closed">
+                {paidCheckoutOpen
+                  ? t('pages.ticketsPage.closed')
+                  : t('pages.ticketsPage.checkoutSoon')}
+              </p>
             )}
           </div>
         </div>

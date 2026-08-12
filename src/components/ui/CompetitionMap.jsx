@@ -4,7 +4,6 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import useEventTravelPlanner from '../../hooks/useEventTravelPlanner.js'
 import {
   buildExternalMapUrl,
-  buildOpenStreetMapEmbedUrl,
   canUseMapWebGL,
   getMapAvailability,
   normalizeMapEvents,
@@ -42,21 +41,6 @@ function useNearViewport(rootMargin = '360px', { eager = false } = {}) {
   }, [nearViewport, rootMargin])
 
   return [ref, nearViewport]
-}
-
-function VenueMapEmbed({ event, title }) {
-  const src = buildOpenStreetMapEmbedUrl(event)
-  if (!src) return null
-
-  return (
-    <iframe
-      className="competition-map__embed"
-      title={title}
-      src={src}
-      loading="lazy"
-      referrerPolicy="no-referrer-when-downgrade"
-    />
-  )
 }
 
 function MapFallback({ event, state, hidden, onRetry, showRetry, t }) {
@@ -371,7 +355,7 @@ export default function CompetitionMap({
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
   const availability = getMapAvailability({ events: normalizedEvents, online })
   const isVenue = variant === 'venue'
-  const canUseInteractiveMap = webglAvailable || !isVenue
+  const canUseInteractiveMap = webglAvailable
   const interactiveFailed = canUseInteractiveMap && providerState === 'error'
   const shouldLoad =
     nearViewport && availability === 'ready' && canUseInteractiveMap && !interactiveFailed
@@ -383,10 +367,6 @@ export default function CompetitionMap({
       : availability
   const mapVisible = shouldLoad && providerState === 'loaded'
   const fallbackEvent = selected ?? normalizedEvents[0] ?? null
-  const venueEmbedVisible =
-    isVenue &&
-    Boolean(fallbackEvent?.coordinates) &&
-    (interactiveFailed || fallbackState === 'offline' || !canUseInteractiveMap)
   const travelPlanner = useEventTravelPlanner({
     event: showSelection ? selected : null,
     online,
@@ -423,9 +403,8 @@ export default function CompetitionMap({
       ref={rootRef}
       className={`competition-map competition-map--${variant} ${className}`.trim()}
       aria-labelledby={showHeader ? titleId : undefined}
-      data-map-provider={venueEmbedVisible ? 'openstreetmap-embed' : 'openfreemap'}
+      data-map-provider="openfreemap"
       data-provider-state={fallbackState}
-      data-venue-embed={venueEmbedVisible ? 'true' : undefined}
     >
       {showHeader ? (
         <header className="competition-map__header">
@@ -461,14 +440,11 @@ export default function CompetitionMap({
           <MapFallback
             event={fallbackEvent}
             state={fallbackState}
-            hidden={mapVisible || venueEmbedVisible}
+            hidden={mapVisible}
             onRetry={handleRetry}
-            showRetry={isVenue && fallbackState === 'error' && canUseInteractiveMap}
+            showRetry={(isVenue || !canUseInteractiveMap) && fallbackState === 'error'}
             t={t}
           />
-          {venueEmbedVisible ? (
-            <VenueMapEmbed event={fallbackEvent} title={t('pages.events.map.mapAria')} />
-          ) : null}
           {shouldLoad ? (
             <Suspense
               fallback={

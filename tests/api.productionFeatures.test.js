@@ -16,6 +16,60 @@ const athleteHeaders = {
 function authenticatedSupabase() {
   return {
     from: vi.fn((table) => {
+      if (table === 'events') {
+        const emptyList = {
+          not: () => ({
+            order: () => ({
+              limit: async () => ({ data: [], error: null }),
+            }),
+          }),
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null, error: null }),
+              ...emptyList,
+            }),
+            ...emptyList,
+          }),
+        }
+      }
+      if (table !== 'athlete_sessions') throw new Error(`Tabla inesperada: ${table}`)
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: {
+                id: 'session-1',
+                athlete_id: '11111111-1111-4111-8111-111111111111',
+                expires_at: '2099-01-01T00:00:00Z',
+                revoked_at: null,
+              },
+              error: null,
+            }),
+          }),
+        }),
+        update: () => ({ eq: () => ({}) }),
+      }
+    }),
+  }
+}
+
+function supabaseWithEvents(rowsBySlug) {
+  return {
+    from: vi.fn((table) => {
+      if (table === 'events') {
+        return {
+          select: () => ({
+            eq: (column, value) => ({
+              maybeSingle: async () => ({
+                data: column === 'slug' ? (rowsBySlug[value] ?? null) : null,
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
       if (table !== 'athlete_sessions') throw new Error(`Tabla inesperada: ${table}`)
       return {
         select: () => ({
@@ -132,14 +186,14 @@ describe('features publicas con APP_PRODUCTION', () => {
     }
   })
 
-  it('permite crear el combo en produccion', async () => {
+  it('permite crear el combo en produccion cuando paidCheckout esta abierto', async () => {
     const createRegistrationCombo = vi.fn().mockResolvedValue({
       order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
       membership: { id: '33333333-3333-4333-8333-333333333333' },
       registration: { id: '44444444-4444-4444-8444-444444444444' },
     })
     const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true' },
+      env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'true' },
       supabaseAdmin: authenticatedSupabase(),
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
@@ -163,6 +217,121 @@ describe('features publicas con APP_PRODUCTION', () => {
 
       expect(response.status).toBe(201)
       expect(body.order).toMatchObject({ concept: 'combo' })
+      expect(createRegistrationCombo).toHaveBeenCalledOnce()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza crear combo, afiliacion e inscripcion cuando paidCheckout esta cerrado', async () => {
+    const createMembershipOrder = vi.fn()
+    const createRegistration = vi.fn()
+    const createRegistrationCombo = vi.fn()
+    const target = listen(createApp({
+      env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'false' },
+      supabaseAdmin: authenticatedSupabase(),
+      athleteRepository: {
+        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+        createMembershipOrder,
+        createRegistration,
+        createRegistrationCombo,
+      },
+    }))
+    try {
+      const membership = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          paymentMethod: 'mercado_pago',
+          planCode: 'plu-annual',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const registration = await fetch(`${target.url}/api/athletes/me/registrations`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          eventSlug: 'pitbull-classic-2026',
+          division: 'Open',
+          category: 'Raw',
+          bodyweightKg: 90,
+          paymentMethod: 'mercado_pago',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const combo = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          eventSlug: 'pitbull-classic-2026',
+          division: 'Open',
+          category: 'Raw',
+          bodyweightKg: 90,
+          paymentMethod: 'mercado_pago',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+
+      expect(membership.status).toBe(409)
+      expect(await membership.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(registration.status).toBe(409)
+      expect(await registration.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(combo.status).toBe(409)
+      expect(await combo.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+      expect(createRegistration).not.toHaveBeenCalled()
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('la ventana de paidCheckout es independiente por evento, no por la fecha de otro evento', async () => {
+    const createRegistration = vi.fn().mockResolvedValue({ id: 'reg-1' })
+    const createRegistrationCombo = vi.fn().mockResolvedValue({
+      order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
+    })
+    const target = listen(createApp({
+      env: { APP_PRODUCTION: 'true' },
+      supabaseAdmin: supabaseWithEvents({
+        'evento-abierto': { registration_opens_at: '2000-01-01T00:00:00Z' },
+        'evento-cerrado': { registration_opens_at: '2999-01-01T00:00:00Z' },
+      }),
+      athleteRepository: {
+        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        createRegistration,
+        createRegistrationCombo,
+      },
+    }))
+    try {
+      const attendeeBody = {
+        division: 'Open',
+        category: 'Raw',
+        bodyweightKg: 90,
+        paymentMethod: 'mercado_pago',
+      }
+      const open = await fetch(`${target.url}/api/athletes/me/registrations`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
+      })
+      const closed = await fetch(`${target.url}/api/athletes/me/registrations`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-cerrado', idempotencyKey: crypto.randomUUID() }),
+      })
+      const comboOpen = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
+      })
+
+      expect(open.status).toBe(201)
+      expect(closed.status).toBe(409)
+      expect(await closed.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(comboOpen.status).toBe(201)
+      expect(createRegistration).toHaveBeenCalledOnce()
       expect(createRegistrationCombo).toHaveBeenCalledOnce()
     } finally {
       await target.close()

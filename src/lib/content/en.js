@@ -6,11 +6,12 @@ export const HOME_STATS = [
   { value: 'PLU USA', label: 'International standard' },
 ]
 
+/** Quick-access band under the hero — federation IA */
 export const HOME_QUICK_LINKS = [
   { key: 'members', labelKey: 'nav.members' },
-  { key: 'pitbull', labelKey: 'nav.pitbull' },
-  { key: 'events', labelKey: 'nav.events' },
+  { key: 'events', labelKey: 'nav.calendarOfficial' },
   { key: 'results', labelKey: 'nav.results' },
+  { key: 'records', labelKey: 'nav.records' },
   { key: 'rulebook', labelKey: 'nav.rulebook' },
 ]
 
@@ -32,7 +33,7 @@ export const HOME_MEMBERSHIP = {
   titleLead: 'Enabled',
   titleAccent: 'to compete',
   description:
-    'Get official calendar access, a digital credential and results under the PLU USA standard.',
+    'Pay online, get a QR credential on your profile, and access the official calendar under the PLU USA standard.',
   cta: 'View plans',
   planLabel: 'Adult athlete',
   seasonNote: '26/27 season',
@@ -90,7 +91,7 @@ export const HOME_FAQ_ITEMS = [
   },
   {
     q: 'Do I need to be a member to register for Pitbull Classic?',
-    a: 'Yes. Annual membership is required to register for any official PLU ARG event.',
+    a: 'You can create and pay for registration even if membership is still pending. If the event requires membership, door check-in needs an active, valid membership. The membership + event combo covers both in one payment.',
   },
   {
     q: 'Where can I see event results?',
@@ -99,41 +100,41 @@ export const HOME_FAQ_ITEMS = [
 ]
 
 export const HOME_MEMBERSHIP_FEATURES = [
-  'PLU ARG calendar events',
-  'Digital member credential',
-  'Results under PLU USA standard',
+  'Athlete account',
+  'Online payment, no WhatsApp',
+  'Digital QR credential',
 ]
 
 export const HOME_MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Take the platform',
-    text: 'Confirmed slot on the PLU Argentina calendar.',
+    title: 'Official calendar',
+    text: 'Register for PLU Argentina meets from your account.',
   },
   {
     id: 'credential',
-    title: 'Your QR, your pass',
-    text: 'Instant check-in and validation at any venue.',
+    title: 'Digital QR credential',
+    text: 'Membership status and check-in pass in one stable code.',
   },
   {
-    id: 'discounts',
-    title: 'Save on every entry',
-    text: 'Preferential rates across the PLU gym network.',
+    id: 'checkout',
+    title: 'Online payment',
+    text: 'Mercado Pago or transfer with proof in the platform. No WhatsApp.',
   },
   {
     id: 'results',
-    title: 'Marks that count',
-    text: 'Results published under international criteria.',
+    title: 'Results under PLU standard',
+    text: 'Marks published with the same criteria as PLU USA.',
   },
   {
     id: 'access',
-    title: 'Everything, one panel',
+    title: 'Athlete profile',
     text: 'Membership, events and history always at hand.',
   },
   {
-    id: 'network',
-    title: 'One network, one calendar',
-    text: 'Affiliated venues and a shared schedule nationwide.',
+    id: 'combo',
+    title: 'Membership + meet combo',
+    text: 'When an offer is live, one payment covers both rights.',
   },
 ]
 
@@ -162,9 +163,9 @@ export const MEMBERSHIP_CTA = {
   eyebrow: 'Start today',
   hint: 'Adult athlete fee',
   description:
-    'Membership is paid once per year. Choose your plan and complete the process online with Mercado Pago or manual validation.',
+    'Pay online, get activated, and see your QR credential on your profile. One annual membership for the official calendar.',
   cta: 'Start my membership',
-  perks: ['Single annual payment', 'Mercado Pago', 'Manual validation'],
+  perks: ['Single annual payment', 'Mercado Pago', 'QR credential'],
 }
 
 export const MEMBERSHIP_PLANS = [
@@ -206,24 +207,24 @@ export const MEMBERSHIP_PLANS = [
 
 export const MEMBERSHIP_BENEFITS = [
   {
+    id: 'credential',
+    title: 'Digital QR credential',
+    text: 'Membership status and entry pass in one stable code.',
+  },
+  {
+    id: 'profile',
+    title: 'Visible profile and status',
+    text: 'After payment you see active membership and your QR in the panel.',
+  },
+  {
     id: 'events',
-    title: 'PLU ARG calendar events',
-    text: 'Lets you register for official meets during the year.',
-  },
-  {
-    id: 'registry',
-    title: 'Athlete code and credential',
-    text: 'You receive your federation ID in digital format.',
-  },
-  {
-    id: 'results',
-    title: 'Results on your profile',
-    text: 'Your marks are recorded under the PLU standard.',
+    title: 'Official calendar',
+    text: 'Register for PLU ARG meets from the same account.',
   },
   {
     id: 'standard',
-    title: 'Aligned with PLU USA',
-    text: 'Same rules and reporting as the international circuit.',
+    title: 'PLU USA standard',
+    text: 'Same rules and publishing criteria as the international circuit.',
   },
 ]
 
@@ -267,23 +268,18 @@ export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
 export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '1',
-    title: 'Complete your details',
-    text: 'Profile, contact and competition data.',
+    title: 'Create your account',
+    text: 'Profile, ID and competition details.',
   },
   {
     step: '2',
-    title: 'Submit your request',
-    text: 'Confirm the order and payment method.',
+    title: 'Pay online',
+    text: 'Mercado Pago or transfer with proof in the platform.',
   },
   {
     step: '3',
-    title: 'Team validation',
-    text: 'PLU ARG reviews your information and confirms payment.',
-  },
-  {
-    step: '4',
-    title: 'You are active',
-    text: 'You can register for official calendar events.',
+    title: 'Go active with QR',
+    text: 'Membership status and digital credential on your profile.',
   },
 ]
 
@@ -296,7 +292,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'required',
     q: 'Do I need to be a member to compete?',
-    a: 'Yes. Valid membership is required to register for any official PLU Argentina event.',
+    a: 'You can create and pay for registration even if membership is still pending. If the event requires membership, door check-in needs an active, valid membership. The membership + event combo covers both in one checkout.',
   },
   {
     id: 'data',
@@ -433,12 +429,12 @@ export const PITBULL_FAQ = [
   {
     id: 'affiliation',
     q: 'Do I need to be a member to compete?',
-    a: 'Yes. To register for Pitbull Classic you need an active PLU ARG annual membership for the calendar year or the membership plus registration combo when you sign up.',
+    a: 'You can create and pay for registration even if membership is still pending. If Pitbull Classic requires membership, door check-in needs an active membership for the year or the membership + registration combo.',
   },
   {
     id: 'confirmation',
     q: 'How do I confirm my registration?',
-    a: 'Complete your profile, verify active membership and pay the meet registration. The PLU ARG team validates payment and enables your credential with an entry QR.',
+    a: 'Complete your profile, pay the meet registration (or combo) and track status in your panel. Once payment is confirmed, the QR credential is available for entry.',
   },
   {
     id: 'rulebook',
@@ -503,7 +499,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'Is membership required to compete?',
-    a: 'Yes. To register for official PLU ARG events you need active membership for the current year or a membership + event combo at registration time.',
+    a: 'You can create and pay for registration even if membership is still pending. If the event requires membership, door check-in needs an active membership for the year or the membership + event combo.',
   },
   {
     q: 'How do I pay for membership or registration?',
@@ -546,7 +542,7 @@ export const FAQ_GROUPS = [
     items: [
       {
         q: 'Do I need to be a member to register?',
-        a: 'Yes, active annual membership is required to register for any official event.',
+        a: 'It is not a condition to create or pay for registration. If the event requires membership, you need it active at door check-in.',
       },
       {
         q: 'What if my registration is flagged?',

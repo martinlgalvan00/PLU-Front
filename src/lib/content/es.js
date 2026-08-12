@@ -6,12 +6,12 @@ export const HOME_STATS = [
   { value: 'PLU USA', label: 'Estándar internacional' },
 ]
 
-/** Banda de accesos rápidos bajo el hero */
+/** Banda de accesos rápidos bajo el hero — IA federativa */
 export const HOME_QUICK_LINKS = [
   { key: 'members', labelKey: 'nav.members' },
-  { key: 'pitbull', labelKey: 'nav.pitbull' },
-  { key: 'events', labelKey: 'nav.events' },
+  { key: 'events', labelKey: 'nav.calendarOfficial' },
   { key: 'results', labelKey: 'nav.results' },
+  { key: 'records', labelKey: 'nav.records' },
   { key: 'rulebook', labelKey: 'nav.rulebook' },
 ]
 
@@ -33,7 +33,7 @@ export const HOME_MEMBERSHIP = {
   titleLead: 'Habilitación',
   titleAccent: 'para competir',
   description:
-    'Accedé al calendario oficial, credencial digital y resultados bajo el estándar PLU USA.',
+    'Pago online, credencial QR en tu perfil y calendario oficial bajo el estándar PLU USA.',
   cta: 'Ver planes',
   planLabel: 'Atleta adulto',
   seasonNote: 'Temporada 26/27',
@@ -91,7 +91,7 @@ export const HOME_FAQ_ITEMS = [
   },
   {
     q: '¿Necesito estar afiliado para inscribirme a Pitbull Classic?',
-    a: 'Sí. La afiliación anual es el requisito para inscribirte a cualquier evento oficial de PLU ARG.',
+    a: 'Podés crear y pagar la inscripción aunque la afiliación esté pendiente. Si el evento exige afiliación, en el check-in de puerta necesitás afiliación activa y vigente. El combo afiliación + evento resuelve ambos en un solo pago.',
   },
   {
     q: '¿Dónde veo los resultados de un evento?',
@@ -100,41 +100,41 @@ export const HOME_FAQ_ITEMS = [
 ]
 
 export const HOME_MEMBERSHIP_FEATURES = [
-  'Eventos del calendario PLU ARG',
-  'Credencial digital de miembro',
-  'Resultados bajo estándar PLU USA',
+  'Cuenta de atleta',
+  'Pago online sin WhatsApp',
+  'Credencial digital QR',
 ]
 
 export const HOME_MEMBERSHIP_BENEFITS = [
   {
     id: 'events',
-    title: 'Subite a la tarima',
-    text: 'Cupo confirmado para el calendario PLU Argentina.',
+    title: 'Calendario oficial',
+    text: 'Inscripción a meets PLU Argentina desde tu cuenta.',
   },
   {
     id: 'credential',
-    title: 'Tu QR, tu pase',
-    text: 'Check-in y validación instantánea en cualquier sede.',
+    title: 'Credencial digital QR',
+    text: 'Estado de afiliación y pase de check-in en un solo código.',
   },
   {
-    id: 'discounts',
-    title: 'Ahorrá en cada inscripción',
-    text: 'Tarifas preferenciales en la red de gimnasios PLU.',
+    id: 'checkout',
+    title: 'Pago online',
+    text: 'Mercado Pago o transferencia con comprobante en la plataforma. Sin WhatsApp.',
   },
   {
     id: 'results',
-    title: 'Tu marca, registrada',
-    text: 'Resultados publicados con criterio internacional.',
+    title: 'Resultados bajo estándar PLU',
+    text: 'Marcas publicadas con el mismo criterio que PLU USA.',
   },
   {
     id: 'access',
-    title: 'Todo en un panel',
-    text: 'Afiliación, eventos e historial, siempre a mano.',
+    title: 'Perfil de atleta',
+    text: 'Afiliación, eventos e historial siempre a mano.',
   },
   {
-    id: 'network',
-    title: 'Una red, un calendario',
-    text: 'Sedes adheridas y agenda compartida en todo el país.',
+    id: 'combo',
+    title: 'Combo afiliación + meet',
+    text: 'Cuando hay oferta vigente, un solo pago para ambos derechos.',
   },
 ]
 
@@ -163,9 +163,9 @@ export const MEMBERSHIP_CTA = {
   eyebrow: 'Comenzá hoy',
   hint: 'Tarifa atleta adulto',
   description:
-    'La afiliación se paga una sola vez al año. Elegí tu plan y completá el trámite online con Mercado Pago o validación manual.',
+    'Pago online, activación y credencial QR en tu perfil. Una afiliación anual para el calendario oficial.',
   cta: 'Comenzar mi afiliación',
-  perks: ['Pago único anual', 'Mercado Pago', 'Validación manual'],
+  perks: ['Pago único anual', 'Mercado Pago', 'Credencial QR'],
 }
 
 export const MEMBERSHIP_PLANS = [
@@ -207,24 +207,24 @@ export const MEMBERSHIP_PLANS = [
 
 export const MEMBERSHIP_BENEFITS = [
   {
+    id: 'credential',
+    title: 'Credencial digital QR',
+    text: 'Estado de afiliación y pase de ingreso en un solo código estable.',
+  },
+  {
+    id: 'profile',
+    title: 'Perfil y estado visibles',
+    text: 'Después del pago ves la afiliación activa y tu QR en el panel.',
+  },
+  {
     id: 'events',
-    title: 'Eventos del calendario PLU ARG',
-    text: 'Te habilita a inscribirte en meets oficiales del año.',
-  },
-  {
-    id: 'registry',
-    title: 'Código de atleta y credencial',
-    text: 'Recibís tu identificación federativa en formato digital.',
-  },
-  {
-    id: 'results',
-    title: 'Resultados en tu perfil',
-    text: 'Tus marcas quedan registradas bajo el estándar PLU.',
+    title: 'Calendario oficial',
+    text: 'Inscripción a meets PLU ARG desde la misma cuenta.',
   },
   {
     id: 'standard',
-    title: 'Alineación con PLU USA',
-    text: 'Mismas reglas y reportes que el circuito internacional.',
+    title: 'Estándar PLU USA',
+    text: 'Mismas reglas y criterio de publicación que el circuito internacional.',
   },
 ]
 
@@ -268,23 +268,18 @@ export const MEMBERSHIP_CREDENTIAL_SAMPLE = {
 export const MEMBERSHIP_ANNUAL_STEPS = [
   {
     step: '1',
-    title: 'Completás tus datos',
-    text: 'Perfil, contacto y datos de competencia.',
+    title: 'Creás tu cuenta',
+    text: 'Perfil, documento y datos de competencia.',
   },
   {
     step: '2',
-    title: 'Enviás la solicitud',
-    text: 'Confirmás el pedido y el método de pago.',
+    title: 'Pagás online',
+    text: 'Mercado Pago o transferencia con comprobante en la plataforma.',
   },
   {
     step: '3',
-    title: 'Validación del equipo',
-    text: 'PLU ARG revisa la información y acredita el pago.',
-  },
-  {
-    step: '4',
-    title: 'Quedás activo',
-    text: 'Podés inscribirte a eventos oficiales del calendario.',
+    title: 'Quedás activo con QR',
+    text: 'Estado de afiliación y credencial digital en tu perfil.',
   },
 ]
 
@@ -297,7 +292,7 @@ export const MEMBERSHIP_FAQ = [
   {
     id: 'required',
     q: '¿Necesito estar afiliado para competir?',
-    a: 'Sí. La afiliación vigente es requisito para inscribirte en cualquier evento oficial de PLU Argentina.',
+    a: 'Podés crear y pagar la inscripción aunque la afiliación esté pendiente. Si el evento exige afiliación, el check-in en puerta requiere afiliación activa y vigente. El combo afiliación + evento cubre ambos en un solo trámite.',
   },
   {
     id: 'data',
@@ -434,12 +429,12 @@ export const PITBULL_FAQ = [
   {
     id: 'affiliation',
     q: '¿Necesito estar afiliado para competir?',
-    a: 'Sí. Para inscribirte en Pitbull Classic necesitás afiliación anual PLU ARG activa del año calendario o el combo afiliación más inscripción al momento de registrarte.',
+    a: 'Podés crear y pagar la inscripción aunque la afiliación esté pendiente. Si Pitbull Classic exige afiliación, en el check-in de puerta necesitás afiliación activa del año o el combo afiliación + inscripción.',
   },
   {
     id: 'confirmation',
     q: '¿Cómo confirmo mi inscripción?',
-    a: 'Completás tu perfil, verificás afiliación vigente y abonás la inscripción al meet. El equipo PLU ARG valida el pago y habilita tu credencial con QR de ingreso.',
+    a: 'Completás tu perfil, abonás la inscripción (o el combo) y seguís el estado en tu panel. Con el pago acreditado, la credencial QR queda disponible para el ingreso.',
   },
   {
     id: 'rulebook',
@@ -506,7 +501,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: '¿La afiliación es obligatoria para competir?',
-    a: 'Sí. Para inscribirte en eventos oficiales PLU ARG necesitás afiliación activa del año en curso o el combo afiliación + evento al momento de la inscripción.',
+    a: 'Podés crear y pagar la inscripción aunque la afiliación esté pendiente. Si el evento exige afiliación, el check-in en puerta requiere afiliación activa del año o el combo afiliación + evento.',
   },
   {
     q: '¿Cómo pago afiliación o inscripción?',
@@ -549,7 +544,7 @@ export const FAQ_GROUPS = [
     items: [
       {
         q: '¿Necesito estar afiliado para inscribirme?',
-        a: 'Sí, la afiliación anual activa es requisito para inscribirte a cualquier evento oficial.',
+        a: 'No es condición para crear ni pagar la inscripción. Si el evento exige afiliación, sí la necesitás activa al momento del check-in en puerta.',
       },
       {
         q: '¿Qué pasa si mi inscripción queda observada?',

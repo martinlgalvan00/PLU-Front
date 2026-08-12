@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import {
+  assertPaidCheckoutAvailable,
   assertRecurringMembershipAvailable,
   filterPublicMembershipPlans,
 } from '../lib/featureAvailability.js'
@@ -166,9 +167,24 @@ export function createPaymentRoutes(deps = {}) {
     return order
   }
 
+  // Una orden de entradas o de inscripcion/combo esta ligada a un evento
+  // puntual: el gate de cobros tiene que mirar la fecha de ESE evento, no la
+  // del evento insignia de la plataforma (ver docs/BUSINESS_RULES.md, ventana
+  // "independiente por evento").
+  function paidCheckoutOptionsForOrder(order) {
+    const event = order.kind === 'ticket' ? order.event : order.registration?.event
+    if (!event) return { client: resolveSupabaseAdmin() }
+    return {
+      client: resolveSupabaseAdmin(),
+      registrationOpensAt: event.registration_opens_at ?? null,
+      skipScheduleLookup: true,
+    }
+  }
+
   router.post('/preferences', checkoutLimiter, validateBody(preferenceSchema), async (req, res, next) => {
     try {
-      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
+      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
+      await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
       const result = await createPaymentPreference(
         {
           ...req.validatedBody,
@@ -185,7 +201,8 @@ export function createPaymentRoutes(deps = {}) {
 
   router.post('/embedded/process', checkoutLimiter, validateBody(embeddedPaymentSchema), async (req, res, next) => {
     try {
-      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
+      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
+      await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
       const result = await processEmbeddedPayment(req.validatedBody, services({ notifications: true }))
       res.status(result.duplicate ? 200 : 201).json(result)
     } catch (error) {
@@ -296,6 +313,7 @@ export function createPaymentRoutes(deps = {}) {
 
   router.post('/subscriptions/process', checkoutLimiter, validateBody(embeddedSubscriptionSchema), async (req, res, next) => {
     try {
+      await assertPaidCheckoutAvailable(env, new Date(), { client: resolveSupabaseAdmin() })
       assertRecurringMembershipAvailable(env)
       await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await createEmbeddedRecurringSubscription(

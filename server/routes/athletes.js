@@ -5,10 +5,21 @@ import { hasPermission } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import {
   assertComboCheckoutAvailable,
+  assertPaidCheckoutAvailable,
   assertRecurringMembershipAvailable,
   isAppProduction,
   isRecurringMembershipPlan,
+  resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
+import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+
+// Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
+// en produccion y sin kill switch. Evita una consulta a Supabase de mas en
+// dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
+async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
+  if (!isAppProduction(env) || resolvePaidCheckoutOverride(env) !== null) return null
+  return resolveEventRegistrationOpensAt(supabase, { eventSlug })
+}
 import { validateBody } from '../lib/validate.js'
 import { requirePermission, requireRole } from '../middleware/auth.js'
 import {
@@ -623,6 +634,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   })
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
     try {
+      await assertPaidCheckoutAvailable(env, new Date(), { client: client() })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -638,6 +650,8 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   })
   router.post('/me/registrations', publicWriteLimiter, validateBody(registrationSchema), async (req, res, next) => {
     try {
+      const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
+      await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       res.status(201).json(await repo().createRegistration(auth.athleteId, req.validatedBody))
@@ -649,7 +663,8 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     validateBody(comboRegistrationSchema),
     async (req, res, next) => {
       try {
-        assertComboCheckoutAvailable(env)
+        const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
+        await assertComboCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         res.status(201).json(await repo().createRegistrationCombo(auth.athleteId, req.validatedBody))
@@ -795,7 +810,9 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   })
   router.post('/admin/payment-orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
     try {
-      const result = await repo().approvePayment(req.params.orderId, actorLabel(req))
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      const result = await repo().approvePayment(orderId.data, actorLabel(req))
       // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
       await notifyManualApproval(result).catch((error) =>
         console.warn('[payment-approval] no se pudieron enviar los emails', error?.message ?? error),
@@ -897,7 +914,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     try {
       const athleteId = z.string().uuid().safeParse(req.params.athleteId)
       if (!athleteId.success) throw new HttpError(400, 'Atleta invalido.')
-      await repo().setPassword(athleteId.data, await hashPassword(req.validatedBody.password))
+      await repo().setPassword(athleteId.data, await hashPassword(req.validatedBody.password), actorLabel(req))
       res.status(204).end()
     } catch (error) { next(error) }
   })

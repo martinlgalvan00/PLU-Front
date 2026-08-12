@@ -31,7 +31,10 @@ import { formatShortDate, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { resendAthleteVerification, checkAthleteAvailability } from '../services/athleteApi.js'
+import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -386,6 +389,9 @@ export default function RegisterPage({
   )
   const comboEnabled = flow === 'competition' && comboAvailability.enabled
   const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
+  const paidCheckoutOpen = isPaidCheckoutOpen(event, env)
+  const checkoutFlowsLocked =
+    (flow === 'competition' || flow === 'membership') && !paidCheckoutOpen
   const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
     ? 'combo'
     : 'registration'
@@ -606,6 +612,10 @@ export default function RegisterPage({
   async function submit(eventObject) {
     eventObject.preventDefault()
     if (submitting || submissionInFlightRef.current) return
+    if (checkoutFlowsLocked) {
+      setSubmitError(t('pages.register.checkoutSoon'))
+      return
+    }
     submissionInFlightRef.current = true
     if (flow === 'profile') setProfileSubmitAttempted(true)
 
@@ -918,6 +928,15 @@ export default function RegisterPage({
               {cardData && (
                 <CardPreviewModal open={cardOpen} onClose={() => setCardOpen(false)} cardData={cardData} />
               )}
+            </div>
+          ) : checkoutFlowsLocked ? (
+            <div className="register-card register-card--launch-gate">
+              <LaunchRegistrationTeaser
+                event={event}
+                onNavigate={onNavigate}
+                variant="compact"
+                source={flow === 'membership' ? 'register_membership' : 'register_competition'}
+              />
             </div>
           ) : (
           <form className="register-card athlete-form" onSubmit={submit} noValidate>
