@@ -6,11 +6,7 @@ import {
   CircleHelp,
   Download,
   FileText,
-  Flag,
-  IdCard,
-  ListChecks,
   Mail,
-  Trophy,
   UsersRound,
 } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
@@ -34,11 +30,11 @@ export default function ResourcesPage({ onNavigate }) {
   const fileName = `reglamento-plu-v${rulebook.manifest.version}-${activeDoc?.locale ?? 'es'}.pdf`
 
   const athletePath = [
-    { key: 'members', icon: IdCard },
-    { key: 'events', icon: Flag },
-    { key: 'rulebook', icon: ListChecks },
-    { key: 'standards', icon: BookOpen },
-    { key: 'results', icon: Trophy },
+    { key: 'members' },
+    { key: 'events' },
+    { key: 'rulebook' },
+    { key: 'standards' },
+    { key: 'results' },
   ]
 
   const supportItems = [
@@ -106,26 +102,29 @@ export default function ResourcesPage({ onNavigate }) {
         </Reveal>
 
         <section className="resource-path" aria-labelledby="resource-path-title">
-          <header className="institutional-section-head">
-            <p className="institutional-kicker">02 / {t('pages.resources.pathEyebrow')}</p>
-            <div>
-              <h2 id="resource-path-title">{t('pages.resources.pathTitle')}</h2>
-              <p>{t('pages.resources.pathDesc')}</p>
-            </div>
-          </header>
+          <Reveal variant="fade">
+            <header className="institutional-section-head">
+              <p className="institutional-kicker">02 / {t('pages.resources.pathEyebrow')}</p>
+              <div>
+                <h2 id="resource-path-title">{t('pages.resources.pathTitle')}</h2>
+                <p>{t('pages.resources.pathDesc')}</p>
+              </div>
+            </header>
+          </Reveal>
           <ol className="resource-path__list">
-            {athletePath.map(({ key, icon: Icon }, index) => (
-              <li key={key}>
+            {athletePath.map(({ key }, index) => (
+              <Reveal as="li" key={key} variant="up" delay={0.04 + index * 0.05}>
                 <button type="button" onClick={() => onNavigate?.(key)}>
-                  <span className="resource-path__number">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="resource-path__icon"><Icon size={18} aria-hidden /></span>
-                  <span className="resource-path__copy">
-                    <strong>{t(`pages.resources.path.${key}Title`)}</strong>
-                    <small>{t(`pages.resources.path.${key}Desc`)}</small>
+                  <span className="resource-path__number" aria-hidden>
+                    {String(index + 1).padStart(2, '0')}
                   </span>
-                  <ArrowRight size={16} aria-hidden />
+                  <span className="resource-path__copy">
+                    <h3>{t(`pages.resources.path.${key}Title`)}</h3>
+                    <p>{t(`pages.resources.path.${key}Desc`)}</p>
+                  </span>
+                  <ArrowRight className="resource-path__arrow" size={16} aria-hidden />
                 </button>
-              </li>
+              </Reveal>
             ))}
           </ol>
         </section>

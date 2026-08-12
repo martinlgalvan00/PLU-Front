@@ -140,7 +140,7 @@ export default function RecordsPage({ onNavigate }) {
       <PluPageHero
         breadcrumbLabel={t('pages.records.heroBreadcrumb')}
         chapter={t('pages.records.heroEyebrow')}
-        description={t('pages.records.heroDesc')}
+        description={hasRecords ? t('pages.records.heroDesc') : t('pages.records.heroDescSoon')}
         onHome={() => onNavigate('home')}
         title={t('pages.records.heroTitle')}
       />
@@ -150,9 +150,11 @@ export default function RecordsPage({ onNavigate }) {
           <header className="records-sheet__head">
             <div className="records-sheet__titles">
               <h2 id="records-sheet-title" className="records-sheet__title">
-                {t('pages.records.sheetTitle')}
+                {hasRecords ? t('pages.records.sheetTitle') : t('pages.records.soonTitle')}
               </h2>
-              <p className="records-sheet__subtitle">{t('pages.records.sheetSubtitle')}</p>
+              <p className="records-sheet__subtitle">
+                {hasRecords ? t('pages.records.sheetSubtitle') : t('pages.records.soonLead')}
+              </p>
             </div>
             <div className="records-sheet__head-meta">
               <p className="records-sheet__stamp">{stamp}</p>
@@ -167,6 +169,41 @@ export default function RecordsPage({ onNavigate }) {
               ) : null}
             </div>
           </header>
+
+          {!hasRecords ? (
+            <div className="records-soon" role="status">
+              <p className="records-soon__badge">{t('pages.records.soonBadge')}</p>
+              <h3 className="records-soon__title">{t('pages.records.soonHeadline')}</h3>
+              <p className="records-soon__text">{t('pages.records.sheetHint')}</p>
+              <div
+                className="records-sheet__actions records-soon__actions"
+                role="group"
+                aria-label={t('pages.records.actionsAria')}
+              >
+                <Button
+                  className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
+                  onClick={() => onNavigate('results')}
+                >
+                  {t('pages.records.ctaResults')}
+                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="records-sheet__cta records-sheet__cta--outline"
+                  onClick={() => onNavigate('events')}
+                >
+                  {t('pages.records.ctaCalendar')}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="records-sheet__cta records-sheet__cta--outline"
+                  onClick={() => onNavigate('members')}
+                >
+                  {t('pages.records.ctaMembers')}
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           {hasRecords ? (
             <div className="records-sheet__toolbar" role="search" aria-label={t('pages.records.filtersToolbarAria')}>
@@ -263,24 +300,7 @@ export default function RecordsPage({ onNavigate }) {
                 />
               </div>
             </div>
-          ) : (
-            <div className="records-sheet__lifts" role="toolbar" aria-label={t('pages.records.liftsAria')}>
-              {liftFilters.map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={[
-                    'records-sheet__lift',
-                    liftFilter === key ? 'is-active' : '',
-                  ].filter(Boolean).join(' ')}
-                  aria-pressed={liftFilter === key}
-                  onClick={() => setLiftFilter(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+          ) : null}
 
           {hasRecords && sections.length > 0 ? (
             <div className="records-federated">
@@ -321,88 +341,28 @@ export default function RecordsPage({ onNavigate }) {
             <p className="records-sheet__empty">{t('pages.records.filterEmpty')}</p>
           ) : null}
 
-          {!hasRecords ? (
-            <div className="records-sheet__table-wrap" role="presentation">
-              <table className="records-sheet__table">
-                <thead>
-                  <tr>
-                    {TABLE_COLUMNS.map((column) => (
-                      <th key={column} scope="col">
-                        {t(`pages.records.sheetColumns.${column}`)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 4 }, (_, row) => (
-                    <tr key={row}>
-                      {TABLE_COLUMNS.map((column) => (
-                        <td key={`${row}-${column}`}>—</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-
-          <ul className="records-sheet__cards" aria-label={t('pages.records.cardsAria')}>
-            {!hasRecords
-              ? RECORD_LIFTS.map((lift) => (
-                <li key={lift} className="records-sheet__card">
-                  <div className="records-sheet__card-top">
-                    <span className="records-sheet__card-lift">{t(`pages.records.lifts.${lift}`)}</span>
-                    <span className="records-sheet__card-mark">—</span>
-                  </div>
-                </li>
-              ))
-              : null}
-          </ul>
-
-          <div className="records-sheet__foot">
-            <div className="records-sheet__copy">
-              {!hasRecords ? (
-                <p className="records-sheet__empty">{t('pages.records.sheetEmpty')}</p>
-              ) : null}
-              <p className="records-sheet__hint">
-                {hasRecords
-                  ? t('pages.records.sheetHintLive', {
+          {hasRecords ? (
+            <div className="records-sheet__foot">
+              <div className="records-sheet__copy">
+                <p className="records-sheet__hint">
+                  {t('pages.records.sheetHintLive', {
                     meets: register.sourceMeets.join(', '),
-                  })
-                  : t('pages.records.sheetHint')}
-              </p>
-            </div>
+                  })}
+                </p>
+              </div>
 
-            <div
-              className="records-sheet__actions"
-              role="group"
-              aria-label={t('pages.records.actionsAria')}
-            >
-              <Button
-                className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
-                onClick={() => onNavigate('results')}
+              <div
+                className="records-sheet__actions"
+                role="group"
+                aria-label={t('pages.records.actionsAria')}
               >
-                {t('pages.records.ctaResults')}
-                <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-              </Button>
-              {!hasRecords ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="records-sheet__cta records-sheet__cta--outline"
-                    onClick={() => onNavigate('events')}
-                  >
-                    {t('pages.records.ctaCalendar')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="records-sheet__cta records-sheet__cta--outline"
-                    onClick={() => onNavigate('members')}
-                  >
-                    {t('pages.records.ctaMembers')}
-                  </Button>
-                </>
-              ) : (
+                <Button
+                  className="records-sheet__cta records-sheet__cta--primary motion-icon-shift"
+                  onClick={() => onNavigate('results')}
+                >
+                  {t('pages.records.ctaResults')}
+                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                </Button>
                 <Button
                   variant="outline"
                   className="records-sheet__cta records-sheet__cta--outline"
@@ -411,9 +371,9 @@ export default function RecordsPage({ onNavigate }) {
                   <Mail size={14} aria-hidden />
                   {t('pages.records.ctaContact')}
                 </Button>
-              )}
+              </div>
             </div>
-          </div>
+          ) : null}
         </Reveal>
       </div>
     </main>

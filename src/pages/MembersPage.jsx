@@ -290,14 +290,11 @@ export default function MembersPage({
                 onNavigate={onNavigate}
                 variant="compact"
                 source="members_page"
+                countdownLabel={t('pages.members.promoSoonCountdown')}
                 intro={{
                   eyebrow: t('pages.members.promoSoonEyebrow'),
                   title: t('pages.members.promoSoonTitle'),
                   lead: t('pages.members.promoSoonLead'),
-                }}
-                stage={{
-                  mark: t('pages.members.promoSoonMark'),
-                  price: liveComboOffer?.price ? money(liveComboOffer.price, locale) : null,
                 }}
               />
             </Reveal>
@@ -382,22 +379,24 @@ export default function MembersPage({
               {t('pages.members.closureReassure')}
             </p>
           ) : null}
-          {isAppProduction() && !plansLoaded ? (
+          {/* Con gate de apertura el teaser ya comunica el estado; no apilar
+              loading/coming-soon/error de catálogo debajo (rompe la composición). */}
+          {isAppProduction() && !showLaunchGate && !plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {isAppProduction() && plansLoaded && catalogPlans.length === 0 ? (
+          {isAppProduction() && !showLaunchGate && plansLoaded && catalogPlans.length === 0 ? (
             <FeatureComingSoon
               actionIcon={plansError ? RefreshCw : undefined}
               actionLabel={plansError ? t('pages.members.plansRetry') : undefined}
               className="members-plans-feedback members-plans-feedback--notice"
               eyebrow={t('pages.members.plansComingSoonEyebrow')}
               icon={CalendarClock}
-              lead={plansError ? undefined : t('pages.members.plansComingSoonLead')}
+              lead={t('pages.members.plansComingSoonLead')}
               onAction={plansError ? () => loadPlans({ force: true }) : undefined}
               role={plansError ? 'alert' : 'status'}
-              title={plansError || t('pages.members.plansComingSoon')}
+              title={plansError ? t('pages.members.plansLoadError') : t('pages.members.plansComingSoon')}
               variant="inline"
             />
           ) : null}

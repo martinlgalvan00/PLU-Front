@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatRegistrationOpenMoment,
   isPaidCheckoutOpen,
+  resolveFutureLaunchAt,
   resolveLaunchOpenAt,
 } from '../src/lib/registrationSchedule.js'
 
@@ -19,6 +20,23 @@ describe('registrationSchedule', () => {
     })).toBe('2026-08-20T09:00:00-03:00')
 
     expect(resolveLaunchOpenAt({ event: {} })).toBeNull()
+  })
+
+  it('elige fecha futura de marketing y cae al fallback si la del admin ya pasó', () => {
+    expect(resolveFutureLaunchAt(
+      { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
+      { now },
+    )).toBe('2026-08-14T10:00:00-03:00')
+
+    expect(resolveFutureLaunchAt(
+      { registrationOpensAt: '2026-08-01T10:00:00-03:00' },
+      { fallback: '2026-09-01T10:00:00-03:00', now },
+    )).toBe('2026-09-01T10:00:00-03:00')
+
+    expect(resolveFutureLaunchAt(
+      { registrationOpensAt: '2026-08-01T10:00:00-03:00' },
+      { fallback: '2026-07-01T10:00:00-03:00', now },
+    )).toBeNull()
   })
 
   it('formatea datetime ISO sin devolver el string crudo', () => {

@@ -282,6 +282,12 @@ function handleClick(event) {
       y: clamp01((event.pageY ?? 0) / height),
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
+      // El tamano del documento que produjo esas coordenadas viaja con el
+      // evento: normalizar a 0..1 hace comparables los dispositivos, pero pierde
+      // la forma de la pagina, y sin ella el panel solo puede dibujar un
+      // cuadrado estirado en vez del alto real.
+      documentWidth: Math.round(width),
+      documentHeight: Math.round(height),
     })
   } catch {
     // Un click nunca puede fallar por culpa de la medicion.

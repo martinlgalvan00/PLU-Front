@@ -88,7 +88,7 @@ function SharedActiveIndicator() {
       aria-hidden
       transition={reducedMotion
         ? { duration: 0.01 }
-        : { type: 'spring', stiffness: 460, damping: 42, mass: 0.72 }}
+        : { type: 'spring', stiffness: 320, damping: 36, mass: 0.85 }}
     />
   )
 }
@@ -112,7 +112,7 @@ function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLe
           aria-hidden
           transition={reducedMotion
             ? { duration: 0.01 }
-            : { type: 'spring', stiffness: 520, damping: 38, mass: 0.55 }}
+            : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }}
         />
       ) : null}
       <span className="plu-global-nav__link-content">
@@ -131,60 +131,21 @@ function NavDropdownItem({
   label,
   onClick,
   tone = 'default',
-  instant = false,
 }) {
-  const { reducedMotion } = useMotionConfig()
   const className = `plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`
-  const content = (
-    <>
-      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
-      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
-      <ArrowRight size={14} aria-hidden />
-    </>
-  )
-
-  /* Mega-menú resources: sin variants (el panel solo hace fade; evita cascada trabada). */
-  if (instant || reducedMotion) {
-    return (
-      <button
-        type="button"
-        role="menuitem"
-        className={className}
-        aria-current={active ? 'page' : undefined}
-        onClick={onClick}
-      >
-        {content}
-      </button>
-    )
-  }
 
   return (
-    <m.button
+    <button
       type="button"
       role="menuitem"
-      variants={{
-        hidden: { opacity: 0, y: 5 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: {
-            duration: MOTION_DURATION.fast,
-            ease: MOTION_EASE.out,
-          },
-        },
-        exit: {
-          opacity: 0,
-          transition: { duration: 0.01 },
-        },
-      }}
-      whileHover={{ x: 4 }}
-      transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE.out }}
       className={className}
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
-      {content}
-    </m.button>
+      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
+      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
+      <ArrowRight size={14} aria-hidden />
+    </button>
   )
 }
 
@@ -193,7 +154,6 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
   const { reducedMotion } = useMotionConfig()
-  const isResources = variant === 'resources'
 
   useEffect(() => {
     if (!open) return undefined
@@ -240,53 +200,24 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
     }
   }
 
-  /* Resources: solo opacity (sin scale/y) para no pelear con translate CSS ni trabar con stagger. */
-  const panelVariants = isResources
-    ? {
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: {
-            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-            ease: MOTION_EASE.out,
-          },
-        },
-        exit: {
-          opacity: 0,
-          transition: {
-            duration: reducedMotion ? 0.01 : 0.12,
-            ease: MOTION_EASE.standard,
-          },
-        },
-      }
-    : {
-        hidden: {
-          opacity: 0,
-          y: reducedMotion ? 0 : 6,
-          scale: reducedMotion ? 1 : 0.98,
-        },
-        visible: {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          transition: {
-            duration: reducedMotion ? 0.06 : MOTION_DURATION.base,
-            ease: MOTION_EASE.cinematic,
-            when: 'beforeChildren',
-            delayChildren: reducedMotion ? 0 : 0.02,
-            staggerChildren: reducedMotion ? 0 : 0.02,
-          },
-        },
-        exit: {
-          opacity: 0,
-          y: reducedMotion ? 0 : 4,
-          scale: reducedMotion ? 1 : 0.99,
-          transition: {
-            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
-            ease: MOTION_EASE.standard,
-          },
-        },
-      }
+  /* Shell CSS lleva el translate; Motion solo anima opacity en el panel interno. */
+  const panelVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+        ease: MOTION_EASE.out,
+      },
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        duration: reducedMotion ? 0.01 : 0.12,
+        ease: MOTION_EASE.standard,
+      },
+    },
+  }
 
   return (
     <div className={`plu-global-nav__dropdown${secondary ? ' plu-global-nav__dropdown--secondary' : ''}`} data-open={open || undefined} ref={rootRef}>
@@ -311,7 +242,7 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
             aria-hidden
             transition={reducedMotion
               ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 520, damping: 38, mass: 0.55 }}
+              : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }}
           />
         ) : null}
         <span className="plu-global-nav__link-content">
@@ -323,19 +254,22 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
         {open ? (
           <m.div
             key={menuId}
-            className={`plu-nav-menu plu-nav-menu--${variant}`}
-            id={menuId}
-            ref={menuRef}
-            role="menu"
-            aria-labelledby={`${menuId}-trigger`}
-            style={isResources ? undefined : { transformOrigin: 'top center' }}
+            className={`plu-nav-menu-shell plu-nav-menu-shell--${variant}`}
             initial="hidden"
             animate="visible"
             exit="exit"
             variants={panelVariants}
-            onKeyDown={handleMenuKeyDown}
           >
-            {children}
+            <div
+              className={`plu-nav-menu plu-nav-menu--${variant}`}
+              id={menuId}
+              ref={menuRef}
+              role="menu"
+              aria-labelledby={`${menuId}-trigger`}
+              onKeyDown={handleMenuKeyDown}
+            >
+              {children}
+            </div>
           </m.div>
         ) : null}
       </AnimatePresence>
@@ -353,7 +287,7 @@ function DrawerRowIndicator() {
       aria-hidden
       transition={reducedMotion
         ? { duration: 0.01 }
-        : { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
+        : { type: 'spring', stiffness: 300, damping: 32, mass: 0.9 }}
     />
   )
 }
@@ -411,14 +345,14 @@ export default function NavbarPublic({
   const profileMenuRef = useRef(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
-  /* Morph continuo 0→1 en ~120px. Superficie scrolled al final del morph
-     (enter ~112) para que densifique cuando el letterhead ya casi cerró.
-     Histéresis evita el loop scrolled on/off cerca del umbral. */
+  /* Morph compositor (~140px, cuantizado 24 pasos). Compact layout solo al
+     cruzar scrolled — evita thrash de height/font en cada frame (PC/desktop). */
   const { scrolled } = useHeaderScroll(shellRef, {
     autoHide: false,
-    range: 120,
-    threshold: 112,
+    range: 140,
+    threshold: 120,
     hysteresis: 40,
+    steps: 24,
   })
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
@@ -615,7 +549,7 @@ export default function NavbarPublic({
             aria-label={t('nav.home')}
             onClick={() => go('home')}
           >
-            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={56} />
+            <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={46} />
             <span className="plu-global-nav__wordmark" aria-hidden={scrolled || undefined}>
               <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={22} />
               <small>{t('brand.federationLine')}</small>
@@ -699,7 +633,6 @@ export default function NavbarPublic({
                                 active={navItem.active}
                                 description={navItem.hint}
                                 icon={navItem.icon}
-                                instant
                                 label={navItem.label}
                                 tone={navItem.featured ? 'featured' : 'default'}
                                 onClick={() => navigateNavItem(navItem)}

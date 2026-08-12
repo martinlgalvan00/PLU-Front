@@ -97,15 +97,20 @@ function canonicalEvent() {
   }
 }
 
-function createSupabaseDouble({ rpcResult } = {}) {
+function createSupabaseDouble({ rpcResult, publishedRows } = {}) {
   const rows = [canonicalEvent()]
-  const order = vi.fn(async () => ({ data: rows, error: null }))
-  const select = vi.fn(() => ({ order }))
+  const published = publishedRows ?? rows.map((row) => ({ ...row, published: true, registration_opens_at: '2026-08-20T10:00:00-03:00' }))
+  const orderAll = vi.fn(async () => ({ data: rows, error: null }))
+  const orderPublished = vi.fn(async () => ({ data: published, error: null }))
+  const eq = vi.fn(() => ({ order: orderPublished }))
+  const select = vi.fn(() => ({ order: orderAll, eq }))
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
 
   return {
     client: { from: vi.fn(() => ({ select })), rpc },
     rpc,
+    eq,
+    orderPublished,
   }
 }
 
@@ -137,6 +142,25 @@ describe('API administrativa de eventos', () => {
       expect(body.events[0].eventRegistrations.at(-1)).toEqual({ status: 'cancelada' })
       expect(body.events[0].eventDays).toHaveLength(1)
       expect(body.events[0].ticketTypes).toHaveLength(1)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('expone catálogo público con registration_opens_at sin autenticación', async () => {
+    const { target, supabase } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/events/catalog`)
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(supabase.eq).toHaveBeenCalledWith('published', true)
+      expect(body.events[0]).toMatchObject({
+        id: EVENT_ID,
+        registration_opens_at: '2026-08-20T10:00:00-03:00',
+        published: true,
+      })
     } finally {
       await target.close()
     }

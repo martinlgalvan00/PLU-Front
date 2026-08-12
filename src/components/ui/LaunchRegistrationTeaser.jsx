@@ -72,8 +72,11 @@ export default function LaunchRegistrationTeaser({
   // sección: permite reemplazar badge/título/lead por un mensaje único y evitar
   // que el teaser repita "apertura oficial + nombre del evento" de forma redundante.
   intro,
-  // Reemplaza el bloque "próximamente" del countdown por un mensaje corto + precio.
+  // Reemplaza el bloque "próximamente" del countdown por un mensaje corto (+ precio opcional).
+  // Preferir countdown real (targetDate / registrationOpensAt) antes que stage.price.
   stage,
+  // Override del label del ticker (“Apertura en” → copy de campaña).
+  countdownLabel,
   // Numerado editorial del dossier anfitrión (ej. "01" en Pitbull #inscripcion),
   // mismo lenguaje que `pitbull-dossier__index` — hilo conductor con el resto de la página.
   indexLabel,
@@ -197,7 +200,7 @@ export default function LaunchRegistrationTeaser({
   // no apilar un segundo bloque "próximamente / inauguración".
   const showCountdownBlock = showTicker || !(isDossier && intro)
   const statusLabel = showTicker
-    ? t('launchTeaser.countdownTitle')
+    ? (countdownLabel || t('launchTeaser.countdownTitle'))
     : scheduleHeld
       ? t('launchTeaser.countdownHeldTitle')
       : t('launchTeaser.countdownPendingTitle')
@@ -216,6 +219,8 @@ export default function LaunchRegistrationTeaser({
     : scheduleHeld
       ? t('launchTeaser.countdownHeldAria')
       : t('launchTeaser.countdownPendingAria')
+  // Precio estático en stage: solo si no hay ticker (el countdown gana siempre).
+  const showStagePrice = Boolean(stage?.price) && !showTicker
 
   const childVariants = reducedMotion
     ? undefined
@@ -378,7 +383,7 @@ export default function LaunchRegistrationTeaser({
               </>
             ) : (
               <div className="launch-teaser__stage">
-                {stage?.price ? (
+                {showStagePrice ? (
                   <>
                     <p className="launch-teaser__stage-mark">
                       <span className="launch-teaser__stage-mark-text">

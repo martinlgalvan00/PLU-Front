@@ -123,7 +123,7 @@
   --border-radius-pill: 999px;
 
   /* ── Capa institucional compartida ─────────────── */
-  --institution-content-max: 1180px;
+  --institution-content-max: 1440px;
   --institution-reading-max: 760px;
   --institution-gutter: clamp(18px, 4.6vw, 64px);
   --institution-control-height: 44px;

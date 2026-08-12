@@ -60,7 +60,7 @@ export default function ContactPage({ onNavigate }) {
             <ul className="contact-sidebar__ledger">
               <li className="contact-sidebar__item">
                 <span className="contact-sidebar__item-icon" aria-hidden>
-                  <Mail size={14} strokeWidth={1.75} />
+                  <Mail size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
                   <span className="contact-sidebar__item-label">{t('pages.contact.sidebarEmail')}</span>
@@ -71,7 +71,7 @@ export default function ContactPage({ onNavigate }) {
               </li>
               <li className="contact-sidebar__item">
                 <span className="contact-sidebar__item-icon" aria-hidden>
-                  <MapPin size={14} strokeWidth={1.75} />
+                  <MapPin size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
                   <span className="contact-sidebar__item-label">{t('pages.contact.sidebarLocation')}</span>
@@ -80,7 +80,7 @@ export default function ContactPage({ onNavigate }) {
               </li>
               <li className="contact-sidebar__item">
                 <span className="contact-sidebar__item-icon" aria-hidden>
-                  <Clock size={14} strokeWidth={1.75} />
+                  <Clock size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
                   <span className="contact-sidebar__item-label">{t('pages.contact.sidebarResponse')}</span>

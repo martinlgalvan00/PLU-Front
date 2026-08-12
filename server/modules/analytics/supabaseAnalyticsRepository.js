@@ -57,10 +57,16 @@ export function createSupabaseAnalyticsRepository(
       ) ?? []
     },
 
-    async heatmap({ path, from, to }) {
+    async heatmap({ path, from, to, deviceType = null }) {
       return rpc(
         'get_analytics_heatmap',
-        { p_path: path, p_from: from, p_to: to, p_organization_id: organizationId },
+        {
+          p_path: path,
+          p_from: from,
+          p_to: to,
+          p_organization_id: organizationId,
+          p_device_type: deviceType,
+        },
         'No se pudo construir el mapa de calor.',
       )
     },
@@ -71,6 +77,33 @@ export function createSupabaseAnalyticsRepository(
         { p_steps: steps, p_from: from, p_to: to, p_organization_id: organizationId },
         'No se pudo calcular el embudo.',
       ) ?? []
+    },
+
+    /** Lo mas usado del sitio entero, agrupado por elemento y no por ruta. */
+    async elements({ from, to, limit = 25 }) {
+      return rpc(
+        'get_analytics_elements',
+        { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
+        'No se pudieron leer los elementos mas usados.',
+      ) ?? []
+    },
+
+    /**
+     * Unico metodo que devuelve detalle de una persona identificada. El endpoint
+     * que lo expone pide un permiso propio y deja registro de la consulta.
+     */
+    async athleteJourney({ athleteId, from, to, limit = 200 }) {
+      return rpc(
+        'get_analytics_athlete_journey',
+        {
+          p_athlete_id: athleteId,
+          p_from: from,
+          p_to: to,
+          p_limit: limit,
+          p_organization_id: organizationId,
+        },
+        'No se pudo leer el recorrido del atleta.',
+      )
     },
   }
 }

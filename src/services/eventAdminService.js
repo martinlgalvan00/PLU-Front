@@ -201,6 +201,9 @@ export function getInitialAdminEvents(storedEvents, { allowStoredEvents = true }
   const seed = UPCOMING_EVENTS.map((event, index) => ({
     id: `evt-${index + 1}`,
     ...event,
+    // Fuera de demo no inventamos "Abre la inscripción": el countdown espera
+    // la fecha real del panel (`registration_opens_at` vía /api/events/catalog).
+    registrationOpensAt: allowStoredEvents ? (event.registrationOpensAt ?? null) : null,
     createdAt: event.createdAt ?? `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
     createdOrder: index + 1,
     slots: event.featured ? 120 : DEFAULT_SLOTS,
@@ -599,9 +602,18 @@ const PUBLISHED_EVENTS_SELECT = `
   )
 `
 
-/** Eventos visibles al público — usado por EventsPage para enriquecer los
- * eventos mock con startsAt/endsAt/live antes de renderizarlos. */
+/** Eventos visibles al público. Preferimos Express (service role) para no
+ * depender de RLS/anon del browser; cae a Supabase client si la API no responde. */
 export async function fetchPublishedEvents() {
+  try {
+    const { events } = await apiGet('/api/events/catalog')
+    if (Array.isArray(events) && events.length > 0) {
+      return events.map(mapAdminEventRow)
+    }
+  } catch (error) {
+    console.warn('Catálogo público vía API no disponible, intento Supabase client.', error?.message ?? error)
+  }
+
   if (!isSupabaseConfigured) return []
 
   const supabase = await getSupabaseClient()

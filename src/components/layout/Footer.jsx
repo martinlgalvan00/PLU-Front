@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import AnalyticsOptOut from '../ui/AnalyticsOptOut.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 
 const FOOTER_GROUPS = [
@@ -102,6 +103,7 @@ export default function Footer({ onNavigate }) {
             <span>
               © {year} {t('brand.name')}
             </span>
+            <AnalyticsOptOut className="institutional-footer__optout" />
             <span>{t('footer.poweredBy')}</span>
           </div>
         </div>

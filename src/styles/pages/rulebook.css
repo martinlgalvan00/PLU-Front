@@ -778,9 +778,9 @@
   display: flex;
   flex-direction: column;
   height: min(88vh, 900px);
-  max-width: 960px;
+  max-width: 1180px;
   overflow: hidden;
-  width: min(960px, 100%);
+  width: min(1180px, 100%);
 }
 
 @keyframes rulebook-modal-slide-up {

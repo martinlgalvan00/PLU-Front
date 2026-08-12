@@ -473,7 +473,10 @@
   display: none;
 }
 
-/* ── Más dropdown ─────────────────────── */
+/* ── Más dropdown (LEGACY) ───────────────────────
+   Candidato muerto para nav pública institucional: NavbarPublic ya no
+   emite .site-header__more*. No borrar en bloque acá — puede compartir
+   animaciones/utilidades; limpieza en PR aparte tras mapear usos. */
 
 .site-header__more {
   display: block;

@@ -4,6 +4,7 @@ import { AnimatePresence, m } from 'motion/react'
 import { ArrowRight, CalendarDays, MapPin, X } from 'lucide-react'
 import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
+import LaunchInterestForm from './LaunchInterestForm.jsx'
 import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
 import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
@@ -157,6 +158,11 @@ export default function ShopEventDrawer({
                           ? t('pages.shop.salesClosed')
                           : t('pages.shop.checkoutSoonNote')}
                       </p>
+                      {!checkoutOpen && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <LaunchInterestForm source="shop_drawer" eventSlug={event.slug} />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

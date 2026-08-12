@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   BadgeCheck,
   CalendarDays,
   ClipboardList,
   MapPin,
+  Send,
   Shield,
   Trash2,
   Users,
@@ -14,6 +15,7 @@ import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
+import { getLaunchInterestSummary, notifyLaunchInterestSource } from '../../services/launchInterestService.js'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
@@ -478,6 +480,85 @@ function LeaderboardCard({
   )
 }
 
+function LaunchInterestWidget() {
+  const [summary, setSummary] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [notifying, setNotifying] = useState(null)
+  
+  async function loadSummary() {
+    try {
+      setLoading(true)
+      const res = await getLaunchInterestSummary()
+      if (res?.summary) {
+        setSummary(res.summary)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSummary()
+  }, [])
+
+  async function handleNotify(source) {
+    if (!confirm(`¿Enviar aviso a todos los pendientes de "${source}"?`)) return
+    try {
+      setNotifying(source)
+      await notifyLaunchInterestSource(source)
+      await loadSummary()
+    } catch (err) {
+      alert(err.message || 'Error al notificar')
+    } finally {
+      setNotifying(null)
+    }
+  }
+
+  if (loading || summary.length === 0) return null
+
+  return (
+    <section className="admin-ops__recent" aria-label="Lanzamientos">
+      <header className="admin-ops__chart-head">
+        <div>
+          <p className="admin-ops__eyebrow">Waitlists & Lanzamientos</p>
+          <h3>Interesados Pendientes</h3>
+          <p>Usuarios esperando la apertura de inscripciones o ventas.</p>
+        </div>
+      </header>
+      <ul className="admin-ops__recent-list">
+        {summary.map((item) => (
+          <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+            <div className="admin-ops__recent-open" style={{ cursor: 'default' }}>
+              <span className="admin-ops__recent-avatar" aria-hidden>
+                {item.source.charAt(0).toUpperCase()}
+              </span>
+              <span className="admin-ops__recent-body">
+                <strong>{item.source}</strong>
+                <span>Total: {item.total}</span>
+              </span>
+              <span className="admin-ops__recent-date">
+                <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
+                <span>{item.pending} sin notificar</span>
+              </span>
+            </div>
+            {item.pending > 0 ? (
+              <AdminIconButton
+                icon={Send}
+                label={`Notificar ${item.pending}`}
+                onClick={() => handleNotify(item.source)}
+                disabled={notifying === item.source}
+                variant="primary"
+              />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export default function DashboardSection({
   dashboardOverview,
   pendingActions,
@@ -771,6 +852,8 @@ export default function DashboardSection({
               </div>
             ) : null}
           </div>
+
+          <LaunchInterestWidget />
 
           {recentAthletes?.items?.length ||
           recentMemberships?.items?.length ||

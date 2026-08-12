@@ -25,6 +25,18 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'vendor-react'
+            }
+            if (id.includes('node_modules/@supabase')) {
+              return 'vendor-supabase'
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-lucide'
+            }
+            if (id.includes('node_modules/@mercadopago') || id.includes('node_modules/mercadopago')) {
+              return 'vendor-mp'
+            }
             if (id.includes('node_modules/motion')) {
               return 'motion'
             }

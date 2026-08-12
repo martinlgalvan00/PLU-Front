@@ -232,9 +232,34 @@ export function resolveHeaderScrolled(y, { wasScrolled = false, enterAt = 80, ex
   return scrollY >= enterAt
 }
 
+/**
+ * Curva editorial para morph de nav: soft start/end (smoothstep).
+ * Evita el colapso lineal “mecánico” al primer pixel de scroll.
+ * @param {number} t progreso lineal 0→1
+ * @returns {number}
+ */
+export function easeHeaderScrollProgress(t) {
+  const x = Math.min(1, Math.max(0, Number(t) || 0))
+  return x * x * (3 - 2 * x)
+}
+
+/**
+ * Cuantiza el progreso para no invalidar estilos en cada sub-pixel de scroll.
+ * 24 pasos ≈ suave a 60/120Hz sin thrash de layout/paint en desktop.
+ * @param {number} progress
+ * @param {number} [steps=24]
+ * @returns {number}
+ */
+export function quantizeHeaderScrollProgress(progress, steps = 24) {
+  const x = Math.min(1, Math.max(0, Number(progress) || 0))
+  const n = Math.max(1, Math.round(Number(steps) || 24))
+  if (n <= 1) return x >= 0.5 ? 1 : 0
+  return Math.round(x * n) / n
+}
+
 export function useHeaderScroll(
   shellRef,
-  { range = 80, threshold = 80, hysteresis = 40, autoHide = true } = {},
+  { range = 80, threshold = 80, hysteresis = 40, autoHide = true, steps = 24 } = {},
 ) {
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
@@ -247,16 +272,35 @@ export function useHeaderScroll(
     let lastScrolled = false
     let lastHidden = null
     let lastY = window.scrollY
+    let lastProgressKey = ''
+    let lastMorphing = null
     const enterAt = Math.max(1, threshold)
     const exitAt = Math.max(0, enterAt - Math.max(0, hysteresis))
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const progressSteps = Math.max(1, Math.round(steps))
 
     function tick() {
       rafId = null
       const y = window.scrollY
-      const progress = Math.min(1, Math.max(0, y / range))
+      const linear = Math.min(1, Math.max(0, y / range))
+      const eased = reducedMotionQuery.matches
+        ? (linear >= 0.5 ? 1 : 0)
+        : easeHeaderScrollProgress(linear)
+      const progress = reducedMotionQuery.matches
+        ? eased
+        : quantizeHeaderScrollProgress(eased, progressSteps)
+      const progressKey = progress.toFixed(4)
 
-      shell.style.setProperty('--header-scroll-progress', progress.toFixed(4))
-      shell.style.setProperty('--header-scroll-y', `${Math.round(y)}px`)
+      if (progressKey !== lastProgressKey) {
+        lastProgressKey = progressKey
+        shell.style.setProperty('--header-scroll-progress', progressKey)
+      }
+
+      const morphing = progress > 0 && progress < 1
+      if (morphing !== lastMorphing) {
+        lastMorphing = morphing
+        shell.toggleAttribute('data-morphing', morphing)
+      }
 
       const nextScrolled = resolveHeaderScrolled(y, {
         wasScrolled: lastScrolled,
@@ -302,9 +346,9 @@ export function useHeaderScroll(
       window.removeEventListener('scroll', onScroll)
       if (rafId != null) cancelAnimationFrame(rafId)
       shell.style.removeProperty('--header-scroll-progress')
-      shell.style.removeProperty('--header-scroll-y')
+      shell.removeAttribute('data-morphing')
     }
-  }, [shellRef, range, threshold, hysteresis, autoHide])
+  }, [shellRef, range, threshold, hysteresis, autoHide, steps])
 
   return { scrolled, hidden }
 }

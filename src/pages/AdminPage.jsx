@@ -393,7 +393,16 @@ export default function AdminPage({
     }
 
     if (section === 'analytics') {
-      return <AnalyticsSection />
+      // `athletes` habilita el recorrido identificado: el buscador necesita la
+      // lista para resolver un nombre a su id. El acceso real lo decide el
+      // backend con `admin.analytics.identity`; la prop solo evita ofrecer un
+      // panel que iba a responder 403.
+      return (
+        <AnalyticsSection
+          athletes={athletes}
+          canViewIdentity={hasPermission(authorization, 'admin.analytics.identity')}
+        />
+      )
     }
 
     if (['results', 'exports'].includes(section)) {

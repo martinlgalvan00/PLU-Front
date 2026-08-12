@@ -1085,23 +1085,25 @@
   padding-top: clamp(18px, 2.4vw, 24px);
 }
 
+/* Color plano de marca: el gradiente + halo dorado (0 8px 24px) era el único
+   elemento con glow de toda la ficha y competía con la credencial en vivo.
+   Mismo tratamiento que el CTA de acceso, para que el flujo se lea continuo. */
 .register-page--profile .register-card__submit {
-  background: linear-gradient(135deg, var(--plu-gold-500) 0%, var(--plu-gold-600) 100%);
-  border: none;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.35);
-  color: #0d0f14;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--color-brand-action-text);
   cursor: pointer;
   font-family: var(--font-family);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  min-height: 50px;
+  letter-spacing: -0.005em;
+  min-height: 52px;
   text-transform: none;
   transition:
     background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1112,24 +1114,62 @@
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--plu-gold-400) 0%, var(--plu-gold-500) 100%);
-  box-shadow: 0 12px 32px -4px rgba(242, 183, 5, 0.5);
+  background: var(--color-brand-action-hover);
+  border-color: var(--color-brand-action-hover);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
 .register-page--profile .register-card__submit:hover:not(:disabled) .register-card__submit-arrow {
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .register-page--profile .register-card__submit:active:not(:disabled) {
-  box-shadow: 0 4px 16px -2px rgba(242, 183, 5, 0.3);
+  box-shadow: none;
   transform: translateY(0);
+}
+
+.register-page--profile .register-card__submit:disabled {
+  cursor: progress;
+  opacity: 0.78;
+  transform: none;
 }
 
 .register-page--profile .register-card__submit--ready,
 .register-page--profile .register-card__submit--ready:hover:not(:disabled) {
-  box-shadow: 0 8px 24px -4px rgba(242, 183, 5, 0.35);
+  box-shadow: none;
 }
+
+/* Spinner del CTA — mismo lenguaje que el de acceso */
+.register-card__submit-spinner {
+  animation: register-submit-spin 620ms linear infinite;
+  block-size: 15px;
+  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  display: block;
+  flex: none;
+  inline-size: 15px;
+}
+
+@keyframes register-submit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Los dos pasos comparten celda durante el crossfade (mode="sync"): apilados
+   en flujo normal la tarjeta duplicaba su alto en cada cambio de paso. */
+.register-wizard-swap {
+  display: grid;
+  min-width: 0;
+}
+
+.register-wizard-swap > .register-wizard {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
 
 .register-page--profile .register-card__back.btn--outline {
   background: rgba(255, 255, 255, 0.03);
@@ -4437,11 +4477,28 @@
   padding-top: 10px;
 }
 
+/* Medidor de contraseña — tres tonos semánticos (error / atención / éxito)
+   en vez de un arcoíris de cuatro hex sueltos, y relleno animado por
+   transform en lugar de un salto de color. */
 .password-strength {
+  --password-strength-tone: color-mix(in oklab, var(--color-text-primary) 32%, transparent);
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: 8px;
+}
+
+.password-strength--score-1 {
+  --password-strength-tone: var(--color-brand-red);
+}
+
+.password-strength--score-2 {
+  --password-strength-tone: var(--color-brand-gold);
+}
+
+.password-strength--score-3,
+.password-strength--score-4 {
+  --password-strength-tone: var(--color-status-success);
 }
 
 .password-strength__bar {
@@ -4452,32 +4509,38 @@
 }
 
 .password-strength__segment {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
   border-radius: 99px;
-  transition: background 0.2s ease;
+  overflow: hidden;
+  position: relative;
 }
 
-.password-strength__segment.is-active-1 {
-  background: #ef4444;
+.password-strength__segment::after {
+  background: var(--password-strength-tone);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    background-color 200ms var(--ease-out),
+    transform 260ms var(--ease-out);
 }
-.password-strength__segment.is-active-2 {
-  background: #f59e0b;
-}
-.password-strength__segment.is-active-3 {
-  background: #eab308;
-}
-.password-strength__segment.is-active-4 {
-  background: #10b981;
+
+.password-strength__segment.is-active::after {
+  transform: scaleX(1);
 }
 
 .password-strength__meta {
   align-items: center;
   display: flex;
+  gap: 12px;
   justify-content: space-between;
 }
 
 .password-strength__label {
-  color: var(--color-text-secondary);
+  color: var(--password-strength-tone);
   font-weight: 600;
 }
 
@@ -4486,8 +4549,23 @@
 }
 
 .password-strength__hint--valid {
-  color: #10b981;
+  align-items: center;
+  color: var(--color-status-success);
+  display: inline-flex;
   font-weight: 600;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .password-strength__segment::after {
+    transition: none;
+  }
+
+  .register-card__submit-spinner {
+    animation: none;
+    border-top-color: color-mix(in oklab, currentColor 28%, transparent);
+    opacity: 0.6;
+  }
 }
 
 .field--has-icon .field__control-shell,
@@ -4571,4 +4649,30 @@
   margin: 8px 0 0;
   color: var(--color-text-muted);
   font-size: 0.88rem;
+}
+
+/* =========================================================================
+   TARGETS TÁCTILES DEL FLUJO DE ALTA
+   Al final de la hoja a propósito: `.field__toggle` (36px) y
+   `.register-progress__segment` se definen más abajo que el bloque del wizard,
+   así que una regla intermedia perdía por orden de cascada.
+   ========================================================================= */
+@media (pointer: coarse) {
+  .register-topbar__back,
+  .register-topbar__link {
+    align-items: center;
+    display: inline-flex;
+    min-height: 44px;
+  }
+
+  /* El rail mobile fija `min-height: 0` con tres clases; hay que igualarlo. */
+  .register-progress__segment,
+  .register-page--profile .register-progress--rail .register-progress__segment {
+    min-height: 44px;
+  }
+
+  .field__toggle {
+    height: 44px;
+    width: 44px;
+  }
 }

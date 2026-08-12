@@ -19,7 +19,6 @@ const LOGO_VARIANTS = {
  * @param {boolean} [letterheadBlend] — en dark mode, funde el PNG contra fondos translúcidos (header).
  */
 export default function BrandLogo({
-  className = '',
   imgClassName = '',
   height = 32,
   variant = 'letterhead',

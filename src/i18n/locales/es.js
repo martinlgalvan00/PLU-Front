@@ -317,6 +317,10 @@ export default {
     light: 'Claro',
     system: 'Sistema',
   },
+  analytics: {
+    optOut: 'No medir mi navegación',
+    optOutActive: 'Navegación sin medir',
+  },
   locale: {
     label: 'Idioma',
     es: 'Español',
@@ -337,6 +341,15 @@ export default {
     empty: 'Sin resultados',
     errorTitle: 'No pudimos cargar esta sección',
     errorMessage: 'Revisá tu conexión e intentá de nuevo.',
+  },
+  pageError: {
+    eyebrow: 'Error de la aplicación',
+    title: 'Esta sección no se pudo mostrar',
+    lead: 'Falló al dibujarse y la cortamos acá para no arrastrar el resto del sitio. El menú y el resto de las páginas siguen funcionando.',
+    retry: 'Reintentar',
+    home: 'Ir al inicio',
+    actionsAria: 'Opciones de recuperación',
+    detail: 'Detalle técnico',
   },
   states: {
     pending_payment: 'Pago pendiente',
@@ -471,6 +484,7 @@ export default {
     password: 'Contraseña',
     showPassword: 'Mostrar contraseña',
     hidePassword: 'Ocultar contraseña',
+    capsLock: 'Bloq Mayús activado',
     forgot: '¿Olvidaste tu contraseña?',
     forgotTitle: 'Recuperar acceso',
     forgotLead: 'Te mandamos un enlace al correo de tu cuenta.',
@@ -916,6 +930,7 @@ export default {
       promoSoonLead:
         'Un solo pago para afiliarte y competir en el calendario oficial. Se habilita con la apertura de cobros: guardá tu aviso y creá tu cuenta mientras tanto.',
       promoSoonMark: 'Muy pronto',
+      promoSoonCountdown: 'Se abre en',
       plansLeadWithBilling:
         'Una afiliación por temporada. Podés activar la renovación automática al afiliarte.',
       autoRenewLabel: 'Renovación automática',
@@ -1011,7 +1026,7 @@ export default {
       documentCover: 'Estándares de Competición',
       pathEyebrow: 'Recorrido operativo',
       pathTitle: 'Ruta del atleta',
-      pathDesc: 'Cuatro accesos para pasar del alta a la consulta de marcas publicadas.',
+      pathDesc: 'Accesos para pasar del alta a la consulta de marcas publicadas.',
       path: {
         membersTitle: 'Afiliación y credencial',
         membersDesc: 'Requisitos, planes y estado de tu afiliación anual.',
@@ -1401,10 +1416,17 @@ export default {
       heroTitle: 'Récords oficiales',
       heroDesc:
         'Las mejores marcas históricas de PLU Argentina, alineadas al estándar global de Powerlifting United.',
+      heroDescSoon:
+        'El padrón oficial se publica con marcas verificadas de meets PLU ARG. Hoy el archivo vive en Resultados.',
       sheetTitle: 'Padrón de récords',
       sheetSubtitle: 'Sentadillas, banca, peso muerto y total por categoría.',
-      sheetStamp: 'Sin datos · 2026',
+      sheetStamp: 'Próximamente · 2026',
       sheetStampLive: '{{count}} marcas · {{meets}} meets publicados',
+      soonBadge: 'Próximamente',
+      soonTitle: 'Padrón en preparación',
+      soonHeadline: 'Nuevas marcas por romper',
+      soonLead:
+        'El padrón oficial se arma con marcas verificadas. Mientras tanto, las planillas de cada meet están en Resultados.',
       sheetColumns: {
         category: 'Categoría',
         division: 'División',
@@ -1432,7 +1454,7 @@ export default {
       sheetEmpty: 'Todavía no hay récords oficiales publicados.',
       filterEmpty: 'Ninguna marca coincide con ese filtro.',
       sheetHint:
-        'Publicamos el padrón con marcas verificadas de meets PLU ARG. Mientras tanto, consultá las planillas en Resultados o afiliate para el próximo meet.',
+        'Publicamos el padrón con marcas verificadas de meets PLU ARG. Consultá las planillas en Resultados o afiliate para el próximo meet.',
       sheetHintLive:
         'Mejores marcas derivadas de planillas publicadas: {{meets}}. El padrón crece con cada meet oficial.',
       searchLabel: 'Buscar en récords',
@@ -1649,6 +1671,15 @@ export default {
       categories: 'Categorías',
       divisions: 'Divisiones',
       slots: 'Cupos atletas',
+      slotsPending: 'Cupos atletas',
+      badgeComingSoon: 'Próximamente',
+      ctaComingSoon: 'Próximamente',
+      promoSoonCountdown: 'Se abre en',
+      promoSoonTitle: 'Inscripciones en breve',
+      promoSoonLead:
+        'Afiliación anual e inscripción se habilitan juntas en la apertura oficial. Guardá tu aviso y creá tu cuenta mientras tanto.',
+      cardDescComingSoon:
+        'Valores de referencia. La inscripción y los cupos se habilitan con la apertura oficial.',
       requirement: 'Requisito',
       requirementText: 'Afiliación anual PLU ARG activa',
       ctaInscription: 'Ver inscripción',
@@ -1850,6 +1881,8 @@ export default {
       ticketDoorSummary: 'En puerta: {{day}} por día · {{both}} ambos días · el día del evento',
       inscriptionCounter: '{{registered}} de {{slots}} cupos atletas ocupados',
       inscriptionCounterAria: 'Progreso de inscripción: {{registered}} de {{slots}} cupos atletas',
+      inscriptionCounterPending: 'Los cupos se publican al abrir la inscripción.',
+      inscriptionCounterPendingAria: 'Inscripción aún no abierta',
       institutionalIndex: '08',
       institutionalEyebrow: 'Ecosistema PLU',
       faqIndex: '09',
@@ -1876,10 +1909,10 @@ export default {
       whyEyebrow: 'Por qué',
       whyTitle: 'Qué aporta sumarte',
       benefits: [
-        { id: 'difference', title: 'Hacé la diferencia' },
-        { id: 'network', title: 'Ampliá tu red' },
-        { id: 'experience', title: 'Ganá experiencia' },
-        { id: 'bigger', title: 'Formá parte de algo más grande' },
+        { id: 'difference', title: 'Operá meets con estándar PLU' },
+        { id: 'network', title: 'Conectá con jueces y sedes' },
+        { id: 'experience', title: 'Formación práctica en plataforma' },
+        { id: 'bigger', title: 'Escalá el capítulo argentino' },
       ],
       rolesEyebrow: 'Caminos',
       rolesTitle: 'Elegí cómo contribuir',
@@ -1905,6 +1938,8 @@ export default {
       reviewNote: 'Respuesta en 5–7 días hábiles.',
       closeEyebrow: 'Contacto',
       closeTitle: 'Escribinos para postularte',
+      closeLead:
+        'Contanos el rol y tu experiencia. Revisamos cada postulación en 5–7 días hábiles y te respondemos con el siguiente paso.',
       ctaContact: 'Escribinos',
       ctaCommunity: 'Ver comunidad',
     },
@@ -1915,9 +1950,35 @@ export default {
       heroDesc:
         'Marcas y gimnasios que acompañan el calendario PLU Argentina. Publicamos partners confirmados; sin inventar logos.',
       introEyebrow: 'Alianzas',
-      introTitle: 'Sostener meets con partners reales.',
+      introTitle: 'Acompañá meets con presencia real.',
       introDesc:
-        'Si tu marca quiere acompañar una temporada o un evento puntual, escribinos. Mientras tanto, los slots quedan honestos y vacíos.',
+        'Si tu marca quiere una temporada o un evento puntual, proponé una alianza. Los slots quedan vacíos hasta que el acuerdo esté firmado.',
+      benefitsEyebrow: 'Paquete',
+      benefitsTitle: 'Qué recibe un partner',
+      benefitsDesc:
+        'Entregables concretos según el nivel. Sin métricas inventadas: presencia verificable en meets y comunicación oficial.',
+      benefits: [
+        {
+          id: 'presence',
+          title: 'Presencia en meets',
+          desc: 'Marca visible en plataforma, pesaje y piezas de evento según el tier.',
+        },
+        {
+          id: 'comms',
+          title: 'Comunicación oficial',
+          desc: 'Menciones en anuncios, redes y piezas de temporada cuando el acuerdo lo incluye.',
+        },
+        {
+          id: 'digital',
+          title: 'Calendario y resultados',
+          desc: 'Visibilidad en fichas de evento, resultados publicados y canales digitales PLU ARG.',
+        },
+        {
+          id: 'activations',
+          title: 'Activaciones a medida',
+          desc: 'Credenciales, merch, demo en sede u operación según el aporte del partner.',
+        },
+      ],
       tiersEyebrow: 'Niveles',
       tiersTitle: 'Tiers de la temporada',
       tiersDesc: 'Estructura lista para cargar partners cuando el acuerdo esté firmado.',
@@ -1925,22 +1986,26 @@ export default {
         title: {
           label: 'Title',
           title: 'Sponsor principal',
-          desc: 'Presencia dominante en meets, comunicación y credenciales.',
+          desc: 'Presencia dominante en meets, comunicación y credenciales. Naming prioritario en piezas clave y slot exclusivo de temporada.',
         },
         official: {
           label: 'Official',
           title: 'Partners oficiales',
-          desc: 'Visibilidad en calendario, resultados y piezas de evento.',
+          desc: 'Visibilidad en calendario, resultados y piezas de evento. Logo y link cuando el acuerdo esté publicado.',
         },
         support: {
           label: 'Support',
           title: 'Apoyo operativo',
-          desc: 'Equipamiento, sede o servicios que hacen posible el meet.',
+          desc: 'Equipamiento, sede o servicios que hacen posible el meet. Mención operativa y agradecimiento en comunicación del evento.',
         },
       },
       slotEmpty: 'Slot disponible · sin partner publicado todavía.',
       catalogNote:
         'Cuando haya acuerdos firmados, los partners se cargan en el catálogo y aparecen acá con logo y link.',
+      closeEyebrow: 'Alianza',
+      closeTitle: 'Proponé acompañar la temporada',
+      closeLead:
+        'Contanos marca, alcance (temporada o meet puntual) y qué podés aportar. Armamos el nivel correcto sin inventar presencia.',
       ctaContact: 'Proponer alianza',
       ctaCalendar: 'Ver calendario',
     },
@@ -2030,7 +2095,7 @@ export default {
       communityBadge: 'Red PLU ARG',
       liveRegisteredCount: 'de {{total}} inscriptos',
       liveRegisteredAria: '{{registered}} de {{total}} atletas inscriptos al torneo',
-      liveRegisteredRecentLabel: 'Últimos',
+      liveRegisteredRecentLabel: 'Últimos:',
       liveRegisteredMore: '+{{count}}',
     },
     ticketsPage: {
@@ -2124,14 +2189,19 @@ export default {
       merchTitle: 'Merch oficial',
       merchText:
         'Remeras, accesorios y productos de eventos, hechos con la misma identidad que ves en cancha.',
-      merchTextSoon: 'El merch oficial se publica cuando abran los cobros. Mientras tanto, explorá el calendario.',
+      merchTextSoon:
+        'La línea oficial se publica con la temporada: remeras, accesorios y piezas de meet con la identidad de cancha. Sin fecha inventada de apertura.',
       merchSoon: 'Próximamente',
+      merchCtaCalendar: 'Ver calendario',
+      merchCtaContact: 'Consultar merch',
       coursesTitle: 'Cursos y formación',
       coursesText:
         'Formación oficial PLU ARG para jueces, coaches y staff. El catálogo se publica cuando esté listo.',
       coursesTextSoon:
-        'Los cursos oficiales se publican con la apertura de cobros. Mientras tanto, explorá el calendario.',
+        'Formación oficial para jueces, coaches y staff operativo. El catálogo abre cuando el programa esté cerrado; mientras tanto, podés postularte al equipo.',
       coursesSoon: 'Próximamente',
+      coursesCtaContact: 'Consultar formación',
+      coursesCtaTeam: 'Sumarme al equipo',
       productFeatured: 'Destacado',
       productNoDescription: 'Producto oficial de la tienda PLU ARG.',
       productSoldOut: 'Sin stock',
@@ -2305,6 +2375,12 @@ export default {
       orderHint: 'Generá la orden para consultar su estado.',
       personalTitle: 'Datos personales',
       personalDesc: 'Información básica para identificarte.',
+      passwordStrengthWeak: 'Muy corta',
+      passwordStrengthFair: 'Aceptable',
+      passwordStrengthStrong: 'Segura',
+      passwordStrengthExcellent: 'Excelente',
+      passwordStrengthRequirement: 'Mínimo 12 caracteres',
+      passwordStrengthMet: 'Cumple el requisito de seguridad',
       fullName: 'Nombre y apellido',
       fullNamePlaceholder: 'Ej.: Martina Rivas',
       documentId: 'Documento',

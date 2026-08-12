@@ -195,13 +195,59 @@
 .admin-analytics__heatmap svg {
   display: block;
   width: 100%;
-  /* Proporción de página, no cuadrada: representa un documento alto. */
-  aspect-ratio: 3 / 4;
+  /* La proporción la manda el `viewBox`, que trae el alto real del documento
+     medido en los clicks del período. Antes había un `aspect-ratio: 3 / 4` fijo
+     acá: era una forma inventada que no correspondía a ninguna página, y con el
+     viewBox correcto encima solo agregaría bandas vacías. */
+  height: auto;
+  /* Techo para que un documento muy largo no empuje el resto del informe fuera
+     de la pantalla; el SVG alinea arriba y el detalle fino lo da la lista. */
+  max-height: 68vh;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
   background: var(--color-bg-elevated);
   /* `currentColor` en los rects hereda de acá. */
   color: var(--color-brand-gold);
+}
+
+/* Selector de dispositivo del mapa: mismo lenguaje que el de período. */
+.admin-analytics__devices {
+  display: inline-flex;
+  margin-bottom: var(--space-sm);
+  padding: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-surface);
+}
+
+.admin-analytics__devices button {
+  min-height: 40px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.admin-analytics__devices button:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-analytics__devices button.is-active {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.admin-analytics__devices button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
 .admin-analytics__heatmap figcaption {
@@ -331,9 +377,245 @@
   }
 }
 
+/* ── Lo más usado del sitio ─────────────────────────────── */
+
+.admin-analytics__ranking {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ranking;
+}
+
+.admin-analytics__ranking li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-sm);
+  border-radius: var(--border-radius-sm);
+}
+
+.admin-analytics__ranking li:nth-child(odd) {
+  background: var(--color-bg-elevated);
+}
+
+.admin-analytics__ranking-label {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-analytics__ranking-path {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-analytics__ranking strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-analytics__ranking small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* ── Recorrido por atleta (dato identificado) ───────────── */
+
+.admin-analytics__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 var(--space-md);
+  padding: 10px var(--space-sm);
+  border: 1px solid var(--color-accent-gold-border-medium);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-analytics__notice svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-brand-gold);
+}
+
+.admin-analytics__journey-search {
+  display: grid;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.admin-analytics__journey-search-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-analytics__journey-search input {
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-analytics__journey-search input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.admin-analytics__journey-matches {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  max-width: 420px;
+  list-style: none;
+}
+
+.admin-analytics__journey-matches button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-analytics__journey-matches button:hover {
+  background: var(--color-bg-muted);
+}
+
+.admin-analytics__journey-matches button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-analytics__journey-matches span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.admin-analytics__journey {
+  margin-top: var(--space-md);
+}
+
+.admin-analytics__journey-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-analytics__journey-head span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.admin-analytics__journey-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.admin-analytics__journey-grid h4 {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-analytics__journey-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-analytics__journey-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 6px var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+}
+
+.admin-analytics__journey-list li:nth-child(odd) {
+  background: var(--color-bg-elevated);
+}
+
+.admin-analytics__journey-list code {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-analytics__journey-list strong {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  /* Cuatro columnas en 360px dejaban la etiqueta en dos caracteres: la ruta y
+     el conteo de personas pasan a una segunda línea. */
+  .admin-analytics__ranking li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-analytics__ranking-path {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .admin-analytics__ranking small {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-analytics__funnel-bar span,
   .admin-analytics__ranges button,
+  .admin-analytics__devices button,
   .admin-analytics__heatmap-trigger {
     transition: none;
   }

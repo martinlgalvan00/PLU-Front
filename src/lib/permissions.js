@@ -233,6 +233,19 @@ export const PERMISSION_CATALOG = [
     description: 'Consultar tráfico, recorridos y mapa de calor del sitio.',
     sortOrder: 131,
   },
+  {
+    // Separado de `read` a propósito: el informe agregado no identifica a
+    // nadie, pero el recorrido de una persona sí. Quien puede ver métricas de
+    // producto no necesariamente puede abrir la navegación de un atleta con
+    // nombre y apellido, y cada consulta queda registrada en la auditoría.
+    key: 'admin.analytics.identity',
+    module: 'analytics',
+    moduleLabel: 'Analítica',
+    action: 'identity',
+    actionLabel: 'Ver recorrido identificado',
+    description: 'Abrir el recorrido de navegación de un atleta puntual.',
+    sortOrder: 132,
+  },
 ]
 
 export const PERMISSION_KEYS = Object.freeze(PERMISSION_CATALOG.map(({ key }) => key))

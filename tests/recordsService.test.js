@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRecordsCsv,
   buildRecordsRegister,
+  buildRecordsRegisterFromMeets,
   filterRecordsRegister,
   groupRecordsFederated,
 } from '../src/services/recordsService.js'
@@ -9,8 +10,15 @@ import {
 const t = (key) => key
 
 describe('recordsService', () => {
-  it('deriva marcas solo desde meets publicados', () => {
+  it('el padrón público está vacío (sin mockear fixtures)', () => {
     const register = buildRecordsRegister()
+    expect(register.entries).toEqual([])
+    expect(register.meetCount).toBe(0)
+    expect(register.sourceMeets).toEqual([])
+  })
+
+  it('deriva marcas solo desde meets publicados (helper)', () => {
+    const register = buildRecordsRegisterFromMeets()
     expect(register.meetCount).toBeGreaterThan(0)
     expect(register.entries.length).toBeGreaterThan(0)
     expect(register.sourceMeets).toContain('Spring Classic 2025')
@@ -31,7 +39,7 @@ describe('recordsService', () => {
   })
 
   it('filtra por levantamiento, sexo, grupo, equipamiento y busqueda', () => {
-    const { entries } = buildRecordsRegister()
+    const { entries } = buildRecordsRegisterFromMeets()
     const squatOnly = filterRecordsRegister(entries, { lift: 'squat' })
     expect(squatOnly.every((entry) => entry.lift === 'squat')).toBe(true)
 
@@ -49,7 +57,7 @@ describe('recordsService', () => {
   })
 
   it('agrupa en secciones federativas por sexo, division y clase', () => {
-    const { entries } = buildRecordsRegister()
+    const { entries } = buildRecordsRegisterFromMeets()
     const sections = groupRecordsFederated(entries)
     expect(sections.length).toBeGreaterThan(0)
 
@@ -65,7 +73,7 @@ describe('recordsService', () => {
   })
 
   it('exporta CSV con encabezados y filas', () => {
-    const { entries } = buildRecordsRegister()
+    const { entries } = buildRecordsRegisterFromMeets()
     const csv = buildRecordsCsv(entries.slice(0, 2), t)
     const lines = csv.split('\n')
     expect(lines[0]).toContain('pages.records.exportColumns.sex')

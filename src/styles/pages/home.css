@@ -4749,12 +4749,12 @@
 
 .pitbull-spotlight__home-kicker {
   align-items: center;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.78);
   display: inline-flex;
-  font-size: 11px;
+  font-size: clamp(11px, 0.85vw, 13px);
   font-weight: 650;
   gap: 8px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -4762,16 +4762,17 @@
 .pitbull-spotlight__home-kicker-dot {
   background: var(--plu-gold-500, var(--color-brand-gold));
   border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 22%, transparent);
   flex: none;
-  height: 5px;
-  width: 5px;
+  height: 6px;
+  width: 6px;
 }
 
 .pitbull-spotlight__home-event-logo {
   display: block;
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.35));
-  height: clamp(52px, 8vw, 88px);
-  max-width: min(72vw, 420px);
+  height: clamp(56px, 8.5vw, 104px);
+  max-width: min(78vw, 520px);
   object-fit: contain;
   object-position: left center;
   width: auto;
@@ -4879,13 +4880,13 @@
   margin: 0;
 }
 
+/* Sin uppercase a propósito: el kicker "Inscripción abierta" ya usa ese
+   recurso en este mismo bloque y repetirlo lo vuelve decoración. Acá alcanza
+   con bajar el color para que el rótulo ceda paso a los nombres. */
 .pitbull-spotlight__home-live-names-label {
   color: rgba(255, 255, 255, 0.42);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  margin-inline-end: 0.6em;
-  text-transform: uppercase;
+  font-weight: 500;
+  margin-inline-end: 0.35em;
 }
 
 .pitbull-spotlight__home-actions {
@@ -5015,24 +5016,66 @@
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1200px) {
   .pitbull-spotlight__home-stage {
-    min-height: clamp(520px, 72vh, 780px);
+    min-height: clamp(480px, 70vh, 760px);
   }
 
   .pitbull-spotlight__home-overlay {
-    max-width: min(720px, 42vw);
-    padding-inline: clamp(48px, 6vw, 96px);
-    padding-bottom: clamp(40px, 6vh, 64px);
+    gap: clamp(16px, 2.2vw, 24px);
+    max-width: min(760px, 52vw);
+    padding-inline: clamp(36px, 5vw, 80px);
   }
 
   .pitbull-spotlight__home-event-logo {
-    height: clamp(72px, 5.5vw, 104px);
-    max-width: min(36vw, 480px);
+    height: clamp(76px, 6.5vw, 120px);
+    max-width: min(44vw, 560px);
+  }
+
+  .pitbull-spotlight__home-kicker {
+    font-size: 12.5px;
+    gap: 10px;
+    letter-spacing: 0.18em;
+  }
+}
+
+@media (min-width: 1600px) {
+  .pitbull-spotlight__home-stage {
+    min-height: clamp(560px, 74vh, 880px);
+  }
+
+  .pitbull-spotlight__home-overlay {
+    max-width: min(920px, 48vw);
+    padding-inline: clamp(56px, 6vw, 112px);
+    padding-bottom: clamp(44px, 6.5vh, 72px);
+  }
+
+  .pitbull-spotlight__home-event-logo {
+    height: clamp(96px, 6.2vw, 140px);
+    max-width: min(40vw, 640px);
+  }
+
+  .pitbull-spotlight__home-kicker {
+    font-size: 13px;
   }
 
   .pitbull-spotlight__home-hero-img {
     object-position: center 40%;
+  }
+}
+
+@media (min-width: 1920px) {
+  .pitbull-spotlight__home-stage {
+    min-height: clamp(620px, 76vh, 920px);
+  }
+
+  .pitbull-spotlight__home-overlay {
+    max-width: min(980px, 46vw);
+  }
+
+  .pitbull-spotlight__home-event-logo {
+    height: clamp(112px, 5.8vw, 152px);
+    max-width: min(38vw, 680px);
   }
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { applyTheme, persistTheme, resolveTheme, THEME_STORAGE_KEY, THEMES } from '../lib/theme.js'
 

@@ -50,19 +50,21 @@ export default function MembershipCard({
           .join(' ')}
       >
         <div className="membership-card__body">
-          <header className="membership-card__identity">
-            <p className="membership-card__kicker">{resolvedKicker}</p>
-            <h3 className="membership-card__title">{title}</h3>
-          </header>
+          <div className="membership-card__offer">
+            <header className="membership-card__identity">
+              <p className="membership-card__kicker">{resolvedKicker}</p>
+              <h3 className="membership-card__title">{title}</h3>
+            </header>
 
-          <div className="membership-card__price-stack">
-            <span className="membership-card__amount">{money(price, locale)}</span>
-            <span className="membership-card__period">{periodLabel}</span>
-            {hasCompare ? (
-              <span className="membership-card__save-note">
-                {t('pages.membershipCard.save', { amount: money(savings, locale) })}
-              </span>
-            ) : null}
+            <div className="membership-card__price-stack">
+              <span className="membership-card__amount">{money(price, locale)}</span>
+              <span className="membership-card__period">{periodLabel}</span>
+              {hasCompare ? (
+                <span className="membership-card__save-note">
+                  {t('pages.membershipCard.save', { amount: money(savings, locale) })}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
