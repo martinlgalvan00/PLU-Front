@@ -23,8 +23,10 @@
 @import './components/brand-logo.css';
 @import './components/pitbull-brand-mark.css';
 @import './components/states.css';
+@import './components/feature-coming-soon.css';
 @import './components/segmented-switch.css';
 @import './components/plu-tab-rail.css';
+@import './components/launch-registration-teaser.css';
 @import './pages/home.css';
 @import './pages/page.css';
 @import url('/src/styles/layout/institutional-shell.css');

@@ -28,6 +28,11 @@ import {
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
 import {
+  FEATURE_KEYS,
+  getFeatureAvailability,
+  isFeatureEnabled,
+} from '../lib/featureAvailability.js'
+import {
   ACCESS_ROLE_TEMPLATES,
   getDefaultPermissionsForRole,
   hasAnyPermission,
@@ -181,10 +186,16 @@ export function useAppData() {
   )
   const [adminEventsLoading, setAdminEventsLoading] = useState(false)
   const [adminEventsError, setAdminEventsError] = useState(null)
-  const [pricingConfiguration, setPricingConfiguration] = useState({
-    plans: [],
-    events: [],
-    availability: { editable: !env.appProduction, reason: env.appProduction ? 'production_coming_soon' : null },
+  const [pricingConfiguration, setPricingConfiguration] = useState(() => {
+    const pricingAvailability = getFeatureAvailability(FEATURE_KEYS.pricingWrites)
+    return {
+      plans: [],
+      events: [],
+      availability: {
+        editable: pricingAvailability.enabled,
+        reason: pricingAvailability.reason,
+      },
+    }
   })
   const [pricingLoading, setPricingLoading] = useState(false)
   const [pricingError, setPricingError] = useState(null)
@@ -1797,7 +1808,9 @@ export function useAppData() {
         })),
         availability: {
           editable: false,
-          reason: env.appProduction ? 'production_coming_soon' : 'demo_read_only',
+          reason: isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+            ? 'demo_read_only'
+            : 'production_coming_soon',
         },
       }
       setPricingConfiguration(demoConfiguration)
@@ -1819,7 +1832,7 @@ export function useAppData() {
   }, [adminEvents])
 
   const createMembershipPlanVersion = useCallback(async (plan) => {
-    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
     }
     try {
@@ -1833,7 +1846,7 @@ export function useAppData() {
   }, [refreshPricingConfiguration, session])
 
   const setMembershipPlanActive = useCallback(async (planId, active) => {
-    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
     }
     try {
@@ -1847,7 +1860,7 @@ export function useAppData() {
   }, [refreshPricingConfiguration, session])
 
   const saveEventComboOffer = useCallback(async (eventSlug, offer) => {
-    if (!hasPermission(session, 'admin.pricing.write') || env.appProduction) {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
     }
     try {

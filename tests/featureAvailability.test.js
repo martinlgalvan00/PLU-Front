@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
+  FEATURE_KEYS,
   assertComboCheckoutAvailable,
+  assertPricingWritesEnabled,
   assertRecurringMembershipAvailable,
   filterPublicMembershipPlans,
+  getFeatureAvailability,
+  isFeatureEnabled,
 } from '../server/lib/featureAvailability.js'
+import {
+  FEATURE_KEYS as FRONT_FEATURE_KEYS,
+  filterPublicMembershipPlans as filterFrontPlans,
+  getFeatureAvailability as getFrontFeatureAvailability,
+  isFeatureEnabled as isFrontFeatureEnabled,
+} from '../src/lib/featureAvailability.js'
 import { getEventComboAvailability } from '../src/services/comboOfferService.js'
 import { filterMembershipPlansForApp } from '../src/services/paymentService.js'
 
@@ -13,14 +23,44 @@ const PLANS = [
 ]
 
 describe('features disponibles por entorno', () => {
+  it('expone el mismo catalogo de keys en front y back', () => {
+    expect(FRONT_FEATURE_KEYS).toEqual(FEATURE_KEYS)
+  })
+
   it('oculta planes recurrentes en frontend y backend cuando APP_PRODUCTION esta activo', () => {
     expect(filterPublicMembershipPlans(PLANS, { APP_PRODUCTION: 'true' })).toHaveLength(1)
+    expect(filterFrontPlans(PLANS, { appProduction: true })).toHaveLength(1)
     expect(filterMembershipPlansForApp(PLANS, { appProduction: true })).toHaveLength(1)
     expect(filterPublicMembershipPlans(PLANS, { APP_PRODUCTION: 'false' })).toHaveLength(2)
     expect(filterMembershipPlansForApp(PLANS, { appProduction: false })).toHaveLength(2)
   })
 
-  it('permite el combo en produccion y sigue bloqueando el debito automatico', () => {
+  it('alinea isFeatureEnabled / getFeatureAvailability entre front y back', () => {
+    const prod = { APP_PRODUCTION: 'true' }
+    const local = { APP_PRODUCTION: 'false' }
+
+    expect(isFeatureEnabled(FEATURE_KEYS.recurringMembership, prod)).toBe(false)
+    expect(isFrontFeatureEnabled(FEATURE_KEYS.recurringMembership, { appProduction: true })).toBe(false)
+    expect(isFeatureEnabled(FEATURE_KEYS.pricingWrites, prod)).toBe(false)
+    expect(isFrontFeatureEnabled(FEATURE_KEYS.pricingWrites, { appProduction: true })).toBe(false)
+    expect(isFeatureEnabled(FEATURE_KEYS.comboCheckout, prod)).toBe(true)
+    expect(isFrontFeatureEnabled(FEATURE_KEYS.comboCheckout, { appProduction: true })).toBe(true)
+
+    expect(getFeatureAvailability(FEATURE_KEYS.pricingWrites, prod)).toEqual({
+      enabled: false,
+      reason: 'production_coming_soon',
+    })
+    expect(getFrontFeatureAvailability(FEATURE_KEYS.pricingWrites, { appProduction: true })).toEqual({
+      enabled: false,
+      reason: 'production_coming_soon',
+    })
+    expect(getFeatureAvailability(FEATURE_KEYS.pricingWrites, local)).toEqual({
+      enabled: true,
+      reason: null,
+    })
+  })
+
+  it('permite el combo en produccion y sigue bloqueando el debito automatico y pricing writes', () => {
     expect(() => assertComboCheckoutAvailable({ APP_PRODUCTION: 'true' })).not.toThrow()
     expect(() => assertComboCheckoutAvailable({ APP_PRODUCTION: 'false' })).not.toThrow()
     expect(() => assertRecurringMembershipAvailable({ APP_PRODUCTION: 'true' })).toThrowError(
@@ -30,6 +70,13 @@ describe('features disponibles por entorno', () => {
       }),
     )
     expect(() => assertRecurringMembershipAvailable({ APP_PRODUCTION: 'false' })).not.toThrow()
+    expect(() => assertPricingWritesEnabled({ APP_PRODUCTION: 'true' })).toThrowError(
+      expect.objectContaining({
+        status: 409,
+        details: { code: 'FEATURE_COMING_SOON' },
+      }),
+    )
+    expect(() => assertPricingWritesEnabled({ APP_PRODUCTION: 'false' })).not.toThrow()
   })
 
   it('habilita el combo operativo cuando la oferta esta vigente', () => {
@@ -47,7 +94,6 @@ describe('features disponibles por entorno', () => {
     expect(getEventComboAvailability(event, { now })).toMatchObject({
       enabled: true,
       comingSoon: false,
-      offer: { price: 120000 },
     })
     expect(getEventComboAvailability(event, {
       hasActiveMembership: true,

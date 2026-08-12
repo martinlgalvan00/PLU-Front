@@ -55,7 +55,9 @@ function PitbullHeroPanel({
     ? t('pages.pitbull.register')
     : isFinished
       ? t('pages.home.viewResults')
-      : t('pages.pitbull.joinNow')
+      : eventStatus === 'proximamente'
+        ? t('launchTeaser.notifyCta')
+        : t('pages.pitbull.joinNow')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}

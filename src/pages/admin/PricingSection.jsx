@@ -3,11 +3,11 @@ import {
   BadgeDollarSign,
   CalendarClock,
   CirclePlus,
-  LockKeyhole,
   RefreshCw,
   Save,
 } from 'lucide-react'
-import { env } from '../../config/env.js'
+import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
+import { FEATURE_KEYS, isFeatureEnabled } from '../../lib/featureAvailability.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 
@@ -68,7 +68,11 @@ export default function PricingSection({
     onRefresh?.()
   }, [onRefresh])
 
-  const locked = env.appProduction || configuration.availability?.editable === false || !canEdit
+  const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+  const locked =
+    !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
+  const showProductionLock =
+    !pricingWritesEnabled || configuration.availability?.reason === 'production_coming_soon'
   const plans = useMemo(() => configuration.plans ?? [], [configuration.plans])
   const events = useMemo(() => configuration.events ?? [], [configuration.events])
   const now = useMemo(() => new Date(), [])
@@ -209,14 +213,13 @@ export default function PricingSection({
         </button>
       </header>
 
-      {env.appProduction || configuration.availability?.reason === 'production_coming_soon' ? (
-        <div className="admin-pricing__locked" role="status">
-          <LockKeyhole size={20} aria-hidden />
-          <div>
-            <strong>{t('admin.sections.pricing.comingSoonTitle')}</strong>
-            <p>{t('admin.sections.pricing.comingSoonLead')}</p>
-          </div>
-        </div>
+      {showProductionLock ? (
+        <FeatureComingSoon
+          className="admin-pricing__locked"
+          lead={t('admin.sections.pricing.comingSoonLead')}
+          title={t('admin.sections.pricing.comingSoonTitle')}
+          variant="banner"
+        />
       ) : null}
 
       {error ? (

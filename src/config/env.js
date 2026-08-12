@@ -29,8 +29,8 @@ export const env = {
   apiUrl,
   isDev: import.meta.env.DEV,
   // true = presentación/comportamiento de producción (ocultar WIP, demos, etc.).
-  // Independiente del build: en Vercel Production poné APP_PRODUCTION=true.
-  // Con true se ocultan WIPs (p. ej. afiliación con débito automático / recurring).
+  // Independiente del build: en Vercel Production poné APP_PRODUCTION=true;
+  // en Preview y local, false. Con true se ocultan WIPs (recurring + pricing writes).
   appProduction,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true' && !appProduction,
   supabase: {

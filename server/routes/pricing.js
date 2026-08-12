@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
-import { isAppProduction } from '../lib/featureAvailability.js'
+import {
+  FEATURE_KEYS,
+  assertPricingWritesEnabled,
+  getFeatureAvailability,
+} from '../lib/featureAvailability.js'
 import { requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -56,16 +60,6 @@ export const comboOfferSchema = z
     }
   })
 
-function assertPricingWritesEnabled(env) {
-  if (isAppProduction(env)) {
-    throw new HttpError(
-      409,
-      'La configuración económica está disponible próximamente en producción.',
-      { code: 'FEATURE_COMING_SOON' },
-    )
-  }
-}
-
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
 }
@@ -87,11 +81,12 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
       const configuration = await repository().getConfiguration()
+      const pricingAvailability = getFeatureAvailability(FEATURE_KEYS.pricingWrites, env)
       res.json({
         ...configuration,
         availability: {
-          editable: !isAppProduction(env),
-          reason: isAppProduction(env) ? 'production_coming_soon' : null,
+          editable: pricingAvailability.enabled,
+          reason: pricingAvailability.reason,
         },
       })
     } catch (error) {

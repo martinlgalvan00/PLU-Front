@@ -4,6 +4,7 @@ import '../styles/layout/design-page-notebook.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarClock, RefreshCw } from 'lucide-react'
 import FAQAccordion from '../components/ui/FAQAccordion.jsx'
+import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import MembersBenefitsShowcase from '../components/ui/MembersBenefitsShowcase.jsx'
 import MembersPluHero from '../components/ui/MembersPluHero.jsx'
 import MembersProcessStepper from '../components/ui/MembersProcessStepper.jsx'
@@ -13,7 +14,7 @@ import Reveal from '../components/ui/Reveal.jsx'
 import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { env } from '../config/env.js'
+import { FEATURE_KEYS, isAppProduction, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { PRICING } from '../lib/constants.js'
 import { getCountdownParts } from '../lib/countdown.js'
 import { money } from '../lib/format.js'
@@ -140,7 +141,7 @@ export default function MembersPage({
     if (livePlans.length) {
       return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
     }
-    if (env.appProduction) return []
+    if (isAppProduction()) return []
     return MEMBERSHIP_PLANS
       .filter((plan) => plan.id !== 'combo')
       .map((plan) => ({
@@ -159,7 +160,9 @@ export default function MembersPage({
     [catalogPlans],
   )
   const billingSwitchEnabled =
-    !env.appProduction && oneTimePlans.length > 0 && recurringPlans.length > 0
+    isFeatureEnabled(FEATURE_KEYS.recurringMembership) &&
+    oneTimePlans.length > 0 &&
+    recurringPlans.length > 0
 
   useEffect(() => {
     if (!billingSwitchEnabled) return
@@ -218,7 +221,7 @@ export default function MembersPage({
     return () => window.clearInterval(id)
   }, [pendingComboEndsAt, hasActiveMembership])
 
-  const livePlansUnavailable = env.appProduction && (!plansLoaded || catalogPlans.length === 0)
+  const livePlansUnavailable = isAppProduction() && (!plansLoaded || catalogPlans.length === 0)
   const comboCountdownAria = comboCountdown
     ? t('pages.members.comboPromoCountdownAria', {
       days: comboCountdown.days,
@@ -366,37 +369,24 @@ export default function MembersPage({
               />
             ))}
           </div>
-          {env.appProduction && !plansLoaded ? (
+          {isAppProduction() && !plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {env.appProduction && plansLoaded && catalogPlans.length === 0 ? (
-            <aside
+          {isAppProduction() && plansLoaded && catalogPlans.length === 0 ? (
+            <FeatureComingSoon
+              actionIcon={plansError ? RefreshCw : undefined}
+              actionLabel={plansError ? t('pages.members.plansRetry') : undefined}
               className="members-plans-feedback members-plans-feedback--notice"
+              eyebrow={t('pages.members.plansComingSoonEyebrow')}
+              icon={CalendarClock}
+              lead={plansError ? undefined : t('pages.members.plansComingSoonLead')}
+              onAction={plansError ? () => loadPlans({ force: true }) : undefined}
               role={plansError ? 'alert' : 'status'}
-            >
-              <CalendarClock className="members-plans-feedback__icon" size={18} aria-hidden />
-              <div className="members-plans-feedback__copy">
-                <p className="members-plans-feedback__eyebrow">
-                  {t('pages.members.plansComingSoonEyebrow')}
-                </p>
-                <p className="members-plans-feedback__title">
-                  {plansError || t('pages.members.plansComingSoon')}
-                </p>
-                {!plansError ? (
-                  <p className="members-plans-feedback__lead">
-                    {t('pages.members.plansComingSoonLead')}
-                  </p>
-                ) : null}
-              </div>
-              {plansError ? (
-                <button type="button" onClick={() => loadPlans({ force: true })}>
-                  <RefreshCw size={14} aria-hidden />
-                  {t('pages.members.plansRetry')}
-                </button>
-              ) : null}
-            </aside>
+              title={plansError || t('pages.members.plansComingSoon')}
+              variant="inline"
+            />
           ) : null}
         </section>
 
