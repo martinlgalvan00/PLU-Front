@@ -32,5 +32,9 @@ describe('precio de inscripción Pitbull Classic', () => {
     expect(seed).toMatch(
       /'pitbull-classic-2026'[\s\S]*?'inscripcion_abierta'[\s\S]*?75000,\s*'ARS'/,
     )
+    expect(seed).toContain("'membershipPrice', 75000")
+    expect(seed).toContain("'comboPrice', 120000")
+    expect(seed).toContain('insert into public.event_combo_offers')
+    expect(seed).toMatch(/120000[\s\S]*?'ARS'[\s\S]*?true[\s\S]*?2026-08-28/)
   })
 })
