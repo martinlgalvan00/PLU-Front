@@ -5,9 +5,11 @@ const KIND_BY_BENEFIT = {
   events: 'podium',
   credential: 'card',
   discounts: 'seal',
+  checkout: 'seal',
   results: 'medal',
   access: 'device',
   network: 'constellation',
+  combo: 'constellation',
 }
 
 /** Matriz 11×11: finders + datos (credencial). */

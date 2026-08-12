@@ -15,6 +15,8 @@ import SegmentedSwitch from '../components/ui/SegmentedSwitch.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { FEATURE_KEYS, isAppProduction, isFeatureEnabled } from '../lib/featureAvailability.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
 import { getCountdownParts } from '../lib/countdown.js'
 import { money } from '../lib/format.js'
@@ -22,6 +24,7 @@ import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
+import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 
 const SEASON_COMBO_FALLBACK = {
   active: true,
@@ -202,13 +205,17 @@ export default function MembersPage({
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  const paidCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env)
+  const checkoutLocked = !paidCheckoutOpen
   const showComboPromo = Boolean(liveComboOffer)
     && Boolean(comboCountdown)
     && !comboCountdown.expired
     && !hasActiveMembership
+    && paidCheckoutOpen
+  const showLaunchGate = checkoutLocked && !hasActiveMembership
 
   useEffect(() => {
-    if (!pendingComboEndsAt || hasActiveMembership) return
+    if (!pendingComboEndsAt || hasActiveMembership || !paidCheckoutOpen) return
     const endMs = new Date(pendingComboEndsAt).getTime()
     if (!Number.isFinite(endMs) || Date.now() >= endMs) return
 
@@ -219,7 +226,7 @@ export default function MembersPage({
     }, 1000)
 
     return () => window.clearInterval(id)
-  }, [pendingComboEndsAt, hasActiveMembership])
+  }, [pendingComboEndsAt, hasActiveMembership, paidCheckoutOpen])
 
   const livePlansUnavailable = isAppProduction() && (!plansLoaded || catalogPlans.length === 0)
   const comboCountdownAria = comboCountdown
@@ -237,20 +244,22 @@ export default function MembersPage({
       { key: 'seconds', value: padCountdownUnit(comboCountdown.seconds), label: t('pages.members.comboPromoUnitSeconds') },
     ]
     : []
-  const affiliationCta = isLoggedInAthlete
-    ? hasActiveMembership
-      ? t('pages.members.ctaAlreadyAffiliated')
-      : t('pages.members.ctaAuthenticated')
-    : t('pages.members.ctaGuest')
+  const affiliationCta = checkoutLocked
+    ? t('pages.members.ctaCheckoutSoon')
+    : isLoggedInAthlete
+      ? hasActiveMembership
+        ? t('pages.members.ctaAlreadyAffiliated')
+        : t('pages.members.ctaAuthenticated')
+      : t('pages.members.ctaGuest')
   const goToAffiliation = () => {
-    if (hasActiveMembership) return
+    if (hasActiveMembership || checkoutLocked) return
     if (billingSwitchEnabled && typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem('plu.membership.billingMode', billingMode)
     }
     onNavigate(isLoggedInAthlete ? 'membership' : 'register')
   }
   const goToCombo = () => {
-    if (hasActiveMembership) return
+    if (hasActiveMembership || checkoutLocked) return
     if (onSelectEvent && featuredEvent) {
       onSelectEvent(featuredEvent)
       return
@@ -271,7 +280,7 @@ export default function MembersPage({
           onNavigate={onNavigate}
           session={session}
           affiliationCta={affiliationCta}
-          ctaDisabled={hasActiveMembership || (isLoggedInAthlete && livePlansUnavailable)}
+          ctaDisabled={hasActiveMembership || checkoutLocked || (isLoggedInAthlete && livePlansUnavailable)}
           onAffiliate={goToAffiliation}
         />
       </Reveal>
@@ -282,12 +291,33 @@ export default function MembersPage({
             <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
             <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
             <p className="members-plu-block__lead">
-              {billingSwitchEnabled
-                ? t('pages.members.plansLeadWithBilling')
-                : t('pages.members.plansLead')}
+              {checkoutLocked
+                ? t('pages.members.plansLeadCheckoutSoon')
+                : billingSwitchEnabled
+                  ? t('pages.members.plansLeadWithBilling')
+                  : t('pages.members.plansLead')}
             </p>
           </header>
 
+          {showLaunchGate ? (
+            <Reveal as="div" variant="up" className="members-launch-gate">
+              <LaunchRegistrationTeaser
+                event={featuredEvent}
+                onNavigate={onNavigate}
+                variant="compact"
+                source="members_page"
+                intro={{
+                  eyebrow: t('pages.members.promoSoonEyebrow'),
+                  title: t('pages.members.promoSoonTitle'),
+                  lead: t('pages.members.promoSoonLead'),
+                }}
+                stage={{
+                  mark: t('pages.members.promoSoonMark'),
+                  price: liveComboOffer?.price ? money(liveComboOffer.price, locale) : null,
+                }}
+              />
+            </Reveal>
+          ) : null}
           {showComboPromo ? (
             <Reveal
               as="aside"
@@ -344,7 +374,7 @@ export default function MembersPage({
             </Reveal>
           ) : null}
 
-          {billingSwitchEnabled ? (
+          {billingSwitchEnabled && !checkoutLocked ? (
             <div className="members-plu-plans__billing">
               <SegmentedSwitch
                 active={billingMode}
@@ -357,18 +387,20 @@ export default function MembersPage({
             </div>
           ) : null}
 
-          <div className={gridClassName}>
-            {visiblePlans.map((plan) => (
-              <MembershipCard
-                key={plan.id}
-                {...plan}
-                ctaLabel={affiliationCta}
-                ctaDisabled={hasActiveMembership || livePlansUnavailable}
-                onSelect={goToAffiliation}
-                variant="plu"
-              />
-            ))}
-          </div>
+          {!checkoutLocked ? (
+            <div className={gridClassName}>
+              {visiblePlans.map((plan) => (
+                <MembershipCard
+                  key={plan.id}
+                  {...plan}
+                  ctaLabel={affiliationCta}
+                  ctaDisabled={hasActiveMembership || livePlansUnavailable}
+                  onSelect={goToAffiliation}
+                  variant="plu"
+                />
+              ))}
+            </div>
+          ) : null}
           {isAppProduction() && !plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
@@ -389,6 +421,53 @@ export default function MembersPage({
             />
           ) : null}
         </section>
+
+        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--closure">
+          <div className="members-plu-closure" aria-labelledby="members-closure-title">
+            <p className="members-plu-closure__eyebrow">{t('pages.members.closureEyebrow')}</p>
+            <h2 className="members-plu-closure__title" id="members-closure-title">
+              {hasActiveMembership
+                ? t('pages.members.closureTitleActive')
+                : t('pages.members.closureTitle')}
+            </h2>
+            <p className="members-plu-closure__lead">
+              {hasActiveMembership
+                ? t('pages.members.closureLeadActive')
+                : checkoutLocked
+                  ? t('pages.members.closureLeadSoon')
+                  : t('pages.members.closureLead')}
+            </p>
+            {hasActiveMembership ? (
+              <div className="members-plu-closure__actions">
+                <button
+                  type="button"
+                  className="btn btn--gold members-plu-closure__cta"
+                  onClick={() => onNavigate?.('profile')}
+                >
+                  {t('pages.members.afterPayCtaCredential')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--outline members-plu-closure__cta"
+                  onClick={() => onNavigate?.('events')}
+                >
+                  {t('pages.members.afterPayCtaCalendar')}
+                </button>
+              </div>
+            ) : !checkoutLocked ? (
+              <div className="members-plu-closure__actions">
+                <button
+                  type="button"
+                  className="btn btn--gold members-plu-closure__cta"
+                  disabled={isLoggedInAthlete && livePlansUnavailable}
+                  onClick={goToAffiliation}
+                >
+                  {affiliationCta}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </Reveal>
 
         <Reveal as="section" variant="up" className="members-plu-block members-plu-block--benefits">
           <MembersBenefitsShowcase

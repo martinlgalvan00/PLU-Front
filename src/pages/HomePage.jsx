@@ -2,7 +2,6 @@ import { m } from 'motion/react'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
-import HomeCalendarTeaser from '../components/ui/HomeCalendarTeaser.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
@@ -12,7 +11,13 @@ import Reveal from '../components/ui/Reveal.jsx'
 import StickyMobileCta from '../components/ui/StickyMobileCta.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
-import { getFeaturedEvent, getFeaturedEventDestination } from '../lib/eventNavigation.js'
+import {
+  getFeaturedEvent,
+  getFeaturedEventDestination,
+  getPitbullClassicEvent,
+} from '../lib/eventNavigation.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
@@ -29,12 +34,12 @@ const teaserDuoVariants = {
 export default function HomePage({ onNavigate, onSelectEvent, events = [], session, memberships = [] }) {
   const { reducedMotion } = useMotionConfig()
   const { PITBULL_CLASSIC } = useContent()
-  const pitbullEvent = getFeaturedEvent(events)
-  const featuredDestination = getFeaturedEventDestination(pitbullEvent)
+  const launchEvent = getPitbullClassicEvent(events) ?? getFeaturedEvent(events)
+  const featuredDestination = getFeaturedEventDestination(launchEvent)
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
   const { registered: liveRegistered, slots: liveSlots } = useEventRegistrationCapacity(
-    pitbullEvent?.slug ?? 'pitbull-classic-2026',
+    launchEvent?.slug ?? 'pitbull-classic-2026',
     {
       fallbackRegistered: PITBULL_CLASSIC.registered,
       fallbackSlots: PITBULL_CLASSIC.slots,
@@ -42,7 +47,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
   )
 
   function handlePitbullRegister() {
-    onSelectEvent?.(pitbullEvent)
+    onSelectEvent?.(launchEvent)
   }
 
   function openFeaturedEvent() {
@@ -60,19 +65,26 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
         viewport: { once: true, amount: 0.22 },
       }
 
-  const isRegistrationDisabled = !pitbullEvent || pitbullEvent.status === 'proximamente'
+  const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env)
+  const isRegistrationDisabled =
+    !paidCheckoutOpen
+    || !launchEvent
+    || launchEvent.status === 'proximamente'
 
   return (
     <main className="home-page">
       <HeroSection onNavigate={onNavigate} />
 
       {isRegistrationDisabled ? (
-        <section className="home-section home-section--immersive home-section--launch">
+        <section
+          className="home-section home-section--immersive home-section--launch"
+          id="apertura-inscripciones"
+        >
           <div className="home-section__inner">
             <LaunchRegistrationTeaser
-              event={pitbullEvent}
+              event={launchEvent}
               onNavigate={onNavigate}
-              variant="full"
+              variant="hero"
             />
           </div>
         </section>
@@ -84,11 +96,11 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
         </div>
       </section>
 
-      <section className="home-section home-section--immersive home-section--pitbull-home">
-        <div className="home-section__inner">
+      <section className="home-section home-section--immersive home-section--pitbull-home home-section--pitbull-bleed">
+        <div className="home-section__inner home-section__inner--bleed">
           <PitbullSpotlight
             variant="home"
-            event={pitbullEvent}
+            event={launchEvent}
             onDetail={openFeaturedEvent}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
@@ -105,6 +117,7 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
             onNavigate={onNavigate}
             isLoggedInAthlete={isLoggedInAthlete}
             hasActiveMembership={hasActiveMembership}
+            gateEvent={launchEvent}
           />
 
           <div className="home-mid-stack__divider" aria-hidden />
@@ -113,17 +126,6 @@ export default function HomePage({ onNavigate, onSelectEvent, events = [], sessi
             <HomeResultsTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
             <HomeRulebookTeaser onNavigate={onNavigate} orchestrated={!reducedMotion} />
           </TeaserDuo>
-        </div>
-      </section>
-
-      <section className="home-section home-section--immersive home-section--calendar">
-        <div className="home-section__inner">
-          <HomeCalendarTeaser
-            events={events}
-            onNavigate={onNavigate}
-            onSelectEvent={onSelectEvent}
-            session={session}
-          />
         </div>
       </section>
 

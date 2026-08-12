@@ -39,6 +39,58 @@ export function getNextUpcomingEvent(events = [], now = new Date()) {
   return getUpcomingEventsByDate(events, now)[0] ?? null
 }
 
+/**
+ * Stubs de desarrollo que no deben salir en el catálogo público
+ * (título/slug triviales tipo "test", "test test", "prueba"). No aplica a
+ * meets reales con "test" en el nombre compuesto. El panel admin no filtra.
+ */
+export function isPublicCatalogStubEvent(event) {
+  const title = String(event?.title ?? '').trim().toLowerCase()
+  const slug = String(event?.slug ?? '').trim().toLowerCase()
+  if (!title && !slug) return true
+  if (/^(test|prueba|asd|xxx|demo)(\s+\1)*$/i.test(title)) return true
+  if (/^(test|prueba|demo|asd|xxx)(-\d{2,4})?$/i.test(slug)) return true
+  return false
+}
+
+export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
+
+export function getPublicCatalogEvents(events = []) {
+  return (Array.isArray(events) ? events : []).filter(
+    (event) => event && !isPublicCatalogStubEvent(event),
+  )
+}
+
+/**
+ * Protagonista del countdown Home: excluye stubs, prefiere featured vigente,
+ * si no el próximo por fecha.
+ */
+export function getHomeCalendarSpotlightEvent(events = [], now = new Date()) {
+  const eligible = getPublicCatalogEvents(events).filter(
+    (event) => event.status !== 'finalizado',
+  )
+  if (eligible.length === 0) return null
+
+  const upcoming = getUpcomingEventsByDate(eligible, now)
+  const featured = eligible.find((event) => event.featured)
+  if (featured && upcoming.some((event) => event.slug === featured.slug)) {
+    return featured
+  }
+
+  return upcoming[0] ?? null
+}
+
+export function getHomeCalendarFollowingEvents(events = [], spotlight = null, limit = 2, now = new Date()) {
+  const eligible = getPublicCatalogEvents(events).filter(
+    (event) => event.status !== 'finalizado',
+  )
+  const upcoming = getUpcomingEventsByDate(eligible, now)
+  const spotlightSlug = spotlight?.slug
+  return upcoming
+    .filter((event) => !spotlightSlug || event.slug !== spotlightSlug)
+    .slice(0, limit)
+}
+
 export function getFeaturedEvent(events = []) {
   // El destacado explícito manda (staff_upsert_event garantiza que hay a lo
   // sumo uno). Si no hay ninguno marcado, se cae al próximo por fecha en vez

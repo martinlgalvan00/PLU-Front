@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
+import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
 import { useAppData } from './hooks/useAppData.js'
@@ -11,6 +12,12 @@ import {
   pushEventPageRoute,
 } from './lib/eventPageRoute.js'
 import { isCanonicalPathname, resolvePathnamePublicView } from './lib/canonicalPaths.js'
+import {
+  buildPublicViewPath,
+  clearPublicViewPath,
+  matchPublicViewPath,
+  pushPublicViewPath,
+} from './lib/publicViewPaths.js'
 import { readPasswordResetToken } from './lib/passwordResetRoute.js'
 import { matchSecurityGateRoute } from './lib/securityGateRoute.js'
 import {
@@ -31,7 +38,7 @@ import {
 } from './lib/ticketsRoute.js'
 import { PRICING } from './lib/constants.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
-import { getFeaturedEvent, getNextUpcomingEvent } from './lib/eventNavigation.js'
+import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
 import {
@@ -66,9 +73,12 @@ const ResourcesPage = lazy(() => import('./pages/ResourcesPage.jsx'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage.jsx'))
 const RulebookPage = lazy(() => import('./pages/RulebookPage.jsx'))
 const ShopPage = lazy(() => import('./pages/ShopPage.jsx'))
+const SponsorsPage = lazy(() => import('./pages/SponsorsPage.jsx'))
 const StaffEmailChangePage = lazy(() => import('./pages/StaffEmailChangePage.jsx'))
 const StaffInvitationPage = lazy(() => import('./pages/StaffInvitationPage.jsx'))
 const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePage.jsx'))
+const StandardsPage = lazy(() => import('./pages/StandardsPage.jsx'))
+const TeamPage = lazy(() => import('./pages/TeamPage.jsx'))
 const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
 
 const PUBLIC_VIEWS = {
@@ -86,6 +96,9 @@ const PUBLIC_VIEWS = {
   contact: ContactPage,
   shop: ShopPage,
   tickets: TicketsPage,
+  team: TeamPage,
+  sponsors: SponsorsPage,
+  standards: StandardsPage,
   register: RegisterPage,
   login: LoginPage,
 }
@@ -106,7 +119,9 @@ export default function App() {
   )
   const app = useAppData()
   const getSession = app.getSession
-  const publicEvents = app.adminEvents.filter((event) => event.published !== false)
+  const publicEvents = getPublicCatalogEvents(
+    app.adminEvents.filter((event) => event.published !== false),
+  )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
 
@@ -144,10 +159,17 @@ export default function App() {
         setView('notFound')
         return
       }
+      const publicView = matchPublicViewPath()
+      if (publicView) {
+        setEventPageSlug(null)
+        setView(publicView)
+        return
+      }
       setView((current) => {
         if (current === 'tickets') return 'pitbull'
         if (current === 'events') return 'home'
         if (current === 'notFound') return 'home'
+        if (matchPublicViewPath() == null && buildPublicViewPath(current)) return 'home'
         return current
       })
     }
@@ -190,14 +212,29 @@ export default function App() {
       if (resolvedView === 'events' && requestedOptions.eventSlug) {
         pushEventPageRoute(requestedOptions.eventSlug)
         setEventPageSlug(requestedOptions.eventSlug)
+      } else if (resolvedView === 'events') {
+        clearEventPageRoute()
+        setEventPageSlug(null)
+        pushPublicViewPath('events')
       } else if (view === 'events' && resolvedView !== 'events') {
         clearEventPageRoute()
         setEventPageSlug(null)
       }
 
+      if (buildPublicViewPath(resolvedView) && !(resolvedView === 'events')) {
+        pushPublicViewPath(resolvedView)
+      } else if (
+        matchPublicViewPath() &&
+        resolvedView !== 'tickets' &&
+        resolvedView !== 'events'
+      ) {
+        clearPublicViewPath()
+      }
+
       if (view === 'notFound' && resolvedView !== 'notFound') {
         if (typeof window !== 'undefined' && !isCanonicalPathname()) {
-          window.history.pushState({ view: resolvedView }, '', '/')
+          const nextPath = buildPublicViewPath(resolvedView) ?? '/'
+          window.history.pushState({ view: resolvedView }, '', nextPath)
         }
       }
 
@@ -459,6 +496,8 @@ export default function App() {
               events: publicEvents,
               initialEventSlug: eventPageSlug,
               session: app.session,
+              memberships: app.memberships,
+              registrations: app.registrations,
             }
           : view === 'home'
             ? {
@@ -521,6 +560,7 @@ export default function App() {
             onRemovePhoto={app.removeAthletePhotoAction}
             registrations={app.registrations}
             session={app.session}
+            events={publicEvents}
           />
         </Suspense>
       </PrivateLayout>
@@ -580,6 +620,15 @@ export default function App() {
           al cambiar de vista. */}
       <EmailVerificationNotice />
       <PaymentsMockBanner />
+      <DocumentMetaSync
+        view={view}
+        eventSlug={view === 'events' ? eventPageSlug : null}
+        eventTitle={
+          view === 'events' && eventPageSlug
+            ? publicEvents.find((event) => event.slug === eventPageSlug)?.title
+            : null
+        }
+      />
       <NavbarPublic
         activeEventSlug={eventPageSlug}
         activeView={view}
@@ -609,6 +658,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
   return (
     <div className="app-shell">
       <PaymentsMockBanner />
+      <DocumentMetaSync view={view} />
       <NavbarPublic
         activeView={view}
         latestEvent={

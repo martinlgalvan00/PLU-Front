@@ -63,8 +63,12 @@ export function createSupabaseTicketRepository(client) {
         attendees: (order.tickets ?? []).map((ticket) => ({ name: ticket.attendee_name, dni: ticket.attendee_dni })),
       }))
     },
-    async approve(orderId) {
-      return rpc('staff_approve_ticket_order', { p_order_id: orderId }, 'No se pudo aprobar la orden.')
+    async approve(orderId, actor) {
+      return rpc(
+        'staff_approve_ticket_order',
+        { p_order_id: orderId, p_actor: actor ?? null },
+        'No se pudo aprobar la orden.',
+      )
     },
     async createProofUpload(orderId, accessToken, fileName) {
       const order = await requireOrderAccess(orderId, accessToken)

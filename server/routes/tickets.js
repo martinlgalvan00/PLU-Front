@@ -3,6 +3,16 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
+import { assertPaidCheckoutAvailable, isAppProduction, resolvePaidCheckoutOverride } from '../lib/featureAvailability.js'
+import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+
+// Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
+// en produccion y sin kill switch. Evita una consulta a Supabase de mas en
+// dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
+async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
+  if (!isAppProduction(env) || resolvePaidCheckoutOverride(env) !== null) return null
+  return resolveEventRegistrationOpensAt(supabase, { eventSlug })
+}
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import {
@@ -41,7 +51,7 @@ const createOrderSchema = z.object({
 })
 const accessSchema = z.object({ accessToken: z.string().trim().min(32) })
 
-export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, athleteRepository }) {
+export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, athleteRepository, env = process.env }) {
   const router = Router()
   const repo = () => repository ?? createSupabaseTicketRepository(getSupabaseAdmin?.())
   const athleteRepo = () => athleteRepository ?? createSupabaseAthleteRepository(getSupabaseAdmin?.())
@@ -50,6 +60,11 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
   const actor = (req) => `${req.auth.user.id}:${req.auth.user.email}`
+  function parseOrderId(req) {
+    const parsed = z.string().uuid().safeParse(req.params.orderId)
+    if (!parsed.success) throw new HttpError(400, 'Orden invalida.')
+    return parsed.data
+  }
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
 
   // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
@@ -71,6 +86,12 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
     validateBody(createOrderSchema),
     async (req, res, next) => {
       try {
+        const registrationOpensAt = await resolveScopedRegistrationOpensAt(
+          env,
+          getSupabaseAdmin?.(),
+          req.validatedBody.eventSlug,
+        )
+        await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
         res.status(201).json(await repo().createOrder(req.validatedBody))
       } catch (error) {
         next(error)
@@ -95,7 +116,7 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
       try {
         res.json(
           await repo().createProofUpload(
-            req.params.orderId,
+            parseOrderId(req),
             req.validatedBody.accessToken,
             req.validatedBody.fileName,
           ),
@@ -113,7 +134,7 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
       try {
         res.json(
           await repo().registerProof(
-            req.params.orderId,
+            parseOrderId(req),
             req.validatedBody.accessToken,
             req.validatedBody.proofPath,
           ),
@@ -147,7 +168,7 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
   })
   router.post('/orders/:orderId/approve', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
     try {
-      res.json(await repo().approve(req.params.orderId))
+      res.json(await repo().approve(parseOrderId(req), actor(req)))
     } catch (error) {
       next(error)
     }
@@ -158,7 +179,7 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
     staffLimiter,
     async (req, res, next) => {
       try {
-        res.json({ url: await repo().proofUrl(req.params.orderId) })
+        res.json({ url: await repo().proofUrl(parseOrderId(req)) })
       } catch (error) {
         next(error)
       }
@@ -185,7 +206,11 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
   router.get('/credentials/:code', ...guard, staffLimiter, async (req, res, next) => {
     try {
       const eventSlug = req.query.eventSlug ? String(req.query.eventSlug) : null
-      if (eventSlug) assertEventSlugScope(req, eventSlug)
+      // La RPC no filtra por evento (solo usa eventSlug para adjuntar la
+      // inscripción); el scope tiene que exigirse siempre, no solo cuando el
+      // caller decide mandar eventSlug, o una cuenta de puerta acotada a un
+      // evento podría omitirlo y leer la credencial de cualquier socio.
+      assertEventSlugScope(req, eventSlug)
       res.json(await athleteRepo().staffCredential(String(req.params.code), eventSlug))
     } catch (error) {
       next(error)

@@ -1,4 +1,4 @@
-/* ── Records page — archivo vacío / planilla ─── */
+/* ── Records page — padrón federativo ─── */
 
 .records-page--plu-ref .records-page__body {
   margin: 0 auto;
@@ -8,11 +8,11 @@
 
 .records-sheet {
   display: grid;
-  gap: clamp(18px, 2.8vw, 24px);
+  gap: clamp(16px, 2.4vw, 22px);
 }
 
 .records-sheet__head {
-  align-items: end;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px 24px;
@@ -42,6 +42,14 @@
   margin: 0;
 }
 
+.records-sheet__head-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: center;
+}
+
 .records-sheet__stamp {
   color: var(--color-text-muted);
   font-size: 11px;
@@ -51,8 +59,224 @@
   text-transform: uppercase;
 }
 
-.records-sheet__lifts {
+.records-sheet__export {
+  flex-shrink: 0;
+}
+
+.records-sheet__toolbar {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  padding: clamp(14px, 2vw, 18px) 0;
+  border-block: 1px solid var(--color-border-subtle);
+}
+
+.records-sheet__toolbar-search {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+}
+
+.records-sheet__search {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  display: flex;
+  flex: 1 1 16rem;
+  gap: 8px;
+  max-width: 28rem;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+}
+
+.records-sheet__search input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  min-width: 0;
+  outline: none;
+}
+
+.records-sheet__search input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.records-sheet__search-clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.records-sheet__search-clear:hover {
+  color: var(--color-text-primary);
+}
+
+.records-sheet__search-clear:focus-visible,
+.records-sheet__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.records-sheet__toolbar-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.records-sheet__count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.records-sheet__clear {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  color: var(--color-brand-action, var(--color-brand-gold));
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-height: 32px;
+  padding: 0 0 2px;
+}
+
+.records-sheet__clear:hover {
+  border-bottom-color: var(--color-brand-action, var(--color-brand-gold));
+  color: var(--color-text-primary);
+}
+
+.records-sheet__filter-row {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.records-sheet__filter-row--sex {
+  padding-bottom: 2px;
+}
+
+.records-sheet__filter-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.records-sheet__pills {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.records-sheet__pills::-webkit-scrollbar {
   display: none;
+}
+
+.records-sheet__pills.filter-pills--refined {
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 0;
+}
+
+.records-sheet__pills.filter-pills--refined .filter-pills__item {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.records-sheet__pills.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+  border-color: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+  color: var(--color-text-primary);
+}
+
+.records-sheet__pills.filter-pills--refined .filter-pills__item.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* Sexo: rail tipográfico (sin track/pill SaaS), acento oro en activo. */
+.records-sheet__pills--sex.filter-pills--refined {
+  gap: 0;
+}
+
+.records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-display, inherit);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  min-height: 40px;
+  padding: 8px 14px 10px;
+  text-transform: uppercase;
+}
+
+.records-sheet__pills--sex.filter-pills--refined .filter-pills__item + .filter-pills__item {
+  margin-left: 2px;
+}
+
+.records-sheet__pills--sex.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+  border-bottom-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  color: var(--color-text-secondary);
+}
+
+.records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+  background: transparent;
+  border-bottom-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.records-sheet__pills--sex.filter-pills--refined .filter-pills__item:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.records-sheet__lifts {
+  display: flex;
   gap: 8px;
   list-style: none;
   margin: 0;
@@ -70,9 +294,11 @@
 .records-sheet__lift {
   background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
+  border-radius: 2px;
   color: var(--color-text-secondary);
+  cursor: pointer;
   flex: 0 0 auto;
+  font: inherit;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -80,6 +306,121 @@
   padding: 8px 12px;
   white-space: nowrap;
 }
+
+.records-sheet__lift.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* Federated sections */
+
+.records-federated {
+  display: grid;
+  gap: clamp(28px, 4vw, 40px);
+}
+
+.records-section {
+  display: grid;
+  gap: 14px;
+}
+
+.records-section__title {
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+  padding-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--color-bg-page) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.records-section__classes {
+  display: grid;
+  gap: 16px;
+}
+
+.records-class {
+  display: grid;
+  gap: 8px;
+}
+
+.records-class__head {
+  padding-inline: 2px;
+}
+
+.records-class__title {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.records-class__table-wrap {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  overflow-x: auto;
+}
+
+.records-class__table {
+  border-collapse: collapse;
+  min-width: 640px;
+  width: 100%;
+}
+
+.records-class__table th,
+.records-class__table td {
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 12.5px;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.records-class__table thead th {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  position: sticky;
+  top: 0;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.records-class__table tbody th {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.records-class__table td {
+  color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.records-class__table tbody tr:last-child th,
+.records-class__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.records-class__mark {
+  color: var(--color-text-primary) !important;
+  font-weight: 700;
+}
+
+/* Empty placeholder table */
 
 .records-sheet__table-wrap {
   border: 1px solid var(--color-border-subtle);
@@ -89,7 +430,7 @@
 
 .records-sheet__table {
   border-collapse: collapse;
-  min-width: 720px;
+  min-width: 640px;
   width: 100%;
 }
 
@@ -161,16 +502,6 @@
   line-height: 1;
 }
 
-.records-sheet__card-meta {
-  color: var(--color-text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 11px;
-  gap: 6px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
 .records-sheet__foot {
   border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: grid;
@@ -238,6 +569,12 @@
   flex: none;
 }
 
+@media (max-width: 959px) {
+  .records-sheet__search {
+    max-width: none;
+  }
+}
+
 @media (max-width: 719px) {
   .records-page--plu-ref .records-page__body {
     padding: 0 16px clamp(36px, 8vw, 56px);
@@ -253,6 +590,14 @@
     gap: 10px;
   }
 
+  .records-sheet__head-meta {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
   .records-sheet__title {
     font-size: 20px;
   }
@@ -262,7 +607,7 @@
   }
 
   .records-sheet__stamp {
-    align-self: flex-start;
+    align-self: center;
     background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
     border-radius: 999px;
@@ -271,16 +616,29 @@
     padding: 5px 10px;
   }
 
-  .records-sheet__lifts {
-    display: flex;
+  .records-sheet__export {
+    width: auto;
   }
 
-  .records-sheet__table-wrap {
-    display: none;
+  .records-sheet__toolbar-search {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .records-sheet__cards {
+  .records-sheet__toolbar-meta {
+    justify-content: space-between;
+  }
+
+  .records-class__table {
+    min-width: 560px;
+  }
+
+  .records-sheet__cards:not(:empty) {
     display: grid;
+  }
+
+  .records-page--federated .records-sheet__table-wrap {
+    display: none;
   }
 
   .records-sheet__foot {
@@ -304,12 +662,18 @@
   }
 }
 
-[data-theme='light'] .records-sheet__table th {
+[data-theme='light'] .records-sheet__table th,
+[data-theme='light'] .records-class__table thead th {
   background: rgba(15, 17, 23, 0.03);
 }
 
-[data-theme='light'] .records-sheet__table-wrap {
+[data-theme='light'] .records-sheet__table-wrap,
+[data-theme='light'] .records-class__table-wrap {
   background: #fff;
+}
+
+[data-theme='light'] .records-section__title {
+  background: color-mix(in srgb, #fff 92%, transparent);
 }
 
 [data-theme='light'] .records-sheet__foot {
@@ -317,10 +681,31 @@
 }
 
 [data-theme='light'] .records-sheet__lift,
-[data-theme='light'] .records-sheet__card {
-  background: rgba(15, 17, 23, 0.025);
+[data-theme='light'] .records-sheet__card,
+[data-theme='light'] .records-sheet__search,
+[data-theme='light'] .records-sheet__pills.filter-pills--refined .filter-pills__item {
+  background-color: rgba(15, 17, 23, 0.025);
+}
+
+[data-theme='light'] .records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
+  background: transparent;
+}
+
+[data-theme='light'] .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+  border-bottom-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .records-sheet__toolbar {
+  border-color: rgba(15, 17, 23, 0.1);
 }
 
 [data-theme='light'] .records-sheet__stamp {
   background: rgba(242, 183, 5, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .records-section__title {
+    backdrop-filter: none;
+  }
 }

@@ -117,14 +117,34 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
               </span>
               <p className="results-empty__title">{t('pages.results.emptyPublishedTitle')}</p>
               <p className="results-empty__desc">{t('pages.results.emptyPublishedDesc')}</p>
-              <button
-                type="button"
-                className="results-empty__link"
-                onClick={() => onNavigate?.('pitbull')}
-              >
-                {t('pages.results.emptyPublishedCta', { event: nextEvent?.title ?? t('nav.pitbull') })}
-                <ArrowRight size={14} aria-hidden />
-              </button>
+              <div className="results-empty__actions">
+                <button
+                  type="button"
+                  className="results-empty__link"
+                  onClick={() => onNavigate?.('events')}
+                >
+                  {t('pages.results.emptyPublishedCtaCalendar')}
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="results-empty__link"
+                  onClick={() => onNavigate?.('members')}
+                >
+                  {t('pages.results.emptyPublishedCtaMembers')}
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+                {nextEvent ? (
+                  <button
+                    type="button"
+                    className="results-empty__link"
+                    onClick={() => onNavigate?.('pitbull')}
+                  >
+                    {t('pages.results.emptyPublishedCta', { event: nextEvent.title ?? t('nav.pitbull') })}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                ) : null}
+              </div>
             </div>
           </Reveal>
         )}

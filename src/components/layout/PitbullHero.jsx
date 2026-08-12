@@ -39,6 +39,7 @@ const HERO_COLLAGE = [
 
 function PitbullHeroPanel({
   canRegister,
+  checkoutLocked,
   eventStatus,
   onHome,
   onRegister,
@@ -51,11 +52,14 @@ function PitbullHeroPanel({
 }) {
   const { label: statusLabel, tone: statusTone } = getStatusMeta(eventStatus, t)
   const isFinished = eventStatus === 'finalizado'
+  // Cobros cerrados (kill switch / schedule) pesan igual que el status
+  // "proximamente": no ofrecer "Afiliarme" si el destino real sigue gateado.
+  const isComingSoon = checkoutLocked || eventStatus === 'proximamente'
   const primaryLabel = canRegister
     ? t('pages.pitbull.register')
     : isFinished
       ? t('pages.home.viewResults')
-      : eventStatus === 'proximamente'
+      : isComingSoon
         ? t('launchTeaser.notifyCta')
         : t('pages.pitbull.joinNow')
   const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
@@ -170,6 +174,7 @@ function PitbullHeroFrame({ reducedMotion = false }) {
 
 export default function PitbullHero({
   canRegister,
+  checkoutLocked = false,
   eventStatus,
   onHome,
   onRegister,
@@ -184,6 +189,7 @@ export default function PitbullHero({
   const panel = (
     <PitbullHeroPanel
       canRegister={canRegister}
+      checkoutLocked={checkoutLocked}
       eventStatus={eventStatus}
       onHome={onHome}
       onRegister={onRegister}

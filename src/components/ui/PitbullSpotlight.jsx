@@ -1,13 +1,16 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import photoBooth from '../../assets/DSC02270-display.jpg'
-import photoDesk from '../../assets/DSC02483-display.jpg'
 import photoLift from '../../assets/DSC00346-display.jpg'
 import photoMedals from '../../assets/DSC01606-display.jpg'
 import photoSpotters from '../../assets/DSC00286-display.jpg'
 import logoPitbullClassic from '../../assets/brand/logo-letra-transparente.png'
+import { env } from '../../config/env.js'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import {
+  isPaidCheckoutOpen,
+  resolveLaunchOpenAt,
+} from '../../lib/registrationSchedule.js'
 import { getStatusMeta, isRegistrationOpen } from '../../lib/status.js'
 import EventDatePlate from '../../motion/EventDatePlate.tsx'
 import MaskReveal from '../../motion/MaskReveal.tsx'
@@ -18,10 +21,25 @@ import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
 
-/** Entrada del panel de copy — mismo lenguaje que HomeMembershipBand
- * (stagger 45-70ms entre estado → título → metadata → tags → CTA), para que
- * ambas cards del sistema "afiliación / Pitbull" se sientan de la misma
- * familia sin ser idénticas. */
+function formatOpenDayLabel(iso, locale = 'es') {
+  const date = new Date(iso)
+  if (!Number.isFinite(date.getTime())) return ''
+  return date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+      day: 'numeric',
+      month: 'short',
+    })
+    .replace('.', '')
+}
+
+function scrollToLaunchTeaser() {
+  const target = document.getElementById('apertura-inscripciones')
+  if (!target) return false
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  return true
+}
+
+/** Entrada del overlay full-bleed — stagger corto (estado → logo → meta → CTA). */
 const panelContainer = {
   hidden: {},
   visible: { transition: { staggerChildren: MOTION_STAGGER.stepFast, delayChildren: 0.05 } },
@@ -147,29 +165,12 @@ export default function PitbullSpotlight({
   }
 
   if (isHome) {
-    const stripPhotos = [
-      { src: photoLift, key: 'lift' },
-      { src: photoDesk, key: 'desk' },
-      { src: photoBooth, key: 'booth' },
-    ]
-
     const eventStatus = event?.status ?? 'proximamente'
     const isPitbullEvent = !event?.slug || event.slug === 'pitbull-classic-2026'
     const startsAt = event?.startsAt ?? event?.dateISO
     const startsDate = startsAt ? new Date(String(startsAt).includes('T') ? startsAt : `${startsAt}T12:00:00`) : null
     const validStartsDate = startsDate && !Number.isNaN(startsDate.getTime()) ? startsDate : null
-    const dateParts = validStartsDate
-      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        }).formatToParts(validStartsDate)
-      : []
-    const datePart = (type, fallback = '') =>
-      dateParts.find((part) => part.type === type)?.value?.replace('.', '') ?? fallback
     const homeTitle = event?.title ?? PITBULL_CLASSIC.title
-    const homeLead =
-      event?.description || (isPitbullEvent ? t('pages.pitbull.heroLead') : '')
     const homeVenue = event?.venue ?? PITBULL_CLASSIC.venue
     const homeLocation = event?.location ?? PITBULL_CLASSIC.location
     const homeDateLabel =
@@ -185,27 +186,27 @@ export default function PitbullSpotlight({
           ? PITBULL_CLASSIC.date
           : '')
     const homeDateTime = event?.startsAt ?? event?.dateISO ?? '2026-12-12'
-    const homeDateDay = isPitbullEvent
-      ? PITBULL_CLASSIC.dateDay
-      : datePart('day', String(homeDateLabel).split(' ')[0])
-    const homeDateMonth = isPitbullEvent
-      ? dateMonthLabel
-      : [datePart('month'), datePart('year')].filter(Boolean).join(' ')
-    const homeCategories = Array.isArray(event?.categories)
-      ? event.categories
-      : isPitbullEvent
-        ? PITBULL_CLASSIC.categories
-        : []
     const { label: statusLabel } = getStatusMeta(eventStatus, t)
     const registrationOpen = isRegistrationOpen(eventStatus)
     const isFinished = eventStatus === 'finalizado'
     const isClosed = eventStatus === 'cerrado'
+    const checkoutOpen = isPaidCheckoutOpen(event, env)
+    const registrationOpensAt = resolveLaunchOpenAt({ event })
+    const openDayLabel = registrationOpensAt
+      ? formatOpenDayLabel(registrationOpensAt, locale)
+      : ''
 
     /** El CTA principal nunca ofrece una acción que el usuario no puede
-     * realizar: sigue el estado real del evento en vez de un texto fijo. */
+     * realizar: sigue el estado real del evento + gate de cobros en prod.
+     * Con APP_PRODUCTION / checkout cerrado: “Próximamente” (sin cobro). */
     let primaryLabel = t('pages.pitbull.spotlight.viewCompetition')
     let primaryAction = onDetail
-    if (registrationOpen) {
+    if (!checkoutOpen && !isFinished) {
+      primaryLabel = t('pages.members.ctaCheckoutSoon')
+      primaryAction = () => {
+        if (!scrollToLaunchTeaser()) onDetail?.()
+      }
+    } else if (registrationOpen) {
       primaryLabel = resolvedRegisterLabel
       primaryAction = onRegister ?? onDetail
     } else if (isFinished) {
@@ -216,23 +217,30 @@ export default function PitbullSpotlight({
       primaryAction = onJoin ?? onDetail
     }
     const showSecondary = primaryAction !== onDetail
+    const soonHint =
+      !checkoutOpen && !isFinished && openDayLabel
+        ? t('pages.pitbull.spotlight.opensOnCta', { date: openDayLabel })
+        : null
 
-    const Panel = reducedMotion ? 'div' : m.div
-    const panelProps = reducedMotion
-      ? { className: 'pitbull-spotlight__home-panel' }
+    const placeLine = [homeVenue, homeLocation].filter(Boolean).join(' · ')
+
+    const Overlay = reducedMotion ? 'div' : m.div
+    const overlayProps = reducedMotion
+      ? { className: 'pitbull-spotlight__home-overlay' }
       : {
-          className: 'pitbull-spotlight__home-panel',
+          className: 'pitbull-spotlight__home-overlay',
           variants: panelContainer,
           initial: 'hidden',
           whileInView: 'visible',
-          viewport: { once: true, amount: 0.4 },
+          viewport: { once: true, amount: 0.35 },
         }
-    const PanelItem = reducedMotion ? 'div' : m.div
-    const panelItemProps = reducedMotion ? {} : { variants: panelItem }
+    const OverlayItem = reducedMotion ? 'div' : m.div
+    const overlayItemProps = reducedMotion ? {} : { variants: panelItem }
 
     const homeArticleClass = [
       'pitbull-spotlight',
       'pitbull-spotlight--home',
+      'pitbull-spotlight--home-bleed',
       !isPitbullEvent ? 'pitbull-spotlight--home-template' : '',
     ]
       .filter(Boolean)
@@ -240,164 +248,98 @@ export default function PitbullSpotlight({
 
     return (
       <article className={homeArticleClass}>
-        <div className="pitbull-spotlight__home-tilt">
-          <div className="pitbull-spotlight__home-stage">
-            <div className="pitbull-spotlight__home-media">
-              <MaskReveal className="pitbull-spotlight__home-hero" direction="left">
-                <button
-                  type="button"
-                  className="pitbull-spotlight__home-hero-frame pitbull-spotlight__home-hero-frame--link"
-                  aria-label={t('pages.pitbull.spotlight.viewFullCard')}
-                  onClick={() => onDetail?.()}
-                >
-                  {isPitbullEvent ? (
-                    <>
-                      <picture>
-                        {/* Tablet/notebook (640-1599): foto landscape para la caja
-                            apaisada / overlay. Desktop amplio (≥1600) usa medallas. */}
-                        <source
-                          media="(min-width: 640px) and (max-width: 1599px)"
-                          srcSet={photoLift}
-                        />
-                        <img
-                          src={photoMedals}
-                          alt=""
-                          className="pitbull-spotlight__home-hero-img"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </picture>
-                      <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
-                      <img
-                        src={logoPitbullClassic}
-                        alt={t('nav.pitbull')}
-                        className="pitbull-spotlight__home-event-logo"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div className="pitbull-spotlight__home-brand-canvas" aria-hidden>
-                        <span className="pitbull-spotlight__home-brand-wash" />
-                        <span className="pitbull-spotlight__home-brand-rule" />
-                      </div>
-                      <div className="pitbull-spotlight__home-brand-mark">
-                        <BrandLogo
-                          variant="argentina"
-                          height={72}
-                          imgClassName="pitbull-spotlight__home-brand-emblem"
-                          alt=""
-                        />
-                        <p className="pitbull-spotlight__home-brand-label">{t('brand.name')}</p>
-                      </div>
-                    </>
-                  )}
-                  <span className="pitbull-spotlight__home-hero-badge">
-                    {t('pages.pitbull.spotlight.featured')}
-                  </span>
-                  <EventDatePlate
-                    day={homeDateDay}
-                    month={homeDateMonth}
-                    className="pitbull-spotlight__home-date"
-                    as="div"
-                    tilt={false}
-                  />
-                </button>
-              </MaskReveal>
-
-              {isPitbullEvent ? (
-                <div className="pitbull-spotlight__home-strip" aria-hidden>
-                  {stripPhotos.map((photo) => (
-                    <figure
-                      key={photo.key}
-                      className={`pitbull-spotlight__home-strip-tile pitbull-spotlight__home-strip-tile--${photo.key}`}
-                    >
-                      <img
-                        src={photo.src}
-                        alt=""
-                        className="pitbull-spotlight__home-strip-img"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </figure>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            <Panel {...panelProps}>
-              <span className="pitbull-spotlight__home-glow" aria-hidden />
-
-              <PanelItem {...panelItemProps}>
-                <header className="pitbull-spotlight__home-head">
-                  <p className="pitbull-spotlight__home-kicker">
-                    <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
-                    <span>{t('pages.pitbull.heroEyebrow')}</span>
-                    <span className="pitbull-spotlight__home-kicker-sep" aria-hidden>
-                      ·
-                    </span>
-                    <span>{statusLabel}</span>
-                  </p>
-                  <h2 className="pitbull-spotlight__home-title">{homeTitle}</h2>
-                  {homeLead ? <p className="pitbull-spotlight__home-lead">{homeLead}</p> : null}
-                </header>
-              </PanelItem>
-
-              <PanelItem {...panelItemProps}>
-                <dl className="pitbull-spotlight__home-facts">
-                  <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--date">
-                    <dt>{t('pages.pitbull.quickFactsDate')}</dt>
-                    <dd>
-                      <time dateTime={homeDateTime}>{homeDateLabel}</time>
-                    </dd>
-                  </div>
-                  <div className="pitbull-spotlight__home-fact pitbull-spotlight__home-fact--venue">
-                    <dt>{t('pages.pitbull.quickFactsVenue')}</dt>
-                    <dd>
-                      <span className="pitbull-spotlight__home-fact-primary">{homeVenue}</span>
-                      <span className="pitbull-spotlight__home-fact-sep" aria-hidden>
-                        ·
-                      </span>
-                      <span className="pitbull-spotlight__home-fact-secondary">{homeLocation}</span>
-                    </dd>
-                  </div>
-                </dl>
-              </PanelItem>
-
-              {homeCategories.length > 0 ? (
-                <PanelItem {...panelItemProps}>
-                  <ul className="pitbull-spotlight__home-tags" aria-label={t('pages.pitbull.categories')}>
-                    {homeCategories.map((category) => (
-                      <li key={category}>{category}</li>
-                    ))}
-                  </ul>
-                </PanelItem>
-              ) : null}
-
-              <PanelItem {...panelItemProps}>
-                <footer className="pitbull-spotlight__home-actions">
-                  <Button
-                    variant="gold"
-                    className="pitbull-spotlight__home-cta motion-icon-shift"
-                    onClick={() => primaryAction?.()}
-                  >
-                    {primaryLabel}
-                    <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-                  </Button>
-                  {showSecondary ? (
-                    <button
-                      type="button"
-                      className="pitbull-spotlight__home-cta-secondary"
-                      onClick={() => onDetail?.()}
-                    >
-                      {t('pages.pitbull.spotlight.viewFullCard')}
-                    </button>
-                  ) : null}
-                </footer>
-              </PanelItem>
-            </Panel>
+        <div className="pitbull-spotlight__home-stage">
+          <div className="pitbull-spotlight__home-canvas" aria-hidden={isPitbullEvent ? undefined : true}>
+            {isPitbullEvent ? (
+              <picture>
+                <source media="(min-width: 640px) and (max-width: 1599px)" srcSet={photoLift} />
+                <img
+                  src={photoMedals}
+                  alt=""
+                  className="pitbull-spotlight__home-hero-img"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+            ) : (
+              <div className="pitbull-spotlight__home-brand-canvas">
+                <span className="pitbull-spotlight__home-brand-wash" />
+                <span className="pitbull-spotlight__home-brand-rule" />
+              </div>
+            )}
+            <div className="pitbull-spotlight__home-hero-scrim" aria-hidden />
           </div>
+
+          <Overlay {...overlayProps}>
+            <OverlayItem {...overlayItemProps}>
+              <p className="pitbull-spotlight__home-kicker">
+                <span className="pitbull-spotlight__home-kicker-dot" aria-hidden />
+                <span>{statusLabel}</span>
+              </p>
+            </OverlayItem>
+
+            <OverlayItem {...overlayItemProps}>
+              {isPitbullEvent ? (
+                <>
+                  <img
+                    src={logoPitbullClassic}
+                    alt={t('nav.pitbull')}
+                    className="pitbull-spotlight__home-event-logo"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <h2 className="pitbull-spotlight__home-title visually-hidden">{homeTitle}</h2>
+                </>
+              ) : (
+                <div className="pitbull-spotlight__home-brand-mark">
+                  <BrandLogo
+                    variant="argentina"
+                    height={72}
+                    imgClassName="pitbull-spotlight__home-brand-emblem"
+                    alt=""
+                  />
+                  <h2 className="pitbull-spotlight__home-title">{homeTitle}</h2>
+                </div>
+              )}
+            </OverlayItem>
+
+            <OverlayItem {...overlayItemProps}>
+              <p className="pitbull-spotlight__home-meta">
+                {homeDateLabel ? <time dateTime={homeDateTime}>{homeDateLabel}</time> : null}
+                {homeDateLabel && placeLine ? (
+                  <span className="pitbull-spotlight__home-meta-sep" aria-hidden>
+                    ·
+                  </span>
+                ) : null}
+                {placeLine ? <span>{placeLine}</span> : null}
+              </p>
+            </OverlayItem>
+
+            <OverlayItem {...overlayItemProps}>
+              <footer className="pitbull-spotlight__home-actions">
+                <Button
+                  variant="gold"
+                  className="pitbull-spotlight__home-cta motion-icon-shift"
+                  onClick={() => primaryAction?.()}
+                >
+                  {primaryLabel}
+                  <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
+                </Button>
+                {soonHint ? (
+                  <p className="pitbull-spotlight__home-soon-hint">{soonHint}</p>
+                ) : null}
+                {showSecondary ? (
+                  <button
+                    type="button"
+                    className="pitbull-spotlight__home-cta-secondary"
+                    onClick={() => onDetail?.()}
+                  >
+                    {t('pages.pitbull.spotlight.viewFullCard')}
+                  </button>
+                ) : null}
+              </footer>
+            </OverlayItem>
+          </Overlay>
         </div>
       </article>
     )

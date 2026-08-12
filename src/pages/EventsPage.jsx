@@ -18,71 +18,33 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getStatusMeta } from '../lib/status.js'
 import {
-  getDaysUntilEvent,
   getFeaturedEvent,
   getFeaturedEventDestination,
   getNextUpcomingEvent,
+  getPublicCatalogEvents,
   isPitbullClassicEvent,
 } from '../lib/eventNavigation.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
+import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
+import { env } from '../config/env.js'
+import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 
 function EventStatusBadge({ status, t }) {
   const { label, tone } = getStatusMeta(status, t)
   return <span className={`events-status-badge events-status-badge--${tone}`}>{label}</span>
 }
 
-function EventsCountdownChip({ event, days, t, minimal = false, onSelect }) {
-  if (!event || days == null) return null
-
-  if (minimal) {
-    const content = (
-      <>
-        <span className="events-countdown-chip__value">{days}</span>
-        <span className="events-countdown-chip__copy">
-          <span className="events-countdown-chip__label">
-            {days === 1 ? t('pages.events.countdownDay_one') : t('pages.events.countdownDay_other')}
-          </span>
-          <strong className="events-countdown-chip__title">{event.title}</strong>
-        </span>
-      </>
-    )
-
-    if (onSelect) {
-      return (
-        <button type="button" className="events-countdown-chip events-countdown-chip--minimal" onClick={onSelect}>
-          {content}
-        </button>
-      )
-    }
-
-    return <p className="events-countdown-chip events-countdown-chip--minimal">{content}</p>
-  }
-
-  return (
-    <div className="events-countdown-chip">
-      <div className="events-countdown-chip__metric">
-        <span className="events-countdown-chip__value">{days}</span>
-      </div>
-      <span className="events-countdown-chip__copy">
-        <span className="events-countdown-chip__label">
-          {days === 1 ? t('pages.events.countdownDay_one') : t('pages.events.countdownDay_other')}
-        </span>
-        <strong className="events-countdown-chip__title">{event.title}</strong>
-      </span>
-    </div>
-  )
-}
-
 function EventsDetailPanel({
   event,
   isFeaturedSelected,
   onRegister,
-  onViewPitbull,
+  onViewEvent,
   registerLabel,
+  athleteStatus = null,
   t,
   minimal = false,
 }) {
@@ -98,8 +60,8 @@ function EventsDetailPanel({
     return (
       <div className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}>
         <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
-        {onViewPitbull ? (
-          <button type="button" className="events-detail__text-link" onClick={onViewPitbull}>
+        {onViewEvent ? (
+          <button type="button" className="events-detail__text-link" onClick={onViewEvent}>
             {t('pages.events.viewFull')}
             <ArrowRight size={14} aria-hidden />
           </button>
@@ -108,60 +70,87 @@ function EventsDetailPanel({
     )
   }
 
-  const canRegister = event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+  const checkoutOpen = isPaidCheckoutOpen(event, env)
+  const statusAllowsRegister =
+    event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+  const canRegister =
+    checkoutOpen &&
+    statusAllowsRegister &&
+    athleteStatus !== 'registered'
+  const showComingSoonCta = !checkoutOpen && statusAllowsRegister && athleteStatus !== 'registered'
   const statusCopy = t(`pages.events.statusCopy.${event.status}`)
   const hasStatusCopy = statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}`
+  const athleteStatusLabel = athleteStatus
+    ? t(`pages.events.athleteStatus.${athleteStatus}`)
+    : null
+  const athleteStatusHint = athleteStatus
+    ? t(`pages.events.athleteStatusHint.${athleteStatus}`)
+    : null
+  const resolvedRegisterLabel = !checkoutOpen
+    ? t('pages.members.ctaCheckoutSoon')
+    : athleteStatus === 'needs_membership'
+      ? t('pages.events.athleteStatusAction.needs_membership')
+      : athleteStatus === 'pending_payment'
+        ? t('pages.events.athleteStatusAction.pending_payment')
+        : registerLabel
 
   if (minimal) {
-    const [day, month] = String(event.displayDate || '').split(' ')
-    const place = [event.venue, event.location].filter(Boolean).join(' · ')
-    const { label: statusLabel, tone: statusTone } = getStatusMeta(event.status, t)
+    const hasHint =
+      Boolean(athleteStatusHint) &&
+      athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}`
+    const pitbull = isPitbullClassicEvent(event)
 
     return (
       <div className="events-detail events-detail--minimal">
-        <div className="events-detail__spotlight">
-          <div className="events-detail__date-hero" aria-hidden={day ? undefined : true}>
-            <span className="events-detail__date-day">{day || '—'}</span>
-            <span className="events-detail__date-month">{month || ''}</span>
-          </div>
-          <div className="events-detail__spotlight-copy">
-            {isPitbullClassicEvent(event) ? (
-              <>
-                <div className="events-detail__brand">
-                  <PitbullBrandMark size="sm" label={event.title} />
-                </div>
-                <h3 className="events-detail__title visually-hidden">{event.title}</h3>
-              </>
-            ) : (
-              <h3 className="events-detail__title">{event.title}</h3>
-            )}
-            <p className="events-detail__meta-line">
-              {statusLabel ? (
-                <span className={`events-detail__status-inline events-detail__status-inline--${statusTone}`}>
-                  {statusLabel}
-                </span>
-              ) : null}
-              {statusLabel && place ? (
-                <span className="events-detail__meta-sep" aria-hidden>
-                  ·
-                </span>
-              ) : null}
-              {place ? <span>{place}</span> : null}
-            </p>
-          </div>
+        <div className="events-detail__head">
+          {pitbull ? (
+            <>
+              <div className="events-detail__brand">
+                <PitbullBrandMark size="sm" label={event.title} />
+              </div>
+              <h3 className="events-detail__title visually-hidden">{event.title}</h3>
+            </>
+          ) : (
+            <h3 className="events-detail__title">{event.title}</h3>
+          )}
+          <EventStatusBadge status={event.status} t={t} />
         </div>
 
+        <p className="events-detail__meta-line">
+          <span>{event.displayDate}</span>
+          <span className="events-detail__meta-sep" aria-hidden>
+            ·
+          </span>
+          <span>
+            {event.venue}
+            {event.location ? `, ${event.location}` : ''}
+          </span>
+        </p>
+
+        {hasHint ? (
+          <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
+        ) : null}
+
         <div className="events-detail__actions">
-          {canRegister && onRegister ? (
-            <Button className="events-detail__cta events-detail__cta--primary motion-icon-shift" onClick={onRegister}>
-              {registerLabel}
-              <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
-            </Button>
+          {showComingSoonCta ? (
+            <p className="events-detail__coming-soon" role="status">
+              {t('pages.members.ctaCheckoutSoon')}
+            </p>
           ) : null}
-          {onViewPitbull ? (
-            <button type="button" className="events-detail__text-link" onClick={onViewPitbull}>
+          {canRegister && onRegister ? (
+            <button
+              type="button"
+              className="events-detail__text-link events-detail__text-link--primary motion-icon-shift"
+              onClick={onRegister}
+            >
+              {resolvedRegisterLabel}
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
+            </button>
+          ) : null}
+          {onViewEvent ? (
+            <button type="button" className="events-detail__text-link motion-icon-shift" onClick={onViewEvent}>
               {t('pages.events.viewFull')}
-              <ArrowRight size={14} aria-hidden />
+              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
             </button>
           ) : null}
         </div>
@@ -204,19 +193,28 @@ function EventsDetailPanel({
       </p>
 
       {hasStatusCopy ? <p className="events-detail__status-copy">{statusCopy}</p> : null}
+      {athleteStatusLabel ? <p className="events-detail__athlete-status">{athleteStatusLabel}</p> : null}
+      {athleteStatusHint && athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` ? (
+        <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
+      ) : null}
 
       <div className="events-detail__actions">
         {canRegister && onRegister ? (
           <Button className="events-detail__cta events-detail__cta--primary motion-icon-shift" onClick={onRegister}>
-            {registerLabel}
+            {resolvedRegisterLabel}
             <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
           </Button>
         ) : null}
-        {onViewPitbull ? (
+        {showComingSoonCta ? (
+          <p className="events-detail__coming-soon" role="status">
+            {t('pages.members.ctaCheckoutSoon')}
+          </p>
+        ) : null}
+        {onViewEvent ? (
           <Button
             variant="outline"
             className="events-detail__cta events-detail__cta--secondary motion-icon-shift"
-            onClick={onViewPitbull}
+            onClick={onViewEvent}
           >
             {t('pages.events.viewFull')}
             <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
@@ -289,6 +287,8 @@ export default function EventsPage({
   onSelectEvent,
   events: eventsProp = UPCOMING_EVENTS,
   session,
+  memberships = [],
+  registrations = [],
 }) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
@@ -334,7 +334,7 @@ export default function EventsPage({
 
   const events = useMemo(
     () =>
-      eventsProp.map((event) => {
+      getPublicCatalogEvents(eventsProp).map((event) => {
         const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
         return {
           ...merged,
@@ -346,7 +346,6 @@ export default function EventsPage({
 
   const pitbull = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
-  const daysUntilNext = useMemo(() => getDaysUntilEvent(nextEvent), [nextEvent])
   // Se guarda el slug (no el objeto) para que `selected` siempre refleje la
   // versión más reciente del evento en `events` — incluidos los campos que
   // llegan async desde Supabase (calendario/directo) después del primer render.
@@ -363,8 +362,7 @@ export default function EventsPage({
 
   // El catálogo público llega de forma asíncrona. Si el deep-link apunta a
   // un evento que todavía no estaba en el seed inicial, no hay que perder ese
-  // slug ni dejar seleccionado el fallback (antes /evento/test-2026 terminaba
-  // mostrando Pitbull). Apenas aparece el evento real, lo enfocamos.
+  // slug ni dejar seleccionado el fallback. Apenas aparece el evento real, lo enfocamos.
   useEffect(() => {
     if (!initialEventSlug) return
     const linkedEvent = events.find((event) => event.slug === initialEventSlug)
@@ -444,7 +442,10 @@ export default function EventsPage({
   }
 
   function isRegistrationOpen(event) {
-    return event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
+    return (
+      isPaidCheckoutOpen(event, env) &&
+      (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
+    )
   }
 
   const visibleEventCount = listEvents.length
@@ -497,14 +498,6 @@ export default function EventsPage({
           </span>
         </div>
 
-        <EventsCountdownChip
-          event={nextEvent}
-          days={daysUntilNext}
-          t={t}
-          minimal
-          onSelect={nextEvent ? () => openEvent(nextEvent) : undefined}
-        />
-
         <MotionContentSwap swapKey={filter} className="events-main-column">
           {listEvents.length > 0 ? (
             <StaggerReveal className="events-list events-list--design events-list--minimal" stagger={48}>
@@ -518,11 +511,21 @@ export default function EventsPage({
                   status={event.status}
                   brand={isPitbullClassicEvent(event) ? 'pitbull' : null}
                   selected={selected?.slug === event.slug}
+                  athleteStatus={resolveAthleteEventStatus({
+                    event,
+                    session,
+                    registrations,
+                    memberships,
+                  })}
                   onSelect={() => openEvent(event)}
                   onAction={
-                    isRegistrationOpen(event) ? () => handleRegister(event) : () => openEvent(event)
+                    isRegistrationOpen(event)
+                      ? () => handleRegister(event)
+                      : () => openEvent(event)
                   }
-                  actionLabel={registerLabel}
+                  actionLabel={
+                    isRegistrationOpen(event) ? registerLabel : t('pages.events.viewFull')
+                  }
                   variant="minimal"
                 />
               ))}
@@ -549,19 +552,11 @@ export default function EventsPage({
               event={nextEvent}
               className="events-calendar-board__countdown"
               compact
-              onAction={
-                nextEvent.status === 'inscripcion_abierta' || nextEvent.status === 'cupos_limitados'
-                  ? () => handleRegister(nextEvent)
-                  : undefined
-              }
               onNavigate={
                 pitbull?.slug && nextEvent.slug === pitbull.slug
                   ? () => openEvent(pitbull)
-                  : nextEvent
-                    ? () => openEvent(nextEvent)
-                    : undefined
+                  : () => openEvent(nextEvent)
               }
-              actionLabel={registerLabel}
             />
           ) : (
             <header className="events-calendar-board__head">
@@ -584,12 +579,18 @@ export default function EventsPage({
                   event={selected}
                   isFeaturedSelected={false}
                   minimal
-                  onRegister={selected ? () => handleRegister(selected) : undefined}
-                  onViewPitbull={
-                    pitbull?.slug && selected?.slug === pitbull.slug
-                      ? () => openEvent(pitbull)
-                      : undefined
+                  athleteStatus={
+                    selected
+                      ? resolveAthleteEventStatus({
+                          event: selected,
+                          session,
+                          registrations,
+                          memberships,
+                        })
+                      : null
                   }
+                  onRegister={selected ? () => handleRegister(selected) : undefined}
+                  onViewEvent={selected ? () => openEvent(selected) : undefined}
                   registerLabel={registerLabel}
                   t={t}
                 />

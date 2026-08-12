@@ -142,3 +142,56 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
     }
   })
 })
+
+describe('GET /credentials/:code respeta el evento asignado aunque no se mande eventSlug', () => {
+  const supabaseAdmin = createSupabaseTestClient()
+
+  it('rechaza (403) a una cuenta acotada a un evento que omite eventSlug', async () => {
+    const scopedStaff = await buildStaffUser({
+      role: 'seguridad_plu_arg',
+      email: 'seguridad-scope-credencial@pluarg.test',
+      eventId: 'evt-pitbull-2026',
+      eventSlug: EVENT_SLUG,
+    })
+    const prisma = createPrismaDouble([scopedStaff])
+    const target = listen(createApp({ supabaseAdmin, prisma }))
+
+    try {
+      const { cookie } = await loginStaff(target.url, {
+        email: scopedStaff.email,
+        eventSlug: EVENT_SLUG,
+      })
+
+      // Antes del fix, omitir eventSlug saltaba el chequeo de alcance por
+      // completo y la cuenta de puerta podia leer la credencial de
+      // cualquier socio de cualquier evento.
+      const response = await fetch(`${target.url}/api/tickets/credentials/UN-CODIGO-CUALQUIERA`, {
+        headers: authHeaders(cookie),
+      })
+
+      expect(response.status).toBe(403)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no bloquea por alcance a una cuenta global sin evento asignado', async () => {
+    const globalStaff = await buildStaffUser({ role: 'admin_maximal' })
+    const prisma = createPrismaDouble([globalStaff])
+    const target = listen(createApp({ supabaseAdmin, prisma }))
+
+    try {
+      const { cookie } = await loginStaff(target.url, { email: globalStaff.email })
+
+      const response = await fetch(`${target.url}/api/tickets/credentials/UN-CODIGO-CUALQUIERA`, {
+        headers: authHeaders(cookie),
+      })
+
+      // El codigo no existe, asi que no es 200 -- pero el rechazo, si lo hay,
+      // no puede ser un 403 de alcance de evento (esta cuenta es global).
+      expect(response.status).not.toBe(403)
+    } finally {
+      await target.close()
+    }
+  })
+})

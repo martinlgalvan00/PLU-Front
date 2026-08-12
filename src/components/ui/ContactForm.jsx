@@ -1,15 +1,8 @@
 import { useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, Check, Globe2, UserRound } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa']
-
-const MOTIVE_ICONS = {
-  atleta: UserRound,
-  gimnasio: Building2,
-  organizacion: CalendarDays,
-  pluusa: Globe2,
-}
 
 export default function ContactForm() {
   const { t } = useI18n()
@@ -36,10 +29,7 @@ export default function ContactForm() {
   return (
     <form className="contact-form" aria-labelledby="contact-form-title" onSubmit={handleSubmit}>
       <header className="contact-form__intro">
-        <div className="contact-form__intro-topline">
-          <span className="contact-form__intro-eyebrow">{t('contact.formEyebrow')}</span>
-          <span className="contact-form__intro-rule" aria-hidden />
-        </div>
+        <p className="contact-form__intro-eyebrow">{t('contact.formEyebrow')}</p>
         <h2 id="contact-form-title">{t('contact.formTitle')}</h2>
         <p>{t('contact.formDesc')}</p>
       </header>
@@ -49,34 +39,28 @@ export default function ContactForm() {
           <span className="contact-form__index" aria-hidden>
             01
           </span>
-          <div className="contact-form__section-copy">
-            <p className="contact-form__label" id="contact-motive-label">
-              {t('contact.motiveLabel')}
-            </p>
-            <p className="contact-form__motive-hint">{t(`contact.motiveHint.${motive}`)}</p>
-          </div>
+          <p className="contact-form__label" id="contact-motive-label">
+            {t('contact.motiveLabel')}
+          </p>
         </header>
 
         <div className="contact-form__motives" role="radiogroup" aria-labelledby="contact-motive-label">
-          {MOTIVES.map((key) => {
-            const Icon = MOTIVE_ICONS[key]
-            return (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={motive === key}
-                className={`contact-form__motive${motive === key ? ' is-active' : ''}`}
-                onClick={() => setMotive(key)}
-              >
-                <span className="contact-form__motive-icon" aria-hidden>
-                  <Icon size={15} strokeWidth={1.75} />
-                </span>
-                <span className="contact-form__motive-label">{t(`contact.motive.${key}`)}</span>
-              </button>
-            )
-          })}
+          {MOTIVES.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={motive === key}
+              className={`contact-form__motive${motive === key ? ' is-active' : ''}`}
+              onClick={() => setMotive(key)}
+            >
+              <span className="contact-form__motive-label">{t(`contact.motive.${key}`)}</span>
+            </button>
+          ))}
         </div>
+        <p className="contact-form__motive-hint" aria-live="polite">
+          {t(`contact.motiveHint.${motive}`)}
+        </p>
       </section>
 
       <section className="contact-form__section" aria-labelledby="contact-fields-label">
@@ -123,7 +107,7 @@ export default function ContactForm() {
 
       <div className="contact-form__actions">
         <button type="submit" className="contact-form__submit">
-          {t('contact.submit')}
+          <span>{t('contact.submit')}</span>
           <ArrowRight size={14} aria-hidden />
         </button>
         <p className="contact-form__note">{t('contact.submitNote')}</p>

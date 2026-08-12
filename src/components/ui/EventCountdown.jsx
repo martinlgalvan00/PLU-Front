@@ -3,6 +3,7 @@ import { ArrowRight, CalendarClock, MapPin } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { getTimeUntilEvent } from '../../lib/eventNavigation.js'
+import '../../styles/components/event-countdown.css'
 
 /**
  * Countdown editorial al próximo evento.
@@ -46,14 +47,6 @@ export default function EventCountdown({
     { value: time.minutes, label: t('pages.events.countdownMinutes') },
   ]
 
-  // Compact: una sola acción (inscripción si está abierta; si no, ficha).
-  const compactPrimary =
-    canAct && onAction
-      ? { onClick: onAction, label: actionLabel || t('pages.events.register') }
-      : onNavigate
-        ? { onClick: onNavigate, label: t('pages.events.viewFull') }
-        : null
-
   if (compact) {
     return (
       <div className={['event-countdown', 'event-countdown--compact', className].filter(Boolean).join(' ')}>
@@ -67,32 +60,15 @@ export default function EventCountdown({
         </div>
 
         <div className="event-countdown__info">
-          <p className="event-countdown__meta">
-            <span className="event-countdown__eyebrow">{t('pages.events.nextMeet')}</span>
-            {statusMeta ? (
-              <>
-                <span className="event-countdown__meta-sep" aria-hidden>
-                  ·
-                </span>
-                <span className={`event-countdown__status event-countdown__status--${statusMeta.tone}`}>
-                  {statusMeta.label}
-                </span>
-              </>
-            ) : null}
-          </p>
-
-          <h3 className="event-countdown__title">{event.title}</h3>
-
-          {place ? <p className="event-countdown__place">{place}</p> : null}
-
-          {compactPrimary ? (
-            <div className="event-countdown__actions">
-              <button type="button" className="event-countdown__link motion-icon-shift" onClick={compactPrimary.onClick}>
-                <span>{compactPrimary.label}</span>
-                <ArrowRight size={13} aria-hidden className="motion-icon-shift__target" />
-              </button>
-            </div>
-          ) : null}
+          <p className="event-countdown__eyebrow">{t('pages.events.nextMeet')}</p>
+          {onNavigate ? (
+            <button type="button" className="event-countdown__title-btn" onClick={onNavigate}>
+              <span className="event-countdown__title">{event.title}</span>
+              <ArrowRight size={14} aria-hidden className="event-countdown__title-arrow" />
+            </button>
+          ) : (
+            <h3 className="event-countdown__title">{event.title}</h3>
+          )}
         </div>
       </div>
     )

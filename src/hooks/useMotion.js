@@ -217,12 +217,25 @@ export function useSlidingIndicator(containerRef, deps = [], selector = '.is-act
  * Scroll del header: actualiza CSS vars en cada frame (sin re-render) y solo
  * re-renderiza React al cruzar el umbral (para isOverHero / clases).
  *
+ * Usa histéresis: entrar a `scrolled` y salir usan umbrales distintos para
+ * evitar el loop clásico (header se achica → scrollY baja → se agranda → …)
+ * que deja la animación del wordmark reiniciándose sin parar.
+ *
  * @param {React.RefObject<HTMLElement|null>} shellRef
- * @param {{ range?: number, threshold?: number, autoHide?: boolean }} [options]
+ * @param {{ range?: number, threshold?: number, hysteresis?: number, autoHide?: boolean }} [options]
  *   `autoHide` (default true): esconde el header al scrollear hacia abajo.
  *   El nav institucional flotante lo apaga para quedar siempre usable.
  */
-export function useHeaderScroll(shellRef, { range = 80, threshold = 80, autoHide = true } = {}) {
+export function resolveHeaderScrolled(y, { wasScrolled = false, enterAt = 80, exitAt = 48 } = {}) {
+  const scrollY = Math.max(0, Number(y) || 0)
+  if (wasScrolled) return scrollY > exitAt
+  return scrollY >= enterAt
+}
+
+export function useHeaderScroll(
+  shellRef,
+  { range = 80, threshold = 80, hysteresis = 40, autoHide = true } = {},
+) {
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
 
@@ -231,9 +244,11 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80, autoHide
     if (!shell) return undefined
 
     let rafId = null
-    let lastScrolled = null
+    let lastScrolled = false
     let lastHidden = null
     let lastY = window.scrollY
+    const enterAt = Math.max(1, threshold)
+    const exitAt = Math.max(0, enterAt - Math.max(0, hysteresis))
 
     function tick() {
       rafId = null
@@ -243,7 +258,11 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80, autoHide
       shell.style.setProperty('--header-scroll-progress', progress.toFixed(4))
       shell.style.setProperty('--header-scroll-y', `${Math.round(y)}px`)
 
-      const nextScrolled = progress >= 0.99 || y > threshold
+      const nextScrolled = resolveHeaderScrolled(y, {
+        wasScrolled: lastScrolled,
+        enterAt,
+        exitAt,
+      })
       if (nextScrolled !== lastScrolled) {
         lastScrolled = nextScrolled
         setScrolled(nextScrolled)
@@ -285,7 +304,7 @@ export function useHeaderScroll(shellRef, { range = 80, threshold = 80, autoHide
       shell.style.removeProperty('--header-scroll-progress')
       shell.style.removeProperty('--header-scroll-y')
     }
-  }, [shellRef, range, threshold, autoHide])
+  }, [shellRef, range, threshold, hysteresis, autoHide])
 
   return { scrolled, hidden }
 }

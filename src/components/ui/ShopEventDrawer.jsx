@@ -15,18 +15,30 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
  * lateral, sin abandonar la grilla. La compra real sigue pasando por el
  * flujo de checkout (`onBuyTickets`); esto es solo el "quick look".
  */
-export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTickets, onViewEvent, t }) {
+export default function ShopEventDrawer({
+  open,
+  event,
+  locale,
+  checkoutOpen = true,
+  onClose,
+  onBuyTickets,
+  onViewEvent,
+  t,
+}) {
   const { reducedMotion } = useMotionConfig()
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = isTicketSalesEnabled(event)
+  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(open && salesOpen ? event?.slug : null)
   const soldOut = remaining === 0
-  const priceLabel = !salesOpen
-    ? t('pages.shop.salesClosed')
-    : fromPrice == null
-      ? t('pages.shop.ticketsAvailable')
-      : t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
+  const canBuy = salesOpen && !soldOut
+  const priceLabel = !checkoutOpen
+    ? t('pages.shop.checkoutSoonLabel')
+    : !salesOpen
+      ? t('pages.shop.salesClosed')
+      : fromPrice == null
+        ? t('pages.shop.ticketsAvailable')
+        : t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 
   useEffect(() => {
     if (!open) return undefined
@@ -103,7 +115,7 @@ export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTic
 
                 <div className="shop-event-drawer__offer">
                   <div className="shop-event-drawer__offer-main">
-                    {salesOpen && fromPrice != null ? (
+                    {canBuy && fromPrice != null ? (
                       <>
                         <span className="shop-event-drawer__price-caption">{t('pages.shop.fromPriceCaption')}</span>
                         <p className="shop-event-drawer__price">{money(fromPrice, locale)}</p>
@@ -118,18 +130,35 @@ export default function ShopEventDrawer({ open, event, locale, onClose, onBuyTic
                 </div>
 
                 <div className="shop-event-drawer__cta-wrap">
-                  <button
-                    type="button"
-                    className="btn shop-event-drawer__cta"
-                    disabled={!salesOpen || soldOut}
-                    onClick={() => onBuyTickets(event)}
-                  >
-                    <span>{t('pages.shop.buyTickets')}</span>
-                    <ArrowRight size={16} aria-hidden />
-                  </button>
-                  {salesOpen && !soldOut ? (
-                    <p className="shop-event-drawer__cta-hint">{t('pages.shop.drawerTicketsHint')}</p>
-                  ) : null}
+                  {canBuy ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn shop-event-drawer__cta"
+                        onClick={() => onBuyTickets(event)}
+                      >
+                        <span>{t('pages.shop.buyTickets')}</span>
+                        <ArrowRight size={16} aria-hidden />
+                      </button>
+                      <p className="shop-event-drawer__cta-hint">{t('pages.shop.drawerTicketsHint')}</p>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="btn shop-event-drawer__cta shop-event-drawer__cta--editorial"
+                        onClick={() => onViewEvent(event)}
+                      >
+                        <span>{t('pages.shop.featuredViewDetail')}</span>
+                        <ArrowRight size={16} aria-hidden />
+                      </button>
+                      <p className="shop-event-drawer__cta-hint">
+                        {checkoutOpen
+                          ? t('pages.shop.salesClosed')
+                          : t('pages.shop.checkoutSoonNote')}
+                      </p>
+                    </>
+                  )}
                 </div>
               </section>
 

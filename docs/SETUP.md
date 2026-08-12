@@ -106,6 +106,24 @@ viven en `public`; Prisma comparte la misma base Supabase en el schema aislado
 
 Ver `.env.example`. Nunca commitear `.env` con credenciales reales.
 
+### Gate de cobros (`PAID_CHECKOUT_ENABLED` + admin)
+
+Con `APP_PRODUCTION=true` (Vercel Production), afiliación, inscripción, combo y
+entradas quedan cerrados hasta que llegue la fecha **Abre la inscripción** del
+evento en el panel (`registration_opens_at` de Pitbull Classic o del destacado).
+
+Kill switch opcional: `PAID_CHECKOUT_ENABLED=false` corta cobros al instante;
+`=true` abre antes de la fecha del admin.
+
+Los emails del teaser “avísame al abrir” van a `launch_interest` (migración
+`supabase/migrations/20260814100000_launch_interest.sql`). Listar:
+
+```sql
+select email, source, event_slug, created_at
+from launch_interest
+order by created_at desc;
+```
+
 ## Estructura
 
 ```

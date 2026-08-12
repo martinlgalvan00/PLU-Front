@@ -21,7 +21,10 @@ describe('APIs de dominio unificadas', () => {
     const createOrder = vi.fn().mockResolvedValue({
       order: { id: 'ord-1', amount: 20000 }, tickets: [], orderAccessToken: 'opaque-token',
     })
-    const target = listen(createApp({ ticketRepository: { createOrder } }))
+    const target = listen(createApp({
+      ticketRepository: { createOrder },
+      env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
+    }))
     const response = await fetch(`${target.url}/api/tickets/orders`, {
       method: 'POST', headers: mutationHeaders,
       body: JSON.stringify({

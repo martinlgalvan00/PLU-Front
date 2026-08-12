@@ -1,9 +1,10 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import Button from './Button.jsx'
 import HomeMembershipCredential from './HomeMembershipCredential.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { env } from '../../config/env.js'
+import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 
@@ -37,20 +38,32 @@ const copyItemSubtle = {
   },
 }
 
-export default function HomeMembershipBand({ onNavigate, isLoggedInAthlete = false, hasActiveMembership = false }) {
+export default function HomeMembershipBand({
+  onNavigate,
+  isLoggedInAthlete = false,
+  hasActiveMembership = false,
+  gateEvent = null,
+}) {
   const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env)
 
   /** El CTA principal responde al estado real de la sesión — nunca invita a
    * "ver planes" a quien ya está afiliado, ni a "afiliarse" sin haber
    * iniciado sesión (ahí primero necesita crear su perfil de atleta). */
-  const primaryCta = isLoggedInAthlete
-    ? hasActiveMembership
-      ? t('pages.members.ctaAlreadyAffiliated')
-      : t('pages.members.ctaAuthenticated')
-    : HOME_MEMBERSHIP.cta
-  const primaryTarget = isLoggedInAthlete ? (hasActiveMembership ? 'profile' : 'membership') : 'members'
+  const primaryCta = !paidCheckoutOpen
+    ? t('pages.members.ctaCheckoutSoon')
+    : isLoggedInAthlete
+      ? hasActiveMembership
+        ? t('pages.members.ctaAlreadyAffiliated')
+        : t('pages.members.ctaAuthenticated')
+      : HOME_MEMBERSHIP.cta
+  const primaryTarget = !paidCheckoutOpen
+    ? 'members'
+    : isLoggedInAthlete
+      ? (hasActiveMembership ? 'profile' : 'membership')
+      : 'members'
   const goToAffiliation = () => onNavigate(primaryTarget)
 
   const CopyShell = reducedMotion ? 'div' : m.div

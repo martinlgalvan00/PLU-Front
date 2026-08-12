@@ -1,12 +1,14 @@
 import { UPCOMING_EVENTS } from '../lib/events.js'
 
 import springClassic2025 from '../data/results/spring-classic-2025.json'
+import winterOpen2025 from '../data/results/winter-open-2025.json'
 
-/** Slugs with published results (mock until backend integration). */
-const PUBLISHED_RESULT_SLUGS = new Set(['spring-classic-2025'])
+/** Slugs with published results (archive until backend integration). */
+const PUBLISHED_RESULT_SLUGS = new Set(['spring-classic-2025', 'winter-open-2025'])
 
 const EVENT_RESULTS_BY_SLUG = {
   'spring-classic-2025': springClassic2025,
+  'winter-open-2025': winterOpen2025,
 }
 
 export function getResultsFilters(t) {
@@ -67,6 +69,11 @@ export function getEventResults(slug) {
 
 export function hasEventResults(slug) {
   return Boolean(EVENT_RESULTS_BY_SLUG[slug])
+}
+
+/** Meets con planilla publicada (fuente para resultados y padrón de récords). */
+export function listPublishedEventResults() {
+  return Object.values(EVENT_RESULTS_BY_SLUG)
 }
 
 export function getResultsSummary(entries = getResultsArchive()) {

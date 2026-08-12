@@ -1,10 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { I18nContext } from './context.js'
 import es from './locales/es.js'
 import { translate } from './translate.js'
 
 const LOCALE_STORAGE_KEY = 'plu-arg-locale'
-
-const I18nContext = createContext(null)
 
 function syncDocumentLocale(locale) {
   if (typeof document === 'undefined') return

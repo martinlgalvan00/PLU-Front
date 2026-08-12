@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, Globe2, Trophy } from 'lucide-react'
+import { BadgeCheck, CalendarDays, Globe2, QrCode, UserRound } from 'lucide-react'
 import { m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -13,7 +13,9 @@ import MembersBlockHead from './MembersBlockHead.jsx'
 const BENEFIT_ICONS = {
   events: CalendarDays,
   registry: BadgeCheck,
-  results: Trophy,
+  credential: QrCode,
+  profile: UserRound,
+  results: BadgeCheck,
   standard: Globe2,
 }
 

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { m } from 'motion/react'
-import { ArrowRight, CalendarDays, ChevronRight, ClipboardCheck, MapPin, ShoppingBag, Ticket } from 'lucide-react'
+import { ArrowRight, CalendarDays, ChevronRight, GraduationCap, MapPin, ShoppingBag, Ticket } from 'lucide-react'
 import shopHeroPhoto from '../assets/DSC00392-display.jpg'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
@@ -9,12 +9,14 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { useParallaxShift } from '../hooks/useMotion.js'
+import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import {
   getFeaturedEvent,
   getFeaturedEventDestination,
   getUpcomingEventsByDate,
 } from '../lib/eventNavigation.js'
 import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
 import '../styles/pages/design-phase2.css'
@@ -26,21 +28,50 @@ import '../styles/pages/shop.css'
  * aparece solo en esta lista apenas se publica, sin tocar código.
  * Tocarla abre el detalle rápido (entradas + merch) en un panel lateral.
  */
-function shopTicketPriceLabel(salesOpen, fromPrice, locale, t) {
+function shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t) {
+  if (!checkoutOpen) return t('pages.shop.checkoutSoonLabel')
   if (!salesOpen) return t('pages.shop.salesClosed')
   if (fromPrice == null) return t('pages.shop.ticketsAvailable')
   return t('pages.shop.fromPrice', { amount: money(fromPrice, locale) })
 }
 
-function ShopEventCard({ event, locale, onOpenDetail, t }) {
+function parseShopDateParts(dateStr = '') {
+  const cleaned = String(dateStr).replace(/\./g, '').trim()
+  if (!cleaned) return null
+  const rangeMatch = cleaned.match(
+    /^(\d{1,2})\s*[-–/]\s*(\d{1,2})\s+([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u,
+  )
+  if (rangeMatch) {
+    return {
+      day: `${rangeMatch[1]}–${rangeMatch[2]}`,
+      month: rangeMatch[3].slice(0, 3).toUpperCase(),
+    }
+  }
+  const singleMatch = cleaned.match(
+    /^(\d{1,2})\s*[-–/]?\s*([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u,
+  )
+  if (singleMatch) {
+    return {
+      day: singleMatch[1].padStart(2, '0'),
+      month: singleMatch[2].slice(0, 3).toUpperCase(),
+    }
+  }
+  return { raw: cleaned }
+}
+
+function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = isTicketSalesEnabled(event)
+  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
+  const dateParts = parseShopDateParts(event.date)
 
   return (
     <article
-      className="shop-event-card"
+      className={[
+        'shop-event-card',
+        checkoutOpen ? '' : 'shop-event-card--preview',
+      ].filter(Boolean).join(' ')}
       role="button"
       tabIndex={0}
       onClick={() => onOpenDetail(event)}
@@ -51,19 +82,32 @@ function ShopEventCard({ event, locale, onOpenDetail, t }) {
         }
       }}
     >
-      <span className="shop-event-card__date">{event.date}</span>
+      <span className="shop-event-card__date" aria-label={event.date}>
+        {dateParts?.day ? (
+          <>
+            <span className="shop-event-card__day">{dateParts.day}</span>
+            <span className="shop-event-card__month">{dateParts.month}</span>
+          </>
+        ) : (
+          <span className="shop-event-card__date-raw">{dateParts?.raw ?? event.date}</span>
+        )}
+      </span>
       <div className="shop-event-card__main">
         <div className="shop-event-card__head">
           <h3 className="shop-event-card__title">{event.title}</h3>
           <StatusPill value={event.status} />
         </div>
         <p className="shop-event-card__meta">{event.venue}</p>
-        <TicketAvailabilityBadge remaining={remaining} className="shop-event-card__availability" />
+        {salesOpen ? (
+          <TicketAvailabilityBadge remaining={remaining} className="shop-event-card__availability" />
+        ) : null}
       </div>
       <div className="shop-event-card__foot">
-        <p className="shop-event-card__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
+        <p className="shop-event-card__price">
+          {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+        </p>
         <span className="shop-event-card__hint">
-          {t('pages.shop.cardHint')}
+          {checkoutOpen ? t('pages.shop.cardHint') : t('pages.shop.cardHintSoon')}
           <ArrowRight size={14} aria-hidden />
         </span>
       </div>
@@ -74,22 +118,33 @@ function ShopEventCard({ event, locale, onOpenDetail, t }) {
 const SHOP_CATEGORIES = [
   { id: 'tickets', labelKey: 'pages.shop.categoryTickets', icon: Ticket },
   { id: 'merch', labelKey: 'pages.shop.categoryMerch', icon: ShoppingBag },
-  { id: 'registrations', labelKey: 'pages.shop.categoryRegistrations', icon: ClipboardCheck },
+  { id: 'courses', labelKey: 'pages.shop.categoryCourses', icon: GraduationCap },
 ]
 
 /**
  * Panel full-width cuando el departamento no tiene catálogo propio
- * (merch vacío / inscripciones). Composición editorial, no card de catálogo.
+ * (merch / cursos en «próximamente»). Composición editorial, no card de catálogo.
  */
-function ShopDepartmentPanel({ badge, title, titleId, text, action }) {
-  const variant = action ? 'action' : 'soon'
+function ShopDepartmentPanel({ badge, title, titleId, text }) {
+  const { reducedMotion } = useMotionConfig()
 
   return (
-    <article className={`shop-department-panel shop-department-panel--${variant}`}>
+    <m.article
+      className="shop-department-panel shop-department-panel--soon"
+      initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={
+        reducedMotion
+          ? { duration: 0 }
+          : { duration: 0.48, ease: [0.22, 1, 0.36, 1] }
+      }
+    >
       <div className="shop-department-panel__copy">
         {badge ? (
           <div className="shop-department-panel__meta">
-            <span className="shop-department-panel__badge">{badge}</span>
+            <span className="shop-department-panel__badge" aria-live="polite">
+              <span className="shop-department-panel__badge-text">{badge}</span>
+            </span>
           </div>
         ) : null}
         <h2 id={titleId} className="shop-department-panel__title">
@@ -97,20 +152,13 @@ function ShopDepartmentPanel({ badge, title, titleId, text, action }) {
         </h2>
         <p className="shop-department-panel__text">{text}</p>
       </div>
-      {action ? (
-        <div className="shop-department-panel__aside">
-          <button type="button" className="btn shop-department-panel__action" onClick={action.onClick}>
-            {action.label}
-            <ArrowRight size={15} aria-hidden />
-          </button>
-        </div>
-      ) : null}
-    </article>
+    </m.article>
   )
 }
 
-function ShopProductCard({ locale, onAddToCart, product, t }) {
+function ShopProductCard({ checkoutOpen, locale, onAddToCart, product, t }) {
   const soldOut = product.stock <= 0
+  const canBuy = checkoutOpen && !soldOut
 
   return (
     <article className="shop-product-card">
@@ -129,11 +177,26 @@ function ShopProductCard({ locale, onAddToCart, product, t }) {
       </div>
       <div className="shop-product-card__foot">
         <div>
-          <strong>{money(product.price, locale)}</strong>
-          <span>{soldOut ? t('pages.shop.productSoldOut') : t('pages.shop.productStock', { stock: product.stock })}</span>
+          {checkoutOpen ? (
+            <strong>{money(product.price, locale)}</strong>
+          ) : (
+            <strong>{t('pages.shop.checkoutSoonLabel')}</strong>
+          )}
+          <span>
+            {!checkoutOpen
+              ? t('pages.shop.merchSoon')
+              : soldOut
+                ? t('pages.shop.productSoldOut')
+                : t('pages.shop.productStock', { stock: product.stock })}
+          </span>
         </div>
-        <button type="button" className="btn shop-product-card__cta" disabled={soldOut} onClick={() => onAddToCart(product)}>
-          {t('pages.shop.addToCart')}
+        <button
+          type="button"
+          className="btn shop-product-card__cta"
+          disabled={!canBuy}
+          onClick={() => onAddToCart(product)}
+        >
+          {checkoutOpen ? t('pages.shop.addToCart') : t('pages.shop.checkoutSoonLabel')}
         </button>
       </div>
     </article>
@@ -194,19 +257,27 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t, open, onClose }) {
   )
 }
 
-function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
+function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDetail, onBrowseCalendar, t }) {
   const heroRef = useRef(null)
   useParallaxShift(heroRef, { strength: 40 })
 
   const pricing = ticketPricingFromEvent(event)
   const fromPrice = cheapestTicketTypePrice(pricing)
-  const salesOpen = isTicketSalesEnabled(event)
+  const salesOpen = checkoutOpen && isTicketSalesEnabled(event)
   const remaining = useTicketAvailability(salesOpen ? event.slug : null)
   const soldOut = remaining === 0
+  const dateParts = parseShopDateParts(event.date)
+  const canBuy = salesOpen && !soldOut
 
   return (
     <section className="shop-hero-section" aria-labelledby="shop-hero-title">
-      <article className="shop-hero" ref={heroRef}>
+      <article
+        className={[
+          'shop-hero',
+          checkoutOpen ? '' : 'shop-hero--preview',
+        ].filter(Boolean).join(' ')}
+        ref={heroRef}
+      >
         <div className="shop-hero__media" aria-hidden>
           <img
             className="shop-hero__media-img"
@@ -241,20 +312,51 @@ function ShopFeaturedHero({ event, locale, onBuyTickets, onViewDetail, t }) {
           </div>
 
           <div className="shop-hero__buy">
-            <p className="shop-hero__price">{shopTicketPriceLabel(salesOpen, fromPrice, locale, t)}</p>
-            <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
+            {dateParts?.day ? (
+              <p className="shop-hero__ledger" aria-hidden>
+                <span className="shop-hero__ledger-day">{dateParts.day}</span>
+                <span className="shop-hero__ledger-month">{dateParts.month}</span>
+              </p>
+            ) : null}
+
+            <p className="shop-hero__price">
+              {shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t)}
+            </p>
+
+            {salesOpen ? (
+              <TicketAvailabilityBadge remaining={remaining} className="shop-hero__availability" />
+            ) : (
+              <p className="shop-hero__soon-note">
+                {checkoutOpen ? t('pages.shop.salesClosed') : t('pages.shop.checkoutSoonNote')}
+              </p>
+            )}
+
             <div className="shop-hero__actions">
+              {canBuy ? (
+                <button
+                  type="button"
+                  className="btn shop-hero__cta"
+                  onClick={onBuyTickets}
+                >
+                  <span>{t('pages.shop.buyTickets')}</span>
+                  <ArrowRight size={16} aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn shop-hero__cta shop-hero__cta--editorial"
+                  onClick={onViewDetail}
+                >
+                  <span>{t('pages.shop.featuredViewDetail')}</span>
+                  <ArrowRight size={16} aria-hidden />
+                </button>
+              )}
               <button
                 type="button"
-                className="btn shop-hero__cta"
-                disabled={!salesOpen || soldOut}
-                onClick={onBuyTickets}
+                className="shop-hero__secondary-cta"
+                onClick={canBuy ? onViewDetail : onBrowseCalendar}
               >
-                <span>{t('pages.shop.buyTickets')}</span>
-                <ArrowRight size={16} aria-hidden />
-              </button>
-              <button type="button" className="shop-hero__secondary-cta" onClick={onViewDetail}>
-                {t('pages.shop.featuredViewDetail')}
+                {canBuy ? t('pages.shop.featuredViewDetail') : t('pages.shop.browseCalendar')}
                 <ChevronRight size={15} aria-hidden />
               </button>
             </div>
@@ -272,6 +374,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
   const [activeCategory, setActiveCategory] = useState(SHOP_CATEGORIES[0].id)
   const [detailEvent, setDetailEvent] = useState(null)
   const [cartOpen, setCartOpen] = useState(false)
+  const checkoutOpen = isFeatureEnabled(FEATURE_KEYS.paidCheckout)
   const featuredEvent = getFeaturedEvent(events)
   const publishedProducts = getPublishedShopProducts(products)
   const hasLoadedProducts = products.length > 0
@@ -280,6 +383,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
   )
 
   function addToCart(product) {
+    if (!checkoutOpen) return
     setCheckoutDone(false)
     setCart((current) => {
       const currentQuantity = current[product.id]?.quantity ?? 0
@@ -300,11 +404,13 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
   }
 
   function checkoutCart() {
+    if (!checkoutOpen) return
     setCheckoutDone(true)
     setCart({})
   }
 
   function handleBuyTickets(event) {
+    if (!checkoutOpen) return
     setDetailEvent(null)
     onNavigate('tickets', { eventSlug: event.slug ?? event.id })
   }
@@ -324,7 +430,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
         className="shop-page__hero"
         breadcrumbLabel={t('pages.shop.heroBreadcrumb')}
         chapter={t('pages.shop.heroChapter')}
-        description={t('pages.shop.heroDesc')}
+        description={checkoutOpen ? t('pages.shop.heroDesc') : t('pages.shop.heroDescSoon')}
         onHome={() => onNavigate('home')}
         title={t('pages.shop.heroTitle')}
       />
@@ -363,8 +469,10 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                 <ShopFeaturedHero
                   event={featuredEvent}
                   locale={locale}
+                  checkoutOpen={checkoutOpen}
                   onBuyTickets={() => handleBuyTickets(featuredEvent)}
                   onViewDetail={() => handleViewEventDetail(featuredEvent)}
+                  onBrowseCalendar={() => onNavigate('events')}
                   t={t}
                 />
               ) : null}
@@ -385,7 +493,9 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="shop-section__lead">{t('pages.shop.ticketsLead')}</p>
+                  <p className="shop-section__lead">
+                    {checkoutOpen ? t('pages.shop.ticketsLead') : t('pages.shop.ticketsLeadSoon')}
+                  </p>
                 </div>
                 {shopEvents.length > 0 ? (
                   <div className="shop-events-grid">
@@ -394,6 +504,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                         key={event.slug ?? event.id ?? event.title}
                         event={event}
                         locale={locale}
+                        checkoutOpen={checkoutOpen}
                         onOpenDetail={setDetailEvent}
                         t={t}
                       />
@@ -427,7 +538,9 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                   <h2 id="shop-merch-title" className="shop-section__title">
                     {t('pages.shop.merchTitle')}
                   </h2>
-                  <p className="shop-section__lead">{t('pages.shop.merchText')}</p>
+                  <p className="shop-section__lead">
+                    {checkoutOpen ? t('pages.shop.merchText') : t('pages.shop.merchTextSoon')}
+                  </p>
                 </div>
               ) : null}
 
@@ -437,6 +550,7 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                     {publishedProducts.map((product) => (
                       <ShopProductCard
                         key={product.id}
+                        checkoutOpen={checkoutOpen}
                         locale={locale}
                         product={product}
                         t={t}
@@ -464,38 +578,43 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                   badge={t('pages.shop.merchSoon')}
                   title={t('pages.shop.merchTitle')}
                   titleId="shop-merch-panel-title"
-                  text={t('pages.shop.merchText')}
+                  text={checkoutOpen ? t('pages.shop.merchText') : t('pages.shop.merchTextSoon')}
                 />
               )}
             </section>
           ) : null}
 
-          {activeCategory === 'registrations' ? (
-            <section className="shop-section shop-department" aria-labelledby="shop-registrations-title" key="registrations">
+          {activeCategory === 'courses' ? (
+            <section className="shop-section shop-department" aria-labelledby="shop-courses-panel-title" key="courses">
               <ShopDepartmentPanel
-                title={t('pages.shop.registrationsTitle')}
-                titleId="shop-registrations-title"
-                text={t('pages.shop.registrationsText')}
-                action={{ label: t('pages.shop.registrationsAction'), onClick: () => onNavigate('events') }}
+                badge={t('pages.shop.coursesSoon')}
+                title={t('pages.shop.coursesTitle')}
+                titleId="shop-courses-panel-title"
+                text={checkoutOpen ? t('pages.shop.coursesText') : t('pages.shop.coursesTextSoon')}
               />
             </section>
           ) : null}
         </div>
       </div>
 
-      <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} open={cartOpen} onClose={() => setCartOpen(false)} />
-      
-      {Object.values(cart).length > 0 && !cartOpen ? (
-        <button className="shop-floating-cart-btn" onClick={() => setCartOpen(true)} aria-label="Abrir carrito">
-          <ShoppingBag size={24} />
-          <span className="shop-floating-cart-count">{Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)}</span>
-        </button>
+      {checkoutOpen ? (
+        <>
+          <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} open={cartOpen} onClose={() => setCartOpen(false)} />
+
+          {Object.values(cart).length > 0 && !cartOpen ? (
+            <button className="shop-floating-cart-btn" onClick={() => setCartOpen(true)} aria-label="Abrir carrito">
+              <ShoppingBag size={24} />
+              <span className="shop-floating-cart-count">{Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)}</span>
+            </button>
+          ) : null}
+        </>
       ) : null}
 
       <ShopEventDrawer
         open={Boolean(detailEvent)}
         event={detailEvent}
         locale={locale}
+        checkoutOpen={checkoutOpen}
         onClose={() => setDetailEvent(null)}
         onBuyTickets={handleBuyTickets}
         onViewEvent={handleViewEventDetail}

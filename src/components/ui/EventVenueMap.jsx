@@ -6,6 +6,7 @@ export default function EventVenueMap({ event, role, venue }) {
     address: venue.address,
     addressVenue: venue.name,
     coordinateVenue: venue.name,
+    featured: true,
     id: event?.slug ?? event?.id ?? 'pitbull-classic-2026',
     latitude: venue.latitude ?? event?.latitude,
     location: venue.locality ?? event?.location,

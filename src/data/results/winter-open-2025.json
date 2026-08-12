@@ -1,0 +1,72 @@
+{
+  "slug": "winter-open-2025",
+  "eventTitle": "Winter Open 2025",
+  "venue": "Maximal Strength Club",
+  "location": "Buenos Aires",
+  "dateISO": "2025-08-24",
+  "source": "archive-demo",
+  "podium": [
+    {
+      "athlete": "Martín Escobar",
+      "event": "Winter Open 2025",
+      "total": "627.5 kg",
+      "place": "1° Open Raw M 93"
+    },
+    {
+      "athlete": "Valentina Ortiz",
+      "event": "Winter Open 2025",
+      "total": "447.5 kg",
+      "place": "1° Open Raw F 72"
+    },
+    {
+      "athlete": "Bruno Salinas",
+      "event": "Winter Open 2025",
+      "total": "502.5 kg",
+      "place": "1° Junior Raw M 83"
+    }
+  ],
+  "divisions": [
+    {
+      "name": "Open Raw · Hombres -83 kg",
+      "lifters": [
+        { "place": 1, "name": "Diego Morales", "bodyweight": 82.1, "squat": 205, "bench": 137.5, "deadlift": 225, "total": 567.5, "dots": 441.2 },
+        { "place": 2, "name": "Facundo López", "bodyweight": 82.6, "squat": 197.5, "bench": 132.5, "deadlift": 217.5, "total": 547.5, "dots": 421.8 }
+      ]
+    },
+    {
+      "name": "Open Raw · Hombres -93 kg",
+      "lifters": [
+        { "place": 1, "name": "Martín Escobar", "bodyweight": 92.8, "squat": 230, "bench": 147.5, "deadlift": 250, "total": 627.5, "dots": 435.4 },
+        { "place": 2, "name": "Julián Cruz", "bodyweight": 91.4, "squat": 217.5, "bench": 142.5, "deadlift": 237.5, "total": 597.5, "dots": 419.1 }
+      ]
+    },
+    {
+      "name": "Open Raw · Mujeres -63 kg",
+      "lifters": [
+        { "place": 1, "name": "Martina Rivas", "bodyweight": 62.4, "squat": 147.5, "bench": 85, "deadlift": 187.5, "total": 420, "dots": 404.2 },
+        { "place": 2, "name": "Lucía Fernández", "bodyweight": 62.9, "squat": 142.5, "bench": 80, "deadlift": 177.5, "total": 400, "dots": 380.6 }
+      ]
+    },
+    {
+      "name": "Open Raw · Mujeres -72 kg",
+      "lifters": [
+        { "place": 1, "name": "Valentina Ortiz", "bodyweight": 71.0, "squat": 160, "bench": 92.5, "deadlift": 195, "total": 447.5, "dots": 384.8 },
+        { "place": 2, "name": "Agustina Méndez", "bodyweight": 70.6, "squat": 150, "bench": 87.5, "deadlift": 185, "total": 422.5, "dots": 365.2 }
+      ]
+    },
+    {
+      "name": "Junior Raw · Hombres -83 kg",
+      "lifters": [
+        { "place": 1, "name": "Bruno Salinas", "bodyweight": 82.3, "squat": 180, "bench": 120, "deadlift": 202.5, "total": 502.5, "dots": 390.1 },
+        { "place": 2, "name": "Mateo Álvarez", "bodyweight": 81.9, "squat": 170, "bench": 112.5, "deadlift": 190, "total": 472.5, "dots": 368.4 }
+      ]
+    },
+    {
+      "name": "Masters Raw · Hombres -93 kg",
+      "lifters": [
+        { "place": 1, "name": "Ricardo Peña", "bodyweight": 91.8, "squat": 190, "bench": 125, "deadlift": 210, "total": 525, "dots": 368.9 },
+        { "place": 2, "name": "Omar Villalba", "bodyweight": 92.5, "squat": 180, "bench": 120, "deadlift": 200, "total": 500, "dots": 348.2 }
+      ]
+    }
+  ]
+}

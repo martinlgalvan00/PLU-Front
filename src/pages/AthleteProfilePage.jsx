@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
@@ -33,6 +34,7 @@ export default function AthleteProfilePage({
   onRemovePhoto,
   registrations,
   session,
+  events = [],
 }) {
   const [activeTab, setActiveTab] = useState(DEFAULT_TAB)
 
@@ -45,8 +47,12 @@ export default function AthleteProfilePage({
   const athleteRegistrations = athleteId
     ? registrations.filter((item) => item.athleteId === athleteId)
     : []
-  const availableEvents = UPCOMING_EVENTS.filter((event) => event.status !== 'finalizado')
+  const availableEvents = (events.length ? events : UPCOMING_EVENTS).filter(
+    (event) => event.status !== 'finalizado',
+  )
   const nextEvent = availableEvents[0]
+  const gateEvent = getPitbullClassicEvent(events.length ? events : UPCOMING_EVENTS)
+    ?? getFeaturedEvent(events.length ? events : UPCOMING_EVENTS)
   const gatePendingRegistrations = athleteId
     ? findGatePendingRegistrations(athleteRegistrations, {
         memberships: athleteMemberships,
@@ -77,6 +83,7 @@ export default function AthleteProfilePage({
         latestMembership={storedMembership}
         registrations={athleteRegistrations}
         onNavigateSection={setActiveTab}
+        onNavigate={onNavigate}
       />
     ),
     'account-events': (
@@ -101,6 +108,7 @@ export default function AthleteProfilePage({
         onCancelMembership={onCancelMembership}
         onStartMembershipPayment={onStartMembershipPayment}
         demoMode={demoMode}
+        gateEvent={gateEvent}
       />
     ),
     'account-personal-data': (

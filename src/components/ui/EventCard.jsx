@@ -5,6 +5,7 @@ import PitbullBrandMark from './PitbullBrandMark.jsx'
 import SpotlightCard from './SpotlightCard.jsx'
 
 const LIVE_STATUSES = new Set(['inscripcion_abierta', 'cupos_limitados'])
+const PERSONAL_ATHLETE_STATUSES = new Set(['registered', 'pending_payment', 'needs_membership'])
 
 export default function EventCard({
   date,
@@ -15,6 +16,7 @@ export default function EventCard({
   featured = false,
   selected = false,
   brand = null,
+  athleteStatus = null,
   onAction,
   onSelect,
   actionLabel = 'Inscribirme',
@@ -29,6 +31,18 @@ export default function EventCard({
   const isMinimal = variant === 'minimal'
   const isPitbull = brand === 'pitbull'
   const hasPlace = Boolean(venue || location)
+  const showAthleteStatus = PERSONAL_ATHLETE_STATUSES.has(athleteStatus)
+  const athleteStatusLabel = showAthleteStatus
+    ? t(`pages.events.athleteStatus.${athleteStatus}`)
+    : null
+  const athleteTone =
+    athleteStatus === 'registered'
+      ? 'success'
+      : athleteStatus === 'pending_payment' || athleteStatus === 'needs_membership'
+        ? 'warning'
+        : athleteStatus === 'can_register'
+          ? 'info'
+          : 'neutral'
 
   return (
     <SpotlightCard
@@ -66,6 +80,12 @@ export default function EventCard({
           <p className="event-card__status" data-tone={tone}>
             <span className="event-card__status-dot" aria-hidden />
             {statusLabel}
+          </p>
+        ) : null}
+
+        {athleteStatusLabel ? (
+          <p className="event-card__athlete-status" data-tone={athleteTone}>
+            {athleteStatusLabel}
           </p>
         ) : null}
 

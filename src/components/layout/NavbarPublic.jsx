@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, LayoutGroup, m } from 'motion/react'
 import {
   ArrowRight,
@@ -12,6 +13,7 @@ import {
   Mail,
   Scale,
   ShoppingBag,
+  Target,
   Trophy,
   UsersRound,
   X,
@@ -25,7 +27,7 @@ import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import BrandLogo from '../ui/BrandLogo.jsx'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
@@ -40,19 +42,41 @@ const NAV_ICON = {
   results: ListChecks,
   records: Scale,
   shop: ShoppingBag,
+  standards: Target,
   trophy: Trophy,
 }
 
-const COMPETITIONS_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competitions')
-const RESOURCES_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'resources')
+const COMPETITION_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competition')
+const MORE_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'more')
 
-/** Línea utilitaria horizontal del drawer (mismo set corto que el diseño editorial). */
+/** Línea utilitaria horizontal del drawer (Reglamento vive acá, no en el top-level). */
 const DRAWER_SECONDARY = [
   { key: 'rulebook', labelKey: 'nav.rulebook' },
+  { key: 'team', labelKey: 'nav.team' },
+  { key: 'sponsors', labelKey: 'nav.sponsors' },
+  { key: 'standards', labelKey: 'nav.standards' },
   { key: 'faq', labelKey: 'nav.faq' },
-  { key: 'community', labelKey: 'nav.community' },
   { key: 'contact', labelKey: 'nav.contact' },
 ]
+
+function mapNavGroupItems(group, {
+  activeView,
+  latestEventActive,
+  latestEventHint,
+  latestEventTitle,
+  t,
+}) {
+  return {
+    label: t(group.labelKey),
+    items: group.items.map((item) => ({
+      ...item,
+      icon: NAV_ICON[item.icon],
+      label: item.key === 'pitbull' ? latestEventTitle : t(item.labelKey),
+      hint: item.key === 'pitbull' ? latestEventHint : t(item.hintKey),
+      active: item.key === 'pitbull' ? latestEventActive : activeView === item.key,
+    })),
+  }
+}
 
 function SharedActiveIndicator() {
   const { reducedMotion } = useMotionConfig()
@@ -101,16 +125,21 @@ function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLe
 }
 
 function NavDropdownItem({ active = false, description, icon: Icon, label, onClick, tone = 'default' }) {
+  const { reducedMotion } = useMotionConfig()
+
   return (
     <m.button
       type="button"
       role="menuitem"
       variants={{
-        hidden: { opacity: 0, y: 6 },
+        hidden: { opacity: 0, y: reducedMotion ? 0 : 5 },
         visible: {
           opacity: 1,
           y: 0,
-          transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+          transition: {
+            duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+            ease: MOTION_EASE.out,
+          },
         },
       }}
       className={`plu-nav-menu__item plu-nav-menu__item--${tone}${active ? ' is-active' : ''}`}
@@ -215,24 +244,33 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
             ref={menuRef}
             role="menu"
             aria-labelledby={`${menuId}-trigger`}
+            style={{
+              /* Origin alinea el settle con el trigger (resources usa translate -58%). */
+              transformOrigin: variant === 'resources' ? '58% top' : 'top center',
+            }}
             initial="hidden"
             animate="visible"
             exit="hidden"
             variants={{
               hidden: {
                 opacity: 0,
-                y: 8,
-                scale: 0.992,
-                transition: { duration: reducedMotion ? 0.01 : 0.12, ease: [0.2, 0, 0, 1] },
+                y: reducedMotion ? 0 : 6,
+                scale: reducedMotion ? 1 : 0.98,
+                transition: {
+                  duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+                  ease: MOTION_EASE.standard,
+                },
               },
               visible: {
                 opacity: 1,
                 y: 0,
                 scale: 1,
                 transition: {
-                  duration: reducedMotion ? 0.06 : 0.2,
-                  ease: [0.22, 1, 0.36, 1],
-                  staggerChildren: reducedMotion ? 0 : 0.025,
+                  duration: reducedMotion ? 0.06 : MOTION_DURATION.base,
+                  ease: MOTION_EASE.cinematic,
+                  when: 'beforeChildren',
+                  delayChildren: reducedMotion ? 0 : 0.03,
+                  staggerChildren: reducedMotion ? 0 : 0.028,
                 },
               },
             }}
@@ -314,8 +352,15 @@ export default function NavbarPublic({
   const profileMenuRef = useRef(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
-  /* Rango un poco más largo: el letterhead se retrae con elegancia, no de golpe. */
-  const { scrolled } = useHeaderScroll(shellRef, { autoHide: false, range: 112, threshold: 96 })
+  /* Morph continuo 0→1 en ~120px. Superficie scrolled al final del morph
+     (enter ~112) para que densifique cuando el letterhead ya casi cerró.
+     Histéresis evita el loop scrolled on/off cerca del umbral. */
+  const { scrolled } = useHeaderScroll(shellRef, {
+    autoHide: false,
+    range: 120,
+    threshold: 112,
+    hysteresis: 40,
+  })
   const { reducedMotion } = useMotionConfig()
   const { locale, t } = useI18n()
 
@@ -325,8 +370,8 @@ export default function NavbarPublic({
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
-  const competitionsActive = COMPETITIONS_NAVIGATION.views.includes(activeView)
-  const resourcesActive = RESOURCES_NAVIGATION.views.includes(activeView)
+  const competitionActive = Boolean(COMPETITION_NAVIGATION?.views?.includes(activeView))
+  const moreActive = Boolean(MORE_NAVIGATION?.views?.includes(activeView))
 
   const latestEventTitle = latestEvent?.title ?? t('nav.pitbull')
   const latestEventDestination = getFeaturedEventDestination(latestEvent)
@@ -339,23 +384,33 @@ export default function NavbarPublic({
       activeEventSlug === latestEventOptions.eventSlug)
   const latestEventHint = latestEvent?.date ?? t('nav.pitbullHint')
 
-  const resourceGroups = RESOURCES_NAVIGATION.groups.map((group) => ({
-    label: t(group.labelKey),
-    items: group.items.map((item) => ({
-      ...item,
-      icon: NAV_ICON[item.icon],
-      label: t(item.labelKey),
-      hint: t(item.hintKey),
-    })),
-  }))
+  const navGroupContext = {
+    activeView,
+    latestEventActive,
+    latestEventHint,
+    latestEventTitle,
+    t,
+  }
+  const competitionGroups = (COMPETITION_NAVIGATION?.groups ?? []).map((group) =>
+    mapNavGroupItems(group, navGroupContext),
+  )
+  const moreGroups = (MORE_NAVIGATION?.groups ?? []).map((group) =>
+    mapNavGroupItems(group, navGroupContext),
+  )
+
+  function navigateNavItem(item) {
+    if (item.key === 'pitbull') {
+      go(latestEventView, latestEventOptions)
+      return
+    }
+    go(item.key)
+  }
 
   const drawerSecondary = DRAWER_SECONDARY.map((item) => ({
     ...item,
     label: t(item.labelKey),
-    active: activeView === item.key || (item.key === 'rulebook' && activeView === 'resources'),
+    active: activeView === item.key,
   }))
-
-  const competitionMenuFeatured = COMPETITIONS_NAVIGATION.items.filter(({ featured }) => featured)
 
   function go(view, options = {}) {
     restoreDrawerFocusRef.current = false
@@ -512,81 +567,145 @@ export default function NavbarPublic({
 
           <nav className="plu-global-nav__desktop" aria-label={t('nav.mainAria')}>
             <LayoutGroup id={`plu-public-navigation-${locale}`}>
-              <NavLink active={activeView === 'members'} hovered={hoveredNav === 'members'} onHover={() => setHoveredNav('members')} onLeave={() => setHoveredNav(null)} tone="affiliate" onClick={() => go('members')}>
-                {t('nav.members')}
-              </NavLink>
-              <NavDropdown
-              active={competitionsActive}
-              hovered={hoveredNav === 'competitions'}
-              onHover={() => setHoveredNav('competitions')}
-              onLeave={() => setHoveredNav(null)}
-              label={t('nav.competitions')}
-              menuId="plu-competitions-menu"
-              open={dropdown === 'competitions'}
-              onClose={() => setDropdown(null)}
-              onToggle={() => setDropdown((current) => current === 'competitions' ? null : 'competitions')}
-              secondary
-            >
-              {competitionMenuFeatured.map(({ key, icon }) => {
-                const Icon = NAV_ICON[icon]
+              {PUBLIC_NAVIGATION.primary.map((item) => {
+                if (item.type === 'menu' && item.key === 'competition') {
+                  return (
+                    <NavDropdown
+                      key={item.key}
+                      active={competitionActive}
+                      hovered={hoveredNav === 'competition'}
+                      onHover={() => setHoveredNav('competition')}
+                      onLeave={() => setHoveredNav(null)}
+                      label={t(item.labelKey)}
+                      menuId="plu-competition-menu"
+                      open={dropdown === 'competition'}
+                      onClose={() => setDropdown(null)}
+                      onToggle={() =>
+                        setDropdown((current) => (current === 'competition' ? null : 'competition'))
+                      }
+                      variant="compact"
+                    >
+                      {competitionGroups[0]?.items.map((navItem) => (
+                        <NavDropdownItem
+                          key={navItem.key}
+                          active={navItem.active}
+                          description={navItem.hint}
+                          icon={navItem.icon}
+                          label={navItem.label}
+                          tone={navItem.featured ? 'featured' : 'default'}
+                          onClick={() => navigateNavItem(navItem)}
+                        />
+                      ))}
+                    </NavDropdown>
+                  )
+                }
+
+                if (item.type === 'menu' && item.key === 'more') {
+                  return (
+                    <NavDropdown
+                      key={item.key}
+                      active={moreActive}
+                      hovered={hoveredNav === 'more'}
+                      onHover={() => setHoveredNav('more')}
+                      onLeave={() => setHoveredNav(null)}
+                      label={t(item.labelKey)}
+                      menuId="plu-more-menu"
+                      open={dropdown === 'more'}
+                      onClose={() => setDropdown(null)}
+                      onToggle={() => setDropdown((current) => (current === 'more' ? null : 'more'))}
+                      variant="resources"
+                      secondary
+                    >
+                      <m.div
+                        className="plu-resources-menu__head"
+                        role="presentation"
+                        variants={{
+                          hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
+                          visible: {
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                              duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+                              ease: MOTION_EASE.out,
+                            },
+                          },
+                        }}
+                      >
+                        <div>
+                          <p>{t('nav.moreMenuLabel')}</p>
+                          <span>{t('nav.moreMenuIntro')}</span>
+                        </div>
+                        <button type="button" role="menuitem" onClick={() => go('resources')}>
+                          {t('nav.viewResources')}
+                          <ArrowRight size={14} aria-hidden />
+                        </button>
+                      </m.div>
+                      <m.div
+                        className="plu-resources-menu__groups"
+                        role="presentation"
+                        variants={{
+                          hidden: { opacity: 0 },
+                          visible: {
+                            opacity: 1,
+                            transition: {
+                              when: 'beforeChildren',
+                              staggerChildren: reducedMotion ? 0 : 0.03,
+                            },
+                          },
+                        }}
+                      >
+                        {moreGroups.map((group) => (
+                          <m.div
+                            key={group.label}
+                            className="plu-resources-menu__group"
+                            role="presentation"
+                            variants={{
+                              hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
+                              visible: {
+                                opacity: 1,
+                                y: 0,
+                                transition: {
+                                  duration: reducedMotion ? 0.01 : MOTION_DURATION.fast,
+                                  ease: MOTION_EASE.out,
+                                  when: 'beforeChildren',
+                                  staggerChildren: reducedMotion ? 0 : 0.02,
+                                },
+                              },
+                            }}
+                          >
+                            <p>{group.label}</p>
+                            {group.items.map((navItem) => (
+                              <NavDropdownItem
+                                key={navItem.key}
+                                active={navItem.active}
+                                description={navItem.hint}
+                                icon={navItem.icon}
+                                label={navItem.label}
+                                tone={navItem.featured ? 'featured' : 'default'}
+                                onClick={() => navigateNavItem(navItem)}
+                              />
+                            ))}
+                          </m.div>
+                        ))}
+                      </m.div>
+                    </NavDropdown>
+                  )
+                }
+
                 return (
-                  <NavDropdownItem
-                    key={key}
-                    active={latestEventActive}
-                    description={latestEventHint}
-                    icon={Icon}
-                    label={latestEventTitle}
-                    tone="featured"
-                    onClick={() => go(latestEventView, latestEventOptions)}
-                  />
+                  <NavLink
+                    key={item.key}
+                    active={activeView === item.key}
+                    hovered={hoveredNav === item.key}
+                    onHover={() => setHoveredNav(item.key)}
+                    onLeave={() => setHoveredNav(null)}
+                    tone={item.key === 'members' ? 'affiliate' : 'default'}
+                    onClick={() => go(item.key)}
+                  >
+                    {t(item.labelKey)}
+                  </NavLink>
                 )
               })}
-              <NavDropdownItem
-                active={activeView === 'events'}
-                description={t('nav.eventsHint')}
-                icon={CalendarDays}
-                label={t('nav.viewAllEvents')}
-                onClick={() => go('events')}
-              />
-              </NavDropdown>
-              <NavLink active={['shop', 'tickets'].includes(activeView)} hovered={hoveredNav === 'shop'} onHover={() => setHoveredNav('shop')} onLeave={() => setHoveredNav(null)} onClick={() => go('shop')}>{t('nav.shop')}</NavLink>
-              <NavDropdown
-              active={resourcesActive}
-              hovered={hoveredNav === 'resources'}
-              onHover={() => setHoveredNav('resources')}
-              onLeave={() => setHoveredNav(null)}
-              label={t('nav.groupRecursos')}
-              menuId="plu-resources-menu"
-              open={dropdown === 'resources'}
-              onClose={() => setDropdown(null)}
-              onToggle={() => setDropdown((current) => current === 'resources' ? null : 'resources')}
-              variant="resources"
-              secondary
-            >
-              <div className="plu-resources-menu__head" role="presentation">
-                <div><p>{t('nav.resourcesMenuLabel')}</p><span>{t('nav.resourcesMenuIntro')}</span></div>
-                <button type="button" role="menuitem" onClick={() => go('resources')}>
-                  {t('nav.viewResources')}<ArrowRight size={14} aria-hidden />
-                </button>
-              </div>
-              <div className="plu-resources-menu__groups" role="presentation">
-                {resourceGroups.map((group) => (
-                  <div key={group.label} className="plu-resources-menu__group" role="presentation">
-                    <p>{group.label}</p>
-                    {group.items.map((item, index) => (
-                      <NavDropdownItem
-                        key={`${group.label}-${item.key}-${index}`}
-                        active={activeView === item.key}
-                        description={item.hint}
-                        icon={item.icon}
-                        label={item.label}
-                        onClick={() => go(item.key)}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-              </NavDropdown>
             </LayoutGroup>
           </nav>
 
@@ -748,34 +867,35 @@ export default function NavbarPublic({
         </div>
       </header>
 
-      <AnimatePresence initial={false} onExitComplete={handleDrawerExitComplete}>
-        {drawerOpen ? (
-          <>
-            <m.div
-              key="drawer-backdrop"
-              className="plu-drawer-backdrop"
-              aria-hidden
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: reducedMotion ? 0.01 : 0.2 } }}
-              transition={{ duration: reducedMotion ? 0.01 : 0.24, ease: [0.2, 0, 0, 1] }}
-              onClick={() => closeDrawer(true)}
-            />
-            <m.aside
-              key="drawer-panel"
-              className="plu-drawer"
-              id="plu-mobile-drawer"
-              ref={drawerRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label={t('nav.mobileMenu')}
-              initial={reducedMotion ? { opacity: 0 } : { opacity: 1, x: '100%' }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reducedMotion
-                ? { opacity: 0, transition: { duration: 0.01 } }
-                : { opacity: 0, x: '100%', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
-              transition={{ duration: reducedMotion ? 0.01 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-            >
+      {createPortal(
+        <AnimatePresence initial={false} onExitComplete={handleDrawerExitComplete}>
+          {drawerOpen ? (
+            <>
+              <m.div
+                key="drawer-backdrop"
+                className="plu-drawer-backdrop"
+                aria-hidden
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: reducedMotion ? 0.01 : 0.2 } }}
+                transition={{ duration: reducedMotion ? 0.01 : 0.24, ease: [0.2, 0, 0, 1] }}
+                onClick={() => closeDrawer(true)}
+              />
+              <m.aside
+                key="drawer-panel"
+                className="plu-drawer"
+                id="plu-mobile-drawer"
+                ref={drawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t('nav.mobileMenu')}
+                initial={reducedMotion ? { opacity: 0 } : { opacity: 1, x: '100%' }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={reducedMotion
+                  ? { opacity: 0, transition: { duration: 0.01 } }
+                  : { opacity: 0, x: '100%', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
+                transition={{ duration: reducedMotion ? 0.01 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
             <m.header
               className="plu-drawer__head"
               initial={reducedMotion ? false : { opacity: 0, y: -6 }}
@@ -825,28 +945,25 @@ export default function NavbarPublic({
               <LayoutGroup id={`plu-drawer-nav-${locale}`}>
                 <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
                   <div className="plu-drawer__nav-primary">
-                    <DrawerRow active={activeView === 'events'} delay={0.02} onClick={() => go('events')}>
-                      {t('nav.calendarOfficial')}
-                    </DrawerRow>
-
                     <DrawerRow
                       active={latestEventActive}
-                      delay={0.04}
+                      delay={0.02}
                       description={latestEvent?.date ?? t('nav.pitbullHint')}
                       onClick={() => go(latestEventView, latestEventOptions)}
                     >
                       {latestEventTitle}
                     </DrawerRow>
-
                     <DrawerRow
                       active={['shop', 'tickets'].includes(activeView)}
-                      delay={0.06}
+                      delay={0.04}
                       description={t('nav.shopHint')}
                       onClick={() => go('shop')}
                     >
                       {t('nav.shop')}
                     </DrawerRow>
-
+                    <DrawerRow active={activeView === 'events'} delay={0.06} onClick={() => go('events')}>
+                      {t('nav.calendarOfficial')}
+                    </DrawerRow>
                     <DrawerRow active={activeView === 'results'} delay={0.08} onClick={() => go('results')}>
                       {t('nav.results')}
                     </DrawerRow>
@@ -933,10 +1050,12 @@ export default function NavbarPublic({
                 </button>
               )}
             </footer>
-            </m.aside>
-          </>
-        ) : null}
-      </AnimatePresence>
+              </m.aside>
+            </>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   )
 }

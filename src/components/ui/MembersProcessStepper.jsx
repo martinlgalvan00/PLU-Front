@@ -5,8 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardPen,
-  Send,
-  ShieldCheck,
+  QrCode,
+  WalletCards,
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -21,7 +21,7 @@ import MembersBlockHead from './MembersBlockHead.jsx'
 
 const SCENE_INTERVAL_MS = 4800
 
-const STEP_ICONS = [ClipboardPen, Send, ShieldCheck, CheckCircle2]
+const STEP_ICONS = [ClipboardPen, WalletCards, QrCode, CheckCircle2]
 
 const headMotion = {
   hidden: { opacity: 0, x: -10, y: 8 },

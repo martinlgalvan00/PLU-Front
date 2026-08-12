@@ -96,9 +96,9 @@ export function createSupabaseAthleteRepository(
     // esta expuesta a PostgREST (revocada en 20260716000000), asi que desde
     // aca no se puede tocar; la RPC lo resuelve del lado de la base.
     // Devuelve { revokedSessions }.
-    setPassword: (athleteId, passwordHash) => rpc(
+    setPassword: (athleteId, passwordHash, actor = null) => rpc(
       'set_athlete_password',
-      { p_athlete_id: athleteId, p_password_hash: passwordHash },
+      { p_athlete_id: athleteId, p_password_hash: passwordHash, p_actor: actor },
       'No se pudo actualizar la credencial del atleta.',
     ),
     credential: async (athleteId) => assertSupabaseResult(

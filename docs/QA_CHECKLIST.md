@@ -80,12 +80,22 @@
 ## Integraciones (producción)
 
 - [ ] Con `APP_PRODUCTION=true`, afiliación automática no aparece en planes y sus endpoints responden `FEATURE_COMING_SOON`
-- [ ] Con `APP_PRODUCTION=true`, el combo vigente sigue disponible y crea una única orden para ambos derechos
+- [ ] Con `APP_PRODUCTION=true` y sin `PAID_CHECKOUT_ENABLED` ni `registration_opens_at` pasado (admin), afiliación one-time, inscripción, combo y entradas responden `FEATURE_COMING_SOON`
+- [ ] Con `registration_opens_at` del Pitbull/destacado en el pasado (o `PAID_CHECKOUT_ENABLED=true`), el combo vigente crea una única orden para ambos derechos
 - [ ] Con `APP_PRODUCTION=true`, el panel de tarifas muestra el aviso “próximamente” y no permite escrituras
+- [ ] `POST /api/launch-interest` guarda emails (idempotente) y el teaser de Members/Home/Pitbull usa esa API
 - [ ] Una URL desconocida (p. ej. `/ruta-inventada`) muestra la landing 404 (no Home); deep links `/evento/...` siguen andando
 - [ ] `npm run email:doctor` termina sin bloqueos: remitente validado, URL HTTPS pública y webhook transaccional activo
 - [ ] Un envío real pasa de `sent` a `delivered` en Auditoría
 - [ ] `npm run mercado-pago:doctor` valida Access Token y secreto del webhook
+
+### Apertura de cobros (viernes)
+
+1. En Vercel Production: `APP_PRODUCTION=true`
+2. En admin del Pitbull (o destacado): setear **Abre la inscripción** (`registration_opens_at`) al horario acordado
+3. Kill switch opcional: `PAID_CHECKOUT_ENABLED=false` corta cobros; `=true` abre antes de la fecha
+4. Alinear status del evento (p. ej. `inscripcion_abierta`) cuando corresponda
+5. Listar interesados: `select email, source, event_slug, created_at from launch_interest order by created_at desc;`
 
 ## Build
 

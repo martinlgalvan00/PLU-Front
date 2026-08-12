@@ -34,7 +34,7 @@ const pitbull = {
 }
 
 const linkedEvent = {
-  slug: 'test-2026',
+  slug: 'regional-norte-2026',
   title: 'Evento enlazado',
   dateISO: '2026-08-13',
   venue: 'PLU',
@@ -67,5 +67,43 @@ describe('deep-link de eventos con datos asincronos', () => {
     await waitFor(() => {
       expect(container.querySelector('.events-detail__title')?.textContent).toBe(linkedEvent.title)
     })
+
+    expect(container.querySelector('.events-detail__spotlight')).toBeNull()
+    expect(container.querySelector('.events-detail__date-hero')).toBeNull()
+    expect(container.textContent).not.toMatch(/Creá tu ficha para inscribirte/)
+    expect(container.querySelector('.events-detail__athlete-hint')?.textContent).toMatch(
+      /cuenta de atleta/i,
+    )
+  })
+
+  it('no lista stubs de desarrollo en el catalogo publico', async () => {
+    const stub = {
+      slug: 'test-2026',
+      title: 'test',
+      dateISO: '2026-08-13',
+      venue: 'test',
+      location: 'asd',
+      status: 'inscripcion_abierta',
+      featured: true,
+    }
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          events={[pitbull, stub]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__title')?.textContent).toBe(pitbull.title)
+    })
+
+    const titles = [...container.querySelectorAll('.event-card__title')].map((node) => node.textContent)
+    expect(titles).toEqual([pitbull.title])
+    expect(container.textContent).not.toMatch(/\btest\b/i)
   })
 })

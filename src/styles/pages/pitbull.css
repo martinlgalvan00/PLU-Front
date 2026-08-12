@@ -7541,6 +7541,55 @@
   position: relative;
 }
 
+/* Paleta de mapa propia del dossier: oro + grafito, no look OSM genérico */
+.pitbull-venue__map .competition-map {
+  --plu-map-background: #0c0e12;
+  --plu-map-boundary: #3a4a58;
+  --plu-map-building: #161a20;
+  --plu-map-label: #e8eaed;
+  --plu-map-label-halo: #0c0e12;
+  --plu-map-land: #0c0e12;
+  --plu-map-motorway: #8a6f2e;
+  --plu-map-park: #101612;
+  --plu-map-parking: var(--color-brand-gold);
+  --plu-map-parking-text: #101216;
+  --plu-map-road-major: #3a3f48;
+  --plu-map-road-minor: #2a2e36;
+  --plu-map-route: var(--color-brand-celeste);
+  --plu-map-route-halo: #07090c;
+  --plu-map-user-location: var(--color-brand-celeste);
+  --plu-map-user-location-halo: #f7fafc;
+  --plu-map-water: #05070a;
+  --plu-map-water-line: #1a3040;
+  --plu-map-marker-label-bg: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  --plu-map-marker-label-border: color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  --plu-map-marker-label-text: var(--color-brand-gold);
+}
+
+[data-theme='light'] .pitbull-venue__map .competition-map {
+  --plu-map-background: #f3f0ea;
+  --plu-map-boundary: #8aa8ba;
+  --plu-map-building: #ddd8d0;
+  --plu-map-label: #1c2128;
+  --plu-map-label-halo: #f3f0ea;
+  --plu-map-land: #f3f0ea;
+  --plu-map-motorway: #a8853b;
+  --plu-map-park: #e4e8df;
+  --plu-map-parking: var(--color-brand-gold);
+  --plu-map-parking-text: #101216;
+  --plu-map-road-major: #aeb2b3;
+  --plu-map-road-minor: #c5c7c5;
+  --plu-map-route: var(--color-brand-celeste);
+  --plu-map-route-halo: #f6f4ef;
+  --plu-map-user-location: var(--color-brand-celeste);
+  --plu-map-user-location-halo: #fff;
+  --plu-map-water: #d5e6f0;
+  --plu-map-water-line: #8eb7cf;
+  --plu-map-marker-label-bg: color-mix(in srgb, #fff 94%, transparent);
+  --plu-map-marker-label-border: color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
+  --plu-map-marker-label-text: #6b5723;
+}
+
 .pitbull-venue__map .competition-map--venue,
 .pitbull-venue__map .event-venue-map {
   margin: 0;
@@ -11451,10 +11500,16 @@
   font-size: clamp(1.45rem, 2.8vw, 2.1rem);
 }
 
-/* Conversión */
+/* Conversión — primera sección del dossier: menos padding superior */
 .pitbull-dossier--minimal .pitbull-dossier__section--inscription {
   border-top: 0;
-  padding-block: clamp(14px, 2vw, 24px) clamp(46px, 6vw, 64px);
+  padding-block: clamp(8px, 1.4vw, 16px) clamp(46px, 6vw, 64px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--inscription .launch-teaser--dossier {
+  margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+  padding-bottom: clamp(1rem, 2.5vw, 1.35rem);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
 }
 
 .pitbull-inscription-shell--compact,

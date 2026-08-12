@@ -1,0 +1,320 @@
+/* ═══════════════════════════════════════════════
+   EVENT COUNTDOWN — Editorial countdown premium
+   Shared by EventsPage board and Home calendar teaser
+   ═══════════════════════════════════════════════ */
+
+.event-countdown {
+  align-items: start;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  display: grid;
+  gap: clamp(18px, 2.4vw, 28px);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: clamp(18px, 2.4vw, 26px) clamp(16px, 2.4vw, 24px);
+  position: relative;
+}
+
+.event-countdown::before {
+  background: linear-gradient(
+    180deg,
+    var(--plu-celeste-500) 0%,
+    var(--plu-gold-500) 100%
+  );
+  border-radius: 2px;
+  content: '';
+  height: 100%;
+  left: 0;
+  opacity: 0.7;
+  position: absolute;
+  top: 0;
+  width: 3px;
+}
+
+.event-countdown__ticker {
+  display: flex;
+  gap: clamp(8px, 1.2vw, 14px);
+}
+
+.event-countdown__unit {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 46px;
+}
+
+.event-countdown__value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum';
+  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.event-countdown__unit:first-child .event-countdown__value {
+  color: var(--color-brand-action);
+}
+
+.event-countdown__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.event-countdown__info {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.event-countdown__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.event-countdown__meta-icon {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.event-countdown__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.event-countdown__badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 70%, transparent);
+    transform: scale(0.95);
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, currentColor 0%, transparent);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 0%, transparent);
+    transform: scale(0.95);
+  }
+}
+
+.event-countdown__pulse-dot {
+  animation: pulse-ring 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  background-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  height: 6px;
+  margin-right: 5px;
+  width: 6px;
+}
+
+.event-countdown__badge--success {
+  background: color-mix(in oklab, var(--plu-success-500) 14%, transparent);
+  color: var(--plu-success-400, #8fd4a8);
+}
+
+.event-countdown__badge--warning {
+  background: color-mix(in oklab, var(--plu-warning-500) 14%, transparent);
+  color: var(--plu-gold-400);
+}
+
+.event-countdown__badge--neutral {
+  background: color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+  color: var(--color-text-muted);
+}
+
+.event-countdown__badge--danger {
+  background: color-mix(in oklab, var(--plu-red-500) 12%, transparent);
+  color: var(--plu-red-400);
+}
+
+.event-countdown__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-countdown__place {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.event-countdown__place svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.event-countdown__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.event-countdown__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: none;
+  border-radius: 2px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 6px 14px;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.event-countdown__cta:hover {
+  background: var(--color-brand-action-hover);
+  box-shadow: var(--glow-gold-soft);
+  transform: translateY(-1px);
+}
+
+.event-countdown__link {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 5px;
+  min-height: 44px;
+  padding: 4px 0;
+  transition: color var(--transition-fast);
+}
+
+.event-countdown__link:hover {
+  color: var(--color-brand-celeste);
+}
+
+/* Compact variant (calendar board + home teaser) */
+.event-countdown--compact {
+  gap: clamp(14px, 2vw, 20px);
+  padding: clamp(14px, 2vw, 18px) clamp(12px, 2vw, 18px);
+}
+
+.event-countdown--compact .event-countdown__value {
+  font-size: clamp(1.4rem, 2.4vw, 1.85rem);
+  font-weight: 650;
+}
+
+.event-countdown--compact .event-countdown__unit {
+  min-width: 36px;
+}
+
+.event-countdown--compact .event-countdown__title {
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+}
+
+.event-countdown--compact .event-countdown__meta-sep {
+  margin-inline: 0.3em;
+  opacity: 0.55;
+}
+
+.event-countdown--compact .event-countdown__status {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+/* Light theme */
+[data-theme='light'] .event-countdown {
+  border-bottom-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+}
+
+[data-theme='light'] .event-countdown::before {
+  opacity: 0.55;
+}
+
+[data-theme='light'] .event-countdown__badge--success {
+  background: var(--plu-success-bg);
+  color: var(--plu-success-600);
+}
+
+[data-theme='light'] .event-countdown__badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+[data-theme='light'] .event-countdown__badge--neutral {
+  background: color-mix(in oklab, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-muted);
+}
+
+[data-theme='light'] .event-countdown__badge--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .event-countdown {
+    gap: 14px;
+    grid-template-columns: 1fr;
+  }
+
+  .event-countdown__ticker {
+    justify-content: flex-start;
+  }
+
+  .event-countdown::before {
+    height: 3px;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-countdown__pulse-dot {
+    animation: none;
+  }
+
+  .event-countdown__cta:hover {
+    transform: none;
+  }
+}

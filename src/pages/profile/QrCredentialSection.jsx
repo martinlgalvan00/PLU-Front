@@ -21,6 +21,7 @@ export default function QrCredentialSection({
   latestMembership = null,
   registrations = [],
   onNavigateSection,
+  onNavigate,
 }) {
   const { t, locale } = useI18n()
   const [modalOpen, setModalOpen] = useState(false)
@@ -284,9 +285,20 @@ export default function QrCredentialSection({
           </div>
           <div className="account-qr__meta">
             <p className="account-section__empty">{t('account.qr.empty')}</p>
-            <button type="button" className="account-primary-action" onClick={() => onNavigateSection('account-membership')}>
-              {t('account.qr.emptyAction')}
-            </button>
+            <div className="account-qr__empty-actions">
+              <button type="button" className="account-primary-action" onClick={() => onNavigateSection('account-membership')}>
+                {t('account.qr.emptyAction')}
+              </button>
+              {onNavigate ? (
+                <button
+                  type="button"
+                  className="account-secondary-action"
+                  onClick={() => onNavigate('events')}
+                >
+                  {t('account.qr.emptyCalendarAction')}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
