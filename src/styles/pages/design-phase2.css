@@ -3529,6 +3529,16 @@ body:has(.auth-layout) {
     justify-items: center;
   }
 
+  /* Sin panel fotográfico no hay borde izquierdo con el que alinear: la
+     columna acotada y su nota al pie se centran en la pantalla. */
+  .auth-layout--solo .auth-layout__content .auth-immersive-glass {
+    margin-inline: auto;
+  }
+
+  .auth-layout--solo .auth-layout__content .login-page__footer.auth-layout__footer {
+    text-align: center;
+  }
+
   .auth-layout__visual {
     align-items: center;
     align-self: stretch;
