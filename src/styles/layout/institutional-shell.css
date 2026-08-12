@@ -2629,27 +2629,35 @@ html.plu-drawer-open body {
 @media (max-width: 899px) {
   .site-header-shell--institutional {
     --brand-emblem-base: 1;
-    /* Phone: contenido en la pill; no más grande que notebook mid. */
-    --brand-emblem-size: clamp(34px, 5.5vw + 12px, 40px);
-    --brand-nav-row: 44px;
+    --brand-emblem-size: clamp(36px, 5.8vw + 14px, 42px);
+    --brand-nav-row: 46px;
     --brand-wordmark-size: clamp(3.5rem, 12vw, 5rem);
     --brand-wordmark-track: calc(var(--brand-wordmark-open, 1) * var(--brand-wordmark-size));
-    max-width: calc(100% - 20px);
-    top: 12px;
+    max-width: calc(100% - 18px);
+    top: 10px;
     width: 100%;
   }
 
   .site-header--institutional {
+    border-color: color-mix(in srgb, var(--institution-border) 55%, transparent);
+    box-shadow:
+      0 10px 28px -18px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
     width: 100%;
+  }
+
+  [data-theme='light'] .site-header--institutional {
+    border-color: rgba(15, 17, 23, 0.08);
+    box-shadow: 0 8px 22px -16px rgba(15, 17, 23, 0.16);
   }
 
   .plu-global-nav {
     align-items: center;
     display: grid;
-    gap: 8px;
-    grid-template-columns: auto 1fr auto;
-    min-height: 56px;
-    padding-inline: 10px;
+    gap: 6px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 54px;
+    padding: 0 12px 0 10px;
     width: 100%;
   }
 
@@ -2661,7 +2669,7 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__letterhead {
-    height: clamp(23px, 2.6vw, 26px);
+    height: clamp(18px, 2.4vw, 22px);
   }
 
   .plu-global-nav__desktop,
@@ -2680,10 +2688,12 @@ html.plu-drawer-open body {
     border-radius: 0;
     box-shadow: none;
     display: inline-flex;
-    gap: 6px;
+    gap: 0;
     grid-column: 2;
+    justify-content: center;
     justify-self: center;
     max-width: 100%;
+    min-width: 0;
     padding: 0;
   }
 
@@ -2709,7 +2719,7 @@ html.plu-drawer-open body {
     align-items: center;
     display: inline-flex;
     flex: none;
-    gap: 2px;
+    gap: 0;
   }
 
   .plu-global-nav__mobile-cluster .pref-toggle--compact {
@@ -2720,15 +2730,15 @@ html.plu-drawer-open body {
     box-shadow: none;
     color: var(--institution-text-secondary);
     display: inline-flex;
-    height: 40px;
+    height: 36px;
     justify-content: center;
-    min-height: 40px;
-    min-width: 40px;
+    min-height: 36px;
+    min-width: 36px;
     padding: 0;
     transition:
       background-color var(--motion-fast) var(--ease-out),
       color var(--motion-fast) var(--ease-out);
-    width: 40px;
+    width: 36px;
   }
 
   .plu-global-nav__mobile-cluster .pref-toggle--compact:hover {
@@ -2744,14 +2754,11 @@ html.plu-drawer-open body {
 
   .plu-global-nav__mobile-cluster .pref-toggle--compact svg {
     flex: none;
-    height: 16px;
-    width: 16px;
+    height: 15px;
+    width: 15px;
   }
 
-  /* ES / EN — par tipográfico con barra editorial, sin caja ni acento propio.
-     El único acento del cluster es Afiliar (un énfasis por bloque).
-     Las reglas de `components/states.css` empatan en especificidad, así que
-     acá se anulan de forma explícita en vez de depender del orden de carga. */
+  /* ES / EN — meta tipográfica quieta; un solo acento = Afiliar */
   .plu-global-nav__mobile-cluster .locale-switch--segment,
   .plu-global-nav__mobile-cluster .locale-switch--segment:hover,
   .plu-global-nav__mobile-cluster .locale-switch--segment:focus-within {
@@ -2763,15 +2770,13 @@ html.plu-drawer-open body {
     box-shadow: none;
     display: inline-flex;
     flex: none;
-    height: 40px;
-    min-height: 40px;
+    height: 36px;
+    min-height: 36px;
     padding: 0;
     position: relative;
     width: auto;
   }
 
-  /* El estado activo se comunica con color y peso; aria-pressed ya lo expone
-     a lectores de pantalla, así que la pastilla deslizante no aporta. */
   .plu-global-nav__mobile-cluster .locale-switch__segment-thumb {
     display: none;
   }
@@ -2781,31 +2786,29 @@ html.plu-drawer-open body {
     background: transparent;
     border: 0;
     border-radius: 4px;
-    color: color-mix(in srgb, var(--institution-text) 38%, transparent);
+    color: color-mix(in srgb, var(--institution-text) 42%, transparent);
     display: inline-flex;
     font-family: var(--font-display);
     font-size: 10px;
     font-weight: 500;
     height: auto;
     justify-content: center;
-    letter-spacing: 0.11em;
-    min-height: 40px;
+    letter-spacing: 0.12em;
+    min-height: 36px;
     min-width: 0;
-    padding: 0 6px;
+    padding: 0 5px;
     position: relative;
     transition: color var(--motion-fast) var(--ease-out);
     width: auto;
   }
 
-  /* Barra fina entre siglas: las vuelve un par de alternativas, no dos botones sueltos.
-     El nombre accesible sale del aria-label del botón, así que no interfiere. */
   .plu-global-nav__mobile-cluster
     .locale-switch__segment-option
     + .locale-switch__segment-option::before {
-    color: color-mix(in srgb, var(--institution-text) 18%, transparent);
+    color: color-mix(in srgb, var(--institution-text) 22%, transparent);
     content: '/';
     font-weight: 400;
-    left: -2px;
+    left: -1px;
     pointer-events: none;
     position: absolute;
   }
@@ -2826,13 +2829,24 @@ html.plu-drawer-open body {
     outline-offset: 2px;
   }
 
+  /* Separadores editoriales (punto medio), no reglas SaaS */
   .plu-global-nav__mobile-divider {
     align-self: center;
-    background: color-mix(in srgb, var(--institution-text) 11%, transparent);
+    background: transparent;
+    color: color-mix(in srgb, var(--institution-text) 28%, transparent);
     flex: none;
-    height: 12px;
-    opacity: 0.9;
-    width: 1px;
+    font-size: 11px;
+    font-weight: 400;
+    height: auto;
+    letter-spacing: 0;
+    line-height: 1;
+    opacity: 1;
+    padding: 0 5px;
+    width: auto;
+  }
+
+  .plu-global-nav__mobile-divider::before {
+    content: '·';
   }
 
   .plu-global-nav__mobile-login {
@@ -2840,23 +2854,23 @@ html.plu-drawer-open body {
     background: transparent;
     border: 0;
     border-radius: 4px;
-    color: var(--institution-text);
+    color: var(--institution-text-secondary);
     display: inline-flex;
     flex: none;
     font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: 0.07em;
     line-height: 1;
-    min-height: 40px;
-    padding: 0 7px;
+    min-height: 36px;
+    padding: 0 4px;
     text-transform: uppercase;
     transition: color var(--motion-fast) var(--ease-out);
   }
 
   .plu-global-nav__mobile-login:hover,
   .plu-global-nav__mobile-login.is-active {
-    color: var(--institution-blue);
+    color: var(--institution-text);
   }
 
   .plu-global-nav__mobile-login:focus-visible {
@@ -2865,7 +2879,7 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__mobile-login--account {
-    padding: 0 4px;
+    padding: 0 2px;
   }
 
   .plu-global-nav__mobile-login-avatar {
@@ -2877,12 +2891,12 @@ html.plu-drawer-open body {
     display: inline-flex;
     font-size: 10px;
     font-weight: 700;
-    height: 28px;
+    height: 26px;
     justify-content: center;
     letter-spacing: 0;
     overflow: hidden;
     text-transform: none;
-    width: 28px;
+    width: 26px;
   }
 
   .plu-global-nav__mobile-login-avatar img {
@@ -2892,12 +2906,12 @@ html.plu-drawer-open body {
   }
 
   .plu-global-nav__session-skeleton {
-    height: 28px;
-    margin-inline: 4px;
-    width: 28px;
+    height: 26px;
+    margin-inline: 2px;
+    width: 26px;
   }
 
-  /* Afiliar — sin caja: el acento es una hairline gold bajo el texto */
+  /* Afiliar — único acento: hairline dorada */
   .plu-global-nav__mobile-affiliate {
     align-items: center;
     background: transparent;
@@ -2907,22 +2921,22 @@ html.plu-drawer-open body {
     color: var(--institution-text);
     display: inline-flex;
     flex: none;
-    height: 40px;
+    height: 36px;
     justify-content: center;
-    min-height: 40px;
+    min-height: 36px;
     min-width: 0;
-    padding: 0 7px;
+    padding: 0 4px;
     transition: color var(--motion-fast) var(--ease-out);
     width: auto;
   }
 
   .plu-global-nav__mobile-affiliate-label {
     font-family: var(--font-display);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.08em;
     line-height: 1;
-    padding-bottom: 4px;
+    padding-bottom: 3px;
     position: relative;
     text-transform: uppercase;
   }
@@ -2931,9 +2945,9 @@ html.plu-drawer-open body {
     background: var(--institution-gold);
     bottom: 0;
     content: '';
-    height: 1.5px;
+    height: 1px;
     left: 0;
-    opacity: 0.75;
+    opacity: 0.85;
     position: absolute;
     right: 0;
     transition: opacity var(--motion-fast) var(--ease-out);
@@ -2958,7 +2972,7 @@ html.plu-drawer-open body {
 
   .plu-global-nav__emblem {
     height: var(--brand-emblem-size);
-    margin-block: calc((var(--brand-nav-row, 44px) - var(--brand-emblem-size)) / 2);
+    margin-block: calc((var(--brand-nav-row, 46px) - var(--brand-emblem-size)) / 2);
     width: var(--brand-emblem-size);
   }
 
@@ -2968,7 +2982,6 @@ html.plu-drawer-open body {
     display: grid;
   }
 
-  /* Ya afiliado: estado (celeste), no CTA de conversión */
   .plu-global-nav__mobile-affiliate--member {
     color: var(--institution-text-secondary);
   }
@@ -2989,6 +3002,24 @@ html.plu-drawer-open body {
 
   .plu-global-nav__mobile-affiliate--member.is-active {
     color: var(--institution-text);
+  }
+
+  /* Menú: glifo más fino / editorial */
+  .plu-global-nav__menu-button {
+    color: var(--institution-text-secondary);
+    height: 36px;
+    min-height: 36px;
+    min-width: 36px;
+    width: 36px;
+  }
+
+  .plu-global-nav__menu-icon {
+    height: 9px;
+    width: 16px;
+  }
+
+  .plu-global-nav__menu-line {
+    height: 1px;
   }
 }
 
@@ -3090,83 +3121,33 @@ html.plu-drawer-open body {
 }
 
 @media (max-width: 520px) {
-  /* Letterhead pelea con el cluster: priorizar emblema. */
+  /* Letterhead pelea con el cluster: solo emblema. */
   .plu-global-nav__wordmark { display: none; }
   .plu-global-nav__brand { max-width: none; }
   .site-header-shell--institutional {
-    --brand-emblem-size: clamp(36px, 8vw, 40px);
-    --brand-nav-row: 42px;
-    max-width: calc(100% - 16px);
-    top: 10px;
+    --brand-emblem-size: clamp(38px, 8.5vw, 42px);
+    --brand-nav-row: 44px;
+    max-width: calc(100% - 14px);
+    top: 8px;
   }
   .plu-global-nav {
-    gap: 6px;
-    min-height: 52px;
-    padding-inline: 8px;
+    gap: 4px;
+    min-height: 50px;
+    padding: 0 10px 0 8px;
   }
   .plu-global-nav__emblem {
     height: var(--brand-emblem-size);
-    margin-block: calc((var(--brand-nav-row, 42px) - var(--brand-emblem-size)) / 2);
+    margin-block: calc((var(--brand-nav-row, 44px) - var(--brand-emblem-size)) / 2);
     width: var(--brand-emblem-size);
   }
 
-  /* Compactar sin sacar Acceder / Afiliar / idioma.
-     Solo el theme (ya está en el drawer) cede el ancho. */
+  /* Theme al drawer; idioma + Acceder + Afiliar se quedan. */
   .plu-global-nav__mobile-prefs .pref-toggle--compact {
     display: none;
   }
 
-  .plu-global-nav__mobile-cluster {
-    gap: 2px;
-  }
-
   .plu-global-nav__mobile-divider {
-    height: 10px;
-    margin-inline: 2px;
-  }
-
-  .plu-global-nav__mobile-prefs {
-    gap: 0;
-  }
-
-  .plu-global-nav__mobile-cluster .locale-switch--segment,
-  .plu-global-nav__mobile-cluster .locale-switch--segment:hover,
-  .plu-global-nav__mobile-cluster .locale-switch--segment:focus-within {
-    height: 36px;
-    min-height: 36px;
-  }
-
-  .plu-global-nav__mobile-cluster .locale-switch__segment-option {
-    font-size: 9.5px;
-    letter-spacing: 0.08em;
-    min-height: 36px;
     padding: 0 4px;
-  }
-
-  .plu-global-nav__mobile-login {
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    min-height: 36px;
-    padding: 0 5px;
-  }
-
-  .plu-global-nav__mobile-affiliate {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 5px;
-  }
-
-  .plu-global-nav__mobile-affiliate-label {
-    font-size: 10px;
-    letter-spacing: 0.07em;
-    padding-bottom: 3px;
-  }
-
-  .plu-global-nav__menu-button {
-    height: 36px;
-    min-height: 36px;
-    min-width: 36px;
-    width: 36px;
   }
 }
 
