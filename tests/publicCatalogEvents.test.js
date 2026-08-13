@@ -42,7 +42,7 @@ describe('catalogo publico — exclusion de stubs', () => {
     ])
   })
 
-  it('permite stubs en desarrollo cuando se pide explicitamente', () => {
+  it('no lista stubs aunque el caller pida includeDevelopmentStubs', () => {
     const stub = { slug: 'test-2026', title: 'PIT ELITE', status: 'inscripcion_abierta' }
     const pitbull = {
       slug: 'pitbull-classic-2026',
@@ -54,6 +54,6 @@ describe('catalogo publico — exclusion de stubs', () => {
       getPublicCatalogEvents([stub, pitbull], { includeDevelopmentStubs: true }).map(
         (event) => event.slug,
       ),
-    ).toEqual(['test-2026', 'pitbull-classic-2026'])
+    ).toEqual(['pitbull-classic-2026'])
   })
 })

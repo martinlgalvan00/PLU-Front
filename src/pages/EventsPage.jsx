@@ -358,7 +358,9 @@ export default function EventsPage({
 
   const events = useMemo(
     () =>
-      getPublicCatalogEvents(eventsProp, { includeDevelopmentStubs: env.isDev }).map((event) => {
+      // Nunca pasar `{ includeDevelopmentStubs: env.isDev }`: Vitest/Vite
+      // corren con DEV=true y el stub “test” volvería al catálogo público.
+      getPublicCatalogEvents(eventsProp, { includeDevelopmentStubs: false }).map((event) => {
         const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
         return {
           ...merged,
