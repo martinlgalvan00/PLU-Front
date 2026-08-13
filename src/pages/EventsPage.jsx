@@ -367,7 +367,7 @@ export default function EventsPage({
       }
 
       return getPublicCatalogEvents([...eventsBySlug.values()], {
-        includeDevelopmentStubs: true,
+        includeDevelopmentStubs: env.isDev && !env.appProduction,
       }).map((event) => {
         const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
         return {
