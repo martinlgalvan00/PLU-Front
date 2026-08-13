@@ -225,7 +225,7 @@ describe('plantillas HTML de fallback', () => {
       { name: 'Ana', resetUrl: 'https://plu.example/reset?token=abc' },
       { appUrl: 'https://plu.example' },
     )
-    expect(htmlContent).toContain(`src="https://plu.example${EMAIL_LOGO_PATH}"`)
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toContain('background-color:#1a1c22')
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Restablecé tu contraseña</)
@@ -255,8 +255,10 @@ describe('plantillas HTML de fallback', () => {
     expect(htmlContent).not.toContain('background-color:#f7f6f3;border:1px solid')
   })
 
-  it('arma la URL del logo desde appUrl y rutas relativas', () => {
-    expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(`https://plu.example${EMAIL_LOGO_PATH}`)
+  it('arma la URL del logo desde el asset publico y permite rutas relativas', () => {
+    expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(
+      `${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`,
+    )
     expect(buildEmailLogoUrl('', '../../public/brand/plu-argentina-email.png')).toBe(
       '../../public/brand/plu-argentina-email.png',
     )
@@ -467,7 +469,7 @@ describe('dispatcher de emails', () => {
 
     const payload = send.mock.calls[0][0]
     expect(payload.subject).toBe('Restablecé tu contraseña · PLU ARG')
-    expect(payload.htmlContent).toContain(`src="https://plu.example/brand/plu-argentina-email.png"`)
+    expect(payload.htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(payload.htmlContent).toContain('Restablecé tu contraseña')
   })
 
