@@ -61,10 +61,11 @@ export async function apiRequest(path, options = {}) {
     const unavailable =
       (response.status === 502 || response.status === 503 || response.status === 504) &&
       (!body || typeof body !== 'object' || !body.error || body.error === 'Error interno')
+    const unavailableMessage = env.isDev
+      ? 'El servicio no esta disponible en este momento. En local levanta la API con npm run dev:api (o npm run dev:services).'
+      : 'No pudimos iniciar el servicio en este momento. Intenta nuevamente o contacta soporte.'
     throw new ApiError(
-      unavailable
-        ? 'El servicio no está disponible en este momento. En local levantá la API con npm run dev:api (o npm run dev:services).'
-        : body?.error ?? `Error ${response.status}`,
+      unavailable ? unavailableMessage : body?.error ?? `Error ${response.status}`,
       {
         status: response.status,
         body: typeof body === 'object' && body ? body : { error: body },

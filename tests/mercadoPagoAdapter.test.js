@@ -1,4 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mpMocks = vi.hoisted(() => ({
+  preferenceCreate: vi.fn(),
+}))
+
+vi.mock('mercadopago', () => ({
+  MercadoPagoConfig: vi.fn(function MercadoPagoConfig(config) {
+    this.config = config
+  }),
+  Payment: vi.fn(function Payment() {}),
+  PreApproval: vi.fn(function PreApproval() {}),
+  PreApprovalPlan: vi.fn(function PreApprovalPlan() {}),
+  Preference: vi.fn(function Preference() {
+    this.create = mpMocks.preferenceCreate
+  }),
+}))
+
 import { createMercadoPagoAdapter } from '../server/modules/payments/mercadoPagoAdapter.js'
 
 const order = {
@@ -11,6 +28,10 @@ const order = {
 }
 
 describe('adaptador de Mercado Pago', () => {
+  beforeEach(() => {
+    mpMocks.preferenceCreate.mockReset()
+  })
+
   it('rechaza credenciales placeholder antes de construir el cliente', () => {
     expect(() => createMercadoPagoAdapter({
       env: { MERCADO_PAGO_ACCESS_TOKEN: 'replace-me' },
@@ -51,5 +72,63 @@ describe('adaptador de Mercado Pago', () => {
       idempotencyKey: 'x'.repeat(65),
       formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
     })).rejects.toMatchObject({ status: 503 })
+  })
+
+  it('usa APP_URL como webhook cuando API_URL no esta configurada', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-1',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-1',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-1',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({
+      order,
+      idempotencyKey: 'membership-order-1',
+    })
+
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
+        back_urls: expect.objectContaining({
+          success: 'https://powerliftingunited.ar/registro?payment=success&order=order-1',
+        }),
+      }),
+      requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
+    }))
+  })
+
+  it('usa la URL oficial como fallback en produccion Vercel', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-2',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-2',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-2',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_PRODUCTION: 'true',
+        VERCEL: '1',
+        VERCEL_PROJECT_PRODUCTION_URL: 'example.vercel.app',
+      },
+    })
+
+    await adapter.createPreference({
+      order,
+      idempotencyKey: 'membership-order-2',
+    })
+
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
+      }),
+    }))
   })
 })

@@ -6,6 +6,7 @@ import {
   Preference,
 } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -36,6 +37,14 @@ function supportsAutoReturn(returnBase) {
   } catch {
     return false
   }
+}
+
+function resolveIntegrationUrl({ explicit, fallback, label, env }) {
+  return requireIntegrationUrl(
+    explicit ?? fallback ?? resolveDeploymentAppUrl(env),
+    label,
+    env,
+  )
 }
 
 function requireIntegrationUrl(value, label, env) {
@@ -97,12 +106,17 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
-      const returnBase = requireIntegrationUrl(
-        appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
-        'APP_URL',
+      const returnBase = resolveIntegrationUrl({
+        explicit: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        label: 'APP_URL',
         env,
-      )
-      const webhookBase = requireIntegrationUrl(apiUrl ?? env.API_URL, 'API_URL', env)
+      })
+      const webhookBase = resolveIntegrationUrl({
+        explicit: apiUrl ?? env.API_URL,
+        fallback: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        label: 'API_URL',
+        env,
+      })
 
       const returnPath = order.kind === 'ticket' ? '/eventos' : '/registro'
       const body = {
@@ -158,7 +172,12 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
-      const webhookBase = requireIntegrationUrl(env.API_URL, 'API_URL', env)
+      const webhookBase = resolveIntegrationUrl({
+        explicit: env.API_URL,
+        fallback: env.APP_URL ?? env.VITE_APP_URL,
+        label: 'API_URL',
+        env,
+      })
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
         ...(formData.payer?.identification ? { identification: formData.payer.identification } : {}),
