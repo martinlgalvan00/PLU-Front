@@ -445,7 +445,13 @@ export default function RegisterPage({
   )
   const comboEnabled = flow === 'competition' && comboAvailability.enabled
   const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
-  const paidCheckoutOpen = isPaidCheckoutOpen(event, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
+    checkoutKind: flow === 'membership'
+      ? 'membership'
+      : purchaseType === 'combo'
+        ? 'combo'
+        : 'registration',
+  })
   const checkoutFlowsLocked =
     (flow === 'competition' || flow === 'membership') && !paidCheckoutOpen
   const effectivePurchaseType = comboEnabled && purchaseType === 'combo'

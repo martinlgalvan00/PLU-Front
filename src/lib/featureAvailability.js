@@ -51,6 +51,15 @@ export function resolvePaymentsMockFlag(envLike = appEnv) {
   return null
 }
 
+function normalizeCheckoutKind(options = {}) {
+  const raw = options?.checkoutKind ?? options?.kind ?? options?.concept
+  return String(raw ?? '').trim().toLowerCase()
+}
+
+function isLiveCheckoutKind(kind) {
+  return kind === 'membership' || kind === 'registration' || kind === 'combo'
+}
+
 /**
  * @deprecated La fecha de apertura vive en el evento (admin: registrationOpensAt).
  * Se mantiene por compatibilidad de tests/imports; ya no abre el gate.
@@ -72,6 +81,9 @@ export function resolvePaidCheckoutOpensAt(envLike = appEnv) {
  * @param {{ registrationOpensAt?: string | null }} [_options]
  */
 export function isPaidCheckoutEnabled(envLike = appEnv, _now = new Date(), _options = {}) {
+  const checkoutKind = normalizeCheckoutKind(_options)
+  if (isLiveCheckoutKind(checkoutKind)) return true
+
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
   if (!isAppProduction(envLike)) return true

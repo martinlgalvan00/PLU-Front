@@ -956,7 +956,8 @@ export default function PitbullPage({
     title: pitbullEvent?.title ?? PITBULL_CLASSIC.title,
   }
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
-  const paidCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'registration' })
+  const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'ticket' })
   const checkoutLocked = !paidCheckoutOpen
   const hasActiveMembership = session?.role === 'athlete_plu'
     && hasCurrentMembership(memberships, session.athleteId)
@@ -964,7 +965,7 @@ export default function PitbullPage({
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
-  const ticketsOpen = paidCheckoutOpen && eventPricing.ticketsEnabled !== false
+  const ticketsOpen = ticketCheckoutOpen && eventPricing.ticketsEnabled !== false
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const {
     status: capacityStatus,

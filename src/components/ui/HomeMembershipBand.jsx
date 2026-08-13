@@ -47,7 +47,7 @@ export default function HomeMembershipBand({
   const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
 
   /** El CTA principal responde al estado real de la sesión — nunca invita a
    * "ver planes" a quien ya está afiliado, ni a "afiliarse" sin haber

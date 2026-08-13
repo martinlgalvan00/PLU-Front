@@ -651,7 +651,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   })
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
     try {
-      await assertPaidCheckoutAvailable(env, new Date(), { client: client() })
+      await assertPaidCheckoutAvailable(env, new Date(), { client: client(), checkoutKind: 'membership' })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -668,7 +668,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   router.post('/me/registrations', publicWriteLimiter, validateBody(registrationSchema), async (req, res, next) => {
     try {
       const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
-      await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
+      await assertPaidCheckoutAvailable(env, new Date(), {
+        registrationOpensAt,
+        skipScheduleLookup: true,
+        checkoutKind: 'registration',
+      })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       res.status(201).json(await repo().createRegistration(auth.athleteId, req.validatedBody))
@@ -681,7 +685,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     async (req, res, next) => {
       try {
         const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
-        await assertComboCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
+        await assertComboCheckoutAvailable(env, new Date(), {
+          registrationOpensAt,
+          skipScheduleLookup: true,
+          checkoutKind: 'combo',
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         res.status(201).json(await repo().createRegistrationCombo(auth.athleteId, req.validatedBody))

@@ -45,6 +45,15 @@ export function resolvePaymentsMockFlag(env = process.env) {
   return null
 }
 
+function normalizeCheckoutKind(options = {}) {
+  const raw = options?.checkoutKind ?? options?.kind ?? options?.concept
+  return String(raw ?? '').trim().toLowerCase()
+}
+
+function isLiveCheckoutKind(kind) {
+  return kind === 'membership' || kind === 'registration' || kind === 'combo'
+}
+
 /**
  * @deprecated Preferir fecha admin del evento. Se mantiene por compat de imports.
  * @param {NodeJS.ProcessEnv | Record<string, unknown>} [env]
@@ -64,6 +73,9 @@ export function resolvePaidCheckoutOpensAt(env = process.env) {
  * @param {{ registrationOpensAt?: string | null }} [_options]
  */
 export function isPaidCheckoutEnabled(env = process.env, _now = new Date(), _options = {}) {
+  const checkoutKind = normalizeCheckoutKind(_options)
+  if (isLiveCheckoutKind(checkoutKind)) return true
+
   const override = resolvePaidCheckoutOverride(env)
   if (override !== null) return override
   if (!isAppProduction(env)) return true
@@ -134,6 +146,9 @@ export async function assertPaidCheckoutAvailable(
   _now = new Date(),
   _options = {},
 ) {
+  const checkoutKind = normalizeCheckoutKind(_options)
+  if (isLiveCheckoutKind(checkoutKind)) return
+
   const override = resolvePaidCheckoutOverride(env)
   if (override === true) return
   if (override === false) {

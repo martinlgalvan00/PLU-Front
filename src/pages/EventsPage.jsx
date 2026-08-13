@@ -70,7 +70,7 @@ function EventsDetailPanel({
     )
   }
 
-  const checkoutOpen = isPaidCheckoutOpen(event, env)
+  const checkoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const statusAllowsRegister =
     event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   const canRegister =
@@ -478,7 +478,7 @@ export default function EventsPage({
 
   function isRegistrationOpen(event) {
     return (
-      isPaidCheckoutOpen(event, env) &&
+      isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' }) &&
       (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
     )
   }
