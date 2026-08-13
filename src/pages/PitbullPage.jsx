@@ -28,6 +28,7 @@ import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { formatRelativeTime, formatShortDate, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
+import { hasCurrentMembership } from '../services/membershipService.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../motion/tokens.ts'
@@ -564,6 +565,7 @@ function PitbullInscriptionSection({
   comboOffer = null,
   event,
   eventStatus,
+  hasActiveMembership = false,
   locale,
   onNavigate,
   onRegister,
@@ -579,7 +581,7 @@ function PitbullInscriptionSection({
   const statusMeta = getStatusMeta(eventStatus, t)
   const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
   const statusTone = softLaunch ? 'neutral' : statusMeta.tone
-  const comboLive = Boolean(comboOffer) && !softLaunch
+  const comboLive = Boolean(comboOffer) && !softLaunch && !hasActiveMembership
   const separateTotal = Number(pricing.membership) + Number(pricing.registration)
   const comboSavings = comboLive ? Math.max(0, separateTotal - Number(comboOffer.price)) : 0
   const comboEndsLabel = comboOffer?.endsAt
@@ -634,6 +636,7 @@ function PitbullInscriptionSection({
           'pitbull-inscription-shell--compact',
           softLaunch ? 'pitbull-inscription-shell--soon' : '',
           comboLive ? 'pitbull-inscription-shell--combo' : '',
+          hasActiveMembership ? 'pitbull-inscription-shell--affiliated' : '',
         ].filter(Boolean).join(' ')}
       >
         <PitbullInscriptionCounter
@@ -663,15 +666,20 @@ function PitbullInscriptionSection({
                   <span className="pitbull-inscription-shell__combo-amount">
                     {money(comboOffer.price, locale)}
                   </span>
+                </dd>
+                <p className="pitbull-inscription-shell__combo-meta">
                   {comboEndsLabel ? (
                     <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
                   ) : null}
-                </dd>
-                {comboSavings > 0 ? (
-                  <p className="pitbull-inscription-shell__combo-hint">
-                    {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
-                  </p>
-                ) : null}
+                  {comboEndsLabel && comboSavings > 0 ? (
+                    <span aria-hidden> · </span>
+                  ) : null}
+                  {comboSavings > 0 ? (
+                    <span className="pitbull-inscription-shell__combo-hint">
+                      {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
+                    </span>
+                  ) : null}
+                </p>
                 <p className="pitbull-inscription-shell__desc pitbull-inscription-shell__desc--combo">
                   {canRegister
                     ? t('pages.pitbull.cardDescCombo')
@@ -681,24 +689,35 @@ function PitbullInscriptionSection({
                 </p>
               </div>
             ) : null}
-            <div className="pitbull-inscription-shell__price">
-              <dt>{t('pages.pitbull.costMembership')}</dt>
-              <dd>{money(pricing.membership, locale)}</dd>
-            </div>
-            <div className="pitbull-inscription-shell__price">
-              <dt>{t('pages.pitbull.costMeet')}</dt>
-              <dd>{money(pricing.registration, locale)}</dd>
-            </div>
+            {hasActiveMembership ? (
+              <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--meet-only">
+                <dt>{t('pages.pitbull.costMeet')}</dt>
+                <dd>{money(pricing.registration, locale)}</dd>
+              </div>
+            ) : (
+              <div className="pitbull-inscription-shell__compare">
+                <div className="pitbull-inscription-shell__price">
+                  <dt>{t('pages.pitbull.costMembership')}</dt>
+                  <dd>{money(pricing.membership, locale)}</dd>
+                </div>
+                <div className="pitbull-inscription-shell__price">
+                  <dt>{t('pages.pitbull.costMeet')}</dt>
+                  <dd>{money(pricing.registration, locale)}</dd>
+                </div>
+              </div>
+            )}
           </Pricing>
 
           <Footer className="pitbull-inscription-shell__footer" {...childProps}>
             {!comboLive ? (
               <p className="pitbull-inscription-shell__desc">
-                {canRegister
-                  ? t('pages.pitbull.cardDescOpen')
-                  : softLaunch
-                    ? t('pages.pitbull.cardDescComingSoon')
-                    : t('pages.pitbull.cardDescClosed')}
+                {hasActiveMembership
+                  ? t('pages.pitbull.inscriptionActionOpen')
+                  : canRegister
+                    ? t('pages.pitbull.cardDescOpen')
+                    : softLaunch
+                      ? t('pages.pitbull.cardDescComingSoon')
+                      : t('pages.pitbull.cardDescClosed')}
               </p>
             ) : null}
 
@@ -716,9 +735,11 @@ function PitbullInscriptionSection({
                   <button
                     type="button"
                     className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
-                    onClick={() => onNavigate('members')}
+                    onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
                   >
-                    {t('pages.pitbull.viewMembershipPlans')}
+                    {hasActiveMembership
+                      ? t('pages.pitbull.viewMyMembership')
+                      : t('pages.pitbull.viewMembershipPlans')}
                   </button>
                 </>
               ) : softLaunch ? (
@@ -733,9 +754,11 @@ function PitbullInscriptionSection({
                   <button
                     type="button"
                     className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
-                    onClick={() => onNavigate('register')}
+                    onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'register')}
                   >
-                    {t('launchTeaser.createAccountCta')}
+                    {hasActiveMembership
+                      ? t('pages.pitbull.viewMyMembership')
+                      : t('launchTeaser.createAccountCta')}
                   </button>
                 </>
               ) : (
@@ -743,9 +766,9 @@ function PitbullInscriptionSection({
                   <button
                     type="button"
                     className="pitbull-inscription__cta pitbull-inscription__cta--primary"
-                    onClick={() => onNavigate('members')}
+                    onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
                   >
-                    {t('pages.pitbull.joinNow')}
+                    {hasActiveMembership ? t('pages.pitbull.viewMyMembership') : t('pages.pitbull.joinNow')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
                   <button
@@ -880,6 +903,8 @@ export default function PitbullPage({
   onNavigate,
   onSelectEvent,
   events = UPCOMING_EVENTS,
+  session = null,
+  memberships = [],
 }) {
   const {
     PITBULL_CLASSIC,
@@ -903,10 +928,12 @@ export default function PitbullPage({
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
   const paidCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env)
   const checkoutLocked = !paidCheckoutOpen
+  const hasActiveMembership = session?.role === 'athlete_plu'
+    && hasCurrentMembership(memberships, session.athleteId)
   const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
-  const liveComboOffer = paidCheckoutOpen ? resolveLiveComboOffer(pitbullEvent) : null
+  const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
   const ticketsOpen = paidCheckoutOpen && eventPricing.ticketsEnabled !== false
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const {
@@ -919,7 +946,7 @@ export default function PitbullPage({
     observeRoot: 'inscripcion',
     // Nunca inventar inscritos: el seed (48) distorsiona soft-launch.
     fallbackRegistered: 0,
-    fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 120,
+    fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 180,
   })
   const sectionNavItems = [
     { id: 'inscripcion', index: '01', label: t('pages.pitbull.inscriptionEyebrow') },
@@ -991,6 +1018,7 @@ export default function PitbullPage({
             comboOffer={liveComboOffer}
             event={pitbullEvent}
             eventStatus={eventStatus}
+            hasActiveMembership={hasActiveMembership}
             locale={locale}
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}

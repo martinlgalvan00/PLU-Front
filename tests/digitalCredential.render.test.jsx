@@ -72,6 +72,19 @@ describe('DigitalCredential', () => {
     expect(status?.classList.contains('is-active')).toBe(false)
   })
 
+  it('keeps the card solid when there is no active membership', () => {
+    const { container } = renderCredential({ status: 'inactiva' })
+    const card = container.querySelector('.account-credential__card')
+    expect(card?.dataset.flippable).toBe('0')
+    expect(card?.getAttribute('role')).toBeNull()
+    expect(container.querySelector('.account-credential__face--back')).toBeNull()
+    expect(container.querySelector('.account-credential__flip')).toBeNull()
+
+    fireEvent.click(card)
+    expect(card?.dataset.flipped).toBe('0')
+    expect(container.querySelector('.account-credential__face--back')).toBeNull()
+  })
+
   it('flips via card tap and flip button', () => {
     const { container } = renderCredential({ status: 'activa', memberCode: 'PLU-9' })
     const card = container.querySelector('.account-credential__card')
@@ -88,7 +101,11 @@ describe('DigitalCredential', () => {
   })
 
   it('shows athlete identity on the reverse face', () => {
-    const { container } = renderCredential({ status: 'activa', memberCode: 'PLU-9' })
+    const { container } = renderCredential({
+      status: 'activa',
+      memberCode: 'PLU-9',
+      expirationDate: '2027-01-01',
+    })
     const back = container.querySelector('.account-credential__face--back')
     expect(within(back).getByText('Agustin Di Santo')).toBeTruthy()
     expect(within(back).getByText('44545980')).toBeTruthy()

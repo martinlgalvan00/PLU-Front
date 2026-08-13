@@ -10,7 +10,7 @@
 insert into public.events (
   slug, title, venue, location, starts_at, ends_at,
   status, published, price, currency, rules,
-  ticket_sales_opens_at, ticket_sales_closes_at
+  ticket_sales_opens_at, ticket_sales_closes_at, capacity
 ) values (
   'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
@@ -22,14 +22,22 @@ insert into public.events (
     'ticketAddons', '[]'::jsonb,
     'featured', true
   ),
-  '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03'
+  '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03', 180
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',
   '2025-05-18 10:00:00-03', '2025-05-18 20:00:00-03',
   'finalizado', true, 75000, 'ARS',
   null,
-  null, null
+  null, null, null
 );
+
+insert into public.event_capacity_rules (organization_id, event_id, scope, key, limit_count)
+select e.organization_id, e.id, 'event', '', 180
+from public.events e
+where e.slug = 'pitbull-classic-2026'
+on conflict (event_id, scope, key) do update
+set limit_count = 180,
+    updated_at = now();
 
 -- Oferta combo vigente (afiliación + inscripción) para checkout productivo.
 -- El plan one_time ya existe por migraciones; acá solo se vincula al evento.

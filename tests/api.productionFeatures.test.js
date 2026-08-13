@@ -287,7 +287,7 @@ describe('features publicas con APP_PRODUCTION', () => {
     }
   })
 
-  it('la ventana de paidCheckout es independiente por evento, no por la fecha de otro evento', async () => {
+  it('en produccion cierra cobros aunque registration_opens_at ya haya pasado', async () => {
     const createRegistration = vi.fn().mockResolvedValue({ id: 'reg-1' })
     const createRegistrationCombo = vi.fn().mockResolvedValue({
       order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
@@ -311,28 +311,30 @@ describe('features publicas con APP_PRODUCTION', () => {
         bodyweightKg: 90,
         paymentMethod: 'mercado_pago',
       }
-      const open = await fetch(`${target.url}/api/athletes/me/registrations`, {
+      const pastDate = await fetch(`${target.url}/api/athletes/me/registrations`, {
         method: 'POST',
         headers: athleteHeaders,
         body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
       })
-      const closed = await fetch(`${target.url}/api/athletes/me/registrations`, {
+      const futureDate = await fetch(`${target.url}/api/athletes/me/registrations`, {
         method: 'POST',
         headers: athleteHeaders,
         body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-cerrado', idempotencyKey: crypto.randomUUID() }),
       })
-      const comboOpen = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+      const comboPast = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
         method: 'POST',
         headers: athleteHeaders,
         body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
       })
 
-      expect(open.status).toBe(201)
-      expect(closed.status).toBe(409)
-      expect(await closed.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(comboOpen.status).toBe(201)
-      expect(createRegistration).toHaveBeenCalledOnce()
-      expect(createRegistrationCombo).toHaveBeenCalledOnce()
+      expect(pastDate.status).toBe(409)
+      expect(await pastDate.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(futureDate.status).toBe(409)
+      expect(await futureDate.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(comboPast.status).toBe(409)
+      expect(await comboPast.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
+      expect(createRegistration).not.toHaveBeenCalled()
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }

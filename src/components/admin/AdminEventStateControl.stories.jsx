@@ -23,7 +23,7 @@ const BASE_EVENT = {
   title: 'Pitbull Classic 2026',
   status: 'inscripcion_abierta',
   published: true,
-  slots: 80,
+  slots: 180,
   registered: 46,
 }
 

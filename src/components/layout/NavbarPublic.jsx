@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, LayoutGroup, m } from 'motion/react'
 import {
@@ -343,6 +343,8 @@ export default function NavbarPublic({
   const closeRef = useRef(null)
   const menuButtonRef = useRef(null)
   const profileMenuRef = useRef(null)
+  const profileTriggerRef = useRef(null)
+  const [profileMenuPos, setProfileMenuPos] = useState(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
   /* Morph compositor (~140px, cuantizado 24 pasos). Compact layout solo al
@@ -516,13 +518,43 @@ export default function NavbarPublic({
     return () => document.removeEventListener('keydown', onEscape)
   }, [])
 
+  useLayoutEffect(() => {
+    if (dropdown !== 'profile') {
+      setProfileMenuPos(null)
+      return undefined
+    }
+
+    function updatePosition() {
+      const trigger = profileTriggerRef.current
+      if (!trigger) return
+      const rect = trigger.getBoundingClientRect()
+      setProfileMenuPos({
+        top: Math.round(rect.bottom + 10),
+        right: Math.round(Math.max(12, window.innerWidth - rect.right)),
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [dropdown])
+
   useEffect(() => {
     if (dropdown !== 'profile') return undefined
+    function isInProfileUi(target) {
+      return Boolean(
+        profileTriggerRef.current?.contains(target) || profileMenuRef.current?.contains(target),
+      )
+    }
     function handlePointerDown(event) {
-      if (!profileMenuRef.current?.contains(event.target)) setDropdown(null)
+      if (!isInProfileUi(event.target)) setDropdown(null)
     }
     function handleFocusIn(event) {
-      if (!profileMenuRef.current?.contains(event.target)) setDropdown(null)
+      if (!isInProfileUi(event.target)) setDropdown(null)
     }
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('focusin', handleFocusIn)
@@ -665,10 +697,11 @@ export default function NavbarPublic({
           <div className="plu-global-nav__actions">
             <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
             {session ? (
-              <div className="plu-global-nav__account" ref={profileMenuRef}>
+              <div className="plu-global-nav__account">
                 <button
                   type="button"
                   id="plu-profile-menu-trigger"
+                  ref={profileTriggerRef}
                   className={`plu-global-nav__profile${dropdown === 'profile' ? ' is-active' : ''}`}
                   aria-controls="plu-profile-menu"
                   aria-expanded={dropdown === 'profile'}
@@ -680,44 +713,6 @@ export default function NavbarPublic({
                     {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
                   </span>
                 </button>
-                <AnimatePresence initial={false}>
-                  {dropdown === 'profile' ? (
-                    <m.div
-                      className="plu-profile-menu"
-                      id="plu-profile-menu"
-                      role="menu"
-                      aria-labelledby="plu-profile-menu-trigger"
-                      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={reducedMotion
-                        ? { opacity: 0, transition: { duration: 0.01 } }
-                        : { opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
-                      transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
-                    >
-                      <div className="plu-profile-menu__header">
-                        <div className="plu-profile-menu__avatar" aria-hidden>
-                          {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
-                        </div>
-                        <div className="plu-profile-menu__info">
-                          <p className="plu-profile-menu__eyebrow">
-                            {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
-                          </p>
-                          <p className="plu-profile-menu__name">{sessionFullName || t('nav.myProfile')}</p>
-                        </div>
-                      </div>
-                      <div className="plu-profile-menu__actions">
-                        <button type="button" role="menuitem" onClick={() => go(adminSession ? 'admin' : 'profile')}>
-                          <User size={15} strokeWidth={1.6} aria-hidden />
-                          <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
-                        </button>
-                        <button type="button" role="menuitem" onClick={onLogout} className="plu-profile-menu__logout">
-                          <LogOut size={15} strokeWidth={1.6} aria-hidden />
-                          <span>{t('nav.logout')}</span>
-                        </button>
-                      </div>
-                    </m.div>
-                  ) : null}
-                </AnimatePresence>
               </div>
             ) : sessionPending ? (
               <span className="plu-global-nav__session-skeleton" aria-hidden="true" />
@@ -819,6 +814,50 @@ export default function NavbarPublic({
           </div>
         </div>
       </header>
+
+      {createPortal(
+        <AnimatePresence initial={false}>
+          {dropdown === 'profile' && profileMenuPos ? (
+            <m.div
+              className="plu-profile-menu"
+              id="plu-profile-menu"
+              ref={profileMenuRef}
+              role="menu"
+              aria-labelledby="plu-profile-menu-trigger"
+              style={{ top: profileMenuPos.top, right: profileMenuPos.right }}
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion
+                ? { opacity: 0, transition: { duration: 0.01 } }
+                : { opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
+              transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
+            >
+              <div className="plu-profile-menu__header">
+                <div className="plu-profile-menu__avatar" aria-hidden>
+                  {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                </div>
+                <div className="plu-profile-menu__info">
+                  <p className="plu-profile-menu__eyebrow">
+                    {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
+                  </p>
+                  <p className="plu-profile-menu__name">{sessionFullName || t('nav.myProfile')}</p>
+                </div>
+              </div>
+              <div className="plu-profile-menu__actions">
+                <button type="button" role="menuitem" onClick={() => go(adminSession ? 'admin' : 'profile')}>
+                  <User size={15} strokeWidth={1.6} aria-hidden />
+                  <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
+                </button>
+                <button type="button" role="menuitem" onClick={onLogout} className="plu-profile-menu__logout">
+                  <LogOut size={15} strokeWidth={1.6} aria-hidden />
+                  <span>{t('nav.logout')}</span>
+                </button>
+              </div>
+            </m.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {createPortal(
         <AnimatePresence initial={false} onExitComplete={handleDrawerExitComplete}>

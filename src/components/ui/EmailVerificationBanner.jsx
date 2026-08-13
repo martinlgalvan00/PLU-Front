@@ -16,12 +16,13 @@ import { resendAthleteVerification, verifyAthleteEmailCode } from '../../service
  * Va arriba de las secciones de la cuenta y no dentro de la de afiliación: el
  * bloqueo también alcanza a la inscripción a torneos.
  *
- * Además del reenvío del enlace, acepta el OTP de 6 dígitos del mismo mail
- * cuando el deep link no abre en el cliente de correo.
+ * El OTP de 6 dígitos es fallback del mismo mail, y solo se ofrece después de
+ * un envío confirmado: mostrar el input antes implicaba que el código ya había
+ * llegado, y el alta/reenvío podían haber quedado en skipped sin avisarlo.
  */
 export default function EmailVerificationBanner({ athlete }) {
   const { t } = useI18n()
-  const [state, setState] = useState('idle')
+  const [state, setState] = useState(() => (athlete?.emailVerificationSent ? 'sent' : 'idle'))
   const [code, setCode] = useState('')
   const [otpState, setOtpState] = useState('idle')
   const [otpError, setOtpError] = useState('')
@@ -84,19 +85,21 @@ export default function EmailVerificationBanner({ athlete }) {
   }[state]
 
   const showActions = state !== 'verified' && otpState !== 'verified'
+  const showOtp = showActions && state === 'sent'
+  const resendClass = showOtp
+    ? 'account-verify__action account-verify__action--ghost'
+    : 'account-verify__action'
 
   return (
-    <aside className="account-verify" role="status" aria-live="polite">
+    <aside className="account-verify account-verify--email" role="status" aria-live="polite">
       <span className="account-verify__icon" aria-hidden>
         <MailWarning size={18} />
       </span>
       <div className="account-verify__copy">
         <p className="account-verify__title">{t('account.emailVerification.title')}</p>
-        <p className="account-verify__lead">
-          {message}
-          {athlete.email ? <span className="account-verify__email">{athlete.email}</span> : null}
-        </p>
-        {showActions ? (
+        <p className="account-verify__lead">{message}</p>
+        {athlete.email ? <p className="account-verify__email">{athlete.email}</p> : null}
+        {showOtp ? (
           <form className="account-verify__otp" onSubmit={submitCode}>
             <label className="account-verify__otp-label" htmlFor="account-verify-otp">
               {t('account.emailVerification.otpLabel')}
@@ -127,17 +130,17 @@ export default function EmailVerificationBanner({ athlete }) {
             {otpError ? <p className="account-verify__otp-error">{otpError}</p> : null}
           </form>
         ) : null}
+        {showActions ? (
+          <button
+            type="button"
+            className={resendClass}
+            disabled={state === 'sending'}
+            onClick={resend}
+          >
+            {t('account.emailVerification.resend')}
+          </button>
+        ) : null}
       </div>
-      {showActions ? (
-        <button
-          type="button"
-          className="account-verify__action"
-          disabled={state === 'sending'}
-          onClick={resend}
-        >
-          {t('account.emailVerification.resend')}
-        </button>
-      ) : null}
     </aside>
   )
 }

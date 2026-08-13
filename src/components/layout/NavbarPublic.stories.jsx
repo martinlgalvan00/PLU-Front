@@ -17,12 +17,12 @@ export const LoggedOut = {}
 
 export const LoggedIn = {
   args: {
-    session: { fullName: 'Juan Pérez', role: 'athlete' },
+    session: { name: 'Juan Pérez', role: 'athlete_plu' },
   },
 }
 
 export const AdminSession = {
   args: {
-    session: { fullName: 'Admin PLU', role: 'admin' },
+    session: { name: 'Admin PLU', role: 'admin' },
   },
 }

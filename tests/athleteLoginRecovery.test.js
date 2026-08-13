@@ -218,6 +218,8 @@ describe('alta de atleta', () => {
     expect(athleteRoutes).toContain('sendVerificationEmail(row)')
     expect(athleteRoutes).toContain('verificationCode')
     expect(athleteRoutes).toContain("'/me/verify-email-code'")
+    expect(athleteRoutes).toContain('emailVerification: { sent:')
+    expect(athleteRoutes).toContain("code: 'EMAIL_NOT_SENT'")
   })
 
   it('expone check de disponibilidad y marca ATHLETE_EXISTS con campos', () => {

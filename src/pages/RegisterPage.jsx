@@ -94,8 +94,15 @@ function PasswordStrengthMeter({ password, t }) {
 function RegisterLiveCredential({ form, t }) {
   const name = form.fullName && form.fullName.trim() ? form.fullName.trim() : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
   const doc = form.documentId && form.documentId.trim() ? `DNI ${form.documentId.trim()}` : 'DNI —'
-  const location = [form.city, form.province, form.country].filter(Boolean).map((s) => s.trim()).join(', ') || 'Argentina'
-  const gym = form.gym && form.gym.trim() ? form.gym.trim() : 'Gimnasio / Club'
+  const locationParts = [form.city, form.province, form.country]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+  const locationFilled = locationParts.length > 0
+  const location = locationFilled
+    ? locationParts.join(', ')
+    : t('pages.register.credentialLocationEmpty')
+  const gymFilled = Boolean(form.gym && form.gym.trim())
+  const gym = gymFilled ? form.gym.trim() : t('pages.register.credentialGymEmpty')
 
   return (
     <div className="register-live-credential" aria-hidden="true">
@@ -113,8 +120,18 @@ function RegisterLiveCredential({ form, t }) {
         </div>
       </div>
       <div className="register-live-credential__meta">
-        <span className="register-live-credential__gym">{gym}</span>
-        <span className="register-live-credential__location">{location}</span>
+        <span
+          className={`register-live-credential__gym${gymFilled ? '' : ' is-placeholder'}`}
+          title={gymFilled ? gym : undefined}
+        >
+          {gym}
+        </span>
+        <span
+          className={`register-live-credential__location${locationFilled ? '' : ' is-placeholder'}`}
+          title={locationFilled ? location : undefined}
+        >
+          {location}
+        </span>
       </div>
     </div>
   )

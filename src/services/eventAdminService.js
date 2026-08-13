@@ -206,7 +206,7 @@ export function getInitialAdminEvents(storedEvents, { allowStoredEvents = true }
     registrationOpensAt: allowStoredEvents ? (event.registrationOpensAt ?? null) : null,
     createdAt: event.createdAt ?? `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
     createdOrder: index + 1,
-    slots: event.featured ? 120 : DEFAULT_SLOTS,
+    slots: event.slots ?? (event.featured ? 120 : DEFAULT_SLOTS),
     registered: event.featured ? 48 : Math.floor(DEFAULT_SLOTS * 0.35),
     price: event.price ?? DEFAULT_EVENT_PRICING.registration,
     currency: event.currency ?? 'ARS',

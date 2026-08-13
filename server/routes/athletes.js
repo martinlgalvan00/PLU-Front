@@ -293,13 +293,21 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
    * Los emails de esta ruta son best-effort: el alta y el pedido de
    * recuperación ya se completaron en la DB antes de llegar acá, así que un
    * fallo de Brevo no puede tirar el request.
+   *
+   * Devuelve el status del dispatcher (`sent`, `skipped`, `failed`, …) para
+   * que el reenvío de verificación no mienta un ok cuando no salió nada.
    */
   async function sendBestEffort(type, input) {
     try {
-      await mailDispatcher().send(type, input)
+      return await mailDispatcher().send(type, input)
     } catch (error) {
       console.warn(`[email:${type}] no se pudo enviar`, error?.message ?? error)
+      return { status: 'failed', created: false, emailLog: error?.emailLog ?? null }
     }
+  }
+
+  function emailWasSent(result) {
+    return result?.status === 'sent'
   }
 
   async function sendOnboardingEmails(row) {
@@ -393,10 +401,14 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       // outbox antes de llamar a Brevo; esperar este best-effort garantiza que
       // el email crítico quede enviado o programado para reintento antes de que
       // una función serverless pueda finalizar después de responder.
-      await sendOnboardingEmails(row).catch((error) =>
-        console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error),
-      )
-      res.status(201).json({ athlete: row })
+      const delivery = await sendOnboardingEmails(row).catch((error) => {
+        console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error)
+        return { status: 'failed' }
+      })
+      res.status(201).json({
+        athlete: row,
+        emailVerification: { sent: emailWasSent(delivery) },
+      })
     } catch (error) {
       // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
       // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
@@ -452,7 +464,12 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         res.json({ ok: true, alreadyVerified: true })
         return
       }
-      await sendVerificationEmail(contact)
+      const delivery = await sendVerificationEmail(contact)
+      if (!emailWasSent(delivery)) {
+        throw new HttpError(503, 'No pudimos enviar el correo. Intentá de nuevo en un momento.', {
+          code: 'EMAIL_NOT_SENT',
+        })
+      }
       res.json({ ok: true, alreadyVerified: false })
     } catch (error) { next(error) }
   })
