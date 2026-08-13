@@ -55,10 +55,9 @@ export function isPublicCatalogStubEvent(event) {
 
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
-export function getPublicCatalogEvents(events = [], _options = {}) {
-  // El catálogo público nunca lista stubs. `_options.includeDevelopmentStubs`
-  // se ignora a propósito: en Vite/Vitest `import.meta.env.DEV` es true y
-  // usarlo filtraría mal el sitio público (y el CI). El admin usa la lista cruda.
+export function getPublicCatalogEvents(events = [], options = {}) {
+  const includeDevelopmentStubs = options?.includeDevelopmentStubs === true
+  // El admin/dev puede listar stubs para probar; produccion debe ocultarlos.
   return (Array.isArray(events) ? events : []).filter(
     (event) => event && (includeDevelopmentStubs || !isPublicCatalogStubEvent(event)),
   )
