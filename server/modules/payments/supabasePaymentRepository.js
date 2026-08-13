@@ -3,8 +3,6 @@ import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
-const TEMP_VERCEL_TEST_MEMBERSHIP_AMOUNT = 1
-
 function assertResult(result, fallbackMessage) {
   if (result.error) {
     throw new HttpError(503, result.error.message || fallbackMessage)
@@ -364,7 +362,7 @@ export function createSupabasePaymentRepository(
 
     async listPlans() {
       const now = new Date().toISOString()
-      const plans = assertResult(
+      return assertResult(
         await client
           .from('membership_plans')
           .select('*')
@@ -374,13 +372,6 @@ export function createSupabasePaymentRepository(
           .or(`retired_at.is.null,retired_at.gt.${now}`)
           .order('price'),
         'No se pudieron leer los planes.',
-      )
-      // TEMP VERCEL TEST: mostrar afiliacion anual a $1 para validar Mercado Pago.
-      // Revertir al volver a precios reales.
-      return plans.map((plan) =>
-        plan.code === 'plu-annual' || plan.family_code === 'plu-annual'
-          ? { ...plan, price: TEMP_VERCEL_TEST_MEMBERSHIP_AMOUNT }
-          : plan,
       )
     },
 
