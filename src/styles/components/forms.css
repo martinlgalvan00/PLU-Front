@@ -352,6 +352,63 @@
   opacity: 0;
 }
 
+.mp-embedded-checkout__real-options {
+  display: grid;
+  gap: 1rem;
+}
+
+.mp-embedded-checkout__wallet-panel {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-brand-gold, #f2b705) 10%, transparent), transparent 55%),
+    color-mix(in srgb, var(--color-text-primary, #111) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold, #f2b705) 34%, var(--color-border, #d8d8d8));
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.95rem;
+}
+
+.mp-embedded-checkout__option-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.mp-embedded-checkout__option-heading strong {
+  color: var(--color-text-primary, #111);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.mp-embedded-checkout__option-heading span {
+  color: var(--color-text-muted, #666);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mp-embedded-checkout__wallet {
+  min-height: 48px;
+}
+
+.mp-embedded-checkout__divider {
+  align-items: center;
+  color: var(--color-text-muted, #666);
+  display: grid;
+  font-size: 0.74rem;
+  font-weight: 650;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mp-embedded-checkout__divider::before,
+.mp-embedded-checkout__divider::after {
+  background: color-mix(in srgb, var(--color-border, #d8d8d8) 82%, transparent);
+  content: '';
+  height: 1px;
+}
+
 .mp-embedded-checkout__result {
   display: flex;
   align-items: center;

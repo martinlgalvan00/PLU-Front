@@ -100,6 +100,9 @@ export default {
   payments: {
     embeddedTitle: 'Pay with Mercado Pago',
     embeddedLead: 'Complete your payment without leaving the site.',
+    walletTitle: 'Mercado Pago account money',
+    walletLead: 'Use your balance, saved cards or available methods in your account.',
+    cardOptionDivider: 'Or pay by card',
     subscriptionTitle: 'Enable automatic billing',
     subscriptionLead: 'Enter a card to authorize plan renewals.',
     embeddedLoading: 'Loading secure payment methods…',

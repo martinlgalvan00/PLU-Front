@@ -33,6 +33,7 @@ export function buildCompetitionCreatedOrder({
   purchaseType,
   session,
   preferenceId = null,
+  initPoint = null,
   plan = null,
   comboOffer = null,
 }) {
@@ -45,6 +46,7 @@ export function buildCompetitionCreatedOrder({
     paymentId: payment.id,
     paymentMethod: payment.method,
     preferenceId,
+    initPoint,
     paymentMode: 'payment',
     purchaseType,
     plan,

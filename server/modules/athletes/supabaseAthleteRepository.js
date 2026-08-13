@@ -438,7 +438,19 @@ export function createSupabaseAthleteRepository(
       const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
         client.from('athletes').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
         client.from('memberships').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
-        client.from('event_registrations').select('*, event:events(*), checkIn:check_ins(*)').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+        client
+          .from('event_registrations')
+          .select(
+            `
+              *,
+              event:events(*),
+              checkIn:check_ins(*),
+              eventDay:event_days(id, day_index, label, date),
+              eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
+            `,
+          )
+          .eq('organization_id', organizationId)
+          .order('created_at', { ascending: false }),
         client.from('athlete_payment_orders').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
       ])
       const payload = {
@@ -448,6 +460,17 @@ export function createSupabaseAthleteRepository(
           registration: row,
           event: row.event,
           checkIn: Array.isArray(row.checkIn) ? row.checkIn[0] : row.checkIn,
+          schedule: row.eventDay ? {
+            day_id: row.eventDay.id,
+            day_index: row.eventDay.day_index,
+            day_label: row.eventDay.label,
+            day_date: row.eventDay.date,
+            session_id: row.eventSession?.id ?? null,
+            session_name: row.eventSession?.name ?? null,
+            platform: row.eventSession?.platform ?? null,
+            weigh_in_at: row.eventSession?.weigh_in_at ?? null,
+            starts_at: row.eventSession?.starts_at ?? null,
+          } : null,
         })),
         paymentOrders: assertSupabaseResult(paymentOrders, 'No se pudieron leer los pagos.'),
       }
