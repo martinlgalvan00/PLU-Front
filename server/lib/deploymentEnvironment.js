@@ -5,13 +5,21 @@ function asHttpsUrl(value) {
   return `https://${candidate.replace(/\/+$/, '')}`
 }
 
+export const OFFICIAL_APP_URL = 'https://powerliftingunited.ar'
+
+function isTruthyFlag(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+function isProductionRuntime(env) {
+  return env.VERCEL_ENV === 'production' || isTruthyFlag(env.APP_PRODUCTION)
+}
+
 export function resolveDeploymentAppUrl(env = process.env) {
+  if (isProductionRuntime(env)) return OFFICIAL_APP_URL
+
   const explicit = String(env.APP_URL ?? '').trim()
   if (explicit) return explicit.replace(/\/+$/, '')
-
-  if (env.VERCEL_ENV === 'production') {
-    return asHttpsUrl(env.VERCEL_PROJECT_PRODUCTION_URL ?? env.VERCEL_URL)
-  }
 
   return asHttpsUrl(env.VERCEL_BRANCH_URL ?? env.VERCEL_URL ?? env.VERCEL_PROJECT_PRODUCTION_URL)
 }
