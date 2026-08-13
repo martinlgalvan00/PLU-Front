@@ -74,12 +74,6 @@ export function resolvePaidCheckoutOpensAt(envLike = appEnv) {
 export function isPaidCheckoutEnabled(envLike = appEnv, _now = new Date(), _options = {}) {
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
-<<<<<<< HEAD
-=======
-
-  if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
-
->>>>>>> 222d289e1238417840e7c9da58edfce6e82f324c
   if (!isAppProduction(envLike)) return true
   return false
 }
