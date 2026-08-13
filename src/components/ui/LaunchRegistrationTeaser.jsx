@@ -10,7 +10,6 @@ import {
   resolveLaunchOpenAt,
 } from '../../lib/registrationSchedule.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import MaskReveal from '../../motion/MaskReveal.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER } from '../../motion/tokens.ts'
 import { registerLaunchInterest } from '../../services/launchInterestService.js'
 import '../../styles/components/launch-registration-teaser.css'
@@ -318,25 +317,10 @@ export default function LaunchRegistrationTeaser({
               ) : null}
 
               <h2 className="launch-teaser__title">
-                {reducedMotion ? (
-                  <>
-                    <span className="launch-teaser__title-line">{t('launchTeaser.headlineLine1')}</span>
-                    <span className="launch-teaser__title-line launch-teaser__title-line--accent">
-                      {t('launchTeaser.headlineLine2')}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <MaskReveal className="launch-teaser__title-mask" delay={40}>
-                      <span className="launch-teaser__title-line">{t('launchTeaser.headlineLine1')}</span>
-                    </MaskReveal>
-                    <MaskReveal className="launch-teaser__title-mask" delay={110}>
-                      <span className="launch-teaser__title-line launch-teaser__title-line--accent">
-                        {t('launchTeaser.headlineLine2')}
-                      </span>
-                    </MaskReveal>
-                  </>
-                )}
+                <span className="launch-teaser__title-line">{t('launchTeaser.headlineLine1')}</span>
+                <span className="launch-teaser__title-line launch-teaser__title-line--accent">
+                  {t('launchTeaser.headlineLine2')}
+                </span>
               </h2>
             </>
           )}

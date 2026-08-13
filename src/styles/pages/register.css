@@ -4482,10 +4482,24 @@
 .register-live-credential__meta {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   color: rgba(247, 247, 245, 0.72);
-  display: flex;
+  display: grid;
+  gap: 6px;
   font-size: 11px;
-  justify-content: space-between;
+  min-width: 0;
   padding-top: 10px;
+}
+
+.register-live-credential__gym,
+.register-live-credential__location {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-live-credential__gym.is-placeholder,
+.register-live-credential__location.is-placeholder {
+  opacity: 0.45;
 }
 
 /* Medidor de contraseña — tres tonos semánticos (error / atención / éxito)

@@ -42,11 +42,12 @@ una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
 afiliación y la inscripción. El precio, la moneda y el plan siempre se releen
 del catálogo en PostgreSQL y nunca llegan como datos autoritativos del browser.
 Su activación y ventana son independientes por evento. La compra del combo (y
-cualquier otro checkout de pago) exige `paidCheckout` abierto según la fecha
-**Abre la inscripción** del evento en el panel (`registration_opens_at`), o el
-kill switch opcional `PAID_CHECKOUT_ENABLED`. Con solo `APP_PRODUCTION=true` y
-fecha futura (o sin fecha), los cobros quedan cerrados. La administración del
-catálogo económico conserva su política de escritura separada.
+cualquier otro checkout de pago) exige `paidCheckout` abierto: fuera de
+producción, o `PAID_CHECKOUT_ENABLED=true`. Con `APP_PRODUCTION=true` y sin ese
+override, los cobros quedan cerrados (“Próximamente”). La fecha **Abre la
+inscripción** del panel (`registration_opens_at`) alimenta el countdown, no
+Mercado Pago. La administración del catálogo económico conserva su política de
+escritura separada.
 
 Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
 otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo

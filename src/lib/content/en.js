@@ -350,7 +350,7 @@ export const PITBULL_CLASSIC = {
   dateMonth: 'Dec',
   venue: 'La Troupe Multiespacio',
   location: 'Banfield, Buenos Aires',
-  slots: 120,
+  slots: 180,
   registered: 48,
   categories: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
   divisions: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],

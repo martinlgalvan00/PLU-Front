@@ -40,8 +40,8 @@ export const env = {
   // Independiente del build: en Vercel Production poné APP_PRODUCTION=true;
   // en Preview y local, false. Con true se ocultan WIPs (recurring + pricing writes).
   appProduction,
-  // Kill switch opcional de cobros. null = usar registrationOpensAt del evento (admin).
-  // true/false fuerza apertura o cierre sin tocar el panel.
+  // Kill switch de cobros. null + APP_PRODUCTION=true = cerrado (“Próximamente”).
+  // true fuerza apertura; false fuerza cierre. registrationOpensAt no abre cobros.
   paidCheckoutEnabled,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true' && !appProduction,
   supabase: {

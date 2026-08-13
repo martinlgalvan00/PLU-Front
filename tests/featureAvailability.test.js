@@ -65,7 +65,7 @@ describe('features disponibles por entorno', () => {
     })
   })
 
-  it('resuelve paidCheckout por override, registrationOpensAt y APP_PRODUCTION', () => {
+  it('resuelve paidCheckout por override y APP_PRODUCTION, no por registrationOpensAt', () => {
     const now = new Date('2026-08-12T12:00:00-03:00')
     expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now)).toBe(false)
     expect(isFrontPaidCheckoutEnabled({ appProduction: true }, now)).toBe(false)
@@ -89,12 +89,12 @@ describe('features disponibles por entorno', () => {
       { APP_PRODUCTION: 'true' },
       new Date('2026-08-14T10:00:00-03:00'),
       { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
-    )).toBe(true)
+    )).toBe(false)
     expect(isFrontPaidCheckoutEnabled(
       { appProduction: true },
       new Date('2026-08-14T11:00:00-03:00'),
       { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
-    )).toBe(true)
+    )).toBe(false)
   })
 
   it('bloquea cobros y recurring/pricing writes en produccion hasta abrir paidCheckout', async () => {
@@ -122,7 +122,10 @@ describe('features disponibles por entorno', () => {
       { APP_PRODUCTION: 'true' },
       new Date('2026-08-14T11:00:00-03:00'),
       { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
-    )).resolves.toBeUndefined()
+    )).rejects.toMatchObject({
+      status: 409,
+      details: { code: 'FEATURE_COMING_SOON' },
+    })
     expect(() => assertRecurringMembershipAvailable({ APP_PRODUCTION: 'true' })).toThrowError(
       expect.objectContaining({
         status: 409,
@@ -151,23 +154,28 @@ describe('features disponibles por entorno', () => {
     }
     const now = new Date('2026-08-12T12:00:00Z')
 
-    expect(getEventComboAvailability(event, { now })).toMatchObject({
+    expect(getEventComboAvailability(event, {
+      now,
+      envLike: { appProduction: false },
+    })).toMatchObject({
       enabled: true,
       comingSoon: false,
     })
     expect(getEventComboAvailability(event, {
       hasActiveMembership: true,
       now,
+      envLike: { appProduction: false },
     })).toMatchObject({ enabled: false, comingSoon: false })
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-29T03:00:00Z'),
+      envLike: { appProduction: false },
     })).toMatchObject({ enabled: false, comingSoon: false, offer: null })
     expect(getEventComboAvailability({
       comboOffer: { id: 'offer-incomplete', price: 120000 },
-    }, { now })).toMatchObject({ enabled: false, offer: null })
+    }, { now, envLike: { appProduction: false } })).toMatchObject({ enabled: false, offer: null })
   })
 
-  it('cierra el combo en produccion hasta que abra registrationOpensAt del evento', () => {
+  it('cierra el combo en produccion aunque registrationOpensAt ya haya pasado', () => {
     const event = {
       registrationOpensAt: '2026-08-14T10:00:00-03:00',
       comboOffer: {
@@ -185,6 +193,10 @@ describe('features disponibles por entorno', () => {
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-14T13:00:00-03:00'),
       envLike: { appProduction: true },
+    })).toMatchObject({ enabled: false, comingSoon: true })
+    expect(getEventComboAvailability(event, {
+      now: new Date('2026-08-14T13:00:00-03:00'),
+      envLike: { appProduction: true, paidCheckoutEnabled: true },
     })).toMatchObject({ enabled: true, comingSoon: false })
   })
 })
