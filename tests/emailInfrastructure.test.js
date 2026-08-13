@@ -31,7 +31,7 @@ import {
   safeUrl,
   buildEmailLogoUrl,
   EMAIL_LOGO_PATH,
-  EMAIL_LOGO_FALLBACK_URL,
+  EMAIL_PUBLIC_ASSET_BASE_URL,
 } from '../server/modules/notifications/emailTemplates.js'
 
 const okResponse = (body = { messageId: 'msg-1' }) => ({
@@ -225,7 +225,7 @@ describe('plantillas HTML de fallback', () => {
       { name: 'Ana', resetUrl: 'https://plu.example/reset?token=abc' },
       { appUrl: 'https://plu.example' },
     )
-    expect(htmlContent).toContain(`src="https://plu.example${EMAIL_LOGO_PATH}"`)
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toContain('background-color:#1a1c22')
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Restablecé tu contraseña</)
@@ -237,7 +237,7 @@ describe('plantillas HTML de fallback', () => {
       name: 'Ana',
       accountUrl: 'https://plu.example/mi-cuenta',
     })
-    expect(htmlContent).toContain(`src="${EMAIL_LOGO_FALLBACK_URL}"`)
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Te damos la bienvenida</)
@@ -255,16 +255,18 @@ describe('plantillas HTML de fallback', () => {
     expect(htmlContent).not.toContain('background-color:#f7f6f3;border:1px solid')
   })
 
-  it('arma la URL del logo desde appUrl y rutas relativas', () => {
-    expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(`https://plu.example${EMAIL_LOGO_PATH}`)
+  it('arma la URL del logo desde el asset publico y permite rutas relativas', () => {
+    expect(buildEmailLogoUrl('https://plu.example/', null)).toBe(
+      `${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`,
+    )
     expect(buildEmailLogoUrl('', '../../public/brand/plu-argentina-email.png')).toBe(
       '../../public/brand/plu-argentina-email.png',
     )
   })
 
-  it('usa el logo HTTPS público cuando APP_URL es localhost', () => {
+  it('usa el logo publico oficial cuando APP_URL es localhost', () => {
     const logo = buildEmailLogoUrl('http://localhost:5173', null)
-    expect(logo).toBe(EMAIL_LOGO_FALLBACK_URL)
+    expect(logo).toBe(`${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`)
 
     const { htmlContent } = renderEmail(
       'email_verification',
@@ -275,12 +277,12 @@ describe('plantillas HTML de fallback', () => {
       },
       { appUrl: 'http://localhost:5173' },
     )
-    expect(htmlContent).toContain(`src="${EMAIL_LOGO_FALLBACK_URL}"`)
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).not.toContain('src="http://localhost:5173/brand/')
   })
 
-  it('sin APP_URL también usa el logo HTTPS público', () => {
-    expect(buildEmailLogoUrl('', null)).toBe(EMAIL_LOGO_FALLBACK_URL)
+  it('sin APP_URL usa el logo publico oficial', () => {
+    expect(buildEmailLogoUrl('', null)).toBe(`${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`)
   })
 
   it('unifica bienvenida + confirmación + OTP en el mail de verificación', () => {
@@ -467,7 +469,7 @@ describe('dispatcher de emails', () => {
 
     const payload = send.mock.calls[0][0]
     expect(payload.subject).toBe('Restablecé tu contraseña · PLU ARG')
-    expect(payload.htmlContent).toContain(`src="https://plu.example/brand/plu-argentina-email.png"`)
+    expect(payload.htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(payload.htmlContent).toContain('Restablecé tu contraseña')
   })
 

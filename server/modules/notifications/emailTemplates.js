@@ -20,9 +20,10 @@
  *   colores por su cuenta.
  * - Sin gradientes: Outlook los ignora. La firma de marca (`--gradient-brand`)
  *   se reproduce como dos celdas sólidas celeste + dorado.
- * - Logo: emblema circular croppeado (`/brand/plu-argentina-email.png`).
- *   Si `APP_URL` no es pública, usa el asset HTTPS oficial: Gmail y Outlook
- *   suelen bloquear imágenes `data:` aunque el HTML sea válido.
+ * - Logo: emblema circular croppeado (`/brand/plu-argentina-email.png`), servido
+ *   siempre desde el dominio de producción (`EMAIL_PUBLIC_ASSET_BASE_URL`), nunca
+ *   desde `APP_URL`: un preview de Vercel no es una URL estable para un cliente
+ *   de correo, y Gmail/Outlook suelen bloquear imágenes `data:`.
  *   Header negro = solo marca. Título del mail en el cuerpo (ink sobre blanco).
  *
  * Previews abribles: `npm run email:previews` → `docs/email-previews/`.
@@ -56,7 +57,7 @@ const MONO_STACK = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
 
 /** Ruta pública del emblema circular PLU Argentina (header negro). */
 export const EMAIL_LOGO_PATH = '/brand/plu-argentina-email.png'
-export const EMAIL_LOGO_FALLBACK_URL = `https://www.powerliftingunited.ar${EMAIL_LOGO_PATH}`
+export const EMAIL_PUBLIC_ASSET_BASE_URL = 'https://www.powerliftingunited.ar'
 
 const EMAIL_LOGO_FILE = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -137,10 +138,10 @@ export function resetEmbeddedEmailLogoCache() {
 
 /**
  * Arma la URL del logo para el `<img>`.
- * Acepta http(s), rutas relativas (previews locales) o data:image.
- * Si `appUrl` es local/privada, usa el asset HTTPS público de PLU. Los clientes
- * de correo bloquean los data URI con frecuencia, por lo que no son un fallback
- * confiable para una imagen de marca.
+ * Acepta http(s), rutas relativas (previews locales) o data:image como override
+ * explícito (`logoUrl`); sin override, siempre usa el asset HTTPS de producción
+ * — nunca `appUrl`, que en preview/dev no es una URL estable para un cliente
+ * de correo.
  */
 export function buildEmailLogoUrl(appUrl, logoUrl) {
   const override = String(logoUrl ?? '').trim()
@@ -152,16 +153,7 @@ export function buildEmailLogoUrl(appUrl, logoUrl) {
     return safeUrl(override)
   }
 
-  if (isUnreachableEmailHost(appUrl)) {
-    return safeUrl(EMAIL_LOGO_FALLBACK_URL) || loadEmbeddedEmailLogo()
-  }
-
-  const base = String(appUrl ?? '').trim().replace(/\/$/, '')
-  try {
-    return safeUrl(new URL(EMAIL_LOGO_PATH, `${base}/`).toString())
-  } catch {
-    return loadEmbeddedEmailLogo()
-  }
+  return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
 }
 
 export function formatArs(amount) {
