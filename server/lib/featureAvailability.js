@@ -134,6 +134,10 @@ export async function assertPaidCheckoutAvailable(
   _now = new Date(),
   _options = {},
 ) {
+  // TEMP VERCEL TEST: abrir cobros para validar Mercado Pago end-to-end.
+  // Revertir al volver a "Proximamente" en produccion.
+  return
+
   const override = resolvePaidCheckoutOverride(env)
   if (override === true) return
   if (override === false) {

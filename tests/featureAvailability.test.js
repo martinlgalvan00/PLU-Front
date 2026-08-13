@@ -97,23 +97,18 @@ describe('features disponibles por entorno', () => {
     )).toBe(false)
   })
 
-  it('bloquea cobros y recurring/pricing writes en produccion hasta abrir paidCheckout', async () => {
+  it('permite cobros temporalmente en produccion para test Vercel', async () => {
+    // TEMP VERCEL TEST: revertir junto con server/lib/featureAvailability.js.
     await expect(assertPaidCheckoutAvailable(
       { APP_PRODUCTION: 'true' },
       new Date(),
       { skipScheduleLookup: true },
-    )).rejects.toMatchObject({
-      status: 409,
-      details: { code: 'FEATURE_COMING_SOON' },
-    })
+    )).resolves.toBeUndefined()
     await expect(assertComboCheckoutAvailable(
       { APP_PRODUCTION: 'true' },
       new Date(),
       { skipScheduleLookup: true },
-    )).rejects.toMatchObject({
-      status: 409,
-      details: { code: 'FEATURE_COMING_SOON' },
-    })
+    )).resolves.toBeUndefined()
     await expect(assertComboCheckoutAvailable({
       APP_PRODUCTION: 'true',
       PAID_CHECKOUT_ENABLED: 'true',
@@ -122,10 +117,7 @@ describe('features disponibles por entorno', () => {
       { APP_PRODUCTION: 'true' },
       new Date('2026-08-14T11:00:00-03:00'),
       { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
-    )).rejects.toMatchObject({
-      status: 409,
-      details: { code: 'FEATURE_COMING_SOON' },
-    })
+    )).resolves.toBeUndefined()
     expect(() => assertRecurringMembershipAvailable({ APP_PRODUCTION: 'true' })).toThrowError(
       expect.objectContaining({
         status: 409,
@@ -175,7 +167,8 @@ describe('features disponibles por entorno', () => {
     }, { now, envLike: { appProduction: false } })).toMatchObject({ enabled: false, offer: null })
   })
 
-  it('cierra el combo en produccion aunque registrationOpensAt ya haya pasado', () => {
+  it('abre el combo temporalmente en produccion para test Vercel', () => {
+    // TEMP VERCEL TEST: revertir junto con src/lib/registrationSchedule.js.
     const event = {
       registrationOpensAt: '2026-08-14T10:00:00-03:00',
       comboOffer: {
@@ -189,11 +182,11 @@ describe('features disponibles por entorno', () => {
     const now = new Date('2026-08-12T12:00:00Z')
 
     expect(getEventComboAvailability(event, { now, envLike: { appProduction: true } }))
-      .toMatchObject({ enabled: false, comingSoon: true })
+      .toMatchObject({ enabled: true, comingSoon: false })
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-14T13:00:00-03:00'),
       envLike: { appProduction: true },
-    })).toMatchObject({ enabled: false, comingSoon: true })
+    })).toMatchObject({ enabled: true, comingSoon: false })
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-14T13:00:00-03:00'),
       envLike: { appProduction: true, paidCheckoutEnabled: true },

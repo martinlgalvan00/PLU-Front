@@ -4,6 +4,11 @@ import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseR
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
+const TEMP_VERCEL_TEST_MEMBERSHIP_AMOUNT = 1
+
+function isMembershipPlanCode(planCode) {
+  return String(planCode ?? '') === 'plu-annual'
+}
 
 export function createSupabaseAthleteRepository(
   client,
@@ -161,12 +166,35 @@ export function createSupabaseAthleteRepository(
       delete row.password_hash
       return row
     },
-    createMembershipOrder: (athleteId, data) => rpc('create_membership_order_v3', {
-      p_athlete_id: athleteId,
-      p_payment_method: data.paymentMethod,
-      p_plan_code: data.planCode,
-      p_idempotency_key: data.idempotencyKey,
-    }, 'No se pudo crear la orden de afiliacion.'),
+    async createMembershipOrder(athleteId, data) {
+      const result = await rpc('create_membership_order_v3', {
+        p_athlete_id: athleteId,
+        p_payment_method: data.paymentMethod,
+        p_plan_code: data.planCode,
+        p_idempotency_key: data.idempotencyKey,
+      }, 'No se pudo crear la orden de afiliacion.')
+
+      // TEMP VERCEL TEST: afiliacion anual a $1 para validar Mercado Pago.
+      // Revertir al volver a precios reales.
+      if (result?.order?.id && isMembershipPlanCode(data.planCode)) {
+        const order = assertSupabaseResult(
+          await client
+            .from('athlete_payment_orders')
+            .update({ amount: TEMP_VERCEL_TEST_MEMBERSHIP_AMOUNT })
+            .eq('id', result.order.id)
+            .select()
+            .single(),
+          'No se pudo ajustar la orden temporal de afiliacion.',
+        )
+        result.order = order
+      }
+
+      if (result?.plan && isMembershipPlanCode(data.planCode)) {
+        result.plan.price = TEMP_VERCEL_TEST_MEMBERSHIP_AMOUNT
+      }
+
+      return result
+    },
     async findMembershipPlan(planCode) {
       const readPlan = async (column) => assertSupabaseResult(
         await client
