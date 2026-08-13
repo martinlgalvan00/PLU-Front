@@ -1,19 +1,43 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import photoPlatformCrew from '../../assets/DSC00286-display.jpg'
+import photoPlatformCrewAvif from '../../assets/DSC00286-display.avif'
+import photoPlatformCrewAvif480 from '../../assets/DSC00286-display-480.avif'
+import photoPlatformCrewAvif800 from '../../assets/DSC00286-display-800.avif'
+import photoPlatformCrewWebp from '../../assets/DSC00286-display.webp'
+import photoPlatformCrewWebp480 from '../../assets/DSC00286-display-480.webp'
+import photoPlatformCrewWebp800 from '../../assets/DSC00286-display-800.webp'
 import photoMeetFloor from '../../assets/DSC00346-display.jpg'
+import photoMeetFloorAvif from '../../assets/DSC00346-display.avif'
+import photoMeetFloorAvif640 from '../../assets/DSC00346-display-640.avif'
+import photoMeetFloorAvif1280 from '../../assets/DSC00346-display-1280.avif'
+import photoMeetFloorWebp from '../../assets/DSC00346-display.webp'
+import photoMeetFloorWebp640 from '../../assets/DSC00346-display-640.webp'
+import photoMeetFloorWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import photoMedals from '../../assets/DSC01606-display.jpg'
+import photoMedalsAvif from '../../assets/DSC01606-display.avif'
+import photoMedalsAvif480 from '../../assets/DSC01606-display-480.avif'
+import photoMedalsAvif800 from '../../assets/DSC01606-display-800.avif'
+import photoMedalsWebp from '../../assets/DSC01606-display.webp'
+import photoMedalsWebp480 from '../../assets/DSC01606-display-480.webp'
+import photoMedalsWebp800 from '../../assets/DSC01606-display-800.webp'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
 import { heroSequenceItem, heroStaggerContainer } from '../../motion/variants.ts'
 import PitbullBrandMark from '../ui/PitbullBrandMark.jsx'
+import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
+
+// Paneles del collage: cada uno ocupa una fracción del frame, nunca 100vw.
+const COLLAGE_SIZES = '(min-width: 1024px) 30vw, 45vw'
 
 const HERO_COLLAGE = [
   {
     id: 'crew',
     src: photoPlatformCrew,
+    avif: { 480: photoPlatformCrewAvif480, 800: photoPlatformCrewAvif800, 1153: photoPlatformCrewAvif },
+    webp: { 480: photoPlatformCrewWebp480, 800: photoPlatformCrewWebp800, 1153: photoPlatformCrewWebp },
     className: 'pitbull-hero-masthead__plate--primary',
     width: 800,
     height: 1200,
@@ -22,6 +46,8 @@ const HERO_COLLAGE = [
   {
     id: 'platform',
     src: photoMeetFloor,
+    avif: { 640: photoMeetFloorAvif640, 1280: photoMeetFloorAvif1280, 2048: photoMeetFloorAvif },
+    webp: { 640: photoMeetFloorWebp640, 1280: photoMeetFloorWebp1280, 2048: photoMeetFloorWebp },
     className: 'pitbull-hero-masthead__plate--secondary',
     width: 800,
     height: 1200,
@@ -30,6 +56,8 @@ const HERO_COLLAGE = [
   {
     id: 'medals',
     src: photoMedals,
+    avif: { 480: photoMedalsAvif480, 800: photoMedalsAvif800, 1153: photoMedalsAvif },
+    webp: { 480: photoMedalsWebp480, 800: photoMedalsWebp800, 1153: photoMedalsWebp },
     className: 'pitbull-hero-masthead__plate--accent',
     width: 800,
     height: 1200,
@@ -154,14 +182,16 @@ function PitbullHeroFrame({ reducedMotion = false }) {
                   },
                 })}
           >
-            <img
+            <ResponsivePhoto
               className="pitbull-hero-masthead__frame-img"
+              avif={plate.avif}
+              webp={plate.webp}
               src={plate.src}
               alt=""
               width={plate.width}
               height={plate.height}
+              sizes={COLLAGE_SIZES}
               loading={plate.eager ? 'eager' : 'lazy'}
-              decoding="async"
               fetchPriority={plate.eager ? 'high' : 'low'}
             />
             <div className="pitbull-hero-masthead__frame-scrim" />

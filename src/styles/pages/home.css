@@ -3154,7 +3154,7 @@
    La credencial necesita un piso real (~340px) para que foto + QR
    no colisionen; el copy absorbe el resto del ancho. */
 .home-membership-band {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: clamp(28px, 4.2vw, 48px);
   grid-template-columns: minmax(0, 1.2fr) auto minmax(min(100%, 340px), 0.95fr);
@@ -3222,7 +3222,7 @@
   letter-spacing: -0.038em;
   line-height: 1.05;
   margin: 0;
-  max-width: 12ch;
+  max-width: 18ch;
   text-wrap: balance;
 }
 
@@ -3237,7 +3237,7 @@
   font-weight: 400;
   line-height: 1.6;
   margin: 4px 0 0;
-  max-width: 40ch;
+  max-width: 46ch;
 }
 
 /* Manifiesto compacto — misma lógica que AboutSection: número + línea,
@@ -3254,13 +3254,25 @@
 
 .home-membership-band__benefit {
   align-items: baseline;
-  display: block;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: 2.4ch minmax(0, 1fr);
   margin: 0;
-  padding: 8px 0;
+  padding: 7px 0;
 }
 
 .home-membership-band__benefit + .home-membership-band__benefit {
   border-top: 1px solid var(--home-canvas-card-border);
+}
+
+.home-membership-band__benefit-index {
+  color: color-mix(in srgb, var(--home-canvas-fg) 34%, transparent);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
 }
 
 .home-membership-band__benefit-text {
@@ -3287,8 +3299,9 @@
   transform: translateX(4px);
 }
 
-.home-membership-band__cta:active {
-  transform: scale(0.98);
+.home-membership-band__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
 }
 
 /* CTA secundario — una línea que se expande desde la izquierda, no un
@@ -3339,15 +3352,12 @@
   color: color-mix(in srgb, var(--home-canvas-fg) 56%, transparent);
   display: inline-flex;
   flex-wrap: wrap;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   gap: 6px 8px;
-  letter-spacing: 0.03em;
-  margin: 4px 0 0;
-  padding: 7px 14px;
-  border: 1px solid var(--home-canvas-outline-border);
-  border-radius: var(--border-radius-pill);
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin: 2px 0 0;
+  padding: 0;
   width: fit-content;
 }
 

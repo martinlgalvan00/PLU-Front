@@ -19,6 +19,8 @@ import { verifyAthleteEmail } from '../../services/athleteApi.js'
  */
 export default function EmailVerificationNotice() {
   const [state, setState] = useState(() => (readEmailVerificationToken() ? 'verificando' : 'inactivo'))
+  const [attempt, setAttempt] = useState(0)
+  const [retryableError, setRetryableError] = useState(false)
 
   useEffect(() => {
     const token = readEmailVerificationToken()
@@ -29,20 +31,28 @@ export default function EmailVerificationNotice() {
       .then(() => {
         if (cancelled) return
         setState('confirmado')
+        setRetryableError(false)
+        clearEmailVerificationToken()
         // El snapshot en memoria todavía dice que el correo está sin
         // confirmar; sin este aviso el banner de la cuenta seguía pidiendo la
         // verificación que el atleta acababa de hacer.
         window.dispatchEvent(new CustomEvent('plu:email-verified'))
       })
-      .catch(() => {
-        if (!cancelled) setState('error')
+      .catch((error) => {
+        if (cancelled) return
+        // Un 4xx indica un token inválido o vencido. Los fallos de red y 5xx
+        // son recuperables: conservar el token permite reintentar sin pedir
+        // otro correo ni dejar una cuenta recién creada trabada.
+        const canRetry = ![400, 401, 403, 404].includes(Number(error?.status))
+        setRetryableError(canRetry)
+        setState('error')
+        if (!canRetry) clearEmailVerificationToken()
       })
-      .finally(() => clearEmailVerificationToken())
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [attempt])
 
   useEffect(() => {
     if (state !== 'confirmado') return
@@ -55,12 +65,25 @@ export default function EmailVerificationNotice() {
   const contenido = {
     verificando: { tone: 'info', text: 'Confirmando tu correo…' },
     confirmado: { tone: 'success', text: 'Tu correo quedó confirmado. Ya podés afiliarte e inscribirte.' },
-    error: { tone: 'danger', text: 'El enlace no es válido o venció. Pedí uno nuevo desde tu cuenta.' },
+    error: {
+      tone: 'danger',
+      text: retryableError
+        ? 'No pudimos confirmar el correo ahora. Reintentá en unos segundos.'
+        : 'El enlace no es válido o venció. Pedí uno nuevo desde tu cuenta.',
+    },
   }[state]
 
   return (
     <div className="email-verification-notice" role="status" aria-live="polite">
       <Pill tone={contenido.tone}>{contenido.text}</Pill>
+      {state === 'error' && retryableError ? (
+        <button type="button" onClick={() => {
+          setState('verificando')
+          setAttempt((current) => current + 1)
+        }}>
+          Reintentar
+        </button>
+      ) : null}
     </div>
   )
 }

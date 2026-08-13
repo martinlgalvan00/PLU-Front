@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, FileText, RefreshCw } from 'lucide-react'
+import { BadgeCheck, RefreshCw } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -13,10 +13,8 @@ import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
-import {
-  getAthletePaymentProofUrl,
-  listAthletePaymentOrders,
-} from '../../services/athleteApi.js'
+import { listAthletePaymentOrders } from '../../services/athleteApi.js'
+import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 
 /**
  * AthletePaymentOrdersSection — PLU ARG
@@ -64,7 +62,7 @@ export default function AthletePaymentOrdersSection({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [approvingId, setApprovingId] = useState(null)
-  const [proofBusyId, setProofBusyId] = useState(null)
+  const [reviewRow, setReviewRow] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -147,24 +145,27 @@ export default function AthletePaymentOrdersSection({
     setError('')
     try {
       const result = await onApprovePayment?.(orderId)
-      if (result?.error) setError(result.error)
+      if (result?.error) {
+        setError(result.error)
+        return false
+      }
       await load()
+      return true
     } finally {
       setApprovingId(null)
     }
   }
 
-  async function openProof(orderId) {
-    setProofBusyId(orderId)
+  function openReview(row) {
     setError('')
-    try {
-      const url = await getAthletePaymentProofUrl(orderId)
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } catch (proofError) {
-      setError(proofError?.message ?? t('admin.athletePayments.proofError'))
-    } finally {
-      setProofBusyId(null)
-    }
+    setReviewRow({
+      type: 'payment',
+      paymentId: row.id,
+      hasProof: row.hasProof,
+      subject: row.athlete,
+      detail: `${row.concept} · ${row.reference}`,
+      meta: money(row.amount, locale),
+    })
   }
 
   return (
@@ -261,17 +262,7 @@ export default function AthletePaymentOrdersSection({
                     </span>
                   )
                 }
-                return (
-                  <button
-                    type="button"
-                    className="admin-orders-block__proof"
-                    disabled={proofBusyId === row.id}
-                    onClick={() => openProof(row.id)}
-                  >
-                    <FileText size={14} aria-hidden />
-                    {formatDateTime(row.proofUploadedAt, locale)}
-                  </button>
-                )
+                return <span className="admin-orders-block__proof">{formatDateTime(row.proofUploadedAt, locale)}</span>
               },
             },
             {
@@ -305,6 +296,7 @@ export default function AthletePaymentOrdersSection({
                     disabled={
                       !canEdit ||
                       row.method !== 'manual_link' ||
+                      !row.hasProof ||
                       !OPEN_STATUSES.includes(row.status) ||
                       approvingId === row.id
                     }
@@ -314,7 +306,7 @@ export default function AthletePaymentOrdersSection({
                         ? t('admin.athletePayments.webhookOnly')
                         : t('admin.actions.validate')
                     }
-                    onClick={() => approve(row.id)}
+                    onClick={() => openReview(row)}
                     variant="celeste"
                   />
                 </AdminTableActions>
@@ -325,6 +317,21 @@ export default function AthletePaymentOrdersSection({
           emptyMessage={t('admin.athletePayments.empty')}
         />
       )}
+
+      {reviewRow ? (
+        <PaymentValidationDialog
+          item={reviewRow}
+          busy={approvingId === reviewRow.paymentId}
+          error={error}
+          onCancel={() => setReviewRow(null)}
+          onConfirm={() => {
+            const paymentId = reviewRow.paymentId
+            void approve(paymentId).then((approved) => {
+              if (approved) setReviewRow(null)
+            })
+          }}
+        />
+      ) : null}
     </section>
   )
 }

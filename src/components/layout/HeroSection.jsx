@@ -1,22 +1,39 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
+import { useMemo } from 'react'
 import heroPhoto from '../../assets/DSC00346-display.jpg'
+import heroPhotoAvif from '../../assets/DSC00346-display.avif'
+import heroPhotoAvif640 from '../../assets/DSC00346-display-640.avif'
+import heroPhotoAvif1280 from '../../assets/DSC00346-display-1280.avif'
+import heroPhotoWebp from '../../assets/DSC00346-display.webp'
+import heroPhotoWebp640 from '../../assets/DSC00346-display-640.webp'
+import heroPhotoWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
+import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
+import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER_BY_TIER } from '../../motion/tokens.ts'
 import {
   heroActionsItem,
   heroProofItem,
   heroSequenceItem,
-  heroStaggerContainer,
   heroTitleLine,
 } from '../../motion/variants.ts'
 
 export default function HeroSection({ onNavigate }) {
   const { t } = useI18n()
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
+  // Cascada propia del hero (no la heroStaggerContainer compartida con
+  // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
+  // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
+  const heroStagger = useMemo(() => {
+    const { step, delayChildren } = MOTION_STAGGER_BY_TIER[tier]
+    return {
+      hidden: {},
+      visible: { transition: { staggerChildren: step, delayChildren } },
+    }
+  }, [tier])
 
   const kicker = (
     <>
@@ -104,12 +121,13 @@ export default function HeroSection({ onNavigate }) {
   return (
     <section className="hero hero--design hero--motion">
       <div className="hero__backdrop" aria-hidden>
-        <img
+        <ResponsivePhoto
           className="hero__backdrop-img"
+          avif={{ 640: heroPhotoAvif640, 1280: heroPhotoAvif1280, 2048: heroPhotoAvif }}
+          webp={{ 640: heroPhotoWebp640, 1280: heroPhotoWebp1280, 2048: heroPhotoWebp }}
           src={heroPhoto}
           alt=""
           loading="eager"
-          decoding="async"
           fetchPriority="high"
         />
       </div>
@@ -138,13 +156,13 @@ export default function HeroSection({ onNavigate }) {
                   className="hero__editorial"
                   initial="hidden"
                   animate="visible"
-                  variants={heroStaggerContainer}
+                  variants={heroStagger}
                 >
                   <m.p className="hero__kicker" variants={heroSequenceItem}>
                     {kicker}
                   </m.p>
                   {rule}
-                  <m.h1 className="hero__title hero__title--design" variants={heroStaggerContainer}>
+                  <m.h1 className="hero__title hero__title--design" variants={heroStagger}>
                     {animatedTitle}
                   </m.h1>
                   <m.p className="hero__lead" variants={heroSequenceItem}>

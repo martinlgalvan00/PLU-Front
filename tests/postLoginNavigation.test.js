@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAfterLoginDestination } from '../src/lib/navigation.js'
+import { resolveAfterLoginDestination, resolveMembershipCheckout, ACCOUNT_MEMBERSHIP_TAB } from '../src/lib/navigation.js'
 
 describe('continuidad después del login', () => {
   it('retoma la inscripción elegida por un atleta', () => {
@@ -18,6 +18,17 @@ describe('continuidad después del login', () => {
         options: {},
       }),
     ).toEqual({ view: 'membership', options: {} })
+  })
+
+  it('traduce la afiliación al tab único de cobro de la cuenta', () => {
+    expect(resolveMembershipCheckout('membership', { from: 'home' })).toEqual({
+      view: 'profile',
+      options: { from: 'home', tab: ACCOUNT_MEMBERSHIP_TAB },
+    })
+    expect(resolveMembershipCheckout('competition', { eventSlug: 'pitbull' })).toEqual({
+      view: 'competition',
+      options: { eventSlug: 'pitbull' },
+    })
   })
 
   it('no redirige a un usuario de staff a un flujo de atleta', () => {

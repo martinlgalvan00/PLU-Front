@@ -38,11 +38,16 @@ import {
   matchTicketsRoute,
   pushTicketsRoute,
 } from './lib/ticketsRoute.js'
-import { PRICING } from './lib/constants.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
-import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
+import {
+  ACCOUNT_MEMBERSHIP_TAB,
+  DEFAULT_ACCOUNT_TAB,
+  getTransitionDirection,
+  resolveAfterLoginDestination,
+  resolveMembershipCheckout,
+} from './lib/navigation.js'
 import {
   canCheckIn,
   canDeleteAthletes,
@@ -114,6 +119,8 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
+  const [profileTab, setProfileTab] = useState(DEFAULT_ACCOUNT_TAB)
+  const [profileTabNonce, setProfileTabNonce] = useState(0)
   const [ticketEventSlug, setTicketEventSlug] = useState(() =>
     matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
   )
@@ -198,7 +205,14 @@ export default function App() {
       const blocked =
         (adminRequired && !canViewAdmin(currentSession)) ||
         (athleteRequired && currentRole !== 'athlete_plu')
-      const resolvedView = blocked ? 'login' : requestedView
+      // El pending de login sigue siendo `membership` para no perder la
+      // intención. Recién acá se traduce al tab de la cuenta: un solo cobro,
+      // el de `listMembershipPlans`, sin un checkout paralelo.
+      const membershipCheckout = !blocked
+        ? resolveMembershipCheckout(requestedView, requestedOptions)
+        : { view: requestedView, options: requestedOptions }
+      const resolvedView = blocked ? 'login' : membershipCheckout.view
+      const resolvedOptions = blocked ? requestedOptions : membershipCheckout.options
 
       if (blocked && athleteRequired) {
         setPendingAthleteDestination({ view: requestedView, options: requestedOptions })
@@ -207,15 +221,15 @@ export default function App() {
       }
 
       if (resolvedView === 'tickets') {
-        pushTicketsRoute(requestedOptions.eventSlug)
-        setTicketEventSlug(requestedOptions.eventSlug ?? null)
+        pushTicketsRoute(resolvedOptions.eventSlug)
+        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
       } else if (view === 'tickets') {
         clearTicketsRoute()
       }
 
-      if (resolvedView === 'events' && requestedOptions.eventSlug) {
-        pushEventPageRoute(requestedOptions.eventSlug)
-        setEventPageSlug(requestedOptions.eventSlug)
+      if (resolvedView === 'events' && resolvedOptions.eventSlug) {
+        pushEventPageRoute(resolvedOptions.eventSlug)
+        setEventPageSlug(resolvedOptions.eventSlug)
       } else if (resolvedView === 'events') {
         clearEventPageRoute()
         setEventPageSlug(null)
@@ -243,12 +257,17 @@ export default function App() {
       }
 
       // openTickets en pitbull: ir a la página completa de entradas
-      if (resolvedView === 'pitbull' && requestedOptions.openTickets) {
-        pushTicketsRoute(requestedOptions.eventSlug)
-        setTicketEventSlug(requestedOptions.eventSlug ?? null)
+      if (resolvedView === 'pitbull' && resolvedOptions.openTickets) {
+        pushTicketsRoute(resolvedOptions.eventSlug)
+        setTicketEventSlug(resolvedOptions.eventSlug ?? null)
         setTransitionDirection(getTransitionDirection(view, 'tickets'))
         setView('tickets')
         return
+      }
+
+      if (resolvedView === 'profile') {
+        setProfileTab(resolvedOptions.tab || DEFAULT_ACCOUNT_TAB)
+        setProfileTabNonce((current) => current + 1)
       }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
@@ -547,11 +566,14 @@ export default function App() {
                         }
                       : { onNavigate: navigate }
 
-  if (view === 'profile' && app.session?.role === 'athlete_plu') {
+  const showAthleteAccount =
+    app.session?.role === 'athlete_plu' && (view === 'profile' || view === 'membership')
+
+  if (showAthleteAccount) {
     return (
       <PrivateLayout
         app={app}
-        view={view}
+        view="profile"
         navigate={navigate}
         transitionDirection={transitionDirection}
       >
@@ -570,15 +592,16 @@ export default function App() {
             registrations={app.registrations}
             session={app.session}
             events={publicEvents}
+            initialTab={view === 'membership' ? ACCOUNT_MEMBERSHIP_TAB : profileTab}
+            tabNonce={profileTabNonce}
           />
         </Suspense>
       </PrivateLayout>
     )
   }
 
-  if (['membership', 'competition'].includes(view) && app.session?.role === 'athlete_plu') {
+  if (view === 'competition' && app.session?.role === 'athlete_plu') {
     const athlete = app.athletes.find((item) => item.id === app.session.athleteId)
-    const flow = view
     const competitionEvent =
       publicEvents.find((event) => event.slug === selectedEvent?.slug) ??
       featuredEvent ??
@@ -595,27 +618,18 @@ export default function App() {
             athlete={athlete}
             createdOrder={app.createdOrder}
             event={competitionEvent}
-            flow={flow}
+            flow="competition"
             form={app.form}
             memberships={app.memberships}
             onApprovePayment={app.handleApprovePayment}
-            // Faltaban los dos. Sin `onNavigate`, la confirmación de afiliación
-            // se quedaba sin su CTA ("Ir a mi perfil") y sin la barra para
-            // volver a planes: el atleta terminaba de pagar y la pantalla no
-            // ofrecía a dónde seguir. Sin `registrations`, la credencial del
-            // torneo no podía saber si la inscripción ya habilita el ingreso.
             onNavigate={navigate}
-            onSubmit={flow === 'membership' ? app.submitMembership : app.submitCompetition}
+            onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}
             registrations={app.registrations}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.
-            total={
-              flow === 'membership'
-                ? PRICING.membership
-                : resolveEventPricing(competitionEvent).registration
-            }
+            total={resolveEventPricing(competitionEvent).registration}
           />
         </Suspense>
       </PrivateLayout>

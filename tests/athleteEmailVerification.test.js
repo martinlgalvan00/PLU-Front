@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
+import { hashEmailVerificationOtp } from '../server/services/emailVerificationOtp.js'
 
 const ATHLETE_ID = '11111111-1111-4111-8111-111111111111'
 const ENV = {
@@ -217,13 +218,14 @@ describe('verificación de email del atleta', () => {
 
   it('el alta marca emailVerification.sent true cuando Brevo acepta el mail', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'msg-alta' })
+    const storeEmailOtp = vi.fn().mockResolvedValue(true)
     const target = listen(createApp({
       env: ENV,
       supabaseAdmin: supabaseForVerification(),
       athleteRepository: {
         checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
         register: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp: vi.fn().mockResolvedValue(true),
+        storeEmailOtp,
       },
       brevo: { configured: true, send },
     }))
@@ -239,6 +241,77 @@ describe('verificación de email del atleta', () => {
       expect(response.status).toBe(201)
       expect(body.emailVerification).toEqual({ sent: true })
       expect(send).toHaveBeenCalledOnce()
+      const [{ params }] = send.mock.calls[0]
+      expect(params.verificationCode).toMatch(/^\d{8}$/)
+      expect(storeEmailOtp).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        hashEmailVerificationOtp(params.verificationCode),
+        expect.any(Date),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no envía un OTP que no pudo persistirse', async () => {
+    const send = vi.fn()
+    const target = listen(createApp({
+      env: ENV,
+      supabaseAdmin: supabaseForVerification(),
+      athleteRepository: {
+        checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
+        register: vi.fn().mockResolvedValue(unverifiedContact),
+        storeEmailOtp: vi.fn().mockRejectedValue(new Error('DB no disponible')),
+      },
+      brevo: { configured: true, send },
+    }))
+
+    try {
+      const response = await fetch(`${target.url}/api/athletes/register`, {
+        method: 'POST',
+        headers: mutationHeaders,
+        body: JSON.stringify(registerPayload()),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(201)
+      expect(body.emailVerification).toEqual({ sent: false })
+      expect(send).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('acepta únicamente el OTP de 8 dígitos y confirma la cuenta', async () => {
+    const verifyEmailWithOtp = vi.fn().mockResolvedValue({
+      verified: true,
+      alreadyVerified: false,
+      email: unverifiedContact.email,
+    })
+    const target = listen(createApp({
+      env: ENV,
+      supabaseAdmin: supabaseForVerification(),
+      athleteRepository: { verifyEmailWithOtp },
+      brevo: { configured: false },
+    }))
+
+    try {
+      const invalid = await fetch(`${target.url}/api/athletes/me/verify-email-code`, {
+        method: 'POST', headers: athleteHeaders, body: JSON.stringify({ code: '1234567' }),
+      })
+      expect(invalid.status).toBe(400)
+      expect(verifyEmailWithOtp).not.toHaveBeenCalled()
+
+      const valid = await fetch(`${target.url}/api/athletes/me/verify-email-code`, {
+        method: 'POST', headers: athleteHeaders, body: JSON.stringify({ code: '12345678' }),
+      })
+      expect(valid.status).toBe(200)
+      expect(await valid.json()).toMatchObject({ ok: true, email: unverifiedContact.email })
+      expect(verifyEmailWithOtp).toHaveBeenCalledWith(
+        ATHLETE_ID,
+        hashEmailVerificationOtp('12345678'),
+        8,
+      )
     } finally {
       await target.close()
     }

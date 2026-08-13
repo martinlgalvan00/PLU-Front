@@ -62,6 +62,12 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_idempotency_key: randomUUID(),
     })
     if (membershipOrder.error) throw new Error(membershipOrder.error.message)
+    const membershipProof = await admin.rpc('register_athlete_payment_proof', {
+      p_order_id: membershipOrder.data.order.id,
+      p_athlete_id: athleteId,
+      p_proof_path: `${membershipOrder.data.order.id}/integration-proof.pdf`,
+    })
+    if (membershipProof.error) throw new Error(membershipProof.error.message)
     const membershipApproved = await admin.rpc('approve_athlete_payment_order', {
       p_order_id: membershipOrder.data.order.id,
       p_actor: athleteId,
@@ -86,6 +92,13 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     expect(response.status, JSON.stringify(body)).toBe(201)
     expect(body.order).toMatchObject({ amount: 75000, currency: 'ARS' })
     expect(body.registration.payment_order_id).toBe(body.order.id)
+
+    const proof = await admin.rpc('register_athlete_payment_proof', {
+      p_order_id: body.order.id,
+      p_athlete_id: athleteId,
+      p_proof_path: `${body.order.id}/integration-proof.pdf`,
+    })
+    if (proof.error) throw new Error(proof.error.message)
 
     const approved = await admin.rpc('approve_athlete_payment_order', {
       p_order_id: body.order.id,
@@ -127,6 +140,13 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     expect(body.order).toMatchObject({ amount: 120000, currency: 'ARS' })
     expect(body.membership.payment_order_id).toBe(body.order.id)
     expect(body.registration.payment_order_id).toBe(body.order.id)
+
+    const proof = await admin.rpc('register_athlete_payment_proof', {
+      p_order_id: body.order.id,
+      p_athlete_id: athleteId,
+      p_proof_path: `${body.order.id}/integration-proof.pdf`,
+    })
+    if (proof.error) throw new Error(proof.error.message)
 
     const approved = await admin.rpc('approve_athlete_payment_order', {
       p_order_id: body.order.id,

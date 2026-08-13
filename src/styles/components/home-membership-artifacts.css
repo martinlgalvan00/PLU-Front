@@ -55,9 +55,12 @@
   width: 100%;
 }
 
-/* Float lento en vez de spin 360° — más lujoso y legible. */
+/* Float lento en vez de spin 360° — más lujoso y legible. Duración
+   controlada por --hm-float-duration para poder alargarla (menos repaints
+   por segundo) en dispositivos de tier medio sin tocar el JSX; ver
+   [data-motion-tier] en performance.css. */
 .hm-artifact:not(.is-static):not(.is-paused) .hm-artifact__model {
-  animation: hm-artifact-float 5.8s ease-in-out infinite;
+  animation: hm-artifact-float var(--hm-float-duration, 5.8s) ease-in-out infinite;
 }
 
 .hm-artifact.is-paused .hm-artifact__model,

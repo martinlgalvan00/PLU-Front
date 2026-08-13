@@ -19,16 +19,22 @@ import {
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
+import { MOTION_TIER_SCALE } from '../motion/tokens.ts'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
-const teaserDuoVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.16,
-      delayChildren: 0.04,
+/** Cascada de entrada del dúo de teasers, escalada por tier de dispositivo:
+ * en equipos limitados se acorta (no desaparece) para que el contenido
+ * termine de asentarse antes. Ver src/motion/deviceTier.ts. */
+function getTeaserDuoVariants(tierScale) {
+  return {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.16 * tierScale,
+        delayChildren: 0.04 * tierScale,
+      },
     },
-  },
+  }
 }
 
 export default function HomePage({
@@ -38,7 +44,7 @@ export default function HomePage({
   session,
   memberships = [],
 }) {
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
   const { PITBULL_CLASSIC } = useContent()
   const launchEvent = getPitbullClassicEvent(events) ?? getFeaturedEvent(events)
   const featuredDestination = getFeaturedEventDestination(launchEvent)
@@ -71,7 +77,7 @@ export default function HomePage({
     ? { className: 'home-teaser-duo' }
     : {
         className: 'home-teaser-duo',
-        variants: teaserDuoVariants,
+        variants: getTeaserDuoVariants(MOTION_TIER_SCALE[tier]),
         initial: 'hidden',
         whileInView: 'visible',
         viewport: { once: true, amount: 0.22 },

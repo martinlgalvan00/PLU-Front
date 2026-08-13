@@ -77,6 +77,11 @@ import {
   createPreference as createPreferenceRequest,
   reconcileCreatedOrder,
 } from '../services/paymentService.js'
+import {
+  buildCompetitionCreatedOrder,
+  findOpenPaymentForRegistration,
+  findPendingEventRegistration,
+} from '../services/competitionCheckoutService.js'
 import { readStorage, writeStorage } from '../services/storageService.js'
 import {
   approveTicketOrder as approveTicketOrderRequest,
@@ -715,8 +720,18 @@ export function useAppData() {
         // El `code` viaja para que la pantalla que quedó bloqueada pueda
         // ofrecer la acción correcta (ej. reenviar el mail de verificación) en
         // vez de solo mostrar un texto.
-        if (error instanceof ApiError)
-          return { error: error.message, code: error.body?.code ?? null }
+        if (error instanceof ApiError) {
+          const membershipPaymentInProgress =
+            error.message?.includes('Ya existe un pago de afiliacion en curso') ?? false
+          return {
+            error: error.message,
+            code: error.body?.code ?? null,
+            // PLU13 se usa para varias reglas de integridad. Esta variante
+            // puntual no se resuelve recreando la orden: hay que retomar el
+            // checkout existente o esperar la validación de transferencia.
+            resumeMembershipPayment: membershipPaymentInProgress,
+          }
+        }
         throw error
       }
     },
@@ -821,15 +836,50 @@ export function useAppData() {
         setCreatedOrder(createdOrder)
         return { registration: enrichedRegistration, membership, payment, plan, comboOffer, createdOrder }
       } catch (error) {
-        // El servidor es la autoridad para el gate de membresía activa
-        // (PLU05) y de inscripción duplicada (PLU08) -- antes esos dos
-        // checks vivían solo del lado del cliente.
-        if (error instanceof ApiError)
-          return { error: error.message, code: error.body?.code ?? null }
+        // PLU08 en una inscripción impaga es un checkout a reanudar, no un
+        // callejón sin salida. Si la migración ya está aplicada el POST
+        // reusa la orden; esto cubre el snapshot local si el RPC todavía
+        // rechaza (o el browser perdió la clave de idempotencia).
+        if (error instanceof ApiError && error.body?.code === 'PLU08') {
+          const pending = findPendingEventRegistration(registrations, {
+            athleteId: athlete.id,
+            event: selectedEvent,
+          })
+          const payment = findOpenPaymentForRegistration(payments, pending)
+          if (payment) {
+            try {
+              const checkout =
+                payment.method === 'mercado_pago'
+                  ? await createPreferenceRequest({ paymentId: payment.id })
+                  : null
+              const createdOrder = buildCompetitionCreatedOrder({
+                athlete,
+                payment,
+                purchaseType: options.purchaseType === 'combo' ? 'combo' : 'registration',
+                session,
+                preferenceId: checkout?.preference?.id ?? null,
+              })
+              setCreatedOrder(createdOrder)
+              return { registration: pending, payment, createdOrder }
+            } catch {
+              return { error: error.message, code: 'PLU08' }
+            }
+          }
+          return { error: error.message, code: 'PLU08' }
+        }
+        if (error instanceof ApiError) {
+          const membershipPaymentInProgress =
+            error.message?.includes('Ya existe un pago de afiliacion en curso') ?? false
+          return {
+            error: error.message,
+            code: error.body?.code ?? null,
+            resumeMembershipPayment: membershipPaymentInProgress,
+          }
+        }
         throw error
       }
     },
-    [athletes, form, session],
+    [athletes, form, payments, registrations, session],
   )
 
   // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera

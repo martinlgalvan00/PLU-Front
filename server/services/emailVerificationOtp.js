@@ -1,17 +1,17 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto'
 
 /**
- * OTP de 6 dígitos para verificar el email del atleta cuando el deep link
+ * OTP de 8 dígitos para verificar el email del atleta cuando el deep link
  * del mail no abre. El valor crudo viaja en el HTML; en DB solo el hash.
  */
 
-export const EMAIL_OTP_LENGTH = 6
+export const EMAIL_OTP_LENGTH = 8
 export const EMAIL_OTP_TTL_MS = 1000 * 60 * 60 * 24 // 24 h
 export const EMAIL_OTP_MAX_ATTEMPTS = 8
 
-/** Genera un código numérico de 6 dígitos (000000–999999, con ceros). */
+/** Genera un código numérico de 8 dígitos (00000000–99999999, con ceros). */
 export function createEmailVerificationOtp() {
-  return String(randomInt(0, 1_000_000)).padStart(EMAIL_OTP_LENGTH, '0')
+  return String(randomInt(0, 100_000_000)).padStart(EMAIL_OTP_LENGTH, '0')
 }
 
 export function hashEmailVerificationOtp(code) {

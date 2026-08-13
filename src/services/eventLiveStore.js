@@ -25,13 +25,22 @@ const REGISTRATION_TTL_MS = 15_000
 const AVAILABILITY_TTL_MS = 15_000
 
 function createLiveStore({ fetcher, ttlMs }) {
-  /** key → { data, fetchedAt, inFlight, failed, listeners } */
+  /** key → { data, fetchedAt, inFlight, failed, refreshAfterFlight, listeners } */
   const entries = new Map()
 
   function entryFor(key) {
     let entry = entries.get(key)
     if (!entry) {
-      entry = { data: null, fetchedAt: 0, inFlight: null, failed: false, listeners: new Set() }
+      entry = {
+        data: null,
+        fetchedAt: 0,
+        inFlight: null,
+        failed: false,
+        // Una mutación puede llegar mientras la lectura anterior aún viaja.
+        // En ese caso esa respuesta ya no es suficiente, aunque llegue luego.
+        refreshAfterFlight: false,
+        listeners: new Set(),
+      }
       entries.set(key, entry)
     }
     return entry
@@ -87,6 +96,13 @@ function createLiveStore({ fetcher, ttlMs }) {
       .finally(() => {
         entry.inFlight = null
         emit(key)
+        // No perder una invalidación que ocurrió mientras este request estaba
+        // en vuelo. Sin esta segunda lectura, la landing podía volver a pintar
+        // el contador anterior hasta el próximo polling.
+        if (entry.refreshAfterFlight) {
+          entry.refreshAfterFlight = false
+          load(key, { force: true }).catch(() => {})
+        }
         // Sin nadie escuchando y sin dato útil no vale la pena mantener la
         // entrada viva (evita que el Map crezca por slugs de una sola visita).
         if (entry.listeners.size === 0 && !entry.data) entries.delete(key)
@@ -116,6 +132,11 @@ function createLiveStore({ fetcher, ttlMs }) {
     const entry = entries.get(key)
     if (!entry) return
     entry.fetchedAt = 0
+    if (entry.inFlight) {
+      entry.refreshAfterFlight = true
+      emit(key)
+      return
+    }
     if (entry.listeners.size > 0) {
       load(key, { force: true }).catch(() => {})
       return

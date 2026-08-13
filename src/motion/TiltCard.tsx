@@ -1,10 +1,15 @@
 import { useCallback, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent } from 'react'
-import { TILT_MAX_DEG } from './tokens'
+import { getDeviceTier } from './deviceTier'
+import { MOTION_TIER_SCALE, TILT_MAX_DEG } from './tokens'
 import { hasFinePointer, useReducedMotion } from './useReducedMotion'
 
 type TiltCardProps = {
   children: ReactNode
   className?: string
+  /** Ángulo base en tier `high`. Se escala hacia abajo en `mid`/`low` — nunca
+   * queda fijo, ni cuando el caller lo pasa explícito (ej. la credencial
+   * usa un ángulo más sutil que el default, pero sigue respondiendo al
+   * tier del dispositivo). */
   maxTilt?: number
   style?: CSSProperties
   /** Clase del elemento interno que recibe el reflejo 3D */
@@ -14,12 +19,13 @@ type TiltCardProps = {
 export default function TiltCard({
   children,
   className = '',
-  maxTilt = TILT_MAX_DEG,
+  maxTilt,
   style,
   innerClassName = 'tilt-card__inner',
 }: TiltCardProps) {
   const reducedMotion = useReducedMotion()
   const canTilt = !reducedMotion && hasFinePointer()
+  const resolvedMaxTilt = (maxTilt ?? TILT_MAX_DEG) * MOTION_TIER_SCALE[getDeviceTier()]
   const rootRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<number | null>(null)
   const leaveTimerRef = useRef<number | null>(null)
@@ -54,8 +60,8 @@ export default function TiltCard({
       const ny = (event.clientY - rect.top) / rect.height
       const px = nx - 0.5
       const py = ny - 0.5
-      const rotateY = px * maxTilt * 2
-      const rotateX = -py * maxTilt * 2
+      const rotateY = px * resolvedMaxTilt * 2
+      const rotateX = -py * resolvedMaxTilt * 2
 
       frameRef.current = requestAnimationFrame(() => {
         node.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`)
@@ -70,7 +76,7 @@ export default function TiltCard({
         setTiltActive(true)
       })
     },
-    [canTilt, maxTilt],
+    [canTilt, resolvedMaxTilt],
   )
 
   const handlePointerLeave = useCallback(() => {

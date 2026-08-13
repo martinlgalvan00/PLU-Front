@@ -157,7 +157,7 @@ function App() {
       {FIXTURES.map((fixture) => (
         <section key={fixture.name} style={styles.section}>
           <p style={styles.label}>{fixture.label}</p>
-          <div data-share-capture={fixture.name} style={{ display: 'inline-block', lineHeight: 0 }}>
+          <div data-share-capture={fixture.name} style={{ display: 'inline-block' }}>
             <EventShareCard {...fixture.props} />
           </div>
         </section>

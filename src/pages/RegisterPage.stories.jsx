@@ -51,7 +51,7 @@ export default {
 export const OfertaVigente = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(await canvas.findByRole('radio', { name: /combo/i })).toBeChecked()
-    await expect(canvas.getByRole('button', { name: /generar combo/i })).toBeEnabled()
+    await expect(await canvas.findByRole('radio', { name: /afiliaci/i })).toBeChecked()
+    await expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled()
   },
 }

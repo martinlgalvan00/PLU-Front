@@ -115,6 +115,32 @@ describe('registrationSummaryStore', () => {
     expect(next.registered).toBe(20)
   })
 
+  it('no pierde una invalidación ocurrida mientras la lectura anterior sigue en vuelo', async () => {
+    let resolveFirst
+    registrationFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve
+          }),
+      )
+      .mockResolvedValueOnce(summary(13))
+
+    const seen = []
+    const unsubscribe = store.registrationSummaryStore.subscribe('pitbull-classic-2026', (snap) => {
+      if (snap.data) seen.push(snap.data.registered)
+    })
+    const firstLoad = store.registrationSummaryStore.load('pitbull-classic-2026')
+
+    store.invalidateEventRegistrationSummary('pitbull-classic-2026')
+    resolveFirst(summary(12))
+    await firstLoad
+
+    await vi.waitFor(() => expect(seen.at(-1)).toBe(13))
+    expect(registrationFetch).toHaveBeenCalledTimes(2)
+    unsubscribe()
+  })
+
   it('un error de red no borra el último cupo conocido', async () => {
     registrationFetch
       .mockResolvedValueOnce(summary(12))

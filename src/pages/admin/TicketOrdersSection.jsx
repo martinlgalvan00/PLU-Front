@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, ExternalLink, LoaderCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { BadgeCheck, LoaderCircle } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
@@ -8,7 +8,7 @@ import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
-import { getTicketPaymentProofUrl } from '../../services/ticketApi.js'
+import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 
 function formatUploadedAt(value, locale) {
   if (!value) return '—'
@@ -28,10 +28,10 @@ export default function TicketOrdersSection({
   onRefresh,
 }) {
   const { locale, t } = useI18n()
-  const [openingProofId, setOpeningProofId] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
   const [actionError, setActionError] = useState(null)
   const [query, setQuery] = useState(initialQuery)
+  const [reviewRow, setReviewRow] = useState(null)
 
   useEffect(() => {
     setQuery(initialQuery)
@@ -69,24 +69,6 @@ export default function TicketOrdersSection({
     )
   }, [allRows, query])
 
-  const handleOpenProof = useCallback(
-    async (row) => {
-      if (!row.paymentProofPath) return
-      setOpeningProofId(row.id)
-      setActionError(null)
-      try {
-        const url = await getTicketPaymentProofUrl(row.id)
-        if (url) window.open(url, '_blank', 'noopener,noreferrer')
-      } catch (error) {
-        console.error('getTicketPaymentProofUrl:', error)
-        setActionError(error.message ?? t('admin.ticketOrders.proofErrorFallback'))
-      } finally {
-        setOpeningProofId(null)
-      }
-    },
-    [t],
-  )
-
   async function handleApprove(orderId) {
     if (!canEdit) return
     setApprovingId(orderId)
@@ -94,9 +76,11 @@ export default function TicketOrdersSection({
     try {
       await onApproveTicketOrder?.(orderId)
       await onRefresh?.()
+      return true
     } catch (error) {
       console.error('approve ticket order:', error)
       setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
+      return false
     } finally {
       setApprovingId(null)
     }
@@ -206,26 +190,26 @@ export default function TicketOrdersSection({
               mobile: 'action',
               className: 'data-table__column--actions',
               render: (row) => {
-                const opening = openingProofId === row.id
                 const approving = approvingId === row.id
 
                 return (
                   <AdminTableActions>
-                    {row.paymentProofPath ? (
-                      <AdminIconButton
-                        disabled={opening}
-                        icon={opening ? LoaderCircle : ExternalLink}
-                        label={t('admin.ticketOrders.viewProof')}
-                        onClick={() => handleOpenProof(row)}
-                        variant="ghost"
-                      />
-                    ) : null}
                     {canEdit ? (
                       <AdminIconButton
-                        disabled={approving}
+                        disabled={approving || !row.paymentProofPath}
                         icon={approving ? LoaderCircle : BadgeCheck}
                         label={t('admin.actions.validate')}
-                        onClick={() => handleApprove(row.id)}
+                        onClick={() => {
+                          setActionError(null)
+                          setReviewRow({
+                            type: 'ticket',
+                            orderId: row.id,
+                            hasProof: Boolean(row.paymentProofPath),
+                            subject: row.attendees,
+                            detail: `${row.event} · ${row.reference}`,
+                            meta: row.amount,
+                          })
+                        }}
                         variant="celeste"
                       />
                     ) : null}
@@ -239,6 +223,21 @@ export default function TicketOrdersSection({
           variant="admin"
         />
       )}
+
+      {reviewRow ? (
+        <PaymentValidationDialog
+          item={reviewRow}
+          busy={approvingId === reviewRow.orderId}
+          error={actionError ?? ''}
+          onCancel={() => setReviewRow(null)}
+          onConfirm={() => {
+            const orderId = reviewRow.orderId
+            void handleApprove(orderId).then((approved) => {
+              if (approved) setReviewRow(null)
+            })
+          }}
+        />
+      ) : null}
     </AdminListSection>
   )
 }

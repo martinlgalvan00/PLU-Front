@@ -21,8 +21,8 @@
  * - Sin gradientes: Outlook los ignora. La firma de marca (`--gradient-brand`)
  *   se reproduce como dos celdas sólidas celeste + dorado.
  * - Logo: emblema circular croppeado (`/brand/plu-argentina-email.png`).
- *   Si `APP_URL` es localhost/privada, se embebe como data URI porque los
- *   clientes de correo no pueden fetchear `http://localhost/...`.
+ *   Si `APP_URL` no es pública, usa el asset HTTPS oficial: Gmail y Outlook
+ *   suelen bloquear imágenes `data:` aunque el HTML sea válido.
  *   Header negro = solo marca. Título del mail en el cuerpo (ink sobre blanco).
  *
  * Previews abribles: `npm run email:previews` → `docs/email-previews/`.
@@ -56,6 +56,7 @@ const MONO_STACK = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
 
 /** Ruta pública del emblema circular PLU Argentina (header negro). */
 export const EMAIL_LOGO_PATH = '/brand/plu-argentina-email.png'
+export const EMAIL_LOGO_FALLBACK_URL = `https://www.powerliftingunited.ar${EMAIL_LOGO_PATH}`
 
 const EMAIL_LOGO_FILE = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -137,8 +138,9 @@ export function resetEmbeddedEmailLogoCache() {
 /**
  * Arma la URL del logo para el `<img>`.
  * Acepta http(s), rutas relativas (previews locales) o data:image.
- * Si `appUrl` es local/privada, embebe el PNG para que el mail muestre marca.
- * Sin base válida y sin archivo cae a cadena vacía → wordmark tipográfico.
+ * Si `appUrl` es local/privada, usa el asset HTTPS público de PLU. Los clientes
+ * de correo bloquean los data URI con frecuencia, por lo que no son un fallback
+ * confiable para una imagen de marca.
  */
 export function buildEmailLogoUrl(appUrl, logoUrl) {
   const override = String(logoUrl ?? '').trim()
@@ -151,7 +153,7 @@ export function buildEmailLogoUrl(appUrl, logoUrl) {
   }
 
   if (isUnreachableEmailHost(appUrl)) {
-    return loadEmbeddedEmailLogo()
+    return safeUrl(EMAIL_LOGO_FALLBACK_URL) || loadEmbeddedEmailLogo()
   }
 
   const base = String(appUrl ?? '').trim().replace(/\/$/, '')

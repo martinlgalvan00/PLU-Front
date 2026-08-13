@@ -11,12 +11,25 @@ import {
 } from 'lucide-react'
 import { m } from 'motion/react'
 import photoMeetFloor from '../assets/DSC00346-display.jpg'
+import photoMeetFloorAvif from '../assets/DSC00346-display.avif'
+import photoMeetFloorAvif640 from '../assets/DSC00346-display-640.avif'
+import photoMeetFloorAvif1280 from '../assets/DSC00346-display-1280.avif'
+import photoMeetFloorWebp from '../assets/DSC00346-display.webp'
+import photoMeetFloorWebp640 from '../assets/DSC00346-display-640.webp'
+import photoMeetFloorWebp1280 from '../assets/DSC00346-display-1280.webp'
 import photoCrowd from '../assets/DSC00392-display.jpg'
+import photoCrowdAvif from '../assets/DSC00392-display.avif'
+import photoCrowdAvif480 from '../assets/DSC00392-display-480.avif'
+import photoCrowdAvif800 from '../assets/DSC00392-display-800.avif'
+import photoCrowdWebp from '../assets/DSC00392-display.webp'
+import photoCrowdWebp480 from '../assets/DSC00392-display-480.webp'
+import photoCrowdWebp800 from '../assets/DSC00392-display-800.webp'
 import PitbullHero from '../components/layout/PitbullHero.jsx'
 import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -299,14 +312,16 @@ function PitbullExperienceSection({ t }) {
         <div className="pitbull-experience pitbull-experience--stage">
           <StageTag className="pitbull-experience__stage" {...stageMotion}>
             <figure className="pitbull-experience__media">
-              <img
+              <ResponsivePhoto
                 className="pitbull-experience__img"
+                avif={{ 640: photoMeetFloorAvif640, 1280: photoMeetFloorAvif1280, 2048: photoMeetFloorAvif }}
+                webp={{ 640: photoMeetFloorWebp640, 1280: photoMeetFloorWebp1280, 2048: photoMeetFloorWebp }}
                 src={photoMeetFloor}
                 alt=""
                 width={800}
                 height={1200}
+                sizes="(min-width: 1024px) 45vw, 100vw"
                 loading="lazy"
-                decoding="async"
               />
               <div className="pitbull-experience__scrim" aria-hidden />
             </figure>
@@ -469,14 +484,16 @@ function PitbullTicketsBand({ onOpen, t }) {
       aria-labelledby="pitbull-tickets-title"
     >
       <div className="pitbull-tickets-band__media" aria-hidden>
-        <img
+        <ResponsivePhoto
           className="pitbull-tickets-band__img"
+          avif={{ 480: photoCrowdAvif480, 800: photoCrowdAvif800, 1153: photoCrowdAvif }}
+          webp={{ 480: photoCrowdWebp480, 800: photoCrowdWebp800, 1153: photoCrowdWebp }}
           src={photoCrowd}
           alt=""
           width={800}
           height={1200}
+          sizes="100vw"
           loading="lazy"
-          decoding="async"
         />
         <div className="pitbull-tickets-band__scrim" />
       </div>
@@ -667,26 +684,26 @@ function PitbullInscriptionSection({
                     {money(comboOffer.price, locale)}
                   </span>
                 </dd>
-                <p className="pitbull-inscription-shell__combo-meta">
-                  {comboEndsLabel ? (
-                    <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
-                  ) : null}
-                  {comboEndsLabel && comboSavings > 0 ? (
-                    <span aria-hidden> · </span>
-                  ) : null}
-                  {comboSavings > 0 ? (
-                    <span className="pitbull-inscription-shell__combo-hint">
-                      {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
-                    </span>
-                  ) : null}
+                <p className="pitbull-inscription-shell__combo-desc">
+                  {t('pages.pitbull.cardDescCombo')}
                 </p>
-                <p className="pitbull-inscription-shell__desc pitbull-inscription-shell__desc--combo">
-                  {canRegister
-                    ? t('pages.pitbull.cardDescCombo')
-                    : softLaunch
-                      ? t('pages.pitbull.cardDescComingSoon')
-                      : t('pages.pitbull.cardDescClosed')}
-                </p>
+                {comboEndsLabel || comboSavings > 0 ? (
+                  <p className="pitbull-inscription-shell__combo-meta">
+                    {comboSavings > 0 ? (
+                      <span className="pitbull-inscription-shell__combo-hint">
+                        {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
+                      </span>
+                    ) : null}
+                    {comboSavings > 0 && comboEndsLabel ? (
+                      <span aria-hidden className="pitbull-inscription-shell__combo-sep">
+                        ·
+                      </span>
+                    ) : null}
+                    {comboEndsLabel ? (
+                      <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
+                    ) : null}
+                  </p>
+                ) : null}
               </div>
             ) : null}
             {hasActiveMembership ? (
@@ -695,7 +712,12 @@ function PitbullInscriptionSection({
                 <dd>{money(pricing.registration, locale)}</dd>
               </div>
             ) : (
-              <div className="pitbull-inscription-shell__compare">
+              <div
+                className={[
+                  'pitbull-inscription-shell__compare',
+                  comboLive ? 'pitbull-inscription-shell__compare--ledger' : '',
+                ].filter(Boolean).join(' ')}
+              >
                 <div className="pitbull-inscription-shell__price">
                   <dt>{t('pages.pitbull.costMembership')}</dt>
                   <dd>{money(pricing.membership, locale)}</dd>
@@ -708,7 +730,13 @@ function PitbullInscriptionSection({
             )}
           </Pricing>
 
-          <Footer className="pitbull-inscription-shell__footer" {...childProps}>
+          <Footer
+            className={[
+              'pitbull-inscription-shell__footer',
+              comboLive ? 'pitbull-inscription-shell__footer--combo' : '',
+            ].filter(Boolean).join(' ')}
+            {...childProps}
+          >
             {!comboLive ? (
               <p className="pitbull-inscription-shell__desc">
                 {hasActiveMembership
@@ -729,7 +757,7 @@ function PitbullInscriptionSection({
                     className="pitbull-inscription__cta pitbull-inscription__cta--primary"
                     onClick={onRegister}
                   >
-                    {comboLive ? t('pages.pitbull.registerCombo') : t('pages.pitbull.register')}
+                    {t('pages.pitbull.register')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
                   <button
@@ -739,7 +767,9 @@ function PitbullInscriptionSection({
                   >
                     {hasActiveMembership
                       ? t('pages.pitbull.viewMyMembership')
-                      : t('pages.pitbull.viewMembershipPlans')}
+                      : comboLive
+                        ? t('pages.pitbull.viewMembershipOnly')
+                        : t('pages.pitbull.viewMembershipPlans')}
                   </button>
                 </>
               ) : softLaunch ? (

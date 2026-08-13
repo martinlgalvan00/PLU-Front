@@ -25,7 +25,14 @@ import {
   buildEmailVerificationUrl,
   readEmailVerificationToken,
 } from '../src/lib/emailVerificationRoute.js'
-import { hasHtmlFallback, renderEmail, safeUrl, buildEmailLogoUrl, EMAIL_LOGO_PATH } from '../server/modules/notifications/emailTemplates.js'
+import {
+  hasHtmlFallback,
+  renderEmail,
+  safeUrl,
+  buildEmailLogoUrl,
+  EMAIL_LOGO_PATH,
+  EMAIL_LOGO_FALLBACK_URL,
+} from '../server/modules/notifications/emailTemplates.js'
 
 const okResponse = (body = { messageId: 'msg-1' }) => ({
   ok: true,
@@ -225,12 +232,12 @@ describe('plantillas HTML de fallback', () => {
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
   })
 
-  it('embebe el logo cuando no hay appUrl pública (evita ícono roto en el cliente)', () => {
+  it('usa el logo HTTPS público cuando no hay appUrl pública', () => {
     const { htmlContent } = renderEmail('welcome', {
       name: 'Ana',
       accountUrl: 'https://plu.example/mi-cuenta',
     })
-    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).toContain(`src="${EMAIL_LOGO_FALLBACK_URL}"`)
     expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Te damos la bienvenida</)
@@ -255,10 +262,9 @@ describe('plantillas HTML de fallback', () => {
     )
   })
 
-  it('embebe el logo cuando APP_URL es localhost (clientes de mail no fetchean local)', () => {
+  it('usa el logo HTTPS público cuando APP_URL es localhost', () => {
     const logo = buildEmailLogoUrl('http://localhost:5173', null)
-    expect(logo.startsWith('data:image/png;base64,')).toBe(true)
-    expect(logo.length).toBeGreaterThan(1000)
+    expect(logo).toBe(EMAIL_LOGO_FALLBACK_URL)
 
     const { htmlContent } = renderEmail(
       'email_verification',
@@ -269,12 +275,12 @@ describe('plantillas HTML de fallback', () => {
       },
       { appUrl: 'http://localhost:5173' },
     )
-    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).toContain(`src="${EMAIL_LOGO_FALLBACK_URL}"`)
     expect(htmlContent).not.toContain('src="http://localhost:5173/brand/')
   })
 
-  it('sin APP_URL también embebe el logo si el archivo existe', () => {
-    expect(buildEmailLogoUrl('', null).startsWith('data:image/png;base64,')).toBe(true)
+  it('sin APP_URL también usa el logo HTTPS público', () => {
+    expect(buildEmailLogoUrl('', null)).toBe(EMAIL_LOGO_FALLBACK_URL)
   })
 
   it('unifica bienvenida + confirmación + OTP en el mail de verificación', () => {
@@ -669,7 +675,7 @@ describe('token de verificación de email', () => {
 })
 
 describe('OTP de verificación de email', () => {
-  it('genera 6 dígitos, hashea estable y normaliza entrada', async () => {
+  it('genera 8 dígitos, hashea estable y normaliza entrada', async () => {
     const {
       createEmailVerificationOtp,
       hashEmailVerificationOtp,
@@ -679,10 +685,11 @@ describe('OTP de verificación de email', () => {
 
     const code = createEmailVerificationOtp()
     expect(code).toMatch(new RegExp(`^\\d{${EMAIL_OTP_LENGTH}}$`))
-    expect(normalizeEmailVerificationOtp(' 12-34 56 ')).toBe('123456')
-    expect(normalizeEmailVerificationOtp('12345')).toBe('')
-    expect(hashEmailVerificationOtp('482913')).toBe(hashEmailVerificationOtp('482913'))
-    expect(hashEmailVerificationOtp('482913')).not.toBe(hashEmailVerificationOtp('482914'))
+    expect(EMAIL_OTP_LENGTH).toBe(8)
+    expect(normalizeEmailVerificationOtp(' 12-34 56 78 ')).toBe('12345678')
+    expect(normalizeEmailVerificationOtp('1234567')).toBe('')
+    expect(hashEmailVerificationOtp('48291357')).toBe(hashEmailVerificationOtp('48291357'))
+    expect(hashEmailVerificationOtp('48291357')).not.toBe(hashEmailVerificationOtp('48291358'))
   })
 })
 

@@ -199,6 +199,14 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(secondBody.membership.id).toBe(firstBody.membership.id)
     expect(secondBody.registration.id).toBe(firstBody.registration.id)
 
+    const proof = await admin.rpc('register_athlete_payment_proof', {
+      p_order_id: firstBody.order.id,
+      p_athlete_id: athleteBody.athlete.id,
+      p_proof_path: `${firstBody.order.id}/integration-proof.pdf`,
+    })
+    if (proof.error) throw new Error(proof.error.message)
+    expect(proof.data.order.status).toBe('validacion_manual')
+
     const approved = await admin.rpc('approve_athlete_payment_order', {
       p_order_id: firstBody.order.id,
       p_actor: 'integration-test',

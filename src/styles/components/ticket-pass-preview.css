@@ -49,13 +49,19 @@
   transition:
     transform 180ms ease-out,
     box-shadow 320ms ease;
-  will-change: transform;
 }
 
 .ticket-pass-preview--interactive .ticket-pass-preview__card {
   transition:
     transform 90ms linear,
     box-shadow 280ms ease;
+  /* Solo promovida a su propia capa mientras hay tracking real por
+     puntero — evitar el costo permanente en equipos limitados. */
+  will-change: transform;
+}
+
+[data-motion-tier='low'] .ticket-pass-preview--interactive .ticket-pass-preview__card {
+  will-change: auto;
 }
 
 .ticket-pass-preview--interactive:hover .ticket-pass-preview__card,

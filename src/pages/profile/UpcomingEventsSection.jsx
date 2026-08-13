@@ -1,6 +1,8 @@
 import { Trophy } from 'lucide-react'
+import PitbullBrandMark from '../../components/ui/PitbullBrandMark.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
+import { isPitbullClassicEvent } from '../../lib/eventNavigation.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
 
 function eventRequiresMembership(event) {
@@ -28,12 +30,20 @@ export default function UpcomingEventsSection({ availableEvents, athleteRegistra
             const registered = athleteRegistrations.some((item) => item.event === event.title)
             const needsMembership = eventRequiresMembership(event)
             const membershipPending = needsMembership && !hasActiveMembership
+            const isPitbull = isPitbullClassicEvent(event)
 
             return (
               <article key={event.slug} className="account-events-list__row">
                 <time dateTime={event.dateISO}>{event.date}</time>
                 <div className="account-events-list__body">
-                  <h3>{event.title}</h3>
+                  {isPitbull ? (
+                    <>
+                      <PitbullBrandMark size="sm" label={event.title} />
+                      <h3 className="visually-hidden">{event.title}</h3>
+                    </>
+                  ) : (
+                    <h3>{event.title}</h3>
+                  )}
                   <p>
                     {event.venue} · {event.location}
                   </p>

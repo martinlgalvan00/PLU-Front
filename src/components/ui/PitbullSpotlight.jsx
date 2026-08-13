@@ -1,8 +1,25 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
-import photoLift from '../../assets/DSC00346-display.jpg'
+import photoLiftAvif from '../../assets/DSC00346-display.avif'
+import photoLiftAvif640 from '../../assets/DSC00346-display-640.avif'
+import photoLiftAvif1280 from '../../assets/DSC00346-display-1280.avif'
+import photoLiftWebp from '../../assets/DSC00346-display.webp'
+import photoLiftWebp640 from '../../assets/DSC00346-display-640.webp'
+import photoLiftWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import photoMedals from '../../assets/DSC01606-display.jpg'
+import photoMedalsAvif from '../../assets/DSC01606-display.avif'
+import photoMedalsAvif480 from '../../assets/DSC01606-display-480.avif'
+import photoMedalsAvif800 from '../../assets/DSC01606-display-800.avif'
+import photoMedalsWebp from '../../assets/DSC01606-display.webp'
+import photoMedalsWebp480 from '../../assets/DSC01606-display-480.webp'
+import photoMedalsWebp800 from '../../assets/DSC01606-display-800.webp'
 import photoSpotters from '../../assets/DSC00286-display.jpg'
+import photoSpottersAvif from '../../assets/DSC00286-display.avif'
+import photoSpottersAvif480 from '../../assets/DSC00286-display-480.avif'
+import photoSpottersAvif800 from '../../assets/DSC00286-display-800.avif'
+import photoSpottersWebp from '../../assets/DSC00286-display.webp'
+import photoSpottersWebp480 from '../../assets/DSC00286-display-480.webp'
+import photoSpottersWebp800 from '../../assets/DSC00286-display-800.webp'
 import logoPitbullClassic from '../../assets/brand/logo-letra-transparente.png'
 import { env } from '../../config/env.js'
 import { useContent } from '../../hooks/useContent.js'
@@ -17,6 +34,7 @@ import BrandLogo from './BrandLogo.jsx'
 import Button from './Button.jsx'
 import CapacityBar from './CapacityBar.jsx'
 import EventCalendarActions from './EventCalendarActions.jsx'
+import ResponsivePhoto from './ResponsivePhoto.jsx'
 
 function formatOpenDayLabel(iso, locale = 'es') {
   const date = new Date(iso)
@@ -278,7 +296,28 @@ export default function PitbullSpotlight({
           >
             {isPitbullEvent ? (
               <picture>
-                <source media="(min-width: 640px) and (max-width: 1599px)" srcSet={photoLift} />
+                <source
+                  type="image/avif"
+                  media="(min-width: 640px) and (max-width: 1599px)"
+                  srcSet={`${photoLiftAvif640} 640w, ${photoLiftAvif1280} 1280w, ${photoLiftAvif} 2048w`}
+                  sizes="100vw"
+                />
+                <source
+                  type="image/webp"
+                  media="(min-width: 640px) and (max-width: 1599px)"
+                  srcSet={`${photoLiftWebp640} 640w, ${photoLiftWebp1280} 1280w, ${photoLiftWebp} 2048w`}
+                  sizes="100vw"
+                />
+                <source
+                  type="image/avif"
+                  srcSet={`${photoMedalsAvif480} 480w, ${photoMedalsAvif800} 800w, ${photoMedalsAvif} 1153w`}
+                  sizes="100vw"
+                />
+                <source
+                  type="image/webp"
+                  srcSet={`${photoMedalsWebp480} 480w, ${photoMedalsWebp800} 800w, ${photoMedalsWebp} 1153w`}
+                  sizes="100vw"
+                />
                 <img
                   src={photoMedals}
                   alt=""
@@ -452,7 +491,15 @@ export default function PitbullSpotlight({
       </div>
 
       <MaskReveal className="pitbull-spotlight__visual" direction="right">
-        <img src={photoSpotters} alt="" className="pitbull-spotlight__visual-img" aria-hidden />
+        <ResponsivePhoto
+          src={photoSpotters}
+          avif={{ 480: photoSpottersAvif480, 800: photoSpottersAvif800, 1153: photoSpottersAvif }}
+          webp={{ 480: photoSpottersWebp480, 800: photoSpottersWebp800, 1153: photoSpottersWebp }}
+          alt=""
+          className="pitbull-spotlight__visual-img"
+          sizes="(min-width: 900px) 45vw, 100vw"
+          aria-hidden
+        />
         <div className="pitbull-spotlight__visual-overlay" aria-hidden />
         <span className="pitbull-spotlight__badge">{t('pages.pitbull.spotlight.featured')}</span>
         <EventDatePlate

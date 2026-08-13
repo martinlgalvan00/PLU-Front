@@ -91,7 +91,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .launch-teaser__live {
-    animation: launch-teaser-pulse 2.8s var(--ease-in-out) infinite;
+    animation: launch-teaser-pulse var(--launch-live-duration, 2.8s) var(--ease-in-out) infinite;
   }
 }
 
@@ -284,7 +284,7 @@
 }
 
 .launch-teaser--inauguration .launch-teaser__stage-mark::after {
-  animation: launch-stage-shimmer 2.8s var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)) 0.5s infinite;
+  animation: launch-stage-shimmer var(--launch-shimmer-duration, 2.8s) var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)) 0.5s infinite;
   background: linear-gradient(
     105deg,
     transparent 35%,

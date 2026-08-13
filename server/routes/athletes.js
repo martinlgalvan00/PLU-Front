@@ -327,11 +327,10 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     const codeHash = hashEmailVerificationOtp(verificationCode)
     const otpExpiresAt = new Date(Date.now() + EMAIL_OTP_TTL_MS)
 
-    try {
-      await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)
-    } catch (error) {
-      console.warn('[email:otp] no se pudo guardar el código', error?.message ?? error)
-    }
+    // No enviar nunca un OTP que la base no pudo persistir: el atleta lo
+    // recibiría pero no habría forma de validarlo. El caller lo trata como
+    // best-effort y permite reintentar el envío cuando se recupere la DB.
+    await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)
 
     return sendBestEffort('email_verification', {
       to: row.email,
@@ -483,7 +482,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         code: z
           .string()
           .trim()
-          .regex(/^\d{6}$/, 'Ingresá el código de 6 dígitos del correo.'),
+          .regex(/^\d{8}$/, 'Ingresá el código de 8 dígitos del correo.'),
       }),
     ),
     async (req, res, next) => {
@@ -491,7 +490,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         const auth = await athlete(req)
         const code = normalizeEmailVerificationOtp(req.validatedBody.code)
         if (!code) {
-          throw new HttpError(400, 'Ingresá el código de 6 dígitos del correo.')
+          throw new HttpError(400, 'Ingresá el código de 8 dígitos del correo.')
         }
 
         const result = await repo().verifyEmailWithOtp(

@@ -309,10 +309,11 @@
     0 14px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* Anillo fino sin sombra ambiental: sello institucional, no sticker de
+   card genérica. El drop-shadow pesado quedaba redundante contra el fondo
+   ya oscuro y le sumaba peso visual sin aportar jerarquía. */
 .share-card--membership .share-card__avatar {
-  box-shadow:
-    0 0 0 3px rgba(242, 183, 5, 0.55),
-    0 14px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 2px rgba(242, 183, 5, 0.55);
 }
 
 .share-card--ticket .share-card__avatar {
@@ -335,9 +336,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 56px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  /* Chico y liviano a propósito: a este tamaño, letras grandes/bold llenan
+     el disco y se leen como una mancha sólida en miniatura (feed de
+     Instagram). Dejar aire alrededor es lo que lo hace leer como medalla
+     grabada, no como sticker de avatar. */
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--card-accent);
   background: linear-gradient(180deg, #1b1d24 0%, #141518 100%);
   text-indent: 0.01em;
@@ -353,7 +358,7 @@
 }
 
 .share-card--story .share-card__avatar--initials {
-  font-size: 76px;
+  font-size: 58px;
 }
 
 .share-card__eyebrow {
@@ -403,17 +408,15 @@
 }
 
 /* Sección evento */
-/* El evento como placa enmarcada: dialoga con el QR-chip del footer y le
-   da masa a la zona media. Filo de acento a la izquierda, marco fino. */
+/* Tratamiento editorial abierto: filo de acento a la izquierda, sin caja.
+   Mismo lenguaje que la variante membership — evita repetir el recuadro
+   que ya usa el QR-chip del footer (una sola caja por composición). */
 .share-card__event-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 3px solid var(--card-accent);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.035);
-  padding: 34px 40px;
+  gap: 16px;
+  border-left: 2px solid var(--card-accent);
+  padding: 4px 0 4px 32px;
 }
 
 .share-card--ticket .share-card__event-section {
@@ -421,8 +424,8 @@
 }
 
 .share-card--story .share-card__event-section {
-  padding: 44px 48px;
-  border-radius: 20px;
+  gap: 20px;
+  padding: 8px 0 8px 40px;
 }
 
 .share-card__event-eyebrow {
@@ -617,9 +620,9 @@
 }
 
 .share-card--membership .share-card__body {
-  gap: 36px;
-  padding-top: 40px;
-  padding-bottom: 28px;
+  gap: 44px;
+  padding-top: 48px;
+  padding-bottom: 36px;
 }
 
 /* Story body: composición editorial — aire, tipografía, menos cajas. */
@@ -629,16 +632,14 @@
   padding: 120px 80px 40px;
 }
 
+/* La base ya es editorial abierta (sin caja) para todas las variantes —
+   membership solo pide un filo más translúcido que el resto. */
 .share-card--membership .share-card__event-section {
-  gap: 12px;
-  padding: 28px 36px;
+  border-left-color: rgba(242, 183, 5, 0.55);
 }
 
 .share-card--membership.share-card--story .share-card__event-section {
-  background: transparent;
-  border: none;
-  border-left: 2px solid rgba(242, 183, 5, 0.55);
-  border-radius: 0;
+  border-left-color: rgba(242, 183, 5, 0.55);
   flex: 1 1 auto;
   gap: 20px;
   justify-content: center;
@@ -704,7 +705,7 @@
 
 /* Footer membership: sin placa — QR + firma fina sobre una regla. */
 .share-card--membership .share-card__footer {
-  margin: 0 72px 48px;
+  margin: 0 72px 56px;
   padding: 22px 0 0;
   gap: 24px;
   border: none;

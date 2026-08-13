@@ -104,10 +104,10 @@ terminan en un pago. Un typo en la dirección ahí deja al atleta sin comprobant
 reclamar.
 
 - Registro → manda **un solo** `email_verification` (asunto *Bienvenido a PLU ARG: confirma tu
-  correo*; título *Te damos la bienvenida a PLU Argentina* + CTA + OTP de 6 dígitos).
+  correo*; título *Te damos la bienvenida a PLU Argentina* + CTA + OTP de 8 dígitos).
 - El link es `/?verificar=<token>`, con token HMAC de 7 días, resuelto por
   `EmailVerificationNotice.jsx`.
-- Fallback OTP: código de 6 dígitos (hash en `athletes.email_otp_*`, TTL 24 h). Se ingresa en
+- Fallback OTP: código de 8 dígitos (hash en `athletes.email_otp_*`, TTL 24 h). Se ingresa en
   Mi cuenta (`POST /api/athletes/me/verify-email-code`).
 - Reenvío: `POST /api/athletes/me/resend-verification` (regenera link + OTP).
 - El link HMAC sigue sin persistirse: reabrir sobre una cuenta ya verificada es idempotente.
