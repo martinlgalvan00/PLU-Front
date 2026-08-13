@@ -358,7 +358,7 @@ export default function EventsPage({
 
   const events = useMemo(
     () =>
-      getPublicCatalogEvents(eventsProp).map((event) => {
+      getPublicCatalogEvents(eventsProp, { includeDevelopmentStubs: env.isDev }).map((event) => {
         const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
         return {
           ...merged,

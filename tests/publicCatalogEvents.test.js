@@ -21,6 +21,12 @@ describe('catalogo publico — exclusion de stubs', () => {
         slug: 'national-test-meet-2026',
       }),
     ).toBe(false)
+    expect(
+      isPublicCatalogStubEvent({
+        title: 'PIT ELITE',
+        slug: 'test-2026',
+      }),
+    ).toBe(true)
   })
 
   it('saca stubs del catalogo y deja el resto', () => {
@@ -34,5 +40,20 @@ describe('catalogo publico — exclusion de stubs', () => {
     expect(getPublicCatalogEvents([stub, pitbull]).map((event) => event.slug)).toEqual([
       'pitbull-classic-2026',
     ])
+  })
+
+  it('permite stubs en desarrollo cuando se pide explicitamente', () => {
+    const stub = { slug: 'test-2026', title: 'PIT ELITE', status: 'inscripcion_abierta' }
+    const pitbull = {
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      status: 'inscripcion_abierta',
+    }
+
+    expect(
+      getPublicCatalogEvents([stub, pitbull], { includeDevelopmentStubs: true }).map(
+        (event) => event.slug,
+      ),
+    ).toEqual(['test-2026', 'pitbull-classic-2026'])
   })
 })

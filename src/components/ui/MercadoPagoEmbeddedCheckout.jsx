@@ -110,6 +110,11 @@ function buildMockFormData(order, paymentMethodId) {
   }
 }
 
+function isRealMercadoPagoPreferenceId(preferenceId) {
+  const value = String(preferenceId ?? '').trim()
+  return Boolean(value && !value.startsWith('mock_') && !value.startsWith('mock://'))
+}
+
 export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentation = 'default' }) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
@@ -124,10 +129,13 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const isMock = env.payments.isMock
   const isModal = presentation === 'modal'
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
+  const realPreferenceId = isRealMercadoPagoPreferenceId(order?.preferenceId)
+    ? order.preferenceId
+    : null
   const initialization = useMemo(() => ({
     amount: Number(order?.amount ?? 0),
-    ...(!isSubscription && order?.preferenceId ? { preferenceId: order.preferenceId } : {}),
-  }), [isSubscription, order?.amount, order?.preferenceId])
+    ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
+  }), [isSubscription, order?.amount, realPreferenceId])
 
   useEffect(() => {
     if (isMock) {

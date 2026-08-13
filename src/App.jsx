@@ -42,6 +42,7 @@ import { PRICING } from './lib/constants.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
+import { env } from './config/env.js'
 import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
 import {
   canCheckIn,
@@ -124,6 +125,7 @@ export default function App() {
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
     app.adminEvents.filter((event) => event.published !== false),
+    { includeDevelopmentStubs: env.isDev },
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
