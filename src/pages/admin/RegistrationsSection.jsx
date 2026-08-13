@@ -86,6 +86,15 @@ export default function RegistrationsSection({
     ],
     [registrations, t],
   )
+  const eventSlugByTitle = useMemo(
+    () =>
+      new Map(
+        events
+          .filter((event) => event?.title && event?.slug)
+          .map((event) => [event.title, event.slug]),
+      ),
+    [events],
+  )
 
   const registrationRows = useMemo(
     () =>
@@ -96,7 +105,7 @@ export default function RegistrationsSection({
           athlete: reg.athlete?.fullName,
           document: reg.athlete?.documentId,
           event: reg.event,
-          eventSlug: reg.eventSlug,
+          eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
           category: `${reg.category} · ${reg.division}`,
           schedule: reg.schedule ?? null,
           status: reg.status,
@@ -106,7 +115,7 @@ export default function RegistrationsSection({
           paymentId: payment?.id,
         }
       }),
-    [filteredRegistrations, payments],
+    [eventSlugByTitle, filteredRegistrations, payments],
   )
 
   // La selección se limita a las filas que el filtro deja a la vista: seguir
@@ -169,7 +178,7 @@ export default function RegistrationsSection({
     clearSelection()
     // El snapshot del panel es el que alimenta la columna de grilla y el QR:
     // sin releerlo, la tabla seguiría mostrando la asignación vieja.
-    onScheduleAssigned?.(result)
+    await onScheduleAssigned?.(result)
   }
 
   function handleQueryChange(value) {
@@ -304,6 +313,7 @@ export default function RegistrationsSection({
               onClearSelection={clearSelection}
               scheduleStatus={scheduleStatus}
               selectedCount={visibleSelectedRows.length}
+              targetEventName={visibleSelectedRows[0]?.event ?? ''}
             />
           )}
           <AdminDataTable
@@ -412,3 +422,4 @@ export default function RegistrationsSection({
     </AdminListSection>
   )
 }
+

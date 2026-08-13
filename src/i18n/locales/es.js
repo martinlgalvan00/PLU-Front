@@ -100,6 +100,9 @@ export default {
   payments: {
     embeddedTitle: 'Pagá con Mercado Pago',
     embeddedLead: 'Completá el pago sin salir del sitio.',
+    walletTitle: 'Dinero en cuenta de Mercado Pago',
+    walletLead: 'Usá tu saldo, tarjetas guardadas o medios disponibles en tu cuenta.',
+    cardOptionDivider: 'O pagá con tarjeta',
     subscriptionTitle: 'Activá el débito automático',
     subscriptionLead: 'Ingresá una tarjeta para autorizar la renovación del plan.',
     embeddedLoading: 'Cargando medios de pago seguros…',
