@@ -16,7 +16,8 @@ const mercadoPagoPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim(
 const paymentsMockRaw = String(import.meta.env.PAYMENTS_MOCK ?? '')
   .trim()
   .toLowerCase()
-const paymentsProvider = ['true', '1', 'yes'].includes(paymentsMockRaw) ? 'mock' : 'mercado_pago'
+const paymentsMockEnabled = ['true', '1', 'yes'].includes(paymentsMockRaw)
+const paymentsProvider = paymentsMockEnabled ? 'mock' : 'mercado_pago'
 const appProductionRaw = String(import.meta.env.APP_PRODUCTION ?? '')
   .trim()
   .toLowerCase()
@@ -54,6 +55,7 @@ export const env = {
   },
   payments: {
     provider: paymentsProvider,
+    mockEnabled: paymentsMockEnabled,
     // Solo en Vite DEV: un build de producción nunca activa UI/mock aunque el flag quede en el env.
     isMock: paymentsProvider === 'mock' && import.meta.env.DEV,
     transferAlias: import.meta.env.VITE_PAYMENT_TRANSFER_ALIAS ?? '',
