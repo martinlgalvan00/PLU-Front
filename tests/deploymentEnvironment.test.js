@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyDeploymentEnvironmentDefaults,
   buildRuntimeDatabaseUrl,
+  OFFICIAL_APP_URL,
   resolveDeploymentAppUrl,
 } from '../server/lib/deploymentEnvironment.js'
 
@@ -23,7 +24,24 @@ describe('deployment environment', () => {
         VERCEL_PROJECT_PRODUCTION_URL: 'pluarg.com',
         VERCEL_URL: 'plu-commit.example.vercel.app',
       }),
-    ).toBe('https://pluarg.com')
+    ).toBe(OFFICIAL_APP_URL)
+  })
+
+  it('en produccion no deja que APP_URL local contamine los emails', () => {
+    expect(
+      resolveDeploymentAppUrl({
+        APP_PRODUCTION: 'true',
+        APP_URL: 'http://localhost:5173',
+      }),
+    ).toBe(OFFICIAL_APP_URL)
+  })
+
+  it('en desarrollo conserva APP_URL local', () => {
+    expect(
+      resolveDeploymentAppUrl({
+        APP_URL: 'http://localhost:5173',
+      }),
+    ).toBe('http://localhost:5173')
   })
 
   it('deriva API y datasource Prisma sin pisar valores explícitos', () => {

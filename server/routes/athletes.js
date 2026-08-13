@@ -11,6 +11,7 @@ import {
   isRecurringMembershipPlan,
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
+import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
@@ -255,7 +256,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   // usuario siga existiendo cuando se lea la auditoría.
   const actorLabel = (req) => `${req.auth.user.id}:${req.auth.user.email}`
   const mailer = brevo ?? createBrevoAdapter({ env })
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
   function recordFailedLogin(req, email) {
     let auditClient = null
@@ -335,7 +336,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       idempotencyKey: `email:verification:${row.id}:${Date.now()}`,
       params: {
         name: row.full_name,
-        verificationUrl: buildEmailVerificationUrl(env.APP_URL ?? env.VITE_APP_URL ?? '', token),
+        verificationUrl: buildEmailVerificationUrl(appUrl, token),
         verificationCode,
       },
     })
@@ -543,7 +544,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS)
         const token = createPasswordResetToken({ athleteId: row.id, expiresAt })
         await repo().createPasswordResetToken(row.id, hashPasswordResetToken(token), expiresAt)
-        const resetUrl = buildPasswordResetUrl(env.APP_URL ?? env.VITE_APP_URL ?? '', token)
+        const resetUrl = buildPasswordResetUrl(appUrl, token)
         await sendBestEffort('password_reset', {
           to: row.email,
           toName: row.full_name,

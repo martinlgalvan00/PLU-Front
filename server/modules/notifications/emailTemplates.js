@@ -151,16 +151,7 @@ export function buildEmailLogoUrl(appUrl, logoUrl) {
     return safeUrl(override)
   }
 
-  if (isUnreachableEmailHost(appUrl)) {
-    return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
-  }
-
-  const base = String(appUrl ?? '').trim().replace(/\/$/, '')
-  try {
-    return safeUrl(new URL(EMAIL_LOGO_PATH, `${base}/`).toString())
-  } catch {
-    return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
-  }
+  return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
 }
 
 export function formatArs(amount) {
