@@ -42,6 +42,7 @@ import { PRICING } from './lib/constants.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
 import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
+import { env } from './config/env.js'
 import { getTransitionDirection, resolveAfterLoginDestination } from './lib/navigation.js'
 import {
   canCheckIn,

@@ -1,5 +1,6 @@
 import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildEventPagePath } from '../../../src/lib/eventPageRoute.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 function displayPaymentConcept(concept) {
   if (concept === 'membership') return 'Afiliación PLU'
@@ -85,7 +86,7 @@ export function buildPaymentConfirmationParams({
  */
 export function createPaymentNotificationService({ repository, brevo, dispatcher, env = process.env }) {
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
   return async function notifyPaymentApplied({ order, payment, result }) {
     const payerEmail = order.payerEmail ?? payment.payerEmail

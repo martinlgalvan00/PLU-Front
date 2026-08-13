@@ -2,6 +2,7 @@ import { mapWithConcurrency } from '../../lib/concurrency.js'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { buildEventPagePath } from '../../../src/lib/eventPageRoute.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 /**
  * eventNotificationService.js — PLU ARG
@@ -87,7 +88,7 @@ export function createEventNotificationService({
   dispatcher,
   env = process.env,
 }) {
-  const appUrl = (env.APP_URL ?? env.VITE_APP_URL ?? '').replace(/\/$/, '')
+  const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
   // 8 en paralelo: cubre una audiencia de ~500 dentro del maxDuration de 60 s
   // de Vercel sin acercarse al 429 de Brevo.
   const concurrency = Math.max(1, Number(env.EMAIL_BROADCAST_CONCURRENCY) || 8)
