@@ -88,10 +88,6 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
  * Crear cuenta / perfil no usa este gate.
  */
 export function isPaidCheckoutOpen(_event, envLike, _now = new Date()) {
-  // TEMP VERCEL TEST: abrir cobros para validar Mercado Pago end-to-end.
-  // Revertir al volver a "Proximamente" en produccion.
-  return true
-
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
   if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
