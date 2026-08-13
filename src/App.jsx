@@ -513,12 +513,14 @@ export default function App() {
                 session: app.session,
                 memberships: app.memberships,
               }
-            : view === 'pitbull'
-              ? {
-                  onNavigate: navigate,
-                  onSelectEvent: selectEvent,
-                  events: publicEvents,
-                }
+              : view === 'pitbull'
+                ? {
+                    onNavigate: navigate,
+                    onSelectEvent: selectEvent,
+                    events: publicEvents,
+                    session: app.session,
+                    memberships: app.memberships,
+                  }
               : view === 'shop'
                 ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
                 : view === 'tickets'

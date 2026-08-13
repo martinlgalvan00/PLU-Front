@@ -1,8 +1,4 @@
 import { HttpError } from './errors.js'
-import {
-  hasRegistrationOpensAtPassed,
-  resolvePlatformRegistrationOpensAt,
-} from './registrationSchedule.js'
 
 export const FEATURE_COMING_SOON = 'FEATURE_COMING_SOON'
 
@@ -52,20 +48,16 @@ export function resolvePaidCheckoutOpensAt(env = process.env) {
 }
 
 /**
- * Sync: override + options.registrationOpensAt. Sin fecha, producción = cerrado.
+ * Sync: override + entorno. En producción, sin override, cerrado.
+ * `options.registrationOpensAt` se ignora: no abre cobros.
  * @param {NodeJS.ProcessEnv | Record<string, unknown>} [env]
- * @param {Date} [now]
- * @param {{ registrationOpensAt?: string | null }} [options]
+ * @param {Date} [_now]
+ * @param {{ registrationOpensAt?: string | null }} [_options]
  */
-export function isPaidCheckoutEnabled(env = process.env, now = new Date(), options = {}) {
+export function isPaidCheckoutEnabled(env = process.env, _now = new Date(), _options = {}) {
   const override = resolvePaidCheckoutOverride(env)
   if (override !== null) return override
-
   if (!isAppProduction(env)) return true
-
-  const opensAt = options.registrationOpensAt ?? null
-  if (opensAt) return hasRegistrationOpensAtPassed(opensAt, now)
-
   return false
 }
 
@@ -125,13 +117,13 @@ export function assertFeatureAvailable(env, message) {
 }
 
 /**
- * Abre cobros si el override lo permite o si ya pasó `registration_opens_at`
- * del evento de lanzamiento (Pitbull / destacado) en admin.
+ * Abre cobros solo con PAID_CHECKOUT_ENABLED=true o fuera de APP_PRODUCTION.
+ * La fecha admin (`registration_opens_at`) no habilita Mercado Pago.
  */
 export async function assertPaidCheckoutAvailable(
   env = process.env,
-  now = new Date(),
-  options = {},
+  _now = new Date(),
+  _options = {},
 ) {
   const override = resolvePaidCheckoutOverride(env)
   if (override === true) return
@@ -144,13 +136,6 @@ export async function assertPaidCheckoutAvailable(
   }
 
   if (!isAppProduction(env)) return
-
-  let opensAt = options.registrationOpensAt ?? null
-  if (!opensAt && options.skipScheduleLookup !== true) {
-    opensAt = await resolvePlatformRegistrationOpensAt(options.client)
-  }
-
-  if (hasRegistrationOpensAtPassed(opensAt, now)) return
 
   throw new HttpError(
     409,

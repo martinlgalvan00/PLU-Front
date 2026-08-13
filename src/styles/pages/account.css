@@ -346,6 +346,11 @@
   width: 100%;
 }
 
+.account-credential__card[data-flippable='0'] {
+  cursor: default;
+  transform-style: flat;
+}
+
 .account-credential__card[data-flipped='1'] {
   transform: rotateY(180deg);
 }
@@ -3601,7 +3606,7 @@
    ============================================= */
 
 .account-verify {
-  align-items: center;
+  align-items: flex-start;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
     color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
@@ -3617,7 +3622,7 @@
   gap: 10px 14px;
   margin: 14px auto 0;
   max-width: 1080px;
-  overflow: hidden;
+  overflow: visible;
   padding: 10px 14px 10px 16px;
   position: relative;
   width: calc(100% - 2 * clamp(20px, 5vw, 48px));
@@ -3625,6 +3630,7 @@
 
 .account-verify::before {
   background: linear-gradient(180deg, var(--color-brand-gold) 0%, color-mix(in srgb, var(--color-brand-gold) 40%, #92400e) 100%);
+  border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
   content: '';
   inset: 0 auto 0 0;
   position: absolute;
@@ -3633,6 +3639,7 @@
 
 .account-verify__icon {
   align-items: center;
+  margin-top: 2px;
   background: color-mix(in srgb, var(--color-brand-gold) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
   border-radius: 50%;
@@ -3758,6 +3765,7 @@
   flex-shrink: 0;
   font-size: 12.5px;
   font-weight: 600;
+  margin-top: 10px;
   min-height: 40px;
   padding: 0 14px;
   transition:
@@ -3794,6 +3802,102 @@
   background: #fff;
   border-color: color-mix(in srgb, var(--color-brand-gold) 50%, rgba(15, 17, 23, 0.16));
   color: #15171c;
+}
+
+.account-verify--email {
+  align-items: flex-start;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--color-bg-surface);
+  display: grid;
+  gap: 12px 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  overflow: visible;
+  padding: 14px 16px 14px 18px;
+}
+
+.account-verify--email .account-verify__copy {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  justify-items: start;
+}
+
+.account-verify--email .account-verify__lead {
+  margin: 0;
+}
+
+.account-verify--email .account-verify__email {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.account-verify--email .account-verify__email::before {
+  content: none;
+  margin: 0;
+}
+
+.account-verify--email .account-verify__otp {
+  margin-top: 6px;
+  max-width: none;
+  width: 100%;
+}
+
+.account-verify--email .account-verify__otp-input,
+.account-verify--email .account-verify__otp-submit,
+.account-verify--email .account-verify__action {
+  min-height: 44px;
+}
+
+.account-verify--email .account-verify__action {
+  margin-top: 4px;
+}
+
+.account-verify--email .account-verify__action--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.account-verify--email .account-verify__action--ghost:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .account-verify--email {
+  background: var(--color-bg-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 16px rgba(15, 17, 23, 0.05);
+}
+
+[data-theme='light'] .account-verify--email .account-verify__action--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 720px) {
+  .account-verify--email {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-verify--email .account-verify__icon {
+    margin-top: 0;
+  }
+
+  .account-verify--email .account-verify__otp-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .account-verify--email .account-verify__otp-input {
+    width: 100%;
+  }
 }
 
 /* =============================================

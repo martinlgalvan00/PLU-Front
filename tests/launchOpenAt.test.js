@@ -48,12 +48,17 @@ describe('registrationSchedule', () => {
     expect(moment.day).not.toContain('T10:00')
   })
 
-  it('abre cobros en produccion cuando pasa la fecha del admin', () => {
+  it('en produccion no abre cobros aunque pase la fecha del admin', () => {
     const event = { registrationOpensAt: '2026-08-14T10:00:00-03:00', status: 'proximamente' }
     expect(isPaidCheckoutOpen(event, { appProduction: true }, now)).toBe(false)
     expect(isPaidCheckoutOpen(
       event,
       { appProduction: true },
+      new Date('2026-08-14T10:00:00-03:00'),
+    )).toBe(false)
+    expect(isPaidCheckoutOpen(
+      event,
+      { appProduction: true, paidCheckoutEnabled: true },
       new Date('2026-08-14T10:00:00-03:00'),
     )).toBe(true)
   })

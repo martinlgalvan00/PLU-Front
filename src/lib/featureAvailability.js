@@ -54,26 +54,17 @@ export function resolvePaidCheckoutOpensAt(envLike = appEnv) {
 }
 
 /**
- * Gate sync sin evento: kill switch + entorno.
- * En producción, sin override, queda cerrado — la apertura real la decide
- * `isPaidCheckoutOpen(event)` / el assert async del server con la fecha admin.
+ * Gate sync: kill switch + entorno.
+ * En producción, sin override, queda cerrado. `registrationOpensAt` no abre cobros.
  *
  * @param {Record<string, unknown> | null | undefined} [envLike]
- * @param {Date} [now]
- * @param {{ registrationOpensAt?: string | null }} [options]
+ * @param {Date} [_now]
+ * @param {{ registrationOpensAt?: string | null }} [_options]
  */
-export function isPaidCheckoutEnabled(envLike = appEnv, now = new Date(), options = {}) {
+export function isPaidCheckoutEnabled(envLike = appEnv, _now = new Date(), _options = {}) {
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
-
   if (!isAppProduction(envLike)) return true
-
-  const opensAt = options.registrationOpensAt ?? null
-  if (opensAt) {
-    const ms = new Date(opensAt).getTime()
-    if (Number.isFinite(ms)) return now.getTime() >= ms
-  }
-
   return false
 }
 

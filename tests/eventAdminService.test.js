@@ -25,6 +25,7 @@ describe('eventAdminService', () => {
     const pitbull = events.find((event) => event.slug === 'pitbull-classic-2026')
     expect(pitbull.price).toBe(75000)
     expect(pitbull.pricing.registration).toBe(75000)
+    expect(pitbull.slots).toBe(180)
   })
 
   it('conserva el catálogo local solamente para el modo demo', () => {

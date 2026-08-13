@@ -23,7 +23,6 @@ import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
-import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 
 const SEASON_COMBO_FALLBACK = {
   active: true,
@@ -195,11 +194,9 @@ export default function MembersPage({
     && Boolean(comboCountdown)
     && !comboCountdown.expired
     && !hasActiveMembership
-    && paidCheckoutOpen
-  const showLaunchGate = checkoutLocked && !hasActiveMembership
 
   useEffect(() => {
-    if (!pendingComboEndsAt || hasActiveMembership || !paidCheckoutOpen) return
+    if (!pendingComboEndsAt || hasActiveMembership) return
     const endMs = new Date(pendingComboEndsAt).getTime()
     if (!Number.isFinite(endMs) || Date.now() >= endMs) return
 
@@ -210,7 +207,7 @@ export default function MembersPage({
     }, 1000)
 
     return () => window.clearInterval(id)
-  }, [pendingComboEndsAt, hasActiveMembership, paidCheckoutOpen])
+  }, [pendingComboEndsAt, hasActiveMembership])
 
   const livePlansUnavailable = isAppProduction() && (!plansLoaded || catalogPlans.length === 0)
   const comboCountdownAria = comboCountdown
@@ -283,22 +280,6 @@ export default function MembersPage({
             </p>
           </header>
 
-          {showLaunchGate ? (
-            <Reveal as="div" variant="up" className="members-launch-gate">
-              <LaunchRegistrationTeaser
-                event={featuredEvent}
-                onNavigate={onNavigate}
-                variant="compact"
-                source="members_page"
-                countdownLabel={t('pages.members.promoSoonCountdown')}
-                intro={{
-                  eyebrow: t('pages.members.promoSoonEyebrow'),
-                  title: t('pages.members.promoSoonTitle'),
-                  lead: t('pages.members.promoSoonLead'),
-                }}
-              />
-            </Reveal>
-          ) : null}
           {showComboPromo ? (
             <Reveal
               as="aside"
@@ -306,35 +287,37 @@ export default function MembersPage({
               aria-label={t('pages.members.comboPromoTitle')}
               variant="up"
             >
-              <div className="members-combo-promo__copy">
+              <div className="members-combo-promo__head">
                 <div className="members-combo-promo__meta">
                   <p className="members-combo-promo__eyebrow">{t('pages.members.comboPromoEyebrow')}</p>
                   <p className="members-combo-promo__urgency">{t('pages.members.comboPromoCountdownLabel')}</p>
                 </div>
-                <h3 className="members-combo-promo__title">{t('pages.members.comboPromoTitle')}</h3>
-                <p className="members-combo-promo__lead">{t('pages.members.comboPromoLead')}</p>
+                <div
+                  className="members-combo-promo__countdown"
+                  role="timer"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  aria-label={comboCountdownAria}
+                >
+                  {comboCountdownUnits.map((unit, index) => (
+                    <div key={unit.key} className="members-combo-promo__unit-wrap">
+                      {index > 0 ? (
+                        <span className="members-combo-promo__sep" aria-hidden="true">:</span>
+                      ) : null}
+                      <div className="members-combo-promo__unit">
+                        <span className="members-combo-promo__unit-value" aria-hidden="true">
+                          {unit.value}
+                        </span>
+                        <span className="members-combo-promo__unit-label">{unit.label}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div
-                className="members-combo-promo__countdown"
-                role="timer"
-                aria-live="polite"
-                aria-atomic="true"
-                aria-label={comboCountdownAria}
-              >
-                {comboCountdownUnits.map((unit, index) => (
-                  <div key={unit.key} className="members-combo-promo__unit-wrap">
-                    {index > 0 ? (
-                      <span className="members-combo-promo__sep" aria-hidden="true">:</span>
-                    ) : null}
-                    <div className="members-combo-promo__unit">
-                      <span className="members-combo-promo__unit-value" aria-hidden="true">
-                        {unit.value}
-                      </span>
-                      <span className="members-combo-promo__unit-label">{unit.label}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="members-combo-promo__copy">
+                <h3 className="members-combo-promo__title">{t('pages.members.comboPromoTitle')}</h3>
+                <p className="members-combo-promo__lead">{t('pages.members.comboPromoLead')}</p>
               </div>
 
               <div className="members-combo-promo__deal">
@@ -346,25 +329,30 @@ export default function MembersPage({
                     </p>
                   ) : null}
                 </div>
-                <button type="button" className="btn btn--gold members-combo-promo__cta" onClick={goToCombo}>
-                  {t('pages.members.comboPromoCta')}
+                <button
+                  type="button"
+                  className="btn btn--gold members-combo-promo__cta"
+                  disabled={checkoutLocked}
+                  onClick={goToCombo}
+                >
+                  {checkoutLocked ? t('pages.members.ctaCheckoutSoon') : t('pages.members.comboPromoCta')}
                 </button>
               </div>
             </Reveal>
           ) : null}
 
-          {!checkoutLocked ? (
+          {visiblePlans.length ? (
             <div className={gridClassName}>
               {visiblePlans.map((plan) => (
                 <MembershipCard
                   key={plan.id}
                   {...plan}
-                  billingToggleEnabled={billingSwitchEnabled}
+                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
                   billingAutoRenew={billingMode === 'recurring'}
                   billingToggleHint={billingHint}
                   billingToggleLabel={t('pages.members.autoRenewLabel')}
                   ctaLabel={affiliationCta}
-                  ctaDisabled={hasActiveMembership || livePlansUnavailable}
+                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
                   onBillingAutoRenewChange={(enabled) => {
                     setBillingMode(enabled ? 'recurring' : 'one_time')
                   }}
@@ -374,19 +362,17 @@ export default function MembersPage({
               ))}
             </div>
           ) : null}
-          {!checkoutLocked && !hasActiveMembership ? (
+          {!hasActiveMembership && visiblePlans.length ? (
             <p className="members-plu-plans__reassure">
               {t('pages.members.closureReassure')}
             </p>
           ) : null}
-          {/* Con gate de apertura el teaser ya comunica el estado; no apilar
-              loading/coming-soon/error de catálogo debajo (rompe la composición). */}
-          {isAppProduction() && !showLaunchGate && !plansLoaded ? (
+          {isAppProduction() && !plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {isAppProduction() && !showLaunchGate && plansLoaded && catalogPlans.length === 0 ? (
+          {isAppProduction() && plansLoaded && catalogPlans.length === 0 ? (
             <FeatureComingSoon
               actionIcon={plansError ? RefreshCw : undefined}
               actionLabel={plansError ? t('pages.members.plansRetry') : undefined}

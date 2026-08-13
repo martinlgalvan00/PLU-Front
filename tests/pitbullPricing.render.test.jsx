@@ -86,4 +86,51 @@ describe('precio publico de Pitbull Classic', () => {
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
     expect(onSelectEvent).toHaveBeenCalledWith(pitbull)
   })
+
+  it('si el atleta ya esta afiliado oculta el combo y ofrece solo el meet', () => {
+    const pitbull = {
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      featured: true,
+      status: 'inscripcion_abierta',
+      price: 75000,
+      pricing: { membership: 75000, registration: 75000, combo: 120000 },
+      comboOffer: {
+        active: true,
+        price: 120000,
+        currency: 'ARS',
+        startsAt: '2020-01-01T00:00:00.000Z',
+        endsAt: '2099-12-31T23:59:59.000Z',
+      },
+    }
+    const onNavigate = vi.fn()
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[pitbull]}
+          memberships={[{
+            athleteId: 'ath-1',
+            status: 'activa',
+            startDate: '2026-01-01',
+            expirationDate: '2027-12-31',
+          }]}
+          onNavigate={onNavigate}
+          onSelectEvent={vi.fn()}
+          session={{ role: 'athlete_plu', athleteId: 'ath-1' }}
+        />
+      </I18nProvider>,
+    )
+
+    const prices = [...container.querySelectorAll('.pitbull-inscription-shell__price dd')]
+      .map((node) => node.textContent)
+      .join(' | ')
+    expect(prices).toContain('$\u00a075.000')
+    expect(prices).not.toContain('$\u00a0120.000')
+    expect(container.querySelector('.pitbull-inscription-shell--combo')).toBeNull()
+    expect(container.querySelector('.pitbull-inscription-shell--affiliated')).not.toBeNull()
+    expect(container.querySelector('.pitbull-inscription__cta--primary')?.textContent)
+      .toMatch(/Inscribirme/)
+    fireEvent.click(container.querySelector('.pitbull-inscription__cta--secondary'))
+    expect(onNavigate).toHaveBeenCalledWith('profile')
+  })
 })
