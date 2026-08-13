@@ -1,17 +1,29 @@
 import photoMedals from '../../assets/DSC01606-display.jpg'
+import photoMedalsAvif from '../../assets/DSC01606-display.avif'
+import photoMedalsAvif480 from '../../assets/DSC01606-display-480.avif'
+import photoMedalsAvif800 from '../../assets/DSC01606-display-800.avif'
+import photoMedalsWebp from '../../assets/DSC01606-display.webp'
+import photoMedalsWebp480 from '../../assets/DSC01606-display-480.webp'
+import photoMedalsWebp800 from '../../assets/DSC01606-display-800.webp'
+import ResponsivePhoto from './ResponsivePhoto.jsx'
+
+const MEDALS_AVIF = { 480: photoMedalsAvif480, 800: photoMedalsAvif800, 1153: photoMedalsAvif }
+const MEDALS_WEBP = { 480: photoMedalsWebp480, 800: photoMedalsWebp800, 1153: photoMedalsWebp }
 
 export default function PitbullHeroVisual({ categories = [], date, minimal = false, t, venue }) {
   if (minimal) {
     return (
       <figure className="pitbull-hero-visual pitbull-hero-visual--band">
-        <img
+        <ResponsivePhoto
           className="pitbull-hero-visual__img"
+          avif={MEDALS_AVIF}
+          webp={MEDALS_WEBP}
           src={photoMedals}
           alt=""
           width={800}
           height={1200}
+          sizes="(min-width: 1024px) 400px, 100vw"
           loading="eager"
-          decoding="async"
           fetchPriority="high"
         />
         <figcaption className="pitbull-hero-visual__caption">{t('pages.pitbull.visualAlt')}</figcaption>
@@ -23,14 +35,16 @@ export default function PitbullHeroVisual({ categories = [], date, minimal = fal
     <figure className="pitbull-hero-visual pitbull-hero-visual--portrait">
       <div className="pitbull-hero-visual__frame">
         <div className="pitbull-hero-visual__media">
-          <img
+          <ResponsivePhoto
             className="pitbull-hero-visual__img"
+            avif={MEDALS_AVIF}
+            webp={MEDALS_WEBP}
             src={photoMedals}
             alt=""
             width={800}
             height={1200}
+            sizes="(min-width: 1024px) 400px, 100vw"
             loading="eager"
-            decoding="async"
             fetchPriority="high"
           />
           <div className="pitbull-hero-visual__scrim" aria-hidden />

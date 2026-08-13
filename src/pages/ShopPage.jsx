@@ -2,7 +2,14 @@ import { useState, useRef } from 'react'
 import { m } from 'motion/react'
 import { ArrowRight, CalendarDays, ChevronRight, GraduationCap, MapPin, ShoppingBag, Ticket } from 'lucide-react'
 import shopHeroPhoto from '../assets/DSC00392-display.jpg'
+import shopHeroPhotoAvif from '../assets/DSC00392-display.avif'
+import shopHeroPhotoAvif480 from '../assets/DSC00392-display-480.avif'
+import shopHeroPhotoAvif800 from '../assets/DSC00392-display-800.avif'
+import shopHeroPhotoWebp from '../assets/DSC00392-display.webp'
+import shopHeroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
+import shopHeroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
 import PluPageHero from '../components/layout/PluPageHero.jsx'
+import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
@@ -321,13 +328,15 @@ function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDet
         ref={heroRef}
       >
         <div className="shop-hero__media" aria-hidden>
-          <img
+          <ResponsivePhoto
             className="shop-hero__media-img"
             style={{ transform: 'translateY(var(--hero-parallax-shift, 0)) scale(1.1)', transition: 'transform 0.1s cubic-bezier(0,0,0,1)' }}
+            avif={{ 480: shopHeroPhotoAvif480, 800: shopHeroPhotoAvif800, 1153: shopHeroPhotoAvif }}
+            webp={{ 480: shopHeroPhotoWebp480, 800: shopHeroPhotoWebp800, 1153: shopHeroPhotoWebp }}
             src={shopHeroPhoto}
             alt=""
+            sizes="100vw"
             loading="eager"
-            decoding="async"
             fetchPriority="high"
           />
         </div>

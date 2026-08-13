@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { AlertCircle, ArrowLeft, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
+import authVisualPhotoAvif from '../assets/DSC00286-display.avif'
+import authVisualPhotoAvif480 from '../assets/DSC00286-display-480.avif'
+import authVisualPhotoAvif800 from '../assets/DSC00286-display-800.avif'
+import authVisualPhotoWebp from '../assets/DSC00286-display.webp'
+import authVisualPhotoWebp480 from '../assets/DSC00286-display-480.webp'
+import authVisualPhotoWebp800 from '../assets/DSC00286-display-800.webp'
 import BrandLogo from '../components/ui/BrandLogo.jsx'
+import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 const MIN_PASSWORD_LENGTH = 12
@@ -44,14 +51,16 @@ export default function StaffInvitationPage({ token, onAccept, onCancel }) {
   return (
     <main className="page auth-layout">
       <aside className="auth-layout__visual" aria-hidden="true">
-        <img
+        <ResponsivePhoto
           className="auth-layout__visual-photo"
+          avif={{ 480: authVisualPhotoAvif480, 800: authVisualPhotoAvif800, 1153: authVisualPhotoAvif }}
+          webp={{ 480: authVisualPhotoWebp480, 800: authVisualPhotoWebp800, 1153: authVisualPhotoWebp }}
           src={authVisualPhoto}
           alt=""
           width={800}
           height={1200}
+          sizes="(min-width: 1024px) 45vw, 30vw"
           loading="eager"
-          decoding="async"
           fetchPriority="high"
         />
         <div className="auth-layout__visual-scrim" />

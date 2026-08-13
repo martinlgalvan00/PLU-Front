@@ -17,13 +17,14 @@ import {
  *
  * Vive acá y no dentro de `MembershipPurchaseSection` porque lo necesitan los
  * dos puntos donde se genera una orden manual: la afiliación desde la cuenta y
- * la del alta (`RegisterMembershipConfirmation`), que hasta ahora mostraba los
- * datos bancarios sin ninguna forma de adjuntar el ticket.
+ * la del alta (`RegisterMembershipConfirmation`).
  */
 export default function TransferProofUpload({ orderId, onUploaded }) {
   const { t } = useI18n()
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
+  const inputId = `proof-${orderId}`
+  const busy = state === 'uploading'
 
   async function handleFile(event) {
     const file = event.target.files?.[0]
@@ -53,7 +54,7 @@ export default function TransferProofUpload({ orderId, onUploaded }) {
   if (state === 'done') {
     return (
       <p className="account-transfer-proof__done" role="status">
-        <Check size={15} aria-hidden />
+        <Check size={16} aria-hidden />
         {t('account.membership.proofUploaded')}
       </p>
     )
@@ -64,20 +65,30 @@ export default function TransferProofUpload({ orderId, onUploaded }) {
       {/* El input va primero para que el foco de teclado pueda pintarse sobre
           el label, que es el control visible. */}
       <input
-        id={`proof-${orderId}`}
+        id={inputId}
         className="account-transfer-proof__input"
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
-        disabled={state === 'uploading'}
+        disabled={busy}
         onChange={handleFile}
       />
-      <label className="account-transfer-proof__label" htmlFor={`proof-${orderId}`}>
-        <Upload size={15} aria-hidden />
-        {state === 'uploading'
-          ? t('account.membership.proofUploading')
-          : t('account.membership.proofAction')}
+      <label
+        className={`account-transfer-proof__drop${busy ? ' is-busy' : ''}`}
+        htmlFor={inputId}
+        aria-busy={busy || undefined}
+      >
+        {busy ? (
+          <span className="account-transfer-proof__spinner" aria-hidden />
+        ) : (
+          <Upload size={18} aria-hidden />
+        )}
+        <span className="account-transfer-proof__copy">
+          <strong>
+            {busy ? t('account.membership.proofUploading') : t('account.membership.proofAction')}
+          </strong>
+          <span className="account-transfer-proof__hint">{t('account.membership.proofHint')}</span>
+        </span>
       </label>
-      <p className="account-transfer-proof__hint">{t('account.membership.proofHint')}</p>
       {error ? (
         <p className="account-transfer-proof__error" role="alert">
           {error}

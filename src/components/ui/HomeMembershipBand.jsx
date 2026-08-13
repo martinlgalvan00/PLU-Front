@@ -102,8 +102,11 @@ export default function HomeMembershipBand({
         {HOME_MEMBERSHIP_FEATURES?.length ? (
           <CopyItem {...itemProps}>
             <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
-              {HOME_MEMBERSHIP_FEATURES.map((feature) => (
+              {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
                 <CopyItem key={feature} role="listitem" {...itemProps} className="home-membership-band__benefit">
+                  <span className="home-membership-band__benefit-index" aria-hidden>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
                   <span className="home-membership-band__benefit-text">{feature}</span>
                 </CopyItem>
               ))}
@@ -112,7 +115,7 @@ export default function HomeMembershipBand({
         ) : null}
 
         <CopyItem {...itemProps} className="home-membership-band__actions">
-          <button type="button" className="home-membership-band__cta" onClick={goToAffiliation}>
+          <button type="button" className="btn btn--gold home-membership-band__cta" onClick={goToAffiliation}>
             {primaryCta}
             <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
           </button>

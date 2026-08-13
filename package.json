@@ -99,6 +99,7 @@
     "prettier": "^3.9.3",
     "prisma": "^6.16.2",
     "prop-types": "^15.8.1",
+    "sharp": "^0.35.3",
     "storybook": "^10.4.6",
     "supabase": "2.109.1",
     "typescript": "^7.0.2",

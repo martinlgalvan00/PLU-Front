@@ -12,6 +12,7 @@
  */
 
 import { loadEnvFile } from 'node:process'
+import { getPaymentsRuntimeStatus } from '../server/modules/payments/createPaymentProviderAdapter.js'
 
 try {
   loadEnvFile()
@@ -31,7 +32,55 @@ const fail = (msg, hint) => {
 }
 const ok = (msg) => console.log(`  ${OK}    ${msg}`)
 
+function checkRuntime() {
+  console.log('Runtime')
+  const runtime = getPaymentsRuntimeStatus(process.env)
+  const mercadoPagoEnv = String(process.env.MERCADO_PAGO_ENV ?? '').trim().toLowerCase()
+  const apiUrl = String(process.env.API_URL ?? '').trim()
+
+  if (runtime.provider !== 'mercado_pago') {
+    fail('PAYMENTS_MOCK esta activo.', 'Para probar el ciclo real configura PAYMENTS_MOCK=false.')
+  } else {
+    ok('Proveedor Mercado Pago activo (sin mock).')
+  }
+
+  if (mercadoPagoEnv !== 'sandbox') {
+    fail(
+      `MERCADO_PAGO_ENV debe ser sandbox en DEV (actual: ${mercadoPagoEnv || 'ausente'}).`,
+      'No uses credenciales ni entorno productivo para pruebas.',
+    )
+  } else {
+    ok('Entorno Sandbox activo.')
+  }
+
+  if (!runtime.publicKeyConfigured) {
+    fail('VITE_MERCADO_PAGO_PUBLIC_KEY no esta definida.', 'El Payment Brick no puede inicializarse.')
+  } else {
+    ok('Public Key de Mercado Pago presente.')
+  }
+
+  try {
+    const parsedApiUrl = new URL(apiUrl)
+    const isPublicHttps = parsedApiUrl.protocol === 'https:'
+      && !['localhost', '127.0.0.1'].includes(parsedApiUrl.hostname)
+    if (!isPublicHttps) {
+      fail(
+        'API_URL debe ser una URL HTTPS publica para el flujo end-to-end.',
+        'Usa el preview estable de Vercel DEV o un tunel HTTPS para recibir el webhook.',
+      )
+    } else {
+      ok(`API_URL publica configurada (${parsedApiUrl.origin}).`)
+    }
+  } catch {
+    fail(
+      'Falta una API_URL HTTPS publica.',
+      'Sin notification_url publica Mercado Pago no puede acreditar el pago mediante webhook.',
+    )
+  }
+}
+
 console.log('\n=== Diagnóstico Mercado Pago · PLU ARG ===\n')
+checkRuntime()
 console.log('Credenciales')
 
 // Las dos credenciales se evalúan antes de cortar: son problemas

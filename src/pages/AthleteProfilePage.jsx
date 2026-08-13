@@ -5,6 +5,7 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
+import { DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import Reveal from '../components/ui/Reveal.jsx'
@@ -18,8 +19,6 @@ import HistorySection from './profile/HistorySection.jsx'
 import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
-
-const DEFAULT_TAB = 'account-qr'
 
 export default function AthleteProfilePage({
   athlete,
@@ -35,8 +34,10 @@ export default function AthleteProfilePage({
   registrations,
   session,
   events = [],
+  initialTab = DEFAULT_ACCOUNT_TAB,
+  tabNonce = 0,
 }) {
-  const [activeTab, setActiveTab] = useState(DEFAULT_TAB)
+  const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
 
   const athleteId = athlete?.id ?? null
   const athleteMemberships = athleteId
@@ -63,6 +64,13 @@ export default function AthleteProfilePage({
 
   const hasAdmittedMeet = athleteRegistrations.some((item) => isRegistrationAdmitted(item.status))
   const membershipId = membership?.id ?? null
+
+  // Home, Members, Pitbull y el aviso de inscripción mandan `membership`
+  // acá: hay que abrir el tab aunque la cuenta ya estuviera montada.
+  useEffect(() => {
+    if (!initialTab) return
+    setActiveTab(initialTab)
+  }, [initialTab, tabNonce])
 
   // Si la afiliación acaba de activarse y todavía no se vio el ritual de
   // fusión, saltamos al tab QR para mostrarlo (p.ej. tras pagar desde

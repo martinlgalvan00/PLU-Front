@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 /**
- * email-doctor.mjs — PLU ARG
+ * email-doctor.mjs ï¿½ PLU ARG
  *
- * Diagnóstico de la infraestructura de emails. Existe por un caso real: la
- * cuenta tenía `BREVO_SENDER_EMAIL=soporte@pluarg.com`, un remitente sin
- * validar. La API de Brevo aceptaba el envío con **201** y lo rechazaba
- * después, de forma asincrónica. Es decir: los logs decían 'sent', el código
- * no tenía de qué agarrarse, y no se entregaba un solo mail.
+ * Diagnï¿½stico de la infraestructura de emails. Existe por un caso real: la
+ * cuenta tenï¿½a `BREVO_SENDER_EMAIL=soporte@pluarg.com`, un remitente sin
+ * validar. La API de Brevo aceptaba el envï¿½o con **201** y lo rechazaba
+ * despuï¿½s, de forma asincrï¿½nica. Es decir: los logs decï¿½an 'sent', el cï¿½digo
+ * no tenï¿½a de quï¿½ agarrarse, y no se entregaba un solo mail.
  *
- * Este script chequea justamente lo que no se ve desde el código:
- *   1. Que la API key sea válida.
- *   2. Que el remitente configurado esté validado o su dominio autenticado.
- *   3. Cuánta cuota diaria queda.
+ * Este script chequea justamente lo que no se ve desde el cï¿½digo:
+ *   1. Que la API key sea vï¿½lida.
+ *   2. Que el remitente configurado estï¿½ validado o su dominio autenticado.
+ *   3. Cuï¿½nta cuota diaria queda.
  *   4. Si hay eventos de error recientes en la cuenta.
- *   5. Qué templates del catálogo están cargados.
+ *   5. Quï¿½ templates del catï¿½logo estï¿½n cargados.
  *
  * Uso:
  *   npm run email:doctor
- *   npm run email:doctor -- --send tu@email.com   (envía una prueba real)
+ *   npm run email:doctor -- --send tu@email.com   (envï¿½a una prueba real)
  */
 
 import { loadEnvFile } from 'node:process'
@@ -29,11 +29,11 @@ import { renderEmail } from '../server/modules/notifications/emailTemplates.js'
 try {
   loadEnvFile()
 } catch {
-  // Las variables también pueden venir del entorno del proceso.
+  // Las variables tambiï¿½n pueden venir del entorno del proceso.
 }
 
 // En Vercel APP_URL/API_URL se derivan de las variables del sistema. El
-// diagnóstico debe evaluar el mismo entorno efectivo que usa la API.
+// diagnï¿½stico debe evaluar el mismo entorno efectivo que usa la API.
 applyDeploymentEnvironmentDefaults(process.env)
 
 const OK = '[32mOK[0m'
@@ -82,14 +82,14 @@ async function brevo(path) {
   return { status: response.status, body: await response.json().catch(() => ({})) }
 }
 
-console.log('\n=== Diagnóstico de emails · PLU ARG ===\n')
+console.log('\n=== Diagnï¿½stico de emails ï¿½ PLU ARG ===\n')
 
 // ------------------------------------------------------------- 1. credencial
 console.log('Credenciales')
 if (!apiKey) {
-  fail('BREVO_API_KEY no está definida.', 'Sin esto no se envía nada: todo queda en status skipped.')
+  fail('BREVO_API_KEY no estï¿½ definida.', 'Sin esto no se envï¿½a nada: todo queda en status skipped.')
 } else if (!senderEmail) {
-  fail('BREVO_SENDER_EMAIL no está definida.')
+  fail('BREVO_SENDER_EMAIL no estï¿½ definida.')
 }
 
 if (!apiKey) {
@@ -107,10 +107,10 @@ ok(`Cuenta "${account.body.companyName ?? '?'}" (${account.body.email})`)
 const plan = account.body.plan?.find((p) => p.type === 'free') ?? account.body.plan?.[0]
 if (plan) {
   const restante = plan.creditsType === 'sendLimit' ? plan.credits : plan.credits
-  console.log(`         plan: ${plan.type} · créditos restantes: ${restante ?? '?'}`)
+  console.log(`         plan: ${plan.type} ï¿½ crï¿½ditos restantes: ${restante ?? '?'}`)
   if (plan.type === 'free') {
     warn(
-      'Plan free: 300 emails por día.',
+      'Plan free: 300 emails por dï¿½a.',
       'Un anuncio a toda la base puede agotar la cuota. Los excedentes fallan con error de cuota.',
     )
   }
@@ -130,17 +130,17 @@ const authenticated = domains
 const senderDomain = senderEmail?.split('@')[1]?.toLowerCase()
 
 if (verified.includes(senderEmail?.toLowerCase())) {
-  ok(`${senderEmail} está validado como remitente.`)
+  ok(`${senderEmail} estï¿½ validado como remitente.`)
 } else if (authenticated.includes(senderDomain)) {
-  ok(`El dominio ${senderDomain} está autenticado (SPF/DKIM).`)
+  ok(`El dominio ${senderDomain} estï¿½ autenticado (SPF/DKIM).`)
 } else {
   fail(
-    `${senderEmail} NO está validado y su dominio tampoco está autenticado.`,
-    'Brevo va a aceptar el envío con 201 y rechazarlo después. No se entrega nada.',
+    `${senderEmail} NO estï¿½ validado y su dominio tampoco estï¿½ autenticado.`,
+    'Brevo va a aceptar el envï¿½o con 201 y rechazarlo despuï¿½s. No se entrega nada.',
   )
   console.log(`         Remitentes validados: ${verified.join(', ') || '(ninguno)'}`)
   console.log(`         Dominios autenticados: ${authenticated.join(', ') || '(ninguno)'}`)
-  console.log('         Solución: Brevo ? Senders & IP ? Domains ? autenticar el dominio por DNS.')
+  console.log('         Soluciï¿½n: Brevo ? Senders & IP ? Domains ? autenticar el dominio por DNS.')
 }
 
 // ------------------------------------------------------------ 3. errores recientes
@@ -150,7 +150,7 @@ const recent = events.body.events ?? []
 if (recent.length === 0) {
   ok('Sin errores registrados.')
 } else {
-  warn(`${recent.length} envío(s) rechazados por Brevo.`)
+  warn(`${recent.length} envï¿½o(s) rechazados por Brevo.`)
   const motivos = new Map()
   for (const e of recent) motivos.set(e.reason ?? '?', (motivos.get(e.reason ?? '?') ?? 0) + 1)
   for (const [motivo, cantidad] of motivos) console.log(`         ${cantidad}x  ${motivo}`)
@@ -161,13 +161,13 @@ console.log('\nWebhook de entrega')
 const expectedWebhook = expectedWebhookUrl()
 if (!webhookToken) {
   fail(
-    'BREVO_WEBHOOK_TOKEN no está definido.',
-    'Sin webhook no hay forma de enterarse de rebotes ni de rechazos asincrónicos.',
+    'BREVO_WEBHOOK_TOKEN no estï¿½ definido.',
+    'Sin webhook no hay forma de enterarse de rebotes ni de rechazos asincrï¿½nicos.',
   )
 } else if (!expectedWebhook) {
   fail(
-    'API_URL/APP_URL no apunta a una URL HTTPS pública.',
-    'Definila con el origen público de la API antes de registrar el webhook de Brevo.',
+    'API_URL/APP_URL no apunta a una URL HTTPS pï¿½blica.',
+    'Definila con el origen pï¿½blico de la API antes de registrar el webhook de Brevo.',
   )
 } else {
   const hooks = await brevo('/webhooks?type=transactional')
@@ -188,20 +188,20 @@ if (!webhookToken) {
   }
 }
 
-// ---------------------------------------------------------------- 5. catálogo
-console.log('\nCatálogo de templates')
+// ---------------------------------------------------------------- 5. catï¿½logo
+console.log('\nCatï¿½logo de templates')
 const catalog = describeCatalog(process.env)
 const conTemplate = catalog.filter((c) => c.delivery === 'brevo_template')
-ok(`${catalog.length} tipos declarados · ${conTemplate.length} con template de Brevo · ${catalog.length - conTemplate.length} con fallback HTML del repo`)
-console.log('         (el fallback es válido: el email igual sale, con la identidad institucional)')
+ok(`${catalog.length} tipos declarados ï¿½ ${conTemplate.length} con template de Brevo ï¿½ ${catalog.length - conTemplate.length} con fallback HTML del repo`)
+console.log('         (el fallback es vï¿½lido: el email igual sale, con la identidad institucional)')
 
-// ------------------------------------------------------------- 6. envío real
+// ------------------------------------------------------------- 6. envï¿½o real
 const sendIndex = process.argv.indexOf('--send')
 if (sendIndex !== -1) {
   const to = process.argv[sendIndex + 1]
-  console.log(`\nEnvío de prueba a ${to}`)
+  console.log(`\nEnvï¿½o de prueba a ${to}`)
   if (!to?.includes('@')) {
-    fail('Falta la dirección: npm run email:doctor -- --send tu@email.com')
+    fail('Falta la direcciï¿½n: npm run email:doctor -- --send tu@email.com')
   } else {
     try {
       const rendered = renderEmail(
@@ -215,10 +215,10 @@ if (sendIndex !== -1) {
         htmlContent: rendered.htmlContent,
         textContent: rendered.textContent,
       })
-      ok(`Aceptado por Brevo · messageId ${result.messageId}`)
+      ok(`Aceptado por Brevo ï¿½ messageId ${result.messageId}`)
       warn(
         'El 201 no garantiza entrega.',
-        'Verificá en 30 s con: npm run email:doctor (mirá "Eventos de error recientes").',
+        'Verificï¿½ en 30 s con: npm run email:doctor (mirï¿½ "Eventos de error recientes").',
       )
     } catch (error) {
       fail(`No se pudo enviar: ${error.message}`)

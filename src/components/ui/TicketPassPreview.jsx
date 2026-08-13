@@ -4,6 +4,9 @@ import { QrCode } from 'lucide-react'
 import BrandLogo from './BrandLogo.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import { getDeviceTier } from '../../motion/deviceTier.ts'
+import { MOTION_TIER_SCALE } from '../../motion/tokens.ts'
+import { hasFinePointer } from '../../motion/useReducedMotion.ts'
 
 function hashSeed(value) {
   let hash = 2166136261
@@ -45,6 +48,11 @@ export default function TicketPassPreview({
     if (typeof window === 'undefined' || !window.matchMedia) return false
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, [])
+  // Igual criterio que TiltCard: sin puntero fino no hay tracking (touch ya
+  // tiene su propio gesto de scroll), y la amplitud se escala por tier para
+  // no sostener el tracking a pleno en equipos limitados.
+  const canTilt = useMemo(() => !reducedMotion && hasFinePointer(), [reducedMotion])
+  const tiltScale = useMemo(() => MOTION_TIER_SCALE[getDeviceTier()], [])
 
   const displayName = attendeeName?.trim() || t('pages.ticketsPage.passGuest')
   const seed = `${eventTitle}|${displayName}|${dayPassLabel}|${quantity}|${eventSlug}|${qrCode}`
@@ -73,7 +81,7 @@ export default function TicketPassPreview({
   }, [eventSlug, previewCode])
 
   function handlePointerMove(event) {
-    if (!interactive || reducedMotion || !stageRef.current) return
+    if (!interactive || !canTilt || !stageRef.current) return
     const rect = stageRef.current.getBoundingClientRect()
     if (!rect.width || !rect.height) return
     const px = (event.clientX - rect.left) / rect.width
@@ -81,15 +89,15 @@ export default function TicketPassPreview({
     const clampedX = Math.min(1, Math.max(0, px))
     const clampedY = Math.min(1, Math.max(0, py))
     setTilt({
-      rx: (0.5 - clampedY) * 16,
-      ry: (clampedX - 0.5) * 22,
+      rx: (0.5 - clampedY) * 16 * tiltScale,
+      ry: (clampedX - 0.5) * 22 * tiltScale,
       mx: clampedX * 100,
       my: clampedY * 100,
     })
   }
 
   function handlePointerLeave() {
-    if (!interactive || reducedMotion) return
+    if (!interactive || !canTilt) return
     setTilt({ rx: 8, ry: -12, mx: 58, my: 28 })
   }
 
@@ -107,7 +115,7 @@ export default function TicketPassPreview({
       className={[
         'ticket-pass-preview',
         live ? 'ticket-pass-preview--live' : '',
-        interactive && !reducedMotion ? 'ticket-pass-preview--interactive' : '',
+        interactive && canTilt ? 'ticket-pass-preview--interactive' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -199,7 +207,7 @@ export default function TicketPassPreview({
           </div>
         </article>
       </div>
-      {interactive && showHint && !reducedMotion ? (
+      {interactive && showHint && canTilt ? (
         <p className="ticket-pass-preview__hint">{t('pages.ticketsPage.passMoveHint')}</p>
       ) : null}
     </div>

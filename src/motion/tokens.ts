@@ -1,3 +1,5 @@
+import type { MotionTier } from './deviceTier'
+
 /** Duraciones en segundos — espejo de variables CSS en motion.css */
 export const MOTION_DURATION = {
   instant: 0.1,
@@ -64,3 +66,39 @@ export const MOTION_VIEWPORT = {
 } as const
 
 export const TILT_MAX_DEG = 6
+
+/**
+ * Escalado de motion por capacidad de dispositivo (ver src/motion/deviceTier.ts).
+ * El efecto se mantiene siempre presente en los tres tiers — solo se acorta
+ * duración/alcance en equipos limitados, nunca se elimina por completo salvo
+ * los loops infinitos puramente decorativos (ver performance.css).
+ */
+export const MOTION_TIER_SCALE: Record<MotionTier, number> = {
+  high: 1,
+  mid: 0.72,
+  low: 0.5,
+}
+
+export function scaleDuration(seconds: number, tier: MotionTier): number {
+  return Math.max(seconds * MOTION_TIER_SCALE[tier], MOTION_DURATION.instant)
+}
+
+type StaggerTokens = {
+  step: number
+  stepFast: number
+  delayChildren: number
+}
+
+export const MOTION_STAGGER_BY_TIER: Record<MotionTier, StaggerTokens> = {
+  high: MOTION_STAGGER,
+  mid: {
+    step: 0.045,
+    stepFast: 0.032,
+    delayChildren: 0.05,
+  },
+  low: {
+    step: 0,
+    stepFast: 0,
+    delayChildren: 0,
+  },
+}

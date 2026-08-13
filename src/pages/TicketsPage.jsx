@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/DSC00392-display.jpg'
+import heroPhotoAvif from '../assets/DSC00392-display.avif'
+import heroPhotoAvif480 from '../assets/DSC00392-display-480.avif'
+import heroPhotoAvif800 from '../assets/DSC00392-display-800.avif'
+import heroPhotoWebp from '../assets/DSC00392-display.webp'
+import heroPhotoWebp480 from '../assets/DSC00392-display-480.webp'
+import heroPhotoWebp800 from '../assets/DSC00392-display-800.webp'
+import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
@@ -80,12 +87,14 @@ export default function TicketsPage({
         {...heroRootProps}
       >
         <div className="tickets-page__hero-backdrop" aria-hidden>
-          <img
+          <ResponsivePhoto
             className="tickets-page__hero-backdrop-img"
+            avif={{ 480: heroPhotoAvif480, 800: heroPhotoAvif800, 1153: heroPhotoAvif }}
+            webp={{ 480: heroPhotoWebp480, 800: heroPhotoWebp800, 1153: heroPhotoWebp }}
             src={heroPhoto}
             alt=""
+            sizes="100vw"
             loading="eager"
-            decoding="async"
             fetchPriority="high"
           />
         </div>

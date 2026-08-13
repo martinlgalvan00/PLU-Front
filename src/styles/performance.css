@@ -187,3 +187,44 @@
     animation: none;
   }
 }
+
+/* =============================================
+   TIER DE RENDIMIENTO (JS) — cubre el caso que el
+   viewport/hover no detecta: notebook o PC de pocos
+   recursos con mouse y pantalla ancha. Ver
+   src/motion/deviceTier.ts + MotionProvider.tsx.
+   El efecto se mantiene siempre visible: en "mid" se
+   alarga (menos repaints/segundo), en "low" el loop
+   perpetuo se corta pero la pieza queda en su pose de
+   reposo, nunca oculta.
+   ============================================= */
+
+[data-motion-tier='mid'],
+[data-motion-tier='low'] {
+  --hm-float-duration: 8.5s;
+  --launch-live-duration: 3.6s;
+  --launch-shimmer-duration: 4.4s;
+}
+
+[data-motion-tier='low'] .hm-artifact:not(.is-static) .hm-artifact__model,
+[data-motion-tier='low'] .launch-teaser__live,
+[data-motion-tier='low'] .launch-teaser--inauguration .launch-teaser__stage-mark::after,
+[data-motion-tier='low'] .community-spotlight__live {
+  animation: none;
+}
+
+[data-motion-tier='low'] .hm-artifact__orbit {
+  will-change: auto;
+}
+
+[data-motion-tier='low'] .hero-status-card,
+[data-motion-tier='low'] .home-quick-band__chip {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-motion-tier='low'] .card-modal-overlay {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(10, 11, 13, 0.94);
+}

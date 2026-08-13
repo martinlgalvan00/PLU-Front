@@ -61,7 +61,11 @@ export function throwAsApiError(error) {
   const status = ERROR_STATUS_BY_CODE[error.code] ?? 400
   throw new ApiError(error.message, {
     status,
-    body: { alreadyUsed: error.code === 'PLU06', detail: error.details ?? undefined },
+    body: {
+      code: error.code,
+      alreadyUsed: error.code === 'PLU06',
+      detail: error.details ?? undefined,
+    },
   })
 }
 

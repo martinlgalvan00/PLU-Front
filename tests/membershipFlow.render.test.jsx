@@ -6,8 +6,10 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
  * membershipFlow.render.test.jsx — PLU ARG
  *
  * Render real (jsdom) de las dos pantallas donde el atleta se afilia y cobra
- * su credencial: la confirmación del alta (`RegisterPage`, flujo membership) y
- * la sección de afiliación de la cuenta.
+ * su credencial: la confirmación histórica del alta (`RegisterPage`, flujo
+ * membership, usado en stories) y la sección de afiliación de la cuenta, que
+ * es el cobro vivo. Home, Members y el aviso de inscripción navegan a este
+ * tab para no duplicar precios.
  *
  * La regla que verifican los dos: **la credencial se emite después del pago.**
  * `athletes.credential_token` nace con la cuenta, así que el QR existe desde el
@@ -59,7 +61,18 @@ vi.mock('../src/config/env.js', () => ({
 }))
 
 vi.mock('../src/services/paymentService.js', () => ({
-  listMembershipPlans: vi.fn(async () => ({ plans: [] })),
+  listMembershipPlans: vi.fn(async () => ({
+    plans: [
+      {
+        code: 'plu-annual',
+        name: 'Afiliación anual',
+        price: 75000,
+        currency: 'ARS',
+        billingFrequency: 'annual',
+        collectionMode: 'one_time',
+      },
+    ],
+  })),
   isMercadoPagoConfigured: () => true,
   processEmbeddedPayment: vi.fn(),
   processEmbeddedSubscription: vi.fn(),
@@ -70,6 +83,7 @@ const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const MembershipPurchaseSection = (
   await import('../src/pages/profile/MembershipPurchaseSection.jsx')
 ).default
+const { listMembershipPlans } = await import('../src/services/paymentService.js')
 
 const ATHLETE = {
   id: 'ath-1',
@@ -144,6 +158,14 @@ function renderPurchaseSection(membershipRow, props = {}) {
       <MembershipPurchaseSection athlete={ATHLETE} membership={membershipRow} {...props} />
     </I18nProvider>,
   )
+}
+
+async function waitForMembershipPayButton() {
+  await waitFor(() => {
+    const submit = screen.getByRole('button', { name: /continuar con mercado pago/i })
+    expect(submit.disabled).toBe(false)
+  })
+  return screen.getByRole('button', { name: /continuar con mercado pago/i })
 }
 
 // Cada pantalla rotula su acción distinto: "Ver credencial" en el alta, "Ver
@@ -275,10 +297,10 @@ describe('credencial de inscripción a torneo', () => {
       },
     })
 
-    expect(screen.getByRole('radio', { name: /combo/i }).checked).toBe(true)
-    expect(screen.getByRole('button', { name: /generar combo/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /afiliaci/i }).checked).toBe(true)
+    expect(screen.getByRole('button', { name: /continuar al pago/i })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /generar combo/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.anything(),
@@ -314,7 +336,7 @@ describe('credencial de inscripción a torneo', () => {
       },
     })
 
-    const submit = screen.getByRole('button', { name: /generar combo/i })
+    const submit = screen.getByRole('button', { name: /continuar al pago/i })
     fireEvent.click(submit)
     expect((await screen.findByRole('alert')).textContent).toContain('No se pudo iniciar el pago')
     expect(submit.disabled).toBe(false)
@@ -326,6 +348,27 @@ describe('credencial de inscripción a torneo', () => {
 })
 
 describe('sección de afiliación de la cuenta', () => {
+  it('muestra el precio del catálogo, no un fallback local', async () => {
+    listMembershipPlans.mockResolvedValueOnce({
+      plans: [
+        {
+          code: 'plu-annual',
+          name: 'Afiliación anual',
+          price: 88000,
+          currency: 'ARS',
+          billingFrequency: 'annual',
+          collectionMode: 'one_time',
+        },
+      ],
+    })
+    renderPurchaseSection(membership({ status: 'pendiente_pago' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/88\.000/).length).toBeGreaterThan(0)
+    })
+    expect(screen.queryByText(/75\.000/)).toBeNull()
+  })
+
   it('ofrece renovar cuando la afiliación venció, sin llamarla impaga', () => {
     renderPurchaseSection(membership({ expirationDate: '2020-12-31' }))
 
@@ -340,6 +383,17 @@ describe('sección de afiliación de la cuenta', () => {
 
     expect(screen.getByText('Pendiente de pago')).toBeTruthy()
     expect(screen.queryByText('Afiliación vencida')).toBeNull()
+  })
+
+  it('no permite reemplazar una transferencia cuyo comprobante está en validación', () => {
+    renderPurchaseSection(
+      membership({ status: 'cancelada', paymentStatus: 'validacion_manual' }),
+    )
+
+    expect(screen.getByText('Transferencia en validación')).toBeTruthy()
+    expect(screen.getAllByText(/puede demorar hasta 48 horas/i)).not.toHaveLength(0)
+    expect(screen.queryByText('Afiliación cancelada')).toBeNull()
+    expect(screen.queryByRole('button', { name: /continuar con mercado pago/i })).toBeNull()
   })
 
   it('con la afiliación vigente muestra el código y esconde el checkout', () => {
@@ -381,7 +435,7 @@ describe('sección de afiliación de la cuenta', () => {
     }))
     renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
 
-    const submit = screen.getByRole('button', { name: /continuar con mercado pago/i })
+    const submit = await waitForMembershipPayButton()
     fireEvent.click(submit)
     fireEvent.click(submit)
 
@@ -406,7 +460,7 @@ describe('sección de afiliación de la cuenta', () => {
     }))
     renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
 
-    fireEvent.click(screen.getByRole('button', { name: /continuar con mercado pago/i }))
+    fireEvent.click(await waitForMembershipPayButton())
 
     await waitFor(() => {
       expect(screen.getByRole('dialog', { name: /completá el pago/i })).toBeTruthy()

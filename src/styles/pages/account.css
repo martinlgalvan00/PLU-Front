@@ -355,6 +355,17 @@
   transform: rotateY(180deg);
 }
 
+/* Tier de rendimiento (JS, ver src/motion/deviceTier.ts): mismo criterio
+   que credential-card.css — el flip se mantiene, se acorta en equipos
+   limitados. Redefine --motion-slow local a la card, no el token global. */
+[data-motion-tier='mid'] .account-credential__card {
+  --motion-slow: 340ms;
+}
+
+[data-motion-tier='low'] .account-credential__card {
+  --motion-slow: 220ms;
+}
+
 .account-credential__card:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 4px;
@@ -1464,6 +1475,10 @@
   padding-bottom: 22px;
 }
 
+.account-membership__banner:not(:has(.account-membership__price)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .account-membership__banner-copy {
   display: grid;
   gap: 10px;
@@ -1483,6 +1498,46 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.account-membership__status-line {
+  align-items: baseline;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 6px 8px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.account-membership__status-sep {
+  color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
+}
+
+.account-membership__status-line .account-membership-status__label {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.account-membership__status-line .account-membership-status__value {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.account-membership__status-line--pending .account-membership-status__label {
+  color: var(--color-brand-gold);
+}
+
+.account-membership__status-line--expired .account-membership-status__label,
+.account-membership__status-line--cancelled .account-membership-status__label {
+  color: var(--color-brand-red);
 }
 
 .account-membership__status-pill {
@@ -2099,15 +2154,15 @@
 }
 
 .account-membership-status {
-  align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px;
-  justify-content: space-between;
-  margin: 22px 0 28px;
-  padding: 16px 0;
+  align-items: start;
+  border-bottom: 0;
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  border-top: 0;
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  margin: 18px 0 8px;
+  padding: 2px 0 2px 16px;
 }
 
 .account-membership-status--compact {
@@ -2129,10 +2184,10 @@
 
 .account-membership-status__label {
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  text-transform: none;
 }
 
 .account-membership-status--compact .account-membership-status__label {
@@ -2141,10 +2196,10 @@
 
 .account-membership-status__value {
   color: var(--color-text-primary);
-  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  font-family: var(--font-family);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .account-membership-status--compact .account-membership-status__value {
@@ -2159,14 +2214,14 @@
 .account-membership-status__aside {
   display: grid;
   gap: 4px;
-  justify-items: end;
+  justify-items: start;
   max-width: 48ch;
-  text-align: right;
+  text-align: left;
 }
 
 .account-membership-status__next {
   color: var(--color-text-secondary);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -2184,8 +2239,16 @@
   display: none;
 }
 
+.account-membership-status--active {
+  border-left-color: var(--color-success-text);
+}
+
 .account-membership-status--active .account-membership-status__value {
-  color: #4fbe79;
+  color: var(--color-success-text);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 .account-membership-status--pending .account-membership-status__value {
@@ -2195,6 +2258,10 @@
   letter-spacing: 0;
 }
 
+.account-membership-status--scheduled {
+  border-left-color: var(--color-brand-celeste);
+}
+
 .account-membership-status--scheduled .account-membership-status__value {
   color: var(--color-brand-celeste);
   font-family: var(--font-family);
@@ -2202,12 +2269,29 @@
   letter-spacing: 0;
 }
 
+.account-membership-status--expired,
+.account-membership-status--cancelled {
+  border-left-color: var(--color-brand-red);
+}
+
 .account-membership-status--expired .account-membership-status__value,
 .account-membership-status--cancelled .account-membership-status__value {
-  color: var(--color-brand-red);
+  color: var(--color-text-primary);
   font-family: var(--font-family);
   font-variant-numeric: normal;
   letter-spacing: 0;
+}
+
+.account-membership-status--expired .account-membership-status__label,
+.account-membership-status--cancelled .account-membership-status__label {
+  color: var(--color-brand-red);
+}
+
+.account-membership--hold .account-membership__banner {
+  border-bottom: 0;
+  margin-inline: auto;
+  max-width: 560px;
+  padding-bottom: 0;
 }
 
 .account-plan-feedback {
@@ -2517,6 +2601,20 @@
   line-height: 1.4;
 }
 
+#account-events .account-events-list__body .pitbull-brand-mark {
+  margin: 0 0 4px;
+  max-width: 100%;
+}
+
+#account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+  height: 36px;
+}
+
+#account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+  height: 26px;
+  max-width: min(42vw, 148px);
+}
+
 #account-events .account-event-membership-note {
   color: color-mix(in srgb, var(--color-brand-gold) 78%, var(--color-text-muted));
   font-size: 12px;
@@ -2597,6 +2695,21 @@
     justify-self: stretch;
     width: 100%;
   }
+
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+    max-width: min(48vw, 160px);
+  }
+}
+
+@media (max-width: 360px) {
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__emblem {
+    height: 32px;
+  }
+
+  #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {
+    height: 22px;
+    max-width: min(52vw, 128px);
+  }
 }
 
 .account-history-list article {
@@ -2639,6 +2752,98 @@
   max-width: 540px;
   padding: 26px;
   width: 100%;
+}
+
+.account-payment-modal--transfer {
+  display: grid;
+  gap: 18px;
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  padding: 28px 28px 24px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__close {
+  height: 44px;
+  width: 44px;
+}
+
+.account-payment-modal--transfer .account-payment-modal__lead {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.account-payment-modal--transfer .account-payment-modal__footnote {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.account-payment-modal--transfer .account-secondary-action {
+  min-height: 44px;
+  width: 100%;
+}
+
+.account-transfer-receipt {
+  display: grid;
+  gap: 2px;
+}
+
+.account-transfer-receipt__total {
+  align-items: baseline;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 4px 0 14px;
+}
+
+.account-transfer-receipt__total span {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-transfer-receipt__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.account-transfer-data--receipt div {
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+[data-theme='light'] .account-transfer-receipt__total strong {
+  color: var(--plu-gold-600);
+}
+
+@media (max-width: 480px) {
+  .account-payment-modal--transfer {
+    padding: 22px 18px 18px;
+  }
+
+  .account-transfer-receipt__total {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .account-transfer-data--receipt div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 .account-payment-modal--checkout {
@@ -3492,6 +3697,10 @@
 
   .account-membership__checkout {
     position: static;
+  }
+
+  .account-membership-status {
+    grid-template-columns: 1fr;
   }
 
   .account-membership-status__aside {

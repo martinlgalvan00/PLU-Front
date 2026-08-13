@@ -1,26 +1,15 @@
 /*
  * transfer-proof.css — Comprobante de transferencia
  *
- * Vivía dentro de `pages/account.css`, que se importa solo desde
- * AthleteProfilePage (lazy). Cuando el mismo control pasó a usarse también en
- * la confirmación de afiliación del alta, ahí quedaba sin estilos salvo que el
- * atleta hubiera visitado el perfil antes en la misma sesión.
- *
  * Lo importa `TransferProofUpload.jsx`, así que el CSS viaja en el chunk del
  * componente y llega a las dos pantallas que lo montan.
  */
 
 .account-transfer-proof {
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
+  display: grid;
+  gap: 8px;
 }
 
-/* El input nativo queda fuera de flujo pero accesible: el label es el control
-   visible y conserva foco de teclado a través del `for`. */
 .account-transfer-proof__input {
   height: 0.1px;
   opacity: 0;
@@ -29,36 +18,77 @@
   width: 0.1px;
 }
 
-.account-transfer-proof__label {
+.account-transfer-proof__drop {
   align-items: center;
-  align-self: flex-start;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--border-radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
   color: var(--color-text-primary);
   cursor: pointer;
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 var(--space-md);
-  transition: border-color var(--motion-fast) var(--ease-standard);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 88px;
+  padding: 16px 18px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
-.account-transfer-proof__label:hover {
-  border-color: var(--color-brand-celeste);
+.account-transfer-proof__drop svg {
+  color: var(--color-brand-gold);
+  flex: none;
 }
 
-.account-transfer-proof__input:focus-visible + .account-transfer-proof__label,
-.account-transfer-proof__label:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+.account-transfer-proof__drop:hover,
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
+  border-color: var(--color-brand-gold);
+}
+
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
+  outline: 2px solid var(--color-brand-gold);
   outline-offset: 3px;
+}
+
+.account-transfer-proof__drop.is-busy {
+  cursor: wait;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.account-transfer-proof__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-transfer-proof__copy strong {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .account-transfer-proof__hint {
   color: var(--color-text-muted);
-  font-size: 12px;
-  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.account-transfer-proof__spinner {
+  animation: account-transfer-proof-spin 620ms linear infinite;
+  block-size: 18px;
+  border: 1.75px solid color-mix(in oklab, var(--color-brand-gold) 28%, transparent);
+  border-radius: 50%;
+  border-top-color: var(--color-brand-gold);
+  display: block;
+  flex: none;
+  inline-size: 18px;
+}
+
+@keyframes account-transfer-proof-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .account-transfer-proof__error {
@@ -68,10 +98,43 @@
 }
 
 .account-transfer-proof__done {
-  align-items: center;
-  color: var(--color-success-text);
+  align-items: flex-start;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-secondary);
   display: flex;
-  font-size: 13px;
-  gap: 8px;
-  margin: var(--space-md) 0 0;
+  font-size: 13.5px;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 0;
+  padding-top: 16px;
+}
+
+.account-transfer-proof__done svg {
+  color: var(--color-brand-gold);
+  flex: none;
+  margin-top: 2px;
+}
+
+[data-theme='light'] .account-transfer-proof__drop {
+  border-color: rgba(15, 17, 23, 0.14);
+}
+
+[data-theme='light'] .account-transfer-proof__drop:hover,
+[data-theme='light'] .account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
+  border-color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .account-transfer-proof__drop svg,
+[data-theme='light'] .account-transfer-proof__done svg {
+  color: var(--plu-gold-600);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-transfer-proof__drop {
+    transition: none;
+  }
+
+  .account-transfer-proof__spinner {
+    animation: none;
+  }
 }

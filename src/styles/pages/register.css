@@ -2419,40 +2419,169 @@
   transform: none;
 }
 
-.register-eligibility-alert {
-  background: rgba(255, 21, 21, 0.08);
-  border: 1px solid rgba(255, 21, 21, 0.24);
-  border-radius: 14px;
+.register-verify {
+  background: color-mix(in srgb, var(--color-warning-bg, #3a2a12) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning-text, #f2b705) 28%, transparent);
+  border-radius: 12px;
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
+  justify-items: start;
+  margin: 0 0 clamp(18px, 2.4vw, 24px);
+  padding: 14px 16px 16px;
 }
 
-.register-eligibility-alert strong {
-  color: #ff6b6b;
-  font-size: 14px;
+.register-verify--done {
+  background: color-mix(in srgb, var(--color-success-bg, #16321c) 72%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-text, #37d67a) 28%, transparent);
 }
 
-.register-eligibility-alert p {
-  color: var(--color-text-muted);
+.register-verify__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+}
+
+.register-verify__lead,
+.register-verify__email {
+  margin: 0;
+  max-width: 52ch;
+}
+
+.register-verify__lead {
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.45;
-  margin: 0;
 }
 
-/* La dirección a la que se mandó el enlace: es el dato que el atleta necesita
-   para saber en qué bandeja buscar (o darse cuenta de que la tipeó mal). */
-.register-eligibility-alert__email {
+.register-verify__email {
   color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
+  font-size: 13px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.register-eligibility-alert .btn {
-  justify-self: start;
+.register-verify__otp {
+  display: grid;
+  gap: 6px;
   margin-top: 4px;
+  width: 100%;
+}
+
+.register-verify__otp label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.register-verify__otp-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-verify__otp input {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong, color-mix(in srgb, var(--color-text-primary) 16%, transparent));
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  min-height: 44px;
+  padding: 0 12px;
+  text-align: center;
+  width: 10rem;
+}
+
+.register-verify__otp input:focus-visible,
+.register-verify__otp button:focus-visible,
+.register-verify__resend:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-verify__otp button {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 6px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.register-verify__otp button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.register-verify__otp-error {
+  color: var(--color-danger-text, var(--color-brand-red));
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.register-verify__resend {
+  background: none;
+  border: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.register-verify__resend:hover:not(:disabled) {
+  color: var(--color-brand-gold);
+}
+
+.register-verify__resend:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.register-checkout__options--pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-checkout__options--pills label {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  border-radius: 2px;
+  box-shadow: none;
+  display: inline-flex;
+  gap: 8px;
+  grid-template-columns: none;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.register-checkout__options--pills label:last-child {
+  border-bottom-width: 1px;
+}
+
+.register-checkout__options--pills label.is-selected,
+.register-checkout__options--pills label:focus-within {
+  border-color: var(--color-brand-gold);
+  box-shadow: none;
+}
+
+.register-checkout__options--pills .register-checkout__method-label {
+  font-size: 13.5px;
 }
 
 .register-payment-modal {
@@ -2820,56 +2949,167 @@
    ============================================= */
 
 .register-page--membership.register-page--premium .register-intro__eyebrow {
-  align-items: center;
-  background: rgba(116, 172, 223, 0.1);
-  border: 1px solid rgba(116, 172, 223, 0.22);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-brand-celeste);
-  display: inline-flex;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 5px 10px;
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
   text-transform: uppercase;
-  width: fit-content;
+  width: auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
 }
 
 .register-page--membership .register-intro--membership {
-  gap: 10px;
-  padding-left: clamp(14px, 2vw, 20px);
+  display: grid;
+  gap: 8px;
+  padding-left: clamp(14px, 2vw, 18px);
   position: relative;
 }
 
 .register-page--membership .register-intro--membership::before {
-  background: var(--plu-gradient-brand-bar);
-  border-radius: 99px;
-  bottom: 4px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--plu-gold-500) 80%, transparent) 0%,
+    transparent 88%
+  );
+  border-radius: 0;
+  bottom: 12%;
   content: '';
   left: 0;
-  opacity: 0.82;
+  opacity: 1;
   position: absolute;
-  top: 4px;
-  width: 2px;
+  top: 8%;
+  width: 1px;
 }
 
 .register-page--membership .register-intro--membership .register-intro__title {
+  color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(22px, 3.2vw, 28px);
-  font-weight: 800;
-  letter-spacing: -0.034em;
-  line-height: 1.12;
-  max-width: 18ch;
+  font-size: clamp(2rem, 4.2vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.048em;
+  line-height: 0.98;
+  max-width: 14ch;
+  text-wrap: balance;
 }
 
 .register-page--membership .register-intro--membership .register-intro__desc {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 32ch;
+}
+
+.register-page--membership .register-intro__meta--membership {
+  align-items: baseline;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+  padding: 12px 0 0;
+}
+
+.register-page--membership .register-intro__athlete {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
   font-size: 13px;
-  line-height: 1.62;
-  max-width: 40ch;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.register-page--membership .register-card:not(.register-card--confirmation) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.register-page--membership .register-card:not(.register-card--confirmation)::before {
+  display: none;
+}
+
+.register-membership-ticket {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.register-membership-ticket__plan {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.register-membership-ticket__validity,
+.register-membership-ticket__athlete {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.register-membership-ticket__total {
+  align-items: baseline;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.register-membership-ticket__total span {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.register-membership-ticket__total strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.6vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.register-page--membership .register-shell {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.register-page--membership .register-shell.auth-immersive-glass::before {
+  display: none;
 }
 
 .register-membership-aside {
-  display: grid;
-  gap: 14px;
+  min-width: 0;
 }
 
 .register-membership-summary {
@@ -3145,6 +3385,11 @@
   border-radius: 8px;
   box-shadow: none;
   color: var(--color-brand-action-text);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  min-height: 52px;
+  min-width: min(100%, 240px);
 }
 
 .register-page--membership .register-card__submit--membership:hover:not(:disabled) {
@@ -3153,10 +3398,12 @@
   box-shadow: none;
   color: var(--color-brand-action-text);
   filter: none;
+  transform: translateY(-1px);
 }
 
 .register-page--membership .register-card__total strong {
-  color: var(--plu-gold-400);
+  color: var(--color-brand-gold);
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
 }
 
 @media (max-width: 900px) {
@@ -3164,12 +3411,14 @@
     display: none;
   }
 
-  .register-page--membership .register-intro--membership::before {
-    display: none;
+  .register-page--membership .register-mobile-context .register-intro--membership {
+    gap: 6px;
+    padding-left: 12px;
   }
 
-  .register-page--membership .register-intro--membership {
-    padding-left: 0;
+  .register-page--membership .register-mobile-context .register-intro__title {
+    font-size: clamp(1.65rem, 6.2vw, 2.1rem);
+    max-width: none;
   }
 }
 
@@ -3183,11 +3432,28 @@
 }
 
 [data-theme='light'] .register-page--membership .register-intro__eyebrow {
-  background: rgba(31, 95, 158, 0.08);
-  border-color: rgba(31, 95, 158, 0.18);
-  color: var(--plu-celeste-600);
+  background: none;
+  border: 0;
+  color: var(--plu-gold-600);
 }
 
+[data-theme='light'] .register-page--membership .register-intro--membership .register-intro__title,
+[data-theme='light'] .register-page--membership .register-intro__athlete,
+[data-theme='light'] .register-membership-ticket__plan {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-page--membership .register-intro--membership .register-intro__desc {
+  color: rgba(15, 17, 23, 0.68);
+}
+
+[data-theme='light'] .register-page--membership .register-intro__meta--membership,
+[data-theme='light'] .register-membership-ticket,
+[data-theme='light'] .register-membership-ticket__total {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .register-membership-ticket__total strong,
 [data-theme='light'] .register-page--membership .register-card__total strong {
   color: var(--plu-gold-600);
 }
@@ -3487,35 +3753,7 @@
   border-color: rgba(31, 95, 158, 0.12);
 }
 
-/* ── Human / checkout sobrio ───────────────── */
-
-.register-membership-summary--human {
-  box-shadow: none;
-  padding: 16px 18px;
-}
-
-.register-membership-summary--human .register-membership-summary__head {
-  grid-template-columns: 1fr auto;
-  padding-top: 0;
-}
-
-.register-membership-summary--human .register-membership-summary__plan {
-  font-family: var(--font-family);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.register-membership-summary--human .register-membership-summary__validity {
-  font-size: 12px;
-}
-
-.register-membership-summary--human .register-membership-summary__athlete {
-  border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
-  font-size: 13px;
-  margin: 0;
-  padding-top: 12px;
-}
+/* ── Membership confirmation (post-order) ─── */
 
 .register-membership-confirmation__head h2 {
   font-family: var(--font-family);
@@ -3585,22 +3823,6 @@
 .register-membership-confirmation__cta--primary:hover {
   box-shadow: none;
   transform: none;
-}
-
-.register-page--membership .register-intro--membership .register-intro__title {
-  font-family: var(--font-family);
-  font-size: clamp(22px, 3vw, 26px);
-  font-weight: 700;
-}
-
-.register-page--membership .register-intro--membership .register-intro__desc {
-  font-size: 13.5px;
-  line-height: 1.45;
-}
-
-.register-page--membership .register-intro--membership .register-intro__desc {
-  font-size: 13.5px;
-  line-height: 1.45;
 }
 
 /* =============================================
@@ -3763,6 +3985,16 @@
   margin: 0;
 }
 
+.register-competition-ticket__package {
+  color: color-mix(in srgb, var(--color-brand-gold) 82%, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  margin: 0;
+}
+
 .register-competition-ticket__picks {
   color: var(--color-text-secondary);
   font-size: 12.5px;
@@ -3901,13 +4133,13 @@
 
 .register-page--competition .register-card .field__label,
 .register-page--competition .register-card legend.field__label {
-  color: color-mix(in oklab, var(--color-text-muted) 92%, transparent);
+  color: var(--color-text-muted);
   font-family: var(--font-family);
-  font-size: 10.5px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.01em;
   line-height: 1.2;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .register-page--competition .register-card .field:focus-within .field__label,
@@ -3928,14 +4160,12 @@
   border-radius: 2px;
   flex: 0 1 auto;
   justify-content: center;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 14px;
   transition:
     background-color 180ms var(--ease-out),
     border-color 180ms var(--ease-out),
-    box-shadow 180ms var(--ease-out),
-    color 180ms var(--ease-out),
-    transform 180ms var(--ease-out);
+    color 180ms var(--ease-out);
 }
 
 .register-page--competition .register-competition-choice .field__choice-text {
@@ -3947,7 +4177,6 @@
 
 .register-page--competition .register-competition-choice .field__choice:hover {
   border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
-  transform: translateY(-1px);
 }
 
 .register-page--competition .register-competition-choice .field__choice:hover .field__choice-text {
@@ -3955,9 +4184,9 @@
 }
 
 .register-page--competition .register-competition-choice .field__choice.is-active {
-  background: color-mix(in srgb, var(--plu-gold-500) 14%, transparent);
-  border-color: color-mix(in srgb, var(--plu-gold-500) 72%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--plu-gold-500) 18%, transparent);
+  background: transparent;
+  border-color: var(--color-brand-gold);
+  box-shadow: none;
 }
 
 .register-page--competition .register-competition-choice .field__choice.is-active .field__choice-text {
@@ -3968,18 +4197,6 @@
 .register-page--competition .register-competition-choice .field__choice:focus-within {
   border-color: var(--color-brand-gold);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500) 16%, transparent);
-}
-
-.register-page--competition .register-competition-choice--payment .field__choices {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.register-page--competition .register-competition-choice--payment .field__choice {
-  border-radius: 2px;
-  min-height: 48px;
-  width: 100%;
 }
 
 .register-page--competition .register-competition-weight {
@@ -4023,10 +4240,15 @@
   box-shadow: none;
 }
 
-.register-page--competition .register-card__footer {
-  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-  margin-top: clamp(6px, 1.2vw, 12px);
-  padding-top: clamp(16px, 2.2vw, 22px);
+.register-page--competition .register-card__footer.register-checkout,
+.register-page--membership .register-card__footer.register-checkout {
+  align-items: stretch;
+  border: none;
+  display: grid;
+  gap: clamp(18px, 2.4vw, 24px);
+  justify-content: stretch;
+  margin-top: clamp(8px, 1.4vw, 16px);
+  padding-top: 0;
 }
 
 .register-page--competition .register-card__total strong {
@@ -4069,62 +4291,160 @@
   transform: translateY(0);
 }
 
-.register-page--competition .register-eligibility-alert {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
-  border-radius: 12px;
-  margin: 0;
-}
-
-.register-page--competition .register-eligibility-alert strong {
-  color: var(--color-brand-celeste);
-}
-
-.register-combo-choice {
-  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 24%, transparent);
-  border-radius: 12px;
+.register-checkout__methods {
+  border: 0;
   display: grid;
-  gap: 14px;
+  gap: 10px;
   margin: 0;
   min-inline-size: 0;
-  padding: 16px;
+  padding: 0;
 }
 
-.register-combo-choice legend {
-  align-items: center;
-  color: var(--color-brand-gold);
-  display: flex;
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-weight: 650;
-  gap: 10px;
-  letter-spacing: 0.12em;
-  padding: 0 6px;
-  text-transform: uppercase;
-}
-
-.register-combo-choice legend strong {
-  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
-  border-radius: 999px;
-  font-size: 9.5px;
-  padding: 4px 8px;
-}
-
-.register-combo-choice__intro {
-  display: grid;
-  gap: 5px;
-}
-
-.register-combo-choice__intro h2 {
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2vw, 1.25rem);
-  letter-spacing: -0.025em;
+.register-checkout__methods legend {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: 1.2;
+  padding: 0;
+  text-transform: none;
+}
+
+.register-checkout__hint {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-checkout__options {
+  display: grid;
+  gap: 0;
+}
+
+.register-checkout__options label {
+  align-items: baseline;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 64px;
+  padding: 14px 4px 14px 12px;
+  transition:
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-checkout__options label:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.register-checkout__options label:hover {
+  color: var(--color-text-primary);
+}
+
+.register-checkout__options label.is-selected {
+  background: transparent;
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-checkout__options label:focus-within {
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
+}
+
+.register-checkout__options input {
+  accent-color: var(--color-brand-gold);
+  grid-row: 1 / span 2;
   margin: 0;
 }
 
-.register-combo-choice__intro p {
+.register-checkout .register-checkout__method-label {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-checkout__options small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  grid-column: 2;
+  line-height: 1.4;
+}
+
+.register-checkout__bar {
+  align-items: end;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: clamp(16px, 2.2vw, 22px);
+}
+
+.register-checkout .register-checkout__bar {
+  display: flex;
+}
+
+.register-checkout__summary {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 10px;
+  min-width: min(100%, 220px);
+}
+
+.register-checkout__lines {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-checkout__lines li {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.register-checkout__lines li span:last-child {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.register-checkout .register-checkout__lines-save span,
+.register-checkout .register-checkout__lines-save span:last-child {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+}
+
+.register-checkout__package {
+  color: var(--color-text-muted);
+  display: none;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.register-eligibility-note {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.register-eligibility-note p {
   color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.5;
@@ -4132,37 +4452,92 @@
   max-width: 58ch;
 }
 
-.register-combo-choice__options {
+.register-eligibility-note__action {
+  background: none;
+  border: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.register-eligibility-note__action:hover {
+  color: var(--color-brand-gold);
+}
+
+.register-eligibility-note__action:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+.register-combo-choice {
+  border: 0;
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.register-combo-choice legend {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 10px;
+  letter-spacing: 0.01em;
+  padding: 0;
+  text-transform: none;
+}
+
+.register-combo-choice legend strong {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+}
+
+.register-combo-choice__options {
+  display: grid;
+  gap: 0;
 }
 
 .register-combo-choice__options label {
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
-  border-radius: 8px;
+  align-items: baseline;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: 0;
   cursor: pointer;
   display: grid;
-  gap: 4px 10px;
-  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 64px;
-  padding: 10px 12px;
+  padding: 14px 4px 14px 12px;
   transition:
-    background-color 180ms var(--ease-out),
-    border-color 180ms var(--ease-out),
-    box-shadow 180ms var(--ease-out);
+    box-shadow 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.register-combo-choice__options label:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
 }
 
 .register-combo-choice__options label.is-selected {
-  background: color-mix(in srgb, var(--color-brand-gold) 9%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-gold) 62%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  background: transparent;
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
 }
 
 .register-combo-choice__options label:focus-within {
-  border-color: var(--color-brand-gold);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  box-shadow: inset 2px 0 0 var(--color-brand-gold);
 }
 
 .register-combo-choice__options input {
@@ -4171,16 +4546,34 @@
   margin: 0;
 }
 
-.register-combo-choice__options span {
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.register-combo-choice__options strong {
+.register-combo-choice__name {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.register-combo-choice__price {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.register-combo-choice__options label.is-selected .register-combo-choice__price {
+  color: var(--color-brand-gold);
+}
+
+.register-combo-choice__meta {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  grid-column: 2 / span 2;
+  line-height: 1.4;
 }
 
 .register-combo-choice.is-coming-soon .register-combo-choice__options label:first-child {
@@ -4206,6 +4599,7 @@
   .register-page--competition .register-card__submit-arrow,
   .register-page--competition .register-competition-choice .field__choice,
   .register-combo-choice__options label,
+  .register-checkout__options label,
   .register-competition-ticket__picks {
     transition: none;
   }
@@ -4231,6 +4625,10 @@
 [data-theme='light'] .register-page--competition .register-intro__athlete,
 [data-theme='light'] .register-competition-ticket__athlete {
   color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-competition-ticket__package {
+  color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .register-page--competition .register-intro__desc {
@@ -4279,8 +4677,8 @@
 }
 
 [data-theme='light'] .register-page--competition .register-competition-choice .field__choice.is-active {
-  background: color-mix(in srgb, var(--plu-gold-500) 12%, transparent);
-  border-color: color-mix(in srgb, var(--plu-gold-600) 70%, transparent);
+  background: transparent;
+  border-color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .register-page--competition .register-competition-choice .field__choice.is-active .field__choice-text {
@@ -4303,13 +4701,82 @@
   box-shadow: none;
 }
 
-[data-theme='light'] .register-page--competition .register-eligibility-alert {
-  background: rgba(31, 95, 158, 0.06);
-  border-color: rgba(31, 95, 158, 0.18);
+[data-theme='light'] .register-eligibility-note p {
+  color: rgba(15, 17, 23, 0.62);
 }
 
-[data-theme='light'] .register-page--competition .register-eligibility-alert strong {
-  color: var(--plu-celeste-600);
+[data-theme='light'] .register-eligibility-note__action {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-eligibility-note__action:hover {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-checkout .register-checkout__lines-save span,
+[data-theme='light'] .register-checkout .register-checkout__lines-save span:last-child {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-combo-choice__options label,
+[data-theme='light'] .register-combo-choice__options label:last-child,
+[data-theme='light'] .register-checkout__options label,
+[data-theme='light'] .register-checkout__options label:last-child,
+[data-theme='light'] .register-checkout__bar {
+  border-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-checkout__options label.is-selected,
+[data-theme='light'] .register-combo-choice__options label.is-selected {
+  box-shadow: inset 2px 0 0 var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-combo-choice legend {
+  color: rgba(15, 17, 23, 0.62);
+}
+
+[data-theme='light'] .register-verify {
+  background: color-mix(in srgb, var(--color-warning-bg, #fef3c7) 88%, #fff);
+  border-color: rgba(146, 64, 14, 0.22);
+}
+
+[data-theme='light'] .register-verify--done {
+  background: color-mix(in srgb, var(--color-success-bg, #dcfce7) 88%, #fff);
+  border-color: rgba(22, 101, 52, 0.22);
+}
+
+[data-theme='light'] .register-verify__title,
+[data-theme='light'] .register-verify__email,
+[data-theme='light'] .register-verify__resend {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-verify__resend:hover:not(:disabled) {
+  color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-verify__otp input {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.2);
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-checkout__options--pills label {
+  border-color: rgba(15, 17, 23, 0.16);
+}
+
+[data-theme='light'] .register-checkout__options--pills label.is-selected {
+  border-color: var(--plu-gold-600);
+}
+
+[data-theme='light'] .register-checkout .register-checkout__method-label,
+[data-theme='light'] .register-combo-choice__name,
+[data-theme='light'] .register-combo-choice__price {
+  color: var(--color-text-on-light);
+}
+
+[data-theme='light'] .register-combo-choice__options label.is-selected .register-combo-choice__price {
+  color: var(--plu-gold-600);
 }
 
 @media (max-width: 900px) {
@@ -4341,22 +4808,34 @@
     display: none;
   }
 
-  .register-page--competition .register-competition-choice--payment .field__choices {
-    grid-template-columns: 1fr;
-  }
-
   .register-page--competition .register-competition-weight {
     max-width: none;
   }
 
-  .register-combo-choice__options {
-    grid-template-columns: 1fr;
+  .register-checkout__hint {
+    display: none;
   }
 
-  .register-page--competition .register-card__footer--checkout {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    background: color-mix(in srgb, var(--color-bg-primary) 92%, transparent);
+  .register-checkout__lines {
+    display: none;
+  }
+
+  .register-checkout__package {
+    display: block;
+  }
+
+  .register-checkout .register-checkout__bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .register-checkout .register-checkout__bar .register-card__submit {
+    width: 100%;
+  }
+
+  .register-page--competition .register-checkout__bar.register-card__footer--checkout,
+  .register-page--membership .register-checkout__bar.register-card__footer--checkout {
+    background: var(--color-bg-primary);
     border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
     bottom: 0;
     margin-inline: calc(-1 * var(--layout-gutter, var(--space-md)));
@@ -4366,8 +4845,9 @@
     z-index: 5;
   }
 
-  [data-theme='light'] .register-page--competition .register-card__footer--checkout {
-    background: color-mix(in srgb, #fff 94%, transparent);
+  [data-theme='light'] .register-page--competition .register-checkout__bar.register-card__footer--checkout,
+  [data-theme='light'] .register-page--membership .register-checkout__bar.register-card__footer--checkout {
+    background: var(--color-bg-primary);
     border-top-color: rgba(15, 17, 23, 0.08);
   }
 }
@@ -4382,7 +4862,7 @@
   }
 
   .register-page--competition .register-competition-choice .field__choice {
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 12px;
   }
 
@@ -4668,12 +5148,6 @@
 [data-theme='light'] .field__toggle:hover,
 [data-theme='light'] .field--has-trailing:focus-within .field__toggle {
   color: rgba(15, 17, 23, 0.8);
-}
-
-.register-combo-choice__until {
-  margin: 8px 0 0;
-  color: var(--color-text-muted);
-  font-size: 0.88rem;
 }
 
 /* =========================================================================

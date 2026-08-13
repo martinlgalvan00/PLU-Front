@@ -79,6 +79,7 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       // puede ser más corto. Un caller puede pisarlo con `input.subject`.
       subject: subjectOverride ?? definition?.subject,
       appUrl,
+      logoUrl: env.EMAIL_LOGO_URL,
     })
     return { ...rendered, mode: 'html_fallback' }
   }

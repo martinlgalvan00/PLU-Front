@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getDeviceTier } from '../motion/deviceTier.ts'
 
 export function useInView(ref) {
   const [visible, setVisible] = useState(false)
@@ -70,18 +71,24 @@ export function useScrolled(threshold = 20) {
  * `--hero-parallax-shift` en px mientras el elemento está en pantalla, vía
  * rAF (sin re-render). No hace nada si `prefers-reduced-motion: reduce`
  * o el puntero es coarse (touch), para no pelear con el scroll en mobile.
+ * Tampoco corre en dispositivos de tier `low` (recalcula en cada scroll,
+ * aunque sea liviano no vale la pena sostenerlo en un equipo limitado); en
+ * `mid` se mantiene pero con menos amplitud.
  */
 export function useParallaxShift(ref, { strength = 22 } = {}) {
   useEffect(() => {
     const node = ref.current
     if (!node) return undefined
 
+    const tier = getDeviceTier()
     if (
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-      window.matchMedia('(pointer: coarse)').matches
+      window.matchMedia('(pointer: coarse)').matches ||
+      tier === 'low'
     ) {
       return undefined
     }
+    const effectiveStrength = tier === 'mid' ? strength * 0.6 : strength
 
     let rafId = null
 
@@ -91,7 +98,7 @@ export function useParallaxShift(ref, { strength = 22 } = {}) {
       const viewportH = window.innerHeight
       if (rect.bottom < 0 || rect.top > viewportH) return
       const progress = 1 - Math.min(1, Math.max(0, rect.top / viewportH))
-      const shift = (progress - 0.5) * strength
+      const shift = (progress - 0.5) * effectiveStrength
       node.style.setProperty('--hero-parallax-shift', `${shift.toFixed(1)}px`)
     }
 

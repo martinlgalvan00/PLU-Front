@@ -16,9 +16,9 @@ import { resendAthleteVerification, verifyAthleteEmailCode } from '../../service
  * Va arriba de las secciones de la cuenta y no dentro de la de afiliación: el
  * bloqueo también alcanza a la inscripción a torneos.
  *
- * El OTP de 6 dígitos es fallback del mismo mail, y solo se ofrece después de
- * un envío confirmado: mostrar el input antes implicaba que el código ya había
- * llegado, y el alta/reenvío podían haber quedado en skipped sin avisarlo.
+ * El OTP de 8 dígitos es fallback del mismo mail. Siempre queda disponible:
+ * el atleta puede usar el código del alta aunque haya llegado a la cuenta desde
+ * otra pantalla, y puede pegarlo con espacios o guiones.
  */
 export default function EmailVerificationBanner({ athlete }) {
   const { t } = useI18n()
@@ -48,8 +48,8 @@ export default function EmailVerificationBanner({ athlete }) {
 
   async function submitCode(event) {
     event.preventDefault()
-    const normalized = code.replace(/\D/g, '').slice(0, 6)
-    if (normalized.length !== 6) {
+    const normalized = code.replace(/\D/g, '').slice(0, 8)
+    if (normalized.length !== 8) {
       setOtpError(t('account.emailVerification.otpInvalid'))
       return
     }
@@ -85,7 +85,7 @@ export default function EmailVerificationBanner({ athlete }) {
   }[state]
 
   const showActions = state !== 'verified' && otpState !== 'verified'
-  const showOtp = showActions && state === 'sent'
+  const showOtp = showActions
   const resendClass = showOtp
     ? 'account-verify__action account-verify__action--ghost'
     : 'account-verify__action'
@@ -110,17 +110,16 @@ export default function EmailVerificationBanner({ athlete }) {
                 className="account-verify__otp-input"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                pattern="\d{6}"
-                maxLength={6}
-                placeholder="000000"
+                pattern="\d{8}"
+                placeholder="00000000"
                 value={code}
                 disabled={otpState === 'verifying'}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
               />
               <button
                 type="submit"
                 className="account-verify__otp-submit"
-                disabled={otpState === 'verifying' || code.replace(/\D/g, '').length !== 6}
+                disabled={otpState === 'verifying' || code.replace(/\D/g, '').length !== 8}
               >
                 {otpState === 'verifying'
                   ? t('account.emailVerification.otpVerifying')

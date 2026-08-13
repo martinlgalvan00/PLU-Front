@@ -1,4 +1,4 @@
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, userEvent, within } from 'storybook/test'
 import RegisterPage from './RegisterPage.jsx'
 
 /**
@@ -51,7 +51,7 @@ export const Afiliacion = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const cta = await canvas.findByRole('button', { name: /afiliaci|activar|pagar|generar/i })
+    const cta = await canvas.findByRole('button', { name: /continuar al pago/i })
     await expect(cta).toBeEnabled()
   },
 }
@@ -72,6 +72,38 @@ export const Inscripcion = {
     const canvas = within(canvasElement)
     // El título vive dos veces: aside de desktop y contexto mobile.
     await expect(canvas.getAllByText('Pitbull Classic 2026').length).toBeGreaterThan(0)
-    await expect(canvas.getByRole('button', { name: /confirmar|inscrib|pagar|generar/i })).toBeEnabled()
+    await expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled()
+  },
+}
+
+export const InscripcionTransferencia = {
+  args: {
+    event,
+    flow: 'competition',
+    form: {
+      division: 'Open',
+      category: 'Raw',
+      estimatedWeight: '83',
+      paymentMethod: 'manual_link',
+    },
+    createdOrder: {
+      type: 'competition',
+      athleteName: athlete.fullName,
+      athleteDocument: athlete.documentId,
+      athleteId: athlete.id,
+      paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+      paymentMethod: 'manual_link',
+      amount: 75000,
+      concept: 'Inscripción Pitbull Classic 2026',
+      reference: 'RORD-story',
+      status: 'validacion_manual',
+    },
+    total: 75000,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const openTransfer = await canvas.findAllByRole('button', { name: /ver datos de transferencia/i })
+    await userEvent.click(openTransfer[0])
+    await expect(canvas.findByRole('dialog', { name: /completar tu inscripción/i })).resolves.toBeTruthy()
   },
 }
