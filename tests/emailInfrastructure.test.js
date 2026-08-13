@@ -25,7 +25,14 @@ import {
   buildEmailVerificationUrl,
   readEmailVerificationToken,
 } from '../src/lib/emailVerificationRoute.js'
-import { hasHtmlFallback, renderEmail, safeUrl, buildEmailLogoUrl, EMAIL_LOGO_PATH } from '../server/modules/notifications/emailTemplates.js'
+import {
+  hasHtmlFallback,
+  renderEmail,
+  safeUrl,
+  buildEmailLogoUrl,
+  EMAIL_LOGO_PATH,
+  EMAIL_PUBLIC_ASSET_BASE_URL,
+} from '../server/modules/notifications/emailTemplates.js'
 
 const okResponse = (body = { messageId: 'msg-1' }) => ({
   ok: true,
@@ -230,7 +237,7 @@ describe('plantillas HTML de fallback', () => {
       name: 'Ana',
       accountUrl: 'https://plu.example/mi-cuenta',
     })
-    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).toContain('alt="PLU Argentina"')
     expect(htmlContent).toMatch(/letter-spacing:0\.18em[^>]*>PLU Argentina</)
     expect(htmlContent).toMatch(/color:#1a1c22[^>]*>Te damos la bienvenida</)
@@ -255,10 +262,9 @@ describe('plantillas HTML de fallback', () => {
     )
   })
 
-  it('embebe el logo cuando APP_URL es localhost (clientes de mail no fetchean local)', () => {
+  it('usa el logo publico oficial cuando APP_URL es localhost', () => {
     const logo = buildEmailLogoUrl('http://localhost:5173', null)
-    expect(logo.startsWith('data:image/png;base64,')).toBe(true)
-    expect(logo.length).toBeGreaterThan(1000)
+    expect(logo).toBe(`${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`)
 
     const { htmlContent } = renderEmail(
       'email_verification',
@@ -269,12 +275,12 @@ describe('plantillas HTML de fallback', () => {
       },
       { appUrl: 'http://localhost:5173' },
     )
-    expect(htmlContent).toContain('src="data:image/png;base64,')
+    expect(htmlContent).toContain(`src="${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}"`)
     expect(htmlContent).not.toContain('src="http://localhost:5173/brand/')
   })
 
-  it('sin APP_URL también embebe el logo si el archivo existe', () => {
-    expect(buildEmailLogoUrl('', null).startsWith('data:image/png;base64,')).toBe(true)
+  it('sin APP_URL usa el logo publico oficial', () => {
+    expect(buildEmailLogoUrl('', null)).toBe(`${EMAIL_PUBLIC_ASSET_BASE_URL}${EMAIL_LOGO_PATH}`)
   })
 
   it('unifica bienvenida + confirmación + OTP en el mail de verificación', () => {

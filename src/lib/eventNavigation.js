@@ -48,16 +48,16 @@ export function isPublicCatalogStubEvent(event) {
   const title = String(event?.title ?? '').trim().toLowerCase()
   const slug = String(event?.slug ?? '').trim().toLowerCase()
   if (!title && !slug) return true
-  if (/^(test|prueba|asd|xxx|demo)(\s+\1)*$/i.test(title)) return true
-  if (/^(test|prueba|demo|asd|xxx)(-\d{2,4})?$/i.test(slug)) return true
-  return false
+  const titleIsStub = /^(test|prueba|asd|xxx|demo)(\s+\1)*$/i.test(title)
+  const slugIsStub = /^(test|prueba|demo|asd|xxx)(-\d{2,4})?$/i.test(slug)
+  return titleIsStub || slugIsStub
 }
 
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
-export function getPublicCatalogEvents(events = []) {
+export function getPublicCatalogEvents(events = [], { includeDevelopmentStubs = false } = {}) {
   return (Array.isArray(events) ? events : []).filter(
-    (event) => event && !isPublicCatalogStubEvent(event),
+    (event) => event && (includeDevelopmentStubs || !isPublicCatalogStubEvent(event)),
   )
 }
 

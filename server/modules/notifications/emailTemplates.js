@@ -56,6 +56,7 @@ const MONO_STACK = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
 
 /** Ruta pública del emblema circular PLU Argentina (header negro). */
 export const EMAIL_LOGO_PATH = '/brand/plu-argentina-email.png'
+export const EMAIL_PUBLIC_ASSET_BASE_URL = 'https://www.powerliftingunited.ar'
 
 const EMAIL_LOGO_FILE = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -151,14 +152,14 @@ export function buildEmailLogoUrl(appUrl, logoUrl) {
   }
 
   if (isUnreachableEmailHost(appUrl)) {
-    return loadEmbeddedEmailLogo()
+    return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
   }
 
   const base = String(appUrl ?? '').trim().replace(/\/$/, '')
   try {
     return safeUrl(new URL(EMAIL_LOGO_PATH, `${base}/`).toString())
   } catch {
-    return loadEmbeddedEmailLogo()
+    return safeUrl(new URL(EMAIL_LOGO_PATH, `${EMAIL_PUBLIC_ASSET_BASE_URL}/`).toString())
   }
 }
 

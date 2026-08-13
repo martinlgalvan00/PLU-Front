@@ -30,6 +30,14 @@ function safeUrl(base, path) {
   return url.toString()
 }
 
+function supportsAutoReturn(returnBase) {
+  try {
+    return new URL(returnBase).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 function requireIntegrationUrl(value, label, env) {
   if (!value) throw new HttpError(503, `Falta ${label} para crear el checkout.`)
   let url
@@ -115,7 +123,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
           pending: safeUrl(returnBase, `${returnPath}?payment=pending&order=${encodeURIComponent(order.id)}`),
           failure: safeUrl(returnBase, `${returnPath}?payment=failure&order=${encodeURIComponent(order.id)}`),
         },
-        auto_return: 'approved',
+        ...(supportsAutoReturn(returnBase) ? { auto_return: 'approved' } : {}),
         metadata: {
           payment_order_id: order.id,
           order_kind: order.kind,
