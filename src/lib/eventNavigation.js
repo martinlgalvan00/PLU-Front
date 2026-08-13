@@ -60,7 +60,7 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
   // se ignora a propósito: en Vite/Vitest `import.meta.env.DEV` es true y
   // usarlo filtraría mal el sitio público (y el CI). El admin usa la lista cruda.
   return (Array.isArray(events) ? events : []).filter(
-    (event) => event && !isPublicCatalogStubEvent(event),
+    (event) => event && (includeDevelopmentStubs || !isPublicCatalogStubEvent(event)),
   )
 }
 
