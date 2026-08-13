@@ -66,12 +66,6 @@ export function resolvePaidCheckoutOpensAt(env = process.env) {
 export function isPaidCheckoutEnabled(env = process.env, _now = new Date(), _options = {}) {
   const override = resolvePaidCheckoutOverride(env)
   if (override !== null) return override
-<<<<<<< HEAD
-=======
-
-  if (isAppProduction(env) && resolvePaymentsMockFlag(env) === false) return false
-
->>>>>>> 222d289e1238417840e7c9da58edfce6e82f324c
   if (!isAppProduction(env)) return true
   return false
 }
@@ -152,24 +146,6 @@ export async function assertPaidCheckoutAvailable(
 
   if (!isAppProduction(env)) return
 
-<<<<<<< HEAD
-=======
-  if (resolvePaymentsMockFlag(env) === false) {
-    throw new HttpError(
-      409,
-      'Los pagos y las inscripciones con cobro abren próximamente.',
-      { code: FEATURE_COMING_SOON },
-    )
-  }
-
-  let opensAt = options.registrationOpensAt ?? null
-  if (!opensAt && options.skipScheduleLookup !== true) {
-    opensAt = await resolvePlatformRegistrationOpensAt(options.client)
-  }
-
-  if (hasRegistrationOpensAtPassed(opensAt, now)) return
-
->>>>>>> 222d289e1238417840e7c9da58edfce6e82f324c
   throw new HttpError(
     409,
     'Los pagos y las inscripciones con cobro abren próximamente.',
