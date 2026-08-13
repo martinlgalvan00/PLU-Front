@@ -124,6 +124,7 @@ export default function App() {
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
     app.adminEvents.filter((event) => event.published !== false),
+    { includeDevelopmentStubs: false },
   )
   const nextEvent = getNextUpcomingEvent(publicEvents) ?? UPCOMING_EVENTS[0]
   const featuredEvent = getFeaturedEvent(publicEvents) ?? UPCOMING_EVENTS[0]
