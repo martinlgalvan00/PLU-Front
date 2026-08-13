@@ -13,7 +13,11 @@ export function notFoundHandler(_req, _res, next) {
 
 export function errorHandler(err, _req, res, _next) {
   const status = Number.isInteger(err.status) ? err.status : 500
-  const message = status >= 500 ? 'Error interno' : err.message
+  const message = err instanceof HttpError && status === 503
+    ? err.message
+    : status >= 500
+      ? 'Error interno'
+      : err.message
   const body = { error: message }
   if (err.details?.code) body.code = err.details.code
   if (err.details?.code === 'PLU06') body.alreadyUsed = true
