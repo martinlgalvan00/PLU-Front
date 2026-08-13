@@ -32,9 +32,10 @@ export const UPCOMING_EVENTS = [
     longitude: PITBULL_VENUE_DATA.longitude,
     mapsUrl: PITBULL_VENUE_DATA.mapsUrl,
     slug: 'pitbull-classic-2026',
+    slots: 180,
     status: 'proximamente',
-    // Soft launch: fecha futura. Si ya pasó, con APP_PRODUCTION=true se abren cobros
-    // salvo PAID_CHECKOUT_ENABLED=false.
+    // Soft launch: countdown de marketing. Con APP_PRODUCTION=true los cobros
+    // quedan en “Próximamente” hasta PAID_CHECKOUT_ENABLED=true.
     registrationOpensAt: '2026-09-01T10:00:00-03:00',
     featured: true,
     requiresMembership: true,

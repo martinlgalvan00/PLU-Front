@@ -257,7 +257,7 @@ export async function fetchAdminAthleteData() {
 }
 
 export async function registerAthlete(form) {
-  const { athlete: row } = await apiPost('/api/athletes/register', {
+  const { athlete: row, emailVerification } = await apiPost('/api/athletes/register', {
       fullName: form.fullName,
       documentId: form.documentId,
       email: form.email,
@@ -273,7 +273,7 @@ export async function registerAthlete(form) {
       estimatedWeight: form.estimatedWeight,
       password: form.password,
   })
-  return { athlete: toCamelAthlete(row) }
+  return { athlete: toCamelAthlete(row), emailVerification }
 }
 
 /**

@@ -622,8 +622,8 @@ export function useAppData() {
     async (event) => {
       event.preventDefault()
       try {
-        const { athlete } = await registerAthleteRequest(form)
-        setAthletes([athlete])
+        const { athlete, emailVerification } = await registerAthleteRequest(form)
+        setAthletes([{ ...athlete, emailVerificationSent: emailVerification?.sent === true }])
         setMemberships([])
         setRegistrations([])
         setPayments([])
@@ -640,7 +640,7 @@ export function useAppData() {
           name: athlete.fullName,
           email: athlete.email,
         })
-        return { athlete, confirmation }
+        return { athlete, confirmation, emailVerification }
       } catch (error) {
         if (error instanceof ApiError) {
           return {

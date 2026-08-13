@@ -8,8 +8,8 @@ function toValidMs(value) {
 
 /**
  * Fecha/hora de apertura administrada en el evento (`registrationOpensAt` /
- * "Abre la inscripción" en el panel). Fuente de verdad del countdown y del
- * gate de cobros en producción — sin variables de entorno de fecha.
+ * "Abre la inscripción" en el panel). Fuente de verdad del countdown de
+ * marketing. Ya no abre cobros: eso lo decide `isPaidCheckoutOpen`.
  */
 export function resolveRegistrationOpensAt(event, { targetDate = null } = {}) {
   const raw = targetDate || event?.registrationOpensAt || null
@@ -80,26 +80,17 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
 
 /**
  * Cobros/inscripciones de pago abiertos:
- * - override env PAID_CHECKOUT_ENABLED (kill switch opcional)
+ * - override env PAID_CHECKOUT_ENABLED (true abre, false cierra)
  * - fuera de producción: abierto (dev/preview)
- * - en producción: solo si `registrationOpensAt` del admin ya pasó
+ * - APP_PRODUCTION=true sin override: cerrado (“Próximamente”), ignore
+ *   `registrationOpensAt` del admin. Esa fecha sigue alimentando el countdown.
  *
- * No cae al status público (`inscripcion_abierta`): con APP_PRODUCTION=true
- * sin fecha de apertura los cobros quedan cerrados (“Próximamente”).
  * Crear cuenta / perfil no usa este gate.
  */
-export function isPaidCheckoutOpen(event, envLike, now = new Date()) {
+export function isPaidCheckoutOpen(_event, envLike, _now = new Date()) {
   const override = resolvePaidCheckoutOverride(envLike)
   if (override !== null) return override
   if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
   if (!isAppProduction(envLike)) return true
-  if (!event) return false
-
-  const opensAt = resolveRegistrationOpensAt(event)
-  if (!opensAt) return false
-
-  const opensMs = toValidMs(opensAt)
-  if (opensMs == null) return false
-  const nowMs = now instanceof Date ? now.getTime() : Number(now)
-  return nowMs >= opensMs
+  return false
 }

@@ -118,6 +118,7 @@
   line-height: 0.98;
   letter-spacing: -0.04em;
   color: var(--color-text-primary);
+  overflow: visible;
 }
 
 .launch-teaser__title-line {
@@ -899,10 +900,6 @@
 
 .launch-teaser--inauguration .launch-teaser__actions {
   border-top-color: color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
-}
-
-.launch-teaser__title-mask {
-  display: block;
 }
 
 /* Compact inauguration — editorial premium (Members / Register) */

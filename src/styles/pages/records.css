@@ -17,12 +17,14 @@
 
 /* Empty state: una columna editorial centrada en cualquier viewport. */
 .records-sheet:has(.records-soon) {
+  gap: clamp(24px, 3.2vw, 36px);
   justify-items: center;
 }
 
 .records-sheet:has(.records-soon) .records-sheet__head {
   align-items: center;
   flex-direction: column;
+  gap: clamp(14px, 2vw, 20px);
   justify-content: center;
   max-width: min(48rem, 100%);
   text-align: center;
@@ -31,9 +33,11 @@
 
 .records-sheet:has(.records-soon) .records-sheet__head-meta {
   justify-content: center;
+  padding-top: 2px;
 }
 
 .records-sheet:has(.records-soon) .records-sheet__titles {
+  gap: 8px;
   justify-items: center;
 }
 
@@ -47,7 +51,7 @@
 
 .records-sheet__titles {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -580,7 +584,7 @@
   gap: clamp(14px, 2vw, 20px);
   justify-items: center;
   margin-inline: auto;
-  margin-top: clamp(8px, 1.5vw, 16px);
+  margin-top: 0;
   max-width: min(42rem, 100%);
   padding-block: clamp(28px, 4vw, 48px);
   text-align: center;
@@ -704,17 +708,22 @@
 
 @media (max-width: 719px) {
   .records-page--plu-ref .records-page__body {
-    padding: 0 16px clamp(36px, 8vw, 56px);
+    padding: clamp(28px, 5vw, 40px) 16px clamp(36px, 8vw, 56px);
   }
 
   .records-sheet {
-    gap: 14px;
+    gap: 20px;
   }
 
   .records-sheet__head {
     align-items: start;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
+  }
+
+  .records-sheet:has(.records-soon) .records-sheet__head {
+    align-items: center;
+    gap: 16px;
   }
 
   .records-sheet__head-meta {

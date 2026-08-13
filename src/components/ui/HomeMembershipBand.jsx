@@ -102,11 +102,8 @@ export default function HomeMembershipBand({
         {HOME_MEMBERSHIP_FEATURES?.length ? (
           <CopyItem {...itemProps}>
             <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
-              {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
+              {HOME_MEMBERSHIP_FEATURES.map((feature) => (
                 <CopyItem key={feature} role="listitem" {...itemProps} className="home-membership-band__benefit">
-                  <span className="home-membership-band__benefit-index" aria-hidden>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
                   <span className="home-membership-band__benefit-text">{feature}</span>
                 </CopyItem>
               ))}
