@@ -69,6 +69,12 @@ describe('features disponibles por entorno', () => {
     const now = new Date('2026-08-12T12:00:00-03:00')
     expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now)).toBe(false)
     expect(isFrontPaidCheckoutEnabled({ appProduction: true }, now)).toBe(false)
+    expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now, { checkoutKind: 'membership' })).toBe(true)
+    expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now, { checkoutKind: 'registration' })).toBe(true)
+    expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now, { checkoutKind: 'combo' })).toBe(true)
+    expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'true' }, now, { checkoutKind: 'ticket' })).toBe(false)
+    expect(isFrontPaidCheckoutEnabled({ appProduction: true }, now, { checkoutKind: 'membership' })).toBe(true)
+    expect(isFrontPaidCheckoutEnabled({ appProduction: true }, now, { checkoutKind: 'registration' })).toBe(true)
     expect(isPaidCheckoutEnabled({ APP_PRODUCTION: 'false' }, now)).toBe(true)
 
     expect(isPaidCheckoutEnabled({
@@ -97,11 +103,11 @@ describe('features disponibles por entorno', () => {
     )).toBe(false)
   })
 
-  it('bloquea cobros y recurring/pricing writes en produccion hasta abrir paidCheckout', async () => {
+  it('habilita afiliacion e inscripcion, pero bloquea entradas y recurring/pricing writes en produccion', async () => {
     await expect(assertPaidCheckoutAvailable(
       { APP_PRODUCTION: 'true' },
       new Date(),
-      { skipScheduleLookup: true },
+      { skipScheduleLookup: true, checkoutKind: 'ticket' },
     )).rejects.toMatchObject({
       status: 409,
       details: { code: 'FEATURE_COMING_SOON' },
@@ -109,11 +115,18 @@ describe('features disponibles por entorno', () => {
     await expect(assertComboCheckoutAvailable(
       { APP_PRODUCTION: 'true' },
       new Date(),
-      { skipScheduleLookup: true },
-    )).rejects.toMatchObject({
-      status: 409,
-      details: { code: 'FEATURE_COMING_SOON' },
-    })
+      { skipScheduleLookup: true, checkoutKind: 'combo' },
+    )).resolves.toBeUndefined()
+    await expect(assertPaidCheckoutAvailable(
+      { APP_PRODUCTION: 'true' },
+      new Date(),
+      { skipScheduleLookup: true, checkoutKind: 'membership' },
+    )).resolves.toBeUndefined()
+    await expect(assertPaidCheckoutAvailable(
+      { APP_PRODUCTION: 'true' },
+      new Date(),
+      { skipScheduleLookup: true, checkoutKind: 'registration' },
+    )).resolves.toBeUndefined()
     await expect(assertComboCheckoutAvailable({
       APP_PRODUCTION: 'true',
       PAID_CHECKOUT_ENABLED: 'true',
@@ -121,7 +134,7 @@ describe('features disponibles por entorno', () => {
     await expect(assertPaidCheckoutAvailable(
       { APP_PRODUCTION: 'true' },
       new Date('2026-08-14T11:00:00-03:00'),
-      { registrationOpensAt: '2026-08-14T10:00:00-03:00' },
+      { registrationOpensAt: '2026-08-14T10:00:00-03:00', checkoutKind: 'ticket' },
     )).rejects.toMatchObject({
       status: 409,
       details: { code: 'FEATURE_COMING_SOON' },
@@ -175,7 +188,7 @@ describe('features disponibles por entorno', () => {
     }, { now, envLike: { appProduction: false } })).toMatchObject({ enabled: false, offer: null })
   })
 
-  it('cierra el combo en produccion aunque registrationOpensAt ya haya pasado', () => {
+  it('abre el combo en produccion porque forma parte del alta de afiliacion e inscripcion', () => {
     const event = {
       registrationOpensAt: '2026-08-14T10:00:00-03:00',
       comboOffer: {
@@ -189,11 +202,11 @@ describe('features disponibles por entorno', () => {
     const now = new Date('2026-08-12T12:00:00Z')
 
     expect(getEventComboAvailability(event, { now, envLike: { appProduction: true } }))
-      .toMatchObject({ enabled: false, comingSoon: true })
+      .toMatchObject({ enabled: true, comingSoon: false })
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-14T13:00:00-03:00'),
       envLike: { appProduction: true },
-    })).toMatchObject({ enabled: false, comingSoon: true })
+    })).toMatchObject({ enabled: true, comingSoon: false })
     expect(getEventComboAvailability(event, {
       now: new Date('2026-08-14T13:00:00-03:00'),
       envLike: { appProduction: true, paidCheckoutEnabled: true },

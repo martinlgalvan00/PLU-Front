@@ -188,7 +188,7 @@ export default function MembersPage({
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
-  const paidCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'membership' })
   const checkoutLocked = !paidCheckoutOpen
   const showComboPromo = Boolean(liveComboOffer)
     && Boolean(comboCountdown)

@@ -125,7 +125,7 @@ export default function MembershipPurchaseSection({
   // el atleta cancele sin querer la orden que está en validación.
   const transferUnderReview = membership?.paymentStatus === 'validacion_manual'
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   const cardData = membershipActive
