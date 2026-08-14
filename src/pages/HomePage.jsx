@@ -46,6 +46,7 @@ export default function HomePage({
   events = [],
   session,
   memberships = [],
+  checkoutAvailability = {},
 }) {
   const { reducedMotion, tier } = useMotionConfig()
   const { PITBULL_CLASSIC } = useContent()
@@ -86,7 +87,10 @@ export default function HomePage({
         viewport: { once: true, amount: 0.22 },
       }
 
-  const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
+  const paidCheckoutOpen =
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
   const isRegistrationDisabled =
     !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
   const [guideOpen, setGuideOpen] = useState(false)
@@ -126,7 +130,12 @@ export default function HomePage({
           id="apertura-inscripciones"
         >
           <div className="home-section__inner">
-            <LaunchRegistrationTeaser event={launchEvent} onNavigate={onNavigate} variant="hero" />
+            <LaunchRegistrationTeaser
+              event={launchEvent}
+              onNavigate={onNavigate}
+              registrationCheckoutEnabled={registrationCheckoutEnabled}
+              variant="hero"
+            />
           </div>
         </section>
       ) : null}
@@ -150,6 +159,7 @@ export default function HomePage({
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
             onResults={() => onNavigate?.('results')}
+            registrationCheckoutEnabled={registrationCheckoutEnabled}
             recent={recentRegistrants}
             registered={liveRegistered}
             slots={liveSlots}
@@ -165,6 +175,7 @@ export default function HomePage({
             isLoggedInAthlete={isLoggedInAthlete}
             hasActiveMembership={hasActiveMembership}
             gateEvent={launchEvent}
+            checkoutAvailability={checkoutAvailability}
           />
 
           <div className="home-mid-stack__divider" aria-hidden />

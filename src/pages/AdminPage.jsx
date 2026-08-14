@@ -122,6 +122,7 @@ export default function AdminPage({
   registrationAccessError,
   onRefreshRegistrationAccess,
   onSaveRegistrationAccessGate,
+  onRefreshCheckoutAvailability,
   athletes,
   registrations,
   tickets,
@@ -425,6 +426,7 @@ export default function AdminPage({
           isLoading={registrationAccessLoading}
           onRefresh={onRefreshRegistrationAccess}
           onSave={onSaveRegistrationAccessGate}
+          onToggleSaved={onRefreshCheckoutAvailability}
         />
       )
     }

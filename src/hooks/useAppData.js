@@ -152,6 +152,10 @@ import {
   fetchRegistrationAccessConfiguration,
   saveRegistrationAccessGate as saveRegistrationAccessGateRequest,
 } from '../services/registrationAccessAdminService.js'
+import {
+  DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
+  fetchPublicCheckoutAvailability,
+} from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
@@ -246,6 +250,9 @@ export function useAppData() {
   })
   const [registrationAccessLoading, setRegistrationAccessLoading] = useState(false)
   const [registrationAccessError, setRegistrationAccessError] = useState(null)
+  const [checkoutAvailability, setCheckoutAvailability] = useState(
+    DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
+  )
   const [billingSubscriptions, setBillingSubscriptions] = useState([])
   const [billingSubscriptionsLoading, setBillingSubscriptionsLoading] = useState(false)
   const [billingSubscriptionsError, setBillingSubscriptionsError] = useState(null)
@@ -347,6 +354,28 @@ export function useAppData() {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
+
+  const refreshCheckoutAvailability = useCallback(async () => {
+    try {
+      const availability = await fetchPublicCheckoutAvailability()
+      setCheckoutAvailability(availability)
+      return availability
+    } catch (error) {
+      console.warn('No se pudo cargar la disponibilidad de checkout.', error)
+      return null
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshCheckoutAvailability()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshCheckoutAvailability()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [refreshCheckoutAvailability])
 
   const refreshAdminEvents = useCallback(async () => {
     const currentSession = sessionRef.current
@@ -2495,6 +2524,8 @@ export function useAppData() {
     registrationAccessConfiguration,
     registrationAccessLoading,
     registrationAccessError,
+    checkoutAvailability,
+    refreshCheckoutAvailability,
     refreshRegistrationAccessConfiguration,
     saveRegistrationAccessGate,
     refreshPricingConfiguration,

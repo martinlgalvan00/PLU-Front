@@ -135,6 +135,7 @@ export default function RegistrationAccessSection({
   error = null,
   onRefresh,
   onSave,
+  onToggleSaved,
 }) {
   const { locale, t } = useI18n()
   const [draft, setDraft] = useState(null)
@@ -203,7 +204,9 @@ export default function RegistrationAccessSection({
     setSavingFeature(feature)
     setTogglesError('')
     try {
-      setToggles(await savePlatformFeatureToggle(feature, enabled))
+      const nextToggles = await savePlatformFeatureToggle(feature, enabled)
+      setToggles(nextToggles)
+      await onToggleSaved?.()
     } catch (toggleError) {
       setTogglesError(
         mapOperationalError(toggleError, {

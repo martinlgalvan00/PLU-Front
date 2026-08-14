@@ -39,6 +39,7 @@ export default function MembershipPurchaseSection({
   onStartMembershipPayment,
   demoMode = false,
   gateEvent = null,
+  checkoutAvailability = {},
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -68,7 +69,6 @@ export default function MembershipPurchaseSection({
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
-  const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
   // Canal manual cerrado desde el panel: transferencia y efectivo salen del
   // selector en vez de aparecer y fallar con 409 al enviar.
   const [manualChannelEnabled, setManualChannelEnabled] = useState(true)
@@ -91,7 +91,12 @@ export default function MembershipPurchaseSection({
   // el atleta cancele sin querer la orden que está en validación.
   const transferUnderReview = membership?.paymentStatus === 'validacion_manual'
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) && membershipCheckoutEnabled
+  const publicMembershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
+  const publicManualChannelEnabled = checkoutAvailability.membershipManualEnabled !== false
+  const paidCheckoutOpen =
+    isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
+    publicMembershipCheckoutEnabled
+  const effectiveManualChannelEnabled = manualChannelEnabled && publicManualChannelEnabled
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   const cardData = membershipActive
@@ -217,14 +222,13 @@ export default function MembershipPurchaseSection({
       .then((requirements) => {
         if (!active) return
         setMembershipAccessRequired(requirements.membership)
-        setMembershipCheckoutEnabled(requirements.membershipEnabled)
         setManualChannelEnabled(requirements.membershipManualEnabled)
       })
       .catch(() => {
         if (active) setMembershipAccessRequired(false)
       })
     return () => { active = false }
-  }, [])
+  }, [checkoutAvailability.membershipEnabled, checkoutAvailability.membershipManualEnabled])
 
   /**
    * La puerta salta sola en cuanto se sabe que la afiliación está restringida:
@@ -244,10 +248,10 @@ export default function MembershipPurchaseSection({
     if (paymentMethod === 'mercado_pago') return
     // Plan recurrente o canal manual cerrado: en los dos casos el único medio
     // posible es Mercado Pago, así que la selección vuelve ahí sola.
-    if (selectedPlan?.collectionMode === 'recurring' || !manualChannelEnabled) {
+    if (selectedPlan?.collectionMode === 'recurring' || !effectiveManualChannelEnabled) {
       setPaymentMethod('mercado_pago')
     }
-  }, [manualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
+  }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -711,7 +715,7 @@ export default function MembershipPurchaseSection({
                 }
                 methods={[
                   { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-                  ...(manualChannelEnabled
+                  ...(effectiveManualChannelEnabled
                     ? [
                         {
                           value: 'transferencia',
