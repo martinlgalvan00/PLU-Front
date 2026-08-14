@@ -464,6 +464,7 @@ export default function App() {
           onSaveRegistrationAccessGate={app.saveRegistrationAccessGate}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
+          onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}

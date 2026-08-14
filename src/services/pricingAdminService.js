@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 
 function dateTimeToIso(value) {
   if (!value) return ''
@@ -78,6 +78,10 @@ export async function setMembershipPlanActiveRequest(planId, active) {
     { active },
   )
   return mapMembershipPlan(result.plan)
+}
+
+export async function deleteMembershipPlanRequest(planId) {
+  return apiDelete(`/api/pricing/membership-plans/${encodeURIComponent(planId)}`)
 }
 
 export async function saveEventComboOfferRequest(eventSlug, offer) {
