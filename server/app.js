@@ -20,6 +20,7 @@ import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
 import { corsOrigin, requireTrustedMutation } from './lib/security.js'
+import { requestContext } from './middleware/requestContext.js'
 import { createOptionalAuth0JwtCheck } from './modules/auth/auth0.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 
@@ -54,6 +55,10 @@ export function createApp(deps = {}) {
     }),
   )
   app.use(cors({ origin: corsOrigin, credentials: true }))
+  // Primero de la cadena util: todo lo que se loguee de aca en adelante
+  // -- incluido el stack de una falla de cobro -- queda atado al mismo
+  // requestId, que ademas viaja al cliente en `X-Request-Id`.
+  app.use(requestContext)
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.use(requireTrustedMutation)

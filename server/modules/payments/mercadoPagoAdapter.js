@@ -6,6 +6,7 @@ import {
   Preference,
 } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
+import { logger } from '../../lib/logger.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -19,10 +20,75 @@ function requireAccessToken(env) {
   return accessToken
 }
 
-function normalizeProviderError(error) {
-  const status = Number(error?.status ?? error?.statusCode ?? error?.response?.status)
+/**
+ * El SDK de Mercado Pago deja el detalle util enterrado: `cause` trae el array
+ * `[{ code, description }]` con el motivo real del rechazo y `error`/`message`
+ * el texto corto. Quedarse solo con `message` producia logs como "Error de
+ * Mercado Pago." sin forma de saber si fue el token, el monto o la tarjeta.
+ *
+ * Se preserva el error original como `cause` (el logger recorre la cadena y
+ * conserva su stack) y se adjunta `provider` con lo que sirve para el
+ * diagnostico. Nada de esto viaja al cliente: `errorHandler` responde el
+ * mensaje corto y todo el detalle queda en el log y en la auditoria.
+ */
+function providerDetail(error) {
+  const causes = Array.isArray(error?.cause)
+    ? error.cause
+    : Array.isArray(error?.cause?.cause)
+      ? error.cause.cause
+      : []
+  const first = causes[0] ?? null
+  return {
+    code: first?.code ?? error?.error ?? error?.code ?? null,
+    detail: first?.description ?? error?.cause?.message ?? null,
+    causes: causes
+      .slice(0, 5)
+      .map((item) => ({ code: item?.code ?? null, description: item?.description ?? null })),
+    apiResponseStatus: Number(error?.status ?? error?.statusCode ?? error?.response?.status) || null,
+    // El request id de MP es la clave para abrir un reclamo con su soporte.
+    providerRequestId:
+      error?.headers?.['x-request-id']
+      ?? error?.response?.headers?.['x-request-id']
+      ?? error?.idempotencyKey
+      ?? null,
+  }
+}
+
+function normalizeProviderError(error, context = {}) {
+  const provider = providerDetail(error)
+  const status = provider.apiResponseStatus
   const detail = error?.message ?? error?.cause?.message ?? 'Error de Mercado Pago.'
-  return new HttpError(Number.isInteger(status) && status >= 400 && status < 500 ? 502 : 503, detail)
+  const httpError = new HttpError(
+    Number.isInteger(status) && status >= 400 && status < 500 ? 502 : 503,
+    provider.detail ? `${detail} (${provider.detail})` : detail,
+    { code: provider.code ?? undefined },
+    { cause: error },
+  )
+  httpError.provider = provider
+  logger.error('mercadopago.request_failed', { ...context, provider, err: error })
+  return httpError
+}
+
+/** Ejecuta una llamada al proveedor midiendo latencia y normalizando la falla. */
+async function callProvider(operation, context, run) {
+  const startedAt = process.hrtime.bigint()
+  try {
+    const result = await run()
+    logger.info('mercadopago.request', {
+      operation,
+      ...context,
+      durationMs: Math.round(Number(process.hrtime.bigint() - startedAt) / 1e6),
+      outcome: 'ok',
+    })
+    return result
+  } catch (error) {
+    if (error instanceof HttpError) throw error
+    throw normalizeProviderError(error, {
+      operation,
+      ...context,
+      durationMs: Math.round(Number(process.hrtime.bigint() - startedAt) / 1e6),
+    })
+  }
 }
 
 function safeUrl(base, path) {
@@ -83,12 +149,31 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new HttpError(502, body?.message ?? `Mercado Pago respondio ${response.status}.`)
+        const httpError = new HttpError(
+          502,
+          body?.message ?? `Mercado Pago respondio ${response.status}.`,
+        )
+        // El cuerpo de error de MP trae el motivo real; sin esto el log decia
+        // solo "Mercado Pago respondio 400" y no habia como diagnosticarlo.
+        httpError.provider = {
+          code: body?.error ?? null,
+          detail: body?.message ?? null,
+          causes: Array.isArray(body?.cause) ? body.cause.slice(0, 5) : [],
+          apiResponseStatus: response.status,
+          providerRequestId: response.headers.get('x-request-id'),
+        }
+        logger.error('mercadopago.request_failed', {
+          operation: 'getJson',
+          path,
+          provider: httpError.provider,
+          err: httpError,
+        })
+        throw httpError
       }
       return body
     } catch (error) {
       if (error instanceof HttpError) throw error
-      throw normalizeProviderError(error)
+      throw normalizeProviderError(error, { operation: 'getJson', path })
     } finally {
       clearTimeout(timer)
     }
@@ -131,29 +216,23 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         },
       }
 
-      try {
-        const result = await preferenceClient.create({
-          body,
-          requestOptions: { idempotencyKey },
-        })
-        return {
-          id: result.id,
-          initPoint: env.MERCADO_PAGO_ENV === 'sandbox' ? result.sandbox_init_point : result.init_point,
-          sandboxInitPoint: result.sandbox_init_point,
-          externalReference: result.external_reference,
-          raw: result,
-        }
-      } catch (error) {
-        throw normalizeProviderError(error)
+      const result = await callProvider(
+        'createPreference',
+        { orderId: order.id, orderKind: order.kind, amount: order.amount },
+        () => preferenceClient.create({ body, requestOptions: { idempotencyKey } }),
+      )
+      return {
+        id: result.id,
+        initPoint: env.MERCADO_PAGO_ENV === 'sandbox' ? result.sandbox_init_point : result.init_point,
+        sandboxInitPoint: result.sandbox_init_point,
+        externalReference: result.external_reference,
+        raw: result,
       }
     },
 
     async getPayment(id) {
-      try {
-        return await paymentClient.get({ id: String(id) })
-      } catch (error) {
-        throw normalizeProviderError(error)
-      }
+      return callProvider('getPayment', { externalPaymentId: String(id) }, () =>
+        paymentClient.get({ id: String(id) }))
     },
 
     async createPayment({ order, formData, idempotencyKey }) {
@@ -167,8 +246,16 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       }
       if (!payer.email) throw new HttpError(400, 'Mercado Pago requiere el email del pagador.')
 
-      try {
-        return await paymentClient.create({
+      return callProvider(
+        'createPayment',
+        {
+          orderId: order.id,
+          orderKind: order.kind,
+          amount: order.amount,
+          paymentMethodId: formData.payment_method_id,
+          installments: Number(formData.installments ?? 1),
+        },
+        () => paymentClient.create({
           body: {
             transaction_amount: order.amount,
             token: formData.token || undefined,
@@ -186,10 +273,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             },
           },
           requestOptions: { idempotencyKey },
-        })
-      } catch (error) {
-        throw normalizeProviderError(error)
-      }
+        }),
+      )
     },
 
     async createSubscriptionPlan({ plan, appUrl, idempotencyKey }) {
@@ -199,8 +284,10 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         'APP_URL',
         env,
       )
-      try {
-        const result = await subscriptionPlanClient.create({
+      return callProvider(
+        'createSubscriptionPlan',
+        { planCode: plan.code, amount: plan.price },
+        () => subscriptionPlanClient.create({
           body: {
             reason: plan.name,
             external_reference: plan.code,
@@ -213,11 +300,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             },
           },
           requestOptions: { idempotencyKey },
-        })
-        return result
-      } catch (error) {
-        throw normalizeProviderError(error)
-      }
+        }),
+      )
     },
 
     async createSubscription({ plan, payerEmail, externalReference, appUrl, idempotencyKey, cardToken }) {
@@ -227,8 +311,10 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         'APP_URL',
         env,
       )
-      try {
-        return await subscriptionClient.create({
+      return callProvider(
+        'createSubscription',
+        { planCode: plan.code, externalReference, amount: plan.price },
+        () => subscriptionClient.create({
           body: {
             preapproval_plan_id: plan.providerPlanId || undefined,
             reason: plan.name,
@@ -247,18 +333,13 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
                 },
           },
           requestOptions: { idempotencyKey },
-        })
-      } catch (error) {
-        throw normalizeProviderError(error)
-      }
+        }),
+      )
     },
 
     async getSubscription(id) {
-      try {
-        return await subscriptionClient.get({ id: String(id) })
-      } catch (error) {
-        throw normalizeProviderError(error)
-      }
+      return callProvider('getSubscription', { subscriptionId: String(id) }, () =>
+        subscriptionClient.get({ id: String(id) }))
     },
 
     async getAuthorizedPayment(id) {
