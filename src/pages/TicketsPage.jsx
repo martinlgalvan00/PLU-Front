@@ -56,7 +56,7 @@ export default function TicketsPage({
   const selectedEvent =
     ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
   const pricing = ticketPricingFromEvent(selectedEvent)
-  const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), { checkoutKind: 'ticket' })
   const ticketSalesOpen = paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled !== false
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =

@@ -86,7 +86,12 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
  *
  * Crear cuenta / perfil no usa este gate.
  */
-export function isPaidCheckoutOpen(_event, envLike, _now = new Date()) {
+export function isPaidCheckoutOpen(_event, envLike, _now = new Date(), options = {}) {
+  const checkoutKind = String(options?.checkoutKind ?? '').trim().toLowerCase()
+  if (checkoutKind === 'membership' || checkoutKind === 'registration' || checkoutKind === 'combo') {
+    return true
+  }
+
   const override = resolvePaidCheckoutOverride(envLike)
   return override !== false
 }

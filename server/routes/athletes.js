@@ -758,7 +758,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
     const planCode = req.validatedBody?.planCode ?? null
     try {
-      await assertPaidCheckoutAvailable(env, new Date(), { client: client() })
+      await assertPaidCheckoutAvailable(env, new Date(), { client: client(), checkoutKind: 'membership' })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -779,7 +779,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     const eventSlug = req.validatedBody?.eventSlug ?? null
     try {
       const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
-      await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
+      await assertPaidCheckoutAvailable(env, new Date(), {
+        registrationOpensAt,
+        skipScheduleLookup: true,
+        checkoutKind: 'registration',
+      })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const created = await repo().createRegistration(auth.athleteId, req.validatedBody)
@@ -798,7 +802,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       const eventSlug = req.validatedBody?.eventSlug ?? null
       try {
         const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
-        await assertComboCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
+        await assertComboCheckoutAvailable(env, new Date(), {
+          registrationOpensAt,
+          skipScheduleLookup: true,
+          checkoutKind: 'combo',
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         const created = await repo().createRegistrationCombo(auth.athleteId, req.validatedBody)

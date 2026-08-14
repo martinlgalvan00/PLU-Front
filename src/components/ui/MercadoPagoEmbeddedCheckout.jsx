@@ -1,10 +1,11 @@
 import { Component, useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { CardPayment, Payment, initMercadoPago } from '@mercadopago/sdk-react'
+import { CardPayment, Payment, Wallet, initMercadoPago } from '@mercadopago/sdk-react'
 import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { money } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
+  createPreference as createPreferenceRequest,
   processEmbeddedPayment,
   processEmbeddedSubscription,
   getPaymentOrderStatus,
@@ -46,6 +47,13 @@ const PAYMENT_CUSTOMIZATION = {
     mercadoPago: 'all',
   },
   visual: BRICK_VISUAL_CUSTOMIZATION,
+}
+const WALLET_CUSTOMIZATION = {
+  valueProp: 'practicality',
+  customStyle: {
+    buttonHeight: '48px',
+    borderRadius: '10px',
+  },
 }
 
 /**
@@ -164,6 +172,17 @@ function isRealMercadoPagoPreferenceId(preferenceId) {
   return Boolean(value && !value.startsWith('mock_') && !value.startsWith('mock://'))
 }
 
+function resolvePreferenceId(order) {
+  return (
+    order?.preferenceId
+    || order?.providerPreferenceId
+    || order?.provider_preference_id
+    || order?.preference?.id
+    || order?.checkout?.preference?.id
+    || null
+  )
+}
+
 export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentation = 'default' }) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
@@ -180,9 +199,12 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const isModal = presentation === 'modal'
   const isSettle = presentation === 'settle'
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
-  const realPreferenceId = isRealMercadoPagoPreferenceId(order?.preferenceId)
-    ? order.preferenceId
+  const resolvedPreferenceId = resolvePreferenceId(order)
+  const initialPreferenceId = isRealMercadoPagoPreferenceId(resolvedPreferenceId)
+    ? resolvedPreferenceId
     : null
+  const realPreferenceId = walletPreferenceId ?? initialPreferenceId
+  const canRenderWallet = !isSubscription && Boolean(realPreferenceId)
   const initialization = useMemo(() => ({
     amount: Number(order?.amount ?? 0),
     ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
@@ -209,6 +231,41 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     }
     return undefined
   }, [brickVersion, isMock, locale, order?.orderAccessToken, orderId, t])
+
+  useEffect(() => {
+    setWalletPreferenceId(initialPreferenceId)
+  }, [initialPreferenceId, orderId])
+
+  useEffect(() => {
+    if (isMock || isSubscription || realPreferenceId || !orderId || !env.mercadoPago.configured) {
+      return undefined
+    }
+    let cancelled = false
+
+    void createPreferenceRequest({
+      paymentId: orderId,
+      orderAccessToken: order?.orderAccessToken,
+    })
+      .then((response) => {
+        const preferenceId = response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
+        if (!cancelled && isRealMercadoPagoPreferenceId(preferenceId)) {
+          setWalletPreferenceId(preferenceId)
+        }
+      })
+      .catch((preferenceError) => {
+        if (!env.appProduction) {
+          console.info('[mp-checkout] no se pudo preparar Wallet Brick', {
+            orderId,
+            status: preferenceError?.status,
+            message: preferenceError?.message,
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isMock, isSubscription, order?.orderAccessToken, orderId, realPreferenceId])
 
   // Paso del embudo "abrio el checkout". Es el eslabon que faltaba entre ver la
   // pantalla de afiliacion e intentar pagar: sin el, el informe no podia
@@ -523,33 +580,63 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       )}
 
       {!result && !isMock && (
-        <PaymentBrickErrorBoundary key={brickVersion} onError={handleRenderError}>
-          <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
-            {isSubscription ? (
-              <CardPayment
-                key={brickVersion}
-                id={`card-payment-brick-${reactId}-${brickVersion}`}
-                initialization={initialization}
-                customization={SUBSCRIPTION_CUSTOMIZATION}
-                locale={localeCode}
-                onReady={handleReady}
-                onError={handleRenderError}
-                onSubmit={submitSubscription}
-              />
-            ) : (
-              <Payment
-                key={brickVersion}
-                id={`payment-brick-${reactId}-${brickVersion}`}
-                initialization={initialization}
-                customization={PAYMENT_CUSTOMIZATION}
-                locale={localeCode}
-                onReady={handleReady}
-                onError={handleRenderError}
-                onSubmit={submitPayment}
-              />
-            )}
-          </div>
-        </PaymentBrickErrorBoundary>
+        <div className="mp-embedded-checkout__real-options">
+          {canRenderWallet ? (
+            <div className="mp-embedded-checkout__wallet-panel">
+              <div className="mp-embedded-checkout__option-heading">
+                <strong>{t('payments.walletTitle')}</strong>
+                <span>{t('payments.walletLead')}</span>
+              </div>
+              <PaymentBrickErrorBoundary key={`wallet-${brickVersion}`} onError={handleRenderError}>
+                <div className="mp-embedded-checkout__wallet">
+                  <Wallet
+                    key={`wallet-brick-${brickVersion}`}
+                    id={`wallet-brick-${reactId}-${brickVersion}`}
+                    initialization={{ preferenceId: realPreferenceId, redirectMode: 'self' }}
+                    customization={WALLET_CUSTOMIZATION}
+                    locale={localeCode}
+                    onReady={handleReady}
+                    onError={handleRenderError}
+                  />
+                </div>
+              </PaymentBrickErrorBoundary>
+            </div>
+          ) : null}
+
+          {canRenderWallet ? (
+            <div className="mp-embedded-checkout__divider" role="separator">
+              <span>{t('payments.cardOptionDivider')}</span>
+            </div>
+          ) : null}
+
+          <PaymentBrickErrorBoundary key={`payment-${brickVersion}`} onError={handleRenderError}>
+            <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
+              {isSubscription ? (
+                <CardPayment
+                  key={brickVersion}
+                  id={`card-payment-brick-${reactId}-${brickVersion}`}
+                  initialization={initialization}
+                  customization={SUBSCRIPTION_CUSTOMIZATION}
+                  locale={localeCode}
+                  onReady={handleReady}
+                  onError={handleRenderError}
+                  onSubmit={submitSubscription}
+                />
+              ) : (
+                <Payment
+                  key={brickVersion}
+                  id={`payment-brick-${reactId}-${brickVersion}`}
+                  initialization={initialization}
+                  customization={PAYMENT_CUSTOMIZATION}
+                  locale={localeCode}
+                  onReady={handleReady}
+                  onError={handleRenderError}
+                  onSubmit={submitPayment}
+                />
+              )}
+            </div>
+          </PaymentBrickErrorBoundary>
+        </div>
       )}
 
       {result && (

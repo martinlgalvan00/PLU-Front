@@ -104,6 +104,14 @@ function supportsAutoReturn(returnBase) {
   }
 }
 
+function resolveIntegrationUrl({ explicit, fallback, label, env }) {
+  return requireIntegrationUrl(
+    explicit ?? fallback ?? resolveDeploymentAppUrl(env),
+    label,
+    env,
+  )
+}
+
 function requireIntegrationUrl(value, label, env) {
   if (!value) throw new HttpError(503, `Falta ${label} para crear el checkout.`)
   let url
@@ -189,9 +197,9 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
-      const returnBase = requireIntegrationUrl(
-        appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
-        'APP_URL',
+      const returnBase = resolveIntegrationUrl({
+        explicit: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
+        label: 'APP_URL',
         env,
       )
       const webhookBase = requireIntegrationUrl(

@@ -1,4 +1,4 @@
-import { CalendarDays, Plus, Tag, Trash2 } from 'lucide-react'
+import { CalendarDays, HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
@@ -182,10 +182,19 @@ export default function AdminTicketTypesEditor({
           <h3 className="admin-event-form__block-title">
             <Tag size={13} aria-hidden />
             {t('admin.eventEditor.supabase.ticketTypesTitle')}
+            <span className="admin-event-form__help">
+              <button
+                type="button"
+                className="admin-event-form__help-trigger"
+                aria-label={t('admin.eventEditor.supabase.ticketTypesHint')}
+              >
+                <HelpCircle size={13} aria-hidden />
+              </button>
+              <span className="admin-event-form__help-tooltip" role="tooltip">
+                {t('admin.eventEditor.supabase.ticketTypesHint')}
+              </span>
+            </span>
           </h3>
-          <p className="admin-event-form__block-lead">
-            {t('admin.eventEditor.supabase.ticketTypesHint')}
-          </p>
         </header>
 
         {ticketTypes.length === 0 ? (

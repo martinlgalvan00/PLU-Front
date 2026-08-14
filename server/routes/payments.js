@@ -217,11 +217,13 @@ export function createPaymentRoutes(deps = {}) {
   // "independiente por evento").
   function paidCheckoutOptionsForOrder(order) {
     const event = order.kind === 'ticket' ? order.event : order.registration?.event
-    if (!event) return { client: resolveSupabaseAdmin() }
+    const checkoutKind = order.kind === 'ticket' ? 'ticket' : order.concept
+    if (!event) return { client: resolveSupabaseAdmin(), checkoutKind }
     return {
       client: resolveSupabaseAdmin(),
       registrationOpensAt: event.registration_opens_at ?? null,
       skipScheduleLookup: true,
+      checkoutKind,
     }
   }
 

@@ -86,7 +86,7 @@ export default function HomePage({
         viewport: { once: true, amount: 0.22 },
       }
 
-  const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env)
+  const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
   const isRegistrationDisabled =
     !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
   const [guideOpen, setGuideOpen] = useState(false)

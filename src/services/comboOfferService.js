@@ -16,7 +16,7 @@ export function getEventComboAvailability(
     ? { ...rawOffer, active: true, price: Number(rawOffer.price) }
     : null
   const relevant = Boolean(offer) && !hasActiveMembership
-  const paidCheckoutOpen = isPaidCheckoutOpen(event, envLike, now)
+  const paidCheckoutOpen = isPaidCheckoutOpen(event, envLike, now, { checkoutKind: 'combo' })
 
   return {
     offer,
