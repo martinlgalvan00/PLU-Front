@@ -10,7 +10,6 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
-import { env } from '../../config/env.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import {
@@ -112,8 +111,7 @@ export default function MembershipPurchaseSection({
     () => availablePlans.find((plan) => plan.collectionMode === 'recurring') ?? null,
     [availablePlans],
   )
-  // Débito automático: solo fuera de APP_PRODUCTION (WIP hasta habilitarlo en prod).
-  const billingSwitchEnabled = !env.appProduction && Boolean(oneTimePlan && recurringPlan)
+  const billingSwitchEnabled = Boolean(oneTimePlan && recurringPlan)
   const billingMode = selectedPlan?.collectionMode === 'recurring' ? 'recurring' : 'one_time'
   const billingOptions = useMemo(() => {
     if (!billingSwitchEnabled) {

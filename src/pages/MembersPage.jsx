@@ -13,7 +13,7 @@ import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { FEATURE_KEYS, isAppProduction, isFeatureEnabled } from '../lib/featureAvailability.js'
+import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
@@ -140,7 +140,6 @@ export default function MembersPage({
     if (livePlans.length) {
       return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
     }
-    if (isAppProduction()) return []
     return MEMBERSHIP_PLANS
       .filter((plan) => plan.id !== 'combo')
       .map((plan) => ({
@@ -209,7 +208,7 @@ export default function MembersPage({
     return () => window.clearInterval(id)
   }, [pendingComboEndsAt, hasActiveMembership])
 
-  const livePlansUnavailable = isAppProduction() && (!plansLoaded || catalogPlans.length === 0)
+  const livePlansUnavailable = !plansLoaded || catalogPlans.length === 0
   const comboCountdownAria = comboCountdown
     ? t('pages.members.comboPromoCountdownAria', {
       days: comboCountdown.days,
@@ -375,12 +374,12 @@ export default function MembersPage({
               {t('pages.members.closureReassure')}
             </p>
           ) : null}
-          {isAppProduction() && !plansLoaded ? (
+          {!plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {isAppProduction() && plansLoaded && catalogPlans.length === 0 ? (
+          {plansLoaded && catalogPlans.length === 0 ? (
             <FeatureComingSoon
               actionIcon={plansError ? RefreshCw : undefined}
               actionLabel={plansError ? t('pages.members.plansRetry') : undefined}
