@@ -168,13 +168,13 @@ function getProfileSteps(t) {
       id: 'personal',
       step: '01',
       label: t('pages.register.stepPersonal'),
-      fields: ['fullName', 'documentId', 'birthDate', 'email', 'phone', 'password'],
+      fields: ['fullName', 'country', 'documentId', 'birthDate', 'email', 'phone', 'password'],
     },
     {
       id: 'location',
       step: '02',
       label: t('pages.register.stepLocation'),
-      fields: ['country', 'province', 'city', 'gym', 'sex'],
+      fields: ['province', 'city', 'gym', 'sex'],
     },
   ]
 }

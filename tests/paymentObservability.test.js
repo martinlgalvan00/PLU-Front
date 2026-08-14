@@ -131,6 +131,12 @@ describe('catalogo de diagnostico', () => {
       .toBe('ORDER_AMOUNT_MISMATCH')
     expect(diagnosePaymentFailure({ message: 'PGRST202 Could not find the function' }).code)
       .toBe('SUPABASE_RPC_MISSING')
+    expect(diagnosePaymentFailure({
+      message: 'Completá tu perfil antes de inscribirte: falta fecha de nacimiento.',
+      details: { code: 'ATHLETE_PROFILE_INCOMPLETE' },
+    }).code).toBe('ATHLETE_PROFILE_INCOMPLETE')
+    expect(diagnosePaymentFailure({ message: 'El plan del combo no está vigente.' }).code)
+      .toBe('COMBO_PLAN_NOT_CURRENT')
   })
 
   it('siempre devuelve pasos concretos, incluso ante una falla desconocida', () => {
