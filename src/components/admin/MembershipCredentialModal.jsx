@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { IdCard, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import AdminMembershipCredential from './AdminMembershipCredential.jsx'
+import { useAdminModal } from './useAdminModal.js'
 
 /**
  * MembershipCredentialModal — PLU ARG
@@ -18,19 +18,7 @@ export default function MembershipCredentialModal({
   onClose,
 }) {
   const { t } = useI18n()
-
-  useEffect(() => {
-    function handleKey(event) {
-      if (event.key === 'Escape') onClose()
-    }
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.addEventListener('keydown', handleKey)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      document.removeEventListener('keydown', handleKey)
-    }
-  }, [onClose])
+  const panelRef = useAdminModal(onClose, { active: Boolean(membershipId) })
 
   if (!membershipId) return null
 
@@ -43,6 +31,7 @@ export default function MembershipCredentialModal({
         onClick={onClose}
       />
       <div
+        ref={panelRef}
         className="membership-credential-modal__panel"
         role="dialog"
         aria-modal="true"

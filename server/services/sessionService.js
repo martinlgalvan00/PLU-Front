@@ -114,7 +114,8 @@ export async function readSession({ prisma, token, now = new Date() }) {
     !session ||
     session.revokedAt ||
     session.expiresAt <= now ||
-    session.user?.status !== 'active'
+    session.user?.status !== 'active' ||
+    session.user?.accessRole?.active === false
   ) {
     return null
   }

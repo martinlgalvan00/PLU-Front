@@ -40,6 +40,12 @@ export function createSupabaseAnalyticsRepository(
         'No se pudo calcular el resumen de trafico.',
       )
     },
+    async operationalSummary({ from, to }) {
+      return rpc('get_analytics_operational_summary', { p_from: from, p_to: to, p_organization_id: organizationId }, 'No se pudo calcular el resumen operativo.')
+    },
+    async operationalAlerts() {
+      return rpc('get_operational_alerts', { p_organization_id: organizationId }, 'No se pudieron leer las alertas operativas.') ?? []
+    },
 
     async pages({ from, to, limit = 25 }) {
       return rpc(

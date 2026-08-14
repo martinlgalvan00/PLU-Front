@@ -1,7 +1,7 @@
 import { LockKeyhole } from 'lucide-react'
 
 /**
- * Aviso reutilizable de feature gated (APP_PRODUCTION / próximamente).
+ * Aviso reutilizable para funcionalidades temporalmente pausadas.
  * Variantes: banner (admin lock), inline (notice en página), page (empty institucional).
  */
 export default function FeatureComingSoon({

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -19,6 +19,9 @@ const funnel = vi.fn()
 const elements = vi.fn()
 const heatmap = vi.fn()
 const journey = vi.fn()
+const operationalSummary = vi.fn()
+const operationalAlerts = vi.fn()
+const failureReasons = vi.fn()
 
 vi.mock('../src/services/analyticsReportService.js', async () => {
   const actual = await vi.importActual('../src/services/analyticsReportService.js')
@@ -30,9 +33,15 @@ vi.mock('../src/services/analyticsReportService.js', async () => {
     fetchAnalyticsFunnel: (...args) => funnel(...args),
     fetchAnalyticsElements: (...args) => elements(...args),
     fetchAnalyticsHeatmap: (...args) => heatmap(...args),
+    fetchAnalyticsOperationalSummary: (...args) => operationalSummary(...args),
+    fetchAnalyticsOperationalAlerts: (...args) => operationalAlerts(...args),
     fetchAthleteJourney: (...args) => journey(...args),
   }
 })
+
+vi.mock('../src/services/paymentService.js', () => ({
+  getPaymentFailureReasons: (...args) => failureReasons(...args),
+}))
 
 const AnalyticsSection = (await import('../src/pages/admin/AnalyticsSection.jsx')).default
 
@@ -44,6 +53,10 @@ function renderSection(props = {}) {
       <AnalyticsSection athletes={ATHLETES} {...props} />
     </I18nProvider>,
   )
+}
+
+async function openTab(name) {
+  fireEvent.click(await screen.findByRole('tab', { name }))
 }
 
 beforeAll(() => {
@@ -94,6 +107,13 @@ beforeEach(() => {
     elements: [{ element_selector: '#cta-afiliarme', label: 'Afiliarme', clicks: 3 }],
     timeline: [],
   })
+  operationalSummary.mockResolvedValue({
+    engagedVisitors: 18,
+    access: { total: 7, byGate: [] },
+    keyActions: [],
+  })
+  operationalAlerts.mockResolvedValue([])
+  failureReasons.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -101,9 +121,92 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+describe('cabecera y cifras', () => {
+  it('muestra el período y las cifras en una sola ficha', async () => {
+    renderSection()
+
+    expect(await screen.findByRole('button', { name: 'Últimos 30 días' })).toBeTruthy()
+    const pulse = document.querySelector('.admin-analytics__pulse')
+    expect(pulse).toBeTruthy()
+    expect(pulse.textContent).toContain('Visitantes únicos')
+    expect(pulse.textContent).toContain('40')
+    expect(pulse.textContent).toContain('sesiones')
+  })
+})
+
+describe('comparación entre períodos', () => {
+  it('muestra la variación de cada métrica contra el período inmediatamente anterior', async () => {
+    // El overview se pide dos veces: período actual y el tramo previo de igual
+    // largo. `mockResolvedValueOnce` distingue una llamada de la otra por orden.
+    overview.mockReset()
+    overview
+      .mockResolvedValueOnce({ visitors: 60, pageviews: 120, sessions: 55, bounceRate: 0.4 })
+      .mockResolvedValueOnce({ visitors: 40, pageviews: 120, sessions: 40, bounceRate: 0.2 })
+
+    renderSection()
+
+    const pulse = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__pulse')
+      expect(node.textContent).toContain('60')
+      return node
+    })
+    // (60 - 40) / 40 = +50%; sin cambio en pageviews no debería marcar variación.
+    expect(pulse.textContent).toContain('+50%')
+  })
+
+  it('no muestra variación cuando no hay período anterior con el que comparar', async () => {
+    overview.mockReset()
+    overview
+      .mockResolvedValueOnce({ visitors: 60, pageviews: 120, sessions: 55, bounceRate: 0.4 })
+      .mockResolvedValueOnce({ visitors: 0, pageviews: 0, sessions: 0, bounceRate: 0 })
+
+    renderSection()
+
+    const pulse = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__pulse')
+      expect(node.textContent).toContain('60')
+      return node
+    })
+    expect(document.querySelector('.admin-analytics__metric-delta')).toBeNull()
+  })
+})
+
+describe('motivos de rechazo de pago', () => {
+  it('sin permiso de pagos ni siquiera se pide', async () => {
+    renderSection({ canViewPaymentFailures: false })
+    await waitFor(() => expect(overview).toHaveBeenCalled())
+
+    expect(failureReasons).not.toHaveBeenCalled()
+    expect(screen.queryByText('Motivos de rechazo de pago')).toBeNull()
+  })
+
+  it('con permiso muestra el ranking de motivos, ordenado como llega del backend', async () => {
+    failureReasons.mockResolvedValue([
+      { code: 'AMOUNT_MISMATCH', title: 'El monto no coincide con la preferencia', severity: 'blocker', count: 5 },
+      { code: 'CARD_DECLINED', title: 'Tarjeta rechazada por el banco', severity: 'expected', count: 2 },
+    ])
+
+    renderSection({ canViewPaymentFailures: true })
+
+    expect(await screen.findByText('El monto no coincide con la preferencia')).toBeTruthy()
+    expect(screen.getByText('Tarjeta rechazada por el banco')).toBeTruthy()
+    expect(screen.getByText('5 casos')).toBeTruthy()
+  })
+
+  it('sin fallas en el período muestra el estado vacío', async () => {
+    renderSection({ canViewPaymentFailures: true })
+
+    await waitFor(() => expect(failureReasons).toHaveBeenCalled())
+    expect(
+      await screen.findByText('Sin fallas de pago registradas en este período.'),
+    ).toBeTruthy()
+  })
+})
+
 describe('geometría del mapa de calor', () => {
   it('la caja toma el alto real del documento, no un cuadrado', async () => {
     renderSection()
+    await openTab('Páginas')
 
     const svg = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__heatmap svg')
@@ -135,6 +238,7 @@ describe('geometría del mapa de calor', () => {
     })
 
     renderSection()
+    await openTab('Páginas')
 
     const svg = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__heatmap svg')
@@ -149,6 +253,7 @@ describe('geometría del mapa de calor', () => {
 
   it('cambiar de dispositivo vuelve a pedir el mapa con ese filtro', async () => {
     renderSection()
+    await openTab('Páginas')
     await waitFor(() => expect(heatmap).toHaveBeenCalled())
 
     const mobileButton = await screen.findByRole('button', { name: 'Mobile' })
@@ -163,6 +268,11 @@ describe('geometría del mapa de calor', () => {
 describe('lo más usado', () => {
   it('muestra clicks y personas, y agrupa cuando el elemento vive en varias rutas', async () => {
     renderSection()
+    await waitFor(() => expect(overview).toHaveBeenCalled())
+    expect(elements).not.toHaveBeenCalled()
+    expect(flows).not.toHaveBeenCalled()
+
+    await openTab('Uso')
 
     const ranking = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__ranking')
@@ -180,12 +290,14 @@ describe('límite del recorrido identificado', () => {
   it('no se ofrece sin el permiso de identidad', async () => {
     renderSection({ canViewIdentity: false })
     await waitFor(() => expect(overview).toHaveBeenCalled())
+    expect(screen.queryByRole('tab', { name: 'Atleta' })).toBeNull()
     expect(document.querySelector('.admin-analytics__journey-search')).toBeNull()
     expect(journey).not.toHaveBeenCalled()
   })
 
   it('con permiso avisa que la consulta queda registrada antes de buscar', async () => {
     renderSection({ canViewIdentity: true })
+    await openTab('Atleta')
 
     const notice = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__notice')
@@ -195,5 +307,21 @@ describe('límite del recorrido identificado', () => {
     expect(notice.textContent).toContain('queda registrada en Auditoría')
     // No carga sola: hay que elegir a alguien.
     expect(journey).not.toHaveBeenCalled()
+  })
+})
+
+describe('alertas accionables', () => {
+  it('lleva la alerta a la orden de pagos que debe resolverse', async () => {
+    const onNavigate = vi.fn()
+    operationalAlerts.mockResolvedValue([{
+      kind: 'transfer_overdue',
+      entity_id: 'order-1',
+      subject: 'MORD-1',
+      detail: 'Comprobante pendiente de validación por más de 48 horas',
+    }])
+    renderSection({ onNavigate })
+
+    fireEvent.click(await screen.findByRole('button', { name: /revisar y resolver/i }))
+    expect(onNavigate).toHaveBeenCalledWith('payments', 'order-1')
   })
 })

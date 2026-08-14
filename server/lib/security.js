@@ -12,6 +12,13 @@ const SERVER_TO_SERVER_MUTATION_PATHS = new Set([
   '/api/emails/webhook/brevo',
 ])
 
+// El flush de analítica en `pagehide` usa `navigator.sendBeacon`: es la única
+// forma de que la salida no se cancele al descargarse el documento, pero la
+// API no deja adjuntar headers custom, así que nunca puede traer el header de
+// mutación confiable. El endpoint es público, sin auth y de solo escritura
+// (rate-limitado aparte), así que alcanza con el chequeo de Origin de arriba.
+const BEACON_MUTATION_PATHS = new Set(['/api/analytics/collect'])
+
 function asOrigin(value) {
   const candidate = String(value ?? '').trim()
   if (!candidate) return null
@@ -81,7 +88,10 @@ export function resolveMutationPathname(req) {
     try {
       const pathname = /^https?:\/\//i.test(raw) ? new URL(raw).pathname : raw
       const normalized = pathname.replace(/\/+$/, '') || '/'
-      if (SERVER_TO_SERVER_MUTATION_PATHS.has(normalized)) return normalized
+      if (
+        SERVER_TO_SERVER_MUTATION_PATHS.has(normalized)
+        || BEACON_MUTATION_PATHS.has(normalized)
+      ) return normalized
     } catch {
       // Seguir con el siguiente candidato.
     }
@@ -131,6 +141,14 @@ export function requireTrustedMutation(req, _res, next) {
   }
 
   if (isServerToServerMutationPath(req)) {
+    next()
+    return
+  }
+
+  // A diferencia del bypass server-to-server, acá se exige un Origin presente
+  // y permitido (no simplemente ausente): es la única señal que sendBeacon
+  // deja mandar, así que no puede quedar opcional como en el resto de la ruta.
+  if (origin && isAllowedOrigin(origin) && BEACON_MUTATION_PATHS.has(resolveMutationPathname(req))) {
     next()
     return
   }

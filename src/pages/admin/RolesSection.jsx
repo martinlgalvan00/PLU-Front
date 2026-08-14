@@ -141,6 +141,7 @@ export default function RolesSection({
   authorization,
   onCreateRole,
   onUpdatePermissions,
+  onUpdateStatus,
   permissionCatalog = [],
   roles = [],
 }) {
@@ -163,6 +164,7 @@ export default function RolesSection({
   const [permissionDraft, setPermissionDraft] = useState([])
   const [message, setMessage] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isCreatingRole, setIsCreatingRole] = useState(false)
   const [roleDraft, setRoleDraft] = useState({ name: '', description: '' })
@@ -418,6 +420,17 @@ export default function RolesSection({
     } finally {
       setIsSaving(false)
     }
+  }
+
+  async function handleRoleStatus() {
+    if (!selectedRole || !onUpdateStatus || !editable || dirty) return
+    setIsUpdatingStatus(true)
+    try {
+      await onUpdateStatus(selectedRole.id, !selectedRole.active)
+      setMessage({ tone: 'success', text: selectedRole.active ? 'Rol desactivado.' : 'Rol activado.' })
+    } catch (error) {
+      setMessage({ tone: 'error', text: error?.message ?? 'No se pudo actualizar el rol.' })
+    } finally { setIsUpdatingStatus(false) }
   }
 
   async function handleCreateRole(event) {
@@ -735,6 +748,11 @@ export default function RolesSection({
                   </span>
                 </p>
               </div>
+              {editable && onUpdateStatus ? (
+                <Button type="button" variant="outline" className="btn--small" disabled={dirty || isUpdatingStatus} onClick={handleRoleStatus}>
+                  {isUpdatingStatus ? 'Actualizando…' : selectedRole.active ? 'Desactivar rol' : 'Activar rol'}
+                </Button>
+              ) : null}
             </header>
 
             {activitySection}

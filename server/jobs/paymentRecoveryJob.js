@@ -1,6 +1,8 @@
+import { logger, runWithRequestContext, newRequestId } from '../lib/logger.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
 import { createPaymentProviderAdapter } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
   PAYMENT_RECOVERY_JOB_ENABLED,
@@ -20,13 +22,17 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
     env,
   })
 
-  return recoverPaymentOperations({
-    repository,
-    mercadoPago,
-    notifyPaymentApplied,
-    eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
-    reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
-  })
+  // El job corre fuera de un request: se le abre su propio contexto para que
+  // cada corrida tenga un id propio y sus asientos se puedan agrupar.
+  return runWithRequestContext({ requestId: `recovery-${newRequestId()}` }, () =>
+    recoverPaymentOperations({
+      repository,
+      mercadoPago,
+      notifyPaymentApplied,
+      auditTrail: createPaymentAuditTrail({ client }),
+      eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+      reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+    }))
 }
 
 export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
@@ -37,15 +43,11 @@ export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
     if (running) return
     running = true
     try {
-      const result = await runPaymentRecoveryJob({ client, env })
-      if (result.claimErrors.length) {
-        console.error('payment-recovery-job claims:', result.claimErrors)
-      }
-      if (result.events.claimed || result.reconciliations.claimed) {
-        console.info('payment-recovery-job:', result)
-      }
+      // El resumen ya se loguea estructurado dentro del workflow (incluye el
+      // motivo de cada falla); aca solo queda lo que ese resumen no cubre.
+      await runPaymentRecoveryJob({ client, env })
     } catch (error) {
-      console.error('payment-recovery-job:', error)
+      logger.error('payment.recovery_job_failed', { err: error })
     } finally {
       running = false
     }

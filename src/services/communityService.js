@@ -39,9 +39,6 @@ export async function fetchCommunitySpotlight(limit = FEED_LIMIT, locale = 'es')
   try {
     const data = await apiGet(`/api/community/spotlight?limit=${encodeURIComponent(limit)}`)
     const members = Array.isArray(data?.members) ? data.members : []
-    if (members.length === 0) {
-      return fallbackSpotlight(limit, locale)
-    }
     return {
       members,
       stats: {

@@ -49,6 +49,33 @@ const NAV_ICON = {
 const COMPETITION_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'competition')
 const MORE_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'more')
 
+function getVisibleTrigger(...elements) {
+  const present = elements.filter(Boolean)
+  return present.find((el) => {
+    const { width, height } = el.getBoundingClientRect()
+    return width > 0 && height > 0
+  }) ?? present[0] ?? null
+}
+
+const PROFILE_MENU_MAX_WIDTH = 272
+const PROFILE_MENU_GUTTER = 12
+/** Mismo corte que el chrome mobile de `.plu-global-nav` (cluster + avatar). */
+const PROFILE_MENU_CENTER_MAX_WIDTH = 799
+
+function computeProfileMenuPosition(rect, viewportWidth) {
+  const menuWidth = Math.min(PROFILE_MENU_MAX_WIDTH, viewportWidth - PROFILE_MENU_GUTTER * 2)
+  const top = Math.round(rect.bottom + 10)
+  const shouldCenter = viewportWidth <= PROFILE_MENU_CENTER_MAX_WIDTH
+  const left = shouldCenter
+    ? Math.round((viewportWidth - menuWidth) / 2)
+    : Math.round(Math.min(
+      Math.max(PROFILE_MENU_GUTTER, rect.right - menuWidth),
+      viewportWidth - menuWidth - PROFILE_MENU_GUTTER,
+    ))
+
+  return { top, left }
+}
+
 /** Línea utilitaria horizontal del drawer (Reglamento vive acá, no en el top-level). */
 const DRAWER_SECONDARY = [
   { key: 'rulebook', labelKey: 'nav.rulebook' },
@@ -344,6 +371,7 @@ export default function NavbarPublic({
   const menuButtonRef = useRef(null)
   const profileMenuRef = useRef(null)
   const profileTriggerRef = useRef(null)
+  const mobileProfileTriggerRef = useRef(null)
   const [profileMenuPos, setProfileMenuPos] = useState(null)
   const restoreDrawerFocusRef = useRef(true)
   const suppressScrollRestoreRef = useRef(false)
@@ -414,6 +442,16 @@ export default function NavbarPublic({
     setDrawerOpen(false)
     setDropdown(null)
     window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
+  }
+
+  function toggleProfileMenu() {
+    setDropdown((current) => (current === 'profile' ? null : 'profile'))
+  }
+
+  function handleLogout() {
+    setDropdown(null)
+    closeDrawer(false)
+    onLogout?.()
   }
 
   function closeDrawer(restoreFocus = true) {
@@ -525,13 +563,9 @@ export default function NavbarPublic({
     }
 
     function updatePosition() {
-      const trigger = profileTriggerRef.current
+      const trigger = getVisibleTrigger(mobileProfileTriggerRef.current, profileTriggerRef.current)
       if (!trigger) return
-      const rect = trigger.getBoundingClientRect()
-      setProfileMenuPos({
-        top: Math.round(rect.bottom + 10),
-        right: Math.round(Math.max(12, window.innerWidth - rect.right)),
-      })
+      setProfileMenuPos(computeProfileMenuPosition(trigger.getBoundingClientRect(), window.innerWidth))
     }
 
     updatePosition()
@@ -547,7 +581,9 @@ export default function NavbarPublic({
     if (dropdown !== 'profile') return undefined
     function isInProfileUi(target) {
       return Boolean(
-        profileTriggerRef.current?.contains(target) || profileMenuRef.current?.contains(target),
+        profileTriggerRef.current?.contains(target)
+        || mobileProfileTriggerRef.current?.contains(target)
+        || profileMenuRef.current?.contains(target),
       )
     }
     function handlePointerDown(event) {
@@ -707,7 +743,7 @@ export default function NavbarPublic({
                   aria-expanded={dropdown === 'profile'}
                   aria-haspopup="menu"
                   aria-label={sessionFullName || t('nav.myProfile')}
-                  onClick={() => setDropdown((current) => (current === 'profile' ? null : 'profile'))}
+                  onClick={toggleProfileMenu}
                 >
                   <span className="plu-global-nav__profile-mark" aria-hidden>
                     {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
@@ -738,11 +774,17 @@ export default function NavbarPublic({
               {session ? (
                 <button
                   type="button"
-                  className={`plu-global-nav__mobile-login plu-global-nav__mobile-login--account${activeView === 'profile' || activeView === 'admin' ? ' is-active' : ''}`}
-                  aria-current={activeView === 'profile' || activeView === 'admin' ? 'page' : undefined}
+                  id="plu-profile-menu-trigger-mobile"
+                  ref={mobileProfileTriggerRef}
+                  className={`plu-global-nav__mobile-login plu-global-nav__mobile-login--account${
+                    dropdown === 'profile' || activeView === 'profile' || activeView === 'admin' ? ' is-active' : ''
+                  }`}
+                  aria-controls="plu-profile-menu"
+                  aria-expanded={dropdown === 'profile'}
+                  aria-haspopup="menu"
                   aria-label={sessionFullName || t('nav.myProfile')}
                   title={sessionFullName || t('nav.myProfile')}
-                  onClick={() => go(adminSession ? 'admin' : 'profile')}
+                  onClick={toggleProfileMenu}
                 >
                   <span className="plu-global-nav__mobile-login-avatar" aria-hidden>
                     {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
@@ -823,8 +865,8 @@ export default function NavbarPublic({
               id="plu-profile-menu"
               ref={profileMenuRef}
               role="menu"
-              aria-labelledby="plu-profile-menu-trigger"
-              style={{ top: profileMenuPos.top, right: profileMenuPos.right }}
+              aria-labelledby="plu-profile-menu-trigger plu-profile-menu-trigger-mobile"
+              style={{ top: profileMenuPos.top, left: profileMenuPos.left }}
               initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reducedMotion
@@ -848,7 +890,7 @@ export default function NavbarPublic({
                   <User size={15} strokeWidth={1.6} aria-hidden />
                   <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
                 </button>
-                <button type="button" role="menuitem" onClick={onLogout} className="plu-profile-menu__logout">
+                <button type="button" role="menuitem" onClick={handleLogout} className="plu-profile-menu__logout">
                   <LogOut size={15} strokeWidth={1.6} aria-hidden />
                   <span>{t('nav.logout')}</span>
                 </button>
@@ -1022,14 +1064,10 @@ export default function NavbarPublic({
                   <button
                     type="button"
                     className="plu-drawer__account-logout"
-                    aria-label={t('nav.logout')}
-                    title={t('nav.logout')}
-                    onClick={() => {
-                      closeDrawer(false)
-                      onLogout?.()
-                    }}
+                    onClick={handleLogout}
                   >
                     <LogOut size={15} aria-hidden />
+                    <span>{t('nav.logout')}</span>
                   </button>
                 </div>
               ) : (

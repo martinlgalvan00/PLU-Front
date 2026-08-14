@@ -6,9 +6,11 @@ const sdk = vi.hoisted(() => ({
   initMercadoPago: vi.fn(),
   payment: vi.fn(),
   cardPayment: vi.fn(),
+  wallet: vi.fn(),
 }))
 
 const paymentApi = vi.hoisted(() => ({
+  createPreference: vi.fn(async () => ({})),
   getPaymentOrderStatus: vi.fn(),
   notifyMockPayment: vi.fn(),
   processEmbeddedPayment: vi.fn(),
@@ -20,6 +22,7 @@ vi.mock('@mercadopago/sdk-react', () => ({
   initMercadoPago: sdk.initMercadoPago,
   Payment: (props) => sdk.payment(props),
   CardPayment: (props) => sdk.cardPayment(props),
+  Wallet: (props) => sdk.wallet(props),
 }))
 
 vi.mock('../src/config/env.js', () => ({

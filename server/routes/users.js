@@ -10,7 +10,7 @@ import {
 import { HttpError } from '../lib/errors.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission, requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createStaffAccountNotificationService } from '../modules/notifications/staffAccountNotificationService.js'
@@ -105,7 +105,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.users.read', { prisma })
   const writeGuard = requirePermission('admin.users.write', { prisma })
-  const deleteGuard = requireRole(['admin_maximal'], { prisma })
+  const deleteGuard = requirePermission('admin.users.delete', { prisma })
 
   async function recordIdentity(event, req) {
     let client = null

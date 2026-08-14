@@ -2171,6 +2171,157 @@
   padding: 8px 10px;
 }
 
+.register-page--competition .register-status--settle {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 0 2px;
+}
+
+.register-page--competition .register-status--settle .register-status__body {
+  align-items: baseline;
+  column-gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 4px;
+}
+
+.register-page--competition .register-status--settle .register-status__body p {
+  grid-column: 1;
+}
+
+.register-page--competition .register-status--settle .register-status__body > *:nth-child(2) {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.register-page--competition .register-status--settle .register-status__body code {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  grid-column: 1 / -1;
+  letter-spacing: 0.04em;
+  padding: 0;
+}
+
+.register-settle {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.register-settle__toolbar {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.register-settle__nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+}
+
+.register-settle__back,
+.register-settle__alt {
+  min-height: 44px;
+}
+
+.register-settle__alt:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.register-competition-form--change-method {
+  display: grid;
+  gap: 16px;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__icon {
+  display: none;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header {
+  gap: 0;
+  padding-bottom: 4px;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3.4vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.register-page--competition .register-settle .mp-embedded-checkout__header p {
+  font-size: 13px;
+}
+
+.register-settle-bar .plu-checkout__package {
+  display: block;
+}
+
+.register-page--settling .register-settle-bar {
+  background: var(--color-bg-primary);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  margin: 12px 0 0;
+  padding: 14px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.register-page--settling-mp .register-settle-bar {
+  background: transparent;
+  border-top: 0;
+  margin: 0;
+  padding: 2px 0 8px;
+}
+
+.register-page--settling-mp .register-settle-bar .plu-checkout__total strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 4vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+.register-page--settling-mp .mp-embedded-checkout--settle [data-testid='payment-form'] [class*='button-container'] {
+  max-width: none;
+  width: 100%;
+}
+
+.register-page--settling-mp .mp-embedded-checkout--settle [data-testid='payment-form'] button[type='submit'] {
+  min-height: 48px;
+  width: 100%;
+}
+
+.register-page--settling-mp .mp-embedded-checkout__header.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+[data-theme='light'] .register-page--settling .register-settle-bar {
+  background: var(--color-bg-primary);
+  border-top-color: rgba(15, 17, 23, 0.08);
+}
+
+[data-theme='light'] .register-page--settling-mp .register-settle-bar {
+  background: transparent;
+  border-top-color: transparent;
+}
+
 .register-card {
   background: var(--register-card-bg, rgba(24, 26, 31, 0.94));
   border: 1px solid var(--register-card-border, rgba(255, 255, 255, 0.1));
@@ -4849,6 +5000,38 @@
   [data-theme='light'] .register-page--membership .register-checkout__bar.register-card__footer--checkout {
     background: var(--color-bg-primary);
     border-top-color: rgba(15, 17, 23, 0.08);
+  }
+
+  .register-page--settling .register-settle {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .register-page--settling .register-settle-bar {
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    padding: 12px var(--layout-gutter, var(--space-md)) calc(12px + env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    right: 0;
+    z-index: 30;
+  }
+
+  .register-page--settling .register-settle-bar .plu-checkout__total strong {
+    font-size: clamp(1.35rem, 6vw, 1.7rem);
+  }
+
+  .register-page--settling-mp .register-mobile-context {
+    display: none;
+  }
+
+  .register-page--settling-mp .register-settle {
+    padding-bottom: 0;
+  }
+
+  .register-page--settling-mp .register-settle-bar {
+    padding: 2px 0 8px;
+    position: static;
+    z-index: auto;
   }
 }
 

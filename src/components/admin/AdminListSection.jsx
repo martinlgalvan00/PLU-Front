@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Children, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import AdminFilterBar from './AdminFilterBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
 
 const COMPACT_STATS_MQ = '(max-width: 1100px)'
+
+function hasActions(actions) {
+  if (actions == null || actions === false) return false
+  return Children.toArray(actions).length > 0
+}
 
 function useIsNarrow(query = COMPACT_STATS_MQ) {
   const [isNarrow, setIsNarrow] = useState(() => {
@@ -84,9 +89,11 @@ export default function AdminListSection({
   const showStatsStrip = showStats && !statsAreRedundant && (stats.length > 0 || totalCount != null)
   const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
-  // Conteo en la barra cuando no hay título de sección, o en viewport angosto.
+  const hasActiveQuery = Boolean(query && String(query).trim())
+  // En angosto el título se oculta: el censo vive en el chip "Todos".
+  // "N registros" solo aparece si la búsqueda recorta el listado.
   const filterCount =
-    filtersCarryCounts && (isNarrow || !showHeader) ? resultLabel : null
+    (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts) ? resultLabel : null
 
   const filterSignature = useMemo(
     () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
@@ -126,14 +133,17 @@ export default function AdminListSection({
     />
   ) : null
 
+  const showActions = hasActions(actions)
   const hasExternalHeader =
     showHeader &&
     (Boolean(title) ||
       Boolean(eyebrow) ||
       Boolean(subtitle) ||
       Boolean(headerMeta) ||
-      Boolean(actions))
-  const hasExternalToolbar = !showHeader && (Boolean(actions) || Boolean(headerMeta))
+      showActions)
+  const hasExternalToolbar = !showHeader && (showActions || Boolean(headerMeta))
+  const hasChrome =
+    hasExternalHeader || hasExternalToolbar || Boolean(beforeFilters) || Boolean(filterBar)
 
   return (
     <div
@@ -145,35 +155,40 @@ export default function AdminListSection({
         .filter(Boolean)
         .join(' ')}
     >
-      {hasExternalHeader ? (
-        <header className="admin-list-section__header admin-list-shell__header">
-          <div className="admin-list-shell__intro">
-            {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
-            {title && <h1 className="admin-list-shell__title">{title}</h1>}
-            {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
-            {headerMeta && (
-              <span className="admin-list-shell__meta" aria-live="polite">
-                {headerMeta}
-              </span>
-            )}
-          </div>
-          {actions && <div className="admin-list-shell__actions">{actions}</div>}
-        </header>
-      ) : null}
+      {hasChrome ? (
+        <div className="admin-list-section__chrome">
+          {hasExternalHeader ? (
+            <header className="admin-list-section__header admin-list-shell__header">
+              <div className="admin-list-shell__intro">
+                {eyebrow ? <span className="admin-list-shell__eyebrow">{eyebrow}</span> : null}
+                {title && <h1 className="admin-list-shell__title">{title}</h1>}
+                {subtitle && <p className="admin-list-shell__subtitle">{subtitle}</p>}
+                {headerMeta && (
+                  <span className="admin-list-shell__meta" aria-live="polite">
+                    {headerMeta}
+                  </span>
+                )}
+              </div>
+              {showActions ? <div className="admin-list-shell__actions">{actions}</div> : null}
+            </header>
+          ) : null}
 
-      {hasExternalToolbar ? (
-        <div className="admin-list-section__toolbar admin-list-shell__toolbar">
-          {headerMeta && (
-            <span className="admin-list-shell__meta" aria-live="polite">
-              {headerMeta}
-            </span>
-          )}
-          {actions && <div className="admin-list-shell__actions">{actions}</div>}
+          {hasExternalToolbar ? (
+            <div className="admin-list-section__toolbar admin-list-shell__toolbar">
+              {headerMeta && (
+                <span className="admin-list-shell__meta" aria-live="polite">
+                  {headerMeta}
+                </span>
+              )}
+              {showActions ? <div className="admin-list-shell__actions">{actions}</div> : null}
+            </div>
+          ) : null}
+
+          {beforeFilters}
+          {filterBar}
         </div>
       ) : null}
 
-      {beforeFilters}
-      {filterBar}
       {beforeShell}
 
       <section className={shellClass}>

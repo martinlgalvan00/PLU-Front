@@ -2,6 +2,16 @@ import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 
+function kickerEchoesPeriod(kicker, tokens) {
+  const normalized = String(kicker).trim().toLowerCase()
+  if (!normalized) return true
+  return tokens.some((token) => {
+    const value = String(token ?? '').trim().toLowerCase()
+    if (!value) return false
+    return normalized === value || normalized === `plan ${value}` || normalized === `${value} plan`
+  })
+}
+
 export default function MembershipCard({
   id = 'athlete',
   title,
@@ -34,6 +44,15 @@ export default function MembershipCard({
   const resolvedKicker = highlighted
     ? (kicker ?? t('pages.membershipCard.featured'))
     : (kicker ?? t('pages.membershipCard.periodAnnual'))
+  const periodAnnualLabel = t('pages.membershipCard.periodAnnual')
+  const featuredLabel = t('pages.membershipCard.featured')
+  const showKicker = Boolean(resolvedKicker)
+    && resolvedKicker.trim().toLowerCase() !== featuredLabel.trim().toLowerCase()
+    && !kickerEchoesPeriod(resolvedKicker, [
+      periodAnnualLabel,
+      resolvedPeriod,
+      periodLabel,
+    ])
   const autoRenewLabel = billingToggleLabel ?? t('pages.members.autoRenewLabel')
   const autoRenewHint = billingToggleHint
   const autoRenewId = `membership-auto-renew-${id}`
@@ -44,6 +63,7 @@ export default function MembershipCard({
         className={[
           'membership-card',
           'membership-card--plu',
+          'membership-card--plu-band',
           highlighted ? 'membership-card--plu-featured' : '',
         ]
           .filter(Boolean)
@@ -52,32 +72,38 @@ export default function MembershipCard({
         <div className="membership-card__body">
           <div className="membership-card__offer">
             <header className="membership-card__identity">
-              <p className="membership-card__kicker">{resolvedKicker}</p>
+              {showKicker ? <p className="membership-card__kicker">{resolvedKicker}</p> : null}
               <h3 className="membership-card__title">{title}</h3>
+              <div className="membership-card__price-stack">
+                <span className="membership-card__amount">{money(price, locale)}</span>
+                <span className="membership-card__period">{periodLabel}</span>
+                {hasCompare ? (
+                  <span className="membership-card__save-note">
+                    {t('pages.membershipCard.save', { amount: money(savings, locale) })}
+                  </span>
+                ) : null}
+              </div>
             </header>
-
-            <div className="membership-card__price-stack">
-              <span className="membership-card__amount">{money(price, locale)}</span>
-              <span className="membership-card__period">{periodLabel}</span>
-              {hasCompare ? (
-                <span className="membership-card__save-note">
-                  {t('pages.membershipCard.save', { amount: money(savings, locale) })}
-                </span>
-              ) : null}
-            </div>
           </div>
 
-          <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
-            {features.map((feature, i) => (
-              <li key={`${id}-${i}`} className="membership-card__feature">
-                <span className="membership-card__feature-mark" aria-hidden />
-                <span className="membership-card__feature-text">{feature}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="membership-card__includes">
+            <p className="membership-card__includes-label" id={`${id}-includes-label`}>
+              {t('pages.membershipCard.includesLabel')}
+            </p>
+            <ul
+              className="membership-card__features-list"
+              aria-labelledby={`${id}-includes-label`}
+            >
+              {features.map((feature, i) => (
+                <li key={`${id}-${i}`} className="membership-card__feature">
+                  <span className="membership-card__feature-text">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <footer className="membership-card__foot">
-            {billingToggleEnabled ? (
+          {billingToggleEnabled ? (
+            <div className="membership-card__renew">
               <div className="members-plu-plans__auto-renew">
                 <div className="members-plu-plans__auto-renew-row">
                   <div className="members-plu-plans__auto-renew-copy">
@@ -103,7 +129,10 @@ export default function MembershipCard({
                   </button>
                 </div>
               </div>
-            ) : null}
+            </div>
+          ) : null}
+
+          <footer className="membership-card__foot">
             <button
               type="button"
               className="membership-card__cta motion-icon-shift"

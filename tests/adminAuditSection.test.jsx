@@ -41,6 +41,10 @@ vi.mock('../src/services/athleteApi.js', () => ({
   rotateMembershipQrToken: vi.fn(),
 }))
 
+vi.mock('../src/services/paymentService.js', () => ({
+  getPaymentOrderAudit: vi.fn(),
+}))
+
 vi.mock('../src/lib/credentialQr.js', () => ({
   buildCredentialUrl: ({ code }) => `https://plu-arg.com/?credencial=${code}`,
   generateCredentialQr: vi.fn(async () => 'data:image/png;base64,QR'),
@@ -50,6 +54,7 @@ const { fetchAuditEntries, fetchAuditFacets, fetchAuditOverview, normalizeAuditE
   '../src/services/auditService.js'
 )
 const { getMembershipCredential } = await import('../src/services/athleteApi.js')
+const { getPaymentOrderAudit } = await import('../src/services/paymentService.js')
 const AuditSection = (await import('../src/pages/admin/AuditSection.jsx')).default
 const AdminMembershipCredential = (
   await import('../src/components/admin/AdminMembershipCredential.jsx')
@@ -122,6 +127,42 @@ describe('sección de auditoría', () => {
     expect(screen.getAllByText('Código').length).toBeGreaterThan(0)
   })
 
+  it('explica el webhook fallido con el error completo y los ids atrás', async () => {
+    const error =
+      'Si quieres conocer los motivos del rechazo, por favor ingresá a tu cuenta de Mercado Pago.'
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: ['payment_webhook.failed'],
+      entityTypes: ['payment_integration_event'],
+      actorTypes: ['webhook'],
+    })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'log-wh',
+          action: 'payment_webhook.failed',
+          entity_type: 'payment_integration_event',
+          entity_id: '4659014d-e322-4f7b-acf5-3ff4191f3c4c',
+          actor_type: 'webhook',
+          actor_id: '777:payment.updated:2026-08-14T00:27:18.425Z',
+          source: 'payment',
+          metadata: { attempt: 5, error },
+          created_at: '2026-08-13T21:58:44.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findAllByText(error)).not.toHaveLength(0)
+    expect(screen.getAllByText('Webhook de pago fallido').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Intento').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('5').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Referencias técnicas').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Pagos · Mercado Pago/).length).toBeGreaterThan(0)
+  })
+
   it('muestra un vacío legible cuando no hay registros', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview())
     fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
@@ -159,6 +200,90 @@ describe('sección de auditoría', () => {
     expect(await screen.findByText('Requiere revisión')).toBeTruthy()
     expect(screen.getAllByText('4').length).toBeGreaterThan(0)
     expect(screen.getByText(/1 órdenes aprobadas sin afiliación activa/)).toBeTruthy()
+  })
+
+  it('deja fuente y estado a la vista y pliega acción, actor y entidad', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: ['membership.activated'],
+      entityTypes: ['membership'],
+      actorTypes: ['webhook'],
+      sources: ['domain', 'email', 'payment'],
+      statuses: ['partial', 'failed'],
+    })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByRole('button', { name: 'Negocio' })).toBeTruthy()
+    expect(screen.getByLabelText('Estado')).toBeTruthy()
+    expect(screen.queryByLabelText('Acción')).toBeNull()
+    expect(screen.queryByLabelText('Actor')).toBeNull()
+    expect(screen.queryByLabelText('Entidad')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Más filtros' })).toBeTruthy()
+
+    screen.getByRole('button', { name: 'Más filtros' }).click()
+
+    expect(await screen.findByLabelText('Acción')).toBeTruthy()
+    expect(screen.getByLabelText('Actor')).toBeTruthy()
+    expect(screen.getByLabelText('Entidad')).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Estado' }).textContent).toMatch(/Parcial/)
+  })
+
+  it('muestra la salud del flujo antes de los filtros', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview({ status: 'attention', emailAttention: 2 }))
+    fetchAuditFacets.mockResolvedValue({
+      actions: [],
+      entityTypes: [],
+      actorTypes: [],
+      sources: ['domain'],
+      statuses: [],
+    })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    const health = await screen.findByRole('region', { name: 'Salud del flujo de afiliación' })
+    const filters = screen.getByRole('group', { name: 'Fuente' })
+    expect(health.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('abre la traza completa del cobro para una orden de pago fallida', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: ['payment_attempt.failed'],
+      entityTypes: ['athlete_payment_order'],
+      actorTypes: ['system'],
+    })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'log-order',
+          action: 'payment_attempt.failed',
+          entity_type: 'athlete_payment_order',
+          entity_id: 'order-99',
+          actor_type: 'system',
+          severity: 'danger',
+          source: 'payment',
+          metadata: { attempt: 2, error: { message: 'El monto no coincide con la preferencia.' } },
+          created_at: '2026-08-13T21:58:44.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+    getPaymentOrderAudit.mockResolvedValue({
+      verdict: { state: 'blocked', summary: 'El cobro se cortó por una falla.', action: null },
+      stageReached: 'provider_submitted',
+      timeline: [],
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    const traceButton = await screen.findByRole('button', { name: 'Ver traza del cobro' })
+    traceButton.click()
+
+    await waitFor(() => expect(getPaymentOrderAudit).toHaveBeenCalledWith('order-99'))
+    expect(await screen.findByText('El cobro se cortó por una falla.')).toBeTruthy()
   })
 })
 

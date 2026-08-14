@@ -38,6 +38,7 @@ export function buildPendingActions({
       section: 'payments',
       orderId: order.orderId,
       hasProof,
+      paymentProofPath: order.paymentProofPath ?? null,
     })
   })
 
@@ -58,6 +59,7 @@ export function buildPendingActions({
         section: 'payments',
         paymentId: payment.id,
         hasProof,
+        paymentProofPath: payment.paymentProofPath ?? null,
       })
     })
 

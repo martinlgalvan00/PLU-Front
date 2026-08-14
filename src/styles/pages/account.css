@@ -1143,34 +1143,66 @@
 }
 
 /* ── Navegación sticky de secciones ──────────────────────────────
-   Track liquid glass + thumb deslizante (lenguaje SegmentedSwitch). */
+   Cinta editorial: labels enteros, scroll horizontal, oro solo en el activo. */
 .account-nav {
   margin: 26px auto 0;
   max-width: 1080px;
+  min-width: 0;
   padding: 0 clamp(20px, 5vw, 48px);
   position: sticky;
   top: calc(var(--header-height) + 10px);
   z-index: 40;
 }
 
-.account-nav__inner {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%),
-    color-mix(in srgb, var(--color-bg-surface) 78%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, rgba(255, 255, 255, 0.18));
-  border-radius: var(--border-radius-pill);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
-    0 12px 28px rgba(0, 0, 0, 0.16);
-  display: flex;
-  gap: 2px;
+.account-nav__viewport {
+  background: var(--color-bg-surface);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  border-radius: 2px;
   isolation: isolate;
+  min-width: 0;
+  position: relative;
+}
+
+.account-nav__viewport::before,
+.account-nav__viewport::after {
+  content: '';
+  inset: 0 auto 0 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--motion-fast) var(--ease-out);
+  width: 36px;
+  z-index: 2;
+}
+
+.account-nav__viewport::before {
+  background: linear-gradient(90deg, var(--color-bg-surface) 12%, transparent);
+}
+
+.account-nav__viewport::after {
+  background: linear-gradient(270deg, var(--color-bg-surface) 12%, transparent);
+  inset: 0 0 0 auto;
+}
+
+.account-nav__viewport[data-overflow-start='true']::before,
+.account-nav__viewport[data-overflow-end='true']::after {
+  opacity: 1;
+}
+
+.account-nav__inner {
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  gap: 0;
+  isolation: isolate;
+  min-width: 0;
   overflow-x: auto;
-  padding: 5px;
+  overscroll-behavior-x: contain;
+  padding: 0 6px;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
+  touch-action: pan-x;
+  width: 100%;
 }
 
 .account-nav__inner::-webkit-scrollbar {
@@ -1181,16 +1213,17 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: calc(var(--border-radius-pill) - 3px);
+  border-radius: 0;
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
-  flex: none;
-  font-size: 12.5px;
-  font-weight: 650;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
   padding: 0;
   position: relative;
-  transition: color var(--transition-fast);
+  scroll-snap-align: start;
+  transition: color var(--motion-fast) var(--ease-out);
   white-space: nowrap;
 }
 
@@ -1199,8 +1232,8 @@
 }
 
 .account-nav__item:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
 }
 
 .account-nav__item.is-active {
@@ -1208,63 +1241,60 @@
 }
 
 .account-nav__thumb {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.06) 100%),
-    color-mix(in srgb, var(--color-bg-elevated) 88%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: inherit;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 4px 14px rgba(0, 0, 0, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.12);
-  inset: 0;
+  background: var(--color-brand-gold);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  height: 2px;
+  inset: auto 14px 0;
   pointer-events: none;
   position: absolute;
   z-index: 0;
 }
 
 .account-nav__thumb::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, transparent 70%);
-  border-radius: inherit;
-  content: '';
-  inset: 1px 3px auto;
-  height: 42%;
-  pointer-events: none;
-  position: absolute;
+  content: none;
 }
 
 .account-nav__item-content {
   align-items: center;
   display: inline-flex;
-  gap: 7px;
-  padding: 9px 16px;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
   position: relative;
   z-index: 1;
 }
 
-[data-theme='light'] .account-nav__inner {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 248, 250, 0.82) 100%),
-    color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 10px 24px rgba(15, 17, 23, 0.08);
+.account-nav__item-content svg {
+  color: inherit;
+  flex: none;
 }
 
-[data-theme='light'] .account-nav__thumb {
-  background: linear-gradient(180deg, #fff 0%, #f4f5f7 100%);
-  border-color: rgba(15, 17, 23, 0.1);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 3px 10px rgba(15, 17, 23, 0.1);
+.account-nav__item.is-active .account-nav__item-content svg {
+  color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .account-nav__viewport {
+  border-color: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
 }
 
 [data-theme='light'] .account-nav__item.is-active {
-  color: #15171c;
+  color: var(--color-text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .account-nav__viewport::before,
+  .account-nav__viewport::after,
+  .account-nav__item {
+    transition: none;
+  }
+
+  .account-nav__inner {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+
   .account-nav__thumb {
     transition: none !important;
   }
@@ -1738,6 +1768,76 @@
 .account-membership__decision--solo .account-membership__checkout {
   border-top: 0;
   padding-top: 0;
+}
+
+/* Pantalla de settle de Mercado Pago — mismo lenguaje visual que el settle
+   de inscripción a torneo (flecha para cambiar de método + link directo a
+   transferencia), pero como clases propias de esta sección. */
+.account-membership__settle {
+  display: grid;
+  gap: 20px;
+}
+
+.account-membership__settle-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.account-membership__settle-back {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-membership__settle-back:hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-text-primary);
+}
+
+.account-membership__settle-back:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-membership__settle-alt {
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-membership__settle-alt:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.account-membership__settle-alt:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.account-membership__settle-alt:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .account-plan-options,
@@ -2756,10 +2856,10 @@
 
 .account-payment-modal--transfer {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   max-height: min(90vh, 720px);
   overflow: auto;
-  padding: 28px 28px 24px;
+  padding: 22px 22px calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .account-payment-modal--transfer .account-payment-modal__close {
@@ -2767,62 +2867,62 @@
   width: 44px;
 }
 
-.account-payment-modal--transfer .account-payment-modal__lead {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
+.account-payment-modal--transfer .account-payment-modal__footnote {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
   max-width: 46ch;
 }
 
-.account-payment-modal--transfer .account-payment-modal__footnote {
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.5;
-  margin: 0;
-  max-width: 52ch;
-}
-
 .account-payment-modal--transfer .account-secondary-action {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
   min-height: 44px;
+  padding: 0;
   width: 100%;
 }
 
 .account-transfer-receipt {
   display: grid;
-  gap: 2px;
+  gap: 0;
 }
 
 .account-transfer-receipt__total {
   align-items: baseline;
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 14px;
   justify-content: space-between;
   margin: 0;
-  padding: 4px 0 14px;
+  padding: 2px 0 12px;
 }
 
 .account-transfer-receipt__total span {
   color: var(--color-text-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .account-transfer-receipt__total strong {
   color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .account-transfer-data--receipt div {
-  grid-template-columns: 7.25rem minmax(0, 1fr);
-  padding: 10px 0;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  padding: 9px 0;
 }
 
 [data-theme='light'] .account-transfer-receipt__total strong {
@@ -2831,39 +2931,27 @@
 
 @media (max-width: 480px) {
   .account-payment-modal--transfer {
-    padding: 22px 18px 18px;
-  }
-
-  .account-transfer-receipt__total {
-    align-items: start;
-    flex-direction: column;
-    gap: 6px;
+    padding: 20px 18px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .account-transfer-data--receipt div {
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    gap: 2px;
   }
 }
 
 .account-payment-modal--checkout {
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
-  linear-gradient(165deg, #12141a 0%, #0a0b0f 55%, #070809 100%);
-  border: 1px solid color-mix(in srgb, var(--plu-gold-500) 42%, rgba(255, 255, 255, 0.12));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--plu-celeste-500, #1f5f9e) 22%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 32px 90px rgba(0, 0, 0, 0.58);
-  color: #f4f5f7;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  color: var(--color-text-primary);
   display: grid;
-  gap: 16px;
-  grid-template-rows: auto auto;
-  height: fit-content;
-  max-height: min(90vh, 640px);
-  max-width: 520px;
+  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(92vh, 820px);
+  max-width: 540px;
   overflow: hidden;
-  padding: 20px;
+  padding: 20px 20px 16px;
 }
 
 .account-payment-modal header,
@@ -2875,7 +2963,9 @@
 }
 
 .account-payment-modal--checkout .account-payment-modal__header {
-  align-items: center;
+  align-items: start;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  padding-bottom: 12px;
 }
 
 .account-payment-modal__intro {
@@ -2885,20 +2975,15 @@
 }
 
 .account-payment-modal--checkout .account-payment-modal__intro {
-  align-items: center;
-  display: flex;
-  gap: 14px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .account-payment-modal__logo {
   display: block;
   height: 26px;
   width: auto;
-}
-
-.account-payment-modal--checkout .account-payment-modal__logo {
-  flex: none;
-  height: 22px;
 }
 
 .account-payment-modal__titles {
@@ -2914,10 +2999,6 @@
   text-transform: uppercase;
 }
 
-.account-payment-modal--checkout .account-payment-modal__titles span {
-  color: color-mix(in srgb, var(--plu-gold-400) 82%, #fff);
-}
-
 .account-payment-modal h2,
 .account-payment-modal__titles h2 {
   color: var(--color-text-primary);
@@ -2928,20 +3009,57 @@
   margin: 6px 0 0;
 }
 
-.account-payment-modal--checkout .account-payment-modal__titles h2 {
-  color: #fff;
-  font-size: clamp(20px, 2.4vw, 24px);
-  margin-top: 4px;
+.account-payment-modal--checkout .account-payment-modal__intro h2 {
+  font-size: clamp(1.2rem, 3.2vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-payment-modal--checkout .account-payment-modal__summary strong {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+}
+
+[data-theme='light'] .account-payment-modal--checkout .account-payment-modal__summary strong {
+  color: var(--plu-gold-600);
 }
 
 .account-payment-modal--checkout header p,
-.account-payment-modal--checkout .account-payment-modal__titles p,
 .account-payment-modal--checkout .account-payment-modal__lead {
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 12.5px;
-  line-height: 1.35;
-  margin: 4px 0 0;
-  max-width: 36ch;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.account-payment-modal--checkout .visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .account-payment-modal header button,
@@ -2960,18 +3078,12 @@
 }
 
 .account-payment-modal--checkout .account-payment-modal__close {
-  border-color: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.72);
-  transition:
-    border-color var(--transition-fast),
-    color var(--transition-fast),
-    background var(--transition-fast);
+  height: 44px;
+  width: 44px;
 }
 
 .account-payment-modal--checkout .account-payment-modal__close:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: color-mix(in srgb, var(--plu-celeste-500, #1f5f9e) 55%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .account-payment-modal--checkout .account-payment-modal__close:focus-visible {
@@ -2988,47 +3100,7 @@
 
 .account-payment-modal--checkout .account-payment-modal__body {
   margin-top: 0;
-  overflow: visible;
-}
-
-.account-payment-modal__bridge {
-  display: grid;
-  gap: 0;
-  min-height: 0;
-}
-
-.account-payment-modal__bridge-bar {
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--plu-celeste-600, #1f5f9e) 18%, transparent), transparent 55%);
-}
-
-.account-payment-modal__bridge-label {
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.account-payment-modal__bridge-secure {
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 11px;
-  letter-spacing: 0.02em;
-}
-
-.account-payment-modal__bridge-stage {
-  background: #050608;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 18px 18px 16px;
+  overflow: auto;
 }
 
 .account-payment-modal__body .mp-embedded-checkout {
@@ -3047,6 +3119,16 @@
   gap: 0;
 }
 
+.account-payment-modal--checkout [data-testid='payment-form'] [class*='button-container'] {
+  max-width: none;
+  width: 100%;
+}
+
+.account-payment-modal--checkout [data-testid='payment-form'] button[type='submit'] {
+  min-height: 48px;
+  width: 100%;
+}
+
 .account-payment-modal__body .mp-embedded-checkout__mock {
   gap: 1rem;
 }
@@ -3061,29 +3143,29 @@
 .account-payment-modal__body .mp-embedded-checkout__mock-chip {
   background: color-mix(in srgb, var(--plu-gold-500) 10%, transparent);
   border-color: color-mix(in srgb, var(--plu-gold-500) 26%, transparent);
-  color: color-mix(in srgb, var(--plu-gold-300, #ffe08a) 72%, #fff);
+  color: var(--color-brand-gold);
   flex: none;
   font-size: 0.62rem;
   padding: 0.28rem 0.6rem;
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-summary {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   gap: 0.3rem;
   padding-bottom: 0.9rem;
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-summary-label {
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--color-text-muted);
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-amount {
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: clamp(1.7rem, 3vw, 2rem);
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-payer {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
@@ -3103,7 +3185,7 @@
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-more > summary {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 450;
@@ -3119,20 +3201,25 @@
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-more[open] > summary {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--color-text-secondary);
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-alt {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-muted);
 }
 
 .account-payment-modal__body .mp-embedded-checkout__mock-alt:hover:not(:disabled) {
-  border-bottom-color: color-mix(in srgb, var(--plu-celeste-500, #1f5f9e) 55%, transparent);
-  color: #9ec8ef;
+  border-bottom-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  color: var(--color-brand-celeste);
 }
 
-.account-payment-modal__body .mp-embedded-checkout__loading {
-  color: rgba(255, 255, 255, 0.42);
+.account-payment-modal__body .mp-embedded-checkout__loading,
+.account-payment-modal__body .mp-embedded-checkout__poll-followup {
+  color: var(--color-text-muted);
+}
+
+.account-payment-modal__body .mp-embedded-checkout__skeleton-bar {
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
 }
 
 .account-payment-modal__body .mp-embedded-checkout__result {
@@ -3141,12 +3228,13 @@
 }
 
 .account-payment-modal__body .mp-embedded-checkout__brick {
-  background: #fff;
-  border-radius: 8px;
-  max-height: min(58vh, 420px);
-  min-height: 240px;
-  overflow: auto;
-  padding: 8px;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
 }
 
 @keyframes account-payment-modal-fade {
@@ -3187,15 +3275,11 @@
   }
 
   .account-payment-modal--checkout {
-    padding: 18px 16px 16px;
+    padding: 16px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .account-payment-modal--checkout .account-payment-modal__intro {
     align-items: flex-start;
-  }
-
-  .account-payment-modal__bridge-stage {
-    padding: 16px 14px 14px;
   }
 }
 
@@ -3237,6 +3321,18 @@
   font-weight: 650;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.account-transfer-data--receipt dt {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-transfer-data--receipt dd {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .account-payment-modal > p {
@@ -3781,8 +3877,8 @@
   }
 
   .account-nav__item-content {
-    min-height: 44px;
-    padding-inline: 13px;
+    min-height: 48px;
+    padding-inline: 14px;
   }
 
   .account-sections {

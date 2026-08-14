@@ -97,14 +97,21 @@ export default function RegisterSettle({
 export function RegisterCheckoutBar({
   checkoutTotal,
   flow,
+  hideCta = false,
   packageLabel,
+  settle = false,
   submitting = false,
 }) {
   const { t } = useI18n()
 
   return (
     <CheckoutBar
-      className="register-checkout__bar register-card__footer--checkout"
+      className={[
+        'register-checkout__bar register-card__footer--checkout',
+        settle ? 'register-settle-bar' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       ctaClassName={[
         'btn register-card__submit plu-checkout__submit',
         flow === 'competition' ? 'register-card__submit--competition' : '',
@@ -112,7 +119,8 @@ export function RegisterCheckoutBar({
       ]
         .filter(Boolean)
         .join(' ')}
-      ctaLabel={submitting ? t('common.loading') : t('pages.register.checkoutContinue')}
+      ctaLabel={hideCta ? undefined : submitting ? t('common.loading') : t('pages.register.checkoutContinue')}
+      hideCta={hideCta}
       packageLabel={packageLabel}
       submitting={submitting}
       total={checkoutTotal}

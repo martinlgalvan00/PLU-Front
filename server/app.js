@@ -14,12 +14,14 @@ import { createAnalyticsRoutes } from './routes/analytics.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
+import { createFinanceRoutes } from './routes/finance.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
 import { errorHandler, notFoundHandler } from './lib/errors.js'
 import { getPrisma } from './lib/prisma.js'
 import { corsOrigin, requireTrustedMutation } from './lib/security.js'
+import { requestContext } from './middleware/requestContext.js'
 import { createOptionalAuth0JwtCheck } from './modules/auth/auth0.js'
 import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 
@@ -54,6 +56,10 @@ export function createApp(deps = {}) {
     }),
   )
   app.use(cors({ origin: corsOrigin, credentials: true }))
+  // Primero de la cadena util: todo lo que se loguee de aca en adelante
+  // -- incluido el stack de una falla de cobro -- queda atado al mismo
+  // requestId, que ademas viaja al cliente en `X-Request-Id`.
+  app.use(requestContext)
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.use(requireTrustedMutation)
@@ -158,6 +164,10 @@ export function createApp(deps = {}) {
     getPrisma: () => deps.prisma ?? getPrisma(),
     getSupabaseAdmin: resolveSupabaseAdmin,
     env: deps.env ?? process.env,
+  }))
+  app.use('/api/finance', createFinanceRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
   }))
   app.use(
     '/api/community',

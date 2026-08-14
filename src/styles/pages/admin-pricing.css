@@ -3,10 +3,12 @@
    ============================================= */
 
 .admin-pricing {
+  container-name: admin-pricing;
+  container-type: inline-size;
   display: grid;
   gap: clamp(1.4rem, 2.6vw, 2rem);
-  margin: 0 auto;
-  max-width: 1120px;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-pricing__hero,
@@ -132,14 +134,14 @@
 }
 
 .admin-pricing__btn--primary {
-  background: linear-gradient(135deg, var(--plu-gold-500, var(--color-brand-action)), var(--plu-gold-600, var(--color-brand-action)));
+  background: var(--color-brand-action);
   border-color: transparent;
-  color: #12151c;
+  color: var(--color-text-on-light, #12151c);
   font-weight: 700;
 }
 
 .admin-pricing__btn--primary:hover:not(:disabled) {
-  filter: brightness(1.04);
+  background: color-mix(in srgb, var(--color-brand-action) 88%, var(--color-text-primary));
 }
 
 .admin-pricing button:disabled,
@@ -200,7 +202,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   display: grid;
   gap: 0.75rem 1.1rem;
-  grid-template-columns: minmax(0, 1fr) auto minmax(220px, auto);
+  grid-template-columns: minmax(0, 1fr) auto minmax(320px, auto);
   padding: 0.85rem 0.15rem;
   position: relative;
   transition: background-color 160ms var(--ease-out, ease);
@@ -321,6 +323,7 @@
 }
 
 .admin-pricing__plan-amount {
+  flex: none;
   font-family: var(--font-display, var(--font-family));
   font-size: clamp(1.15rem, 2vw, 1.35rem);
   font-variant-numeric: tabular-nums;
@@ -337,7 +340,7 @@
   flex-wrap: nowrap;
   gap: 0.7rem;
   justify-content: flex-end;
-  min-width: 220px;
+  min-width: 320px;
 }
 
 .admin-pricing__switch {
@@ -737,6 +740,148 @@
 .admin-pricing__loading {
   font-size: 0.88rem;
   padding: 0.25rem 0;
+}
+
+/* El rail colapsado achica el contenido sin achicar el viewport.
+   Los cortes miran el tablero, con @media como fallback. */
+@supports (container-type: inline-size) {
+  @container admin-pricing (max-width: 899px) {
+    .admin-pricing__combo-toolbar,
+    .admin-pricing__combo-board {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__combo-window {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-pricing__combo-window .admin-pricing__toggle {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @container admin-pricing (max-width: 719px) {
+    .admin-pricing__hero,
+    .admin-pricing__block-head {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .admin-pricing__hero {
+      padding-bottom: 0.85rem;
+    }
+
+    .admin-pricing__hero h1 {
+      font-size: clamp(1.45rem, 6cqi, 1.75rem);
+    }
+
+    .admin-pricing__refresh {
+      align-self: flex-start;
+      min-height: 44px;
+      min-width: 44px;
+      overflow: hidden;
+      padding: 0;
+      position: relative;
+      width: 44px;
+    }
+
+    .admin-pricing__refresh .admin-pricing__btn-label {
+      border: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+
+    .admin-pricing__block-head .admin-pricing__btn {
+      min-height: 44px;
+      width: 100%;
+    }
+
+    .admin-pricing__plan-row {
+      align-items: start;
+      gap: 0.55rem 0.85rem;
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 0.75rem 0.1rem;
+    }
+
+    .admin-pricing__plan-amount {
+      font-size: 1.2rem;
+      padding-top: 0.15rem;
+    }
+
+    .admin-pricing__plan-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      padding-left: 0.7rem;
+    }
+
+    .admin-pricing__plan-actions .admin-pricing__btn {
+      min-height: 44px;
+    }
+
+    .admin-pricing__plan-row h3 {
+      white-space: normal;
+    }
+
+    .admin-pricing__form fieldset {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__form input,
+    .admin-pricing__form select,
+    .admin-pricing__form textarea,
+    .admin-pricing__combo-toolbar select,
+    .admin-pricing__combo-decision input {
+      min-height: 44px;
+    }
+
+    .admin-pricing__form-actions {
+      flex-direction: column-reverse;
+      gap: 0.55rem;
+    }
+
+    .admin-pricing__form-actions .admin-pricing__btn {
+      min-height: 44px;
+      width: 100%;
+    }
+
+    .admin-pricing__wide {
+      grid-column: auto;
+    }
+
+    .admin-pricing__combo-stack {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .admin-pricing__combo-op {
+      padding-top: 0;
+    }
+  }
+
+  @container admin-pricing (max-width: 430px) {
+    .admin-pricing__combo-window {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__toggle {
+      min-height: 44px;
+    }
+
+    .admin-pricing__toggle input {
+      height: 18px;
+      min-height: 18px;
+      width: 18px;
+    }
+  }
 }
 
 @media (max-width: 900px) {

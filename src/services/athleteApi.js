@@ -545,6 +545,16 @@ export async function setMembershipStatus(membershipId, status) {
   return { membership: toCamelMembership(membership) }
 }
 
+export async function deleteMembershipRequest(membershipId) {
+  const result = await apiDelete(`/api/athletes/admin/memberships/${encodeURIComponent(membershipId)}`)
+  return { deletedMembership: result.deletedMembership }
+}
+
+export async function deleteRegistrationRequest(registrationId) {
+  const result = await apiDelete(`/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`)
+  return { deletedRegistration: result.deletedRegistration }
+}
+
 /** Rota la credencial de la persona: invalida la card impresa de ese atleta. */
 export async function rotateAthleteCredentialToken(athleteId) {
   const { athlete } = await apiPost(`/api/athletes/admin/${athleteId}/rotate-credential`, {})
@@ -552,8 +562,8 @@ export async function rotateAthleteCredentialToken(athleteId) {
 }
 
 /**
- * Borrado definitivo del atleta y todo lo asociado. Solo Super Admin: el
- * backend lo exige con requireRole(['admin_maximal']).
+ * Borrado definitivo del atleta y todo lo asociado. El backend exige el
+ * permiso granular admin.athletes.delete.
  */
 export async function deleteAthleteRequest(athleteId) {
   const result = await apiDelete(`/api/athletes/admin/${encodeURIComponent(athleteId)}`)

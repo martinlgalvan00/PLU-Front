@@ -176,6 +176,10 @@ export function updateAccessRolePermissionsRequest(roleId, permissionKeys) {
   })
 }
 
+export function updateAccessRoleStatusRequest(roleId, active) {
+  return apiPatch(`/api/access-control/roles/${encodeURIComponent(roleId)}/status`, { active })
+}
+
 export function meRequest() {
   return apiRequest('/api/auth/me')
 }

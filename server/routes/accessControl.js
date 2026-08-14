@@ -2,8 +2,10 @@ import { Router } from 'express'
 import {
   createAccessRoleSchema,
   updateAccessRolePermissionsSchema,
+  updateAccessRoleStatusSchema,
 } from '../../src/lib/schemas/accessControl.js'
 import {
+  canManageRoleLifecycle,
   canManageRolePermissions,
   hasPermission,
   PERMISSION_CATALOG,
@@ -44,6 +46,7 @@ const ACCESS_ROLE_AUDIT_ACTIONS = [
   'access_role.created',
   'access_role.permissions_updated',
   'access_role.hierarchy_configured',
+  'access_role.status_updated',
 ]
 
 async function listRecentRoleActivity(prisma, actor, roles) {
@@ -109,7 +112,6 @@ export function createAccessControlRoutes({ getPrisma }) {
   router.get('/', ...readGuard, staffLimiter, async (req, res, next) => {
     try {
       const roles = await prisma.accessRole.findMany({
-        where: { active: true },
         include: roleInclude(),
       })
       const activity = await listRecentRoleActivity(prisma, req.auth.user, roles)
@@ -205,6 +207,57 @@ export function createAccessControlRoutes({ getPrisma }) {
         }
         next(error)
       }
+    },
+  )
+
+  router.patch(
+    '/:roleId/status',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(updateAccessRoleStatusSchema),
+    async (req, res, next) => {
+      try {
+        const prismaClient = getPrisma()
+        const current = await prismaClient.accessRole.findUnique({
+          where: { id: req.params.roleId },
+          include: roleInclude(),
+        })
+        if (!current) throw new HttpError(404, 'El rol no existe.')
+        if (!canManageRoleLifecycle(req.auth.user, current)) {
+          throw new HttpError(403, 'No tenés jerarquía suficiente para activar o desactivar este rol.')
+        }
+
+        const active = req.validatedBody.active
+        const result = await prismaClient.$transaction(async (tx) => {
+          const role = await tx.accessRole.update({
+            where: { id: current.id },
+            data: { active },
+            include: roleInclude(),
+          })
+          const activity = await audit(tx, {
+            action: 'access_role.status_updated',
+            actorId: req.auth.user.id,
+            entityId: current.id,
+            before: { active: current.active },
+            after: { active },
+          })
+          if (!active && typeof tx.session?.updateMany === 'function') {
+            await tx.session.updateMany({
+              where: { revokedAt: null, user: { accessRoleId: current.id } },
+              data: { revokedAt: new Date() },
+            })
+          }
+          return { activity, role }
+        })
+
+        res.json({
+          activity: serializeAccessRoleActivity(result.activity, { actor: req.auth.user, roleName: result.role.name }),
+          role: serializeAccessRole(result.role, {
+            canAssign: canActorAssignRole(req.auth.user, result.role),
+            canManagePermissions: canManageRolePermissions(req.auth.user, result.role),
+          }),
+        })
+      } catch (error) { next(error) }
     },
   )
 

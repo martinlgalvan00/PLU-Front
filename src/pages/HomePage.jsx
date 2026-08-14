@@ -1,7 +1,9 @@
 import { m } from 'motion/react'
+import { useCallback, useRef, useState } from 'react'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
+import HomeGuideSheet from '../components/ui/HomeGuideSheet.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
@@ -16,6 +18,7 @@ import {
   getFeaturedEventDestination,
   getPitbullClassicEvent,
 } from '../lib/eventNavigation.js'
+import { hasSeenHomeGuide, markHomeGuideSeen } from '../lib/homeGuideStorage.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -86,6 +89,32 @@ export default function HomePage({
   const paidCheckoutOpen = isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
   const isRegistrationDisabled =
     !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
+  const [guideOpen, setGuideOpen] = useState(false)
+  const guideAutoOpenedRef = useRef(false)
+
+  const closeGuide = useCallback(() => {
+    markHomeGuideSeen()
+    setGuideOpen(false)
+  }, [])
+
+  const openGuide = useCallback(() => {
+    setGuideOpen(true)
+  }, [])
+
+  const handleStickyVisible = useCallback(() => {
+    if (guideAutoOpenedRef.current || isLoggedInAthlete || hasSeenHomeGuide()) return
+    if (typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 640px)').matches) {
+      return
+    }
+    guideAutoOpenedRef.current = true
+    setGuideOpen(true)
+  }, [isLoggedInAthlete])
+
+  const goToAffiliation = useCallback(() => {
+    markHomeGuideSeen()
+    setGuideOpen(false)
+    onNavigate?.('members')
+  }, [onNavigate])
 
   return (
     <main className="home-page">
@@ -152,7 +181,15 @@ export default function HomePage({
         </Reveal>
       </section>
 
-      <StickyMobileCta onNavigate={onNavigate} />
+      <StickyMobileCta
+        guideOpen={guideOpen}
+        onBecameVisible={handleStickyVisible}
+        onNavigate={goToAffiliation}
+        onOpenGuide={openGuide}
+      />
+      {guideOpen ? (
+        <HomeGuideSheet onAffiliate={goToAffiliation} onClose={closeGuide} />
+      ) : null}
     </main>
   )
 }

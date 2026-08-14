@@ -37,9 +37,17 @@
   background: var(--admin-brand);
 }
 
-.admin-shell .admin-shell__nav button.active .admin-shell__nav-icon,
-.admin-shell .admin-shell__badge--alert {
+.admin-shell .admin-shell__nav button.active .admin-shell__nav-icon {
   color: var(--admin-brand);
+}
+
+.admin-shell .admin-shell__badge--alert {
+  color: var(--color-brand-red);
+}
+
+.admin-shell.admin-shell--collapsed .admin-shell__badge--alert {
+  background: var(--color-brand-red);
+  color: #fff;
 }
 
 .admin-shell .admin-shell__account-mark {
@@ -154,6 +162,16 @@
   border-left-color: var(--admin-hairline);
 }
 
+.admin-shell .data-table-card--compact .data-table__identity-copy {
+  min-width: 0;
+}
+
+.admin-shell .data-table-card--compact .data-table__identity-copy .data-table__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-shell .btn,
 .admin-shell .export-btn {
   background: var(--admin-action);
@@ -197,34 +215,103 @@
   gap: 10px;
 }
 
-.admin-shell .admin-list-section--rails > .admin-list-section__header,
-.admin-shell .admin-list-section--rails > .admin-list-shell__header {
+/* Listados de pagina completa: chrome fijo, filas con scroll propio.
+   No aplica a listados anidados (pagos/tickets). */
+.admin-shell:has(.admin-page > .admin-list-section--rails) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.admin-shell:has(.admin-page > .admin-list-section--rails) .admin-shell__main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-page:has(> .admin-list-section--rails) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 10px;
+}
+
+.admin-shell .admin-page > .admin-list-section--rails {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-list-section__chrome {
+  background: var(--admin-canvas);
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding-bottom: 8px;
+  position: relative;
+  z-index: 5;
+}
+
+.admin-shell .admin-page > .admin-list-section--rails > .admin-list-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-page > .admin-list-section--rails .admin-list-shell__body {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-shell .admin-page > .admin-list-section--rails .admin-list-shell__body:has(.data-table__empty-wrap--admin) {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-shell .admin-page > .admin-list-section--rails .data-table__empty-wrap--admin {
+  flex: 1;
+  justify-content: center;
+  min-height: 0;
+  padding: 28px 16px;
+}
+
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-section__header,
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-shell__header {
   gap: 12px;
   margin-bottom: 2px;
   padding: 2px 2px 8px;
 }
 
-.admin-shell .admin-list-section--rails > .admin-list-shell__header .admin-list-shell__title {
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-shell__header .admin-list-shell__title {
   font-size: clamp(1.2rem, 2vw, 1.45rem);
   letter-spacing: -0.03em;
 }
 
-.admin-shell .admin-list-section--rails > .admin-list-shell__header .admin-list-shell__subtitle {
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-shell__header .admin-list-shell__subtitle {
   color: var(--admin-muted);
   font-size: 12.5px;
   max-width: 52ch;
 }
 
 /* Cabecera + filtros fuera del card; la shell queda para datos. */
-.admin-shell .admin-list-section > .admin-list-section__header,
-.admin-shell .admin-list-section > .admin-list-shell__header {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-list-section__header,
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-list-shell__header {
   background: transparent;
   border: 0;
   margin: 0;
   padding: 0 2px 4px;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-filters--external {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -232,7 +319,7 @@
   padding-inline: 2px;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external.admin-filters--inline.admin-filters--compact {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-filters--external.admin-filters--inline.admin-filters--compact {
   align-items: stretch;
   border-bottom: 0;
   gap: 8px;
@@ -241,11 +328,11 @@
   position: relative;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external.admin-filters--inline.admin-filters--compact::after {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-filters--external.admin-filters--inline.admin-filters--compact::after {
   content: none;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external .admin-filters__count {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-filters--external .admin-filters__count {
   color: var(--admin-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -278,6 +365,10 @@
 
 .admin-shell .admin-list-shell__actions .btn {
   min-height: 34px;
+}
+
+.admin-shell .admin-list-shell__actions:empty {
+  display: none;
 }
 
 .admin-shell .admin-list-shell__stats-strip {
@@ -412,6 +503,12 @@
   width: auto;
 }
 
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group + .admin-filter-group--toggle,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group + .admin-filter-group--toggle {
+  border-left: 1px solid var(--admin-hairline);
+  padding-left: 10px;
+}
+
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
   flex: 1 1 160px;
@@ -419,7 +516,38 @@
   width: auto;
 }
 
-@media (min-width: 640px) {
+.admin-shell .admin-filters--registrations .admin-filters__groups,
+.admin-shell .admin-filters--registrations .admin-filters__groups--multi {
+  align-items: stretch;
+  display: flex !important;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.admin-shell .admin-filters--registrations .admin-filters__groups--multi .admin-filter-group {
+  flex: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-list-shell--registrations .data-table-mobile-toolbar,
+.admin-shell .admin-list-shell--registrations .data-table-mobile-toolbar__bar {
+  justify-content: flex-start;
+}
+
+.admin-shell .data-table-card__select {
+  flex: none;
+  padding-top: 2px;
+}
+
+.admin-shell .data-table-card--compact .admin-schedule-select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (min-width: 720px) {
   .admin-shell .admin-filters--inline .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
   .admin-shell .admin-filters__panel .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
     flex-wrap: nowrap;
@@ -939,11 +1067,29 @@
   }
 
   .admin-event-editor-modal__panel .admin-event-form__body {
-    padding: 14px 16px 20px;
+    padding: 12px 12px 18px;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__actions {
     padding-inline: 16px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__lane {
+    gap: 14px;
+    padding: 12px 10px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__occupancy {
+    grid-column: 1 / -1;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
+  .admin-event-editor-modal__panel .admin-event-form select {
+    min-height: 44px;
   }
 
   .admin-event-form__grid--pricing {
@@ -1095,15 +1241,15 @@
   gap: 0;
 }
 
-.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-shell__header,
-.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-section__header {
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-section__chrome > .admin-list-shell__header,
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-section__chrome > .admin-list-section__header {
   background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   margin: 0;
   padding: 18px clamp(14px, 2.4vw, 22px) 16px;
 }
 
-.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-filters--external {
+.admin-shell .admin-payments-operations .admin-list-section--tickets > .admin-list-section__chrome > .admin-filters--external {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--admin-hairline);
@@ -1253,8 +1399,10 @@
 /* ---- Tablet ---- */
 
 @media (min-width: 1200px) {
-  .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(380px, 0.62fr);
+  @container admin-panel (min-width: 900px) {
+    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
+      grid-template-columns: minmax(0, 1fr) minmax(380px, 0.62fr);
+    }
   }
 
   .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) .admin-event-row__slug {
@@ -1339,21 +1487,49 @@
   }
 
   /* En rails, título oculto + solo "N registros" = franja muerta. Si hay
-     acciones en el header, se mantienen. */
+     acciones reales en el header, se mantienen. */
   .admin-shell
     .admin-list-section--rails
-    > .admin-list-shell__header:not(:has(.admin-list-shell__actions)),
+    > .admin-list-section__chrome > .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))),
   .admin-shell
     .admin-list-section--rails
-    > .admin-list-section__header:not(:has(.admin-list-shell__actions)) {
+    > .admin-list-section__chrome > .admin-list-section__header:not(:has(.admin-list-shell__actions:not(:empty))) {
     display: none;
   }
 
   .admin-shell
-    .admin-list-shell__header:not(:has(.admin-list-shell__actions)):not(
+    .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))):not(
       :has(.admin-list-shell__meta)
     ) {
     display: none;
+  }
+
+  .admin-shell .admin-list-shell__actions .export-btn {
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  /* Eventos: el hide global deja una franja muerta solo con el CTA.
+     El h1 vuelve y el header queda en una fila compacta. */
+  .admin-shell .admin-list-section--events .admin-list-shell__title {
+    display: block;
+    font-size: 1.15rem;
+  }
+
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header,
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-shell__header {
+    align-items: center;
+    display: grid;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 0;
+    padding: 4px 2px 6px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
   }
 }
 
@@ -1361,6 +1537,7 @@
 
 @media (max-width: 720px) {
   .admin-shell .admin-page {
+    overflow-x: clip;
     padding: 12px 10px 28px;
   }
 
@@ -1462,11 +1639,34 @@
     display: none;
   }
 
+  .admin-shell .admin-filters--inline .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px 10px;
+  }
+
+  .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+  }
+
+  .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group + .admin-filter-group--toggle {
+    border-left: 1px solid var(--admin-hairline);
+    padding-left: 10px;
+  }
+
   .admin-shell .admin-filters--inline .admin-filter-chips {
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-wrap: nowrap;
+    gap: 2px;
     margin: 0;
-    overflow: visible;
+    overflow-x: auto;
     padding-bottom: 0;
     padding-inline: 0;
   }
@@ -1476,12 +1676,21 @@
     padding: 6px 12px;
   }
 
-  /* Sticky bajo la barra mobile del shell (no tapar el menú). */
-  .admin-shell .admin-list-section > .admin-filters--external {
-    background: var(--admin-bg, var(--color-bg-canvas));
+  /* Fallback para listados anidados (el de pagina completa ya pinnea por flex). */
+  .admin-shell .admin-list-section__chrome {
+    background: var(--admin-canvas);
     position: sticky;
     top: calc(env(safe-area-inset-top, 0px) + 48px);
-    z-index: 4;
+    z-index: 5;
+  }
+
+  .admin-shell:has(.admin-page > .admin-list-section--rails) .admin-list-section__chrome {
+    position: relative;
+    top: auto;
+  }
+
+  .admin-shell .admin-page:has(> .admin-list-section--rails) {
+    padding-bottom: 8px;
   }
 
   .admin-shell .data-table-cards--admin {
@@ -1498,6 +1707,36 @@
   .admin-shell .data-table-card--admin.data-table-card--compact {
     gap: 6px;
     padding: 10px 12px;
+  }
+
+  .admin-shell .data-table-card.data-table__row--membership.data-table-card--compact {
+    display: grid;
+    gap: 4px 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .data-table-card.data-table__row--membership .data-table-card__top {
+    grid-column: 1 / -1;
+  }
+
+  .admin-shell .data-table-card.data-table__row--membership .data-table-card__meta {
+    align-self: center;
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .admin-shell .data-table-card.data-table__row--membership .data-table-card__footer {
+    align-self: center;
+    border-top: 0;
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-end;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .admin-shell .data-table-card .admin-membership-actions {
+    flex-wrap: nowrap;
   }
 
   .admin-shell .data-table-card__top {
@@ -1648,6 +1887,20 @@
 }
 
 @media (max-width: 430px) {
+  .admin-shell .admin-page {
+    overflow-x: clip;
+    padding: 8px 8px 24px;
+  }
+
+  .admin-shell .admin-page:has(.admin-list-section) {
+    padding: 8px 8px 24px;
+  }
+
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
   .admin-shell .admin-page-toolbar__subtitle,
   .admin-shell .admin-list-shell__subtitle {
     max-width: none;
@@ -1684,6 +1937,68 @@
     grid-column: 3;
     grid-row: 2;
     justify-self: end;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+    border-left: 0;
+    padding-left: 12px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--admin-glass-border);
+    padding-top: 10px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__header,
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header {
+    align-items: center;
+    display: grid;
+    flex-direction: row;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 4px 2px 8px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__title {
+    display: block !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+    display: flex;
+    flex: none;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions {
+    display: inline-flex;
+    gap: 6px;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions:has(.admin-events__refresh-btn) {
+    display: inline-flex;
+    grid-template-columns: none;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    min-height: 36px;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__refresh-btn {
+    min-height: 36px;
+    width: 36px;
   }
 }
 
@@ -1907,7 +2222,7 @@
   width: auto;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 720px) {
   .admin-shell .admin-filters__panel .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
     flex-wrap: nowrap;
   }
@@ -1936,8 +2251,13 @@
   width: 100%;
 }
 
-/* Rail: scroll horizontal con fade suave. */
+/* Rail: fade solo cuando el track desborda. */
 .admin-shell .admin-filter-chips-rail {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filter-chips-rail.is-overflowing {
   -webkit-mask-image: linear-gradient(
     to right,
     #000 0,
@@ -1950,11 +2270,9 @@
     #000 calc(100% - 18px),
     transparent 100%
   );
-  min-width: 0;
-  width: 100%;
 }
 
-.admin-shell .admin-filter-chips-rail:focus-within {
+.admin-shell .admin-filter-chips-rail.is-overflowing:focus-within {
   -webkit-mask-image: none;
   mask-image: none;
 }
@@ -1967,7 +2285,7 @@
   border-radius: 10px;
   display: flex;
   flex-wrap: nowrap;
-  gap: 2px;
+  gap: 3px;
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
@@ -1996,12 +2314,14 @@
   border-radius: 7px;
   box-shadow: none;
   color: var(--admin-muted);
-  flex: 0 0 auto;
+  flex: 1 0 auto;
   font-size: 12.5px;
   font-weight: 550;
   gap: 6px;
+  justify-content: center;
   letter-spacing: -0.01em;
   min-height: 32px;
+  min-width: max-content;
   padding: 5px 11px;
   position: relative;
   scroll-snap-align: start;
@@ -2081,10 +2401,15 @@
   outline-offset: 2px;
 }
 
-/* Toggle: misma familia, compacto, sin label de grupo. */
-.admin-shell .admin-filter-group--toggle {
+/* Toggle: misma familia, compacto, nunca a todo el ancho. */
+.admin-shell .admin-filter-group--toggle,
+.admin-shell .admin-filters--inline .admin-filter-group--rail.admin-filter-group--toggle,
+.admin-shell .admin-filters__panel .admin-filter-group--rail.admin-filter-group--toggle,
+.admin-shell .admin-filters--inline .admin-filter-group--inline.admin-filter-group--toggle,
+.admin-shell .admin-filters__panel .admin-filter-group--inline.admin-filter-group--toggle {
+  align-self: start;
   flex: none;
-  width: auto;
+  width: fit-content;
 }
 
 .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
@@ -2093,8 +2418,10 @@
   border-radius: 999px;
   box-shadow: none;
   color: var(--admin-muted);
+  flex: none;
   font-size: 12.5px;
   font-weight: 550;
+  gap: 6px;
   justify-content: center;
   min-height: 34px;
   padding: 5px 13px;
@@ -2912,12 +3239,19 @@
     pointer-events: auto;
   }
 
-  .admin-shell .admin-filters__panel .admin-filters__groups,
-  .admin-shell .admin-filters__panel .admin-filters__groups--multi {
+  .admin-shell .admin-filters__panel .admin-filters__groups {
     align-items: stretch;
     display: grid;
     gap: 7px;
     overflow: visible;
+  }
+
+  .admin-shell .admin-filters__panel .admin-filters__groups--multi {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px 10px;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-group--inline {
@@ -2943,8 +3277,18 @@
   .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
     font-size: 12.5px;
     gap: 6px;
-    min-height: 36px;
-    padding: 8px 12px 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+
+  .admin-shell .admin-filters__panel .admin-filter-group--toggle,
+  .admin-shell .admin-filters__panel .admin-filter-group--inline.admin-filter-group--toggle {
+    width: fit-content;
   }
 
   .admin-shell .admin-filter-chip__indicator {
@@ -4281,16 +4625,64 @@
   width: 100%;
 }
 
-.admin-shell .admin-list-section--events .admin-events__toolbar-actions {
+.admin-shell .admin-list-section--events .admin-events__header-actions {
   align-items: center;
   display: inline-flex;
   flex: none;
   gap: 6px;
 }
 
-.admin-shell .admin-list-section--events .admin-events__toolbar-actions .btn {
+.admin-shell .admin-list-section--events .admin-events__header-actions .btn {
   min-height: 36px;
   padding-inline: 12px;
+}
+
+@media (max-width: 1024px) {
+  .admin-shell .admin-list-section--events .admin-list-shell__eyebrow,
+  .admin-shell .admin-list-section--events .admin-list-shell__subtitle {
+    display: none !important;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__title {
+    display: block !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header,
+  .admin-shell .admin-list-section--events .admin-list-shell__header {
+    align-items: center;
+    display: grid;
+    flex-direction: row;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 4px 2px 8px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__intro {
+    min-width: 0;
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+    display: flex;
+    flex: none;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions {
+    display: inline-flex;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    justify-content: center;
+    min-height: 36px;
+    width: auto;
+  }
 }
 
 /* El tratamiento del chip ya lo cubre el bloque `:is(.admin-filters--compact,
@@ -4312,13 +4704,11 @@
   box-shadow:
     inset 0 1px 0 var(--admin-glass-highlight),
     var(--admin-glass-shadow);
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
   gap: 0;
-  grid-template-columns: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0 0 4px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overflow: visible;
   padding: 4px 0;
   scrollbar-width: none;
 }
@@ -4328,19 +4718,28 @@
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi {
-  align-items: baseline;
-  display: inline-flex;
-  flex: 1 1 0;
-  flex-direction: row;
-  gap: 8px;
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   justify-content: flex-start;
-  min-width: max(5.5rem, 18%);
-  padding: 8px 18px;
+  min-width: 0;
+  padding: 8px 14px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
   border-left: 1px solid var(--admin-glass-border);
-  padding-left: 18px;
+  padding-left: 14px;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi:first-child {
+  border-left: 0;
+  padding-left: 14px;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+  border-top: 0;
+  padding-top: 8px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__label {
@@ -4348,7 +4747,7 @@
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  order: 1;
+  order: 0;
   text-transform: uppercase;
 }
 
@@ -4361,7 +4760,7 @@
   letter-spacing: -0.045em;
   line-height: 1;
   margin-left: 0;
-  order: 0;
+  order: 1;
 }
 
 .admin-shell .admin-list-shell--events .admin-events-workspace {
@@ -4386,12 +4785,6 @@
   .admin-shell .admin-list-shell--events .admin-event-list {
     max-height: none;
     overflow: visible;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-    max-height: none;
-    overflow: visible;
-    position: static;
   }
 }
 
@@ -4447,7 +4840,7 @@
   border-bottom-color: color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   border-radius: 0;
   gap: 4px 16px;
-  grid-template-columns: 48px minmax(0, 1fr) minmax(64px, 96px) auto auto;
+  grid-template-columns: 52px minmax(0, 1fr) minmax(64px, 96px) auto auto;
   min-height: 0;
   padding: 12px 12px;
   transition:
@@ -4462,18 +4855,22 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__date {
-  border-right: 0;
-  gap: 2px;
-  justify-items: start;
-  padding-right: 8px;
+  align-content: center;
+  border-right: 1px solid color-mix(in srgb, var(--admin-hairline) 90%, transparent);
+  gap: 3px;
+  justify-items: center;
+  min-width: 46px;
+  padding-right: 12px;
+  width: 46px;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__day {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: 23px;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   line-height: 1;
   transition: color var(--motion-fast) var(--ease-standard, ease);
 }
@@ -4484,13 +4881,15 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row__month {
   color: var(--admin-muted);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row--selected .admin-event-row__day {
-  color: color-mix(in srgb, var(--admin-brand) 78%, var(--admin-ink));
+  color: var(--admin-ink);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__slug {
@@ -4560,6 +4959,7 @@
 
 .admin-shell .admin-list-shell--events .admin-event-row__body {
   gap: 5px;
+  min-width: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__title-wrap {
@@ -4571,6 +4971,9 @@
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta {
@@ -4942,14 +5345,16 @@
 }
 
 @media (min-width: 1200px) {
-  .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.58fr);
+  @container admin-panel (min-width: 900px) {
+    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.58fr);
+    }
   }
 }
 
 @media (max-width: 1100px) {
   .admin-shell .admin-list-shell--events .admin-event-row {
-    grid-template-columns: 46px minmax(160px, 1fr) 58px 134px auto;
+    grid-template-columns: 52px minmax(160px, 1fr) 58px 134px auto;
   }
 
   /* Ancho fijo: con ancho automático el contador variaba de fila en fila y
@@ -4966,32 +5371,37 @@
 }
 
 @media (max-width: 900px) {
+  /* Fallback sin container queries: KPIs en una fila, filas de evento en 2 líneas. */
   .admin-shell .admin-list-section--events .admin-events-kpis {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-bottom: 6px;
     overflow: visible;
-    padding: 6px 2px;
+    padding: 4px 0;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi {
-    flex: 1 1 calc(50% - 1px);
-    min-width: 0;
-    padding: 8px 12px;
-  }
-
-  .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
-    border-left: 1px solid var(--admin-glass-border);
-    padding-left: 12px;
-  }
-
-  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
-    border-left: 0;
-    padding-left: 10px;
+    padding: 6px 10px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
-    border-top: 1px solid var(--admin-glass-border);
-    padding-top: 10px;
+    border-top: 0;
+    padding-top: 6px;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi__value {
+    font-size: 1.05rem;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events-kpi__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-shell .admin-list-section--events .admin-filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   /* El panel pasa a estar debajo de la lista, así que el scroll interno
@@ -5004,8 +5414,44 @@
 
   .admin-shell .admin-list-shell--events .admin-event-row {
     border-radius: 0;
+    gap: 6px 10px;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     min-height: 0;
-    padding: 10px 2px;
+    padding: 9px 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__date {
+    border-right-color: color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    padding-right: 10px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__body {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__badge {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__capacity {
+    align-self: center;
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    grid-column: 3;
+    grid-row: 1;
+    min-height: 44px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-row__actions {
@@ -5048,72 +5494,39 @@
     border-radius: 0;
   }
 
-  /* Sin este bloque la regla de 5 columnas de --events (más específica que la
-     del skin genérico) seguía activa y la fila se iba de ancho. El estado y
-     los cupos bajan a la segunda línea para que el título respire. */
-  .admin-shell .admin-list-shell--events .admin-event-row {
-    gap: 6px 10px;
-    grid-template-columns: 42px minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    padding: 9px 12px;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-row__date {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    padding-right: 8px;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-row__body {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-row__badge {
-    align-self: center;
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-row__capacity {
-    align-self: center;
-    grid-column: 3;
-    grid-row: 2;
-    justify-self: end;
-    width: auto;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-row__actions {
-    grid-column: 3;
-    grid-row: 1;
-  }
-
-  .admin-shell .admin-list-section--events .admin-list-shell__header {
-    grid-template-columns: minmax(0, 1fr);
+  /* El layout de 2 líneas de la fila vive en max-width: 900px.
+     Acá el header sigue en una sola fila (título + CTA) hasta 430px. */
+  .admin-shell .admin-list-section--events .admin-list-shell__header,
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header {
+    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 0;
-    padding: 14px 14px 12px;
+    padding: 4px 2px 6px;
   }
 
   .admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
     display: none;
   }
 
-  .admin-shell .admin-list-shell--events .admin-list-shell__actions {
-    justify-content: stretch;
-    width: 100%;
+  .admin-shell .admin-list-section--events .admin-list-shell__actions {
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
   }
 
-  .admin-shell .admin-list-shell--events .admin-events__header-actions {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: 44px minmax(0, 1fr);
-    width: 100%;
+  .admin-shell .admin-list-section--events .admin-events__header-actions {
+    display: inline-flex;
+    width: auto;
   }
 
-  .admin-shell .admin-list-shell--events .admin-events__refresh-btn {
-    min-height: 44px;
-    width: 44px;
+  .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    min-height: 36px;
+    width: auto;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__refresh-btn {
+    min-height: 36px;
+    width: 36px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-list {
@@ -5838,5 +6251,426 @@
     display: flex;
     justify-content: stretch;
     padding-block: 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   LISTADOS · LAYOUT POR ANCHO ÚTIL (container queries)
+   El rail colapsado achica el contenido sin achicar el
+   viewport. Estas reglas responden a `.admin-list-section`
+   (admin-panel) y `.admin-events-workspace` (admin-events).
+   ═══════════════════════════════════════════════════════ */
+
+@supports (container-type: inline-size) {
+  @container admin-panel (max-width: 899px) {
+    .admin-shell .data-table--admin {
+      display: none;
+    }
+
+    .admin-shell .data-table-cards,
+    .admin-shell .data-table-cards--admin {
+      display: grid;
+    }
+
+    .admin-shell .data-table-mobile-toolbar {
+      display: grid;
+    }
+  }
+
+  @container admin-panel (min-width: 900px) {
+    .admin-shell .data-table--admin {
+      display: block;
+    }
+
+    .admin-shell .data-table-cards,
+    .admin-shell .data-table-cards--admin {
+      display: none;
+    }
+
+    .admin-shell .data-table-mobile-toolbar {
+      display: none;
+    }
+  }
+
+  @container admin-panel (max-width: 719px) {
+    .admin-shell .admin-filters--inline .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+      align-items: center;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 8px 10px;
+    }
+
+    .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: auto;
+    }
+
+    .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--toggle {
+      flex: 0 0 auto;
+      width: auto;
+    }
+
+    .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+      flex: none;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .admin-shell .data-table-card--admin.data-table-card--compact {
+      gap: 6px;
+      padding: 8px 10px;
+    }
+
+    .admin-shell .data-table-card--compact .data-table-card__top {
+      align-items: center;
+      min-width: 0;
+    }
+
+    .admin-shell .data-table-card--compact .data-table__identity,
+    .admin-shell .data-table-card--compact .data-table-card__primary,
+    .admin-shell .data-table-card--compact .data-table__identity-copy {
+      min-width: 0;
+    }
+
+    .admin-shell .data-table-card--compact .data-table__identity-copy .data-table__sub {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-shell .data-table-card--compact .data-table-card__meta,
+    .admin-shell .data-table-card--compact .data-table-card__meta--inline {
+      min-width: 0;
+    }
+
+    .admin-shell .data-table-card.data-table__row--membership.data-table-card--compact {
+      display: grid;
+      gap: 4px 10px;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .admin-shell .data-table-card.data-table__row--membership .data-table-card__top {
+      grid-column: 1 / -1;
+    }
+
+    .admin-shell .data-table-card.data-table__row--membership .data-table-card__meta {
+      align-self: center;
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .admin-shell .data-table-card.data-table__row--membership .data-table-card__footer {
+      align-self: center;
+      border-top: 0;
+      grid-column: 2;
+      grid-row: 2;
+      justify-content: flex-end;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .admin-shell .data-table-card .admin-membership-actions {
+      flex-wrap: nowrap;
+    }
+  }
+
+  @container admin-panel (min-width: 900px) {
+    .admin-shell .admin-list-section--events .admin-events-kpis {
+      display: flex;
+      flex-wrap: nowrap;
+      grid-template-columns: none;
+      overflow-x: auto;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi {
+      align-items: baseline;
+      flex: 1 1 0;
+      flex-direction: row;
+      gap: 8px;
+      min-width: 0;
+      padding: 8px 18px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
+      border-left: 1px solid var(--admin-glass-border);
+      padding-left: 18px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+      border-left: 1px solid var(--admin-glass-border);
+      padding-left: 18px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
+      border-left: 0;
+      padding-left: 18px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+      border-top: 0;
+      padding-top: 8px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi__label {
+      order: 1;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi__value {
+      order: 0;
+    }
+  }
+
+  @container admin-panel (max-width: 430px) {
+    .admin-shell .admin-page {
+      overflow-x: clip;
+      padding: 8px 8px 24px;
+    }
+
+    .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
+      min-height: 44px;
+      padding: 8px 12px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events__header-actions:has(.admin-events__refresh-btn) {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 44px minmax(0, 1fr);
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__meta-item:nth-child(2) {
+      display: none;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+      display: grid;
+      gap: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+      padding-inline: 0;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+      flex: none;
+      min-height: 44px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button + button {
+      border-left: 0;
+      padding-left: 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(odd) {
+      border-right: 1px solid var(--admin-hairline);
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(n + 3) {
+      border-top: 1px solid var(--admin-hairline);
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row {
+      grid-template-columns: 46px minmax(0, 1fr) auto;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__badge {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: start;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__capacity {
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: end;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__actions {
+      grid-column: 3;
+      grid-row: 1;
+      min-height: 44px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__actions .admin-icon-btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  @container admin-panel (max-width: 899px) {
+    .admin-shell .admin-list-section--events .admin-list-shell__title {
+      display: block;
+      font-size: 1.15rem;
+    }
+
+    .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header,
+    .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-shell__header {
+      align-items: center;
+      display: grid;
+      gap: 8px 12px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      min-height: 0;
+      padding: 4px 2px 6px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-list-shell__actions {
+      display: flex;
+      justify-content: flex-end;
+      width: auto;
+    }
+
+    .admin-shell .admin-list-section--events .admin-filter-chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      overflow: visible;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi {
+      padding: 6px 10px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+      border-left: 1px solid var(--admin-glass-border);
+      padding-left: 10px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
+      border-left: 0;
+      padding-left: 10px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+      border-top: 0;
+      padding-top: 6px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi__value {
+      font-size: 1.05rem;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi__label {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row {
+      gap: 6px 10px;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      padding: 9px 12px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__date {
+      border-right-color: color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      padding-right: 10px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__body {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__badge {
+      align-self: center;
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: start;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__capacity {
+      align-self: center;
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: end;
+      width: auto;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-row__actions {
+      grid-column: 3;
+      grid-row: 1;
+      min-height: 44px;
+    }
+
+    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
+      grid-template-columns: 1fr;
+      height: auto;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview--panel {
+      background: transparent;
+      border-left: 0;
+      border-top: 1px solid var(--admin-hairline);
+      max-height: none;
+      overflow: visible;
+      position: static;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+      background: var(--admin-canvas);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-copy {
+      display: none;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-actions {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__expand-toggle {
+      display: inline-flex;
+    }
+  }
+
+  @container admin-panel (max-width: 430px) {
+    .admin-shell .admin-list-section--events .admin-events-kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+      border-left: 0;
+      padding-left: 12px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
+      border-top: 1px solid var(--admin-glass-border);
+      padding-top: 10px;
+    }
+
+    .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header,
+    .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-shell__header {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-shell .admin-list-section--events .admin-list-shell__actions {
+      justify-content: stretch;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events__header-actions:has(.admin-events__refresh-btn) {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 44px minmax(0, 1fr);
+      width: 100%;
+    }
   }
 }

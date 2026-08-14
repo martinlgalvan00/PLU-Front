@@ -36,7 +36,9 @@ function checkRuntime() {
   console.log('Runtime')
   const runtime = getPaymentsRuntimeStatus(process.env)
   const mercadoPagoEnv = String(process.env.MERCADO_PAGO_ENV ?? '').trim().toLowerCase()
-  const apiUrl = String(process.env.API_URL ?? '').trim()
+  // En el despliegue actual frontend y API comparten origen. API_URL es un
+  // override para una API separada; APP_URL alcanza para el webhook por defecto.
+  const apiUrl = String(process.env.API_URL ?? process.env.APP_URL ?? process.env.VITE_APP_URL ?? '').trim()
 
   if (runtime.provider !== 'mercado_pago') {
     fail('PAYMENTS_MOCK esta activo.', 'Para probar el ciclo real configura PAYMENTS_MOCK=false.')
@@ -65,7 +67,7 @@ function checkRuntime() {
       && !['localhost', '127.0.0.1'].includes(parsedApiUrl.hostname)
     if (!isPublicHttps) {
       fail(
-        'API_URL debe ser una URL HTTPS publica para el flujo end-to-end.',
+        'APP_URL/API_URL debe ser una URL HTTPS publica para el flujo end-to-end.',
         'Usa el preview estable de Vercel DEV o un tunel HTTPS para recibir el webhook.',
       )
     } else {
@@ -73,7 +75,7 @@ function checkRuntime() {
     }
   } catch {
     fail(
-      'Falta una API_URL HTTPS publica.',
+      'Falta una APP_URL o API_URL HTTPS publica.',
       'Sin notification_url publica Mercado Pago no puede acreditar el pago mediante webhook.',
     )
   }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   canApproveManualPayments,
+  canDeleteAthletes,
+  canDeleteMemberships,
+  canDeleteRegistrations,
   canDeleteUsers,
   canEditOperationalData,
   canExport,
@@ -13,6 +16,7 @@ import {
 } from '../src/lib/roles.js'
 import {
   canAccessSecurityEvent,
+  canManageRoleLifecycle,
   canManageRolePermissions,
   getAllowedAdminSections,
   getRoleHierarchyLevel,
@@ -59,7 +63,12 @@ describe('roles', () => {
     expect(canManageUsers('plu_arg')).toBe(false)
     expect(canManageRoles('admin_plu_arg')).toBe(true)
     expect(canDeleteUsers('admin_maximal')).toBe(true)
+    // Borrado definitivo (cascada de datos, sin vuelta atrás): reservado a
+    // Super Admin. Administrador tiene acceso total para todo lo demás.
     expect(canDeleteUsers('admin_plu_arg')).toBe(false)
+    expect(canDeleteAthletes('admin_plu_arg')).toBe(false)
+    expect(canDeleteMemberships('admin_plu_arg')).toBe(false)
+    expect(canDeleteRegistrations('admin_plu_arg')).toBe(false)
     expect(
       canDeleteUsers({
         role: 'admin_plu_arg',
@@ -83,6 +92,13 @@ describe('roles', () => {
     ).toBe(true)
     expect(canManageRolePermissions('admin_plu_arg', 'admin_maximal')).toBe(false)
     expect(canManageRolePermissions('plu_arg', 'seguridad_plu_arg')).toBe(false)
+  })
+
+  it('permite pausar y reactivar roles operativos sin exponer los protegidos', () => {
+    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'custom_prensa', active: false })).toBe(true)
+    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'plu_arg', active: true })).toBe(true)
+    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'admin_maximal', active: true })).toBe(false)
+    expect(canManageRoleLifecycle('plu_arg', { key: 'custom_prensa', active: true })).toBe(false)
   })
 
   it('autoriza el portal de seguridad por permiso y alcance de evento', () => {

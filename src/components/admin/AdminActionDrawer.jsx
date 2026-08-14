@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, m } from 'motion/react'
 import { X } from 'lucide-react'
@@ -6,6 +5,7 @@ import ActionQueue from './ActionQueue.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
+import { useAdminModal } from './useAdminModal.js'
 
 export default function AdminActionDrawer({
   open,
@@ -18,23 +18,7 @@ export default function AdminActionDrawer({
 }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-
-  useEffect(() => {
-    if (!open) return undefined
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') onClose?.()
-    }
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open, onClose])
+  const panelRef = useAdminModal(() => onClose?.(), { active: open })
 
   function handleNavigate(section) {
     onClose?.()
@@ -56,6 +40,7 @@ export default function AdminActionDrawer({
             variants={drawerBackdropTransition}
           />
           <m.aside
+            ref={panelRef}
             id="admin-action-drawer"
             className="admin-action-drawer"
             role="dialog"
@@ -93,13 +78,18 @@ export default function AdminActionDrawer({
               </button>
             </header>
 
-            <ActionQueue
-              items={items}
-              onNavigate={handleNavigate}
-              onApprovePayment={onApprovePayment}
-              onApproveTicketOrder={onApproveTicketOrder}
-              canEdit={canEdit}
-            />
+            <div className="admin-action-drawer__body">
+              <ActionQueue
+                compact
+                embedded
+                showHeader={false}
+                items={items}
+                onNavigate={handleNavigate}
+                onApprovePayment={onApprovePayment}
+                onApproveTicketOrder={onApproveTicketOrder}
+                canEdit={canEdit}
+              />
+            </div>
           </m.aside>
         </>
       ) : null}

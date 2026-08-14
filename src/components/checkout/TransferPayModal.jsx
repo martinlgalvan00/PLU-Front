@@ -27,25 +27,18 @@ export default function TransferPayModal({
       <section
         ref={panelRef}
         aria-labelledby="transfer-title"
-        aria-describedby="transfer-lead"
+        aria-describedby="transfer-verify"
         aria-modal="true"
         className="account-payment-modal account-payment-modal--transfer"
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
       >
         <header className="account-payment-modal__header">
-          <div>
-            <span>
-              {isCompetition
-                ? t('pages.register.transferEyebrow')
-                : t('account.membership.transferEyebrow')}
-            </span>
-            <h2 id="transfer-title">
-              {isCompetition
-                ? t('pages.register.transferTitle')
-                : t('account.membership.transferTitle')}
-            </h2>
-          </div>
+          <h2 id="transfer-title">
+            {isCompetition
+              ? t('pages.register.transferTitle')
+              : t('account.membership.transferTitle')}
+          </h2>
           <button
             type="button"
             className="account-payment-modal__close"
@@ -55,11 +48,6 @@ export default function TransferPayModal({
             <X size={18} />
           </button>
         </header>
-        <p id="transfer-lead" className="account-payment-modal__lead">
-          {isCompetition
-            ? t('pages.register.transferNotice')
-            : t('account.membership.transferNotice')}
-        </p>
         <div className="account-transfer-receipt">
           <p className="account-transfer-receipt__total">
             <span>{t('account.membership.transferAmount')}</span>
@@ -71,9 +59,15 @@ export default function TransferPayModal({
               <dd>{env.payments.transferAlias || askAdmin}</dd>
             </div>
             <div>
-              <dt>{t('account.membership.transferCbu')}</dt>
-              <dd>{env.payments.transferCbu || askAdmin}</dd>
+              <dt>{t('account.membership.transferAccount')}</dt>
+              <dd>{t('account.membership.transferAccountValue')}</dd>
             </div>
+            {env.payments.transferCbu ? (
+              <div>
+                <dt>{t('account.membership.transferCbu')}</dt>
+                <dd>{env.payments.transferCbu}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>{t('account.membership.transferHolder')}</dt>
               <dd>{env.payments.transferHolder || askAdmin}</dd>
@@ -85,6 +79,9 @@ export default function TransferPayModal({
               </dd>
             </div>
           </dl>
+          <p id="transfer-verify" className="account-transfer-warning" role="note">
+            {t('account.membership.transferVerifyWarning')}
+          </p>
         </div>
         <p className="account-payment-modal__footnote">
           {isCompetition

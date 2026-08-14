@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, BadgeCheck, CircleAlert, MailCheck, RefreshCw } from 'lucide-react'
+import { Activity, BadgeCheck, CircleAlert, MailCheck, RefreshCw, Route } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AuditEventBody from '../../components/admin/AuditEventBody.jsx'
+import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
@@ -12,6 +15,11 @@ import {
   fetchAuditFacets,
   fetchAuditOverview,
 } from '../../services/auditService.js'
+
+/** `entity_type` que `paymentAuditTrail.js` usa para órdenes de cobro: cubre
+ * afiliación, combo, inscripción (`athlete_payment_order`) y entradas
+ * (`ticket_order`). Es lo único que hace falta para abrir su traza completa. */
+const TRACEABLE_ENTITY_TYPES = new Set(['athlete_payment_order', 'ticket_order'])
 
 /**
  * AuditSection — PLU ARG
@@ -43,8 +51,10 @@ function formatDateTime(value, locale) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
   return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -69,6 +79,7 @@ export default function AuditSection() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(null)
+  const [traceOrderId, setTraceOrderId] = useState(null)
 
   const filters = useMemo(
     () => ({
@@ -162,8 +173,8 @@ export default function AuditSection() {
         label: t('admin.audit.filterSource'),
         value: source,
         onChange: setSource,
-        variant: 'select',
         showLabel: true,
+        allLabel: t('admin.audit.filterAll'),
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.sources.map((value) => [value, sourceLabel(value)]),
@@ -188,6 +199,7 @@ export default function AuditSection() {
         onChange: setAction,
         variant: 'select',
         showLabel: true,
+        advanced: true,
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.actions.map((value) => [value, actionLabel(value)]),
@@ -200,6 +212,7 @@ export default function AuditSection() {
         onChange: setActorType,
         variant: 'select',
         showLabel: true,
+        advanced: true,
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.actorTypes.map((value) => [value, actorLabel(value)]),
@@ -212,6 +225,7 @@ export default function AuditSection() {
         onChange: setEntityType,
         variant: 'select',
         showLabel: true,
+        advanced: true,
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.entityTypes.map((value) => [value, entityLabel(value)]),
@@ -257,25 +271,38 @@ export default function AuditSection() {
             <span className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}>
               {actionLabel(row.action)}
             </span>
-            <small>{sourceLabel(row.source)}</small>
+            <small>
+              {[sourceLabel(row.source), row.actorType ? actorLabel(row.actorType) : null]
+                .filter(Boolean)
+                .filter((label, index, list) => list.indexOf(label) === index)
+                .join(' · ')}
+            </small>
           </div>
         ),
       },
       {
         key: 'entity',
         label: t('admin.audit.columnEntity'),
-        mobile: 'default',
+        mobile: 'hidden',
         render: (row) => (
           <div className="audit-entry__entity">
             <span className="audit-entry__entity-type">{entityLabel(row.entityType)}</span>
             <AdminMonoCell>{row.entityId}</AdminMonoCell>
+            {TRACEABLE_ENTITY_TYPES.has(row.entityType) && row.entityId ? (
+              <AdminIconButton
+                icon={Route}
+                label={t('admin.paymentTrace.open')}
+                onClick={() => setTraceOrderId(row.entityId)}
+                variant="ghost"
+              />
+            ) : null}
           </div>
         ),
       },
       {
         key: 'actor',
         label: t('admin.audit.columnActor'),
-        mobile: 'default',
+        mobile: 'hidden',
         render: (row) => (
           <div className="audit-entry__actor">
             <span className="audit-entry__actor-type">{actorLabel(row.actorType)}</span>
@@ -287,19 +314,8 @@ export default function AuditSection() {
         key: 'detail',
         label: t('admin.audit.columnDetail'),
         mobile: 'default',
-        render: (row) =>
-          row.summary.length > 0 ? (
-            <dl className="audit-entry__detail">
-              {row.summary.map(({ field, value }) => (
-                <div key={field}>
-                  <dt>{labels.field(field)}</dt>
-                  <dd>{String(value)}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <span className="data-table__mono data-table__mono--empty">—</span>
-          ),
+        className: 'data-table__column--audit-detail',
+        render: (row) => <AuditEventBody labels={labels} row={row} />,
       },
     ],
     [actionLabel, actorLabel, entityLabel, labels, locale, sourceLabel, t],
@@ -308,6 +324,62 @@ export default function AuditSection() {
   const affiliationIncidents =
     overview.activeMembershipsWithoutConfirmation + overview.approvedOrdersWithoutActiveMembership
   const attentionCount = overview.emailAttention + overview.paymentAttention + affiliationIncidents
+
+  const health = (
+    <section
+      className={`audit-health audit-health--${overview.status}`}
+      aria-label={t('admin.audit.healthTitle')}
+      aria-live="polite"
+    >
+      <header className="audit-health__header">
+        <div>
+          <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
+          <h3>{t('admin.audit.healthTitle')}</h3>
+        </div>
+        <span className={`status-pill status-pill--${
+          overview.status === 'healthy' ? 'success' : overview.status === 'attention' ? 'danger' : 'warning'
+        }`}>
+          {overview.status === 'healthy'
+            ? t('admin.audit.healthHealthy')
+            : overview.status === 'attention'
+              ? t('admin.audit.healthAttention')
+              : t('admin.audit.healthUnknown')}
+        </span>
+      </header>
+
+      <dl className="audit-health__metrics">
+        <div>
+          <Activity size={17} aria-hidden />
+          <dt>{t('admin.audit.healthEvents')}</dt>
+          <dd>{overview.eventsLast24h}</dd>
+        </div>
+        <div>
+          <MailCheck size={17} aria-hidden />
+          <dt>{t('admin.audit.healthDelivered')}</dt>
+          <dd>{overview.emailsDeliveredLast24h}</dd>
+        </div>
+        <div>
+          <RefreshCw size={17} aria-hidden />
+          <dt>{t('admin.audit.healthRetrying')}</dt>
+          <dd>{overview.emailsRetrying}</dd>
+        </div>
+        <div className={attentionCount > 0 ? 'is-attention' : ''}>
+          {attentionCount > 0 ? <CircleAlert size={17} aria-hidden /> : <BadgeCheck size={17} aria-hidden />}
+          <dt>{t('admin.audit.healthIncidents')}</dt>
+          <dd>{attentionCount}</dd>
+        </div>
+      </dl>
+
+      {affiliationIncidents > 0 ? (
+        <p className="audit-health__notice">
+          {t('admin.audit.healthMembershipNotice', {
+            orders: overview.approvedOrdersWithoutActiveMembership,
+            emails: overview.activeMembershipsWithoutConfirmation,
+          })}
+        </p>
+      ) : null}
+    </section>
+  )
 
   return (
     <AdminListSection
@@ -321,6 +393,7 @@ export default function AuditSection() {
       title={t('admin.audit.title')}
       subtitle={t('admin.audit.subtitle')}
       totalCount={entries.length}
+      beforeFilters={health}
       filters={filterOptions}
       filterActions={
         <button type="button" className="btn btn--secondary btn--small" onClick={() => void refresh()}>
@@ -330,60 +403,6 @@ export default function AuditSection() {
       }
       onQueryChange={setQuery}
     >
-      <section
-        className={`audit-health audit-health--${overview.status}`}
-        aria-label={t('admin.audit.healthTitle')}
-        aria-live="polite"
-      >
-        <header className="audit-health__header">
-          <div>
-            <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
-            <h3>{t('admin.audit.healthTitle')}</h3>
-          </div>
-          <span className={`status-pill status-pill--${
-            overview.status === 'healthy' ? 'success' : overview.status === 'attention' ? 'danger' : 'warning'
-          }`}>
-            {overview.status === 'healthy'
-              ? t('admin.audit.healthHealthy')
-              : overview.status === 'attention'
-                ? t('admin.audit.healthAttention')
-                : t('admin.audit.healthUnknown')}
-          </span>
-        </header>
-
-        <dl className="audit-health__metrics">
-          <div>
-            <Activity size={17} aria-hidden />
-            <dt>{t('admin.audit.healthEvents')}</dt>
-            <dd>{overview.eventsLast24h}</dd>
-          </div>
-          <div>
-            <MailCheck size={17} aria-hidden />
-            <dt>{t('admin.audit.healthDelivered')}</dt>
-            <dd>{overview.emailsDeliveredLast24h}</dd>
-          </div>
-          <div>
-            <RefreshCw size={17} aria-hidden />
-            <dt>{t('admin.audit.healthRetrying')}</dt>
-            <dd>{overview.emailsRetrying}</dd>
-          </div>
-          <div className={attentionCount > 0 ? 'is-attention' : ''}>
-            {attentionCount > 0 ? <CircleAlert size={17} aria-hidden /> : <BadgeCheck size={17} aria-hidden />}
-            <dt>{t('admin.audit.healthIncidents')}</dt>
-            <dd>{attentionCount}</dd>
-          </div>
-        </dl>
-
-        {affiliationIncidents > 0 ? (
-          <p className="audit-health__notice">
-            {t('admin.audit.healthMembershipNotice', {
-              orders: overview.approvedOrdersWithoutActiveMembership,
-              emails: overview.activeMembershipsWithoutConfirmation,
-            })}
-          </p>
-        ) : null}
-      </section>
-
       {error ? (
         <ErrorState
           title={t('admin.audit.loadErrorTitle')}
@@ -416,6 +435,10 @@ export default function AuditSection() {
           ) : null}
         </>
       )}
+
+      {traceOrderId ? (
+        <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
+      ) : null}
     </AdminListSection>
   )
 }

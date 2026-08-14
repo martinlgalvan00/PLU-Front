@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ArrowRight,
   BadgeCheck,
@@ -15,6 +16,8 @@ import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
+import { useAdminModal } from '../../components/admin/useAdminModal.js'
+import Button from '../../components/ui/Button.jsx'
 import { getLaunchInterestSummary, notifyLaunchInterestSource } from '../../services/launchInterestService.js'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
@@ -484,7 +487,9 @@ function LaunchInterestWidget() {
   const [summary, setSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [notifying, setNotifying] = useState(null)
-  
+  const [confirmSource, setConfirmSource] = useState(null)
+  const [notifyError, setNotifyError] = useState('')
+
   async function loadSummary() {
     try {
       setLoading(true)
@@ -503,14 +508,17 @@ function LaunchInterestWidget() {
     loadSummary()
   }, [])
 
-  async function handleNotify(source) {
-    if (!confirm(`¿Enviar aviso a todos los pendientes de "${source}"?`)) return
+  async function confirmNotify() {
+    const source = confirmSource
+    if (!source) return
+    setNotifyError('')
     try {
       setNotifying(source)
       await notifyLaunchInterestSource(source)
       await loadSummary()
+      setConfirmSource(null)
     } catch (err) {
-      alert(err.message || 'Error al notificar')
+      setNotifyError(err.message || 'Error al notificar')
     } finally {
       setNotifying(null)
     }
@@ -547,7 +555,10 @@ function LaunchInterestWidget() {
               <AdminIconButton
                 icon={Send}
                 label={`Notificar ${item.pending}`}
-                onClick={() => handleNotify(item.source)}
+                onClick={() => {
+                  setNotifyError('')
+                  setConfirmSource(item.source)
+                }}
                 disabled={notifying === item.source}
                 variant="primary"
               />
@@ -555,7 +566,63 @@ function LaunchInterestWidget() {
           </li>
         ))}
       </ul>
+
+      {confirmSource ? (
+        <LaunchInterestConfirmDialog
+          source={confirmSource}
+          pending={summary.find((item) => item.source === confirmSource)?.pending ?? 0}
+          busy={notifying === confirmSource}
+          error={notifyError}
+          onCancel={() => setConfirmSource(null)}
+          onConfirm={confirmNotify}
+        />
+      ) : null}
     </section>
+  )
+}
+
+function LaunchInterestConfirmDialog({ source, pending, busy, error, onCancel, onConfirm }) {
+  const panelRef = useAdminModal(onCancel)
+
+  return createPortal(
+    <div className="admin-user-delete-dialog">
+      <button
+        type="button"
+        className="admin-user-delete-dialog__backdrop"
+        aria-label="Cancelar"
+        disabled={busy}
+        onClick={onCancel}
+      />
+      <section
+        ref={panelRef}
+        className="admin-user-delete-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="launch-interest-confirm-title"
+      >
+        <span className="admin-user-delete-dialog__icon" aria-hidden>
+          <Send size={19} />
+        </span>
+        <div className="admin-user-delete-dialog__copy">
+          <h2 id="launch-interest-confirm-title">Enviar aviso de lanzamiento</h2>
+          <p>{`¿Enviar aviso a los ${pending} pendientes de "${source}"?`}</p>
+          {error ? (
+            <p className="admin-user-delete-dialog__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <div className="admin-user-delete-dialog__actions">
+          <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="button" disabled={busy} onClick={onConfirm}>
+            {busy ? 'Enviando…' : 'Enviar aviso'}
+          </Button>
+        </div>
+      </section>
+    </div>,
+    document.body,
   )
 }
 
