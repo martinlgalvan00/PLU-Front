@@ -20,6 +20,7 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
   team: '/nosotros',
   sponsors: '/sponsors',
   standards: '/estandares',
+  profile: '/perfil',
 })
 
 const PATH_TO_VIEW = Object.freeze(

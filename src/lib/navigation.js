@@ -31,6 +31,7 @@ const ATHLETE_DESTINATIONS = new Set(['membership', 'competition'])
 
 export const DEFAULT_ACCOUNT_TAB = 'account-qr'
 export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
+export const ACCOUNT_EVENTS_TAB = 'account-events'
 
 /**
  * El cobro de afiliación vive en la cuenta (`#account-membership`), no en un

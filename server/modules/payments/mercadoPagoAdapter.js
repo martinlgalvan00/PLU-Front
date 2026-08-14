@@ -209,7 +209,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         env,
       )
 
-      const returnPath = order.kind === 'ticket' ? '/eventos' : '/registro'
+      const returnPath = order.kind === 'ticket' ? '/eventos' : '/perfil'
       const body = {
         items: [
           {
