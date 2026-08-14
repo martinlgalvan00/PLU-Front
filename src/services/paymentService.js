@@ -164,6 +164,25 @@ export async function retryPaymentReconciliation(attemptId) {
   return apiPost(`/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`, {})
 }
 
+/**
+ * Vida completa de una orden: orden, intentos, notificaciones de MP, ledger,
+ * efecto de dominio y fallas con su diagnóstico. Es lo que responde "por qué
+ * este cobro no se acreditó" sin salir del panel.
+ */
+export async function getPaymentOrderAudit(orderId) {
+  return apiGet(`/api/payments/audit/orders/${encodeURIComponent(orderId)}`)
+}
+
+/** Recorrido de afiliación de un atleta, con el eslabón donde se cortó. */
+export async function getAthleteAudit(athleteId) {
+  return apiGet(`/api/payments/audit/athletes/${encodeURIComponent(athleteId)}`)
+}
+
+/** Qué pasó en una operación puntual (id del header `X-Request-Id`). */
+export async function getRequestAudit(requestId) {
+  return apiGet(`/api/payments/audit/requests/${encodeURIComponent(requestId)}`)
+}
+
 export async function validatePayment(paymentOrderId) {
   const result = await getPaymentOrderStatus(paymentOrderId)
   return result.order

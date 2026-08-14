@@ -43,8 +43,13 @@ describe('payment recovery workflow', () => {
 
     const result = await recoverPaymentOperations({ repository, mercadoPago })
 
-    expect(result.events).toEqual({ claimed: 1, processed: 1, failed: 0 })
-    expect(result.reconciliations).toEqual({ claimed: 1, processed: 1, failed: 0 })
+    expect(result.events).toMatchObject({ claimed: 1, processed: 1, failed: 0, failures: [] })
+    expect(result.reconciliations).toMatchObject({
+      claimed: 1,
+      processed: 1,
+      failed: 0,
+      failures: [],
+    })
     expect(repository.markWebhookProcessed).toHaveBeenCalledWith('event-1', expect.any(Object))
     expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith('attempt-1', {
       succeeded: true,
@@ -66,7 +71,19 @@ describe('payment recovery workflow', () => {
 
     const result = await recoverPaymentOperations({ repository, mercadoPago })
 
-    expect(result.events).toEqual({ claimed: 1, processed: 0, failed: 1 })
+    // El resumen identifica QUE fallo y por que: sin esto, "failed: 1" obligaba
+    // a abrir la base para saber cual de los eventos reclamados se cayo.
+    expect(result.events).toMatchObject({
+      claimed: 1,
+      processed: 0,
+      failed: 1,
+      failures: [{ id: 'event-2', error: 'provider unavailable' }],
+    })
     expect(repository.markWebhookFailed).toHaveBeenCalledWith('event-2', expect.any(Error))
+    // El texto persistido lleva el codigo del catalogo para que el panel
+    // muestre algo accionable sin consultar los logs.
+    const [, persisted] = repository.markWebhookFailed.mock.calls[0]
+    expect(persisted.message).toContain('[MP_TIMEOUT]')
+    expect(persisted.cause).toBeInstanceOf(Error)
   })
 })

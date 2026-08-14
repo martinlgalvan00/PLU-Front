@@ -350,7 +350,13 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
 
     const failedPayment = await processPayment('mock_card_token_provider_failure', 'mock_error')
     expect(failedPayment.status).toBe(502)
-    expect(await failedPayment.json()).toEqual({ error: 'Error interno' })
+    // El mensaje al cliente sigue siendo opaco, pero ahora viaja el id de
+    // correlacion: es lo que permite encontrar el stack de ESTE cobro fallido
+    // en los logs y en la bitacora de auditoria.
+    expect(await failedPayment.json()).toEqual({
+      error: 'Error interno',
+      requestId: failedPayment.headers.get('x-request-id'),
+    })
 
     const afterFailure = await admin
       .from('athlete_payment_orders')
