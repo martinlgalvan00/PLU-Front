@@ -91,7 +91,11 @@ export function createTicketRoutes({ getPrisma, getSupabaseAdmin, repository, at
           getSupabaseAdmin?.(),
           req.validatedBody.eventSlug,
         )
-        await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
+        await assertPaidCheckoutAvailable(env, new Date(), {
+          registrationOpensAt,
+          skipScheduleLookup: true,
+          checkoutKind: 'ticket',
+        })
         res.status(201).json(await repo().createOrder(req.validatedBody))
       } catch (error) {
         next(error)

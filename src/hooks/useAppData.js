@@ -817,6 +817,7 @@ export function useAppData() {
           paymentId: order.id,
           paymentMethod: order.method,
           preferenceId: checkout?.preference?.id ?? null,
+          initPoint: checkout?.preference?.initPoint ?? null,
           paymentMode: plan?.collectionMode === 'recurring' ? 'subscription' : 'payment',
           plan,
           ...payment,
@@ -1089,6 +1090,7 @@ export function useAppData() {
           paymentProofPath: order.paymentProofPath,
           paymentProofUploadedAt: order.paymentProofUploadedAt,
           preferenceId: checkout?.preference?.id ?? null,
+          initPoint: checkout?.preference?.initPoint ?? null,
           paymentMode: 'payment',
           payerEmail: order.buyerEmail ?? order.payerEmail ?? session?.email ?? null,
           createdAt: order.createdAt,
@@ -1849,9 +1851,7 @@ export function useAppData() {
    * en vez de parchear las filas tocadas, porque la RPC descarta las canceladas
    * y las de otro evento y el resultado real puede no ser el pedido.
    */
-  const handleScheduleAssigned = useCallback(() => {
-    void refreshAthleteData()
-  }, [refreshAthleteData])
+  const handleScheduleAssigned = useCallback(() => refreshAthleteData(), [refreshAthleteData])
 
   const activateDemoMembership = useCallback(
     (athleteId) => {

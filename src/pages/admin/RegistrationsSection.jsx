@@ -152,7 +152,7 @@ export default function RegistrationsSection({
           athlete: reg.athlete?.fullName,
           document: reg.athlete?.documentId,
           event: reg.event,
-          eventSlug: reg.eventSlug,
+          eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
           category: `${reg.category} · ${reg.division}`,
           bodyweight: formatRegistrationWeight(reg),
           schedule: reg.schedule ?? null,
@@ -226,7 +226,7 @@ export default function RegistrationsSection({
     clearSelection()
     // El snapshot del panel es el que alimenta la columna de grilla y el QR:
     // sin releerlo, la tabla seguiría mostrando la asignación vieja.
-    onScheduleAssigned?.(result)
+    await onScheduleAssigned?.(result)
   }
 
   async function deleteRegistration() {
@@ -382,6 +382,7 @@ export default function RegistrationsSection({
               onClearSelection={clearSelection}
               scheduleStatus={scheduleStatus}
               selectedCount={visibleSelectedRows.length}
+              targetEventName={visibleSelectedRows[0]?.event ?? ''}
             />
           )}
           <AdminDataTable
@@ -533,3 +534,4 @@ export default function RegistrationsSection({
     </AdminListSection>
   )
 }
+

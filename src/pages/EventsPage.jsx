@@ -70,7 +70,7 @@ function EventsDetailPanel({
     )
   }
 
-  const checkoutOpen = isPaidCheckoutOpen(event, env)
+  const checkoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const statusAllowsRegister =
     event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   const canRegister =
@@ -357,16 +357,25 @@ export default function EventsPage({
   )
 
   const events = useMemo(
-    () =>
-      // Nunca pasar `{ includeDevelopmentStubs: env.isDev }`: Vitest/Vite
-      // corren con DEV=true y el stub “test” volvería al catálogo público.
-      getPublicCatalogEvents(eventsProp, { includeDevelopmentStubs: false }).map((event) => {
+    () => {
+      const eventsBySlug = new Map()
+      for (const event of eventsProp) {
+        if (event?.slug) eventsBySlug.set(event.slug, event)
+      }
+      for (const event of Object.values(supabaseBySlug)) {
+        if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
+      }
+
+      return getPublicCatalogEvents([...eventsBySlug.values()], {
+        includeDevelopmentStubs: false,
+      }).map((event) => {
         const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
         return {
           ...merged,
           displayDate: merged.dateISO ? formatEventDate(merged.dateISO) : merged.date,
         }
-      }),
+      })
+    },
     [eventsProp, supabaseBySlug, formatEventDate],
   )
 
@@ -469,7 +478,7 @@ export default function EventsPage({
 
   function isRegistrationOpen(event) {
     return (
-      isPaidCheckoutOpen(event, env) &&
+      isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' }) &&
       (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
     )
   }

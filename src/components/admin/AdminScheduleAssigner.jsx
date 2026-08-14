@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarClock, X } from 'lucide-react'
+import { CalendarClock, Layers3, X } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { formatScheduleTime } from '../../lib/eventSchedule.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -25,6 +25,7 @@ export default function AdminScheduleAssigner({
   onClearSelection,
   scheduleStatus = 'idle',
   selectedCount = 0,
+  targetEventName = '',
 }) {
   const { locale, t } = useI18n()
   const [dayIndex, setDayIndex] = useState(UNASSIGNED)
@@ -48,9 +49,13 @@ export default function AdminScheduleAssigner({
 
   if (selectedCount === 0) return null
 
+  const hasDays = days.length > 0
+  const hasSessions = sessions.length > 0
   const canAssign = !assigning && !mixedEvents && scheduleStatus === 'ready'
+  const canAssignToDay = canAssign && hasDays
 
   function handleAssign() {
+    if (!canAssignToDay || dayIndex === UNASSIGNED) return
     onAssign({
       dayIndex: dayIndex === UNASSIGNED ? null : Number(dayIndex),
       sessionId: sessionId === UNASSIGNED ? null : sessionId,
@@ -76,6 +81,9 @@ export default function AdminScheduleAssigner({
         <p className="admin-schedule-assigner__count">
           {t('admin.schedule.selectedCount', { count: selectedCount })}
         </p>
+        {targetEventName ? (
+          <span className="admin-schedule-assigner__event">{targetEventName}</span>
+        ) : null}
       </div>
 
       {mixedEvents ? (
@@ -83,7 +91,10 @@ export default function AdminScheduleAssigner({
       ) : scheduleStatus === 'error' ? (
         <p className="admin-schedule-assigner__notice">{t('admin.schedule.loadError')}</p>
       ) : days.length === 0 && scheduleStatus === 'ready' ? (
-        <p className="admin-schedule-assigner__notice">{t('admin.schedule.noDays')}</p>
+        <p className="admin-schedule-assigner__notice admin-schedule-assigner__notice--empty">
+          <Layers3 size={15} aria-hidden />
+          {t('admin.schedule.noDays')}
+        </p>
       ) : (
         <div className="admin-schedule-assigner__controls">
           <label className="admin-schedule-assigner__field">
@@ -91,7 +102,7 @@ export default function AdminScheduleAssigner({
             <select
               value={dayIndex}
               onChange={(event) => setDayIndex(event.target.value)}
-              disabled={assigning || scheduleStatus !== 'ready'}
+              disabled={assigning || scheduleStatus !== 'ready' || !hasDays}
             >
               <option value={UNASSIGNED}>{t('admin.schedule.dayPlaceholder')}</option>
               {days.map((day) => (
@@ -130,10 +141,15 @@ export default function AdminScheduleAssigner({
             <Button
               type="button"
               onClick={handleAssign}
-              disabled={!canAssign || dayIndex === UNASSIGNED}
+              disabled={!canAssignToDay || dayIndex === UNASSIGNED}
             >
               {assigning ? t('admin.schedule.assigning') : t('admin.schedule.assign')}
             </Button>
+            {hasDays && !hasSessions ? (
+              <span className="admin-schedule-assigner__session-note">
+                {t('admin.schedule.noSessions')}
+              </span>
+            ) : null}
             <button
               type="button"
               className="admin-schedule-assigner__text-btn"

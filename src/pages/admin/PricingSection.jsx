@@ -3,6 +3,7 @@ import {
   BadgeDollarSign,
   CalendarClock,
   CirclePlus,
+  Pencil,
   RefreshCw,
   Save,
 } from 'lucide-react'
@@ -266,9 +267,11 @@ export default function PricingSection({
               >
                 <div className="admin-pricing__plan-main">
                   <div className="admin-pricing__plan-title-row">
-                    <span className={`admin-pricing__status admin-pricing__status--${status}`}>
-                      {t(`admin.sections.pricing.${status}`)}
-                    </span>
+                    <span
+                      className={`admin-pricing__status-dot admin-pricing__status-dot--${status}`}
+                      aria-label={t(`admin.sections.pricing.${status}`)}
+                      title={t(`admin.sections.pricing.${status}`)}
+                    />
                     <h3>{plan.name}</h3>
                   </div>
                   <p className="admin-pricing__plan-meta">
@@ -294,16 +297,24 @@ export default function PricingSection({
                     onClick={() => openPlanForm(plan)}
                     disabled={locked}
                   >
-                    {t('admin.sections.pricing.newVersion')}
+                    <Pencil size={14} aria-hidden />
+                    {t('admin.sections.pricing.edit')}
                   </button>
-                  <button
-                    type="button"
-                    className={`admin-pricing__btn admin-pricing__btn--quiet${plan.active ? ' is-danger' : ''}`}
-                    onClick={() => togglePlan(plan)}
-                    disabled={locked || pendingAction === plan.id}
+                  <label
+                    className={`admin-pricing__switch${plan.active ? ' is-active' : ' is-cancelled'}`.trim()}
+                    aria-label={t(`admin.sections.pricing.${plan.active ? 'active' : 'inactive'}`)}
                   >
-                    {t(`admin.sections.pricing.${plan.active ? 'retire' : 'restore'}`)}
-                  </button>
+                    <input
+                      type="checkbox"
+                      checked={plan.active}
+                      onChange={() => togglePlan(plan)}
+                      disabled={locked || pendingAction === plan.id}
+                    />
+                    <span aria-hidden />
+                    <strong>
+                      {t(`admin.sections.pricing.${plan.active ? 'activeSwitch' : 'cancelledSwitch'}`)}
+                    </strong>
+                  </label>
                 </div>
               </article>
             )
@@ -318,7 +329,7 @@ export default function PricingSection({
             <header>
               <h3>
                 {planDraft.sourcePlanId
-                  ? t('admin.sections.pricing.formTitleVersion', { name: planDraft.name })
+                  ? t('admin.sections.pricing.formTitleEdit', { name: planDraft.name })
                   : t('admin.sections.pricing.formTitleNew')}
               </h3>
             </header>
@@ -433,7 +444,11 @@ export default function PricingSection({
                 disabled={locked || pendingAction === 'plan'}
               >
                 <Save size={15} aria-hidden />
-                {pendingAction === 'plan' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.publish')}
+                {pendingAction === 'plan'
+                  ? t('admin.sections.pricing.saving')
+                  : planDraft.sourcePlanId
+                    ? t('admin.sections.pricing.saveChanges')
+                    : t('admin.sections.pricing.publish')}
               </button>
             </div>
           </form>
