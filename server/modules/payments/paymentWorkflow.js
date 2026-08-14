@@ -163,6 +163,65 @@ export async function applyCanonicalPayment(payment, order, options = {}) {
   }
 }
 
+export async function reconcileReturnPayment(input, options = {}) {
+  const { repository, mercadoPago, notifyPaymentApplied, auditTrail } = options
+  if (!repository || !mercadoPago) {
+    throw new HttpError(503, 'El workflow de pagos no esta configurado.')
+  }
+
+  const order = options.order?.id === input.paymentOrderId
+    ? options.order
+    : await repository.getOrder(input.paymentOrderId)
+
+  if (order.status === 'aprobado') {
+    await auditTrail?.record({
+      action: PAYMENT_TRAIL_ACTIONS.duplicate,
+      order,
+      status: order.status,
+      metadata: { stage: 'return', reason: 'order_already_approved' },
+    })
+    return { order, payment: null, reconciled: true, duplicate: true }
+  }
+
+  const paymentId = input.paymentId ?? input.collectionId ?? null
+  let payment = paymentId ? await mercadoPago.getPayment(paymentId) : null
+  if (!payment && typeof mercadoPago.findPaymentForOrder === 'function') {
+    payment = await mercadoPago.findPaymentForOrder(order)
+  }
+
+  if (!payment) {
+    await auditTrail?.record({
+      action: PAYMENT_TRAIL_ACTIONS.recoveryRun,
+      order,
+      status: order.status,
+      severity: 'info',
+      metadata: {
+        stage: 'return',
+        reason: 'payment_not_found',
+        preferenceId: input.preferenceId ?? null,
+      },
+    })
+    return { order, payment: null, reconciled: false, reason: 'payment_not_found' }
+  }
+
+  const applied = await applyCanonicalPayment(payment, order, {
+    repository,
+    notifyPaymentApplied,
+    auditTrail,
+    stage: 'return',
+  })
+  return {
+    payment: {
+      id: String(payment.id),
+      status: payment.status,
+      statusDetail: payment.status_detail ?? null,
+    },
+    order: applied.result.order,
+    reconciled: true,
+    duplicate: false,
+  }
+}
+
 export async function processClaimedPaymentEvent(event, options = {}) {
   const { repository, mercadoPago, notifyPaymentApplied, auditTrail } = options
   const resourceId = event.resource_id ?? event.resourceId

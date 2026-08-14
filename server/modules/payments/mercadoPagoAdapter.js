@@ -255,6 +255,14 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         paymentClient.get({ id: String(id) }))
     },
 
+    async findPaymentForOrder(order) {
+      const response = await getJson(
+        `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
+      )
+      const results = Array.isArray(response?.results) ? response.results : []
+      return results.find((payment) => String(payment.external_reference ?? '') === String(order.id)) ?? null
+    },
+
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
       const webhookBase = requireIntegrationUrl(
