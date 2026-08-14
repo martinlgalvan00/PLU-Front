@@ -84,6 +84,24 @@ export async function processEmbeddedPayment({ paymentOrderId, orderAccessToken,
   return apiPost('/api/payments/embedded/process', { paymentOrderId, orderAccessToken, formData })
 }
 
+export async function reconcileMercadoPagoReturn({
+  paymentOrderId,
+  orderAccessToken,
+  paymentId,
+  collectionId,
+  preferenceId,
+  status,
+}) {
+  return apiPost('/api/payments/return/mercadopago', {
+    paymentOrderId,
+    ...(orderAccessToken ? { orderAccessToken } : {}),
+    ...(paymentId ? { paymentId } : {}),
+    ...(collectionId ? { collectionId } : {}),
+    ...(preferenceId ? { preferenceId } : {}),
+    ...(status ? { status } : {}),
+  })
+}
+
 export async function reportPaymentClientEvent({
   paymentOrderId,
   orderAccessToken,

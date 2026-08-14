@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import NavbarPublic from './components/layout/NavbarPublic.jsx'
 import Footer from './components/layout/Footer.jsx'
 import AnalyticsTracker from './components/layout/AnalyticsTracker.jsx'
@@ -42,6 +42,7 @@ import {
 import { resolveEventPricing } from './lib/eventPricing.js'
 import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
+import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
@@ -130,6 +131,7 @@ export default function App() {
   const [eventPageSlug, setEventPageSlug] = useState(() =>
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
+  const paymentReturnInFlightRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
@@ -155,6 +157,56 @@ export default function App() {
   useEffect(() => {
     if (import.meta.env.DEV) window.__pluNav = setView
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const paymentReturn = params.get('payment')
+    if (!['success', 'pending'].includes(paymentReturn ?? '')) return
+
+    const orderId = params.get('order') || params.get('external_reference')
+    if (!orderId) return
+
+    const paymentId = params.get('payment_id')
+      || params.get('collection_id')
+      || params.get('data.id')
+    const preferenceId = params.get('preference_id')
+    const status = params.get('status') || params.get('collection_status') || paymentReturn
+    const key = [orderId, paymentId, status].filter(Boolean).join(':')
+    if (!key || paymentReturnInFlightRef.current === key) return
+    if (window.sessionStorage?.getItem(`plu:mp-return:${key}`)) return
+
+    paymentReturnInFlightRef.current = key
+    const createdOrderMatches =
+      app.createdOrder?.paymentId === orderId ||
+      app.createdOrder?.orderId === orderId ||
+      app.createdOrder?.id === orderId
+
+    void reconcileMercadoPagoReturn({
+      paymentOrderId: orderId,
+      orderAccessToken: createdOrderMatches ? app.createdOrder?.orderAccessToken : undefined,
+      paymentId,
+      collectionId: params.get('collection_id'),
+      preferenceId,
+      status,
+    })
+      .then((result) => {
+        if (result?.reconciled) {
+          window.dispatchEvent(new CustomEvent('plu:payment-updated', {
+            detail: {
+              orderId,
+              status: result.order?.status ?? result.payment?.status ?? status,
+            },
+          }))
+        }
+      })
+      .catch((error) => {
+        if (import.meta.env.DEV) console.info('[mp-return] conciliacion pendiente', error)
+      })
+      .finally(() => {
+        window.sessionStorage?.setItem(`plu:mp-return:${key}`, '1')
+        paymentReturnInFlightRef.current = null
+      })
+  }, [app.createdOrder])
 
   useEffect(() => {
     function onPopState() {
