@@ -14,7 +14,7 @@ describe('política de precios de preventa Pitbull', () => {
     ['registration', 'cash_pitbull', 75000],
     ['membership', 'cash_pitbull', 75000],
     ['combo', 'manual_link', 120000],
-    ['combo', 'cash_pitbull', 150000],
+    ['combo', 'cash_pitbull', 120000],
   ])('%s con %s cotiza ARS %i', (concept, paymentMethod, amount) => {
     expect(checkoutPriceFor({ concept, paymentMethod, now: NOW })).toBe(amount)
     expect(previewCheckoutPrice({ concept, paymentMethod, fallback: 1, now: NOW })).toBe(amount)

@@ -219,19 +219,26 @@ export default function EventShareCard({
             </div>
           )}
           <div className="share-card__athlete-text">
-            <span className="share-card__eyebrow">
-              {isUnified
-                ? t('shareCard.eyebrowUnified')
-                : isMembership
-                ? t('shareCard.eyebrowMembership')
-                : isTicket
-                  ? t('shareCard.eyebrowTicket')
-                  : t('shareCard.eyebrowEvent')}
-            </span>
+            {/* La afiliación no lleva eyebrow: el estado ya vive en el header y
+                la ficha de abajo da el contexto. Un tercer rótulo sobre el
+                nombre solo repetía "socio" tres veces en la misma pieza. */}
+            {!isMembership && (
+              <span className="share-card__eyebrow">
+                {isUnified
+                  ? t('shareCard.eyebrowUnified')
+                  : isTicket
+                    ? t('shareCard.eyebrowTicket')
+                    : t('shareCard.eyebrowEvent')}
+              </span>
+            )}
             <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>{resolvedAthleteName}</h2>
             {(athleteCode || attendeeDocument) && (
               <span className="share-card__athlete-code">
-                {[athleteCode, attendeeDocument ? `DNI ${attendeeDocument}` : null].filter(Boolean).join(' · ')}
+                {isMembership && athleteCode
+                  ? `${t('shareCard.memberNumberLabel')} ${athleteCode}`
+                  : [athleteCode, attendeeDocument ? `DNI ${attendeeDocument}` : null]
+                      .filter(Boolean)
+                      .join(' · ')}
               </span>
             )}
           </div>
@@ -239,43 +246,49 @@ export default function EventShareCard({
 
         <div className="share-card__divider" aria-hidden />
 
-        <div className="share-card__event-section">
-          {isMembership ? (
-            <>
-              <span className="share-card__event-eyebrow">{t('shareCard.membershipAnnual')}</span>
-              <p className="share-card__event-title">{t('shareCard.membershipSeason', { season: membershipSeason })}</p>
-              <p className="share-card__event-meta">{t('shareCard.membershipOrg')}</p>
-              {membershipExpiration && (
-                <p className="share-card__event-category">
-                  {t('shareCard.membershipValidUntil', { date: membershipExpiration })}
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="share-card__event-eyebrow">
-                {isTicket ? t('shareCard.ticketValidFor') : t('shareCard.competingIn')}
-              </span>
-              <p className="share-card__event-title">{resolvedEventTitle}</p>
-              {eventDate && eventVenue && (
-                <p className="share-card__event-meta">
-                  {eventDate} · {eventVenue}
-                  {eventLocation ? `, ${eventLocation}` : ''}
-                </p>
-              )}
-              {(category || division || dayPassLabel || isUnified) && (
-                <p className="share-card__event-category">
-                  {[
-                    isUnified ? t('shareCard.unifiedMembershipActive') : null,
-                    category,
-                    division,
-                    dayPassLabel,
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        {/* Afiliación: ficha de campos (label + valor), el lenguaje de una
+            credencial oficial. Reemplaza al eyebrow + título + nombre de la
+            organización, que repetía la marca del header y usaba el peso de un
+            titular para un dato administrativo. */}
+        {isMembership ? (
+          <dl className="share-card__fields">
+            <div className="share-card__field">
+              <dt className="share-card__field-label">{t('shareCard.membershipAnnual')}</dt>
+              <dd className="share-card__field-value">
+                {t('shareCard.membershipSeason', { season: membershipSeason })}
+              </dd>
+            </div>
+            {membershipExpiration && (
+              <div className="share-card__field">
+                <dt className="share-card__field-label">{t('shareCard.membershipValidUntilLabel')}</dt>
+                <dd className="share-card__field-value">{membershipExpiration}</dd>
+              </div>
+            )}
+          </dl>
+        ) : (
+          <div className="share-card__event-section">
+            <span className="share-card__event-eyebrow">
+              {isTicket ? t('shareCard.ticketValidFor') : t('shareCard.competingIn')}
+            </span>
+            <p className="share-card__event-title">{resolvedEventTitle}</p>
+            {eventDate && eventVenue && (
+              <p className="share-card__event-meta">
+                {eventDate} · {eventVenue}
+                {eventLocation ? `, ${eventLocation}` : ''}
+              </p>
+            )}
+            {(category || division || dayPassLabel || isUnified) && (
+              <p className="share-card__event-category">
+                {[
+                  isUnified ? t('shareCard.unifiedMembershipActive') : null,
+                  category,
+                  division,
+                  dayPassLabel,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
       </main>
 
       {/* ── Footer: QR de verificación + firma de marca ── */}
@@ -289,7 +302,11 @@ export default function EventShareCard({
         <div className="share-card__footer-col">
           <span className="share-card__tagline">{t('shareCard.tagline')}</span>
           <span className="share-card__qr-caption">
-            {qrSrc ? t('shareCard.qrScan') : t('shareCard.issued', { date: issuedDate })}
+            {qrSrc
+              ? isMembership
+                ? t('shareCard.qrScanMembership')
+                : t('shareCard.qrScan')
+              : t('shareCard.issued', { date: issuedDate })}
           </span>
         </div>
 
