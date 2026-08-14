@@ -149,6 +149,24 @@ export const athleteWriteLimiter = buildLimiter(
 )
 
 /**
+ * Verificación del código de una tanda privada. Limiter propio y estrecho, no
+ * `athleteWriteLimiter`: este endpoint compara una contraseña compartida y
+ * responde válido/inválido sin crear ninguna orden, así que es el único lugar
+ * del sistema donde se puede probar el código en loop y leer el resultado. Con
+ * el balde de escritura de atleta (60 cada 10 min) alcanzaba para barrer un
+ * código débil; acá queda en un puñado de intentos por IP.
+ *
+ * El límite es por IP y no por atleta a propósito: el código lo comparte la
+ * organización, así que el abuso esperable es una sola máquina probando, no un
+ * atleta olvidándose del suyo.
+ */
+export const registrationAccessCodeLimiter = buildLimiter(
+  15 * 60 * 1000,
+  15,
+  'Demasiados intentos con el código de acceso. Proba de nuevo en unos minutos.',
+)
+
+/**
  * Webhook de Mercado Pago. No tenía límite: un request con `id`/`data.id`
  * que pasa el schema pero falla la firma igual dispara un insert de
  * auditoría (`rejectWebhook`) antes de rechazarse, así que spam sin

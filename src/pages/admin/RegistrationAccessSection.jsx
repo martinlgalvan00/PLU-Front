@@ -15,6 +15,93 @@ const EMPTY_GATE = {
   endsAt: '',
 }
 
+/**
+ * Interruptores de la plataforma en tres ejes independientes. `checkout` va
+ * aparte porque es el maestro: apagado, corta los otros nueve.
+ *
+ * `master` marca la fila destacada; `i18n` es el prefijo de las claves de
+ * traducción (`...Title`, `...Lead`, `...Aria`), y `state` elige el par de
+ * etiquetas de estado (singular para el maestro, plural para los conceptos).
+ */
+const TOGGLE_GROUPS = [
+  {
+    id: 'checkout',
+    features: [
+      { feature: 'checkout', key: 'checkoutEnabled', i18n: 'checkout', state: 'checkout', master: true },
+    ],
+  },
+  {
+    id: 'intake',
+    features: [
+      { feature: 'membership', key: 'membershipEnabled', i18n: 'membershipToggle' },
+      { feature: 'registration', key: 'registrationEnabled', i18n: 'registrationToggle' },
+      { feature: 'ticket', key: 'ticketEnabled', i18n: 'ticketToggle' },
+    ],
+  },
+  {
+    id: 'manual',
+    features: [
+      { feature: 'membership_manual', key: 'membershipManualEnabled', i18n: 'membershipManual' },
+      { feature: 'registration_manual', key: 'registrationManualEnabled', i18n: 'registrationManual' },
+      { feature: 'ticket_manual', key: 'ticketManualEnabled', i18n: 'ticketManual' },
+    ],
+  },
+  {
+    id: 'validation',
+    features: [
+      { feature: 'membership_validation', key: 'membershipValidationEnabled', i18n: 'membershipValidation' },
+      { feature: 'registration_validation', key: 'registrationValidationEnabled', i18n: 'registrationValidation' },
+      { feature: 'ticket_validation', key: 'ticketValidationEnabled', i18n: 'ticketValidation' },
+    ],
+  },
+]
+
+function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle, t }) {
+  const stateLabelFor = (value) => {
+    if (feature.state === 'checkout') {
+      return value
+        ? t('admin.sections.accessGates.checkoutOn')
+        : t('admin.sections.accessGates.checkoutOff')
+    }
+    return value
+      ? t('admin.sections.accessGates.enabledPlural')
+      : t('admin.sections.accessGates.closedPlural')
+  }
+
+  return (
+    <div
+      className={`admin-registration-access__rule${
+        feature.master ? ' admin-registration-access__rule--master' : ''
+      }`}
+    >
+      <div>
+        <span
+          className={`admin-registration-access__state admin-registration-access__state--${enabled ? 'abierta' : 'cerrada'}`}
+        >
+          {stateLabelFor(enabled)}
+        </span>
+        <h3>{t(`admin.sections.accessGates.${feature.i18n}Title`)}</h3>
+        <p>{t(`admin.sections.accessGates.${feature.i18n}Lead`)}</p>
+      </div>
+      {canEdit ? (
+        <label className="admin-registration-access__switch">
+          <input
+            type="checkbox"
+            checked={enabled}
+            disabled={loading || busy}
+            onChange={(event) => onToggle(feature.feature, event.target.checked)}
+            aria-label={t(`admin.sections.accessGates.${feature.i18n}Aria`)}
+          />
+          <span>
+            <Power size={13} aria-hidden />
+            {busy ? t('admin.sections.accessGates.saving') : stateLabelFor(enabled)}
+          </span>
+        </label>
+      ) : null}
+    </div>
+  )
+}
+
 function toLocalDateTime(value) {
   if (!value) return ''
   const date = new Date(value)
@@ -54,7 +141,9 @@ export default function RegistrationAccessSection({
   const [notice, setNotice] = useState('')
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [toggles, setToggles] = useState({ checkoutEnabled: true, membershipEnabled: true, registrationEnabled: true })
+  // Vacío = todo abierto: la fila se lee con `!== false`, así que un interruptor
+  // nuevo no necesita sumarse acá para arrancar habilitado.
+  const [toggles, setToggles] = useState({})
   const [togglesLoading, setTogglesLoading] = useState(true)
   const [togglesError, setTogglesError] = useState('')
   const [savingFeature, setSavingFeature] = useState(null)
@@ -276,106 +365,33 @@ export default function RegistrationAccessSection({
           </div>
         </header>
 
-        <div className="admin-registration-access__rules admin-registration-access__rules--primary">
-          <div className="admin-registration-access__rule admin-registration-access__rule--master">
-            <div>
-              <span
-                className={`admin-registration-access__state admin-registration-access__state--${toggles.checkoutEnabled ? 'abierta' : 'cerrada'}`}
-              >
-                {toggles.checkoutEnabled
-                  ? t('admin.sections.accessGates.checkoutOn')
-                  : t('admin.sections.accessGates.checkoutOff')}
-              </span>
-              <h3>{t('admin.sections.accessGates.checkoutTitle')}</h3>
-              <p>{t('admin.sections.accessGates.checkoutLead')}</p>
-            </div>
-            {canEdit ? (
-              <label className="admin-registration-access__switch">
-                <input
-                  type="checkbox"
-                  checked={toggles.checkoutEnabled}
-                  disabled={togglesLoading || savingFeature === 'checkout'}
-                  onChange={(event) => handleToggleFeature('checkout', event.target.checked)}
-                  aria-label={t('admin.sections.accessGates.checkoutAria')}
+        {TOGGLE_GROUPS.map((group) => (
+          <div key={group.id} className="admin-registration-access__toggle-group">
+            {group.id === 'checkout' ? null : (
+              <div className="admin-registration-access__toggle-group-head">
+                <h3>{t(`admin.sections.accessGates.group.${group.id}Title`)}</h3>
+                <p>{t(`admin.sections.accessGates.group.${group.id}Lead`)}</p>
+              </div>
+            )}
+            {/* Todos los grupos comparten la misma caja: los diez interruptores
+                hacen lo mismo, así que tienen que verse igual. Lo que cambia es
+                el encabezado del eje, y el acento celeste del maestro. */}
+            <div className="admin-registration-access__rules admin-registration-access__rules--primary">
+              {group.features.map((feature) => (
+                <FeatureToggleRule
+                  key={feature.feature}
+                  busy={savingFeature === feature.feature}
+                  canEdit={canEdit}
+                  enabled={toggles[feature.key] !== false}
+                  feature={feature}
+                  loading={togglesLoading}
+                  onToggle={handleToggleFeature}
+                  t={t}
                 />
-                <span>
-                  <Power size={13} aria-hidden />
-                  {savingFeature === 'checkout'
-                    ? t('admin.sections.accessGates.saving')
-                    : toggles.checkoutEnabled
-                      ? t('admin.sections.accessGates.checkoutOn')
-                      : t('admin.sections.accessGates.checkoutOff')}
-                </span>
-              </label>
-            ) : null}
-          </div>
-
-          <div className="admin-registration-access__rule">
-            <div>
-              <span
-                className={`admin-registration-access__state admin-registration-access__state--${toggles.membershipEnabled ? 'abierta' : 'cerrada'}`}
-              >
-                {toggles.membershipEnabled
-                  ? t('admin.sections.accessGates.enabledPlural')
-                  : t('admin.sections.accessGates.closedPlural')}
-              </span>
-              <h3>{t('admin.sections.accessGates.membershipToggleTitle')}</h3>
-              <p>{t('admin.sections.accessGates.membershipToggleLead')}</p>
+              ))}
             </div>
-            {canEdit ? (
-              <label className="admin-registration-access__switch">
-                <input
-                  type="checkbox"
-                  checked={toggles.membershipEnabled}
-                  disabled={togglesLoading || savingFeature === 'membership'}
-                  onChange={(event) => handleToggleFeature('membership', event.target.checked)}
-                  aria-label={t('admin.sections.accessGates.membershipToggleAria')}
-                />
-                <span>
-                  <Power size={13} aria-hidden />
-                  {savingFeature === 'membership'
-                    ? t('admin.sections.accessGates.saving')
-                    : toggles.membershipEnabled
-                      ? t('admin.sections.accessGates.enabledPlural')
-                      : t('admin.sections.accessGates.closedPlural')}
-                </span>
-              </label>
-            ) : null}
           </div>
-
-          <div className="admin-registration-access__rule">
-            <div>
-              <span
-                className={`admin-registration-access__state admin-registration-access__state--${toggles.registrationEnabled ? 'abierta' : 'cerrada'}`}
-              >
-                {toggles.registrationEnabled
-                  ? t('admin.sections.accessGates.enabledPlural')
-                  : t('admin.sections.accessGates.closedPlural')}
-              </span>
-              <h3>{t('admin.sections.accessGates.registrationToggleTitle')}</h3>
-              <p>{t('admin.sections.accessGates.registrationToggleLead')}</p>
-            </div>
-            {canEdit ? (
-              <label className="admin-registration-access__switch">
-                <input
-                  type="checkbox"
-                  checked={toggles.registrationEnabled}
-                  disabled={togglesLoading || savingFeature === 'registration'}
-                  onChange={(event) => handleToggleFeature('registration', event.target.checked)}
-                  aria-label={t('admin.sections.accessGates.registrationToggleAria')}
-                />
-                <span>
-                  <Power size={13} aria-hidden />
-                  {savingFeature === 'registration'
-                    ? t('admin.sections.accessGates.saving')
-                    : toggles.registrationEnabled
-                      ? t('admin.sections.accessGates.enabledPlural')
-                      : t('admin.sections.accessGates.closedPlural')}
-                </span>
-              </label>
-            ) : null}
-          </div>
-        </div>
+        ))}
 
         {togglesLoading ? (
           <p className="admin-registration-access__loading">{t('admin.sections.accessGates.togglesLoading')}</p>

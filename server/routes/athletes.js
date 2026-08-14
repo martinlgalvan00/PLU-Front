@@ -27,11 +27,13 @@ import {
   athleteWriteLimiter,
   publicReadLimiter,
   publicWriteLimiter,
+  registrationAccessCodeLimiter,
   staffLimiter,
 } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
   checkoutPriceFor,
+  isManualPaymentMethod,
   manualPaymentChannel,
   storagePaymentMethod,
 } from '../modules/pricing/checkoutPricePolicy.js'
@@ -84,8 +86,12 @@ import {
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   assertCheckoutEnabled,
+  assertConceptValidationEnabled,
+  assertManualChannelEnabled,
   assertMembershipCheckoutEnabled,
   assertRegistrationCheckoutEnabled,
+  assertValidationEnabled,
+  resolvePublicCheckoutAvailability,
 } from '../services/platformFeatureToggleService.js'
 import {
   ATHLETE_SESSION_COOKIE_NAME,
@@ -233,6 +239,18 @@ const comboRegistrationSchema = registrationSchema.extend({
   registrationAccessCode: registrationAccessCodeField,
 })
 
+/**
+ * Chequeo previo del código de tanda, para que el modal pueda decir "código
+ * incorrecto" antes de que el atleta cargue todo el checkout. No habilita nada
+ * por sí solo: el alta de orden vuelve a validar el mismo código contra el
+ * hash, así que saltearse este endpoint no abre ninguna puerta.
+ */
+const registrationAccessVerifySchema = z.object({
+  scope: z.enum(['membership', 'registration']),
+  eventSlug: z.string().trim().min(1).max(120).optional(),
+  code: z.string().trim().min(1).max(72),
+})
+
 const discountPreviewSchema = z.object({
   code: z.string().trim().toUpperCase().min(1).max(32),
   appliesTo: z.enum(['membership', 'registration']),
@@ -317,7 +335,9 @@ export function createAthleteRoutes({
     // que la columna `default true` de la migración). En runtime real no hay
     // bypass.
     if (!platformSettingsRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
-      return { get: async () => ({ checkoutEnabled: true, membershipEnabled: true, registrationEnabled: true }) }
+      // Vacío = abierto: los asserts sólo cortan con `false` explícito, así que
+      // no hace falta enumerar cada interruptor nuevo en este doble.
+      return { get: async () => ({}) }
     }
     return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(client())
   }
@@ -882,14 +902,38 @@ export function createAthleteRoutes({
         resolveRegistrationAccessRequirements(accessRepo(), { eventSlug }),
         platformSettingsRepo().get(),
       ])
-      const checkoutEnabled = toggles.checkoutEnabled !== false
+      const availability = resolvePublicCheckoutAvailability(toggles)
       res.json({
         ...codeRequirements,
-        membershipEnabled: checkoutEnabled && toggles.membershipEnabled !== false,
-        registrationEnabled: checkoutEnabled && toggles.registrationEnabled !== false,
+        membershipEnabled: availability.membershipEnabled,
+        registrationEnabled: availability.registrationEnabled,
+        // Sin esto la pantalla ofrecía transferencia/efectivo y recién al
+        // enviar el formulario aparecía el 409.
+        membershipManualEnabled: availability.membershipManualEnabled,
+        registrationManualEnabled: availability.registrationManualEnabled,
       })
     } catch (error) { next(error) }
   })
+  router.post(
+    '/me/registration-access/verify',
+    registrationAccessCodeLimiter,
+    validateBody(registrationAccessVerifySchema),
+    async (req, res, next) => {
+      try {
+        await athlete(req)
+        const { scope, eventSlug = null, code } = req.validatedBody
+        if (scope === 'registration' && !eventSlug) {
+          throw new HttpError(400, 'Falta el identificador del evento.')
+        }
+        // Lanza 403 con REGISTRATION_ACCESS_CODE_INVALID si no coincide, y
+        // devuelve null cuando la tanda dejó de estar activa entre que se
+        // pintó el modal y se envió el código: sin tanda no hay nada que
+        // desbloquear, y el checkout sigue igual de disponible.
+        const gate = await assertRegistrationAccessCode(accessRepo(), { scope, eventSlug, code })
+        res.json({ valid: true, required: Boolean(gate), scope })
+      } catch (error) { next(error) }
+    },
+  )
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
     const planCode = req.validatedBody?.planCode ?? null
     try {
@@ -897,6 +941,9 @@ export function createAthleteRoutes({
       const toggles = await platformSettingsRepo().get()
       assertCheckoutEnabled(toggles)
       assertMembershipCheckoutEnabled(toggles)
+      if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
+        assertManualChannelEnabled(toggles, 'membership')
+      }
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -937,6 +984,9 @@ export function createAthleteRoutes({
       const toggles = await platformSettingsRepo().get()
       assertCheckoutEnabled(toggles)
       assertRegistrationCheckoutEnabled(toggles)
+      if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
+        assertManualChannelEnabled(toggles, 'registration')
+      }
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -982,6 +1032,10 @@ export function createAthleteRoutes({
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
+        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
+          assertManualChannelEnabled(toggles, 'membership')
+          assertManualChannelEnabled(toggles, 'registration')
+        }
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1120,6 +1174,18 @@ export function createAthleteRoutes({
     } catch (error) { next(error) }
   })
   /**
+   * Interruptor de validación: con el concepto congelado desde el panel nadie
+   * acredita ni rechaza esa orden, tenga o no `admin.payments.approve`. El corte
+   * llega antes de la RPC para que el 409 salga sin haber tocado la orden.
+   */
+  async function assertOrderValidationEnabled(orderId) {
+    const order = await repo().paymentOrderSummary(orderId)
+    if (!order) throw new HttpError(404, 'Orden no encontrada.')
+    assertConceptValidationEnabled(await platformSettingsRepo().get(), order.concept)
+    return order
+  }
+
+  /**
    * Aprobación manual (transferencia, link de pago). Los emails salen de acá y
    * no del frontend: antes los disparaba `useAppData.handleApprovePayment` con
    * el adaptador del browser, que resolvía el template desde variables
@@ -1202,6 +1268,7 @@ export function createAthleteRoutes({
     const orderId = z.string().uuid().safeParse(req.params.orderId)
     try {
       if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      await assertOrderValidationEnabled(orderId.data)
       const result = await repo().rejectPayment(orderId.data, req.validatedBody.reason, actorLabel(req))
       await paymentTrail().record({
         action: PAYMENT_TRAIL_ACTIONS.manualRejection,
@@ -1256,6 +1323,7 @@ export function createAthleteRoutes({
     const orderId = z.string().uuid().safeParse(req.params.orderId)
     try {
       if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      await assertOrderValidationEnabled(orderId.data)
       const result = await repo().approvePayment(orderId.data, actorLabel(req))
       // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
       // misma bitacora, con el operador que la firmo.
@@ -1309,6 +1377,10 @@ export function createAthleteRoutes({
     try {
       const membershipId = z.string().uuid().safeParse(req.params.membershipId)
       if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+      // Activar a mano es acreditar sin orden: cae bajo el mismo interruptor de
+      // validación que la aprobación de un comprobante. La baja también, para no
+      // dejar media pantalla operativa con el concepto congelado.
+      assertValidationEnabled(await platformSettingsRepo().get(), 'membership')
       const result = await repo().setMembershipStatus(
         membershipId.data,
         req.validatedBody.status,

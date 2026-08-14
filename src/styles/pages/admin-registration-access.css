@@ -58,6 +58,7 @@
 .admin-registration-access__subtitle,
 .admin-registration-access__block-head p,
 .admin-registration-access__subhead p,
+.admin-registration-access__toggle-group-head p,
 .admin-registration-access__rule p,
 .admin-registration-access__form header p,
 .admin-registration-access__empty,
@@ -74,6 +75,7 @@
 
 .admin-registration-access__block-head p,
 .admin-registration-access__subhead p,
+.admin-registration-access__toggle-group-head p,
 .admin-registration-access__rule p,
 .admin-registration-access__form header p,
 .admin-registration-access__empty,
@@ -109,6 +111,19 @@
 }
 
 .admin-registration-access__subhead h3 {
+  font-size: 0.92rem;
+}
+
+/* Tres ejes de habilitación (altas, canal manual, validación) en el mismo
+   bloque. El encabezado de grupo etiqueta el eje; usa la escala de __subhead
+   para que no compita con el título de cada interruptor. */
+.admin-registration-access__toggle-group {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.admin-registration-access__toggle-group-head h3 {
   font-size: 0.92rem;
 }
 

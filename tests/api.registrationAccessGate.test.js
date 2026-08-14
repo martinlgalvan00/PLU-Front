@@ -165,3 +165,96 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
     }
   })
 })
+
+// Chequeo previo del modal. Es solo UX -- el alta de orden revalida el mismo
+// código -- pero tiene que distinguir código bueno de malo sin crear nada, y
+// no puede convertirse en un oráculo que confirme el código a cualquiera.
+describe('verificación previa del código — POST /me/registration-access/verify', () => {
+  function buildApp({ gate, createMembershipOrder = vi.fn() } = {}) {
+    const findActiveGate = vi.fn().mockResolvedValue(gate)
+    const recordUse = vi.fn().mockResolvedValue(undefined)
+    const app = createApp({
+      env: {},
+      supabaseAdmin: authenticatedSupabase(),
+      registrationAccessRepository: { findActiveGate, recordUse },
+      athleteRepository: { createMembershipOrder },
+    })
+    return { target: listen(app), findActiveGate, recordUse, createMembershipOrder }
+  }
+
+  async function verify(target, payload) {
+    return fetch(`${target.url}/api/athletes/me/registration-access/verify`, {
+      method: 'POST',
+      headers: athleteHeaders,
+      body: JSON.stringify(payload),
+    })
+  }
+
+  it('acepta el código correcto sin crear la orden ni auditar un uso', async () => {
+    const { target, recordUse, createMembershipOrder } = buildApp({
+      gate: { id: 'gate-1', scope: 'membership', code_hash: await hashPassword('TANDA-PLU-2026') },
+    })
+    try {
+      const response = await verify(target, { scope: 'membership', code: 'TANDA-PLU-2026' })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ valid: true, required: true, scope: 'membership' })
+      // El uso se audita cuando se paga, no cuando se prueba la contraseña.
+      expect(recordUse).not.toHaveBeenCalled()
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza el código equivocado', async () => {
+    const { target } = buildApp({
+      gate: { id: 'gate-1', scope: 'membership', code_hash: await hashPassword('TANDA-PLU-2026') },
+    })
+    try {
+      const response = await verify(target, { scope: 'membership', code: 'CODIGO-INCORRECTO' })
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ code: 'REGISTRATION_ACCESS_CODE_INVALID' })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('sin tanda activa responde que no hay nada que desbloquear', async () => {
+    const { target } = buildApp({ gate: null })
+    try {
+      const response = await verify(target, { scope: 'membership', code: 'CUALQUIERA' })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ valid: true, required: false })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige el evento para el alcance de inscripción', async () => {
+    const { target, findActiveGate } = buildApp({ gate: null })
+    try {
+      const response = await verify(target, { scope: 'registration', code: 'TANDA' })
+      expect(response.status).toBe(400)
+      expect(findActiveGate).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no responde a quien no tiene sesión de atleta', async () => {
+    const { target, findActiveGate } = buildApp({
+      gate: { id: 'gate-1', scope: 'membership', code_hash: await hashPassword('TANDA-PLU-2026') },
+    })
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/registration-access/verify`, {
+        method: 'POST',
+        headers: mutationHeaders,
+        body: JSON.stringify({ scope: 'membership', code: 'TANDA-PLU-2026' }),
+      })
+      expect(response.status).toBe(401)
+      expect(findActiveGate).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+})

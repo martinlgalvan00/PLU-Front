@@ -49,6 +49,18 @@ function formatDateTime(value, locale) {
   })
 }
 
+/**
+ * Con el interruptor de validación del concepto apagado no se acredita ni se
+ * rechaza esa orden. El combo pesa en los dos: acredita afiliación e
+ * inscripción en la misma transacción, así que alcanza uno congelado.
+ */
+function canValidateConcept(concept, validationEnabled) {
+  if (concept === 'combo') {
+    return validationEnabled.membership !== false && validationEnabled.registration !== false
+  }
+  return validationEnabled[concept] !== false
+}
+
 export default function AthletePaymentOrdersSection({
   canEdit,
   highlightOrderId = null,
@@ -57,6 +69,7 @@ export default function AthletePaymentOrdersSection({
   onSummaryChange,
   refreshKey = 0,
   statusFilter = null,
+  validationEnabled = { membership: true, registration: true, ticket: true },
 }) {
   const { locale, t } = useI18n()
   const [orders, setOrders] = useState([])
@@ -132,6 +145,7 @@ export default function AthletePaymentOrdersSection({
       athlete: order.athlete?.fullName ?? '—',
       document: order.athlete?.documentId ?? '—',
       concept: order.conceptLabel,
+      validatable: canValidateConcept(order.concept, validationEnabled),
       amount: order.amount,
       currency: order.currency,
       method: order.method,
@@ -143,7 +157,7 @@ export default function AthletePaymentOrdersSection({
       paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
     }))
-  }, [orders, status])
+  }, [orders, status, validationEnabled])
 
   async function approve(orderId) {
     setApprovingId(orderId)
@@ -349,6 +363,7 @@ export default function AthletePaymentOrdersSection({
                   <AdminIconButton
                     disabled={
                       !canEdit ||
+                      !row.validatable ||
                       row.method !== 'manual_link' ||
                       (!row.hasProof && row.manualPaymentChannel !== 'cash_pitbull') ||
                       !OPEN_STATUSES.includes(row.status) ||
@@ -358,7 +373,9 @@ export default function AthletePaymentOrdersSection({
                     label={
                       row.method === 'mercado_pago'
                         ? t('admin.athletePayments.webhookOnly')
-                        : t('admin.actions.validate')
+                        : row.validatable
+                          ? t('admin.actions.validate')
+                          : t('admin.athletePayments.validationPaused')
                     }
                     onClick={() => openReview(row)}
                     variant="celeste"

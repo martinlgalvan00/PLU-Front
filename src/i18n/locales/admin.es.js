@@ -427,6 +427,43 @@ export default {
       registrationToggleLead:
         'Al cerrarlas, ningún torneo admite nuevas inscripciones aunque su fecha de apertura esté vigente.',
       registrationToggleAria: 'Habilitar inscripciones',
+      ticketToggleTitle: 'Entradas',
+      ticketToggleLead:
+        'Al cerrarlas, ningún evento vende entradas de público, sin tocar la configuración de cada torneo.',
+      ticketToggleAria: 'Habilitar venta de entradas',
+      group: {
+        intakeTitle: 'Altas nuevas',
+        intakeLead: 'Quién puede empezar una operación ahora mismo, con o sin código de tanda.',
+        manualTitle: 'Transferencia y efectivo',
+        manualLead:
+          'Cerrado el canal manual, el checkout ofrece solo Mercado Pago. Lo que ya entró se sigue pudiendo validar.',
+        validationTitle: 'Validación y activación',
+        validationLead:
+          'Congela la decisión de Finanzas: nadie acredita comprobantes ni activa derechos de ese concepto, aunque tenga el permiso.',
+      },
+      membershipManualTitle: 'Afiliación por transferencia',
+      membershipManualLead:
+        'Al cerrarla, la afiliación solo se paga con Mercado Pago: se ocultan transferencia y efectivo en Pitbull.',
+      membershipManualAria: 'Habilitar afiliación por transferencia o efectivo',
+      registrationManualTitle: 'Inscripción por transferencia',
+      registrationManualLead:
+        'Al cerrarla, la inscripción y el combo solo se pagan con Mercado Pago.',
+      registrationManualAria: 'Habilitar inscripción por transferencia o efectivo',
+      ticketManualTitle: 'Entradas por transferencia',
+      ticketManualLead: 'Al cerrarla, las entradas solo se pagan con Mercado Pago.',
+      ticketManualAria: 'Habilitar entradas por transferencia',
+      membershipValidationTitle: 'Validar afiliaciones',
+      membershipValidationLead:
+        'Congelada, no se aprueban ni rechazan comprobantes de afiliación ni se activa una afiliación a mano.',
+      membershipValidationAria: 'Habilitar validación de afiliaciones',
+      registrationValidationTitle: 'Validar inscripciones',
+      registrationValidationLead:
+        'Congelada, no se aprueban ni rechazan comprobantes de inscripción ni de combo.',
+      registrationValidationAria: 'Habilitar validación de inscripciones',
+      ticketValidationTitle: 'Validar entradas',
+      ticketValidationLead:
+        'Congelada, no se aprueban ni rechazan comprobantes de entradas y no se emiten sus QR.',
+      ticketValidationAria: 'Habilitar validación de entradas',
       gatesTitle: 'Tandas privadas',
       gatesLead: 'Además del corte general, cada tanda puede pedir un código para abrir de a poco.',
       membershipGateTitle: 'Afiliaciones',
@@ -1889,6 +1926,7 @@ export default {
     proofMissing: 'Sin comprobante',
     proofError: 'No se pudo abrir el comprobante.',
     webhookOnly: 'Mercado Pago se acredita por webhook',
+    validationPaused: 'Validación pausada desde Acceso y habilitación',
     empty: 'No hay órdenes que coincidan con el filtro',
     loading: 'Cargando órdenes...',
     loadError: 'No se pudieron cargar las órdenes.',

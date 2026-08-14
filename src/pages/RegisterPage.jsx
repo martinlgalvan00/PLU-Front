@@ -17,6 +17,8 @@ import {
   Globe,
   MapPin,
   Dumbbell,
+  LockKeyhole,
+  ShieldCheck,
   Tag,
 } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
@@ -45,7 +47,7 @@ import {
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
-import RegistrationAccessCodeFields from '../components/checkout/RegistrationAccessCodeFields.jsx'
+import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
 import { previewCheckoutPrice } from '../services/checkoutPricing.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
 import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
@@ -401,6 +403,8 @@ export default function RegisterPage({
   const [accessRequirements, setAccessRequirements] = useState({ membership: false, registration: false })
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
   const [registrationAccessCode, setRegistrationAccessCode] = useState('')
+  const [accessUnlocked, setAccessUnlocked] = useState(false)
+  const [accessGateOpen, setAccessGateOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -629,6 +633,57 @@ export default function RegisterPage({
     flow === 'membership' || effectivePurchaseType === 'combo'
   )
   const needsRegistrationAccessCode = accessRequirements.registration && flow === 'competition'
+
+  /**
+   * Tandas privadas que hay que desbloquear antes de dejar pagar. El combo pide
+   * las dos contraseñas porque acredita afiliación e inscripción en la misma
+   * orden, y el admin puede tener una tanda abierta y la otra cerrada.
+   */
+  const requiredAccessScopes = useMemo(() => {
+    const scopes = []
+    if (needsMembershipAccessCode) scopes.push('membership')
+    if (needsRegistrationAccessCode) scopes.push('registration')
+    return scopes
+  }, [needsMembershipAccessCode, needsRegistrationAccessCode])
+  // Clave estable para el efecto: comparar el array por identidad lo reabriría
+  // en cada render.
+  const accessScopeKey = requiredAccessScopes.join('+')
+  const accessLocked = requiredAccessScopes.length > 0 && !accessUnlocked
+
+  /**
+   * La puerta salta sola apenas se sabe que el checkout está restringido, y
+   * vuelve a saltar si cambia lo que hay que desbloquear —pasar de combo a solo
+   * inscripción estrena requisitos, así que el desbloqueo anterior no vale.
+   */
+  useEffect(() => {
+    setAccessUnlocked(false)
+    setMembershipAccessCode('')
+    setRegistrationAccessCode('')
+    setAccessGateOpen(accessScopeKey.length > 0)
+  }, [accessScopeKey])
+
+  function handleAccessUnlock({ membershipCode, registrationCode }) {
+    setMembershipAccessCode(membershipCode)
+    setRegistrationAccessCode(registrationCode)
+    setAccessUnlocked(true)
+    setAccessGateOpen(false)
+  }
+
+  // El combo necesita los dos canales abiertos porque acredita afiliación e
+  // inscripción en la misma orden. Ausente = abierto: un fetch fallido no puede
+  // dejar la pantalla sin medio de pago manual.
+  const manualPaymentEnabled =
+    accessRequirements.membershipManualEnabled !== false &&
+    (flow !== 'competition' || accessRequirements.registrationManualEnabled !== false)
+  const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
+
+  // El canal manual se cerró mientras la pantalla estaba abierta: la selección
+  // vuelve a Mercado Pago para que el formulario no envíe un medio que el
+  // backend va a rechazar.
+  useEffect(() => {
+    if (manualPaymentEnabled || !manualMethodSelected) return
+    onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
+  }, [manualMethodSelected, manualPaymentEnabled, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -889,6 +944,13 @@ export default function RegisterPage({
       setSubmitError(t('pages.register.checkoutSoon'))
       return
     }
+    // Puerta de tanda privada: sin contraseña validada no se dispara el pago.
+    // El backend igual la vuelve a pedir al crear la orden; esto evita que el
+    // atleta llegue hasta Mercado Pago para recibir un 403.
+    if (accessLocked) {
+      setAccessGateOpen(true)
+      return
+    }
     submissionInFlightRef.current = true
     if (flow === 'profile') setProfileSubmitAttempted(true)
 
@@ -971,6 +1033,11 @@ export default function RegisterPage({
 
   async function switchToTransfer() {
     if (submitting || submissionInFlightRef.current || checkoutFlowsLocked) return
+    // Cambiar a transferencia también crea la orden: la misma puerta aplica.
+    if (accessLocked) {
+      setAccessGateOpen(true)
+      return
+    }
     submissionInFlightRef.current = true
     onUpdateForm({ target: { name: 'paymentMethod', value: 'manual_link' } })
     setSubmitError('')
@@ -1600,6 +1667,7 @@ export default function RegisterPage({
                   description={t('pages.register.changePaymentLead')}
                 >
                   <RegisterSettle
+                    manualPaymentEnabled={manualPaymentEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}
@@ -1682,6 +1750,7 @@ export default function RegisterPage({
                     comboEnabled={comboEnabled}
                     comboOffer={comboAvailability.offer}
                     comboSavings={comboSavings}
+                    manualPaymentEnabled={manualPaymentEnabled}
                     membershipPrice={membershipListPrice}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
@@ -1787,6 +1856,7 @@ export default function RegisterPage({
             >
               {flow === 'membership' ? (
                 <RegisterSettle
+                  manualPaymentEnabled={manualPaymentEnabled}
                   onPaymentBlur={blurField}
                   onPaymentChange={changeField}
                   paymentError={errors.paymentMethod}
@@ -1796,15 +1866,25 @@ export default function RegisterPage({
                 />
               ) : null}
 
-              <RegistrationAccessCodeFields
-                membershipRequired={needsMembershipAccessCode}
-                registrationRequired={needsRegistrationAccessCode}
-                membershipCode={membershipAccessCode}
-                registrationCode={registrationAccessCode}
-                onMembershipCodeChange={setMembershipAccessCode}
-                onRegistrationCodeChange={setRegistrationAccessCode}
-                disabled={submitting}
-              />
+              {requiredAccessScopes.length ? (
+                accessLocked ? (
+                  <div className="registration-access-locked">
+                    <p>
+                      <strong>{t('pages.register.accessGate.lockedTitle')}</strong>
+                      {t('pages.register.accessGate.lockedText')}
+                    </p>
+                    <button type="button" onClick={() => setAccessGateOpen(true)} disabled={submitting}>
+                      <LockKeyhole size={15} aria-hidden />
+                      {t('pages.register.accessGate.lockedAction')}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="registration-access-unlocked">
+                    <ShieldCheck size={15} aria-hidden />
+                    {t('pages.register.accessGate.unlocked')}
+                  </p>
+                )
+              ) : null}
 
               {flow === 'profile' && profileStepIndex > 0 && (
                 <button type="button" className="register-card__back btn btn--outline" onClick={goBackProfileStep}>
@@ -1884,6 +1964,14 @@ export default function RegisterPage({
           orderId={transferOrderId ?? visibleOrder?.paymentId ?? visibleOrder?.id ?? null}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
+        />
+      ) : null}
+      {accessGateOpen && accessLocked ? (
+        <RegistrationAccessGateModal
+          scopes={requiredAccessScopes}
+          eventSlug={event?.slug ?? null}
+          onUnlock={handleAccessUnlock}
+          onCancel={() => setAccessGateOpen(false)}
         />
       ) : null}
     </main>

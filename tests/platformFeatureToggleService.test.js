@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   assertCheckoutEnabled,
+  assertConceptValidationEnabled,
+  assertManualChannelEnabled,
   assertMembershipCheckoutEnabled,
   assertRegistrationCheckoutEnabled,
+  assertTicketCheckoutEnabled,
+  assertValidationEnabled,
+  resolvePublicCheckoutAvailability,
 } from '../server/services/platformFeatureToggleService.js'
+
+const thrown = (code) => expect.objectContaining({ status: 409, details: { code } })
 
 // Validadores sync sobre un `toggles` ya leído: la ruta hace una sola
 // consulta a Supabase y la reusa para los tres checks, en vez de repetirla.
@@ -35,5 +42,110 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
       expect.objectContaining({ status: 409, details: { code: 'REGISTRATION_CHECKOUT_DISABLED' } }),
     )
     expect(() => assertMembershipCheckoutEnabled(toggles)).not.toThrow()
+  })
+
+  it('rechaza la venta de entradas cuando el interruptor está apagado', () => {
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: false })).toThrowError(
+      thrown('TICKET_CHECKOUT_DISABLED'),
+    )
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true })).not.toThrow()
+  })
+
+  // Un interruptor ausente no cierra nada: una lectura incompleta o una tabla
+  // sin fila no puede dejar la plataforma sin cobrar.
+  it('trata la ausencia de dato como abierto', () => {
+    for (const assert of [
+      assertCheckoutEnabled,
+      assertMembershipCheckoutEnabled,
+      assertRegistrationCheckoutEnabled,
+      assertTicketCheckoutEnabled,
+    ]) {
+      expect(() => assert({})).not.toThrow()
+      expect(() => assert(undefined)).not.toThrow()
+    }
+    expect(() => assertManualChannelEnabled({}, 'ticket')).not.toThrow()
+    expect(() => assertValidationEnabled(undefined, 'membership')).not.toThrow()
+  })
+})
+
+describe('canal manual por concepto', () => {
+  it('cierra transferencia y efectivo del concepto indicado solamente', () => {
+    const toggles = {
+      membershipManualEnabled: false,
+      registrationManualEnabled: true,
+      ticketManualEnabled: true,
+    }
+    expect(() => assertManualChannelEnabled(toggles, 'membership')).toThrowError(
+      thrown('MEMBERSHIP_MANUAL_DISABLED'),
+    )
+    expect(() => assertManualChannelEnabled(toggles, 'registration')).not.toThrow()
+    expect(() => assertManualChannelEnabled(toggles, 'ticket')).not.toThrow()
+  })
+
+  it('no confunde el canal manual con el alta del concepto', () => {
+    // Alta abierta + canal manual cerrado: la afiliación sigue disponible por
+    // Mercado Pago, que es justamente el caso de uso del interruptor.
+    const toggles = { membershipEnabled: true, membershipManualEnabled: false }
+    expect(() => assertMembershipCheckoutEnabled(toggles)).not.toThrow()
+    expect(() => assertManualChannelEnabled(toggles, 'membership')).toThrow()
+  })
+})
+
+describe('validación y activación por concepto', () => {
+  it('congela un concepto sin tocar los otros', () => {
+    const toggles = {
+      membershipValidationEnabled: true,
+      registrationValidationEnabled: false,
+      ticketValidationEnabled: true,
+    }
+    expect(() => assertValidationEnabled(toggles, 'registration')).toThrowError(
+      thrown('REGISTRATION_VALIDATION_DISABLED'),
+    )
+    expect(() => assertValidationEnabled(toggles, 'membership')).not.toThrow()
+    expect(() => assertValidationEnabled(toggles, 'ticket')).not.toThrow()
+  })
+
+  // El combo acredita afiliación e inscripción en la misma transacción: si
+  // cualquiera de las dos está congelada no se puede aprobar.
+  it('bloquea el combo cuando cualquiera de sus dos conceptos está congelado', () => {
+    expect(() =>
+      assertConceptValidationEnabled({ registrationValidationEnabled: false }, 'combo'),
+    ).toThrowError(thrown('REGISTRATION_VALIDATION_DISABLED'))
+    expect(() =>
+      assertConceptValidationEnabled({ membershipValidationEnabled: false }, 'combo'),
+    ).toThrowError(thrown('MEMBERSHIP_VALIDATION_DISABLED'))
+    expect(() => assertConceptValidationEnabled({}, 'combo')).not.toThrow()
+  })
+
+  it('ignora conceptos que no se validan a mano', () => {
+    expect(() => assertConceptValidationEnabled({ membershipValidationEnabled: false }, 'otro')).not.toThrow()
+  })
+})
+
+describe('disponibilidad publicada al checkout', () => {
+  it('el interruptor maestro cierra los tres conceptos y sus canales', () => {
+    expect(resolvePublicCheckoutAvailability({ checkoutEnabled: false })).toEqual({
+      membershipEnabled: false,
+      registrationEnabled: false,
+      ticketEnabled: false,
+      membershipManualEnabled: false,
+      registrationManualEnabled: false,
+      ticketManualEnabled: false,
+    })
+  })
+
+  it('un concepto cerrado arrastra su canal manual', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      ticketEnabled: false,
+      ticketManualEnabled: true,
+    })
+    expect(availability.ticketEnabled).toBe(false)
+    expect(availability.ticketManualEnabled).toBe(false)
+  })
+
+  it('deja el concepto abierto con el canal manual cerrado', () => {
+    const availability = resolvePublicCheckoutAvailability({ membershipManualEnabled: false })
+    expect(availability.membershipEnabled).toBe(true)
+    expect(availability.membershipManualEnabled).toBe(false)
   })
 })

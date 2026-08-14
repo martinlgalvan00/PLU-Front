@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Check,
   ImageDown,
+  LockKeyhole,
   RefreshCw,
   ShieldCheck,
   Tag,
@@ -27,7 +28,7 @@ import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
-import RegistrationAccessCodeFields from '../../components/checkout/RegistrationAccessCodeFields.jsx'
+import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
 
 export default function MembershipPurchaseSection({
@@ -68,7 +69,12 @@ export default function MembershipPurchaseSection({
   const [discountError, setDiscountError] = useState('')
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
   const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
+  // Canal manual cerrado desde el panel: transferencia y efectivo salen del
+  // selector en vez de aparecer y fallar con 409 al enviar.
+  const [manualChannelEnabled, setManualChannelEnabled] = useState(true)
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
+  const [accessUnlocked, setAccessUnlocked] = useState(false)
+  const [accessGateOpen, setAccessGateOpen] = useState(false)
   // Vigencia y no `status === 'activa'`: es la condición que exige la RPC de
   // inscripción y la que responde la puerta al escanear. Una fila marcada
   // activa con fechas vencidas daba acá una afiliación "al día", escondía el
@@ -113,6 +119,8 @@ export default function MembershipPurchaseSection({
     concept: 'membership', paymentMethod, fallback: selectedPlan?.price ?? 0,
   })
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
+  // Tanda privada abierta por el admin y todavía sin contraseña validada.
+  const accessLocked = membershipAccessRequired && !accessUnlocked
   const ctaDisabled = !selectedPlan || submitting
   // Igual que el settle de inscripción a torneo: en cuanto hay una orden de
   // Mercado Pago, la propia sección se convierte en la pantalla de cobro en
@@ -210,6 +218,7 @@ export default function MembershipPurchaseSection({
         if (!active) return
         setMembershipAccessRequired(requirements.membership)
         setMembershipCheckoutEnabled(requirements.membershipEnabled)
+        setManualChannelEnabled(requirements.membershipManualEnabled)
       })
       .catch(() => {
         if (active) setMembershipAccessRequired(false)
@@ -217,11 +226,28 @@ export default function MembershipPurchaseSection({
     return () => { active = false }
   }, [])
 
+  /**
+   * La puerta salta sola en cuanto se sabe que la afiliación está restringida:
+   * el atleta no llega a elegir plan ni medio de pago sin la contraseña.
+   */
   useEffect(() => {
-    if (selectedPlan?.collectionMode === 'recurring' && paymentMethod !== 'mercado_pago') {
+    if (!membershipAccessRequired) {
+      setAccessUnlocked(false)
+      setMembershipAccessCode('')
+      setAccessGateOpen(false)
+      return
+    }
+    setAccessGateOpen(true)
+  }, [membershipAccessRequired])
+
+  useEffect(() => {
+    if (paymentMethod === 'mercado_pago') return
+    // Plan recurrente o canal manual cerrado: en los dos casos el único medio
+    // posible es Mercado Pago, así que la selección vuelve ahí sola.
+    if (selectedPlan?.collectionMode === 'recurring' || !manualChannelEnabled) {
       setPaymentMethod('mercado_pago')
     }
-  }, [paymentMethod, selectedPlan?.collectionMode])
+  }, [manualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -261,6 +287,12 @@ export default function MembershipPurchaseSection({
     if (!selectedPlan) {
       setCheckoutMessage(t('account.membership.planUnavailable'))
       setCheckoutIsError(true)
+      return
+    }
+    // Tanda privada sin desbloquear: en vez de mandar el alta a un 403, se pide
+    // la contraseña acá. El backend igual la revalida al crear la orden.
+    if (accessLocked) {
+      setAccessGateOpen(true)
       return
     }
 
@@ -312,6 +344,12 @@ export default function MembershipPurchaseSection({
 
   function handleCheckoutAction() {
     void startMembershipPayment()
+  }
+
+  function handleAccessUnlock({ membershipCode }) {
+    setMembershipAccessCode(membershipCode)
+    setAccessUnlocked(true)
+    setAccessGateOpen(false)
   }
 
   function changePlan(nextPlanCode) {
@@ -633,12 +671,29 @@ export default function MembershipPurchaseSection({
                 </div>
               ) : null}
 
-              <RegistrationAccessCodeFields
-                membershipRequired={membershipAccessRequired}
-                membershipCode={membershipAccessCode}
-                onMembershipCodeChange={setMembershipAccessCode}
-                disabled={checkoutLocked}
-              />
+              {membershipAccessRequired ? (
+                accessLocked ? (
+                  <div className="registration-access-locked">
+                    <p>
+                      <strong>{t('pages.register.accessGate.lockedTitle')}</strong>
+                      {t('pages.register.accessGate.lockedText')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setAccessGateOpen(true)}
+                      disabled={checkoutLocked}
+                    >
+                      <LockKeyhole size={15} aria-hidden />
+                      {t('pages.register.accessGate.lockedAction')}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="registration-access-unlocked">
+                    <ShieldCheck size={15} aria-hidden />
+                    {t('pages.register.accessGate.unlocked')}
+                  </p>
+                )
+              ) : null}
 
               <CheckoutDesk
                 bar={
@@ -656,16 +711,20 @@ export default function MembershipPurchaseSection({
                 }
                 methods={[
                   { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-                  {
-                    value: 'transferencia',
-                    label: t('account.membership.transfer'),
-                    disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
-                  },
-                  {
-                    value: 'cash_pitbull',
-                    label: t('account.membership.cashPitbull'),
-                    disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
-                  },
+                  ...(manualChannelEnabled
+                    ? [
+                        {
+                          value: 'transferencia',
+                          label: t('account.membership.transfer'),
+                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                        },
+                        {
+                          value: 'cash_pitbull',
+                          label: t('account.membership.cashPitbull'),
+                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                        },
+                      ]
+                    : []),
                 ]}
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
@@ -747,6 +806,14 @@ export default function MembershipPurchaseSection({
           onClose={() => setTransferOpen(false)}
         />
       )}
+
+      {accessGateOpen && accessLocked ? (
+        <RegistrationAccessGateModal
+          scopes={['membership']}
+          onUnlock={handleAccessUnlock}
+          onCancel={() => setAccessGateOpen(false)}
+        />
+      ) : null}
     </section>
   )
 }

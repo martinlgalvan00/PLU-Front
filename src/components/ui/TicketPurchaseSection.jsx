@@ -1,5 +1,5 @@
 import '../../styles/components/ticket-purchase.css'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   CreditCard,
@@ -324,7 +324,7 @@ function isManualTicketPayment(method) {
   return method === 'transferencia' || method === 'manual' || method === 'manual_link'
 }
 
-function TicketPaymentOptions({ paymentMethod, onChange, t }) {
+function TicketPaymentOptions({ manualEnabled = true, paymentMethod, onChange, t }) {
   return (
     <fieldset className="ticket-purchase__payment-options">
       <legend>{t('pages.tickets.paymentMethod')}</legend>
@@ -342,20 +342,24 @@ function TicketPaymentOptions({ paymentMethod, onChange, t }) {
           <small>{t('pages.tickets.paymentMpHint')}</small>
         </span>
       </label>
-      <label className={paymentMethod === 'transferencia' ? 'is-selected' : ''}>
-        <input
-          type="radio"
-          name="ticket-payment"
-          value="transferencia"
-          checked={paymentMethod === 'transferencia'}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <Landmark size={18} aria-hidden />
-        <span>
-          <strong>{t('pages.tickets.paymentTransfer')}</strong>
-          <small>{t('pages.tickets.paymentTransferHint')}</small>
-        </span>
-      </label>
+      {/* Canal manual cerrado desde el panel: la opción no se muestra, en vez de
+          aparecer y fallar con 409 al enviar la compra. */}
+      {manualEnabled ? (
+        <label className={paymentMethod === 'transferencia' ? 'is-selected' : ''}>
+          <input
+            type="radio"
+            name="ticket-payment"
+            value="transferencia"
+            checked={paymentMethod === 'transferencia'}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <Landmark size={18} aria-hidden />
+          <span>
+            <strong>{t('pages.tickets.paymentTransfer')}</strong>
+            <small>{t('pages.tickets.paymentTransferHint')}</small>
+          </span>
+        </label>
+      ) : null}
     </fieldset>
   )
 }
@@ -364,6 +368,9 @@ export default function TicketPurchaseSection({
   editorial = false,
   showPassPreview = true,
   event,
+  // Interruptor de canal manual del panel. Default abierto: un consumidor que
+  // todavía no lo pasa mantiene la compra por transferencia.
+  manualPaymentEnabled = true,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
@@ -384,6 +391,22 @@ export default function TicketPurchaseSection({
   const [proofUploading, setProofUploading] = useState(false)
   const [proofUploadError, setProofUploadError] = useState('')
   const [proofUploaded, setProofUploaded] = useState(false)
+
+  // Con el canal manual cerrado queda solo Mercado Pago, y una selección previa
+  // de transferencia vuelve ahí sola en vez de mandar una compra que va a fallar.
+  const manualPaymentOptions = useMemo(
+    () =>
+      manualPaymentEnabled
+        ? formOptions.paymentMethod
+        : formOptions.paymentMethod.filter(([value]) => !isManualTicketPayment(value)),
+    [formOptions.paymentMethod, manualPaymentEnabled],
+  )
+
+  useEffect(() => {
+    if (!manualPaymentEnabled && isManualTicketPayment(paymentMethod)) {
+      setPaymentMethod('mercado_pago')
+    }
+  }, [manualPaymentEnabled, paymentMethod])
 
   const ticketAddons = pricing?.addons ?? []
   const ticketTypeNames = useMemo(
@@ -782,6 +805,7 @@ export default function TicketPurchaseSection({
         {editorial ? (
           <>
             <TicketPaymentOptions
+              manualEnabled={manualPaymentEnabled}
               paymentMethod={paymentMethod}
               onChange={(value) => {
                 setPaymentMethod(value)
@@ -827,7 +851,7 @@ export default function TicketPurchaseSection({
                 name="paymentMethod"
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                options={formOptions.paymentMethod}
+                options={manualPaymentOptions}
               />
               <div className="field field--readonly ticket-purchase__total">
                 <span>{t('pages.tickets.total')}</span>

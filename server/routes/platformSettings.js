@@ -6,8 +6,27 @@ import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 
+/**
+ * Tres ejes por concepto: alta de órdenes, canal manual (transferencia y
+ * efectivo) y validación/activación desde el panel. `checkout` es el maestro
+ * que corta los tres. La lista blanca equivalente vive en
+ * `plu_private.platform_feature_toggle_column`.
+ */
+export const PLATFORM_FEATURES = [
+  'checkout',
+  'membership',
+  'registration',
+  'ticket',
+  'membership_manual',
+  'registration_manual',
+  'ticket_manual',
+  'membership_validation',
+  'registration_validation',
+  'ticket_validation',
+]
+
 export const platformFeatureToggleSchema = z.object({
-  feature: z.enum(['checkout', 'membership', 'registration']),
+  feature: z.enum(PLATFORM_FEATURES),
   enabled: z.boolean(),
 })
 

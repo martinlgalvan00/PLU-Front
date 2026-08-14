@@ -13,6 +13,9 @@ export default function RegisterSettle({
   comboEnabled = false,
   comboOffer = null,
   comboSavings = 0,
+  // Interruptor de canal manual del panel. Default abierto: un consumidor que
+  // todavía no lo pasa mantiene transferencia y efectivo.
+  manualPaymentEnabled = true,
   membershipPrice = 0,
   onPaymentBlur,
   onPaymentChange,
@@ -75,11 +78,17 @@ export default function RegisterSettle({
     })
   }
 
+  // Canal manual cerrado desde el panel: transferencia y efectivo no se ofrecen,
+  // en vez de aparecer y fallar con 409 al enviar.
   const methods = showPayment
       ? [
           { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-          { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
-          { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
+          ...(manualPaymentEnabled
+            ? [
+                { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
+                { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
+              ]
+            : []),
       ]
     : []
 

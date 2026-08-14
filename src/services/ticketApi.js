@@ -171,8 +171,17 @@ export async function verifyTicketByQrToken(qrToken) {
  * muestra el aviso — no es un dato bloqueante para poder comprar.
  */
 export async function fetchTicketAvailability(eventSlug) {
-  const { availability } = await apiGet(`/api/tickets/availability/${encodeURIComponent(eventSlug)}`)
-  return availability
+  const result = await apiGet(`/api/tickets/availability/${encodeURIComponent(eventSlug)}`)
+  return {
+    availability: result?.availability ?? null,
+    // Interruptores de la plataforma: viajan con la disponibilidad porque la
+    // pantalla de entradas necesita las dos cosas para armarse. Ausentes =
+    // abiertos, para no cerrar la compra por una respuesta vieja del API.
+    checkout: {
+      ticketEnabled: result?.checkout?.ticketEnabled !== false,
+      ticketManualEnabled: result?.checkout?.ticketManualEnabled !== false,
+    },
+  }
 }
 
 export async function listTicketsForEvent(eventSlug) {

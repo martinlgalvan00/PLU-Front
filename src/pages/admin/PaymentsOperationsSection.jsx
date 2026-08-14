@@ -24,8 +24,18 @@ import {
   retryPaymentEvent,
   retryPaymentReconciliation,
 } from '../../services/paymentService.js'
+import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdminService.js'
 import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
 import TicketOrdersSection from './TicketOrdersSection.jsx'
+
+/**
+ * Interruptores de validación por concepto. Todo habilitado es el estado por
+ * defecto y también el fallback: un rol acotado puede no tener
+ * `admin.registration_access.read` y recibir 403 al leerlos. En ese caso no se
+ * deshabilita nada y el 409 del backend sigue siendo la última palabra — es
+ * preferible a bloquear la caja de Finanzas por una lectura que falló.
+ */
+const VALIDATION_OPEN = Object.freeze({ membership: true, registration: true, ticket: true })
 
 function formatDate(value, locale) {
   if (!value) return '—'
@@ -82,6 +92,7 @@ export default function PaymentsOperationsSection({
   const [recovering, setRecovering] = useState(false)
   const [retryingId, setRetryingId] = useState(null)
   const [status, setStatus] = useState('')
+  const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
   const [athleteStatusRequest, setAthleteStatusRequest] = useState(null)
   const [athleteSummary, setAthleteSummary] = useState({
@@ -102,14 +113,31 @@ export default function PaymentsOperationsSection({
     }
   }, [status, t])
 
+  const loadValidation = useCallback(async () => {
+    try {
+      const toggles = await fetchPlatformFeatureToggles()
+      setValidation({
+        membership: toggles.membershipValidationEnabled,
+        registration: toggles.registrationValidationEnabled,
+        ticket: toggles.ticketValidationEnabled,
+      })
+    } catch {
+      setValidation(VALIDATION_OPEN)
+    }
+  }, [])
+
   const refreshAll = useCallback(async () => {
     setAthleteRefreshKey((key) => key + 1)
-    await Promise.all([loadOps(), onRefreshManual?.() ?? Promise.resolve()])
-  }, [loadOps, onRefreshManual])
+    await Promise.all([loadOps(), loadValidation(), onRefreshManual?.() ?? Promise.resolve()])
+  }, [loadOps, loadValidation, onRefreshManual])
 
   useEffect(() => {
     void loadOps()
   }, [loadOps])
+
+  useEffect(() => {
+    void loadValidation()
+  }, [loadValidation])
 
   useEffect(() => {
     if (!ticketOrderEventScope || loading) return undefined
@@ -435,6 +463,7 @@ export default function PaymentsOperationsSection({
 
       <AthletePaymentOrdersSection
         canEdit={canEdit}
+        validationEnabled={validation}
         highlightOrderId={highlightOrderId}
         onApprovePayment={onApprovePayment}
         onRejectPayment={onRejectPayment}
@@ -445,7 +474,7 @@ export default function PaymentsOperationsSection({
 
       <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
         <TicketOrdersSection
-          canEdit={canEdit}
+          canEdit={canEdit && validation.ticket}
           initialQuery={ticketOrderEventScope}
           pendingTicketOrders={pendingTicketOrders}
           isLoading={manualLoading}
