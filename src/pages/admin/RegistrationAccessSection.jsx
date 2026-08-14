@@ -149,6 +149,7 @@ export default function RegistrationAccessSection({
   const [savingFeature, setSavingFeature] = useState(null)
   const formRef = useRef(null)
   const triggerRef = useRef(null)
+  const shouldFocusEditorRef = useRef(false)
   const eventGates = configuration.eventGates ?? []
   const events = useMemo(
     () => adminEvents.filter((event) => event.slug && event.status !== 'archived'),
@@ -185,7 +186,8 @@ export default function RegistrationAccessSection({
   }, [loadToggles])
 
   useEffect(() => {
-    if (!draft) return undefined
+    if (!draft || !shouldFocusEditorRef.current) return undefined
+    shouldFocusEditorRef.current = false
     const form = formRef.current
     if (typeof form?.scrollIntoView === 'function') {
       form.scrollIntoView({ block: 'nearest' })
@@ -216,6 +218,7 @@ export default function RegistrationAccessSection({
 
   function openEditor(gate = null, scope = 'membership', trigger = null) {
     triggerRef.current = trigger
+    shouldFocusEditorRef.current = true
     setNotice('')
     setFormError('')
     setDraft(
@@ -264,12 +267,20 @@ export default function RegistrationAccessSection({
       setFormError(t('admin.sections.accessGates.eventRequired'))
       return
     }
-    if (draft.active && !draft.code && !currentGate?.active) {
+    const trimmedCode = draft.code.trim()
+    if (draft.active && !trimmedCode && !currentGate?.active) {
       setFormError(t('admin.sections.accessGates.codeRequired'))
       return
     }
     setSaving(true)
-    const result = await onSave?.(draft)
+    const result = await onSave?.({
+      ...draft,
+      eventSlug: draft.scope === 'registration' ? draft.eventSlug.trim() : undefined,
+      label: draft.label.trim(),
+      code: trimmedCode || undefined,
+      startsAt: draft.startsAt || undefined,
+      endsAt: draft.endsAt || undefined,
+    })
     setSaving(false)
     if (result?.error) {
       setFormError(

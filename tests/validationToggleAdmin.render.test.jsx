@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -164,5 +164,41 @@ describe('pantalla de Acceso y habilitación', () => {
     expect(
       screen.getByRole('checkbox', { name: /habilitar validación de afiliaciones/i }).checked,
     ).toBe(true)
+  })
+  it('mantiene el foco mientras se edita una tanda privada', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+    )
+
+    render(
+      <I18nProvider>
+        <RegistrationAccessSection
+          canEdit
+          configuration={{
+            membershipGate: {
+              id: 'gate-1',
+              scope: 'membership',
+              label: 'Afiliaciones',
+              active: true,
+              startsAt: '2026-08-14T20:05:00.000Z',
+              endsAt: '2026-08-15T20:05:00.000Z',
+            },
+            eventGates: [],
+          }}
+          adminEvents={[]}
+          onRefresh={() => {}}
+          onSave={async () => ({})}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: /configurar/i }))
+
+    const labelInput = await screen.findByLabelText(/nombre de tanda/i)
+    labelInput.focus()
+    fireEvent.change(labelInput, { target: { value: 'pit 2' } })
+
+    await waitFor(() => expect(document.activeElement).toBe(labelInput))
   })
 })
