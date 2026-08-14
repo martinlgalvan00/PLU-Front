@@ -22,6 +22,19 @@ export default function EmailVerificationNotice() {
   const [attempt, setAttempt] = useState(0)
   const [retryableError, setRetryableError] = useState(false)
 
+  // La verificación también puede ocurrir al ingresar el código de 8 dígitos
+  // desde el registro o la cuenta. Escuchar el evento mantiene un único aviso
+  // de éxito para ambos recorridos.
+  useEffect(() => {
+    function showVerifiedNotice() {
+      setRetryableError(false)
+      setState('confirmado')
+    }
+
+    window.addEventListener('plu:email-verified', showVerifiedNotice)
+    return () => window.removeEventListener('plu:email-verified', showVerifiedNotice)
+  }, [])
+
   useEffect(() => {
     const token = readEmailVerificationToken()
     if (!token) return
@@ -64,7 +77,7 @@ export default function EmailVerificationNotice() {
 
   const contenido = {
     verificando: { tone: 'info', text: 'Confirmando tu correo…' },
-    confirmado: { tone: 'success', text: 'Tu correo quedó confirmado. Ya podés afiliarte e inscribirte.' },
+    confirmado: { tone: 'success', text: 'Cuenta verificada. Ya podés afiliarte e inscribirte.' },
     error: {
       tone: 'danger',
       text: retryableError

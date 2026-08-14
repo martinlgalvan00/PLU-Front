@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import ActionQueue from '../src/components/admin/ActionQueue.jsx'
+import { getAthletePaymentProofUrl } from '../src/services/athleteApi.js'
 
 vi.mock('../src/services/athleteApi.js', () => ({
   getAthletePaymentProofUrl: vi.fn(async () => 'https://cdn.example/proof.jpg'),
@@ -32,6 +33,7 @@ const PAYMENT_ITEM = {
   section: 'payments',
   paymentId: 'p1',
   hasProof: true,
+  paymentProofPath: 'proofs/p1.jpg',
 }
 
 const PAYMENT_NO_PROOF = {
@@ -113,5 +115,96 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
       expect(screen.queryByRole('dialog')).toBeNull()
     })
     expect(onApprovePayment).not.toHaveBeenCalled()
+  })
+})
+
+describe('ActionQueue — Ver inspecciona el comprobante', () => {
+  it('muestra el chip de comprobante en la card', () => {
+    renderQueue([PAYMENT_ITEM, PAYMENT_NO_PROOF])
+
+    expect(screen.getByText('Comprobante')).toBeTruthy()
+    expect(screen.getByText('Sin adjuntar')).toBeTruthy()
+  })
+
+  it('abre el preview y no acredita el pago', async () => {
+    const onApprovePayment = vi.fn(async () => ({}))
+    const onNavigate = vi.fn()
+    renderQueue([PAYMENT_ITEM], { onApprovePayment, onNavigate })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.className).toMatch(/payment-validation-dialog__panel--view/)
+    expect(within(dialog).getByRole('heading', { name: 'Ver comprobante' })).toBeTruthy()
+    expect(within(dialog).getByText('Comprobante cargado por la persona.')).toBeTruthy()
+    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
+
+    await waitFor(() => {
+      expect(within(dialog).getByRole('img', { name: 'Comprobante de pago' })).toBeTruthy()
+    })
+    expect(within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' })).toBeTruthy()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Cerrar$/ }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    expect(onApprovePayment).not.toHaveBeenCalled()
+    expect(onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('muestra el empty si no hay archivo adjunto', async () => {
+    const onApprovePayment = vi.fn(async () => ({}))
+    renderQueue([PAYMENT_NO_PROOF], { onApprovePayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
+    expect(
+      within(dialog).getByText('Esta orden todavía no tiene un archivo adjunto.'),
+    ).toBeTruthy()
+    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
+    expect(onApprovePayment).not.toHaveBeenCalled()
+  })
+
+  it('usa el path de storage para un PDF aunque la URL firmada no tenga extensión', async () => {
+    getAthletePaymentProofUrl.mockResolvedValueOnce('https://cdn.example/sign/abc?token=1')
+    renderQueue([
+      {
+        ...PAYMENT_ITEM,
+        paymentProofPath: 'p1/123-comprobante.pdf',
+      },
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => {
+      expect(within(dialog).getByTitle('Comprobante de pago')).toBeTruthy()
+    })
+    expect(within(dialog).queryByRole('img')).toBeNull()
+  })
+
+  it('sigue navegando cuando la tarea no es un pago', () => {
+    const onNavigate = vi.fn()
+    renderQueue(
+      [
+        {
+          id: 'action-reg-1',
+          type: 'registration',
+          priority: 'medium',
+          subject: 'Test Athlete 1',
+          summary: 'Inscripción pendiente de pago',
+          detail: 'Pitbull Classic',
+          section: 'registrations',
+        },
+      ],
+      { onNavigate },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    expect(onNavigate).toHaveBeenCalledWith('registrations', null)
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

@@ -110,14 +110,21 @@ function plan(code, collectionMode) {
   }
 }
 
-describe('features publicas con APP_PRODUCTION', () => {
-  it('no publica el plan de debito automatico', async () => {
+// `APP_PRODUCTION` ya no gatea nada en el backend (removido en el refactor
+// "remove APP_PRODUCTION references"): `filterPublicMembershipPlans`,
+// `assertRecurringMembershipAvailable` y `assertPricingWritesEnabled`
+// (server/lib/featureAvailability.js) quedaron como no-ops a propósito. El
+// único freno operativo que sigue vivo es `PAID_CHECKOUT_ENABLED`, ya cubierto
+// por "rechaza crear combo, afiliacion e inscripcion cuando paidCheckout esta
+// cerrado" más abajo.
+describe('features publicas sin gates de pre-lanzamiento', () => {
+  it('publica todos los planes, incluido el de débito automático', async () => {
     const listPlans = vi.fn().mockResolvedValue([
       plan('plu-annual', 'one_time'),
       plan('plu-annual-auto', 'recurring'),
     ])
     const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true' },
+      env: {},
       paymentRepository: { listPlans },
     }))
     try {
@@ -125,41 +132,45 @@ describe('features publicas con APP_PRODUCTION', () => {
       const body = await response.json()
 
       expect(response.status).toBe(200)
-      expect(body.plans.map((item) => item.code)).toEqual(['plu-annual'])
+      expect(body.plans.map((item) => item.code)).toEqual(['plu-annual', 'plu-annual-auto'])
     } finally {
       await target.close()
     }
   })
 
-  it('rechaza suscripciones antes de leer o mutar una orden', async () => {
-    const getOrder = vi.fn()
+  it('ya no rechaza suscripciones: el gate de lanzamiento desapareció y llega a leer la orden', async () => {
+    const paymentOrderId = crypto.randomUUID()
+    const getOrder = vi.fn().mockResolvedValue({ id: paymentOrderId, kind: 'ticket' })
+    const assertTicketOrderAccess = vi.fn().mockResolvedValue(undefined)
     const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true' },
-      paymentRepository: { getOrder },
+      env: {},
+      paymentRepository: { getOrder, assertTicketOrderAccess },
     }))
     try {
       const response = await fetch(`${target.url}/api/payments/subscriptions/process`, {
         method: 'POST',
         headers: mutationHeaders,
         body: JSON.stringify({
-          paymentOrderId: crypto.randomUUID(),
+          paymentOrderId,
           planCode: 'plu-annual-auto',
           cardToken: 'card-token-seguro-123',
         }),
       })
 
-      expect(response.status).toBe(409)
-      expect(await response.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(getOrder).not.toHaveBeenCalled()
+      // El 409 de lanzamiento ya no existe; lo que responda de acá en más
+      // depende de la lógica de suscripción real, fuera del alcance de este
+      // test — lo que importa es que el gate dejó de cortar antes de leer.
+      expect(response.status).not.toBe(409)
+      expect(getOrder).toHaveBeenCalledWith(paymentOrderId)
     } finally {
       await target.close()
     }
   })
 
-  it('rechaza crear una orden recurrente aunque se invoque la ruta directa', async () => {
-    const createMembershipOrder = vi.fn()
+  it('ya no rechaza una orden recurrente invocada por la ruta directa', async () => {
+    const createMembershipOrder = vi.fn().mockResolvedValue({ id: 'order-1', planCode: 'plu-annual-auto-v2' })
     const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true' },
+      env: {},
       supabaseAdmin: authenticatedSupabase(),
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
@@ -178,9 +189,8 @@ describe('features publicas con APP_PRODUCTION', () => {
         }),
       })
 
-      expect(response.status).toBe(409)
-      expect(await response.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(createMembershipOrder).not.toHaveBeenCalled()
+      expect(response.status).toBe(201)
+      expect(createMembershipOrder).toHaveBeenCalledOnce()
     } finally {
       await target.close()
     }
@@ -287,13 +297,13 @@ describe('features publicas con APP_PRODUCTION', () => {
     }
   })
 
-  it('en produccion cierra cobros aunque registration_opens_at ya haya pasado', async () => {
+  it('ya no cierra cobros por estar en produccion, tenga o no abierto registration_opens_at', async () => {
     const createRegistration = vi.fn().mockResolvedValue({ id: 'reg-1' })
     const createRegistrationCombo = vi.fn().mockResolvedValue({
       order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
     })
     const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true' },
+      env: {},
       supabaseAdmin: supabaseWithEvents({
         'evento-abierto': { registration_opens_at: '2000-01-01T00:00:00Z' },
         'evento-cerrado': { registration_opens_at: '2999-01-01T00:00:00Z' },
@@ -327,14 +337,11 @@ describe('features publicas con APP_PRODUCTION', () => {
         body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
       })
 
-      expect(pastDate.status).toBe(409)
-      expect(await pastDate.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(futureDate.status).toBe(409)
-      expect(await futureDate.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(comboPast.status).toBe(409)
-      expect(await comboPast.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(createRegistration).not.toHaveBeenCalled()
-      expect(createRegistrationCombo).not.toHaveBeenCalled()
+      expect(pastDate.status).toBe(201)
+      expect(futureDate.status).toBe(201)
+      expect(comboPast.status).toBe(201)
+      expect(createRegistration).toHaveBeenCalledTimes(2)
+      expect(createRegistrationCombo).toHaveBeenCalledOnce()
     } finally {
       await target.close()
     }

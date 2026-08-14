@@ -1907,17 +1907,23 @@ html.plu-drawer-open body {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 8px;
   color: var(--institution-text-muted);
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  height: 40px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  gap: 6px;
   justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 40px;
+  padding: 0 10px;
   transition:
     background-color var(--motion-fast) var(--ease-out),
     color var(--motion-fast) var(--ease-out);
-  width: 40px;
+  white-space: nowrap;
 }
 
 .plu-drawer__account-logout:hover,
@@ -3590,6 +3596,12 @@ html.plu-drawer-open body {
   transform-origin: top right;
   width: min(272px, calc(100vw - 24px));
   z-index: var(--z-dropdown);
+}
+
+@media (max-width: 799px) {
+  .plu-profile-menu {
+    transform-origin: top center;
+  }
 }
 
 .plu-profile-menu::before {

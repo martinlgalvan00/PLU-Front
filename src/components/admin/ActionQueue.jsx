@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Ticket } from 'lucide-react'
+import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Eye, Ticket } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import PaymentValidationDialog from './PaymentValidationDialog.jsx'
 
@@ -25,6 +25,7 @@ export default function ActionQueue({
 }) {
   const { t } = useI18n()
   const [reviewItem, setReviewItem] = useState(null)
+  const [reviewMode, setReviewMode] = useState('validate')
   const [confirmBusy, setConfirmBusy] = useState(false)
   const [confirmError, setConfirmError] = useState('')
 
@@ -47,19 +48,29 @@ export default function ActionQueue({
 
   const Wrapper = embedded ? 'div' : 'section'
 
-  function openReview(item) {
+  function openReview(item, mode = 'validate') {
     setConfirmError('')
+    setReviewMode(mode)
     setReviewItem(item)
   }
 
   function closeReview() {
     if (confirmBusy) return
     setReviewItem(null)
+    setReviewMode('validate')
     setConfirmError('')
   }
 
+  function openItem(item) {
+    if (item.paymentId || item.orderId) {
+      openReview(item, 'view')
+      return
+    }
+    onNavigate?.(item.section, item.paymentId ?? item.orderId ?? null)
+  }
+
   async function confirmReview() {
-    if (!reviewItem || confirmBusy) return
+    if (!reviewItem || confirmBusy || reviewMode === 'view') return
     setConfirmBusy(true)
     setConfirmError('')
     try {
@@ -74,6 +85,7 @@ export default function ActionQueue({
         return
       }
       setReviewItem(null)
+      setReviewMode('validate')
     } catch (error) {
       setConfirmError(error?.message ?? t('admin.paymentValidation.confirmError'))
     } finally {
@@ -151,6 +163,15 @@ export default function ActionQueue({
                         {item.detail ? (
                           <span className="action-queue__meta-item">{item.detail}</span>
                         ) : null}
+                        {item.paymentId || item.orderId ? (
+                          <span
+                            className={`action-queue__proof${item.hasProof ? ' action-queue__proof--ok' : ''}`}
+                          >
+                            {item.hasProof
+                              ? t('admin.actionQueue.proofAttached')
+                              : t('admin.actionQueue.proofMissing')}
+                          </span>
+                        ) : null}
                       </span>
                     </div>
 
@@ -190,10 +211,11 @@ export default function ActionQueue({
                       <button
                         type="button"
                         className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
-                        onClick={() => onNavigate?.(item.section, item.paymentId ?? item.orderId ?? null)}
+                        onClick={() => openItem(item)}
                       >
+                        {item.paymentId || item.orderId ? <Eye size={14} aria-hidden /> : null}
                         {t('admin.actions.view')}
-                        <ArrowRight size={14} aria-hidden />
+                        {item.paymentId || item.orderId ? null : <ArrowRight size={14} aria-hidden />}
                       </button>
                     </div>
                   </li>
@@ -207,6 +229,7 @@ export default function ActionQueue({
       {reviewItem ? (
         <PaymentValidationDialog
           item={reviewItem}
+          mode={reviewMode}
           busy={confirmBusy}
           error={confirmError}
           onCancel={closeReview}

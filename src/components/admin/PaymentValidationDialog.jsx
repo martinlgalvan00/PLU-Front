@@ -6,19 +6,23 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getAthletePaymentProofUrl } from '../../services/athleteApi.js'
 import { getTicketPaymentProofUrl } from '../../services/ticketApi.js'
 
-function guessProofKind(url) {
-  const path = String(url ?? '').split('?')[0].toLowerCase()
-  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(path)) return 'image'
-  if (/\.pdf$/.test(path)) return 'pdf'
+function guessProofKind(...sources) {
+  for (const source of sources) {
+    const path = String(source ?? '').split('?')[0].toLowerCase()
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(path)) return 'image'
+    if (/\.pdf$/.test(path)) return 'pdf'
+  }
   return 'unknown'
 }
 
 /**
- * Revisión previa a aprobar un pago desde la cola operativa.
- * Carga la signed URL del comprobante (si hay) y solo confirma al staff.
+ * Revisión de un pago desde la cola operativa.
+ * `validate` muestra el comprobante y pide confirmación.
+ * `view` solo inspecciona el adjunto; no acredita.
  */
 export default function PaymentValidationDialog({
   item,
+  mode = 'validate',
   busy = false,
   error = '',
   onCancel,
@@ -35,13 +39,16 @@ export default function PaymentValidationDialog({
   const [proofUrl, setProofUrl] = useState(null)
   const [proofLoading, setProofLoading] = useState(hasProof)
   const [proofError, setProofError] = useState('')
-  const [previewFailed, setPreviewFailed] = useState(false)
+  const [imageFailed, setImageFailed] = useState(false)
+  const [imageExpanded, setImageExpanded] = useState(false)
 
   useEffect(() => {
     const previousFocus = document.activeElement
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    panelRef.current?.querySelector('button')?.focus()
+    panelRef.current
+      ?.querySelector('.payment-validation-dialog__actions button')
+      ?.focus()
 
     function handleKeyDown(event) {
       if (event.key === 'Escape' && !dialogStateRef.current.busy) {
@@ -87,7 +94,8 @@ export default function PaymentValidationDialog({
     setProofLoading(true)
     setProofError('')
     setProofUrl(null)
-    setPreviewFailed(false)
+    setImageFailed(false)
+    setImageExpanded(false)
 
     const load = item.paymentId
       ? getAthletePaymentProofUrl(item.paymentId)
@@ -113,10 +121,19 @@ export default function PaymentValidationDialog({
 
   if (!item) return null
 
+  const isView = mode === 'view'
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
-  const previewKind = guessProofKind(proofUrl)
-  const showImage = Boolean(proofUrl && !previewFailed && previewKind === 'image')
-  const showEmbed = Boolean(proofUrl && !previewFailed && !showImage)
+  const previewKind = guessProofKind(item.paymentProofPath, proofUrl)
+  const showImage = Boolean(
+    proofUrl && !imageFailed && (previewKind === 'image' || previewKind === 'unknown'),
+  )
+  const showEmbed = Boolean(
+    proofUrl && (previewKind === 'pdf' || (previewKind === 'unknown' && imageFailed)),
+  )
+  const showFallback = Boolean(proofUrl && previewKind === 'image' && imageFailed)
+  const noProofLead = isView
+    ? t('admin.paymentValidation.viewNoProofLead')
+    : t('admin.paymentValidation.noProofLead')
 
   return createPortal(
     <div className="payment-validation-dialog">
@@ -129,7 +146,7 @@ export default function PaymentValidationDialog({
       />
       <section
         ref={panelRef}
-        className="payment-validation-dialog__panel"
+        className={`payment-validation-dialog__panel${isView ? ' payment-validation-dialog__panel--view' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -137,13 +154,17 @@ export default function PaymentValidationDialog({
       >
         <header className="payment-validation-dialog__head">
           <span className="payment-validation-dialog__eyebrow">{typeLabel}</span>
-          <h2 id={titleId}>{t('admin.paymentValidation.title')}</h2>
+          <h2 id={titleId}>
+            {isView ? t('admin.paymentValidation.viewTitle') : t('admin.paymentValidation.title')}
+          </h2>
           <p id={descriptionId} className="payment-validation-dialog__lead">
-            {t('admin.paymentValidation.lead')}
+            {isView ? t('admin.paymentValidation.viewLead') : t('admin.paymentValidation.lead')}
           </p>
         </header>
 
-        <dl className="payment-validation-dialog__meta">
+        <dl
+          className={`payment-validation-dialog__meta${isView ? ' payment-validation-dialog__meta--compact' : ''}`}
+        >
           <div>
             <dt>{t('admin.paymentValidation.subject')}</dt>
             <dd>{item.subject}</dd>
@@ -168,7 +189,7 @@ export default function PaymentValidationDialog({
               <FileWarning size={18} aria-hidden />
               <div>
                 <strong>{t('admin.paymentValidation.noProofTitle')}</strong>
-                <p>{t('admin.paymentValidation.noProofLead')}</p>
+                <p>{noProofLead}</p>
               </div>
             </div>
           ) : null}
@@ -193,12 +214,24 @@ export default function PaymentValidationDialog({
           {hasProof && !proofLoading && proofUrl ? (
             <div className="payment-validation-dialog__preview">
               {showImage ? (
-                <img
-                  src={proofUrl}
-                  alt={t('admin.paymentValidation.proofAlt')}
-                  className="payment-validation-dialog__image"
-                  onError={() => setPreviewFailed(true)}
-                />
+                <button
+                  type="button"
+                  className={`payment-validation-dialog__image-btn${imageExpanded ? ' is-expanded' : ''}`}
+                  aria-expanded={imageExpanded}
+                  aria-label={
+                    imageExpanded
+                      ? t('admin.paymentValidation.collapseProof')
+                      : t('admin.paymentValidation.expandProof')
+                  }
+                  onClick={() => setImageExpanded((current) => !current)}
+                >
+                  <img
+                    src={proofUrl}
+                    alt={t('admin.paymentValidation.proofAlt')}
+                    className="payment-validation-dialog__image"
+                    onError={() => setImageFailed(true)}
+                  />
+                </button>
               ) : null}
               {showEmbed ? (
                 <iframe
@@ -207,7 +240,7 @@ export default function PaymentValidationDialog({
                   className="payment-validation-dialog__frame"
                 />
               ) : null}
-              {previewFailed ? (
+              {showFallback ? (
                 <p className="payment-validation-dialog__preview-fallback">
                   {t('admin.paymentValidation.previewFallback')}
                 </p>
@@ -233,18 +266,20 @@ export default function PaymentValidationDialog({
 
         <div className="payment-validation-dialog__actions">
           <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
-            {t('admin.paymentValidation.cancel')}
+            {isView ? t('admin.paymentValidation.close') : t('admin.paymentValidation.cancel')}
           </Button>
-          <Button type="button" disabled={busy} onClick={onConfirm}>
-            {busy ? (
-              <LoaderCircle size={15} aria-hidden className="is-spinning" />
-            ) : (
-              <BadgeCheck size={15} aria-hidden />
-            )}
-            {busy
-              ? t('admin.paymentValidation.confirming')
-              : t('admin.paymentValidation.confirm')}
-          </Button>
+          {isView ? null : (
+            <Button type="button" disabled={busy} onClick={onConfirm}>
+              {busy ? (
+                <LoaderCircle size={15} aria-hidden className="is-spinning" />
+              ) : (
+                <BadgeCheck size={15} aria-hidden />
+              )}
+              {busy
+                ? t('admin.paymentValidation.confirming')
+                : t('admin.paymentValidation.confirm')}
+            </Button>
+          )}
         </div>
       </section>
     </div>,

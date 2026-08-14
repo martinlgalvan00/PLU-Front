@@ -99,6 +99,31 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
+describe('filtros de evento en Inscripciones', () => {
+  it('no muestra el filtro de evento cuando hay uno solo', () => {
+    renderSection()
+    expect(screen.queryByLabelText(/^evento$/i)).toBeNull()
+    expect(screen.queryByRole('combobox', { name: /evento/i })).toBeNull()
+  })
+
+  it('usa chips de evento cuando hay más de uno', () => {
+    renderSection({
+      registrations: [
+        registration(),
+        registration({
+          id: 'reg-2',
+          athleteId: 'ath-2',
+          athlete: { fullName: 'Lucas Ferro', documentId: '31222333' },
+          event: 'Copa Invierno 2026',
+          eventSlug: 'copa-invierno-2026',
+        }),
+      ],
+    })
+    expect(screen.getByRole('group', { name: /^evento$/i })).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: /pitbull classic/i }).length).toBeGreaterThan(0)
+  })
+})
+
 describe('asignación de grilla en Inscripciones', () => {
   it('muestra "sin asignar" mientras la organización no armó la grilla', () => {
     renderSection()

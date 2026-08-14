@@ -205,6 +205,7 @@ export default function TicketOrdersSection({
                             type: 'ticket',
                             orderId: row.id,
                             hasProof: Boolean(row.paymentProofPath),
+                            paymentProofPath: row.paymentProofPath ?? null,
                             subject: row.attendees,
                             detail: `${row.event} · ${row.reference}`,
                             meta: row.amount,

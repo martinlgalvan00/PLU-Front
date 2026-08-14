@@ -70,6 +70,7 @@ export const HOME_COMMUNITY = {
     'Sedes adheridas y afiliados que compiten en el calendario oficial de PLU Argentina.',
   cta: 'Ver comunidad',
   recentLabel: 'Afiliados recientes',
+  emptyRecentLabel: 'Todavía no hay afiliados activos publicados.',
   liveLabel: 'En vivo',
   visualCaption: 'Galería de la comunidad · próximamente',
   stats: [],
@@ -732,6 +733,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['shop', 'admin.nav.shop', 'ShoppingBag'],
       ['payments', 'admin.nav.payments', 'CreditCard'],
+      ['finance', 'admin.nav.finance', 'Landmark'],
       ['pricing', 'admin.nav.pricing', 'BadgeDollarSign'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],

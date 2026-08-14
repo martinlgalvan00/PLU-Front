@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    // Flags compartidas front/back: PAYMENTS_MOCK / APP_PRODUCTION / PAID_CHECKOUT_*
+    // Flags compartidas front/back: PAYMENTS_MOCK / PAID_CHECKOUT_*
     envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
     resolve: {
       alias: {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, RefreshCw } from 'lucide-react'
+import { BadgeCheck, RefreshCw, Route } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -15,6 +15,7 @@ import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
+import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 
 /**
  * AthletePaymentOrdersSection — PLU ARG
@@ -63,6 +64,7 @@ export default function AthletePaymentOrdersSection({
   const [error, setError] = useState('')
   const [approvingId, setApprovingId] = useState(null)
   const [reviewRow, setReviewRow] = useState(null)
+  const [traceOrderId, setTraceOrderId] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -136,6 +138,7 @@ export default function AthletePaymentOrdersSection({
       reference: order.reference,
       createdAt: order.createdAt,
       hasProof: Boolean(order.paymentProofPath),
+      paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
     }))
   }, [orders, status])
@@ -149,7 +152,16 @@ export default function AthletePaymentOrdersSection({
         setError(result.error)
         return false
       }
-      await load()
+      // El backend ya devuelve la orden actualizada: parchear la fila en vez
+      // de volver a traer las 200 evita un roundtrip completo por cada
+      // aprobación (el operador suele aprobar varias seguidas).
+      if (result?.order) {
+        setOrders((current) =>
+          current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
+        )
+      } else {
+        await load()
+      }
       return true
     } finally {
       setApprovingId(null)
@@ -162,6 +174,7 @@ export default function AthletePaymentOrdersSection({
       type: 'payment',
       paymentId: row.id,
       hasProof: row.hasProof,
+      paymentProofPath: row.paymentProofPath,
       subject: row.athlete,
       detail: `${row.concept} · ${row.reference}`,
       meta: money(row.amount, locale),
@@ -292,6 +305,15 @@ export default function AthletePaymentOrdersSection({
               mobile: 'action',
               render: (row) => (
                 <AdminTableActions>
+                  {/* La traza está disponible siempre, incluso sin permiso de
+                      aprobación: entender por qué un cobro no acreditó es una
+                      lectura, no una acción sobre la plata. */}
+                  <AdminIconButton
+                    icon={Route}
+                    label={t('admin.paymentTrace.open')}
+                    onClick={() => setTraceOrderId(row.id)}
+                    variant="ghost"
+                  />
                   <AdminIconButton
                     disabled={
                       !canEdit ||
@@ -317,6 +339,10 @@ export default function AthletePaymentOrdersSection({
           emptyMessage={t('admin.athletePayments.empty')}
         />
       )}
+
+      {traceOrderId ? (
+        <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
+      ) : null}
 
       {reviewRow ? (
         <PaymentValidationDialog

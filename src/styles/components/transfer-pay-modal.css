@@ -30,10 +30,10 @@
 
 .account-payment-modal--transfer {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   max-height: min(90vh, 720px);
   overflow: auto;
-  padding: 28px 28px 24px;
+  padding: 22px 22px calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .account-payment-modal__header {
@@ -43,100 +43,103 @@
   justify-content: space-between;
 }
 
-.account-payment-modal__header span {
-  color: var(--color-brand-gold);
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.account-payment-modal--transfer .account-payment-modal__header {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  padding-bottom: 12px;
 }
 
-.account-payment-modal__header h2 {
+.account-payment-modal--transfer .account-payment-modal__header h2 {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: clamp(1.2rem, 3.2vw, 1.45rem);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1.15;
-  margin: 6px 0 0;
+  margin: 0;
 }
 
 .account-payment-modal__close {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
-  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  color: var(--color-text-primary);
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   flex: none;
   height: 44px;
   justify-content: center;
   width: 44px;
 }
 
-.account-payment-modal--transfer .account-payment-modal__lead {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 46ch;
+.account-payment-modal--transfer .account-payment-modal__close:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
+.account-payment-modal--transfer .account-payment-modal__close:focus-visible,
+.account-payment-modal--transfer .account-secondary-action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 .account-payment-modal--transfer .account-payment-modal__footnote {
   color: var(--color-text-muted);
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0;
-  max-width: 52ch;
+  max-width: 46ch;
 }
 
 .account-payment-modal--transfer .account-secondary-action {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
-  color: var(--color-text-primary);
+  border: 0;
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
-  font-size: 12.5px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0;
   width: 100%;
+}
+
+.account-payment-modal--transfer .account-secondary-action:hover {
+  color: var(--color-text-primary);
 }
 
 .account-transfer-receipt {
   display: grid;
-  gap: 2px;
+  gap: 0;
 }
 
 .account-transfer-receipt__total {
   align-items: baseline;
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 14px;
   justify-content: space-between;
   margin: 0;
-  padding: 4px 0 14px;
+  padding: 2px 0 12px;
 }
 
 .account-transfer-receipt__total span {
   color: var(--color-text-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .account-transfer-receipt__total strong {
   color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .account-transfer-data {
@@ -155,8 +158,8 @@
 }
 
 .account-transfer-data--receipt div {
-  grid-template-columns: 7.25rem minmax(0, 1fr);
-  padding: 10px 0;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  padding: 9px 0;
 }
 
 .account-transfer-data dt {
@@ -174,8 +177,30 @@
   overflow-wrap: anywhere;
 }
 
+.account-transfer-data--receipt dt {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-transfer-data--receipt dd {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 [data-theme='light'] .account-transfer-receipt__total strong {
   color: var(--plu-gold-600);
+}
+
+.account-transfer-warning {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+  padding: 12px 0 0;
 }
 
 @keyframes account-payment-modal-fade {
@@ -216,17 +241,12 @@
 
 @media (max-width: 480px) {
   .account-payment-modal--transfer {
-    padding: 22px 18px 18px;
-  }
-
-  .account-transfer-receipt__total {
-    align-items: start;
-    flex-direction: column;
-    gap: 6px;
+    padding: 20px 18px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .account-transfer-data--receipt div {
-    gap: 4px;
+    gap: 2px;
     grid-template-columns: minmax(0, 1fr);
+    padding: 10px 0;
   }
 }

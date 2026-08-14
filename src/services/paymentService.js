@@ -1,4 +1,3 @@
-import { env } from '../config/env.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 import { filterPublicMembershipPlans } from '../lib/featureAvailability.js'
 
@@ -9,9 +8,9 @@ let membershipPlansRequest = null
 
 export function filterMembershipPlansForApp(
   plans,
-  { appProduction = env.appProduction } = {},
+  _options = {},
 ) {
-  return filterPublicMembershipPlans(plans, { appProduction })
+  return filterPublicMembershipPlans(plans)
 }
 
 export function isMercadoPagoConfigured() {
@@ -163,6 +162,35 @@ export async function retryPaymentEvent(eventId) {
 
 export async function retryPaymentReconciliation(attemptId) {
   return apiPost(`/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`, {})
+}
+
+/**
+ * Vida completa de una orden: orden, intentos, notificaciones de MP, ledger,
+ * efecto de dominio y fallas con su diagnóstico. Es lo que responde "por qué
+ * este cobro no se acreditó" sin salir del panel.
+ */
+export async function getPaymentOrderAudit(orderId) {
+  return apiGet(`/api/payments/audit/orders/${encodeURIComponent(orderId)}`)
+}
+
+/** Recorrido de afiliación de un atleta, con el eslabón donde se cortó. */
+export async function getAthleteAudit(athleteId) {
+  return apiGet(`/api/payments/audit/athletes/${encodeURIComponent(athleteId)}`)
+}
+
+/** Qué pasó en una operación puntual (id del header `X-Request-Id`). */
+export async function getRequestAudit(requestId) {
+  return apiGet(`/api/payments/audit/requests/${encodeURIComponent(requestId)}`)
+}
+
+/** Motivos de rechazo de pago en un rango, de mayor a menor frecuencia. */
+export async function getPaymentFailureReasons({ from, to } = {}) {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
+  const query = params.toString()
+  const result = await apiGet(`/api/payments/operations/failure-reasons${query ? `?${query}` : ''}`)
+  return result?.reasons ?? []
 }
 
 export async function validatePayment(paymentOrderId) {

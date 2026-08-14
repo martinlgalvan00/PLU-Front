@@ -1,11 +1,17 @@
-export default function DetailTabs({ tabs, activeTab, onChange, variant = 'default' }) {
+export default function DetailTabs({
+  tabs,
+  activeTab,
+  onChange,
+  variant = 'default',
+  ariaLabel = 'Secciones del detalle',
+}) {
   return (
     <div
       className={['detail-tabs', variant === 'editorial' ? 'detail-tabs--editorial' : '']
         .filter(Boolean)
         .join(' ')}
       role="tablist"
-      aria-label="Secciones del detalle"
+      aria-label={ariaLabel}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id

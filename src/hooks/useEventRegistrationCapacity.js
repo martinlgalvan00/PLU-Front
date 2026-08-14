@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { registrationSummaryStore } from '../services/eventLiveStore.js'
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
-const DEFAULT_POLL_MS = 20_000
+// La landing es una superficie de conversión: cinco segundos mantiene el
+// cupo prácticamente contemporáneo sin convertir cada visitante en un stream
+// permanente. El store sigue deduplicando Home + dossier y el polling se
+// apaga fuera de viewport o con la pestaña en segundo plano.
+export const LIVE_REGISTRATION_POLL_MS = 5_000
 
 /**
  * Cupos de inscripción live.
@@ -15,7 +20,7 @@ export function useEventRegistrationCapacity(
   eventSlug,
   {
     enabled = true,
-    pollMs = DEFAULT_POLL_MS,
+    pollMs = LIVE_REGISTRATION_POLL_MS,
     fallbackRegistered = 0,
     fallbackSlots = 0,
     observeRoot = null,
@@ -84,6 +89,35 @@ export function useEventRegistrationCapacity(
     })
 
     return unsubscribe
+  }, [enabled, eventSlug])
+
+  // Notificación push entre dispositivos. La migración de Realtime emite
+  // únicamente el slug y esta suscripción vuelve a leer el summary público;
+  // por eso no queda PII ni estados de pago viajando por el WebSocket.
+  useEffect(() => {
+    if (!enabled || !eventSlug || !isSupabaseConfigured) return undefined
+
+    let disposed = false
+    let client = null
+    let channel = null
+
+    void getSupabaseClient().then((supabase) => {
+      if (disposed || !supabase) return
+      client = supabase
+      channel = supabase
+        .channel(`event-capacity:${eventSlug}`, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'capacity-changed' }, () => {
+          registrationSummaryStore.invalidate(eventSlug)
+        })
+        .subscribe()
+    }).catch(() => {
+      // El polling sigue siendo el fallback si Realtime no puede conectar.
+    })
+
+    return () => {
+      disposed = true
+      if (client && channel) void client.removeChannel(channel)
+    }
   }, [enabled, eventSlug])
 
   // Refresco periódico: en viewport y con la pestaña adelante. Una pestaña en

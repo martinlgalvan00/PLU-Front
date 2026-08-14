@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
-import { BadgeCheck, ClipboardList } from 'lucide-react'
+import { BadgeCheck, ClipboardList, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
 import { AdminIdentityCell, AdminPaymentCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
@@ -13,8 +14,29 @@ import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatScheduleSummary } from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
-import { findGatePendingRegistrations } from '../../lib/gateAccess.js'
-import { findRegistrationPayment } from '../../services/registrationAdminService.js'
+
+// Fallback estable para cuando no llega la prop (Storybook, tests) — evita
+// tener que null-check `gatePendingIds` en cada lugar que lo usa.
+const EMPTY_GATE_PENDING_IDS = new Set()
+/** Con un solo evento el filtro no decide nada. Select nativo recién con muchos. */
+const EVENT_FILTER_CHIP_MAX = 8
+
+function formatRegistrationWeight(registration) {
+  const raw = registration.bodyweight ?? registration.athlete?.estimatedWeight ?? null
+  if (raw == null || raw === '') return null
+  const label = String(raw).trim()
+  if (!label) return null
+  return /kg/i.test(label) ? label : `${label} kg`
+}
+
+function canValidateRegistrationPayment(row, canEdit) {
+  return Boolean(
+    canEdit &&
+      row.paymentId &&
+      row.paymentMethod !== 'mercado_pago' &&
+      row.paymentStatus !== 'aprobado',
+  )
+}
 
 function matchesRegistrationFilter(registration, payment, filter, gatePendingIds) {
   if (filter === 'all') return true
@@ -22,9 +44,9 @@ function matchesRegistrationFilter(registration, payment, filter, gatePendingIds
   return registration.status === filter || registration.paymentStatus === filter || payment?.status === filter
 }
 
-function countRegistrationsByFilter(registrations, payments, filter, gatePendingIds) {
+function countRegistrationsByFilter(registrations, resolvePayment, filter, gatePendingIds) {
   return registrations.filter((registration) => {
-    const payment = findRegistrationPayment(payments, registration)
+    const payment = resolvePayment(registration)
     return matchesRegistrationFilter(registration, payment, filter, gatePendingIds)
   }).length
 }
@@ -34,10 +56,9 @@ export default function RegistrationsSection({
   canEdit,
   filters,
   filteredRegistrations,
+  gatePendingIds = EMPTY_GATE_PENDING_IDS,
   payments,
   registrations = [],
-  memberships = [],
-  events = [],
   registrationsCount,
   onApprovePayment,
   onExportAdmin,
@@ -45,28 +66,60 @@ export default function RegistrationsSection({
   onGoToEvents,
   onScheduleAssigned,
   onSetFilters,
+  onDelete,
+  canDelete = false,
 }) {
   const { locale, t } = useI18n()
   const total = registrationsCount ?? registrations.length
   const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 
-  const gatePendingIds = useMemo(
-    () =>
-      new Set(
-        findGatePendingRegistrations(registrations, { memberships, events }).map((item) => item.id),
-      ),
-    [registrations, memberships, events],
+  // Indexa `payments` una sola vez en vez de escanearlo linealmente por cada
+  // inscripción (antes: una vez por fila visible y otra vez por cada status
+  // de los chips de filtro — O(statuses × registrations × payments)).
+  // Misma semántica que `findRegistrationPayment`
+  // (`src/services/registrationAdminService.js`, con tests propios en
+  // `tests/registrationsDashboardPayments.test.js`): primero por
+  // `paymentOrderId` exacto, si no por atleta+evento, y de última por
+  // atleta solo (compatibilidad con datos viejos sin evento).
+  const paymentIndex = useMemo(() => {
+    const byOrderId = new Map()
+    const byAthleteEvent = new Map()
+    const byAthlete = new Map()
+    for (const payment of payments ?? []) {
+      if (payment.id != null && !byOrderId.has(payment.id)) byOrderId.set(payment.id, payment)
+      const eventKey = `${payment.athleteId}|${payment.event}`
+      if (!byAthleteEvent.has(eventKey)) byAthleteEvent.set(eventKey, payment)
+      if (!byAthlete.has(payment.athleteId)) byAthlete.set(payment.athleteId, payment)
+    }
+    return { byOrderId, byAthleteEvent, byAthlete }
+  }, [payments])
+
+  const resolvePayment = useCallback(
+    (registration) => {
+      if (registration.paymentOrderId) {
+        const exact = paymentIndex.byOrderId.get(registration.paymentOrderId)
+        if (exact) return exact
+      }
+      if (registration.event) {
+        return paymentIndex.byAthleteEvent.get(`${registration.athleteId}|${registration.event}`)
+      }
+      return paymentIndex.byAthlete.get(registration.athleteId)
+    },
+    [paymentIndex],
   )
 
   const statusCounts = useMemo(() => {
     const counts = {}
     for (const [value] of REGISTRATION_FILTER_STATUSES) {
-      counts[value] = countRegistrationsByFilter(registrations, payments, value, gatePendingIds)
+      counts[value] = countRegistrationsByFilter(registrations, resolvePayment, value, gatePendingIds)
     }
     return counts
-  }, [payments, registrations, gatePendingIds])
+  }, [registrations, resolvePayment, gatePendingIds])
 
   const statusOptions = useMemo(
     () =>
@@ -77,29 +130,23 @@ export default function RegistrationsSection({
       ]),
     [statusCounts, t],
   )
-  const eventOptions = useMemo(
-    () => [
-      ['all', t('admin.filters.allEvents')],
-      ...[...new Set(registrations.map((registration) => registration.event).filter(Boolean))]
-        .sort((left, right) => left.localeCompare(right))
-        .map((event) => [event, event]),
-    ],
-    [registrations, t],
-  )
-  const eventSlugByTitle = useMemo(
-    () =>
-      new Map(
-        events
-          .filter((event) => event?.title && event?.slug)
-          .map((event) => [event.title, event.slug]),
-      ),
-    [events],
-  )
+  const eventOptions = useMemo(() => {
+    const counts = new Map()
+    for (const registration of registrations) {
+      if (!registration.event) continue
+      counts.set(registration.event, (counts.get(registration.event) ?? 0) + 1)
+    }
+    const names = [...counts.keys()].sort((left, right) => left.localeCompare(right))
+    return [
+      ['all', t('admin.filters.allEvents'), registrations.length],
+      ...names.map((event) => [event, event, counts.get(event) ?? 0]),
+    ]
+  }, [registrations, t])
 
   const registrationRows = useMemo(
     () =>
       filteredRegistrations.map((reg) => {
-        const payment = findRegistrationPayment(payments, reg)
+        const payment = resolvePayment(reg)
         return {
           id: reg.id,
           athlete: reg.athlete?.fullName,
@@ -107,6 +154,7 @@ export default function RegistrationsSection({
           event: reg.event,
           eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
           category: `${reg.category} · ${reg.division}`,
+          bodyweight: formatRegistrationWeight(reg),
           schedule: reg.schedule ?? null,
           status: reg.status,
           paymentStatus: payment?.status,
@@ -115,7 +163,7 @@ export default function RegistrationsSection({
           paymentId: payment?.id,
         }
       }),
-    [eventSlugByTitle, filteredRegistrations, payments],
+    [filteredRegistrations, resolvePayment],
   )
 
   // La selección se limita a las filas que el filtro deja a la vista: seguir
@@ -181,6 +229,20 @@ export default function RegistrationsSection({
     await onScheduleAssigned?.(result)
   }
 
+  async function deleteRegistration() {
+    if (!deleteTarget || !onDelete) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await onDelete(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (error) {
+      setDeleteError(error?.message ?? 'No se pudo eliminar la inscripción.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   function handleQueryChange(value) {
     onSetFilters((current) => ({ ...current, query: value }))
   }
@@ -196,6 +258,20 @@ export default function RegistrationsSection({
   function handleClearFilters() {
     onSetFilters((current) => ({ ...current, event: 'all', status: 'all', query: '' }))
   }
+
+  const eventCount = Math.max(0, eventOptions.length - 1)
+  const eventFilter =
+    eventCount <= 1
+      ? null
+      : {
+          id: 'event',
+          label: t('admin.filters.event'),
+          showLabel: true,
+          value: filters.event ?? 'all',
+          onChange: handleEventChange,
+          options: eventOptions,
+          variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
+        }
 
   return (
     <AdminListSection
@@ -240,14 +316,14 @@ export default function RegistrationsSection({
         isGloballyEmpty ? null : (
           <>
             <ExportButton
-              iconOnly
-              label={t('admin.actions.exportCsvAdmin')}
+              label={t('admin.actions.exportCsvShort')}
+              ariaLabel={t('admin.actions.exportCsvAdmin')}
               onClick={onExportAdmin}
               disabled={!canEdit}
             />
             <ExportButton
-              iconOnly
-              label={t('admin.actions.exportPluUsa')}
+              label={t('admin.actions.exportPluUsaShort')}
+              ariaLabel={t('admin.actions.exportPluUsa')}
               onClick={onExportPluUsa}
               variant="gold"
             />
@@ -258,14 +334,7 @@ export default function RegistrationsSection({
         isGloballyEmpty
           ? []
           : [
-              {
-                id: 'event',
-                label: t('admin.filters.event'),
-                value: filters.event ?? 'all',
-                onChange: handleEventChange,
-                options: eventOptions,
-                variant: 'select',
-              },
+              eventFilter,
               {
                 id: 'status',
                 label: t('admin.filters.status'),
@@ -273,7 +342,7 @@ export default function RegistrationsSection({
                 onChange: handleStatusChange,
                 options: statusOptions,
               },
-            ]
+            ].filter(Boolean)
       }
       onQueryChange={handleQueryChange}
     >
@@ -322,7 +391,7 @@ export default function RegistrationsSection({
                 ? [
                     {
                       key: 'select',
-                      mobile: 'default',
+                      mobile: 'select',
                       mobileLabel: '',
                       label: (
                         <label className="admin-schedule-select">
@@ -360,16 +429,34 @@ export default function RegistrationsSection({
                 key: 'event',
                 label: t('admin.columns.event'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 sortable: true,
-                render: (row) => [row.event, row.category].filter(Boolean).join(' · '),
               },
-              { key: 'category', label: t('admin.columns.category'), mobile: 'hidden', sortable: true },
+              {
+                key: 'category',
+                label: t('admin.columns.category'),
+                mobile: 'default',
+                mobileMeta: 'labeled',
+                mobileSortable: false,
+                sortable: true,
+              },
+              {
+                key: 'bodyweight',
+                label: t('admin.columns.weight'),
+                mobile: 'default',
+                mobileMeta: 'labeled',
+                mobileSortable: false,
+                sortable: false,
+                render: (row) => row.bodyweight || null,
+              },
               {
                 // Qué día compite. Ordena por el resumen, así las no asignadas
                 // quedan juntas y se ven de un vistazo las que faltan repartir.
                 key: 'schedule',
                 label: t('admin.columns.schedule'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
+                mobileSortable: false,
                 sortable: true,
                 sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
                 render: (row) =>
@@ -388,6 +475,7 @@ export default function RegistrationsSection({
                 key: 'payment',
                 label: t('admin.columns.payment'),
                 mobile: 'badge',
+                mobileSortable: false,
                 sortable: true,
                 sortAccessor: (row) => row.amount,
                 render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
@@ -396,27 +484,51 @@ export default function RegistrationsSection({
                 key: 'action',
                 label: t('admin.columns.action'),
                 mobile: 'action',
-                render: (row) => (
-                  <AdminTableActions>
-                    <AdminIconButton
-                      disabled={
-                        !canEdit ||
-                        !row.paymentId ||
-                        row.paymentMethod === 'mercado_pago' ||
-                        row.paymentStatus === 'aprobado'
-                      }
-                      icon={BadgeCheck}
-                      label={t('admin.actions.validate')}
-                      onClick={() => onApprovePayment(row.paymentId)}
-                      variant="celeste"
-                    />
-                  </AdminTableActions>
-                ),
+                render: (row) =>
+                  (canValidateRegistrationPayment(row, canEdit) || canDelete) ? (
+                    <AdminTableActions>
+                      {canValidateRegistrationPayment(row, canEdit) ? (
+                        <AdminIconButton
+                          icon={BadgeCheck}
+                          label={t('admin.actions.validate')}
+                          onClick={() => onApprovePayment(row.paymentId)}
+                          variant="celeste"
+                        />
+                      ) : null}
+                      {canDelete ? (
+                        <AdminIconButton
+                          icon={Trash2}
+                          label="Eliminar inscripción"
+                          onClick={() => {
+                            setDeleteError('')
+                            setDeleteTarget(row)
+                          }}
+                          variant="danger"
+                        />
+                      ) : null}
+                    </AdminTableActions>
+                  ) : null,
               },
             ]}
             rows={registrationRows}
             emptyMessage={t('admin.sections.registrations.empty')}
           />
+          {deleteTarget ? (
+            <AdminDeleteConfirmDialog
+              busy={deleting}
+              error={deleteError}
+              onCancel={() => {
+                if (!deleting) setDeleteTarget(null)
+              }}
+              onConfirm={deleteRegistration}
+              title="Eliminar inscripción"
+              description={`Vas a eliminar definitivamente la inscripción de ${deleteTarget.athlete} a ${deleteTarget.event}.`}
+              warning="También se eliminará su acreditación. Los pagos y la auditoría se conservan."
+              cancelLabel="Cancelar"
+              confirmLabel="Eliminar definitivamente"
+              busyLabel="Eliminando…"
+            />
+          ) : null}
         </>
       )}
     </AdminListSection>

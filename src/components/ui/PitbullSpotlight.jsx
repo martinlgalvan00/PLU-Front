@@ -225,7 +225,7 @@ export default function PitbullSpotlight({
 
     /** El CTA principal nunca ofrece una acción que el usuario no puede
      * realizar: sigue el estado real del evento + gate de cobros en prod.
-     * Con APP_PRODUCTION / checkout cerrado: “Próximamente” (sin cobro). */
+     * Con checkout pausado: “Próximamente” (sin cobro). */
     let primaryLabel = t('pages.pitbull.spotlight.viewCompetition')
     let primaryAction = onDetail
     if (!checkoutOpen && !isFinished) {

@@ -4,7 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
-import { requirePermission, requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
@@ -304,7 +304,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   // Borrar un evento no es "editarlo mucho": se lleva inscripciones pagadas,
   // entradas y acreditaciones. Mismo techo que el borrado de atletas y de
   // cuentas de staff -- solo Super Admin, no `admin.events.write`.
-  const deleteGuard = requireRole(['admin_maximal'], { prisma })
+  const deleteGuard = requirePermission('admin.events.delete', { prisma })
 
   router.get('/', ...viewGuard, staffLimiter, async (_req, res, next) => {
     try {
@@ -458,9 +458,8 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   )
 
   /**
-   * Borrado definitivo del evento y todo lo que cuelga de él. Solo Super
-   * Admin, igual que el borrado de atletas y de cuentas de staff: es
-   * irreversible y se lleva inscripciones, entradas y acreditaciones.
+   * Borrado definitivo del evento y todo lo que cuelga de él. Exige
+   * admin.events.delete: es irreversible y se lleva inscripciones, entradas y acreditaciones.
    *
    * La cascada y la auditoría viven en la RPC delete_event
    * (20260815110000_event_hard_delete.sql). Acá queda lo que SQL no alcanza:

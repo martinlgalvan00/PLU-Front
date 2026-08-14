@@ -47,7 +47,19 @@ function RosterAvatar({ member }) {
   )
 }
 
-function RosterList({ members, recentLabel, locale, reducedMotion, listVariants }) {
+function RosterEmpty({ label }) {
+  return (
+    <div className="community-spotlight__empty" role="status">
+      {label}
+    </div>
+  )
+}
+
+function RosterList({ members, recentLabel, emptyLabel, locale, reducedMotion, listVariants }) {
+  if (members.length === 0) {
+    return <RosterEmpty label={emptyLabel} />
+  }
+
   if (reducedMotion) {
     return (
       <ul className="community-spotlight__list" aria-label={recentLabel}>
@@ -193,6 +205,7 @@ export default function CommunitySpotlight({ onNavigate }) {
         <RosterList
           members={members}
           recentLabel={HOME_COMMUNITY.recentLabel}
+          emptyLabel={HOME_COMMUNITY.emptyRecentLabel}
           locale={locale}
           reducedMotion={reducedMotion}
           listVariants={listVariants}

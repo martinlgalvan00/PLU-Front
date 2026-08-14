@@ -31,6 +31,7 @@ import {
   readStaffInvitationToken,
 } from './lib/staffInvitationRoute.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
+import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
 import {
   clearTicketsRoute,
@@ -52,6 +53,8 @@ import {
   canCheckIn,
   canDeleteAthletes,
   canDeleteEvents,
+  canDeleteMemberships,
+  canDeleteRegistrations,
   canDeleteUsers,
   canManageUsers,
   canViewAdmin,
@@ -334,7 +337,7 @@ export default function App() {
           token={emailChangeToken}
           onDone={async () => {
             clearStaffEmailChangeToken()
-            await app.logout()
+            await app.logout({ notify: false })
             setView('login')
           }}
         />
@@ -424,6 +427,8 @@ export default function App() {
           canDeleteUsers={canDeleteUsers(app.session)}
           canDeleteAthletes={canDeleteAthletes(app.session)}
           canDeleteEvents={canDeleteEvents(app.session)}
+          canDeleteMemberships={canDeleteMemberships(app.session)}
+          canDeleteRegistrations={canDeleteRegistrations(app.session)}
           dashboardOverview={app.dashboardOverview}
           adminEvents={app.adminEvents}
           adminEventsLoading={app.adminEventsLoading}
@@ -432,6 +437,7 @@ export default function App() {
           athleteDataError={app.athleteDataError}
           filters={app.filters}
           filteredRegistrations={app.filteredRegistrations}
+          gatePendingIds={app.gatePendingIds}
           enrichedMemberships={app.enrichedMemberships}
           pendingActions={app.pendingActions}
           adminNavBadges={app.adminNavBadges}
@@ -451,6 +457,7 @@ export default function App() {
           pricingError={app.pricingError}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
+          onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
           onCreateSecurityUser={app.createSecurityUserAction}
@@ -464,6 +471,8 @@ export default function App() {
           onRequestEmailChange={app.requestEmailChangeAction}
           onResetStaffPassword={app.resetStaffPasswordAction}
           onDeleteAthlete={app.deleteAthleteAction}
+          onDeleteMembership={app.deleteMembershipAction}
+          onDeleteRegistration={app.deleteRegistrationAction}
           onCreateRole={app.createAccessRoleAction}
           onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
@@ -478,6 +487,7 @@ export default function App() {
           onUpdateUserRole={app.updateUserRoleAction}
           onUpdateUserStatus={app.updateUserStatusAction}
           onUpdateRolePermissions={app.updateAccessRolePermissionsAction}
+          onUpdateRoleStatus={app.updateAccessRoleStatusAction}
           payments={app.payments}
           pendingTicketOrders={app.pendingTicketOrders}
           pendingTicketOrdersLoading={app.pendingTicketOrdersLoading}
@@ -642,6 +652,7 @@ export default function App() {
           Se monta acá, fuera de PageTransition, para que el aviso no se pierda
           al cambiar de vista. */}
       <EmailVerificationNotice />
+      <SessionNotice />
       <PaymentsMockBanner />
       <DocumentMetaSync
         view={view}
@@ -683,6 +694,8 @@ export default function App() {
 function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
   return (
     <div className="app-shell">
+      <EmailVerificationNotice />
+      <SessionNotice />
       <PaymentsMockBanner />
       <DocumentMetaSync view={view} />
       <AnalyticsTracker view={view} />

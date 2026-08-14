@@ -13,7 +13,7 @@ import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { FEATURE_KEYS, isAppProduction, isFeatureEnabled } from '../lib/featureAvailability.js'
+import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
@@ -140,7 +140,6 @@ export default function MembersPage({
     if (livePlans.length) {
       return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
     }
-    if (isAppProduction()) return []
     return MEMBERSHIP_PLANS
       .filter((plan) => plan.id !== 'combo')
       .map((plan) => ({
@@ -209,7 +208,7 @@ export default function MembersPage({
     return () => window.clearInterval(id)
   }, [pendingComboEndsAt, hasActiveMembership])
 
-  const livePlansUnavailable = isAppProduction() && (!plansLoaded || catalogPlans.length === 0)
+  const livePlansUnavailable = !plansLoaded || catalogPlans.length === 0
   const comboCountdownAria = comboCountdown
     ? t('pages.members.comboPromoCountdownAria', {
       days: comboCountdown.days,
@@ -267,7 +266,15 @@ export default function MembersPage({
       </Reveal>
 
       <div className="members-page__body">
-        <section className="members-section members-section--plans members-plu-plans" id="planes">
+        <section
+          className={[
+            'members-section',
+            'members-section--plans',
+            'members-plu-plans',
+            showComboPromo ? 'members-plu-plans--with-combo' : '',
+          ].filter(Boolean).join(' ')}
+          id="planes"
+        >
           <header className="members-plu-block__head members-plu-plans__head">
             <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
             <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>
@@ -279,6 +286,28 @@ export default function MembersPage({
                   : t('pages.members.plansLead')}
             </p>
           </header>
+
+          {visiblePlans.length ? (
+            <div className={gridClassName}>
+              {visiblePlans.map((plan) => (
+                <MembershipCard
+                  key={plan.id}
+                  {...plan}
+                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
+                  billingAutoRenew={billingMode === 'recurring'}
+                  billingToggleHint={billingHint}
+                  billingToggleLabel={t('pages.members.autoRenewLabel')}
+                  ctaLabel={affiliationCta}
+                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
+                  onBillingAutoRenewChange={(enabled) => {
+                    setBillingMode(enabled ? 'recurring' : 'one_time')
+                  }}
+                  onSelect={goToAffiliation}
+                  variant="plu"
+                />
+              ))}
+            </div>
+          ) : null}
 
           {showComboPromo ? (
             <Reveal
@@ -331,7 +360,7 @@ export default function MembersPage({
                 </div>
                 <button
                   type="button"
-                  className="btn btn--gold members-combo-promo__cta"
+                  className="btn btn--outline members-combo-promo__cta"
                   disabled={checkoutLocked}
                   onClick={goToCombo}
                 >
@@ -340,39 +369,17 @@ export default function MembersPage({
               </div>
             </Reveal>
           ) : null}
-
-          {visiblePlans.length ? (
-            <div className={gridClassName}>
-              {visiblePlans.map((plan) => (
-                <MembershipCard
-                  key={plan.id}
-                  {...plan}
-                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
-                  billingAutoRenew={billingMode === 'recurring'}
-                  billingToggleHint={billingHint}
-                  billingToggleLabel={t('pages.members.autoRenewLabel')}
-                  ctaLabel={affiliationCta}
-                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
-                  onBillingAutoRenewChange={(enabled) => {
-                    setBillingMode(enabled ? 'recurring' : 'one_time')
-                  }}
-                  onSelect={goToAffiliation}
-                  variant="plu"
-                />
-              ))}
-            </div>
-          ) : null}
           {!hasActiveMembership && visiblePlans.length ? (
             <p className="members-plu-plans__reassure">
               {t('pages.members.closureReassure')}
             </p>
           ) : null}
-          {isAppProduction() && !plansLoaded ? (
+          {!plansLoaded ? (
             <p className="members-plans-feedback" role="status">
               {t('pages.members.plansLoading')}
             </p>
           ) : null}
-          {isAppProduction() && plansLoaded && catalogPlans.length === 0 ? (
+          {plansLoaded && catalogPlans.length === 0 ? (
             <FeatureComingSoon
               actionIcon={plansError ? RefreshCw : undefined}
               actionLabel={plansError ? t('pages.members.plansRetry') : undefined}

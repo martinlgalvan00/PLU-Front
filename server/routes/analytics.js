@@ -192,6 +192,12 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
       next(error)
     }
   })
+  router.get('/operational-summary', ...analyticsGuard, staffLimiter, async (req, res, next) => {
+    try { const query = parseRange(req); res.json(await repo().operationalSummary(resolveRange(query))) } catch (error) { next(error) }
+  })
+  router.get('/operational-alerts', ...analyticsGuard, staffLimiter, async (_req, res, next) => {
+    try { res.json({ alerts: await repo().operationalAlerts() }) } catch (error) { next(error) }
+  })
 
   router.get('/pages', ...analyticsGuard, staffLimiter, async (req, res, next) => {
     try {

@@ -12,15 +12,15 @@ describe('browser env', () => {
     expect(source).toContain("paymentsProvider === 'mock' && import.meta.env.DEV")
   })
 
-  it('expone APP_PRODUCTION y PAID_CHECKOUT_ENABLED para UI de produccion', () => {
+  it('expone el kill switch de checkout sin una bandera de producción propia', () => {
     const source = readFileSync(join(process.cwd(), 'src/config/env.js'), 'utf8')
-    expect(source).toContain('APP_PRODUCTION')
-    expect(source).toContain('appProduction')
     expect(source).toContain('PAID_CHECKOUT_ENABLED')
     expect(source).toContain('paidCheckoutEnabled')
+    expect(source).not.toContain('APP_PRODUCTION')
+    expect(source).not.toContain('appProduction')
     expect(source).not.toContain('PAID_CHECKOUT_OPENS_AT')
     expect(source).not.toContain('paidCheckoutOpensAt')
-    expect(source).toContain('demoMode: import.meta.env.VITE_DEMO_MODE === \'true\' && !appProduction')
+    expect(source).toContain("demoMode: import.meta.env.VITE_DEMO_MODE === 'true'")
   })
 
   it('no expone secretos privados en config cliente', () => {

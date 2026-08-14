@@ -931,6 +931,16 @@
   margin: 0;
 }
 
+.ticket-purchase__transfer-warning {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 46ch;
+  padding: 12px 0 0;
+}
+
 .ticket-purchase__proof-upload {
   display: grid;
   gap: 6px;

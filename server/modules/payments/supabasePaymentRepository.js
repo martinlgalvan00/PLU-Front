@@ -310,6 +310,50 @@ export function createSupabasePaymentRepository(
       return { ...summary, health }
     },
 
+    /**
+     * Cuántos cobros se cortaron por cada motivo, en un rango de fechas.
+     * `paymentAuditTrail.recordFailure` ya guarda el diagnóstico clasificado
+     * en `metadata.diagnosis` de cada asiento fallido — acá solo se cuenta,
+     * no se re-clasifica nada.
+     */
+    async getFailureReasonBreakdown({ from, to } = {}) {
+      let query = client
+        .from('operational_event_logs')
+        .select('entity_id, created_at, metadata')
+        .eq('organization_id', organizationId)
+        .eq('source', 'payment')
+        .eq('status', 'failed')
+        .order('created_at', { ascending: false })
+        .limit(500)
+      if (from) query = query.gte('created_at', from)
+      if (to) query = query.lte('created_at', to)
+
+      const rows = assertResult(await query, 'No se pudieron leer los motivos de rechazo.') ?? []
+
+      const byCode = new Map()
+      for (const row of rows) {
+        const diagnosis = row.metadata?.diagnosis
+        const code = diagnosis?.code ?? 'UNCLASSIFIED_PAYMENT_FAILURE'
+        const existing = byCode.get(code)
+        if (existing) {
+          existing.count += 1
+          continue
+        }
+        byCode.set(code, {
+          code,
+          title: diagnosis?.title ?? 'Falla sin clasificar',
+          severity: diagnosis?.severity ?? 'unexpected',
+          count: 1,
+          // Filas mas nuevas primero: la muestra es el caso mas reciente de
+          // este motivo, el mas util para abrir su traza completa.
+          sampleOrderId: row.entity_id ?? null,
+          lastSeenAt: row.created_at,
+        })
+      }
+
+      return [...byCode.values()].sort((a, b) => b.count - a.count)
+    },
+
     async listIntegrationEvents({ status, limit = 50 } = {}) {
       let query = client
         .from('payment_integration_events')

@@ -34,8 +34,7 @@ export const UPCOMING_EVENTS = [
     slug: 'pitbull-classic-2026',
     slots: 180,
     status: 'proximamente',
-    // Soft launch: countdown de marketing. Con APP_PRODUCTION=true los cobros
-    // quedan en “Próximamente” hasta PAID_CHECKOUT_ENABLED=true.
+    // Countdown de marketing; no condiciona la apertura de cobros.
     registrationOpensAt: '2026-09-01T10:00:00-03:00',
     featured: true,
     requiresMembership: true,

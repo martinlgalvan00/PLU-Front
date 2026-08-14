@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Ban, CircleCheck, LoaderCircle, QrCode } from 'lucide-react'
+import { Ban, CircleCheck, LoaderCircle, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -26,7 +26,9 @@ export default function MembershipsSection({
   memberships,
   onSelectAthlete,
   onSetMembershipStatus,
+  onDelete,
   canManage = false,
+  canDelete = false,
 }) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
@@ -38,6 +40,7 @@ export default function MembershipsSection({
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   async function applyStatus(membershipId, nextStatus) {
     setPendingId(membershipId)
@@ -53,6 +56,20 @@ export default function MembershipsSection({
     } catch (error) {
       setActionError(error?.message ?? t('admin.sections.memberships.actionError'))
       return false
+    } finally {
+      setPendingId(null)
+    }
+  }
+
+  async function deleteMembership() {
+    if (!deleteTarget || !onDelete) return
+    setPendingId(deleteTarget.id)
+    setActionError('')
+    try {
+      await onDelete(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (error) {
+      setActionError(error?.message ?? 'No se pudo eliminar la afiliación.')
     } finally {
       setPendingId(null)
     }
@@ -77,9 +94,16 @@ export default function MembershipsSection({
     [memberships.length, statusCounts, t],
   )
 
+  const metrics = useMemo(() => getMembershipStats(memberships), [memberships])
+
   const expiringOptions = useMemo(
-    () => translateFilterOptions(MEMBERSHIP_EXPIRING_FILTER_OPTIONS, t),
-    [t],
+    () =>
+      translateFilterOptions(MEMBERSHIP_EXPIRING_FILTER_OPTIONS, t).map(([value, label]) =>
+        value === 'soon'
+          ? [value, t('admin.stats.expiringSoon'), metrics.expiringSoon]
+          : [value, label],
+      ),
+    [metrics.expiringSoon, t],
   )
 
   const rows = useMemo(
@@ -118,8 +142,6 @@ export default function MembershipsSection({
   // saber de un vistazo es cuántos socios cubre hoy la afiliación, cuántos
   // entraron este mes, a quiénes hay que ir a renovar y cuánto quedó trabado
   // esperando pago.
-  const metrics = useMemo(() => getMembershipStats(memberships), [memberships])
-
   const stats = useMemo(
     () => [
       {
@@ -169,6 +191,7 @@ export default function MembershipsSection({
         {
           id: 'expiring',
           label: t('admin.filters.expiration'),
+          ariaLabel: t('admin.filters.expiringSoon'),
           value: expiring,
           onChange: setExpiring,
           options: expiringOptions,
@@ -288,6 +311,18 @@ export default function MembershipsSection({
                     variant="ghost"
                   />
                 )}
+                {canDelete && (
+                  <AdminIconButton
+                    disabled={pendingId === row.id}
+                    icon={Trash2}
+                    label="Eliminar afiliación"
+                    onClick={() => {
+                      setActionError('')
+                      setDeleteTarget(row)
+                    }}
+                    variant="danger"
+                  />
+                )}
               </div>
             ),
           },
@@ -329,6 +364,23 @@ export default function MembershipsSection({
           cancelLabel={t('admin.sections.memberships.keepActive')}
           confirmLabel={t('admin.sections.memberships.confirmCancel')}
           busyLabel={t('admin.sections.memberships.applying')}
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingId === deleteTarget.id}
+          error={actionError}
+          onCancel={() => {
+            if (pendingId !== deleteTarget.id) setDeleteTarget(null)
+          }}
+          onConfirm={deleteMembership}
+          title="Eliminar afiliación"
+          description={`Vas a eliminar definitivamente la afiliación de ${deleteTarget.athlete}.`}
+          warning="Se quitarán sus ciclos y suscripciones operativas. Los pagos y la auditoría se conservan."
+          cancelLabel="Cancelar"
+          confirmLabel="Eliminar definitivamente"
+          busyLabel="Eliminando…"
         />
       ) : null}
     </AdminListSection>

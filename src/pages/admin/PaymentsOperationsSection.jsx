@@ -206,19 +206,23 @@ export default function PaymentsOperationsSection({
     },
   ]
 
-  const operationRows = [
-    ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
-    ...(data?.reconciliations ?? []).map((attempt) => ({
-      ...attempt,
-      operationKind: 'reconciliation',
-      event_type: t('admin.paymentOperations.reconciliation'),
-      resource_id: attempt.external_payment_id,
-      status: attempt.reconciliation_status,
-      attempts_count: attempt.reconciliation_attempts,
-      max_attempts: 12,
-      last_attempt_at: attempt.updated_at,
-    })),
-  ].filter((row) => !status || row.status === status)
+  const operationRows = useMemo(
+    () =>
+      [
+        ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
+        ...(data?.reconciliations ?? []).map((attempt) => ({
+          ...attempt,
+          operationKind: 'reconciliation',
+          event_type: t('admin.paymentOperations.reconciliation'),
+          resource_id: attempt.external_payment_id,
+          status: attempt.reconciliation_status,
+          attempts_count: attempt.reconciliation_attempts,
+          max_attempts: 12,
+          last_attempt_at: attempt.updated_at,
+        })),
+      ].filter((row) => !status || row.status === status),
+    [data?.events, data?.reconciliations, status, t],
+  )
 
   const showHealthyEmpty =
     !loading &&
@@ -288,11 +292,10 @@ export default function PaymentsOperationsSection({
     }
   }
 
-  const configIssues = Array.isArray(data?.configuration?.issues)
-    ? data.configuration.issues.filter(Boolean)
-    : []
-  const showHealthCallout =
-    Boolean(data) && (healthBreakdown.length > 0 || (!runtimeReady && configIssues.length > 0))
+  // Diagnóstico accionable que arma el servidor: causa concreta y pasos, ya
+  // agrupados por código para no repetir cincuenta veces el mismo problema.
+  const blockers = Array.isArray(data?.blockers) ? data.blockers : []
+  const showHealthCallout = Boolean(data) && (healthBreakdown.length > 0 || blockers.length > 0)
 
   function focusAthletes() {
     setAthleteStatusRequest({ status: 'pending', at: Date.now() })
@@ -397,12 +400,29 @@ export default function PaymentsOperationsSection({
                 </ul>
               </>
             ) : null}
-            {!runtimeReady && configIssues.length > 0 ? (
+            {blockers.length > 0 ? (
               <>
-                <strong>{t('admin.paymentOperations.configIssuesTitle')}</strong>
-                <ul>
-                  {configIssues.map((issue) => (
-                    <li key={issue}>{issue}</li>
+                <strong>{t('admin.paymentOperations.diagnosisTitle')}</strong>
+                <ul className="admin-payments-ops-callout__diagnoses">
+                  {blockers.map((item) => (
+                    <li key={`${item.code}-${item.cause}`}>
+                      <span className="admin-payments-ops-callout__diagnosis-title">
+                        {item.title}
+                        {item.affected > 1 ? (
+                          <span className="admin-payments-ops-callout__diagnosis-count">
+                            {t('admin.paymentOperations.diagnosisAffected', { count: item.affected })}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="admin-payments-ops-callout__diagnosis-cause">{item.cause}</span>
+                      {Array.isArray(item.fix) && item.fix.length > 0 ? (
+                        <ol className="admin-payments-ops-callout__diagnosis-fix">
+                          {item.fix.map((step) => (
+                            <li key={step}>{step}</li>
+                          ))}
+                        </ol>
+                      ) : null}
+                    </li>
                   ))}
                 </ul>
               </>
@@ -608,7 +628,19 @@ export default function PaymentsOperationsSection({
                 key: 'error',
                 label: t('admin.paymentOperations.detail'),
                 mobile: 'hidden',
-                render: (row) => row.error || '—',
+                // El texto crudo del proveedor no le dice nada al operador. El
+                // diagnóstico va adelante y el mensaje original queda como
+                // título, para quien necesite el detalle textual.
+                render: (row) => {
+                  if (!row.error) return '—'
+                  if (!row.diagnosis) return row.error
+                  return (
+                    <span className="admin-payment-ops__diagnosis" title={row.error}>
+                      <strong>{row.diagnosis.title}</strong>
+                      <small>{row.diagnosis.fix?.[0] ?? row.diagnosis.cause}</small>
+                    </span>
+                  )
+                },
               },
               {
                 key: 'actions',

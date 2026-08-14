@@ -1,4 +1,4 @@
-import { isAppProduction, resolvePaidCheckoutOverride, resolvePaymentsMockFlag } from './featureAvailability.js'
+import { resolvePaidCheckoutOverride } from './featureAvailability.js'
 import { isRegistrationOpen } from './status.js'
 
 function toValidMs(value) {
@@ -82,8 +82,7 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
  * Cobros/inscripciones de pago abiertos:
  * - override env PAID_CHECKOUT_ENABLED (true abre, false cierra)
  * - fuera de producción: abierto (dev/preview)
- * - APP_PRODUCTION=true sin override: cerrado (“Próximamente”), ignore
- *   `registrationOpensAt` del admin. Esa fecha sigue alimentando el countdown.
+ * - sin override: abierto para el lanzamiento público.
  *
  * Crear cuenta / perfil no usa este gate.
  */
@@ -94,8 +93,5 @@ export function isPaidCheckoutOpen(_event, envLike, _now = new Date(), options =
   }
 
   const override = resolvePaidCheckoutOverride(envLike)
-  if (override !== null) return override
-  if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
-  if (!isAppProduction(envLike)) return true
-  return false
+  return override !== false
 }

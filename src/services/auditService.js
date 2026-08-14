@@ -101,10 +101,24 @@ export function auditActionTone(action) {
   return ACTION_TONES[action] ?? 'default'
 }
 
+/**
+ * `paymentAuditTrail.recordFailure` guarda `metadata.error` como objeto
+ * ({message, code, stack, origin, cause}), no como string: la traza completa
+ * vive en `PaymentTraceDialog` vía `/api/payments/audit/orders/:id`. Acá solo
+ * necesitamos el mensaje para el resumen de la fila — pasar el objeto crudo
+ * lo convierte en "[object Object]" al mostrarse.
+ */
+function summaryValue(value) {
+  if (value !== null && typeof value === 'object') {
+    return typeof value.message === 'string' && value.message ? value.message : null
+  }
+  return value
+}
+
 function summarize(metadata) {
   if (!metadata || typeof metadata !== 'object') return []
-  return SUMMARY_FIELDS.filter((field) => metadata[field] != null && metadata[field] !== '').map(
-    (field) => ({ field, value: metadata[field] }),
+  return SUMMARY_FIELDS.map((field) => ({ field, value: summaryValue(metadata[field]) })).filter(
+    ({ value }) => value != null && value !== '',
   )
 }
 

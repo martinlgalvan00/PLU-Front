@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   BadgeDollarSign,
@@ -12,6 +12,7 @@ import {
   Eye,
   LayoutDashboard,
   LayoutGrid,
+  Landmark,
   KeyRound,
   Menu,
   PanelLeft,
@@ -51,15 +52,41 @@ const ICONS = {
   Eye,
   ShoppingBag,
   KeyRound,
+  Landmark,
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
+const NAV_BADGE_CAP = 99
 // `audit` salió de acá al dejar de ser un placeholder: ahora lee
 // `domain_audit_logs` a través de /api/audit.
+
+function formatNavBadgeCount(count) {
+  if (!Number.isFinite(count) || count < 1) return ''
+  return count > NAV_BADGE_CAP ? `${NAV_BADGE_CAP}+` : String(count)
+}
 const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 const SIDEBAR_MODES = ['expanded', 'collapsed', 'hidden']
+const PHONE_DRAWER_MQ = '(max-width: 767px)'
+
+function useMatchMedia(query) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    function sync(event) {
+      setMatches(event.matches)
+    }
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [query])
+
+  return matches
+}
 
 function readStoredSidebarMode() {
   if (typeof window === 'undefined') return 'collapsed'
@@ -95,10 +122,17 @@ export default function AdminShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMode, setSidebarMode] = useState(readStoredSidebarMode)
+  const sidebarRef = useRef(null)
+  const menuButtonRef = useRef(null)
   const { t } = useI18n()
 
   const collapsed = sidebarMode === 'collapsed'
   const sidebarHidden = sidebarMode === 'hidden'
+  const isPhoneViewport = useMatchMedia(PHONE_DRAWER_MQ)
+  // Glyph cuando el chrome visible es el rail de 76px. En tablet `--nav-open`
+  // no ensancha el aside: el segment ES|EN no entra. Segment solo en el
+  // drawer phone (overlay a ancho completo).
+  const iconRail = (collapsed || sidebarHidden) && !(isPhoneViewport && sidebarOpen)
 
   const navGroups = useMemo(() => {
     let groups
@@ -163,6 +197,48 @@ export default function AdminShell({
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = previousOverflow
+    }
+  }, [sidebarOpen])
+
+  // En phone el sidebar funciona como drawer real: atrapa el foco, cierra
+  // con Escape y lo devuelve al botón que lo abrió. En tablet/desktop es un
+  // rail persistente (no un overlay), así que no aplica.
+  useEffect(() => {
+    const isPhone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    if (!sidebarOpen || !isPhone) return undefined
+
+    const focusableSelector =
+      'button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])'
+    const previousFocus = document.activeElement
+    // Copiado del ref acá adentro: para cuando corra el cleanup, `.current`
+    // puede haber cambiado (el botón se desmonta en `sidebarHidden`, etc.).
+    const menuButton = menuButtonRef.current
+    sidebarRef.current?.querySelector(focusableSelector)?.focus()
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setSidebarOpen(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = sidebarRef.current?.querySelectorAll(focusableSelector) ?? []
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      ;(previousFocus?.isConnected ? previousFocus : menuButton)?.focus?.()
     }
   }, [sidebarOpen])
 
@@ -235,6 +311,7 @@ export default function AdminShell({
         </button>
       ) : null}
       <aside
+        ref={sidebarRef}
         className={`admin-shell__sidebar${sidebarOpen ? ' is-open' : ''}`}
         aria-hidden={sidebarHidden && !sidebarOpen ? true : undefined}
       >
@@ -245,7 +322,7 @@ export default function AdminShell({
                 type="button"
                 className="admin-shell__brand-home"
                 aria-label={t('admin.shell.goToDashboard')}
-                title={collapsed || sidebarHidden ? t('admin.shell.goToDashboard') : undefined}
+                title={iconRail ? t('admin.shell.goToDashboard') : undefined}
                 onClick={() => handleSectionChange('dashboard')}
               >
                 {brandMark}
@@ -286,6 +363,11 @@ export default function AdminShell({
                     const Icon = ICONS[iconName]
                     const badge = navBadges[key]
                     const label = t(labelKey)
+                    const badgeCount = Number(badge) || 0
+                    const accessibleLabel =
+                      badgeCount > 0
+                        ? t('admin.shell.navBadgeAria', { label, count: badgeCount })
+                        : label
 
                     return (
                       <button
@@ -293,24 +375,25 @@ export default function AdminShell({
                         type="button"
                         className={activeSection === key ? 'active' : ''}
                         aria-current={activeSection === key ? 'page' : undefined}
-                        aria-label={label}
-                        title={collapsed || sidebarHidden ? label : undefined}
+                        aria-label={accessibleLabel}
+                        title={iconRail ? accessibleLabel : undefined}
                         onClick={() => handleSectionChange(key)}
                       >
                         <span className="admin-shell__nav-icon" aria-hidden>
-                          <Icon size={collapsed || sidebarHidden ? 18 : 16} strokeWidth={1.75} />
+                          <Icon size={iconRail ? 18 : 16} strokeWidth={1.75} />
                         </span>
                         <span className="admin-shell__nav-label">
                           <span className="admin-shell__nav-label-meta">{groupLabel}</span>
                           <span className="admin-shell__nav-label-text">{label}</span>
                         </span>
-                        {badge > 0 && (
+                        {badgeCount > 0 && (
                           <em
                             className={`admin-shell__badge${
                               ALERT_BADGE_KEYS.has(key) ? ' admin-shell__badge--alert' : ''
                             }`}
+                            aria-hidden
                           >
-                            {badge}
+                            {formatNavBadgeCount(badgeCount)}
                           </em>
                         )}
                       </button>
@@ -332,7 +415,7 @@ export default function AdminShell({
                 type="button"
                 className="admin-shell__account admin-shell__account--action"
                 onClick={onOpenAccount}
-                title={collapsed || sidebarHidden ? t('staffAccount.dialogEyebrow') : undefined}
+                title={iconRail ? t('staffAccount.dialogEyebrow') : undefined}
                 aria-label={t('staffAccount.openAria')}
               >
                 <span className="admin-shell__account-mark" aria-hidden />
@@ -344,7 +427,7 @@ export default function AdminShell({
             ) : (
               <div
                 className="admin-shell__account"
-                title={collapsed || sidebarHidden ? roleLabel : undefined}
+                title={iconRail ? roleLabel : undefined}
               >
                 <span
                   className="admin-shell__account-mark"
@@ -361,7 +444,7 @@ export default function AdminShell({
 
             <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
               <ThemeToggle compact />
-              <LanguageToggle compact variant={collapsed || sidebarHidden ? 'glyph' : 'segment'} />
+              <LanguageToggle compact variant={iconRail ? 'glyph' : 'segment'} />
             </div>
           </div>
 
@@ -369,7 +452,7 @@ export default function AdminShell({
             type="button"
             className="admin-shell__exit"
             onClick={onExit}
-            title={collapsed || sidebarHidden ? t('admin.shell.exit') : undefined}
+            title={iconRail ? t('admin.shell.exit') : undefined}
             aria-label={t('admin.shell.exit')}
           >
             <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
@@ -381,6 +464,7 @@ export default function AdminShell({
       <div className="admin-shell__main">
         <header className={`admin-mobile-bar${sidebarHidden ? ' admin-mobile-bar--reveal' : ''}`}>
           <button
+            ref={menuButtonRef}
             type="button"
             className={`admin-mobile-bar__menu${sidebarOpen ? ' is-active' : ''}${
               sidebarHidden ? ' admin-mobile-bar__menu--reveal' : ''
