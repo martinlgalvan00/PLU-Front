@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { addBreadcrumb } from '../../lib/logger.js'
 import { verifyMercadoPagoWebhook } from '../integrations/webhookVerifier.js'
+import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
 import {
   PAYMENT_TRAIL_ACTIONS,
   paymentTrailMetadata,
@@ -26,7 +27,12 @@ export async function createPaymentPreference(input, options = {}) {
     throw new HttpError(503, 'El workflow de pagos no esta configurado.')
   }
 
-  const order = await repository.getOrder(input.paymentOrderId)
+  // La ruta ya resolvio la orden para validar que pertenece a la sesion; sin
+  // reusarla, cada apertura de checkout la leia de nuevo con sus joins (mismo
+  // patron que embeddedPaymentWorkflow.processEmbeddedPayment).
+  const order = options.order?.id === input.paymentOrderId
+    ? options.order
+    : await repository.getOrder(input.paymentOrderId)
   if (order.method !== 'mercado_pago') {
     throw new HttpError(400, 'La orden no usa Mercado Pago.')
   }
@@ -163,6 +169,55 @@ export async function applyCanonicalPayment(payment, order, options = {}) {
   }
 }
 
+/**
+ * Reusa el email `payment_rejected` (mismo copy: "no pudimos procesar tu
+ * pago... reintenta") para dos eventos de suscripcion que hasta ahora no
+ * avisaban a nadie. No inventa un template nuevo -- necesitaria su propia
+ * variable BREVO_TEMPLATE_* que todavia no existe -- ni una politica de
+ * reintentos/cancelacion automatica: eso es una decision de producto, no
+ * el hallazgo puntual de esta auditoria.
+ */
+async function notifySubscriptionChargeFailed(authorizedPayment, result, { notifyPaymentApplied }) {
+  if (!notifyPaymentApplied) return
+  const order = result?.order
+  if (!order?.payer_email) return
+  await notifyPaymentApplied({
+    order: {
+      id: order.id,
+      kind: 'athlete',
+      payerEmail: order.payer_email,
+      concept: order.concept,
+      displayConcept: displayPaymentConcept(order.concept),
+      reference: order.reference,
+    },
+    payment: {
+      status: 'rechazado',
+      amount: Number(authorizedPayment.transaction_amount),
+      statusDetail: authorizedPayment.status_detail || 'Cobro recurrente rechazado por el medio de pago.',
+      externalPaymentId: String(authorizedPayment.payment_id ?? authorizedPayment.id),
+      payerEmail: order.payer_email,
+    },
+  })
+}
+
+async function notifySubscriptionCancelled(subscription, { repository, notifyPaymentApplied }) {
+  if (!notifyPaymentApplied || !repository.getOrder) return
+  const order = await repository.getOrder(subscription.initial_order_id).catch(() => null)
+  if (!order?.payerEmail) return
+  await notifyPaymentApplied({
+    order,
+    payment: {
+      status: 'rechazado',
+      amount: order.amount,
+      statusDetail: 'Tu suscripcion fue cancelada en Mercado Pago. No se va a renovar automaticamente.',
+      // Estable por suscripcion: si MP reenvia el mismo evento de cancelacion
+      // no dispara un segundo aviso.
+      externalPaymentId: `subscription-cancelled:${subscription.id}`,
+      payerEmail: order.payerEmail,
+    },
+  })
+}
+
 export async function processClaimedPaymentEvent(event, options = {}) {
   const { repository, mercadoPago, notifyPaymentApplied, auditTrail } = options
   const resourceId = event.resource_id ?? event.resourceId
@@ -197,11 +252,26 @@ export async function processClaimedPaymentEvent(event, options = {}) {
     } else if (type === 'subscription_preapproval') {
       const subscription = await mercadoPago.getSubscription(resourceId)
       result = await repository.applySubscription?.(subscription)
-      if (!result) result = { ignored: true, reason: 'subscription_repository_unavailable' }
+      if (!result) {
+        result = { ignored: true, reason: 'subscription_repository_unavailable' }
+      } else if (result.status === 'cancelled') {
+        // Hasta aca una suscripcion cancelada en Mercado Pago no le avisaba a
+        // nadie: la membresia seguia activa "pagada hasta fin de periodo" sin
+        // que el socio supiera que no se va a renovar sola.
+        await notifySubscriptionCancelled(result, { repository, notifyPaymentApplied })
+      }
     } else if (type === 'subscription_authorized_payment') {
       const authorizedPayment = await mercadoPago.getAuthorizedPayment(resourceId)
       result = await repository.applyAuthorizedSubscriptionPayment?.(authorizedPayment)
-      if (!result) result = { ignored: true, reason: 'subscription_repository_unavailable' }
+      if (!result) {
+        result = { ignored: true, reason: 'subscription_repository_unavailable' }
+      } else if (mapMercadoPagoStatus(authorizedPayment.status) === 'rechazado') {
+        // Mismo hueco que la cancelacion: un cobro recurrente rechazado (tarjeta
+        // vencida, fondos insuficientes) solo tocaba billing_subscriptions.status
+        // = 'past_due', sin avisarle al socio que tiene que actualizar el medio
+        // de pago.
+        await notifySubscriptionChargeFailed(authorizedPayment, result, { notifyPaymentApplied })
+      }
     } else {
       throw new HttpError(400, 'Tipo de webhook no soportado.')
     }

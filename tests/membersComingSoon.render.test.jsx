@@ -80,14 +80,14 @@ describe('afiliacion en produccion, sin gate de lanzamiento', () => {
     )
 
     await waitFor(() => {
-      expect(container.querySelector('.members-combo-promo__cta')?.textContent)
+      expect(container.querySelector('.season-combo-offer__cta')?.textContent)
         .not.toMatch(/Próximamente|Proximamente/i)
     })
-    expect(container.querySelector('.members-combo-promo__cta')?.disabled).toBe(false)
+    expect(container.querySelector('.season-combo-offer__cta')?.disabled).toBe(false)
     expect(container.querySelector('.membership-card__cta')?.textContent)
       .not.toMatch(/Próximamente|Proximamente/i)
     expect(container.querySelector('.membership-card__cta')?.disabled).toBe(false)
-    fireEvent.click(container.querySelector('.members-combo-promo__cta'))
+    fireEvent.click(container.querySelector('.season-combo-offer__cta'))
     expect(onSelectEvent).toHaveBeenCalled()
   })
 })

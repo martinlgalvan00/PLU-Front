@@ -59,6 +59,7 @@ import {
   loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
+  rejectAthletePaymentOrder as rejectAthletePaymentOrderRequest,
   setMembershipStatus as setMembershipStatusRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
 } from '../services/athleteApi.js'
@@ -100,6 +101,7 @@ import {
   mapApiTicket,
   redeemTicketAddon as redeemTicketAddonRequest,
   registerTicketPaymentProof as registerTicketPaymentProofRequest,
+  rejectTicketOrder as rejectTicketOrderRequest,
 } from '../services/ticketApi.js'
 import { uploadTicketPaymentProof } from '../services/ticketProofService.js'
 import {
@@ -135,11 +137,20 @@ import {
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
 import {
+  cancelBillingSubscriptionRequest,
   createMembershipPlanVersionRequest,
+  fetchBillingSubscriptionsRequest,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
+  setDiscountCodeActiveRequest,
   setMembershipPlanActiveRequest,
+  setMembershipPlanRetirementRequest,
+  upsertDiscountCodeRequest,
 } from '../services/pricingAdminService.js'
+import {
+  fetchRegistrationAccessConfiguration,
+  saveRegistrationAccessGate as saveRegistrationAccessGateRequest,
+} from '../services/registrationAccessAdminService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
@@ -228,6 +239,15 @@ export function useAppData() {
   })
   const [pricingLoading, setPricingLoading] = useState(false)
   const [pricingError, setPricingError] = useState(null)
+  const [registrationAccessConfiguration, setRegistrationAccessConfiguration] = useState({
+    membershipGate: null,
+    eventGates: [],
+  })
+  const [registrationAccessLoading, setRegistrationAccessLoading] = useState(false)
+  const [registrationAccessError, setRegistrationAccessError] = useState(null)
+  const [billingSubscriptions, setBillingSubscriptions] = useState([])
+  const [billingSubscriptionsLoading, setBillingSubscriptionsLoading] = useState(false)
+  const [billingSubscriptionsError, setBillingSubscriptionsError] = useState(null)
   const [shopProducts, setShopProducts] = useState(() =>
     getInitialShopProducts(storedData?.shopProducts),
   )
@@ -768,13 +788,18 @@ export function useAppData() {
   )
 
   const startMembershipPayment = useCallback(
-    async (paymentMethod = form.paymentMethod, planCode = 'plu-annual') => {
+    async (
+      paymentMethod = form.paymentMethod,
+      planCode = 'plu-annual',
+      discountCode = '',
+      accessCode = '',
+    ) => {
       const athlete = athletes.find((item) => item.id === session?.athleteId)
       if (!athlete) return { error: 'No se encontró el perfil del atleta.' }
 
       try {
         const normalizedMethod = paymentMethod === 'transferencia' ? 'manual_link' : paymentMethod
-        const attemptFingerprint = `${athlete.id}:${planCode}:${normalizedMethod}`
+        const attemptFingerprint = `${athlete.id}:${planCode}:${normalizedMethod}:${discountCode}`
         if (membershipAttemptRef.current?.fingerprint !== attemptFingerprint) {
           membershipAttemptRef.current = {
             fingerprint: attemptFingerprint,
@@ -786,6 +811,8 @@ export function useAppData() {
           normalizedMethod,
           planCode,
           membershipAttemptRef.current.idempotencyKey,
+          discountCode,
+          accessCode,
         )
         const checkout =
           order.method === 'mercado_pago' && plan?.collectionMode !== 'recurring'
@@ -816,6 +843,7 @@ export function useAppData() {
           payerEmail: athlete.email ?? session?.email ?? null,
           paymentId: order.id,
           paymentMethod: order.method,
+          manualPaymentChannel: order.manualPaymentChannel,
           preferenceId: checkout?.preference?.id ?? null,
           initPoint: checkout?.preference?.initPoint ?? null,
           paymentMode: plan?.collectionMode === 'recurring' ? 'subscription' : 'payment',
@@ -890,9 +918,14 @@ export function useAppData() {
   )
 
   const submitMembership = useCallback(
-    async (event) => {
+    async (event, _selectedEvent, options = {}) => {
       event.preventDefault()
-      return startMembershipPayment(form.paymentMethod)
+      return startMembershipPayment(
+        options.paymentMethod ?? form.paymentMethod,
+        'plu-annual',
+        '',
+        options.membershipAccessCode,
+      )
     },
     [form.paymentMethod, startMembershipPayment],
   )
@@ -924,6 +957,9 @@ export function useAppData() {
         const createRegistrationRequest = purchaseType === 'combo'
           ? createCompetitionRegistrationComboRequest
           : createCompetitionRegistrationRequest
+        // El cupón queda fuera de scope para el combo por decisión de producto
+        // (ver create_membership_registration_combo_order): solo se reenvía en
+        // la inscripción simple.
         const { order, registration, membership, plan, comboOffer } = await createRegistrationRequest({
           athleteId: athlete.id,
           eventSlug: selectedEvent.slug,
@@ -934,6 +970,13 @@ export function useAppData() {
             : null,
           paymentMethod,
           idempotencyKey: registrationAttemptRef.current.idempotencyKey,
+          ...(purchaseType === 'combo'
+            ? {
+                membershipAccessCode: options.membershipAccessCode,
+                registrationAccessCode: options.registrationAccessCode,
+              }
+            : { accessCode: options.registrationAccessCode }),
+          ...(purchaseType === 'combo' ? null : { discountCode: options.discountCode }),
         })
         // El Payment Brick de inscripción se inicializa con amount. Crear una
         // preference de Checkout Pro escribe provider_preference_id y bloquea
@@ -978,6 +1021,7 @@ export function useAppData() {
           payerEmail: athlete.email ?? session?.email ?? null,
           paymentId: order.id,
           paymentMethod: order.method,
+          manualPaymentChannel: order.manualPaymentChannel,
           preferenceId: order.preferenceId ?? null,
           paymentMode: 'payment',
           purchaseType,
@@ -1126,6 +1170,35 @@ export function useAppData() {
       } catch (error) {
         console.error('approveTicketPurchase:', error)
         throw error
+      }
+    },
+    [session],
+  )
+
+  // Rechazo de comprobante de entradas: libera el cupo (los tickets
+  // 'pendiente_pago' pasan a 'cancelada' en la RPC) y saca la orden de la
+  // bandeja de pendientes, igual que una aprobación.
+  const rejectTicketPurchase = useCallback(
+    async (orderId, reason) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para rechazar pagos.' }
+      }
+      try {
+        const { order, tickets: rejectedTickets } = await rejectTicketOrderRequest(orderId, reason)
+        setTickets((current) => {
+          const byId = new Map(rejectedTickets.map((ticket) => [ticket.id, ticket]))
+          return current.map((item) =>
+            byId.has(item.id) ? { ...item, status: byId.get(item.id).status } : item,
+          )
+        })
+        setCreatedOrder((current) =>
+          current?.orderId === orderId ? { ...current, status: order.status } : current,
+        )
+        setPendingTicketOrders((current) => current.filter((item) => item.orderId !== orderId))
+        return { order }
+      } catch (error) {
+        console.error('rejectTicketPurchase:', error)
+        return { error: error?.message ?? 'No se pudo rechazar la orden.' }
       }
     },
     [session],
@@ -1818,6 +1891,30 @@ export function useAppData() {
     [session],
   )
 
+  // Rechazo de comprobante: la orden queda en 'rechazado' (mismo estado
+  // terminal que usa Mercado Pago) y el socio puede iniciar una orden nueva.
+  const handleRejectPayment = useCallback(
+    async (paymentId, reason) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para rechazar pagos.' }
+      }
+      try {
+        const { order } = await rejectAthletePaymentOrderRequest(paymentId, reason)
+        setPayments((c) =>
+          c.map((p) =>
+            p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,
+          ),
+        )
+        setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        return { order }
+      } catch (error) {
+        console.error('handleRejectPayment:', error)
+        return { error: error?.message ?? 'No se pudo rechazar el pago.' }
+      }
+    },
+    [session],
+  )
+
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
@@ -2219,6 +2316,110 @@ export function useAppData() {
     }
   }, [refreshPricingConfiguration, session])
 
+  const setMembershipPlanRetirement = useCallback(async (planId, retiresAt) => {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const plan = await setMembershipPlanRetirementRequest(planId, retiresAt)
+      clearMembershipPlansCache()
+      await refreshPricingConfiguration()
+      return { plan }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo reprogramar la vigencia del plan.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
+  const upsertDiscountCode = useCallback(async (code) => {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const saved = await upsertDiscountCodeRequest(code)
+      await refreshPricingConfiguration()
+      return { code: saved }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo guardar el código de descuento.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
+  const refreshRegistrationAccessConfiguration = useCallback(async () => {
+    if (!hasPermission(session, 'admin.registration_access.read')) return null
+    setRegistrationAccessLoading(true)
+    setRegistrationAccessError(null)
+    try {
+      const configuration = await fetchRegistrationAccessConfiguration()
+      setRegistrationAccessConfiguration(configuration)
+      return configuration
+    } catch (error) {
+      const message = error?.message ?? 'No pudimos cargar las tandas privadas.'
+      setRegistrationAccessError(message)
+      return { error: message }
+    } finally {
+      setRegistrationAccessLoading(false)
+    }
+  }, [session])
+
+  const saveRegistrationAccessGate = useCallback(async (gate) => {
+    if (!hasPermission(session, 'admin.registration_access.write')) {
+      return { error: 'No tenés permisos para gestionar tandas privadas.' }
+    }
+    try {
+      const saved = await saveRegistrationAccessGateRequest(gate)
+      await refreshRegistrationAccessConfiguration()
+      return { gate: saved }
+    } catch (error) {
+      return { error: error?.message ?? 'No pudimos guardar la tanda.' }
+    }
+  }, [refreshRegistrationAccessConfiguration, session])
+
+  const setDiscountCodeActive = useCallback(async (codeId, active) => {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const saved = await setDiscountCodeActiveRequest(codeId, active)
+      await refreshPricingConfiguration()
+      return { code: saved }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo cambiar el estado del código de descuento.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
+  const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
+    const currentSession = sessionRef.current
+    if (!currentSession || !hasPermission(currentSession, 'admin.payments.read')) return null
+    if (isDemoSession(currentSession)) {
+      setBillingSubscriptions([])
+      return []
+    }
+    setBillingSubscriptionsLoading(true)
+    setBillingSubscriptionsError(null)
+    try {
+      const subscriptions = await fetchBillingSubscriptionsRequest(filters)
+      setBillingSubscriptions(subscriptions)
+      return subscriptions
+    } catch (error) {
+      setBillingSubscriptionsError(error?.message ?? 'No se pudieron cargar las suscripciones.')
+      return null
+    } finally {
+      setBillingSubscriptionsLoading(false)
+    }
+  }, [])
+
+  const cancelBillingSubscription = useCallback(async (subscriptionId) => {
+    if (!hasPermission(session, 'admin.payments.approve')) {
+      return { error: 'Sin permisos para cancelar suscripciones.' }
+    }
+    try {
+      const subscription = await cancelBillingSubscriptionRequest(subscriptionId)
+      await refreshBillingSubscriptions()
+      return { subscription }
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo cancelar la suscripción.' }
+    }
+  }, [refreshBillingSubscriptions, session])
+
   const saveShopProduct = useCallback(
     (draft) => {
       if (!hasPermission(session, 'admin.shop.write')) {
@@ -2276,10 +2477,23 @@ export function useAppData() {
     pricingConfiguration,
     pricingLoading,
     pricingError,
+    registrationAccessConfiguration,
+    registrationAccessLoading,
+    registrationAccessError,
+    refreshRegistrationAccessConfiguration,
+    saveRegistrationAccessGate,
     refreshPricingConfiguration,
     createMembershipPlanVersion,
     setMembershipPlanActive,
     saveEventComboOffer,
+    setMembershipPlanRetirement,
+    upsertDiscountCode,
+    setDiscountCodeActive,
+    billingSubscriptions,
+    billingSubscriptionsLoading,
+    billingSubscriptionsError,
+    refreshBillingSubscriptions,
+    cancelBillingSubscription,
     shopProducts,
     saveAdminEvent,
     deleteAdminEvent,
@@ -2308,6 +2522,7 @@ export function useAppData() {
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
+    rejectTicketPurchase,
     refreshPendingTicketOrders,
     checkInTicketAction,
     redeemTicketAddonAction,
@@ -2339,6 +2554,7 @@ export function useAppData() {
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,
+    handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,
     demoMode: isDemoSession(session),

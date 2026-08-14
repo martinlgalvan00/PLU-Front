@@ -20,18 +20,17 @@
 
 .account-transfer-proof__drop {
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
-  border-radius: 2px;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   cursor: pointer;
   display: grid;
-  gap: 14px;
+  gap: 10px;
   grid-template-columns: auto minmax(0, 1fr);
-  min-height: 88px;
-  padding: 16px 18px;
-  transition:
-    border-color var(--motion-fast) var(--ease-out),
-    color var(--motion-fast) var(--ease-out);
+  min-height: 44px;
+  padding: 10px 0;
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
 .account-transfer-proof__drop svg {
@@ -41,12 +40,17 @@
 
 .account-transfer-proof__drop:hover,
 .account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
-  border-color: var(--color-brand-gold);
+  color: var(--color-text-primary);
+}
+
+.account-transfer-proof__drop:hover svg,
+.account-transfer-proof__input:focus-visible + .account-transfer-proof__drop svg {
+  color: var(--color-brand-gold);
 }
 
 .account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
-  outline: 2px solid var(--color-brand-gold);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 4px;
 }
 
 .account-transfer-proof__drop.is-busy {
@@ -57,7 +61,7 @@
 
 .account-transfer-proof__copy {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -70,19 +74,19 @@
 
 .account-transfer-proof__hint {
   color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .account-transfer-proof__spinner {
   animation: account-transfer-proof-spin 620ms linear infinite;
-  block-size: 18px;
+  block-size: 16px;
   border: 1.75px solid color-mix(in oklab, var(--color-brand-gold) 28%, transparent);
   border-radius: 50%;
   border-top-color: var(--color-brand-gold);
   display: block;
   flex: none;
-  inline-size: 18px;
+  inline-size: 16px;
 }
 
 @keyframes account-transfer-proof-spin {
@@ -99,29 +103,20 @@
 
 .account-transfer-proof__done {
   align-items: flex-start;
-  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   display: flex;
   font-size: 13.5px;
   gap: 10px;
   line-height: 1.45;
   margin: 0;
-  padding-top: 16px;
+  padding-top: 14px;
 }
 
 .account-transfer-proof__done svg {
   color: var(--color-brand-gold);
   flex: none;
   margin-top: 2px;
-}
-
-[data-theme='light'] .account-transfer-proof__drop {
-  border-color: rgba(15, 17, 23, 0.14);
-}
-
-[data-theme='light'] .account-transfer-proof__drop:hover,
-[data-theme='light'] .account-transfer-proof__input:focus-visible + .account-transfer-proof__drop {
-  border-color: var(--plu-gold-600);
 }
 
 [data-theme='light'] .account-transfer-proof__drop svg,

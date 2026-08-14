@@ -143,7 +143,6 @@ picture {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-.admin-shell__footer,
 .site-footer {
   padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
 }

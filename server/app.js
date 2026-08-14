@@ -14,6 +14,8 @@ import { createAnalyticsRoutes } from './routes/analytics.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
+import { createRegistrationAccessRoutes } from './routes/registrationAccess.js'
+import { createPlatformSettingsRoutes } from './routes/platformSettings.js'
 import { createFinanceRoutes } from './routes/finance.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
@@ -114,6 +116,7 @@ export function createApp(deps = {}) {
       notificationRepository: deps.notificationRepository,
       brevo: deps.brevo,
       notifyPaymentApplied: deps.notifyPaymentApplied,
+      platformSettingsRepository: deps.platformSettingsRepository,
       getPrisma: () => deps.prisma ?? getPrisma(),
       env: deps.env,
     }),
@@ -134,8 +137,26 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       repository: deps.athleteRepository,
+      registrationAccessRepository: deps.registrationAccessRepository,
+      platformSettingsRepository: deps.platformSettingsRepository,
       env: deps.env,
       brevo: deps.brevo,
+    }),
+  )
+  app.use(
+    '/api/registration-access',
+    createRegistrationAccessRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.registrationAccessRepository,
+    }),
+  )
+  app.use(
+    '/api/platform-settings',
+    createPlatformSettingsRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.platformSettingsRepository,
     }),
   )
   app.use('/api/tickets', createTicketRoutes({
@@ -143,7 +164,9 @@ export function createApp(deps = {}) {
     getSupabaseAdmin: resolveSupabaseAdmin,
     repository: deps.ticketRepository,
     athleteRepository: deps.athleteRepository,
+    platformSettingsRepository: deps.platformSettingsRepository,
     env: deps.env ?? process.env,
+    brevo: deps.brevo,
   }))
   app.use('/api/audit', createAuditRoutes({
     getPrisma: () => deps.prisma ?? getPrisma(),

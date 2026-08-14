@@ -33,6 +33,7 @@ const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx
 const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
 const FinanceSection = lazy(() => import('./admin/FinanceSection.jsx'))
 const PricingSection = lazy(() => import('./admin/PricingSection.jsx'))
+const RegistrationAccessSection = lazy(() => import('./admin/RegistrationAccessSection.jsx'))
 const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
 const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
 const RolesSection = lazy(() => import('./admin/RolesSection.jsx'))
@@ -62,8 +63,10 @@ export default function AdminPage({
   adminNavBadges,
   getAthleteDetail,
   onApprovePayment,
+  onRejectPayment,
   onSetMembershipStatus,
   onApproveTicketPurchase,
+  onRejectTicketOrder,
   onRefreshPendingTicketOrders,
   onRefreshAdminEvents,
   onRefreshAthleteData,
@@ -71,6 +74,14 @@ export default function AdminPage({
   onCreateMembershipPlanVersion,
   onSetMembershipPlanActive,
   onSaveEventComboOffer,
+  onSetMembershipPlanRetirement,
+  onUpsertDiscountCode,
+  onSetDiscountCodeActive,
+  billingSubscriptions,
+  billingSubscriptionsLoading,
+  billingSubscriptionsError,
+  onRefreshBillingSubscriptions,
+  onCancelBillingSubscription,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
@@ -105,6 +116,11 @@ export default function AdminPage({
   pricingConfiguration,
   pricingLoading,
   pricingError,
+  registrationAccessConfiguration,
+  registrationAccessLoading,
+  registrationAccessError,
+  onRefreshRegistrationAccess,
+  onSaveRegistrationAccessGate,
   athletes,
   registrations,
   tickets,
@@ -203,7 +219,9 @@ export default function AdminPage({
           pendingPayments={pendingPayments}
           onNavigate={handleSectionChange}
           onApprovePayment={onApprovePayment}
+          onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onRejectTicketOrder={onRejectTicketOrder}
           canEdit={hasPermission(authorization, 'admin.payments.approve')}
           canDeleteAthletes={canDeleteAthletes}
           onDeleteAthlete={onDeleteAthlete}
@@ -362,7 +380,9 @@ export default function AdminPage({
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}
           onApprovePayment={onApprovePayment}
+          onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
+          onRejectTicketOrder={onRejectTicketOrder}
           onRefresh={onRefreshPendingTicketOrders}
         />
       )
@@ -373,6 +393,7 @@ export default function AdminPage({
       return (
         <PricingSection
           canEdit={hasPermission(authorization, 'admin.pricing.write')}
+          canEditSubscriptions={hasPermission(authorization, 'admin.payments.approve')}
           configuration={pricingConfiguration}
           error={pricingError}
           isLoading={pricingLoading}
@@ -380,6 +401,28 @@ export default function AdminPage({
           onRefresh={onRefreshPricing}
           onSaveComboOffer={onSaveEventComboOffer}
           onSetPlanActive={onSetMembershipPlanActive}
+          onSetPlanRetirement={onSetMembershipPlanRetirement}
+          onUpsertDiscountCode={onUpsertDiscountCode}
+          onSetDiscountCodeActive={onSetDiscountCodeActive}
+          subscriptions={billingSubscriptions}
+          subscriptionsLoading={billingSubscriptionsLoading}
+          subscriptionsError={billingSubscriptionsError}
+          onRefreshSubscriptions={onRefreshBillingSubscriptions}
+          onCancelSubscription={onCancelBillingSubscription}
+        />
+      )
+    }
+
+    if (section === 'access-gates') {
+      return (
+        <RegistrationAccessSection
+          adminEvents={adminEvents}
+          canEdit={hasPermission(authorization, 'admin.registration_access.write')}
+          configuration={registrationAccessConfiguration}
+          error={registrationAccessError}
+          isLoading={registrationAccessLoading}
+          onRefresh={onRefreshRegistrationAccess}
+          onSave={onSaveRegistrationAccessGate}
         />
       )
     }

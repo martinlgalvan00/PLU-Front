@@ -129,7 +129,11 @@
 }
 
 .page-load-fallback {
+  align-items: center;
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  justify-content: center;
   min-height: 40vh;
   width: 100%;
 }

@@ -277,9 +277,19 @@
 
 .admin-shell__brand-copy {
   display: grid;
+  flex: 1 1 auto;
   gap: 1px;
   line-height: 1.2;
   min-width: 0;
+}
+
+.admin-shell__brand-name,
+.admin-shell__brand-subtitle {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell__brand-name {
@@ -1284,10 +1294,21 @@
 
   .admin-shell--collapsed .admin-shell__brand-inner {
     justify-content: flex-start;
-    padding-right: 36px;
+    padding-right: 52px;
+    width: 100%;
   }
 
-  .admin-shell--collapsed .admin-shell__brand-copy,
+  /* No volver a meter brand-copy en un `display: block` agrupado: los
+     spans quedan en línea y "PLU ARG" se pega a "OPERATIVO". */
+  .admin-shell--collapsed .admin-shell__brand-copy {
+    display: grid;
+  }
+
+  .admin-shell--collapsed .admin-shell__brand-name,
+  .admin-shell--collapsed .admin-shell__brand-subtitle {
+    display: block;
+  }
+
   .admin-shell--collapsed .admin-shell__group-label,
   .admin-shell--collapsed .admin-shell__account-mark,
   .admin-shell--collapsed .admin-shell__account-copy,
@@ -1516,12 +1537,14 @@
     border-radius: var(--border-radius-md);
     color: var(--color-text-secondary);
     display: inline-flex;
-    height: 32px;
+    height: 44px;
     justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
     position: absolute;
-    right: 10px;
-    top: 18px;
-    width: 32px;
+    right: 8px;
+    top: max(10px, env(safe-area-inset-top, 0px));
+    width: 44px;
   }
 
   .admin-shell__brand {

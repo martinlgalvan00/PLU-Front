@@ -46,6 +46,7 @@ export const PAYMENT_TRAIL_ACTIONS = {
   webhookReceived: 'payment.webhook_received',
   webhookProcessed: 'payment.webhook_processed',
   webhookFailed: 'payment.webhook_failed',
+  manualRejection: 'payment.manual_rejection',
   reconciled: 'payment.reconciled',
   reconciliationFailed: 'payment.reconciliation_failed',
   recoveryRun: 'payment.recovery_run',

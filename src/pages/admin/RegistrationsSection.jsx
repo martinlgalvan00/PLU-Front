@@ -338,6 +338,7 @@ export default function RegistrationsSection({
               {
                 id: 'status',
                 label: t('admin.filters.status'),
+                showLabel: true,
                 value: filters.status,
                 onChange: handleStatusChange,
                 options: statusOptions,

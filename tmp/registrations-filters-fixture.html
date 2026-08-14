@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inscripciones · filtros responsive</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/components/buttons.css" />
+    <link rel="stylesheet" href="../src/styles/components/plu-ui.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-institutional.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-minimal.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--admin-bg, var(--color-bg-canvas));
+        color: var(--admin-ink, var(--color-text-primary));
+        font-family: var(--font-family, system-ui);
+        padding: 20px 16px 40px;
+      }
+      .fixture {
+        display: grid;
+        gap: 28px;
+        justify-items: start;
+      }
+      .fixture > figure {
+        margin: 0;
+      }
+      .fixture figcaption {
+        color: var(--admin-muted);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.1em;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      .panel-695 { width: min(695px, 100%); }
+      .panel-900 { width: min(900px, 100%); }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell admin-shell--collapsed">
+      <div class="fixture">
+        <figure class="panel-695">
+          <figcaption>Panel 695px — cards</figcaption>
+          <div class="admin-page">
+            <div
+              class="admin-list-section admin-list-section--rails admin-list-section--registrations"
+              data-fixture-panel
+            >
+              <div class="admin-list-section__chrome">
+                <div
+                  class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--multi admin-filters--external admin-filters--registrations"
+                >
+                  <div class="admin-filters__primary">
+                    <div class="admin-filters__search" role="search">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                      <input type="search" placeholder="Buscar atleta, documento o evento" aria-label="Buscar atleta" />
+                    </div>
+                    <div class="admin-filters__actions">
+                      <button type="button" class="export-btn export-btn--default" aria-label="Exportar inscripciones" title="Exportar inscripciones">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        <span class="export-btn__label">CSV</span>
+                      </button>
+                      <button type="button" class="export-btn export-btn--gold" aria-label="Descargar reporte PLU USA" title="Descargar reporte PLU USA">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
+                        <span class="export-btn__label">PLU USA</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="admin-filters__panel is-open">
+                    <div class="admin-filters__panel-inner">
+                      <div class="admin-filters__groups admin-filters__groups--multi">
+                        <div
+                          class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all"
+                          role="group"
+                          aria-labelledby="event-label"
+                        >
+                          <span id="event-label" class="admin-filter-group__label">Evento</span>
+                          <div class="admin-filter-chips-rail">
+                            <div class="admin-filter-chips">
+                              <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span><span class="admin-filter-chip__count">2</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">pit elite</span><span class="admin-filter-chip__count">1</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Pitbull Classic</span><span class="admin-filter-chip__count">1</span></button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all"
+                          role="group"
+                          aria-labelledby="status-label"
+                        >
+                          <span id="status-label" class="admin-filter-group__label">Estado</span>
+                          <div class="admin-filter-chips-rail is-overflowing">
+                            <div class="admin-filter-chips">
+                              <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span><span class="admin-filter-chip__count">2</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Confirmada</span><span class="admin-filter-chip__count">1</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Confirmada sin afiliación</span><span class="admin-filter-chip__count">1</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Pago aprobado</span><span class="admin-filter-chip__count">1</span></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <section class="admin-list-shell admin-list-shell--registrations">
+                <div class="admin-list-shell__body">
+                  <div class="data-table-mobile-toolbar">
+                    <div class="data-table-mobile-toolbar__bar">
+                      <button type="button" class="data-table-mobile-toolbar__trigger" aria-expanded="false">
+                        <span class="data-table-mobile-toolbar__trigger-label">Ordenar</span>
+                        <svg class="data-table-mobile-toolbar__trigger-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="data-table-cards data-table-cards--admin">
+                    <article class="data-table-card data-table-card--admin data-table-card--compact">
+                      <div class="data-table-card__top">
+                        <div class="data-table__identity">
+                          <div class="data-table__identity-copy">
+                            <strong>Ana Torres</strong>
+                            <span class="data-table__sub">30.111.222</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="data-table-card__field">
+                        <span class="data-table-card__label">Evento</span>
+                        <span class="data-table-card__value">Pitbull Classic</span>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="panel-900">
+          <figcaption>Panel 900px — tabla</figcaption>
+          <div class="admin-page">
+            <div class="admin-list-section admin-list-section--rails admin-list-section--registrations" data-fixture-panel>
+              <div class="admin-list-section__chrome">
+                <div
+                  class="admin-filters admin-filters--chips admin-filters--rails admin-filters--compact admin-filters--inline admin-filters--open admin-filters--multi admin-filters--external admin-filters--registrations"
+                >
+                  <div class="admin-filters__primary">
+                    <div class="admin-filters__search" role="search">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                      <input type="search" placeholder="Buscar atleta, documento o evento" aria-label="Buscar atleta" />
+                    </div>
+                    <div class="admin-filters__actions">
+                      <button type="button" class="export-btn export-btn--default" aria-label="Exportar inscripciones" title="Exportar inscripciones">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        <span class="export-btn__label">CSV</span>
+                      </button>
+                      <button type="button" class="export-btn export-btn--gold" aria-label="Descargar reporte PLU USA" title="Descargar reporte PLU USA">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>
+                        <span class="export-btn__label">PLU USA</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="admin-filters__panel is-open">
+                    <div class="admin-filters__panel-inner">
+                      <div class="admin-filters__groups admin-filters__groups--multi">
+                        <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all" role="group" aria-labelledby="event-label-wide">
+                          <span id="event-label-wide" class="admin-filter-group__label">Evento</span>
+                          <div class="admin-filter-chips-rail">
+                            <div class="admin-filter-chips">
+                              <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span><span class="admin-filter-chip__count">2</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">pit elite</span><span class="admin-filter-chip__count">1</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Pitbull Classic</span><span class="admin-filter-chip__count">1</span></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--all" role="group" aria-labelledby="status-label-wide">
+                          <span id="status-label-wide" class="admin-filter-group__label">Estado</span>
+                          <div class="admin-filter-chips-rail">
+                            <div class="admin-filter-chips">
+                              <button type="button" class="admin-filter-chip admin-filter-chip--all is-active" aria-pressed="true"><span class="admin-filter-chip__label">Todos</span><span class="admin-filter-chip__count">2</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Confirmada</span><span class="admin-filter-chip__count">1</span></button>
+                              <button type="button" class="admin-filter-chip admin-filter-chip--counted" aria-pressed="false"><span class="admin-filter-chip__label">Pago aprobado</span><span class="admin-filter-chip__count">1</span></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <section class="admin-list-shell admin-list-shell--registrations">
+                <div class="admin-list-shell__body">
+                  <div class="data-table-mobile-toolbar">
+                    <div class="data-table-mobile-toolbar__bar">
+                      <button type="button" class="data-table-mobile-toolbar__trigger">
+                        <span class="data-table-mobile-toolbar__trigger-label">Ordenar</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="data-table data-table--admin">
+                    <table>
+                      <thead><tr><th>Atleta</th><th>Evento</th><th>Estado</th></tr></thead>
+                      <tbody><tr><td>Ana Torres</td><td>Pitbull Classic</td><td>Confirmada</td></tr></tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </div>
+  </body>
+</html>

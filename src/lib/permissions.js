@@ -153,6 +153,24 @@ export const PERMISSION_CATALOG = [
     sortOrder: 66,
   },
   {
+    key: 'admin.registration_access.read',
+    module: 'registration_access',
+    moduleLabel: 'Tandas de inscripción',
+    action: 'read',
+    actionLabel: 'Leer',
+    description: 'Consultar los códigos y ventanas de habilitación de afiliaciones e inscripciones.',
+    sortOrder: 67,
+  },
+  {
+    key: 'admin.registration_access.write',
+    module: 'registration_access',
+    moduleLabel: 'Tandas de inscripción',
+    action: 'write',
+    actionLabel: 'Gestionar',
+    description: 'Abrir, cerrar y rotar códigos de habilitación por tanda.',
+    sortOrder: 68,
+  },
+  {
     key: 'admin.shop.read',
     module: 'shop',
     moduleLabel: 'Shop',
@@ -391,6 +409,7 @@ export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   // ledger canónico y sólo quien puede validar pagos puede registrar egresos.
   finance: ['admin.payments.read'],
   pricing: ['admin.pricing.read'],
+  'access-gates': ['admin.registration_access.read'],
   exports: ['admin.exports.admin', 'admin.exports.plu_usa'],
   users: ['admin.users.read'],
   roles: ['admin.roles.read'],

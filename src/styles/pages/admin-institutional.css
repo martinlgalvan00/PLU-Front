@@ -91,7 +91,14 @@
 }
 
 .admin-shell .admin-shell__brand-copy {
+  flex: 1 1 auto;
   gap: 2px;
+  min-width: 0;
+}
+
+.admin-shell .admin-shell__brand-name,
+.admin-shell .admin-shell__brand-subtitle {
+  display: block;
   min-width: 0;
 }
 
@@ -108,6 +115,7 @@
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.12em;
+  line-height: 1.2;
 }
 
 .admin-shell .admin-shell__nav {
@@ -194,7 +202,7 @@
 }
 
 .admin-shell .admin-shell__footer {
-  background: color-mix(in srgb, var(--admin-sidebar-surface) 92%, transparent);
+  background: transparent;
   border-top-color: var(--admin-sidebar-border);
   display: grid;
   gap: 10px;
@@ -619,9 +627,41 @@
 }
 
 @media (max-width: 767px) {
+  /* El overlay oscurece el canvas: el vidrio translúcido se lee gris y el
+     footer opaco queda como una losa blanca. En phone el drawer es una
+     superficie sólida, misma materialidad de punta a punta. */
+  .admin-shell .admin-shell__sidebar,
+  .admin-shell.admin-shell--collapsed .admin-shell__sidebar,
+  .admin-shell.admin-shell--nav-open .admin-shell__sidebar,
+  [data-theme='light'] .admin-shell .admin-shell__sidebar,
+  [data-theme='dark'] .admin-shell .admin-shell__sidebar {
+    background: var(--admin-sidebar);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .admin-shell .admin-shell__brand-inner,
+  .admin-shell.admin-shell--collapsed .admin-shell__brand-inner {
+    padding-right: 52px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-shell__brand-copy,
+  .admin-shell.admin-shell--collapsed .admin-shell__brand-copy {
+    display: grid;
+  }
+
+  .admin-shell .admin-shell__close {
+    background: color-mix(in srgb, var(--admin-sidebar-text) 6%, transparent);
+    border: 1px solid var(--admin-sidebar-border);
+    color: var(--admin-sidebar-muted);
+  }
+
   .admin-shell .admin-shell__footer,
   .admin-shell.admin-shell--collapsed .admin-shell__footer,
   .admin-shell.admin-shell--nav-open .admin-shell__footer {
+    background: transparent;
     gap: 8px;
     min-width: 0;
     overflow-x: clip;

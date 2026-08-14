@@ -47,12 +47,15 @@ import {
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import { createPaymentNotificationService } from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
+import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
+import { assertCheckoutEnabled } from '../services/platformFeatureToggleService.js'
 import { requirePermission } from '../middleware/auth.js'
 import {
   checkoutLimiter,
   paymentTelemetryLimiter,
   publicReadLimiter,
   staffLimiter,
+  webhookLimiter,
 } from '../middleware/rateLimit.js'
 import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
 
@@ -108,6 +111,11 @@ const webhookSchema = z
     data: z.object({ id: z.union([z.string(), z.number()]) }).passthrough(),
   })
   .passthrough()
+
+const subscriptionsQuerySchema = z.object({
+  status: z.enum(['pending', 'authorized', 'paused', 'past_due', 'cancelled', 'ended']).optional(),
+  athleteId: z.string().uuid().optional(),
+})
 
 const operationsQuerySchema = z.object({
   status: z.enum(['received', 'processing', 'processed', 'failed', 'skipped']).optional(),
@@ -178,6 +186,16 @@ export function createPaymentRoutes(deps = {}) {
     return deps.repository ?? createSupabasePaymentRepository(client)
   }
 
+  const platformSettingsRepo = () => {
+    // Mismo criterio que el resto de las rutas de checkout: los dobles de
+    // test no conocen la tabla de interruptores, así que en test quedan
+    // abiertos por defecto. En runtime real no hay bypass.
+    if (!deps.platformSettingsRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
+      return { get: async () => ({ checkoutEnabled: true }) }
+    }
+    return deps.platformSettingsRepository ?? createSupabasePlatformSettingsRepository(resolveSupabaseAdmin())
+  }
+
   function services({ notifications = false } = {}) {
     const client = resolveSupabaseAdmin()
     const result = {
@@ -236,13 +254,14 @@ export function createPaymentRoutes(deps = {}) {
     try {
       const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
+      assertCheckoutEnabled(await platformSettingsRepo().get())
       const result = await createPaymentPreference(
         {
           ...req.validatedBody,
           appUrl: env.APP_URL ?? env.VITE_APP_URL,
           apiUrl: env.API_URL,
         },
-        services(),
+        { ...services(), order },
       )
       res.status(result.created ? 201 : 200).json(result)
     } catch (error) {
@@ -254,6 +273,7 @@ export function createPaymentRoutes(deps = {}) {
     try {
       const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
+      assertCheckoutEnabled(await platformSettingsRepo().get())
       const result = await processEmbeddedPayment(req.validatedBody, {
         ...services({ notifications: true }),
         order,
@@ -297,6 +317,40 @@ export function createPaymentRoutes(deps = {}) {
     try {
       const plans = filterPublicMembershipPlans(await repository().listPlans(), env)
       res.json({ plans: plans.map(serializePlan) })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  // Cancelacion de suscripciones: accion operativa sobre la suscripcion
+  // puntual de un atleta, no un cambio de catalogo — va detras de los mismos
+  // permisos de pagos que el resto de este archivo, no de admin.pricing.write.
+  router.get('/subscriptions', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const filters = parseInput(subscriptionsQuerySchema, req.query)
+      const subscriptions = await repository().listSubscriptions(filters)
+      res.json({ subscriptions })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/subscriptions/:subscriptionId/cancel', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const subscriptionId = parseInput(z.string().uuid(), req.params.subscriptionId)
+      const paymentRepository = repository()
+      const subscription = await paymentRepository.getSubscriptionForCancellation(subscriptionId)
+      if (!subscription) throw new HttpError(404, 'Suscripcion no encontrada.')
+      if (!['cancelled', 'ended'].includes(subscription.status) && subscription.provider_subscription_id) {
+        await (deps.mercadoPago ?? createPaymentProviderAdapter({ env })).cancelSubscription(
+          subscription.provider_subscription_id,
+        )
+      }
+      const cancelled = await paymentRepository.cancelSubscription(
+        subscriptionId,
+        `${req.auth.user.id}:${req.auth.user.email}`,
+      )
+      res.json({ subscription: cancelled })
     } catch (error) {
       next(error)
     }
@@ -469,6 +523,7 @@ export function createPaymentRoutes(deps = {}) {
   router.post('/subscriptions/process', checkoutLimiter, validateBody(embeddedSubscriptionSchema), async (req, res, next) => {
     try {
       await assertPaidCheckoutAvailable(env, new Date(), { client: resolveSupabaseAdmin() })
+      assertCheckoutEnabled(await platformSettingsRepo().get())
       assertRecurringMembershipAvailable(env)
       await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
       const result = await createEmbeddedRecurringSubscription(
@@ -500,9 +555,9 @@ export function createPaymentRoutes(deps = {}) {
   }
 
   // Canónico: discrimina proveedor (mismo patrón que /api/emails/webhook/brevo).
-  router.post('/webhook/mercadopago', validateBody(webhookSchema), handleMercadoPagoWebhook)
+  router.post('/webhook/mercadopago', webhookLimiter, validateBody(webhookSchema), handleMercadoPagoWebhook)
   // Alias legacy: notificaciones ya registradas en panel MP con el path corto.
-  router.post('/webhook', validateBody(webhookSchema), handleMercadoPagoWebhook)
+  router.post('/webhook', webhookLimiter, validateBody(webhookSchema), handleMercadoPagoWebhook)
 
   /**
    * Harness local: relee un pago mock y aplica el camino canónico sin firma MP.

@@ -102,7 +102,9 @@
   position: fixed;
   right: 0;
   top: 0;
-  z-index: 60;
+  /* Por encima del header (200): si no, la pill queda tapada y parece
+     que el cierre de sesión no avisó. Debajo del drawer (280). */
+  z-index: calc(var(--z-header, 200) + 30);
 }
 
 .email-verification-notice .status-pill,

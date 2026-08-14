@@ -5,6 +5,30 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens'
 import { markCredentialMergePlayed } from '../../lib/credentialMerge.js'
 
+function MergePlate({ label, qrSrc, alt = '', featured = false }) {
+  return (
+    <div
+      className={
+        featured
+          ? 'credential-merge__plate credential-merge__plate--final'
+          : 'credential-merge__plate'
+      }
+    >
+      <span className="credential-merge__plate-stripe" aria-hidden />
+      <span className="credential-merge__plate-watermark" aria-hidden>
+        PLU
+      </span>
+      <span className="credential-merge__plate-mark">PLU</span>
+      {qrSrc ? (
+        <img src={qrSrc} alt={alt} />
+      ) : (
+        <span className="credential-merge__placeholder" />
+      )}
+      {label ? <span className="credential-merge__plate-label">{label}</span> : null}
+    </div>
+  )
+}
+
 /**
  * Ritual one-shot: dos pases visuales se acercan y quedan en una sola credencial.
  * Solo transform/opacity; reduced-motion salta al estado final.
@@ -41,11 +65,9 @@ export default function CredentialMergeRitual({
       <div className="credential-merge credential-merge--static" role="status">
         <p className="credential-merge__title">{t('account.qr.mergeTitle')}</p>
         <p className="credential-merge__subtitle">{t('account.qr.mergeSubtitle')}</p>
-        {qrSrc ? (
-          <div className="credential-merge__final">
-            <img src={qrSrc} alt={t('account.qr.imageAlt')} />
-          </div>
-        ) : null}
+        <div className="credential-merge__final">
+          <MergePlate qrSrc={qrSrc} alt={t('account.qr.imageAlt')} featured />
+        </div>
       </div>
     )
   }
@@ -62,8 +84,7 @@ export default function CredentialMergeRitual({
           animate={{ opacity: 0, x: 0, scale: 0.92 }}
           transition={{ duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic }}
         >
-          <span>{meetLabel}</span>
-          {qrSrc ? <img src={qrSrc} alt="" /> : <div className="credential-merge__placeholder" />}
+          <MergePlate label={meetLabel} qrSrc={qrSrc} alt="" />
         </m.div>
 
         <m.div
@@ -72,8 +93,7 @@ export default function CredentialMergeRitual({
           animate={{ opacity: 0, x: 0, scale: 0.92 }}
           transition={{ duration: MOTION_DURATION.cinematic, ease: MOTION_EASE.cinematic }}
         >
-          <span>{membershipLabel}</span>
-          {qrSrc ? <img src={qrSrc} alt="" /> : <div className="credential-merge__placeholder" />}
+          <MergePlate label={membershipLabel} qrSrc={qrSrc} alt="" />
         </m.div>
 
         <m.div
@@ -86,7 +106,7 @@ export default function CredentialMergeRitual({
             ease: MOTION_EASE.out,
           }}
         >
-          {qrSrc ? <img src={qrSrc} alt={t('account.qr.imageAlt')} /> : null}
+          <MergePlate qrSrc={qrSrc} alt={t('account.qr.imageAlt')} featured />
         </m.div>
       </div>
     </div>

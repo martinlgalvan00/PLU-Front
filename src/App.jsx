@@ -443,8 +443,10 @@ export default function App() {
           adminNavBadges={app.adminNavBadges}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
+          onRejectPayment={app.handleRejectPayment}
           onSetMembershipStatus={app.setMembershipStatusAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
+          onRejectTicketOrder={app.rejectTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}
           onCheckInTicket={app.checkInTicketAction}
           onRedeemTicketAddon={app.redeemTicketAddonAction}
@@ -455,10 +457,23 @@ export default function App() {
           pricingConfiguration={app.pricingConfiguration}
           pricingLoading={app.pricingLoading}
           pricingError={app.pricingError}
+          registrationAccessConfiguration={app.registrationAccessConfiguration}
+          registrationAccessLoading={app.registrationAccessLoading}
+          registrationAccessError={app.registrationAccessError}
+          onRefreshRegistrationAccess={app.refreshRegistrationAccessConfiguration}
+          onSaveRegistrationAccessGate={app.saveRegistrationAccessGate}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
+          onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
+          onUpsertDiscountCode={app.upsertDiscountCode}
+          onSetDiscountCodeActive={app.setDiscountCodeActive}
+          billingSubscriptions={app.billingSubscriptions}
+          billingSubscriptionsLoading={app.billingSubscriptionsLoading}
+          billingSubscriptionsError={app.billingSubscriptionsError}
+          onRefreshBillingSubscriptions={app.refreshBillingSubscriptions}
+          onCancelBillingSubscription={app.cancelBillingSubscription}
           onCreateSecurityUser={app.createSecurityUserAction}
           onCreateSecurityUsersBulk={app.createSecurityUsersBulkAction}
           onCreateSecurityAccessLink={app.createSecurityAccessLinkAction}
@@ -705,8 +720,8 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
           UPCOMING_EVENTS[0]
         }
         memberships={app.memberships}
-        onLogout={() => {
-          app.logout()
+        onLogout={async () => {
+          await app.logout()
           navigate('home')
         }}
         onNavigate={navigate}

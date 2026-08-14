@@ -581,7 +581,11 @@ const BODIES = {
     const membershipSection = p.includesMembership
       ? p.memberCode
         ? [
-            paragraph('Tu afiliación ya está activa.'),
+            paragraph(
+              p.isFirstMembership
+                ? '¡Bienvenido a PLU Argentina! Tu afiliación ya está activa.'
+                : 'Tu afiliación ya está activa.',
+            ),
             dataPanel(
               [
                 ['Número de socio', p.memberCode],

@@ -42,8 +42,29 @@ import {
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
 
+function countGridColumns(value) {
+  return String(value || '')
+    .replace(/minmax\([^)]*\)/g, 'minmax')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
+}
+
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
+}
+
+function formatEventVenueLine(venue, location) {
+  const parts = [venue, location]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+  if (
+    parts.length === 2 &&
+    parts[0].localeCompare(parts[1], undefined, { sensitivity: 'accent' }) === 0
+  ) {
+    return parts[0]
+  }
+  return parts.join(', ')
 }
 
 function sortByDate(list, direction) {
@@ -218,9 +239,28 @@ export default function EventsSection({
   // Slug del diálogo abierto: el impacto llega por red y no puede pisar el
   // estado si mientras tanto se cerró o se abrió el de otro evento.
   const deleteTargetRef = useRef(null)
+  const previewRef = useRef(null)
+  const pendingPreviewScrollRef = useRef(false)
+
+  function handleSelectEvent(id) {
+    if (id !== selectedId) pendingPreviewScrollRef.current = true
+    setSelectedId(id)
+  }
 
   useEffect(() => {
     setPreviewExpanded(false)
+  }, [selectedId])
+
+  useEffect(() => {
+    if (!pendingPreviewScrollRef.current) return
+    pendingPreviewScrollRef.current = false
+    const node = previewRef.current
+    if (!node) return
+    const workspace = node.parentElement
+    const columnCount = workspace ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns) : 1
+    if (columnCount >= 2) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' })
   }, [selectedId])
 
   useEffect(() => {
@@ -464,7 +504,7 @@ export default function EventsSection({
               canEdit={canEdit}
               links={buildEventLinks(row)}
               locale={locale}
-              onSelect={setSelectedId}
+              onSelect={handleSelectEvent}
               onEdit={openEditForm}
               t={t}
             />
@@ -475,7 +515,7 @@ export default function EventsSection({
   }
 
   const selectedVenueLine = selectedEvent
-    ? [selectedEvent.venue, selectedEvent.location].filter(Boolean).join(', ')
+    ? formatEventVenueLine(selectedEvent.venue, selectedEvent.location)
     : ''
   const selectedDateLabel = selectedEvent
     ? selectedEvent.dateISO
@@ -612,6 +652,7 @@ export default function EventsSection({
 
         {selectedEvent && (
           <aside
+            ref={previewRef}
             className={[
               'admin-event-preview',
               'admin-event-preview--panel',

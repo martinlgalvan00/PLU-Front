@@ -38,9 +38,30 @@ export const membershipPlanVersionSchema = z.object({
   intervalCount: z.coerce.number().int().min(1).max(24),
   graceDays: z.coerce.number().int().min(0).max(90),
   effectiveFrom: optionalDateTime,
+  retiresAt: optionalDateTime,
 })
 
 const planStatusSchema = z.object({ active: z.boolean() })
+const planRetirementSchema = z.object({ retiresAt: optionalDateTime })
+
+export const discountCodeSchema = z.object({
+  id: z.string().uuid().optional(),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .min(3)
+    .max(32)
+    .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
+  description: z.string().trim().max(200).optional().default(''),
+  percentOff: z.coerce.number().int().min(1).max(100),
+  appliesTo: z.enum(['membership', 'registration', 'both']),
+  maxRedemptions: z.coerce.number().int().positive().optional(),
+  expiresAt: optionalDateTime,
+  active: z.boolean().default(true),
+})
+
+const discountCodeStatusSchema = z.object({ active: z.boolean() })
 
 export const comboOfferSchema = z
   .object({
@@ -150,6 +171,72 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
           actor(req),
         )
         res.json({ offer })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.patch(
+    '/membership-plans/:planId/retirement',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(planRetirementSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const planId = parseRouteParam(
+          z.string().uuid(),
+          req.params.planId,
+          'El identificador del plan es inválido.',
+        )
+        const plan = await repository().setPlanRetirement(
+          planId,
+          req.validatedBody.retiresAt || null,
+          actor(req),
+        )
+        res.json({ plan })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/discount-codes',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(discountCodeSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const code = await repository().upsertDiscountCode(req.validatedBody, actor(req))
+        res.status(201).json({ code })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.patch(
+    '/discount-codes/:codeId/status',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(discountCodeStatusSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const codeId = parseRouteParam(
+          z.string().uuid(),
+          req.params.codeId,
+          'El identificador del código es inválido.',
+        )
+        const code = await repository().setDiscountCodeActive(
+          codeId,
+          req.validatedBody.active,
+          actor(req),
+        )
+        res.json({ code })
       } catch (error) {
         next(error)
       }

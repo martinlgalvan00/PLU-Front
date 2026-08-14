@@ -494,6 +494,35 @@ export function createSupabasePaymentRepository(
       )
     },
 
+    async listSubscriptions(filters = {}) {
+      return assertResult(
+        await client.rpc('staff_list_billing_subscriptions', { p_filters: filters }),
+        'No se pudieron leer las suscripciones.',
+      )
+    },
+
+    async getSubscriptionForCancellation(subscriptionId) {
+      return assertResult(
+        await client
+          .from('billing_subscriptions')
+          .select('id, organization_id, athlete_id, status, provider_subscription_id')
+          .eq('id', subscriptionId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer la suscripcion.',
+      )
+    },
+
+    async cancelSubscription(subscriptionId, actor) {
+      return assertResult(
+        await client.rpc('staff_cancel_membership_subscription', {
+          p_subscription_id: subscriptionId,
+          p_actor: actor,
+        }),
+        'No se pudo cancelar la suscripcion.',
+      )
+    },
+
     async applyAuthorizedSubscriptionPayment(authorizedPayment) {
       const externalPaymentId = authorizedPayment.payment_id ?? authorizedPayment.id
       const providerSubscriptionId = authorizedPayment.preapproval_id

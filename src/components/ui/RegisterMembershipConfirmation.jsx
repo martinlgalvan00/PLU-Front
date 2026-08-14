@@ -4,7 +4,6 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
-import TransferProofUpload from './TransferProofUpload.jsx'
 
 export default function RegisterMembershipConfirmation({
   order,
@@ -12,12 +11,14 @@ export default function RegisterMembershipConfirmation({
   membershipExpiration,
   onNavigate,
   onOpenCard,
+  onOpenTransfer,
   showCardAction = false,
 }) {
   const { locale, t } = useI18n()
   const { tone } = getStatusMeta(order.status, t)
   const isActive = tone === 'success'
   const isManual = order.paymentMethod === 'manual_link'
+  const isCashAtPitbull = order.manualPaymentChannel === 'cash_pitbull'
 
   const nextStep = isManual
     ? t('pages.register.membershipNextStepManual')
@@ -92,7 +93,19 @@ export default function RegisterMembershipConfirmation({
             {/* Sin esto la pantalla daba los datos bancarios y terminaba ahí:
                 el comprobante solo se podía adjuntar entrando después a la
                 cuenta, y Finanzas aprobaba sin evidencia. */}
-            {order.paymentId && <TransferProofUpload orderId={order.paymentId} />}
+            {isCashAtPitbull ? (
+              <p className="register-membership-confirmation__manual">
+                {t('pages.register.cashPitbullCreated')}
+              </p>
+            ) : order.paymentId && onOpenTransfer ? (
+              <button
+                type="button"
+                className="register-membership-confirmation__cta register-membership-confirmation__cta--primary"
+                onClick={onOpenTransfer}
+              >
+                {t('pages.register.transferOpen')}
+              </button>
+            ) : null}
           </>
         )}
 

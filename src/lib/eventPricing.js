@@ -26,6 +26,45 @@ export function resolveLiveComboOffer(event, now = new Date()) {
   return isComboOfferLive(offer, now) ? offer : null
 }
 
+function toPositiveAmount(value) {
+  const amount = Number(value)
+  return Number.isFinite(amount) && amount > 0 ? amount : 0
+}
+
+/**
+ * Lectura comercial del combo: suma por separado, ahorro y % de descuento.
+ * El porcentaje se calcula para no mentir si Tarifas cambia los montos.
+ */
+export function resolveComboDeal({ membership, registration, combo } = {}) {
+  const membershipPrice = toPositiveAmount(membership)
+  const registrationPrice = toPositiveAmount(registration)
+  const comboPrice = toPositiveAmount(combo)
+  const separate = membershipPrice + registrationPrice
+  if (!membershipPrice || !registrationPrice || !comboPrice || separate <= 0) {
+    return {
+      membership: membershipPrice,
+      registration: registrationPrice,
+      combo: comboPrice,
+      separate,
+      savings: 0,
+      percent: 0,
+      live: false,
+    }
+  }
+
+  const savings = Math.max(0, separate - comboPrice)
+  const percent = savings > 0 ? Math.round((savings / separate) * 100) : 0
+  return {
+    membership: membershipPrice,
+    registration: registrationPrice,
+    combo: comboPrice,
+    separate,
+    savings,
+    percent,
+    live: savings > 0 && comboPrice < separate,
+  }
+}
+
 /** Un evento sin días configurados todavía no puede vender entradas. */
 export const DEFAULT_EVENT_DAYS = []
 export const DEFAULT_TICKET_TYPES = []

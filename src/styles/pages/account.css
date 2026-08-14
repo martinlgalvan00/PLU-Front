@@ -1384,6 +1384,10 @@
   grid-template-columns: auto 1fr auto;
 }
 
+.account-section__heading--simple {
+  grid-template-columns: 1fr;
+}
+
 .account-section__icon {
   align-items: center;
   background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
@@ -3748,15 +3752,16 @@
 .account-security-actions {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   grid-column: 1 / -1;
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .account-security-note {
   color: var(--color-text-muted);
   font-size: 11.5px;
-  margin: 10px 0 0;
+  margin: 4px 0 0;
 }
 
 .account-section .account-transfer-data {
@@ -4211,3 +4216,894 @@
    Se mudó a components/transfer-proof.css: el control ahora también se monta
    en la confirmación de afiliación del alta, que no carga esta hoja. Lo
    importa el propio TransferProofUpload.jsx. */
+/* =============================================
+   PERFIL â€” COMPLETITUD Y WARNING
+   ============================================= */
+
+/* Badge de completitud en el heading de PersonalDataSection */
+.account-profile-completeness {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0.01em;
+  padding: 5px 11px;
+}
+
+.account-profile-completeness.is-complete {
+  background: color-mix(in srgb, #3d9a62 12%, transparent);
+  border: 1px solid color-mix(in srgb, #3d9a62 32%, transparent);
+  color: #4fbe79;
+}
+
+.account-profile-completeness.is-incomplete {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+  color: var(--color-brand-gold);
+}
+
+/* Barra de progreso de completitud del perfil */
+.account-profile-progress {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr auto;
+  margin: 16px 0 0;
+}
+
+.account-profile-progress__track {
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.account-profile-progress__bar {
+  background: linear-gradient(90deg, var(--color-brand-gold), color-mix(in srgb, var(--color-brand-gold) 78%, #fff));
+  border-radius: 999px;
+  height: 100%;
+  transition: width 500ms var(--ease-out);
+}
+
+.account-profile-progress__label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Badge de completitud del perfil en el hero (junto al botÃ³n "Editar datos") */
+.account-hero__profile-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 3px;
+  line-height: 1;
+  padding: 3px 7px;
+}
+
+.account-hero__profile-badge--ok {
+  background: color-mix(in srgb, #3d9a62 16%, transparent);
+  border: 1px solid color-mix(in srgb, #3d9a62 30%, transparent);
+  color: #4fbe79;
+}
+
+.account-hero__profile-badge--warn {
+  background: color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  color: var(--color-brand-gold);
+}
+
+/* Banner inline de advertencia de perfil incompleto en UpcomingEventsSection */
+.account-incomplete-banner {
+  align-items: flex-start;
+  animation: account-banner-appear 220ms var(--ease-out) both;
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  border-radius: 10px;
+  display: flex;
+  gap: 14px;
+  margin: 18px 0 4px;
+  padding: 16px 18px;
+}
+
+@keyframes account-banner-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-incomplete-banner {
+    animation: none;
+  }
+}
+
+.account-incomplete-banner__icon {
+  color: var(--color-brand-gold);
+  flex: none;
+  margin-top: 1px;
+}
+
+.account-incomplete-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-incomplete-banner__body strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.account-incomplete-banner__body p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-incomplete-banner__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
+  border-radius: 8px;
+  color: var(--color-brand-gold);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.account-incomplete-banner__action:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 68%, transparent);
+}
+
+.account-incomplete-banner__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* BotÃ³n de inscribirse cuando el perfil estÃ¡ incompleto */
+.account-events-list__cta.is-profile-incomplete {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.account-events-list__cta.is-profile-incomplete:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 60%, transparent);
+}
+
+/* Fila del evento con warning activo */
+.account-events-list__row.is-warning-active {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 30%, transparent);
+}
+
+/* Header de data-group con nota de requeridos */
+.account-data-group__header {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.account-data-group__required-note {
+  color: color-mix(in srgb, var(--color-brand-gold) 80%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Footer del formulario de datos personales */
+.account-data-group__footer {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin-top: 28px;
+  padding-top: 24px;
+}
+
+/* Mensaje de guardado con check */
+.account-save-result {
+  align-items: center;
+  color: #4fbe79;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  margin: 0;
+}
+
+.account-save-result--error {
+  color: var(--color-brand-red, #e05a5a);
+}
+
+/* Buttons row in photo section */
+.account-photo__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* BotÃ³n de foto con Ã­cono */
+.account-secondary-action svg {
+  flex: none;
+}
+
+/* input file hidden */
+.account-photo__input {
+  display: none;
+}
+
+/* Photo error */
+.account-photo__error {
+  color: var(--color-brand-red, #e05a5a);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* Campo readonly en grupos de datos */
+.field--readonly {
+  display: grid;
+  gap: 5px;
+}
+
+.field--readonly span:first-child {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field--readonly .field__value {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Responsive banner */
+@media (max-width: 600px) {
+  .account-incomplete-banner {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .account-incomplete-banner__action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.account-data-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.account-data-group + .account-data-group {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 22px;
+  padding-top: 22px;
+}
+
+.account-data-group__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-data-group__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.account-data-group__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 56ch;
+}
+
+#account-personal-data .account-section__lead--compact,
+#account-security .account-section__lead--compact {
+  margin: 12px 0 18px;
+  max-width: 52ch;
+}
+
+#account-personal-data .account-data-group--disclosure {
+  display: block;
+  gap: 0;
+}
+
+#account-personal-data .account-data-group__summary {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 14px;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 4px 0;
+  text-align: left;
+  width: 100%;
+}
+
+#account-personal-data .account-data-group__summary-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+#account-personal-data .account-data-group__summary-note {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#account-personal-data .account-data-group__summary-side {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+#account-personal-data .account-data-group__summary-side svg {
+  color: var(--color-text-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+#account-personal-data .account-data-group--disclosure.is-open
+  .account-data-group__summary-side svg {
+  transform: rotate(180deg);
+}
+
+#account-personal-data .account-data-group__optional-note {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#account-personal-data .account-data-group__summary:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+#account-personal-data .account-data-group__content {
+  padding: 12px 0 4px;
+}
+
+#account-personal-data .account-data-group__content[hidden] {
+  display: none;
+}
+
+#account-personal-data .form-grid--account {
+  column-gap: 14px;
+  grid-template-columns: 1fr;
+  row-gap: 16px;
+}
+
+#account-personal-data .form-grid--account .form-grid__span-full {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  #account-personal-data .form-grid--account {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Identity strip: photo + official readonly facts */
+.account-identity {
+  align-items: start;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 20px;
+  margin: 0 0 8px;
+  padding-bottom: 22px;
+}
+
+.account-identity__photo {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+}
+
+.account-identity__photo-actions {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account-identity__photo-actions .account-photo__hint {
+  font-size: 12px;
+  max-width: 36ch;
+}
+
+.account-identity__official {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-identity__facts {
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.account-identity__facts > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.account-identity__facts > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-identity__facts dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-identity__facts dd {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-identity__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 48ch;
+}
+
+@media (min-width: 720px) {
+  .account-identity {
+    align-items: center;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .account-identity__facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .account-identity__facts > div:first-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .account-identity__photo {
+    align-items: center;
+  }
+
+  #account-personal-data .account-photo__avatar {
+    height: 68px;
+    width: 68px;
+  }
+
+  .account-identity__photo-actions .account-photo__buttons {
+    flex-direction: row;
+    width: auto;
+  }
+
+  #account-personal-data .account-data-group__required-note {
+    display: none;
+  }
+
+  #account-personal-data .account-data-group__summary-side {
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #account-personal-data .account-data-group__summary-side svg {
+    transition: none;
+  }
+}
+
+.account-personal-form {
+  display: grid;
+  gap: 0;
+}
+
+/* =============================================
+   SECURITY SECTION LAYOUT
+   ============================================= */
+.account-security {
+  align-items: start;
+  display: grid;
+  gap: 22px;
+  margin-top: 8px;
+}
+
+.account-security__form {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.account-security__pair {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.account-security__session {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.account-security__session h3 {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-security__session dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.account-security__session dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-security__session dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-security__session dd {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 450;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 720px) {
+  .account-security {
+    gap: 28px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.75fr);
+  }
+
+  .account-security__pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =============================================
+   QR LOCKED EMPTY STATE (plate + issue)
+   ============================================= */
+.account-qr--locked {
+  align-items: center;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+  justify-items: stretch;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.account-qr__plate {
+  aspect-ratio: 1.58 / 1;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, transparent 42%),
+    linear-gradient(165deg, #1a1c22 0%, #111215 100%);
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
+  border-radius: 14px;
+  isolation: isolate;
+  max-width: 340px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.account-qr__plate-stripe {
+  background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-gold)));
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.account-qr__plate-grain {
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  position: absolute;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(242, 183, 5, 0.06), transparent 45%);
+}
+
+.account-qr__plate-watermark {
+  bottom: -8px;
+  color: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-display);
+  font-size: clamp(64px, 12vw, 96px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  right: 10px;
+  user-select: none;
+}
+
+.account-qr__plate-frame {
+  border: 1px dashed color-mix(in srgb, var(--color-border-strong) 80%, transparent);
+  border-radius: 10px;
+  inset: 14px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.account-qr__plate-body {
+  display: grid;
+  gap: 18px;
+  height: 100%;
+  padding: 28px 24px 22px;
+  place-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.account-qr__plate-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.account-qr__plate-mark {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.account-qr__plate-sub {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.account-qr__plate-status {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.account-qr__issue {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  max-width: 42ch;
+}
+
+.account-qr__issue-title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.account-qr__issue-lead {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.account-qr__issue .account-primary-action,
+.account-qr__issue .account-empty__action {
+  justify-self: start;
+}
+
+.account-qr__issue .account-empty__action {
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-qr__issue .account-empty__action:hover {
+  color: var(--color-text-primary);
+}
+
+@media (min-width: 720px) {
+  .account-qr--locked {
+    align-items: center;
+    gap: clamp(24px, 4vw, 40px);
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .account-qr--locked .account-qr__plate {
+    margin: 0;
+  }
+}
+
+@media (max-width: 719px) {
+  .account-qr--locked {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .account-qr__issue {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .account-qr__issue .account-primary-action,
+  .account-qr__issue .account-empty__action {
+    justify-self: center;
+  }
+}
+
+[data-theme='light'] .account-qr__plate {
+  background:
+    radial-gradient(ellipse 70% 50% at 90% 0%, rgba(242, 183, 5, 0.1), transparent 55%),
+    linear-gradient(165deg, #1a1c22 0%, #121418 100%);
+}
+
+/* =============================================
+   DASHBOARD LAYOUT (DESKTOP)
+   ============================================= */
+@media (min-width: 992px) {
+  .account-dashboard {
+    align-items: start;
+    display: grid;
+    gap: 40px;
+    grid-template-columns: 280px 1fr;
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: 48px;
+  }
+
+  .account-page--design .account-hero {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .account-hero__inner {
+    gap: 24px;
+  }
+
+  .account-nav {
+    margin: 20px 0 0 0;
+    padding: 0;
+    position: static;
+  }
+
+  .account-nav__viewport {
+    background: transparent;
+    border: none;
+  }
+
+  .account-nav__viewport::before,
+  .account-nav__viewport::after {
+    display: none;
+  }
+
+  .account-nav__inner {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .account-nav__item-content {
+    justify-content: flex-start;
+    min-height: 40px;
+    padding: 0 12px;
+    width: 100%;
+  }
+
+  .account-nav__item {
+    border-radius: 8px;
+    transition: background-color var(--transition-fast);
+  }
+
+  .account-nav__item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .account-nav__item.is-active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .account-nav__thumb {
+    display: none;
+  }
+
+  .account-sections {
+    margin: 0;
+    max-width: none;
+    padding: 0;
+  }
+}

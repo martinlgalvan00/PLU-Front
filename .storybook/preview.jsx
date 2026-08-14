@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { ThemeProvider, useTheme } from '../src/providers/ThemeProvider.jsx'
 import { I18nProvider, useI18n } from '../src/i18n/I18nProvider.jsx'
 import { OAuthProvider } from '../src/providers/OAuthProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 import '../src/styles/index.css'
 
 // El runner browser de Storybook/Vitest no aplica siempre el runtime JSX
@@ -92,9 +93,11 @@ const preview = {
             <I18nProvider>
               <LocaleSync locale={locale}>
                 <OAuthProvider>
-                  <div className="app-shell" style={{ padding: '2rem' }}>
-                    <Story />
-                  </div>
+                  <MotionProvider>
+                    <div className="app-shell" style={{ padding: '2rem' }}>
+                      <Story />
+                    </div>
+                  </MotionProvider>
                 </OAuthProvider>
               </LocaleSync>
             </I18nProvider>

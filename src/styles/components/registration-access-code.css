@@ -1,0 +1,52 @@
+.registration-access-code {
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0.95rem;
+}
+
+.registration-access-code legend {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 0.42rem;
+  padding: 0 0.35rem;
+}
+
+.registration-access-code > p {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.registration-access-code label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 650;
+  gap: 0.4rem;
+}
+
+.registration-access-code input {
+  background: var(--color-bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 0.72rem;
+}
+
+.registration-access-code input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
+  outline-offset: 2px;
+}

@@ -69,6 +69,7 @@ const FIXTURES = {
     paidAt: '2026-08-11T15:00:00.000Z',
     paymentMethod: 'Mercado Pago',
     includesMembership: true,
+    isFirstMembership: true,
     memberCode: 'PLU-ARG-1042',
     expirationDate: '2027-08-11T00:00:00.000Z',
     accountUrl: `${appUrl}/mi-cuenta`,

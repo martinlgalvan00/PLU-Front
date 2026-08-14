@@ -60,6 +60,7 @@ beforeEach(() => {
   sdk.initMercadoPago.mockReset()
   sdk.payment.mockReset().mockImplementation(() => <div data-testid="payment-brick" />)
   sdk.cardPayment.mockReset().mockImplementation(() => <div data-testid="card-payment-brick" />)
+  sdk.wallet.mockReset().mockImplementation(() => <div data-testid="wallet-brick" />)
   Object.values(paymentApi).forEach((mock) => mock.mockReset())
   paymentApi.reportPaymentClientEvent.mockResolvedValue({ accepted: true })
 })
@@ -167,5 +168,107 @@ describe('checkout embebido controlado dentro de la pagina', () => {
     expect(screen.getByText(/Mercado Pago rechazó la operación/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Intentar nuevamente' }))
     expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+  })
+})
+
+describe('presentación settle embebida', () => {
+  it('en settle no monta Wallet Brick: el cobro queda en Payment Brick', async () => {
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    expect(screen.queryByTestId('wallet-brick')).toBeNull()
+    expect(screen.queryByText('Dinero en cuenta de Mercado Pago')).toBeNull()
+    expect(screen.queryByText('O pagá con tarjeta')).toBeNull()
+  })
+
+  it('en la presentación default sí ofrece Wallet junto al Payment Brick', async () => {
+    renderCheckout()
+
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    expect(screen.getByTestId('wallet-brick')).toBeTruthy()
+    expect(screen.getByText('Dinero en cuenta de Mercado Pago')).toBeTruthy()
+  })
+
+  it('espera la preferencia antes de montar Payment Brick para no remountarlo', async () => {
+    let resolvePreference
+    paymentApi.createPreference.mockImplementation(
+      () => new Promise((resolve) => { resolvePreference = resolve }),
+    )
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout
+          order={{ ...ORDER, preferenceId: null }}
+          presentation="settle"
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.queryByTestId('payment-brick')).toBeNull()
+    await waitFor(() => expect(paymentApi.createPreference).toHaveBeenCalled())
+
+    await act(async () => {
+      resolvePreference({ preference: { id: 'pref-late' } })
+    })
+
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    const inits = sdk.payment.mock.calls.map((call) => call[0].initialization)
+    expect(inits.length).toBeGreaterThan(0)
+    expect(inits.every((init) => init.preferenceId === 'pref-late')).toBe(true)
+  })
+
+  it('pide al Brick fondo transparente y sin título propio de Mercado Pago', async () => {
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick')
+    const visual = sdk.payment.mock.calls[0][0].customization.visual
+    expect(visual.hideFormTitle).toBe(true)
+    expect(visual.style.customVariables.formBackgroundColor).toBe('transparent')
+    expect(visual.style.customVariables.formPadding).toBe('0px')
+  })
+
+  it('cambia el CTA nativo según el medio activo, sin reemplazar el submit de Mercado Pago', async () => {
+    sdk.payment.mockImplementation((props) => {
+      queueMicrotask(() => props.onReady?.())
+      return (
+        <form data-testid="payment-form">
+          <div className="mp-checkout-bricks__selector-a active-x">
+            Mercado Pago Tus medios de pago preferidos
+          </div>
+          <div className="mp-checkout-bricks__selector-b">Tarjeta de crédito Cuotas disponibles</div>
+          <button type="submit">Pagar</button>
+        </form>
+      )
+    })
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continuar en Mercado Pago' })).toBeTruthy()
+    })
+
+    const wallet = screen.getByText(/Tus medios de pago preferidos/)
+    const credit = screen.getByText(/Tarjeta de crédito/)
+    act(() => {
+      wallet.classList.remove('active-x')
+      credit.classList.add('active-x')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Pagar con tarjeta' })).toBeTruthy()
+    })
+    expect(screen.getByRole('button', { name: 'Pagar con tarjeta' }).getAttribute('type')).toBe('submit')
   })
 })

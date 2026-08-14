@@ -3283,6 +3283,11 @@
   line-height: 1.35;
 }
 
+.home-membership-band__combo {
+  margin-top: 4px;
+  min-width: 0;
+}
+
 .home-membership-band__actions {
   align-items: center;
   display: flex;

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileWarning, LoaderCircle, BadgeCheck } from 'lucide-react'
+import { ExternalLink, FileWarning, LoaderCircle, BadgeCheck, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getAthletePaymentProofUrl } from '../../services/athleteApi.js'
@@ -27,20 +27,27 @@ export default function PaymentValidationDialog({
   error = '',
   onCancel,
   onConfirm,
+  onReject,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const titleId = useId()
   const descriptionId = useId()
+  const reasonId = useId()
   const panelRef = useRef(null)
-  const dialogStateRef = useRef({ busy, onCancel })
-  dialogStateRef.current = { busy, onCancel }
+  const dialogStateRef = useRef({ busy, onCancel, rejecting: false })
 
-  const hasProof = Boolean(item?.hasProof)
+  const proofPath =
+    typeof item?.paymentProofPath === 'string' ? item.paymentProofPath.trim() : item?.paymentProofPath
+  const hasProof = Boolean(item?.hasProof || proofPath)
   const [proofUrl, setProofUrl] = useState(null)
   const [proofLoading, setProofLoading] = useState(hasProof)
   const [proofError, setProofError] = useState('')
   const [imageFailed, setImageFailed] = useState(false)
   const [imageExpanded, setImageExpanded] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const rejectReasonValid = rejectReason.trim().length >= 3
+  dialogStateRef.current = { busy, onCancel, rejecting }
 
   useEffect(() => {
     const previousFocus = document.activeElement
@@ -55,6 +62,10 @@ export default function PaymentValidationDialog({
         event.preventDefault()
         event.stopPropagation()
         event.stopImmediatePropagation()
+        if (dialogStateRef.current.rejecting) {
+          setRejecting(false)
+          return
+        }
         dialogStateRef.current.onCancel()
         return
       }
@@ -131,7 +142,13 @@ export default function PaymentValidationDialog({
     proofUrl && (previewKind === 'pdf' || (previewKind === 'unknown' && imageFailed)),
   )
   const showFallback = Boolean(proofUrl && previewKind === 'image' && imageFailed)
-  const noProofLead = isView
+  // El archivo tiene que haberse abierto correctamente antes de permitir una
+  // decisión. La existencia de una ruta no alcanza como prueba revisada.
+  const proofReadyForReview = hasProof && !proofLoading && Boolean(proofUrl) && !proofError
+  const canConfirm = item.cashAtPitbull || proofReadyForReview
+  const noProofLead = item.cashAtPitbull
+    ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
+    : isView
     ? t('admin.paymentValidation.viewNoProofLead')
     : t('admin.paymentValidation.noProofLead')
 
@@ -175,10 +192,22 @@ export default function PaymentValidationDialog({
               <dd>{item.detail}</dd>
             </div>
           ) : null}
+          {item.documentId ? (
+            <div>
+              <dt>{t('admin.paymentValidation.document')}</dt>
+              <dd>{item.documentId}</dd>
+            </div>
+          ) : null}
           {item.meta ? (
             <div>
               <dt>{t('admin.paymentValidation.amount')}</dt>
               <dd className="payment-validation-dialog__amount">{item.meta}</dd>
+            </div>
+          ) : null}
+          {item.paymentProofUploadedAt ? (
+            <div>
+              <dt>{t('admin.paymentValidation.proofReceivedAt')}</dt>
+              <dd>{new Date(item.paymentProofUploadedAt).toLocaleString(locale === 'en' ? 'en-US' : 'es-AR')}</dd>
             </div>
           ) : null}
         </dl>
@@ -188,7 +217,7 @@ export default function PaymentValidationDialog({
             <div className="payment-validation-dialog__empty" role="status">
               <FileWarning size={18} aria-hidden />
               <div>
-                <strong>{t('admin.paymentValidation.noProofTitle')}</strong>
+                <strong>{item.cashAtPitbull ? 'Cobro presencial en Pitbull' : t('admin.paymentValidation.noProofTitle')}</strong>
                 <p>{noProofLead}</p>
               </div>
             </div>
@@ -264,21 +293,73 @@ export default function PaymentValidationDialog({
           </p>
         ) : null}
 
+        {rejecting ? (
+          <div className="payment-validation-dialog__reject-form">
+            <label htmlFor={reasonId}>{t('admin.paymentValidation.rejectReasonLabel')}</label>
+            <textarea
+              id={reasonId}
+              rows={3}
+              value={rejectReason}
+              disabled={busy}
+              placeholder={t('admin.paymentValidation.rejectReasonPlaceholder')}
+              onChange={(event) => setRejectReason(event.target.value)}
+            />
+          </div>
+        ) : null}
+
         <div className="payment-validation-dialog__actions">
-          <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
-            {isView ? t('admin.paymentValidation.close') : t('admin.paymentValidation.cancel')}
-          </Button>
-          {isView ? null : (
-            <Button type="button" disabled={busy} onClick={onConfirm}>
-              {busy ? (
-                <LoaderCircle size={15} aria-hidden className="is-spinning" />
-              ) : (
-                <BadgeCheck size={15} aria-hidden />
+          {rejecting ? (
+            <>
+              <Button type="button" variant="secondary" disabled={busy} onClick={() => setRejecting(false)}>
+                {t('admin.paymentValidation.cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={busy || !rejectReasonValid}
+                onClick={() => onReject(rejectReason.trim())}
+              >
+                {busy ? (
+                  <LoaderCircle size={15} aria-hidden className="is-spinning" />
+                ) : (
+                  <XCircle size={15} aria-hidden />
+                )}
+                {busy
+                  ? t('admin.paymentValidation.rejecting')
+                  : t('admin.paymentValidation.rejectConfirm')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
+                {isView ? t('admin.paymentValidation.close') : t('admin.paymentValidation.cancel')}
+              </Button>
+              {isView ? null : (
+                <>
+                  {hasProof && onReject ? (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={busy || !proofReadyForReview}
+                      onClick={() => setRejecting(true)}
+                    >
+                      <XCircle size={15} aria-hidden />
+                      {t('admin.paymentValidation.reject')}
+                    </Button>
+                  ) : null}
+                  <Button type="button" disabled={busy || !canConfirm} onClick={onConfirm}>
+                    {busy ? (
+                      <LoaderCircle size={15} aria-hidden className="is-spinning" />
+                    ) : (
+                      <BadgeCheck size={15} aria-hidden />
+                    )}
+                    {busy
+                      ? t('admin.paymentValidation.confirming')
+                      : t('admin.paymentValidation.confirm')}
+                  </Button>
+                </>
               )}
-              {busy
-                ? t('admin.paymentValidation.confirming')
-                : t('admin.paymentValidation.confirm')}
-            </Button>
+            </>
           )}
         </div>
       </section>

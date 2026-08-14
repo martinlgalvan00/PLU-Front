@@ -4046,7 +4046,14 @@
   width: 1px;
 }
 
+/* Sin la píldora heredada de `.register-intro__eyebrow`: el oro ya lo lleva el
+   total y el CTA, y tres acentos en el mismo viewport rompen la jerarquía. */
 .register-page--competition .register-intro__eyebrow {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
   color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
   display: block;
   font-family: var(--font-display);
@@ -4055,7 +4062,9 @@
   letter-spacing: 0.16em;
   line-height: 1.2;
   margin: 0;
+  padding: 0;
   text-transform: uppercase;
+  width: auto;
 }
 
 .register-page--competition .register-intro__title {
@@ -4207,6 +4216,94 @@
   gap: 18px;
 }
 
+.register-profile-readiness {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.register-profile-readiness--incomplete {
+  background: color-mix(in srgb, var(--color-warning, #e6a817) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning, #e6a817) 42%, transparent);
+}
+
+.register-profile-readiness strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13px;
+}
+
+.register-profile-readiness p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 3px 0 0;
+  max-width: 56ch;
+}
+
+.register-profile-readiness__details {
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 14px 0 0;
+}
+
+.register-profile-readiness__details div {
+  min-width: 0;
+}
+
+.register-profile-readiness__details dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.register-profile-readiness__details dd {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-profile-readiness button {
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-gold);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.register-profile-readiness button:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+  .register-profile-readiness {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .register-profile-readiness__details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .register-competition-fields {
   display: grid;
   gap: clamp(22px, 3vw, 30px);
@@ -4350,8 +4447,66 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500) 16%, transparent);
 }
 
-.register-page--competition .register-competition-weight {
+/* El peso son dos o tres dígitos: la caja se dimensiona por contenido en vez
+   de estirarse hasta el borde del formulario. */
+.register-page--competition .register-competition-weight .field__control-shell {
   max-width: 220px;
+}
+
+/* Filas etiquetadas: mientras la pantalla es de una sola columna, la etiqueta
+   ocupa una columna propia y los controles usan el ancho útil, así el
+   formulario deja de ser mobile estirado. Con el aside a la vista el eje visual
+   ya lo da el resumen, y esa columna solo le quitaría ancho a las opciones.
+   El `float: left` de `.field--choice legend` (forms.css) hace que el legend se
+   comporte como caja normal, por eso puede ser grid item. */
+@media (min-width: 640px) and (max-width: 899px) {
+  .register-page--competition .register-competition-fields > .field {
+    align-items: start;
+    column-gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .register-page--competition .register-competition-fields > .field > .field__label,
+  .register-page--competition .register-competition-fields > .field > legend.field__label {
+    grid-column: 1;
+    padding-top: 14px;
+    width: auto;
+  }
+
+  .register-page--competition .register-competition-fields > .field > .field__choices,
+  .register-page--competition .register-competition-fields > .field > .field__control-shell,
+  .register-page--competition .register-competition-fields > .field > .field__error {
+    grid-column: 2;
+  }
+
+  .register-page--competition .register-competition-fields {
+    gap: clamp(14px, 2vw, 18px);
+  }
+
+  /* Paquete y medio de pago comparten el eje de etiquetas de los campos: un
+     solo margen de lectura en toda la pantalla. */
+  .register-page--competition .register-competition-form .plu-checkout__offers,
+  .register-page--competition .register-competition-form .plu-checkout__methods {
+    align-items: start;
+    column-gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .register-page--competition .register-competition-form .plu-checkout__offers > legend,
+  .register-page--competition .register-competition-form .plu-checkout__methods > legend {
+    float: left;
+    grid-column: 1;
+    padding-top: 14px;
+  }
+
+  .register-page--competition .register-competition-form .plu-checkout__offer-list,
+  .register-page--competition .register-competition-form .plu-checkout__pills,
+  .register-page--competition .register-competition-form .plu-checkout__hint,
+  .register-page--competition .register-competition-form .plu-checkout__methods > .field__error {
+    grid-column: 2;
+  }
 }
 
 .register-page--competition .register-card .field input {
@@ -4587,6 +4742,100 @@
   font-size: 12px;
   line-height: 1.35;
   margin: 0;
+}
+
+.register-discount {
+  display: grid;
+  gap: 6px;
+}
+
+.register-discount__label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.register-discount__row {
+  display: flex;
+  gap: 8px;
+}
+
+.register-discount__row input {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  padding: 0 14px;
+  text-transform: uppercase;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.register-discount__row input:focus-visible {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline: none;
+}
+
+.register-discount__row button {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 16px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.register-discount__row button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.register-discount__row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.register-discount__error {
+  color: var(--color-brand-red);
+  font-size: 12px;
+  margin: 0;
+}
+
+.register-discount__applied {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.register-discount__applied button {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  margin-left: auto;
+  padding: 4px;
+  text-decoration: underline;
+}
+
+.register-discount__applied button:hover:not(:disabled) {
+  color: var(--color-text-secondary);
 }
 
 .register-eligibility-note {
@@ -4946,21 +5195,9 @@
     max-width: none;
   }
 
-  .register-page--competition .register-mobile-context .register-intro__desc {
-    display: none;
-  }
-
   .register-page--competition .register-mobile-context .register-intro__meta--competition {
     margin-top: 2px;
     padding-top: 10px;
-  }
-
-  .register-page--competition .register-card .form-section-block__desc {
-    display: none;
-  }
-
-  .register-page--competition .register-competition-weight {
-    max-width: none;
   }
 
   .register-checkout__hint {
@@ -5040,6 +5277,12 @@
     padding-inline: var(--layout-gutter, var(--space-md));
   }
 
+  /* En mobile el contexto del evento ya lo dan el título y la meta: la bajada
+     solo empuja los controles fuera del primer viewport. */
+  .register-page--competition .register-mobile-context .register-intro__desc {
+    display: none;
+  }
+
   .register-page--competition .register-card .form-section-block__title {
     font-size: clamp(1.25rem, 5.2vw, 1.45rem);
   }
@@ -5051,6 +5294,72 @@
 
   .register-page--competition .register-competition-choice .field__choice-text {
     font-size: 12.5px;
+  }
+}
+
+/* Tablet y ventanas angostas: una sola columna con medida acotada. Antes el
+   formulario se estiraba hasta el borde y se leía como mobile agrandado. */
+@media (min-width: 641px) and (max-width: 899px) {
+  .register-page--competition .register-shell {
+    margin-inline: auto;
+    max-width: 680px;
+  }
+
+  /* El full-bleed de la barra de cobro solo tiene sentido cuando el shell toca
+     los bordes; con el shell centrado se alinea con el formulario. */
+  .register-page--competition .register-checkout__bar.register-card__footer--checkout {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+/* Paquete: un solo grupo de superficie en vez de dos cards de distinto peso.
+   La opción elegida se marca con una regla lateral, no con un borde completo. */
+.register-page--competition .plu-checkout__offer-list {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 4px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.register-page--competition .plu-checkout__offer {
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  padding: 16px 18px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.register-page--competition .plu-checkout__offer + .plu-checkout__offer {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+.register-page--competition .plu-checkout__offer:hover:not(.is-disabled) {
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-left-color: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.register-page--competition .plu-checkout__offer.is-selected {
+  background: color-mix(in srgb, var(--plu-gold-500) 6%, transparent);
+  border-left-color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .register-page--competition .plu-checkout__offer-list,
+[data-theme='light'] .register-page--competition .plu-checkout__offer + .plu-checkout__offer {
+  border-color: rgba(15, 17, 23, 0.12);
+}
+
+[data-theme='light'] .register-page--competition .plu-checkout__offer.is-selected {
+  border-left-color: var(--plu-gold-600);
+}
+
+/* Con el aside sticky a la vista, el total de la barra de cobro es el que
+   acompaña la decisión: el del resumen queda como dato, no como titular. */
+@media (min-width: 900px) {
+  .register-competition-ticket__total strong {
+    font-size: 1.2rem;
   }
 }
 

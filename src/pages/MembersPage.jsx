@@ -11,14 +11,13 @@ import MembersProcessStepper from '../components/ui/MembersProcessStepper.jsx'
 import MembersRequirementsCarousel from '../components/ui/MembersRequirementsCarousel.jsx'
 import MembershipCard from '../components/ui/MembershipCard.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { PRICING } from '../lib/constants.js'
-import { getCountdownParts } from '../lib/countdown.js'
-import { money } from '../lib/format.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { listMembershipPlans } from '../services/paymentService.js'
@@ -28,10 +27,6 @@ const SEASON_COMBO_FALLBACK = {
   active: true,
   price: PRICING.combo,
   endsAt: '2026-08-28T23:59:59-03:00',
-}
-
-function padCountdownUnit(value) {
-  return String(value).padStart(2, '0')
 }
 
 function mapLivePlan(plan, featureTemplate, t) {
@@ -71,7 +66,7 @@ export default function MembersPage({
     MEMBERSHIP_PLANS,
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
-  const { messages, t, locale } = useI18n()
+  const { messages, t } = useI18n()
   const [livePlans, setLivePlans] = useState([])
   const [plansLoaded, setPlansLoaded] = useState(false)
   const [plansError, setPlansError] = useState('')
@@ -101,20 +96,7 @@ export default function MembersPage({
     return null
   }, [featuredEvent, now])
 
-  const comboCountdown = useMemo(
-    () => (liveComboOffer?.endsAt ? getCountdownParts(liveComboOffer.endsAt, now) : null),
-    [liveComboOffer?.endsAt, now],
-  )
-
   const eventPricing = useMemo(() => resolveEventPricing(featuredEvent), [featuredEvent])
-  const comboSavings = liveComboOffer
-    ? Math.max(
-      0,
-      Number(eventPricing.membership || PRICING.membership)
-        + Number(eventPricing.registration || PRICING.event)
-        - Number(liveComboOffer.price),
-    )
-    : 0
 
   const loadPlans = useCallback(async ({ force = false, signal } = {}) => {
     setPlansLoaded(false)
@@ -188,11 +170,10 @@ export default function MembersPage({
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
   const paidCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'membership' })
+  const comboCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'combo' })
   const checkoutLocked = !paidCheckoutOpen
-  const showComboPromo = Boolean(liveComboOffer)
-    && Boolean(comboCountdown)
-    && !comboCountdown.expired
-    && !hasActiveMembership
+  const comboLocked = !comboCheckoutOpen
+  const showComboPromo = Boolean(liveComboOffer) && !hasActiveMembership
 
   useEffect(() => {
     if (!pendingComboEndsAt || hasActiveMembership) return
@@ -209,21 +190,6 @@ export default function MembersPage({
   }, [pendingComboEndsAt, hasActiveMembership])
 
   const livePlansUnavailable = !plansLoaded || catalogPlans.length === 0
-  const comboCountdownAria = comboCountdown
-    ? t('pages.members.comboPromoCountdownAria', {
-      days: comboCountdown.days,
-      hours: comboCountdown.hours,
-      minutes: comboCountdown.minutes,
-    })
-    : ''
-  const comboCountdownUnits = comboCountdown
-    ? [
-      { key: 'days', value: padCountdownUnit(comboCountdown.days), label: t('pages.members.comboPromoUnitDays') },
-      { key: 'hours', value: padCountdownUnit(comboCountdown.hours), label: t('pages.members.comboPromoUnitHours') },
-      { key: 'minutes', value: padCountdownUnit(comboCountdown.minutes), label: t('pages.members.comboPromoUnitMinutes') },
-      { key: 'seconds', value: padCountdownUnit(comboCountdown.seconds), label: t('pages.members.comboPromoUnitSeconds') },
-    ]
-    : []
   const affiliationCta = checkoutLocked
     ? t('pages.members.ctaCheckoutSoon')
     : isLoggedInAthlete
@@ -239,7 +205,7 @@ export default function MembersPage({
     onNavigate(isLoggedInAthlete ? 'membership' : 'register')
   }
   const goToCombo = () => {
-    if (hasActiveMembership || checkoutLocked) return
+    if (hasActiveMembership || comboLocked) return
     if (onSelectEvent && featuredEvent) {
       onSelectEvent(featuredEvent)
       return
@@ -287,6 +253,21 @@ export default function MembersPage({
             </p>
           </header>
 
+          {showComboPromo ? (
+            <Reveal className="members-plu-plans__combo" variant="up">
+              <SeasonComboOffer
+                variant="band"
+                membershipPrice={eventPricing.membership || PRICING.membership}
+                registrationPrice={eventPricing.registration || PRICING.event}
+                comboPrice={liveComboOffer.price}
+                endsAt={liveComboOffer.endsAt}
+                ctaDisabled={comboLocked}
+                ctaLabel={comboLocked ? t('pages.members.ctaCheckoutSoon') : t('comboDeal.cta')}
+                onCta={goToCombo}
+              />
+            </Reveal>
+          ) : null}
+
           {visiblePlans.length ? (
             <div className={gridClassName}>
               {visiblePlans.map((plan) => (
@@ -309,66 +290,6 @@ export default function MembersPage({
             </div>
           ) : null}
 
-          {showComboPromo ? (
-            <Reveal
-              as="aside"
-              className="members-combo-promo"
-              aria-label={t('pages.members.comboPromoTitle')}
-              variant="up"
-            >
-              <div className="members-combo-promo__head">
-                <div className="members-combo-promo__meta">
-                  <p className="members-combo-promo__eyebrow">{t('pages.members.comboPromoEyebrow')}</p>
-                  <p className="members-combo-promo__urgency">{t('pages.members.comboPromoCountdownLabel')}</p>
-                </div>
-                <div
-                  className="members-combo-promo__countdown"
-                  role="timer"
-                  aria-live="polite"
-                  aria-atomic="true"
-                  aria-label={comboCountdownAria}
-                >
-                  {comboCountdownUnits.map((unit, index) => (
-                    <div key={unit.key} className="members-combo-promo__unit-wrap">
-                      {index > 0 ? (
-                        <span className="members-combo-promo__sep" aria-hidden="true">:</span>
-                      ) : null}
-                      <div className="members-combo-promo__unit">
-                        <span className="members-combo-promo__unit-value" aria-hidden="true">
-                          {unit.value}
-                        </span>
-                        <span className="members-combo-promo__unit-label">{unit.label}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="members-combo-promo__copy">
-                <h3 className="members-combo-promo__title">{t('pages.members.comboPromoTitle')}</h3>
-                <p className="members-combo-promo__lead">{t('pages.members.comboPromoLead')}</p>
-              </div>
-
-              <div className="members-combo-promo__deal">
-                <div className="members-combo-promo__price-block">
-                  <strong className="members-combo-promo__price">{money(liveComboOffer.price, locale)}</strong>
-                  {comboSavings > 0 ? (
-                    <p className="members-combo-promo__savings">
-                      {t('pages.members.comboPromoSavings', { amount: money(comboSavings, locale) })}
-                    </p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn--outline members-combo-promo__cta"
-                  disabled={checkoutLocked}
-                  onClick={goToCombo}
-                >
-                  {checkoutLocked ? t('pages.members.ctaCheckoutSoon') : t('pages.members.comboPromoCta')}
-                </button>
-              </div>
-            </Reveal>
-          ) : null}
           {!hasActiveMembership && visiblePlans.length ? (
             <p className="members-plu-plans__reassure">
               {t('pages.members.closureReassure')}

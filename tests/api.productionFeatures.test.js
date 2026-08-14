@@ -110,6 +110,18 @@ function plan(code, collectionMode) {
   }
 }
 
+function completeCompetitionProfile() {
+  return {
+    full_name: 'Ana Torres',
+    birth_date: '1998-04-12',
+    sex: 'Femenino',
+    gym: 'Pitbull Team',
+    phone: '1145678901',
+    country: 'Argentina',
+    province: 'Buenos Aires',
+  }
+}
+
 // `APP_PRODUCTION` ya no gatea nada en el backend (removido en el refactor
 // "remove APP_PRODUCTION references"): `filterPublicMembershipPlans`,
 // `assertRecurringMembershipAvailable` y `assertPricingWritesEnabled`
@@ -168,13 +180,17 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
   })
 
   it('ya no rechaza una orden recurrente invocada por la ruta directa', async () => {
-    const createMembershipOrder = vi.fn().mockResolvedValue({ id: 'order-1', planCode: 'plu-annual-auto-v2' })
+    // La RPC real siempre envuelve la orden en `{ order }` (create_membership_order_v4,
+    // supabase/migrations/20260819100000_discount_codes_and_plan_expiry.sql:639); el mock
+    // tiene que respetar ese contrato para que applyPaymentPricing la reconozca.
+    const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-1', planCode: 'plu-annual-auto-v2' } })
     const target = listen(createApp({
       env: {},
       supabaseAdmin: authenticatedSupabase(),
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
         findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual-auto-v2', collection_mode: 'recurring' }),
+        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1', planCode: 'plu-annual-auto-v2' }),
         createMembershipOrder,
       },
     }))
@@ -207,6 +223,8 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
       supabaseAdmin: authenticatedSupabase(),
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
         createRegistrationCombo,
       },
     }))
@@ -298,7 +316,9 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
   })
 
   it('ya no cierra cobros por estar en produccion, tenga o no abierto registration_opens_at', async () => {
-    const createRegistration = vi.fn().mockResolvedValue({ id: 'reg-1' })
+    // Mismo contrato que create_membership_order_v4: la RPC de inscripción
+    // también envuelve la orden en `{ order }`.
+    const createRegistration = vi.fn().mockResolvedValue({ order: { id: 'reg-1' } })
     const createRegistrationCombo = vi.fn().mockResolvedValue({
       order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
     })
@@ -310,6 +330,8 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
       }),
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
         createRegistration,
         createRegistrationCombo,
       },
@@ -342,6 +364,136 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
       expect(comboPast.status).toBe(201)
       expect(createRegistration).toHaveBeenCalledTimes(2)
       expect(createRegistrationCombo).toHaveBeenCalledOnce()
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('interruptores generales de cobro, afiliación e inscripción', () => {
+  it('rechaza la compra de entradas cuando el interruptor maestro de cobros está apagado', async () => {
+    const createOrder = vi.fn()
+    const target = listen(createApp({
+      env: {},
+      ticketRepository: { createOrder },
+      platformSettingsRepository: {
+        get: vi.fn().mockResolvedValue({ checkoutEnabled: false }),
+      },
+    }))
+    try {
+      const response = await fetch(`${target.url}/api/tickets/orders`, {
+        method: 'POST',
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          eventSlug: 'pitbull-classic-2026',
+          attendees: [{ fullName: 'Ana Torres', dni: '30111222', ticketTypeId: crypto.randomUUID() }],
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: 'CHECKOUT_DISABLED' })
+      expect(createOrder).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza afiliación, inscripción y combo cuando su interruptor está apagado', async () => {
+    const createMembershipOrder = vi.fn()
+    const createRegistration = vi.fn()
+    const createRegistrationCombo = vi.fn()
+    const target = listen(createApp({
+      env: {},
+      supabaseAdmin: authenticatedSupabase(),
+      athleteRepository: {
+        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+        createMembershipOrder,
+        createRegistration,
+        createRegistrationCombo,
+      },
+      platformSettingsRepository: {
+        get: vi.fn().mockResolvedValue({ membershipEnabled: false, registrationEnabled: false }),
+      },
+    }))
+    try {
+      const membership = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          paymentMethod: 'mercado_pago',
+          planCode: 'plu-annual',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const registration = await fetch(`${target.url}/api/athletes/me/registrations`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          eventSlug: 'pitbull-classic-2026',
+          division: 'Open',
+          category: 'Raw',
+          bodyweightKg: 90,
+          paymentMethod: 'mercado_pago',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const combo = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          eventSlug: 'pitbull-classic-2026',
+          division: 'Open',
+          category: 'Raw',
+          bodyweightKg: 90,
+          paymentMethod: 'mercado_pago',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+
+      expect(membership.status).toBe(409)
+      expect(await membership.json()).toMatchObject({ code: 'MEMBERSHIP_CHECKOUT_DISABLED' })
+      expect(registration.status).toBe(409)
+      expect(await registration.json()).toMatchObject({ code: 'REGISTRATION_CHECKOUT_DISABLED' })
+      expect(combo.status).toBe(409)
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+      expect(createRegistration).not.toHaveBeenCalled()
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('deja pasar afiliación e inscripción cuando los interruptores están prendidos', async () => {
+    const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-1' } })
+    const target = listen(createApp({
+      env: {},
+      supabaseAdmin: authenticatedSupabase(),
+      athleteRepository: {
+        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
+        createMembershipOrder,
+      },
+      platformSettingsRepository: {
+        get: vi.fn().mockResolvedValue({ membershipEnabled: true, registrationEnabled: true }),
+      },
+    }))
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({
+          paymentMethod: 'mercado_pago',
+          planCode: 'plu-annual',
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+
+      expect(response.status).toBe(201)
+      expect(createMembershipOrder).toHaveBeenCalledOnce()
     } finally {
       await target.close()
     }

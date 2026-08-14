@@ -100,6 +100,7 @@ describe('buildPendingActions — hasProof', () => {
         {
           id: 'p1',
           athleteId: 'a1',
+          method: 'manual_link',
           status: 'validacion_manual',
           concept: 'Afiliación anual',
           amount: 75000,
@@ -108,6 +109,8 @@ describe('buildPendingActions — hasProof', () => {
         {
           id: 'p2',
           athleteId: 'a1',
+          method: 'manual_link',
+          manualPaymentChannel: 'cash_pitbull',
           status: 'pendiente_pago',
           concept: 'Inscripción',
           amount: 10000,
@@ -135,7 +138,9 @@ describe('buildPendingActions — hasProof', () => {
 
     expect(actions.find((item) => item.id === 'action-pay-p1')?.hasProof).toBe(true)
     expect(actions.find((item) => item.id === 'action-pay-p1')?.paymentProofPath).toBe('proofs/p1.jpg')
+    expect(actions.find((item) => item.id === 'action-pay-p1')?.method).toBe('manual_link')
     expect(actions.find((item) => item.id === 'action-pay-p2')?.hasProof).toBe(false)
+    expect(actions.find((item) => item.id === 'action-pay-p2')?.cashAtPitbull).toBe(true)
     expect(actions.find((item) => item.id === 'action-pay-p2')?.paymentProofPath).toBeNull()
     expect(actions.find((item) => item.id === 'action-tord-t1')?.hasProof).toBe(true)
     expect(actions.find((item) => item.id === 'action-tord-t1')?.paymentProofPath).toBe('tickets/t1.pdf')

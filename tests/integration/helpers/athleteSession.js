@@ -23,6 +23,15 @@ export async function createTestAthlete(client, overrides = {}) {
       document_id: String(90_000_000 + Math.floor(Math.random() * 9_999_999)),
       email: `capacity-${suffix}@pluarg.test`,
       status: 'registrado',
+      // Las inscripciones reales requieren el perfil competitivo completo.
+      // Mantenerlo en el helper hace que los tests de checkout ejerciten el
+      // precio y cupo, no una validación de perfil ajena al escenario.
+      birth_date: '1994-05-18',
+      sex: 'Masculino',
+      gym: 'PLU Test Team',
+      phone: '+5491100000000',
+      country: 'Argentina',
+      province: 'Buenos Aires',
       // Sin esto assertEmailVerified (server/routes/athletes.js) responde 403
       // y el test nunca llegaría a ejercitar el chequeo de cupo.
       email_verified_at: new Date().toISOString(),

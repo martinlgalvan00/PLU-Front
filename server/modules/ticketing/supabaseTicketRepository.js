@@ -70,6 +70,13 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo aprobar la orden.',
       )
     },
+    async reject(orderId, reason, actor) {
+      return rpc(
+        'reject_ticket_payment_order',
+        { p_order_id: orderId, p_reason: reason ?? null, p_actor: actor ?? null },
+        'No se pudo rechazar la orden.',
+      )
+    },
     async createProofUpload(orderId, accessToken, fileName) {
       const order = await requireOrderAccess(orderId, accessToken)
       if (order.provider !== 'manual') throw new HttpError(400, 'La orden no admite comprobante.')

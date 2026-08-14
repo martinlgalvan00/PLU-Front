@@ -238,6 +238,15 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
       return clone(subscription)
     },
 
+    async cancelSubscription(id) {
+      const subscription = subscriptions.get(String(id))
+      if (!subscription) throw new HttpError(404, 'Suscripcion mock no encontrada.')
+      subscription.status = 'cancelled'
+      subscriptions.set(String(id), subscription)
+      logMock('subscription_cancel', { subscriptionId: id })
+      return clone(subscription)
+    },
+
     async getAuthorizedPayment(id) {
       const authorized = authorizedPayments.get(String(id))
       if (!authorized) throw new HttpError(404, 'Authorized payment mock no encontrado.')

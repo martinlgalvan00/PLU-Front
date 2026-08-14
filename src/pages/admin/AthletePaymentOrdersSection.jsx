@@ -53,6 +53,7 @@ export default function AthletePaymentOrdersSection({
   canEdit,
   highlightOrderId = null,
   onApprovePayment,
+  onRejectPayment,
   onSummaryChange,
   refreshKey = 0,
   statusFilter = null,
@@ -134,6 +135,7 @@ export default function AthletePaymentOrdersSection({
       amount: order.amount,
       currency: order.currency,
       method: order.method,
+      manualPaymentChannel: order.manualPaymentChannel,
       status: order.status,
       reference: order.reference,
       createdAt: order.createdAt,
@@ -168,14 +170,39 @@ export default function AthletePaymentOrdersSection({
     }
   }
 
+  async function reject(orderId, reason) {
+    setApprovingId(orderId)
+    setError('')
+    try {
+      const result = await onRejectPayment?.(orderId, reason)
+      if (result?.error) {
+        setError(result.error)
+        return false
+      }
+      if (result?.order) {
+        setOrders((current) =>
+          current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
+        )
+      } else {
+        await load()
+      }
+      return true
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
   function openReview(row) {
     setError('')
     setReviewRow({
       type: 'payment',
       paymentId: row.id,
       hasProof: row.hasProof,
+      cashAtPitbull: row.manualPaymentChannel === 'cash_pitbull',
       paymentProofPath: row.paymentProofPath,
+      paymentProofUploadedAt: row.proofUploadedAt,
       subject: row.athlete,
+      documentId: row.document,
       detail: `${row.concept} · ${row.reference}`,
       meta: money(row.amount, locale),
     })
@@ -258,7 +285,9 @@ export default function AthletePaymentOrdersSection({
               key: 'method',
               label: t('admin.columns.method'),
               mobile: 'hidden',
-              render: (row) => PAYMENT_METHODS[row.method]?.label ?? row.method,
+              render: (row) => row.manualPaymentChannel === 'cash_pitbull'
+                ? t('formOptions.payment.cashPitbull')
+                : PAYMENT_METHODS[row.method]?.label ?? row.method,
             },
             {
               key: 'proof',
@@ -267,6 +296,9 @@ export default function AthletePaymentOrdersSection({
               render: (row) => {
                 if (row.method !== 'manual_link') {
                   return <span className="data-table__mono data-table__mono--empty">—</span>
+                }
+                if (row.manualPaymentChannel === 'cash_pitbull') {
+                  return <span className="status-pill status-pill--info">{t('formOptions.payment.cashPitbull')}</span>
                 }
                 if (!row.hasProof) {
                   return (
@@ -318,7 +350,7 @@ export default function AthletePaymentOrdersSection({
                     disabled={
                       !canEdit ||
                       row.method !== 'manual_link' ||
-                      !row.hasProof ||
+                      (!row.hasProof && row.manualPaymentChannel !== 'cash_pitbull') ||
                       !OPEN_STATUSES.includes(row.status) ||
                       approvingId === row.id
                     }
@@ -354,6 +386,12 @@ export default function AthletePaymentOrdersSection({
             const paymentId = reviewRow.paymentId
             void approve(paymentId).then((approved) => {
               if (approved) setReviewRow(null)
+            })
+          }}
+          onReject={(reason) => {
+            const paymentId = reviewRow.paymentId
+            void reject(paymentId, reason).then((rejected) => {
+              if (rejected) setReviewRow(null)
             })
           }}
         />

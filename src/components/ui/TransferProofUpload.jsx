@@ -42,9 +42,14 @@ export default function TransferProofUpload({ orderId, onUploaded }) {
     setError('')
     try {
       const { storagePath } = await uploadAthletePaymentProof(orderId, file)
-      await registerAthletePaymentProof(orderId, storagePath)
+      const result = await registerAthletePaymentProof(orderId, storagePath)
       setState('done')
-      onUploaded?.()
+      // La orden entra en validación manual recién cuando la API registró la
+      // ruta privada. Avisamos a las pantallas abiertas para refrescarla.
+      window.dispatchEvent(new CustomEvent('plu:payment-updated', {
+        detail: { orderId, status: result?.order?.status ?? 'validacion_manual' },
+      }))
+      onUploaded?.(result?.order ?? null)
     } catch (uploadError) {
       setError(uploadError?.message ?? t('account.membership.proofError'))
       setState('error')

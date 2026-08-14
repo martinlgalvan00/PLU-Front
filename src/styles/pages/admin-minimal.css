@@ -516,20 +516,45 @@
   width: auto;
 }
 
+.admin-shell .admin-filters--registrations .admin-filters__search,
+.admin-shell .admin-filters--registrations .admin-filters__primary .admin-filters__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
 .admin-shell .admin-filters--registrations .admin-filters__groups,
 .admin-shell .admin-filters--registrations .admin-filters__groups--multi {
-  align-items: stretch;
+  align-items: center;
   display: flex !important;
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: 8px 10px;
+  min-width: 0;
+  overflow-x: auto;
   width: 100%;
 }
 
-.admin-shell .admin-filters--registrations .admin-filters__groups--multi .admin-filter-group {
-  flex: none;
+.admin-shell .admin-filters--registrations .admin-filters__groups--multi .admin-filter-group,
+.admin-shell .admin-filters--registrations .admin-filter-group--rail,
+.admin-shell .admin-filters--registrations .admin-filter-group--inline {
+  align-items: center;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: row;
   min-width: 0;
-  width: 100%;
+  width: auto;
+}
+
+.admin-shell .admin-filters--registrations .admin-filter-group__label {
+  display: none;
+}
+
+.admin-shell .admin-filters__actions .export-btn {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-mobile-toolbar,
@@ -1396,15 +1421,17 @@
   }
 }
 
-/* ---- Tablet ---- */
+/* ---- Tablet / desktop: el split responde al ancho útil, no al viewport ---- */
+
+@container admin-panel (min-width: 900px) {
+  .admin-shell .admin-list-shell--events .admin-events-workspace:has(.admin-event-preview--panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.58fr);
+    height: min(820px, calc(100dvh - 168px));
+    overflow: hidden;
+  }
+}
 
 @media (min-width: 1200px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(0, 1fr) minmax(380px, 0.62fr);
-    }
-  }
-
   .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) .admin-event-row__slug {
     display: none;
   }
@@ -1504,7 +1531,8 @@
     display: none;
   }
 
-  .admin-shell .admin-list-shell__actions .export-btn {
+  .admin-shell .admin-list-shell__actions .export-btn,
+  .admin-shell .admin-filters__actions .export-btn {
     min-height: 44px;
     padding-inline: 12px;
   }
@@ -2988,8 +3016,8 @@
   background: var(--admin-control-bg);
   border-color: var(--admin-hairline);
   color: var(--admin-text-secondary);
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 14px;
 }
 
 .admin-shell .data-table-mobile-toolbar.is-sorted .data-table-mobile-toolbar__trigger,
@@ -4768,6 +4796,8 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  height: auto;
+  overflow: visible;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-list {
@@ -4974,13 +5004,22 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta {
   color: var(--admin-muted);
   font-size: 12px;
   gap: 4px 12px;
+  min-width: 0;
   opacity: 0.9;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-row__meta-item {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-row__meta svg {
@@ -5083,12 +5122,18 @@
   letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__meta-line {
   color: var(--admin-muted);
+  display: block;
   font-size: 12px;
   margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
@@ -5344,14 +5389,6 @@
   padding-top: 18px;
 }
 
-@media (min-width: 1200px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.58fr);
-    }
-  }
-}
-
 @media (max-width: 1100px) {
   .admin-shell .admin-list-shell--events .admin-event-row {
     grid-template-columns: 52px minmax(160px, 1fr) 58px 134px auto;
@@ -5417,8 +5454,8 @@
     gap: 6px 10px;
     grid-template-columns: 42px minmax(0, 1fr) auto;
     grid-template-rows: auto auto;
-    min-height: 0;
-    padding: 9px 12px;
+    min-height: 44px;
+    padding: 10px 12px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-row__date {
@@ -5460,15 +5497,44 @@
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-    background: transparent;
-    border-left: 0;
-    border-top: 1px solid var(--admin-hairline);
+    background: var(--admin-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--admin-hairline);
+    border-radius: 16px;
+    box-shadow: none;
+    margin-top: 12px;
+    overflow: visible;
     padding: 0 0 12px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
     margin: 0;
-    padding: 14px 2px 12px;
+    padding: 14px 16px 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta-line {
+    display: block;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
+    min-height: 44px;
   }
 
   .admin-shell
@@ -5481,11 +5547,58 @@
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
-    padding: 2px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+    padding: 4px 16px 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+    min-height: 44px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-preview__detail {
-    padding-inline: 2px;
+    padding-inline: 16px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state {
+    padding: 10px 16px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state__controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+    display: grid;
+    flex-wrap: wrap;
+    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+    justify-content: center;
+    min-width: 0;
+    text-align: center;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+    min-height: 44px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__expand-toggle {
+    min-height: 44px;
+    padding: 8px 16px 4px;
   }
 }
 
@@ -5546,6 +5659,120 @@
   .admin-shell .admin-list-shell--events .admin-event-row__title {
     font-size: 14px;
   }
+
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .admin-shell .admin-list-shell--events .admin-event-row__actions {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-shell .admin-list-section--events {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-section__header,
+  .admin-shell .admin-list-section--events > .admin-list-section__chrome > .admin-list-shell__header,
+  .admin-shell .admin-list-section--events .admin-list-shell__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-list-section--events .admin-list-shell__actions,
+  .admin-shell .admin-list-section--events .admin-events__header-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
+  .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__head-actions .admin-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__selected-title,
+  .admin-shell .admin-list-shell--events .admin-event-preview__meta-line {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 4px 16px 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button + button {
+    border-left: 0;
+    padding-left: 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(odd) {
+    border-right: 1px solid var(--admin-hairline);
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(n + 3) {
+    border-top: 1px solid var(--admin-hairline);
+  }
+
+  /* En teléfono angosto la grilla 2×N comprime etiquetas largas.
+     Volvemos al rail horizontal del control (mismo AdminFilterChipGroup). */
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+    flex: 0 0 auto;
+    justify-content: center;
+    min-width: max-content;
+    text-align: center;
+    white-space: nowrap;
+    width: auto;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-shell .admin-list-section--events .admin-filters--inline.admin-filters--compact {
+    padding: 4px 8px 8px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state {
+    padding: 8px 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+    padding: 12px 12px 10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5571,16 +5798,18 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__controls {
-  align-items: center;
+  align-items: stretch;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  justify-content: space-between;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
-  flex: 1 1 240px;
+  flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label {
@@ -5623,14 +5852,16 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0;
-  overflow-x: visible;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   row-gap: 0;
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__visibility {
   align-items: center;
+  align-self: flex-start;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -6275,6 +6506,10 @@
     .admin-shell .data-table-mobile-toolbar {
       display: grid;
     }
+
+    .admin-shell .data-table-mobile-toolbar--single {
+      display: flex;
+    }
   }
 
   @container admin-panel (min-width: 900px) {
@@ -6570,7 +6805,8 @@
       gap: 6px 10px;
       grid-template-columns: 42px minmax(0, 1fr) auto;
       grid-template-rows: auto auto;
-      padding: 9px 12px;
+      min-height: 44px;
+      padding: 10px 12px;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-row__date {
@@ -6609,35 +6845,107 @@
     .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
       grid-template-columns: 1fr;
       height: auto;
+      overflow: visible;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-      background: transparent;
-      border-left: 0;
-      border-top: 1px solid var(--admin-hairline);
+      background: var(--admin-surface);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      border: 1px solid var(--admin-hairline);
+      border-radius: 16px;
+      box-shadow: none;
+      margin-top: 12px;
       max-height: none;
       overflow: visible;
+      padding: 0 0 12px;
       position: static;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
-      background: var(--admin-canvas);
-      position: sticky;
-      top: 0;
-      z-index: 2;
+      align-items: stretch;
+      background: transparent;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px 12px;
+      position: static;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-copy {
-      display: none;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta-line {
+      display: block;
     }
 
     .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head-actions {
+      display: flex;
+      flex-wrap: wrap;
       justify-content: flex-start;
       width: 100%;
     }
 
+    .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
+      min-height: 44px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state {
+      padding: 10px 16px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state__controls {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+      flex: 1 1 auto;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+      display: grid;
+      flex-wrap: wrap;
+      gap: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+      justify-content: center;
+      min-width: 0;
+      text-align: center;
+      white-space: normal;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+    .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+      min-height: 44px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+      padding: 4px 16px 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+      min-height: 44px;
+    }
+
     .admin-shell .admin-list-shell--events .admin-event-preview__expand-toggle {
       display: inline-flex;
+      min-height: 44px;
+      padding: 8px 16px 4px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__detail {
+      padding-inline: 16px;
     }
   }
 
@@ -6671,6 +6979,138 @@
       gap: 8px;
       grid-template-columns: 44px minmax(0, 1fr);
       width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
+      gap: 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__head-actions .admin-icon-btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
+      flex: 1 1 100%;
+      justify-content: center;
+      min-height: 44px;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
+      display: grid;
+      gap: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+      padding: 4px 16px 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
+      flex: none;
+      min-height: 44px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button + button {
+      border-left: 0;
+      padding-left: 8px;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(odd) {
+      border-right: 1px solid var(--admin-hairline);
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button:nth-child(n + 3) {
+      border-top: 1px solid var(--admin-hairline);
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-preview__selected-title,
+    .admin-shell .admin-list-shell--events .admin-event-preview__meta-line {
+      overflow: visible;
+      text-overflow: unset;
+      white-space: normal;
+    }
+
+    .admin-shell .admin-list-section--events {
+      max-width: 100%;
+      min-width: 0;
+      overflow-x: clip;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events__header-actions .btn,
+    .admin-shell .admin-list-section--events .admin-list-shell__actions .btn {
+      min-height: 44px;
+      width: 100%;
+    }
+
+    /* Ancho útil ~300–430: rail horizontal para no comprimir estados largos. */
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0;
+      grid-template-columns: none;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+      flex: 0 0 auto;
+      justify-content: center;
+      min-width: max-content;
+      text-align: center;
+      white-space: nowrap;
+      width: auto;
+    }
+  }
+
+  /* Inscripciones: a este ancho el chrome deja de entrar en una fila. La
+     búsqueda se queda con el ancho, los exports pasan a icono y cada recorte
+     (evento / estado) baja a su propio riel con etiqueta, en vez de dos
+     chips "Todos" sin contexto compitiendo por el mismo scroll. */
+  @container admin-panel (max-width: 899px) {
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__groups,
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 10px;
+      overflow-x: visible;
+    }
+
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group--rail,
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group--inline {
+      align-items: flex-start;
+      flex: none;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group__label {
+      display: block;
+    }
+
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__actions .export-btn {
+      gap: 0;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0;
+      width: 44px;
+    }
+
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__actions .export-btn__label {
+      display: none;
+    }
+  }
+
+  /* Con el panel ancho vuelve la fila densa: los chips alcanzan y la etiqueta
+     duplicaría lo que el propio riel ya dice. */
+  @container admin-panel (min-width: 900px) {
+    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group__label {
+      display: none;
     }
   }
 }

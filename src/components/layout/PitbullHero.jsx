@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Ticket } from 'lucide-react'
 import { m } from 'motion/react'
 import photoPlatformCrew from '../../assets/DSC00286-display.jpg'
 import photoPlatformCrewAvif from '../../assets/DSC00286-display.avif'
@@ -150,7 +150,24 @@ function PitbullHeroPanel({
               <span className="pitbull-hero-masthead__fee-value">{registrationFee}</span>
             </span>
           </div>
-          <button type="button" className="pitbull-hero-masthead__text-link" onClick={onSecondary}>
+          <button
+            type="button"
+            className={[
+              'pitbull-hero-masthead__text-link',
+              ticketsOpen ? 'pitbull-hero-masthead__text-link--ticket' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={onSecondary}
+          >
+            {ticketsOpen ? (
+              <Ticket
+                size={17}
+                strokeWidth={1.6}
+                aria-hidden
+                className="pitbull-hero-masthead__text-link-icon"
+              />
+            ) : null}
             {secondaryLabel}
           </button>
         </div>

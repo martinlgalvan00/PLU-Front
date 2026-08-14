@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
+import SeasonComboOffer from '../ui/SeasonComboOffer.jsx'
 import '../../styles/components/checkout-desk.css'
 
 /**
@@ -34,13 +35,15 @@ export default function CheckoutDesk({
   const paymentErrorId = paymentError ? errorId : undefined
   const offerItems = offers.map((offer) => {
     const selected = offer.id === selectedOfferId
-    const showLedger = selected && offer.featured && offer.ledger?.length > 0
+    const showDeal = selected && offer.featured && offer.deal
+    const showLedger = selected && offer.featured && !showDeal && offer.ledger?.length > 0
     const OfferTag = selectable ? 'label' : 'div'
     const offerClass = [
       'plu-checkout__offer',
       offer.featured ? 'is-featured' : '',
       selected ? 'is-selected' : '',
       offer.disabled ? 'is-disabled' : '',
+      showDeal ? 'has-deal' : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -60,10 +63,22 @@ export default function CheckoutDesk({
         ) : null}
         <span className="plu-checkout__offer-copy">
           <span className="plu-checkout__offer-name">{offer.name}</span>
-          {offer.savings ? <span className="plu-checkout__offer-save">{offer.savings}</span> : null}
-          {offer.deadline ? <span className="plu-checkout__deadline">{offer.deadline}</span> : null}
+          {showDeal ? null : offer.savings ? (
+            <span className="plu-checkout__offer-save">{offer.savings}</span>
+          ) : null}
         </span>
-        <strong className="plu-checkout__offer-price">{offer.priceLabel}</strong>
+        {showDeal ? null : (
+          <strong className="plu-checkout__offer-price">{offer.priceLabel}</strong>
+        )}
+        {showDeal ? (
+          <SeasonComboOffer
+            variant="compact"
+            membershipPrice={offer.deal.membershipPrice}
+            registrationPrice={offer.deal.registrationPrice}
+            comboPrice={offer.deal.comboPrice}
+            endsAt={offer.deal.endsAt}
+          />
+        ) : null}
         {showLedger ? (
           <ul className="plu-checkout__ledger" aria-hidden>
             {offer.ledger.map((line) => (

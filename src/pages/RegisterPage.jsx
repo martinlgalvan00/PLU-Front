@@ -17,6 +17,7 @@ import {
   Globe,
   MapPin,
   Dumbbell,
+  Tag,
 } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
 import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
@@ -38,11 +39,16 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import {
   resendAthleteVerification,
   checkAthleteAvailability,
+  previewDiscountCode,
   verifyAthleteEmailCode,
 } from '../services/athleteApi.js'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
+import RegistrationAccessCodeFields from '../components/checkout/RegistrationAccessCodeFields.jsx'
+import { previewCheckoutPrice } from '../services/checkoutPricing.js'
+import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
+import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -97,6 +103,17 @@ function PasswordStrengthMeter({ password, t }) {
       </div>
     </div>
   )
+}
+
+function ageAtEvent(birthDate, eventDate) {
+  if (!birthDate || !eventDate) return null
+  const birth = new Date(`${birthDate}T12:00:00`)
+  const event = new Date(eventDate)
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(event.getTime())) return null
+  let age = event.getUTCFullYear() - birth.getUTCFullYear()
+  const birthdayThisYear = new Date(Date.UTC(event.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate()))
+  if (event < birthdayThisYear) age -= 1
+  return age >= 0 ? age : null
 }
 
 function RegisterLiveCredential({ form, t }) {
@@ -377,12 +394,42 @@ export default function RegisterPage({
   const [membershipPaymentInProgress, setMembershipPaymentInProgress] = useState(false)
   const [advancing, setAdvancing] = useState(false)
   const [purchaseType, setPurchaseType] = useState('combo')
+  const [discountCodeInput, setDiscountCodeInput] = useState('')
+  const [discountPreview, setDiscountPreview] = useState(null)
+  const [discountChecking, setDiscountChecking] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+  const [accessRequirements, setAccessRequirements] = useState({ membership: false, registration: false })
+  const [membershipAccessCode, setMembershipAccessCode] = useState('')
+  const [registrationAccessCode, setRegistrationAccessCode] = useState('')
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
+  const competitionPrefillRef = useRef(null)
+  const competitionProfileMissing = useMemo(
+    () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
+    [athlete, flow],
+  )
+  const competitionProfileDetails = useMemo(() => {
+    if (flow !== 'competition' || !athlete) return []
+    const age = ageAtEvent(athlete.birthDate, event?.startsAt ?? event?.starts_at)
+    return [
+      [t('account.personalData.fullName'), athlete.fullName],
+      [t('account.personalData.birthDate'), athlete.birthDate
+        ? `${formatShortDate(athlete.birthDate, locale)}${age === null ? '' : ` · ${age} ${t('pages.register.competitionProfileYears')}`}`
+        : null],
+      [t('account.personalData.phone'), athlete.phone],
+      [t('account.personalData.email'), athlete.email],
+      [t('pages.register.competitionProfileSex'), athlete.sex],
+      [t('account.personalData.gym'), athlete.gym],
+      [t('pages.register.country'), athlete.country],
+      [t('account.personalData.province'), athlete.province],
+      [t('account.personalData.city'), athlete.city],
+      [t('account.personalData.bestTotal'), athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null],
+    ].filter(([, value]) => value)
+  }, [athlete, event, flow, locale, t])
   const profileProgress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -405,7 +452,57 @@ export default function RegisterPage({
     setTransferOpen(false)
     setTransferOrderId(null)
     setChangingMethod(false)
+    setDiscountCodeInput('')
+    setDiscountPreview(null)
+    setDiscountError('')
   }, [flow])
+
+  // El perfil es la fuente de verdad. Al ingresar a un torneo se cargan las
+  // preferencias competitivas guardadas, sin volver a pedirle al atleta datos
+  // que ya confirmó en su cuenta.
+  useEffect(() => {
+    if (flow !== 'competition' || !athlete || competitionPrefillRef.current === athlete.id) return
+    competitionPrefillRef.current = athlete.id
+    ;[
+      ['division', athlete.division],
+      ['category', athlete.category],
+      ['estimatedWeight', athlete.estimatedWeight],
+    ].forEach(([name, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        onUpdateForm({ target: { name, value: String(value) } })
+      }
+    })
+  }, [athlete, flow, onUpdateForm])
+
+  async function applyDiscountCode() {
+    const code = discountCodeInput.trim().toUpperCase()
+    if (!code || !event?.slug) return
+    setDiscountChecking(true)
+    setDiscountError('')
+    setDiscountPreview(null)
+    try {
+      const preview = await previewDiscountCode({
+        code,
+        appliesTo: 'registration',
+        eventSlug: event.slug,
+      })
+      if (!preview.valid) {
+        setDiscountError(t(`pages.register.discountError.${preview.reason ?? 'not_found'}`))
+        return
+      }
+      setDiscountPreview(preview)
+    } catch (error) {
+      setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
+    } finally {
+      setDiscountChecking(false)
+    }
+  }
+
+  function clearDiscountCode() {
+    setDiscountCodeInput('')
+    setDiscountPreview(null)
+    setDiscountError('')
+  }
 
   const content = {
     profile: [t('pages.register.profileTitle'), t('pages.register.profileDesc'), t('pages.register.profileSubmit')],
@@ -459,9 +556,11 @@ export default function RegisterPage({
   const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
     ? 'combo'
     : 'registration'
-  const checkoutTotal = effectivePurchaseType === 'combo'
-    ? comboAvailability.offer.price
-    : total
+  const checkoutTotal = previewCheckoutPrice({
+    concept: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
+    paymentMethod: form.paymentMethod,
+    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
+  })
   const eventPricing = useMemo(() => resolveEventPricing(event), [event])
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
@@ -509,6 +608,27 @@ export default function RegisterPage({
     }
     setPurchaseType(comboEnabled ? 'combo' : 'registration')
   }, [comboEnabled, event?.slug, flow])
+
+  useEffect(() => {
+    if (!['membership', 'competition'].includes(flow)) {
+      setAccessRequirements({ membership: false, registration: false })
+      return undefined
+    }
+    let active = true
+    fetchRegistrationAccessRequirements({ eventSlug: flow === 'competition' ? event?.slug : undefined })
+      .then((requirements) => {
+        if (active) setAccessRequirements(requirements)
+      })
+      .catch(() => {
+        if (active) setAccessRequirements({ membership: false, registration: false })
+      })
+    return () => { active = false }
+  }, [event?.slug, flow])
+
+  const needsMembershipAccessCode = accessRequirements.membership && (
+    flow === 'membership' || effectivePurchaseType === 'combo'
+  )
+  const needsRegistrationAccessCode = accessRequirements.registration && flow === 'competition'
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -749,7 +869,7 @@ export default function RegisterPage({
     }
     if (flow === 'competition') {
       const method = result?.createdOrder?.paymentMethod ?? result?.payment?.method
-      if (method === 'manual_link') {
+      if (method === 'manual_link' && result?.createdOrder?.manualPaymentChannel !== 'cash_pitbull') {
         setChangingMethod(false)
         setTransferOrderId(result?.createdOrder?.paymentId ?? result?.payment?.id ?? null)
         setTransferOpen(true)
@@ -836,6 +956,9 @@ export default function RegisterPage({
       result = await onSubmit(eventObject, event, {
         purchaseType: effectivePurchaseType,
         paymentMethod: form.paymentMethod,
+        discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
+        membershipAccessCode,
+        registrationAccessCode,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -859,7 +982,13 @@ export default function RegisterPage({
       result = await onSubmit(
         { preventDefault() {} },
         event,
-        { purchaseType: effectivePurchaseType, paymentMethod: 'manual_link' },
+        {
+          purchaseType: effectivePurchaseType,
+          paymentMethod: 'manual_link',
+          discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
+          membershipAccessCode,
+          registrationAccessCode,
+        },
       )
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -999,7 +1128,9 @@ export default function RegisterPage({
             {visibleOrder.paymentMethod === 'mercado_pago' ? null : (
               <>
                 <p className="manual-note">{t('pages.register.manualNote')}</p>
-                {flow === 'competition' ? (
+                {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+                  <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
+                ) : flow === 'competition' ? (
                   <button
                     type="button"
                     className="card-trigger-btn"
@@ -1137,6 +1268,10 @@ export default function RegisterPage({
                 order={visibleOrder}
                 onNavigate={onNavigate}
                 onOpenCard={openCardModal}
+                onOpenTransfer={() => {
+                  setTransferOrderId(visibleOrder?.paymentId ?? visibleOrder?.id ?? null)
+                  setTransferOpen(true)
+                }}
                 showCardAction={Boolean(cardData)}
               />
               {cardData && (
@@ -1475,6 +1610,31 @@ export default function RegisterPage({
               </div>
             ) : flow === 'competition' ? (
               <div className="register-competition-form">
+                <section className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}>
+                  <div>
+                    <strong>{t('pages.register.competitionProfileTitle')}</strong>
+                    <p>
+                      {competitionProfileMissing.length
+                        ? t('pages.register.competitionProfileMissing')
+                      : t('pages.register.competitionProfileReady')}
+                    </p>
+                    {competitionProfileDetails.length ? (
+                      <dl className="register-profile-readiness__details">
+                        {competitionProfileDetails.map(([label, value]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
+                  </div>
+                  <button type="button" onClick={() => onNavigate?.('profile')}>
+                    {competitionProfileMissing.length
+                      ? t('pages.register.competitionProfileAction')
+                      : t('pages.register.competitionProfileReview')}
+                  </button>
+                </section>
                 {/* Sin `step`: la inscripción tiene una sola sección. El "01"
                     prometía una secuencia que no existe. */}
                 <FormSection
@@ -1535,6 +1695,51 @@ export default function RegisterPage({
                   />
                 ) : null}
 
+                {isPaidCheckout && effectivePurchaseType === 'registration' ? (
+                  <div className="register-discount">
+                    {discountPreview ? (
+                      <p className="register-discount__applied">
+                        <Tag size={14} aria-hidden />
+                        {t('pages.register.discountApplied', {
+                          code: discountPreview.code,
+                          amount: money(discountPreview.discountAmount, locale),
+                        })}
+                        <button type="button" onClick={clearDiscountCode} disabled={submitting}>
+                          {t('pages.register.discountRemove')}
+                        </button>
+                      </p>
+                    ) : (
+                      <>
+                        <label className="register-discount__label" htmlFor="registration-discount-code">
+                          {t('pages.register.discountLabel')}
+                        </label>
+                        <div className="register-discount__row">
+                          <input
+                            id="registration-discount-code"
+                            type="text"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder={t('pages.register.discountPlaceholder')}
+                            value={discountCodeInput}
+                            disabled={submitting || discountChecking}
+                            onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
+                          />
+                          <button
+                            type="button"
+                            disabled={submitting || discountChecking || !discountCodeInput.trim()}
+                            onClick={applyDiscountCode}
+                          >
+                            {discountChecking ? t('pages.register.discountChecking') : t('pages.register.discountApply')}
+                          </button>
+                        </div>
+                        {discountError ? (
+                          <p className="register-discount__error" role="alert">{discountError}</p>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+
                 {showEligibilityNote && (
                   <div className="register-eligibility-note" role="status">
                     <p>{t('pages.register.membershipRequiredForCompetition')}</p>
@@ -1590,6 +1795,16 @@ export default function RegisterPage({
                   showPayment
                 />
               ) : null}
+
+              <RegistrationAccessCodeFields
+                membershipRequired={needsMembershipAccessCode}
+                registrationRequired={needsRegistrationAccessCode}
+                membershipCode={membershipAccessCode}
+                registrationCode={registrationAccessCode}
+                onMembershipCodeChange={setMembershipAccessCode}
+                onRegistrationCodeChange={setRegistrationAccessCode}
+                disabled={submitting}
+              />
 
               {flow === 'profile' && profileStepIndex > 0 && (
                 <button type="button" className="register-card__back btn btn--outline" onClick={goBackProfileStep}>
@@ -1668,7 +1883,7 @@ export default function RegisterPage({
           amount={visibleOrder?.amount ?? checkoutTotal}
           orderId={transferOrderId ?? visibleOrder?.paymentId ?? visibleOrder?.id ?? null}
           onClose={() => setTransferOpen(false)}
-          purpose="competition"
+          purpose={flow === 'membership' ? 'membership' : 'competition'}
         />
       ) : null}
     </main>

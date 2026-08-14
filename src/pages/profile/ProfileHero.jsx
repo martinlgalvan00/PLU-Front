@@ -1,12 +1,14 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import DigitalCredential from '../../components/ui/DigitalCredential.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
+import { isProfileComplete } from '../../lib/athleteProfile.js'
 
 export default function ProfileHero({ athlete, membership, athleteRegistrations, nextEvent, onNavigateSection }) {
   const { t } = useI18n()
   const membershipActive = membership?.status === 'activa'
   const activeRegistrations = athleteRegistrations.filter((item) => item.status !== 'cancelada')
+  const profileStatus = isProfileComplete(athlete)
 
   return (
     <section className="account-hero">
@@ -54,6 +56,17 @@ export default function ProfileHero({ athlete, membership, athleteRegistrations,
           >
             <Pencil size={14} strokeWidth={1.75} aria-hidden />
             <span>{t('account.hero.editData')}</span>
+            {/* Badge inline de completitud en el botón */}
+            {profileStatus.complete ? (
+              <span className="account-hero__profile-badge account-hero__profile-badge--ok" aria-label={t('account.personalData.profileComplete')}>
+                <CheckCircle2 size={12} aria-hidden />
+              </span>
+            ) : (
+              <span className="account-hero__profile-badge account-hero__profile-badge--warn" aria-label={t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, { count: profileStatus.missing.length })}>
+                <AlertCircle size={12} aria-hidden />
+                {profileStatus.missing.length}
+              </span>
+            )}
           </button>
         </div>
 

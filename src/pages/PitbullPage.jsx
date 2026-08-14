@@ -30,6 +30,7 @@ import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
+import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -39,7 +40,7 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, formatShortDate, money } from '../lib/format.js'
+import { formatRelativeTime, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
@@ -599,12 +600,6 @@ function PitbullInscriptionSection({
   const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
   const statusTone = softLaunch ? 'neutral' : statusMeta.tone
   const comboLive = Boolean(comboOffer) && !softLaunch && !hasActiveMembership
-  const separateTotal = Number(pricing.membership) + Number(pricing.registration)
-  const comboSavings = comboLive ? Math.max(0, separateTotal - Number(comboOffer.price)) : 0
-  const comboEndsLabel = comboOffer?.endsAt
-    ? formatShortDate(String(comboOffer.endsAt).slice(0, 10), locale)
-    : null
-
   const bodyGroupMotion = {
     hidden: {},
     show: { transition: { staggerChildren: MOTION_STAGGER.step, delayChildren: 0.24 } },
@@ -668,67 +663,40 @@ function PitbullInscriptionSection({
         />
 
         <Body className="pitbull-inscription-shell__body" {...bodyProps}>
-          <Pricing
-            className={[
-              'pitbull-inscription-shell__pricing',
-              comboLive ? 'pitbull-inscription-shell__pricing--combo' : '',
-            ].filter(Boolean).join(' ')}
-            aria-label={t('pages.pitbull.costsAria')}
-            {...childProps}
-          >
-            {comboLive ? (
-              <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--combo">
-                <dt>{t('pages.pitbull.costCombo')}</dt>
-                <dd>
-                  <span className="pitbull-inscription-shell__combo-amount">
-                    {money(comboOffer.price, locale)}
-                  </span>
-                </dd>
-                <p className="pitbull-inscription-shell__combo-desc">
-                  {t('pages.pitbull.cardDescCombo')}
-                </p>
-                {comboEndsLabel || comboSavings > 0 ? (
-                  <p className="pitbull-inscription-shell__combo-meta">
-                    {comboSavings > 0 ? (
-                      <span className="pitbull-inscription-shell__combo-hint">
-                        {t('pages.pitbull.costComboSavings', { amount: money(comboSavings, locale) })}
-                      </span>
-                    ) : null}
-                    {comboSavings > 0 && comboEndsLabel ? (
-                      <span aria-hidden className="pitbull-inscription-shell__combo-sep">
-                        ·
-                      </span>
-                    ) : null}
-                    {comboEndsLabel ? (
-                      <small>{t('pages.pitbull.costComboUntil', { date: comboEndsLabel })}</small>
-                    ) : null}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {hasActiveMembership ? (
-              <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--meet-only">
-                <dt>{t('pages.pitbull.costMeet')}</dt>
-                <dd>{money(pricing.registration, locale)}</dd>
-              </div>
-            ) : (
-              <div
-                className={[
-                  'pitbull-inscription-shell__compare',
-                  comboLive ? 'pitbull-inscription-shell__compare--ledger' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                <div className="pitbull-inscription-shell__price">
-                  <dt>{t('pages.pitbull.costMembership')}</dt>
-                  <dd>{money(pricing.membership, locale)}</dd>
-                </div>
-                <div className="pitbull-inscription-shell__price">
+          {comboLive ? (
+            <SeasonComboOffer
+              variant="inline"
+              className="pitbull-inscription-shell__combo-offer"
+              membershipPrice={pricing.membership}
+              registrationPrice={pricing.registration}
+              comboPrice={comboOffer.price}
+              endsAt={comboOffer.endsAt}
+            />
+          ) : (
+            <Pricing
+              className="pitbull-inscription-shell__pricing"
+              aria-label={t('pages.pitbull.costsAria')}
+              {...childProps}
+            >
+              {hasActiveMembership ? (
+                <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--meet-only">
                   <dt>{t('pages.pitbull.costMeet')}</dt>
                   <dd>{money(pricing.registration, locale)}</dd>
                 </div>
-              </div>
-            )}
-          </Pricing>
+              ) : (
+                <div className="pitbull-inscription-shell__compare">
+                  <div className="pitbull-inscription-shell__price">
+                    <dt>{t('pages.pitbull.costMembership')}</dt>
+                    <dd>{money(pricing.membership, locale)}</dd>
+                  </div>
+                  <div className="pitbull-inscription-shell__price">
+                    <dt>{t('pages.pitbull.costMeet')}</dt>
+                    <dd>{money(pricing.registration, locale)}</dd>
+                  </div>
+                </div>
+              )}
+            </Pricing>
+          )}
 
           <Footer
             className={[

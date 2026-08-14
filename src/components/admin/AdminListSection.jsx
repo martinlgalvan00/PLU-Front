@@ -11,6 +11,17 @@ function hasActions(actions) {
   return Children.toArray(actions).length > 0
 }
 
+function mergeActionSlots(primary, extra) {
+  if (!hasActions(extra)) return hasActions(primary) ? primary : null
+  if (!hasActions(primary)) return extra
+  return (
+    <>
+      {primary}
+      {extra}
+    </>
+  )
+}
+
 function useIsNarrow(query = COMPACT_STATS_MQ) {
   const [isNarrow, setIsNarrow] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -67,8 +78,19 @@ export default function AdminListSection({
     .filter(Boolean)
     .join(' ')
 
+  const showActions = hasActions(actions)
+  const relocateActionsToFilters = isNarrow && showActions && variant === 'registrations'
+  const headerActionsVisible = showActions && !relocateActionsToFilters
+  const filterBarActions = mergeActionSlots(
+    filterActions,
+    relocateActionsToFilters ? actions : null,
+  )
+
   const showFilterBar =
-    showFilters && (Boolean(onQueryChange) || filters.length > 0 || Boolean(filterActions))
+    showFilters &&
+    (Boolean(onQueryChange) ||
+      filters.length > 0 ||
+      hasActions(filterBarActions))
 
   // Los chips de filtro que ya traen su propio conteo cubren la misma información
   // que el strip de stats; en pantallas chicas repetirla cuesta una barra entera.
@@ -116,7 +138,7 @@ export default function AdminListSection({
 
   const filterBar = showFilterBar ? (
     <AdminFilterBar
-      actions={filterActions}
+      actions={filterBarActions}
       className={[
         'admin-filters--external',
         variant ? `admin-filters--${variant}` : '',
@@ -133,15 +155,14 @@ export default function AdminListSection({
     />
   ) : null
 
-  const showActions = hasActions(actions)
   const hasExternalHeader =
     showHeader &&
     (Boolean(title) ||
       Boolean(eyebrow) ||
       Boolean(subtitle) ||
       Boolean(headerMeta) ||
-      showActions)
-  const hasExternalToolbar = !showHeader && (showActions || Boolean(headerMeta))
+      headerActionsVisible)
+  const hasExternalToolbar = !showHeader && (headerActionsVisible || Boolean(headerMeta))
   const hasChrome =
     hasExternalHeader || hasExternalToolbar || Boolean(beforeFilters) || Boolean(filterBar)
 
@@ -169,7 +190,9 @@ export default function AdminListSection({
                   </span>
                 )}
               </div>
-              {showActions ? <div className="admin-list-shell__actions">{actions}</div> : null}
+              {headerActionsVisible ? (
+                <div className="admin-list-shell__actions">{actions}</div>
+              ) : null}
             </header>
           ) : null}
 
@@ -180,7 +203,9 @@ export default function AdminListSection({
                   {headerMeta}
                 </span>
               )}
-              {showActions ? <div className="admin-list-shell__actions">{actions}</div> : null}
+              {headerActionsVisible ? (
+                <div className="admin-list-shell__actions">{actions}</div>
+              ) : null}
             </div>
           ) : null}
 

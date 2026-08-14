@@ -30,8 +30,16 @@ import {
   staffLimiter,
 } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
+import {
+  checkoutPriceFor,
+  manualPaymentChannel,
+  storagePaymentMethod,
+} from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
-import { buildPaymentConfirmationParams } from '../modules/notifications/paymentNotificationService.js'
+import {
+  buildPaymentConfirmationParams,
+  displayPaymentConcept,
+} from '../modules/notifications/paymentNotificationService.js'
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import {
   anonymousIdentityId,
@@ -68,6 +76,17 @@ import {
   assertAthleteOwnsPath,
   createSupabaseAthleteRepository,
 } from '../modules/athletes/supabaseAthleteRepository.js'
+import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
+import {
+  assertRegistrationAccessCode,
+  resolveRegistrationAccessRequirements,
+} from '../services/registrationAccessService.js'
+import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
+import {
+  assertCheckoutEnabled,
+  assertMembershipCheckoutEnabled,
+  assertRegistrationCheckoutEnabled,
+} from '../services/platformFeatureToggleService.js'
 import {
   ATHLETE_SESSION_COOKIE_NAME,
   createAthleteSession,
@@ -164,26 +183,62 @@ const resetPasswordSchema = z.object({
     .min(12, 'La contraseña debe tener al menos 12 caracteres.')
     .max(72, 'La contraseña es demasiado larga.'),
 })
+const optionalPhone = z.string().trim().max(40).default('').refine((value) => {
+  const digits = value.replace(/\D/g, '')
+  return !value || (digits.length >= 8 && digits.length <= 15)
+}, 'Ingresá un teléfono válido con código de área.')
+const optionalDeclaredBestTotal = z.preprocess((value) => {
+  if (value === undefined || value === null || String(value).trim() === '') return null
+  return Number(String(value).replace(',', '.').replace(/\s*kg$/i, ''))
+}, z.number().finite().min(10).max(2000).nullable())
+
 const updateSchema = z.object({
   // Misma normalización que el alta: editar el perfil con una mayúscula dejaba
   // sin login a una cuenta que venía funcionando.
   email: z.string().trim().toLowerCase().email(), phone: z.string().trim().min(6), city: z.string().trim().min(2),
   province: z.string().trim().min(2), gym: z.string().trim().optional().default(''),
+  emergencyContactName: z.string().trim().max(120).default(''),
+  emergencyContactPhone: optionalPhone,
+  instagramHandle: z.string().trim().max(31).default('').transform((value) => value.replace(/^@/, '')).refine(
+    (value) => !value || /^[A-Za-z0-9._]{1,30}$/.test(value),
+    'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
+  ),
+  bestTotalKg: optionalDeclaredBestTotal,
 })
+const discountCodeField = z.string().trim().toUpperCase().max(32).optional()
+const registrationAccessCodeField = z.string().trim().max(72).optional()
+
 const orderSchema = z.object({
-  paymentMethod: z.enum(['mercado_pago', 'manual_link']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
   planCode: z.string().trim().min(2).default('plu-annual'),
   idempotencyKey: z.string().uuid().default(() => randomUUID()),
+  discountCode: discountCodeField,
+  accessCode: registrationAccessCodeField,
 })
 const registrationSchema = z.object({
   eventSlug: z.string().trim().min(1),
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   bodyweightKg: z.number().min(10).max(250).nullable().optional(),
-  paymentMethod: z.enum(['mercado_pago', 'manual_link']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
   idempotencyKey: z.string().uuid().default(() => randomUUID()),
+  discountCode: discountCodeField,
+  accessCode: registrationAccessCodeField,
 })
-const comboRegistrationSchema = registrationSchema
+// comboRegistrationSchema hereda discountCode de registrationSchema, pero no
+// se reenvia al RPC de combo: los cupones quedan fuera de scope para el
+// combo por decision de producto (ver create_membership_registration_combo_order).
+const comboRegistrationSchema = registrationSchema.extend({
+  membershipAccessCode: registrationAccessCodeField,
+  registrationAccessCode: registrationAccessCodeField,
+})
+
+const discountPreviewSchema = z.object({
+  code: z.string().trim().toUpperCase().min(1).max(32),
+  appliesTo: z.enum(['membership', 'registration']),
+  planCode: z.string().trim().min(1).optional(),
+  eventSlug: z.string().trim().min(1).optional(),
+})
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
@@ -195,6 +250,7 @@ const proofUploadSchema = z.object({
   size: z.number().int().positive().max(5 * 1024 * 1024),
 })
 const proofSchema = z.object({ proofPath: z.string().trim().min(3).max(300) })
+const rejectPaymentSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 const paymentOrdersQuerySchema = z.object({
   status: z.enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado']).optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
@@ -235,10 +291,36 @@ function athleteExistsError(availability) {
   return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
 }
 
-export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env, brevo }) {
+export function createAthleteRoutes({
+  getPrisma,
+  getSupabaseAdmin,
+  repository,
+  registrationAccessRepository,
+  platformSettingsRepository,
+  env = process.env,
+  brevo,
+}) {
   const router = Router()
   const client = () => getSupabaseAdmin?.()
   const repo = () => repository ?? createSupabaseAthleteRepository(client())
+  const accessRepo = () => {
+    // Los dobles históricos de tests no conocen la tabla de tandas. En el
+    // runtime real no hay bypass: la ausencia de tabla/servicio falla cerrada.
+    if (!registrationAccessRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
+      return { findActiveGate: async () => null, recordUse: async () => null }
+    }
+    return registrationAccessRepository ?? createSupabaseRegistrationAccessRepository(client())
+  }
+  const platformSettingsRepo = () => {
+    // Mismo criterio que accessRepo: los dobles de test no conocen la tabla
+    // de interruptores, así que en test quedan abiertos por defecto (igual
+    // que la columna `default true` de la migración). En runtime real no hay
+    // bypass.
+    if (!platformSettingsRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
+      return { get: async () => ({ checkoutEnabled: true, membershipEnabled: true, registrationEnabled: true }) }
+    }
+    return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(client())
+  }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
   const adminGuard = requirePermission(
@@ -445,6 +527,40 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         code: 'EMAIL_NOT_VERIFIED',
       })
     }
+  }
+
+  /**
+   * La inscripción no puede depender de que la UI haya mostrado el aviso: el
+   * mismo requisito se verifica para API, reintentos e idempotencia. Los datos
+   * de emergencia siguen siendo voluntarios para adultos; se piden y se
+   * recuerdan en el perfil, pero no bloquean una inscripción válida.
+   */
+  async function assertCompetitionProfileComplete(profile) {
+    const labels = {
+      full_name: 'nombre y apellido',
+      birth_date: 'fecha de nacimiento',
+      sex: 'sexo competitivo',
+      gym: 'equipo o gimnasio',
+      phone: 'teléfono',
+      country: 'país',
+      province: 'provincia',
+    }
+    const missing = Object.entries(labels)
+      .filter(([field]) => !String(profile?.[field] ?? '').trim())
+      .map(([, label]) => label)
+
+    if (missing.length) {
+      throw new HttpError(
+        422,
+        `Completá tu perfil antes de inscribirte: falta ${missing.join(', ')}.`,
+        { code: 'ATHLETE_PROFILE_INCOMPLETE', missing: Object.keys(labels).filter((field) => !String(profile?.[field] ?? '').trim()) },
+      )
+    }
+  }
+
+  async function recordRegistrationAccessUse(gate, { athleteId, orderId, concept }) {
+    if (!gate) return
+    await accessRepo().recordUse({ gate, athleteId, orderId, concept })
   }
 
   // Público y rate-limited: el wizard pregunta al salir del campo si el
@@ -755,18 +871,52 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     try { const auth = await athlete(req); res.json({ athlete: await repo().update(auth.athleteId, req.validatedBody) }) }
     catch (error) { next(error) }
   })
+  router.get('/me/registration-access-requirements', athleteWriteLimiter, async (req, res, next) => {
+    try {
+      await athlete(req)
+      const eventSlug = String(req.query?.eventSlug ?? '').trim() || null
+      if (eventSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+        throw new HttpError(400, 'El identificador del evento es inválido.')
+      }
+      const [codeRequirements, toggles] = await Promise.all([
+        resolveRegistrationAccessRequirements(accessRepo(), { eventSlug }),
+        platformSettingsRepo().get(),
+      ])
+      const checkoutEnabled = toggles.checkoutEnabled !== false
+      res.json({
+        ...codeRequirements,
+        membershipEnabled: checkoutEnabled && toggles.membershipEnabled !== false,
+        registrationEnabled: checkoutEnabled && toggles.registrationEnabled !== false,
+      })
+    } catch (error) { next(error) }
+  })
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
     const planCode = req.validatedBody?.planCode ?? null
     try {
       await assertPaidCheckoutAvailable(env, new Date(), { client: client(), checkoutKind: 'membership' })
+      const toggles = await platformSettingsRepo().get()
+      assertCheckoutEnabled(toggles)
+      assertMembershipCheckoutEnabled(toggles)
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
       if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
       if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
+      const accessGate = await assertRegistrationAccessCode(accessRepo(), {
+        scope: 'membership',
+        code: req.validatedBody.accessCode,
+      })
       const created = await repo().createMembershipOrder(auth.athleteId, {
         ...req.validatedBody,
+        paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
         planCode: plan.code,
+        orderAmount: checkoutPriceFor({ concept: 'membership', paymentMethod: req.validatedBody.paymentMethod }),
+        manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+      })
+      await recordRegistrationAccessUse(accessGate, {
+        athleteId: auth.athleteId,
+        orderId: created.order.id,
+        concept: 'membership',
       })
       await recordOrderCreated(req, { concept: 'membership', result: created, planCode: plan.code })
       res.status(201).json(created)
@@ -784,9 +934,28 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         skipScheduleLookup: true,
         checkoutKind: 'registration',
       })
+      const toggles = await platformSettingsRepo().get()
+      assertCheckoutEnabled(toggles)
+      assertRegistrationCheckoutEnabled(toggles)
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
-      const created = await repo().createRegistration(auth.athleteId, req.validatedBody)
+      await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+      const accessGate = await assertRegistrationAccessCode(accessRepo(), {
+        scope: 'registration',
+        eventSlug,
+        code: req.validatedBody.accessCode,
+      })
+      const created = await repo().createRegistration(auth.athleteId, {
+        ...req.validatedBody,
+        paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
+        orderAmount: checkoutPriceFor({ concept: 'registration', paymentMethod: req.validatedBody.paymentMethod }),
+        manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+      })
+      await recordRegistrationAccessUse(accessGate, {
+        athleteId: auth.athleteId,
+        orderId: created.order.id,
+        concept: 'registration',
+      })
       await recordOrderCreated(req, { concept: 'registration', result: created, eventSlug })
       res.status(201).json(created)
     } catch (error) {
@@ -807,9 +976,40 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
           skipScheduleLookup: true,
           checkoutKind: 'combo',
         })
+        // El combo crea afiliación e inscripción juntas: si cualquiera de las
+        // dos está cerrada, no hay combo posible.
+        const toggles = await platformSettingsRepo().get()
+        assertCheckoutEnabled(toggles)
+        assertMembershipCheckoutEnabled(toggles)
+        assertRegistrationCheckoutEnabled(toggles)
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        const created = await repo().createRegistrationCombo(auth.athleteId, req.validatedBody)
+        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
+          scope: 'membership',
+          code: req.validatedBody.membershipAccessCode,
+        })
+        const registrationAccessGate = await assertRegistrationAccessCode(accessRepo(), {
+          scope: 'registration',
+          eventSlug,
+          code: req.validatedBody.registrationAccessCode,
+        })
+        const created = await repo().createRegistrationCombo(auth.athleteId, {
+          ...req.validatedBody,
+          paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
+          orderAmount: checkoutPriceFor({ concept: 'combo', paymentMethod: req.validatedBody.paymentMethod }),
+          manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+        })
+        await recordRegistrationAccessUse(membershipAccessGate, {
+          athleteId: auth.athleteId,
+          orderId: created.order.id,
+          concept: 'combo',
+        })
+        await recordRegistrationAccessUse(registrationAccessGate, {
+          athleteId: auth.athleteId,
+          orderId: created.order.id,
+          concept: 'combo',
+        })
         await recordOrderCreated(req, { concept: 'combo', result: created, eventSlug })
         res.status(201).json(created)
       } catch (error) {
@@ -818,6 +1018,34 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       }
     },
   )
+  /**
+   * Preview de solo lectura de un código de descuento: valida y calcula sin
+   * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
+   * monto real que se cobra sale únicamente de la respuesta del POST que crea
+   * la orden (membership-orders/registrations) — nunca de este preview.
+   */
+  router.post('/me/discount-preview', publicWriteLimiter, validateBody(discountPreviewSchema), async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      const { code, appliesTo, planCode, eventSlug } = req.validatedBody
+      let baseAmount
+      if (appliesTo === 'membership') {
+        if (!planCode) throw new HttpError(400, 'Falta el plan de afiliación.')
+        const plan = await repo().findMembershipPlan(planCode)
+        if (!plan) throw new HttpError(404, 'Plan de afiliación no encontrado.')
+        baseAmount = plan.price
+      } else {
+        if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
+        const event = await repo().findEventPricing(eventSlug)
+        if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        baseAmount = event.price
+      }
+      const preview = await repo().previewDiscountCode(auth.athleteId, { code, appliesTo, baseAmount })
+      res.json({ preview })
+    } catch (error) {
+      next(error)
+    }
+  })
   /**
    * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
    * completo (subida firmada + revisión); las de afiliación tenían las
@@ -916,6 +1144,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     const registrationEvent = result.registration?.event_id
       ? await repo().findEventSummary(result.registration.event_id)
       : null
+    // Distingue alta de renovación para el copy del mail: un socio nuevo
+    // recibe bienvenida, uno que renueva recibe la confirmación habitual.
+    const isFirstMembership = result.membership?.id
+      ? await repo().isFirstMembership(order.athlete_id, result.membership.id)
+      : false
 
     await sendBestEffort('payment_confirmation', {
       ...common,
@@ -931,10 +1164,74 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         recipientName: athlete.full_name,
         appUrl,
         registrationEvent,
+        isFirstMembership,
       }),
     })
   }
 
+  /**
+   * Rechazo manual: comprobante revisado y descartado (ilegible, monto
+   * distinto, titular que no coincide). Deja la orden en `rechazado` —mismo
+   * vocabulario terminal que usa el webhook de Mercado Pago— y el socio queda
+   * libre para iniciar una orden nueva: `create_membership_order_v2`/combo
+   * reutilizan la fila de membership `pendiente_pago` del año, no queda
+   * ningún bloqueo residual que lo obligue a esperar.
+   */
+  async function notifyManualRejection(order, reason) {
+    if (!order?.athlete_id) return
+    const athlete = await repo().findContact(order.athlete_id)
+    if (!athlete?.email) return
+
+    await sendBestEffort('payment_rejected', {
+      to: athlete.email,
+      toName: athlete.full_name,
+      entityType: 'athlete_payment_order',
+      entityId: order.id,
+      idempotencyKey: `email:payment-rejected:manual:${order.id}:${order.updated_at}`,
+      params: {
+        name: athlete.full_name,
+        amount: order.amount,
+        concept: displayPaymentConcept(order.concept),
+        reason,
+        retryUrl: `${appUrl}/mi-cuenta?section=payments`,
+      },
+    })
+  }
+
+  router.post('/admin/payment-orders/:orderId/reject', ...financeGuard, staffLimiter, validateBody(rejectPaymentSchema), async (req, res, next) => {
+    const orderId = z.string().uuid().safeParse(req.params.orderId)
+    try {
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      const result = await repo().rejectPayment(orderId.data, req.validatedBody.reason, actorLabel(req))
+      await paymentTrail().record({
+        action: PAYMENT_TRAIL_ACTIONS.manualRejection,
+        entityType: 'athlete_payment_order',
+        entityId: orderId.data,
+        status: result?.order?.status ?? 'rechazado',
+        severity: 'warning',
+        metadata: {
+          stage: 'manual_rejection',
+          method: result?.order?.method ?? 'manual_link',
+          rejectedBy: actorLabel(req),
+          reason: req.validatedBody.reason,
+        },
+      })
+      // Best-effort: la orden ya quedó rechazada, un fallo de email no lo revierte.
+      await notifyManualRejection(result?.order, req.validatedBody.reason).catch((error) =>
+        logger.warn('payment.manual_rejection_email_failed', { orderId: orderId.data, err: error }),
+      )
+      res.json(result)
+    } catch (error) {
+      await paymentTrail().recordFailure({
+        stage: 'manual_rejection',
+        entityType: 'athlete_payment_order',
+        entityId: orderId.success ? orderId.data : String(req.params.orderId),
+        error,
+        metadata: { rejectedBy: req.auth?.user?.email ?? null },
+      })
+      next(error)
+    }
+  })
   /**
    * Bandeja de órdenes de atleta. Antes la única forma de llegar a una orden
    * de afiliación pendiente era entrar atleta por atleta desde el padrón, y el

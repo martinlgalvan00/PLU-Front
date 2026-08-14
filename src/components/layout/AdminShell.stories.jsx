@@ -1,4 +1,6 @@
 import AdminShell from './AdminShell.jsx'
+import '../../styles/layout/admin-shell.css'
+import '../../styles/pages/admin-institutional.css'
 
 export default {
   title: 'Layout/AdminShell',

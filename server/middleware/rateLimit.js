@@ -148,6 +148,21 @@ export const athleteWriteLimiter = buildLimiter(
   'Demasiadas solicitudes. Proba de nuevo en unos minutos.',
 )
 
+/**
+ * Webhook de Mercado Pago. No tenía límite: un request con `id`/`data.id`
+ * que pasa el schema pero falla la firma igual dispara un insert de
+ * auditoría (`rejectWebhook`) antes de rechazarse, así que spam sin
+ * autenticar podía amplificarse en escrituras. Ventana corta y volumen
+ * generoso a propósito -- MP reintenta agresivo desde su propia infraestructura
+ * y varios merchants pueden compartir salida, así que el límite es para frenar
+ * abuso externo, no para regular el tráfico real de MP.
+ */
+export const webhookLimiter = buildLimiter(
+  60 * 1000,
+  120,
+  'Demasiadas notificaciones. Proba de nuevo en un momento.',
+)
+
 // Todo lo staff-only: ya protegido por rol (requireRole), este límite es
 // defensa en profundidad ante una cuenta comprometida o un script/bug de
 // polling descontrolado en el panel admin, no control de abuso primario --

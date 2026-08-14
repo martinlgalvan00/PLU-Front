@@ -1,6 +1,8 @@
 import CheckoutDesk, { CheckoutBar } from './CheckoutDesk.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { formatShortDate, money } from '../../lib/format.js'
+import { resolveComboDeal } from '../../lib/eventPricing.js'
+import { money } from '../../lib/format.js'
+import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
 
 /**
  * Adaptador del flow de inscripción: arma ofertas y medios
@@ -26,36 +28,42 @@ export default function RegisterSettle({
   const { locale, t } = useI18n()
   if (!showPackage && !showPayment) return null
 
-  const comboEndsLabel = comboOffer?.endsAt
-    ? formatShortDate(String(comboOffer.endsAt).slice(0, 10), locale)
-    : null
   const comboSelected = purchaseType === 'combo'
+  const displayedMembershipPrice = previewCheckoutPrice({ concept: 'membership', paymentMethod, fallback: membershipPrice })
+  const displayedRegistrationPrice = previewCheckoutPrice({ concept: 'registration', paymentMethod, fallback: registrationPrice })
+  const displayedComboPrice = previewCheckoutPrice({ concept: 'combo', paymentMethod, fallback: comboOffer?.price ?? 0 })
+  const displayedDeal = resolveComboDeal({
+    membership: displayedMembershipPrice,
+    registration: displayedRegistrationPrice,
+    combo: displayedComboPrice,
+  })
   const offers = []
 
   if (showPackage && (comboEnabled || comboComingSoon)) {
     offers.push({
       id: 'combo',
       name: t('account.membership.comboTitle'),
-      priceLabel: comboOffer ? money(comboOffer.price, locale) : '—',
+      priceLabel: comboOffer ? money(displayedComboPrice, locale) : '—',
       featured: true,
       disabled: comboComingSoon,
-      savings:
-        comboSavings > 0
-          ? t('pages.register.packageSavings', { amount: money(comboSavings, locale) })
-          : '',
-      deadline: comboEndsLabel
-        ? t('account.membership.comboUntil', { date: comboEndsLabel })
+      // El ahorro se anuncia con los precios que se muestran para el medio
+      // elegido. Con los de lista, un combo sin descuento real seguía diciendo
+      // "ahorrás".
+      savings: displayedDeal?.live
+        ? displayedDeal.percent > 0
+          ? t('comboDeal.percent', { percent: displayedDeal.percent })
+          : t('pages.register.packageSavings', { amount: money(comboSavings, locale) })
         : '',
-      ledger: [
-        {
-          label: t('pages.register.membershipPlanLabel'),
-          amount: money(membershipPrice, locale),
-        },
-        {
-          label: t('pages.register.checkoutRegistrationLine'),
-          amount: money(registrationPrice, locale),
-        },
-      ],
+      // Mismo criterio para el bloque de promo: `SeasonComboOffer` se apaga
+      // solo si no hay ahorro, y la fila quedaba sin ningún precio visible.
+      deal: comboOffer && displayedDeal?.live
+        ? {
+          membershipPrice: displayedMembershipPrice,
+          registrationPrice: displayedRegistrationPrice,
+          comboPrice: displayedComboPrice,
+          endsAt: comboOffer.endsAt,
+        }
+        : null,
     })
   }
 
@@ -63,14 +71,15 @@ export default function RegisterSettle({
     offers.push({
       id: 'registration',
       name: t('account.membership.comboSeparate'),
-      priceLabel: money(registrationPrice, locale),
+      priceLabel: money(displayedRegistrationPrice, locale),
     })
   }
 
   const methods = showPayment
       ? [
           { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-        { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
+          { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
+          { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
       ]
     : []
 
