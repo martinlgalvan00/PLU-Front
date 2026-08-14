@@ -267,7 +267,15 @@ export default function MembersPage({
       </Reveal>
 
       <div className="members-page__body">
-        <section className="members-section members-section--plans members-plu-plans" id="planes">
+        <section
+          className={[
+            'members-section',
+            'members-section--plans',
+            'members-plu-plans',
+            showComboPromo ? 'members-plu-plans--with-combo' : '',
+          ].filter(Boolean).join(' ')}
+          id="planes"
+        >
           <header className="members-plu-block__head members-plu-plans__head">
             <p className="members-plu-process__eyebrow">{t('pages.members.plansEyebrow')}</p>
             <h2 className="members-plu-block__title">{t('pages.members.plansTitle')}</h2>

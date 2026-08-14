@@ -9,10 +9,19 @@
    repartir → días con carga → roster por tanda.
    ═══════════════════════════════════════════════════════════════════ */
 
+.admin-page:has(.admin-board) {
+  container-name: admin-board;
+  container-type: inline-size;
+}
+
 .admin-board {
+  container-name: admin-board;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .admin-board--setup {
@@ -97,6 +106,8 @@
 .admin-board__autofill-field input,
 .admin-board__session-edit-field input {
   min-height: 38px;
+  min-width: 0;
+  width: 100%;
   padding: 7px 10px;
   background: transparent;
   border: none;
@@ -364,11 +375,12 @@
 }
 
 /* ── Layout ─────────────────────────────────────────────────────────
-   Pendientes a la izquierda, días a la derecha. En mobile la bolsa va
-   primero: es el trabajo, no un accesorio. */
+   Desktop (≥900 del tablero): pendientes sticky a la izquierda.
+   Notebook/mobile: bolsa compacta arriba y días en riel con snap —
+   el rail de 76px achica el contenido sin achicar el viewport. */
 .admin-board__layout {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-lg);
   align-items: start;
 }
@@ -387,17 +399,26 @@
 }
 
 .admin-board__pool {
-  position: sticky;
-  top: var(--space-md);
-  max-height: calc(100vh - var(--space-2xl));
+  max-height: min(42vh, 320px);
   overflow-y: auto;
 }
 
 .admin-board__days {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+  flex-direction: row;
+  gap: var(--space-md);
   min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.admin-board__day {
+  flex: 0 0 85%;
+  max-width: 36rem;
+  min-width: min(100%, 18rem);
+  scroll-snap-align: start;
 }
 
 .admin-board__panel-head {
@@ -439,6 +460,69 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--color-text-muted);
+}
+
+.admin-board__pool .admin-board__list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.admin-board__pool .admin-board__athlete {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  flex: 0 1 auto;
+  min-height: 44px;
+  padding: 4px 10px;
+}
+
+.admin-board__pool .admin-board__athlete:last-child {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+@container admin-board (min-width: 900px) {
+  .admin-board__layout {
+    grid-template-columns: minmax(260px, 320px) 1fr;
+  }
+
+  .admin-board__pool {
+    max-height: calc(100vh - var(--space-2xl));
+    position: sticky;
+    top: var(--space-md);
+  }
+
+  .admin-board__days {
+    flex-direction: column;
+    gap: var(--space-lg);
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .admin-board__day {
+    flex: none;
+    max-width: none;
+    min-width: 0;
+    width: auto;
+  }
+
+  .admin-board__pool .admin-board__list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+
+  .admin-board__pool .admin-board__athlete {
+    border-inline: 0;
+    border-radius: 0;
+    border-top: 0;
+    flex: none;
+    padding: 6px 0;
+  }
+
+  .admin-board__pool .admin-board__athlete:last-child {
+    border-bottom: none;
+  }
 }
 
 /* ── Reparto sugerido ───────────────────────────────────────────────── */
@@ -513,7 +597,7 @@
   border-radius: 8px;
   color: var(--color-text-muted);
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
   transition:
     opacity var(--transition-fast),
     color var(--transition-fast),
@@ -522,7 +606,7 @@
 
 .admin-board__session-head:hover .admin-board__icon-btn,
 .admin-board__icon-btn:focus-visible {
-  opacity: 1;
+  color: var(--color-text-primary);
 }
 
 .admin-board__icon-btn:hover {
@@ -537,7 +621,8 @@
 
 @media (hover: none) {
   .admin-board__icon-btn {
-    opacity: 0.75;
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -573,7 +658,7 @@
   gap: var(--space-md);
 }
 
-@media (max-width: 900px) {
+@container admin-board (max-width: 719px) {
   .admin-board__session-edit-grid {
     grid-template-columns: 1fr;
   }
@@ -757,31 +842,149 @@
   color: var(--color-text-primary);
 }
 
-@media (max-width: 1024px) {
-  .admin-board__layout {
-    grid-template-columns: 1fr;
+/* El corte mira el ancho del tablero, no el viewport: con el rail de 76px
+   el contenido ya es angosto aunque el browser mida 1024. */
+@container admin-board (max-width: 719px) {
+  .admin-board {
+    gap: var(--space-sm);
   }
 
-  .admin-board__pool {
-    position: static;
-    max-height: none;
+  .admin-board__header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 10px;
   }
-}
 
-@media (max-width: 640px) {
-  .admin-board__movebar-field,
-  .admin-board__event-picker {
-    min-width: 100%;
+  .admin-board__heading {
+    flex: none;
+  }
+
+  .admin-board__title {
+    font-size: clamp(22px, 6cqi, 26px);
+  }
+
+  .admin-board__lead {
+    max-width: none;
+    font-size: 13px;
+  }
+
+  .admin-board__event-picker,
+  .admin-board__movebar-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-board__event-picker select,
+  .admin-board__movebar-field select,
+  .admin-board__autofill-field input,
+  .admin-board__session-edit-field input {
+    min-height: 44px;
   }
 
   .admin-board__totals {
-    gap: var(--space-md) var(--space-lg);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 12px;
+    padding: 8px 0;
+  }
+
+  .admin-board__total dd {
+    font-size: 18px;
+  }
+
+  .admin-board__total--lead dd {
+    font-size: clamp(22px, 7cqi, 28px);
+  }
+
+  .admin-board__drag-hint {
+    font-size: 12px;
+  }
+
+  .admin-board__movebar {
+    align-items: stretch;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr auto;
+    padding: 10px 12px;
+  }
+
+  .admin-board__movebar-count,
+  .admin-board__movebar-field {
+    grid-column: 1 / -1;
+  }
+
+  .admin-board__movebar-count {
+    margin: 0;
+  }
+
+  .admin-board__movebar .btn,
+  .admin-board__movebar .admin-board__text-btn,
+  .admin-board__autofill .btn {
+    min-height: 44px;
+  }
+
+  .admin-board__text-btn {
+    align-self: stretch;
+    min-height: 44px;
+    padding: 10px 4px;
+  }
+
+  .admin-board__layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .admin-board__pool {
+    max-height: min(36vh, 280px);
   }
 
   .admin-board__pool,
   .admin-board__day {
-    padding: var(--space-sm) var(--space-md) var(--space-md);
+    padding: 10px 12px 12px;
     border-radius: 14px;
+  }
+
+  .admin-board__autofill {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .admin-board__autofill-field {
+    flex: 1 1 7rem;
+  }
+
+  .admin-board__autofill-field input {
+    width: 100%;
+  }
+
+  .admin-board__icon-btn {
+    height: 44px;
+    width: 44px;
+  }
+}
+
+@container admin-board (max-width: 430px) {
+  .admin-board__header {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .admin-board__eyebrow {
+    letter-spacing: 0.1em;
+  }
+
+  .admin-board__title {
+    font-size: 22px;
+  }
+
+  .admin-board__lead {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .admin-board__totals {
+    gap: 6px 8px;
   }
 }
 

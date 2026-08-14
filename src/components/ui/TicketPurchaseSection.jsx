@@ -1,6 +1,15 @@
 import '../../styles/components/ticket-purchase.css'
 import { useMemo, useState } from 'react'
-import { ArrowRight, CreditCard, IdCard, Landmark, Minus, Plus, QrCode, Ticket as TicketIcon } from 'lucide-react'
+import {
+  ArrowRight,
+  CreditCard,
+  IdCard,
+  Landmark,
+  Minus,
+  Plus,
+  QrCode,
+  Ticket as TicketIcon,
+} from 'lucide-react'
 import Button from './Button.jsx'
 import CardPreviewModal from './CardPreviewModal.jsx'
 import FormSection from './FormSection.jsx'
@@ -499,8 +508,18 @@ export default function TicketPurchaseSection({
                 <dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd>
               </div>
               <div>
-                <dt>{t('account.membership.transferCbu')}</dt>
-                <dd>{env.payments.transferCbu || t('account.membership.transferAskAdmin')}</dd>
+                <dt>{t('account.membership.transferAccount')}</dt>
+                <dd>{t('account.membership.transferAccountValue')}</dd>
+              </div>
+              {env.payments.transferCbu ? (
+                <div>
+                  <dt>{t('account.membership.transferCbu')}</dt>
+                  <dd>{env.payments.transferCbu}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>{t('account.membership.transferHolder')}</dt>
+                <dd>{env.payments.transferHolder || t('account.membership.transferAskAdmin')}</dd>
               </div>
               <div>
                 <dt>{t('account.membership.transferReference')}</dt>
@@ -511,6 +530,9 @@ export default function TicketPurchaseSection({
                 <dd>{money(visibleOrder.amount, locale)}</dd>
               </div>
             </dl>
+            <p className="ticket-purchase__transfer-warning" role="note">
+              {t('account.membership.transferVerifyWarning')}
+            </p>
             {visibleOrder.paymentProofUploadedAt || proofUploaded ? (
               <p className="ticket-purchase__proof-success">{t('pages.tickets.proofUploaded')}</p>
             ) : (

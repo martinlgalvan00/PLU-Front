@@ -92,7 +92,8 @@
    Fijo arriba para que se lea sin depender de donde quedo el scroll.
    ============================================= */
 
-.email-verification-notice {
+.email-verification-notice,
+.session-notice {
   display: flex;
   justify-content: center;
   left: 0;
@@ -104,7 +105,8 @@
   z-index: 60;
 }
 
-.email-verification-notice .status-pill {
+.email-verification-notice .status-pill,
+.session-notice .status-pill {
   box-shadow: var(--elevation-md);
   max-width: min(92vw, 520px);
 }
@@ -129,7 +131,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .email-verification-notice {
+  .email-verification-notice,
+  .session-notice {
     animation: email-verification-in var(--motion-base, 240ms) var(--ease-standard, ease) both;
   }
 }

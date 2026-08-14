@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
+  ArrowLeft,
   CalendarClock,
   Check,
   ImageDown,
   RefreshCw,
   ShieldCheck,
-  X,
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
@@ -20,62 +20,10 @@ import {
 } from '../../services/membershipService.js'
 import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDesk.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
-import BrandLogo from '../../components/ui/BrandLogo.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
-import { usePaymentModal } from '../../components/checkout/usePaymentModal.js'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
-
-function MpCheckoutModal({ order, onClose }) {
-  const { t } = useI18n()
-  const panelRef = usePaymentModal(onClose)
-
-  return (
-    <div className="account-payment-modal__overlay" role="presentation" onMouseDown={onClose}>
-      <section
-        ref={panelRef}
-        aria-labelledby="mp-checkout-modal-title"
-        aria-describedby="mp-checkout-modal-lead"
-        aria-modal="true"
-        className="account-payment-modal account-payment-modal--checkout"
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-      >
-        <header className="account-payment-modal__header">
-          <div className="account-payment-modal__intro">
-            <BrandLogo
-              variant="letterhead"
-              height={22}
-              letterheadBlend
-              imgClassName="account-payment-modal__logo"
-            />
-            <div className="account-payment-modal__titles">
-              <span>{t('account.membership.checkoutBridgeLabel')}</span>
-              <h2 id="mp-checkout-modal-title">{t('account.membership.completePaymentTitle')}</h2>
-              <p id="mp-checkout-modal-lead" className="account-payment-modal__lead">
-                {t('account.membership.completePaymentLead')}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="account-payment-modal__close"
-            onClick={onClose}
-            aria-label={t('account.membership.mpCheckoutClose')}
-          >
-            <X size={18} />
-          </button>
-        </header>
-        <div className="account-payment-modal__body">
-          <div className="account-payment-modal__bridge-stage">
-            <MercadoPagoEmbeddedCheckout order={order} presentation="modal" />
-          </div>
-        </div>
-      </section>
-    </div>
-  )
-}
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -92,7 +40,7 @@ export default function MembershipPurchaseSection({
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
-  const [mpModalOpen, setMpModalOpen] = useState(false)
+  const [changingMethod, setChangingMethod] = useState(false)
   const [plans, setPlans] = useState([])
   const [planCode, setPlanCode] = useState('plu-annual')
   const [cardOpen, setCardOpen] = useState(false)
@@ -149,8 +97,13 @@ export default function MembershipPurchaseSection({
     : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
-  const checkoutLocked = submitting || Boolean(embeddedOrder)
-  const ctaDisabled = !selectedPlan || submitting || (Boolean(embeddedOrder) && mpModalOpen)
+  const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
+  const ctaDisabled = !selectedPlan || submitting
+  // Igual que el settle de inscripción a torneo: en cuanto hay una orden de
+  // Mercado Pago, la propia sección se convierte en la pantalla de cobro en
+  // vez de abrir un modal aparte — con la flecha de "cambiar método" para
+  // volver al selector sin quedar trabado.
+  const mpSettling = Boolean(embeddedOrder) && embeddedOrder.paymentMethod === 'mercado_pago' && !changingMethod
   const oneTimePlan = useMemo(
     () => availablePlans.find((plan) => plan.collectionMode !== 'recurring') ?? null,
     [availablePlans],
@@ -242,13 +195,9 @@ export default function MembershipPurchaseSection({
     }
   }, [paymentMethod, selectedPlan?.collectionMode])
 
-  function openMpCheckout() {
-    if (!embeddedOrder) return
-    setMpModalOpen(true)
-  }
-
-  async function startMembershipPayment() {
-    if (submitting || embeddedOrder) return
+  async function startMembershipPayment(methodOverride) {
+    const method = methodOverride ?? paymentMethod
+    if (submitting) return
     setCheckoutMessage('')
     setCheckoutIsError(false)
     if (!selectedPlan) {
@@ -259,13 +208,18 @@ export default function MembershipPurchaseSection({
 
     setSubmitting(true)
     try {
-      const result = await onStartMembershipPayment?.(paymentMethod, selectedPlan.code)
+      const result = await onStartMembershipPayment?.(method, selectedPlan.code)
       if (result?.error) {
         setCheckoutMessage(result.error)
         setCheckoutIsError(true)
         return
       }
-      if (paymentMethod === 'transferencia') {
+      if (method === 'transferencia') {
+        // Puede venir de cambiar de método con una orden de Mercado Pago
+        // todavía pendiente: esa pantalla de settle deja de tener sentido en
+        // cuanto se abre el modal de transferencia.
+        setEmbeddedOrder(null)
+        setChangingMethod(false)
         // El id de la orden habilita la subida del comprobante dentro del mismo
         // modal: es el momento en que el atleta tiene el ticket bancario a mano.
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
@@ -274,7 +228,7 @@ export default function MembershipPurchaseSection({
       }
       if (result?.createdOrder) {
         setEmbeddedOrder(result.createdOrder)
-        setMpModalOpen(true)
+        setChangingMethod(false)
         return
       }
       setCheckoutMessage(t('account.membership.checkoutUnavailable'))
@@ -288,10 +242,6 @@ export default function MembershipPurchaseSection({
   }
 
   function handleCheckoutAction() {
-    if (embeddedOrder) {
-      openMpCheckout()
-      return
-    }
     void startMembershipPayment()
   }
 
@@ -500,84 +450,118 @@ export default function MembershipPurchaseSection({
             <li><Check size={14} aria-hidden /> {t('account.membership.benefitEvents')}</li>
           </ul>
 
-          <div className="account-membership__checkout">
-            {plansState === 'loading' ? (
-              <p className="account-plan-feedback" role="status">
-                {t('account.membership.planLoading')}
-              </p>
-            ) : null}
-            {plansState === 'error' || (plansState === 'ready' && !selectedPlan) ? (
-              <div className="account-plan-feedback account-plan-feedback--error" role="alert">
-                <AlertCircle size={16} aria-hidden />
-                <span>{plansError || t('account.membership.planLoadError')}</span>
-                <button type="button" onClick={() => loadPlans({ force: true })}>
-                  <RefreshCw size={14} aria-hidden />
-                  {t('account.membership.retryPlans')}
+          {mpSettling ? (
+            <div className="account-membership__settle">
+              <div className="account-membership__settle-bar">
+                <button
+                  type="button"
+                  className="account-membership__settle-back"
+                  onClick={() => setChangingMethod(true)}
+                >
+                  <ArrowLeft size={15} aria-hidden />
+                  {t('account.membership.changePaymentMethod')}
+                </button>
+                <button
+                  type="button"
+                  className="account-membership__settle-alt"
+                  disabled={submitting}
+                  onClick={() => void startMembershipPayment('transferencia')}
+                >
+                  {t('account.membership.payByTransfer')}
                 </button>
               </div>
-            ) : null}
-
-            {showPlanSwitch ? (
-              <div className={`account-membership__billing${checkoutLocked ? ' is-locked' : ''}`}>
-                <div className="account-membership__billing-head">
-                  <span className="account-membership__billing-label" id="membership-billing-label">
-                    {t('account.membership.planModeLegend')}
-                  </span>
-                  <p className="account-membership__billing-hint">{billingHint}</p>
+              <MercadoPagoEmbeddedCheckout order={embeddedOrder} presentation="settle" />
+            </div>
+          ) : (
+            <div className="account-membership__checkout">
+              {changingMethod && embeddedOrder ? (
+                <button
+                  type="button"
+                  className="account-membership__settle-back"
+                  onClick={() => setChangingMethod(false)}
+                >
+                  <ArrowLeft size={15} aria-hidden />
+                  {t('account.membership.backToMercadoPago')}
+                </button>
+              ) : null}
+              {plansState === 'loading' ? (
+                <p className="account-plan-feedback" role="status">
+                  {t('account.membership.planLoading')}
+                </p>
+              ) : null}
+              {plansState === 'error' || (plansState === 'ready' && !selectedPlan) ? (
+                <div className="account-plan-feedback account-plan-feedback--error" role="alert">
+                  <AlertCircle size={16} aria-hidden />
+                  <span>{plansError || t('account.membership.planLoadError')}</span>
+                  <button type="button" onClick={() => loadPlans({ force: true })}>
+                    <RefreshCw size={14} aria-hidden />
+                    {t('account.membership.retryPlans')}
+                  </button>
                 </div>
-                <SegmentedSwitch
-                  active={billingSwitchEnabled ? billingMode : (selectedPlan?.code ?? '')}
-                  ariaLabel={t('account.membership.planModeLegend')}
-                  className="segmented-switch--membership"
-                  onChange={changeBillingMode}
-                  options={billingOptions}
-                />
-              </div>
-            ) : null}
+              ) : null}
 
-            <CheckoutDesk
-              bar={
-                selectedPlan ? (
-                  <CheckoutBar
-                    ctaLabel={ctaLabel}
-                    disabled={ctaDisabled}
-                    submitting={submitting}
-                    total={selectedPlan.price}
-                    totalLabel={t('account.membership.priceLabel')}
-                    type="button"
-                    onClick={handleCheckoutAction}
+              {showPlanSwitch ? (
+                <div className={`account-membership__billing${checkoutLocked ? ' is-locked' : ''}`}>
+                  <div className="account-membership__billing-head">
+                    <span className="account-membership__billing-label" id="membership-billing-label">
+                      {t('account.membership.planModeLegend')}
+                    </span>
+                    <p className="account-membership__billing-hint">{billingHint}</p>
+                  </div>
+                  <SegmentedSwitch
+                    active={billingSwitchEnabled ? billingMode : (selectedPlan?.code ?? '')}
+                    ariaLabel={t('account.membership.planModeLegend')}
+                    className="segmented-switch--membership"
+                    onChange={changeBillingMode}
+                    options={billingOptions}
                   />
-                ) : null
-              }
-              methods={[
-                { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-                {
-                  value: 'transferencia',
-                  label: t('account.membership.transfer'),
-                  disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
-                },
-              ]}
-              methodsDisabled={checkoutLocked || !selectedPlan}
-              methodsLabel={t('account.membership.paymentLegend')}
-              methodsLegend={t('account.membership.paymentLegend')}
-              offers={
-                selectedPlan
-                  ? [
-                      {
-                        featured: true,
-                        id: selectedPlan.code,
-                        name: selectedPlan.name,
-                        priceLabel: money(selectedPlan.price, locale),
-                      },
-                    ]
-                  : []
-              }
-              paymentMethod={paymentMethod}
-              paymentName="membership-payment"
-              selectedOfferId={selectedPlan?.code}
-              onPaymentChange={(event) => changePaymentMethod(event.target.value)}
-            />
-          </div>
+                </div>
+              ) : null}
+
+              <CheckoutDesk
+                bar={
+                  selectedPlan ? (
+                    <CheckoutBar
+                      ctaLabel={ctaLabel}
+                      disabled={ctaDisabled}
+                      submitting={submitting}
+                      total={selectedPlan.price}
+                      totalLabel={t('account.membership.priceLabel')}
+                      type="button"
+                      onClick={handleCheckoutAction}
+                    />
+                  ) : null
+                }
+                methods={[
+                  { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
+                  {
+                    value: 'transferencia',
+                    label: t('account.membership.transfer'),
+                    disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                  },
+                ]}
+                methodsDisabled={checkoutLocked || !selectedPlan}
+                methodsLabel={t('account.membership.paymentLegend')}
+                methodsLegend={t('account.membership.paymentLegend')}
+                offers={
+                  selectedPlan
+                    ? [
+                        {
+                          featured: true,
+                          id: selectedPlan.code,
+                          name: selectedPlan.name,
+                          priceLabel: money(selectedPlan.price, locale),
+                        },
+                      ]
+                    : []
+                }
+                paymentMethod={paymentMethod}
+                paymentName="membership-payment"
+                selectedOfferId={selectedPlan?.code}
+                onPaymentChange={(event) => changePaymentMethod(event.target.value)}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -636,13 +620,6 @@ export default function MembershipPurchaseSection({
           onClose={() => setTransferOpen(false)}
         />
       )}
-
-      {mpModalOpen && embeddedOrder ? (
-        <MpCheckoutModal
-          order={embeddedOrder}
-          onClose={() => setMpModalOpen(false)}
-        />
-      ) : null}
     </section>
   )
 }

@@ -34,7 +34,7 @@ describe('adaptador de Mercado Pago', () => {
       order,
       idempotencyKey: 'embedded-payment-order-1',
       formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
-    })).rejects.toMatchObject({ status: 503, message: 'API_URL debe usar HTTPS.' })
+    })).rejects.toMatchObject({ status: 503, message: 'API_URL o APP_URL debe usar HTTPS.' })
   })
 
   it('limita la idempotency key al contrato de Mercado Pago', async () => {

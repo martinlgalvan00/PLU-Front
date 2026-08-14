@@ -168,7 +168,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
     setIsSubmitting(true)
     try {
       const result = await forgotAthletePassword(normalizeEmail(email))
-      setRecoverMessage(result?.message || t('login.forgotSentDesc'))
+      const sentTo = normalizeEmail(email)
+      setRecoverMessage(result?.message || t('login.forgotSentDesc', { email: sentTo }))
       setSwapDirection(1)
       setMode('recoverSent')
     } catch (error) {
@@ -213,18 +214,25 @@ export default function LoginPage({ onLogin, onNavigate }) {
     }
   }
 
+  const cardEyebrow =
+    mode === 'recover' || mode === 'recoverSent' || mode === 'reset'
+      ? t('login.recoverEyebrow')
+      : t('login.eyebrow')
+
   const cardTitle =
-    mode === 'recover' || mode === 'recoverSent'
-      ? t('login.forgotTitle')
-      : mode === 'reset'
-        ? t('login.resetTitle')
-        : t('login.title')
+    mode === 'recoverSent'
+      ? t('login.forgotSentTitle')
+      : mode === 'recover'
+        ? t('login.forgotTitle')
+        : mode === 'reset'
+          ? t('login.resetTitle')
+          : t('login.title')
 
   const cardLead =
-    mode === 'recover'
-      ? t('login.forgotLead')
-      : mode === 'recoverSent'
-        ? t('login.forgotSentLead')
+    mode === 'recoverSent'
+      ? t('login.forgotSentLead')
+      : mode === 'recover'
+        ? t('login.forgotLead')
         : mode === 'reset'
           ? t('login.resetLead')
           : t('login.subtitle')
@@ -270,11 +278,14 @@ export default function LoginPage({ onLogin, onNavigate }) {
       </aside>
       <section className="auth-layout__content">
         <div className="auth-immersive-page">
-          <div className="auth-immersive-glass" aria-labelledby="login-heading">
+          <div
+            className={`auth-immersive-glass${mode === 'recoverSent' ? ' auth-immersive-glass--confirm' : ''}`}
+            aria-labelledby="login-heading"
+          >
         <header className="auth-immersive-glass__header">
           <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
           <div className="auth-immersive-glass__copy">
-            <span className="auth-immersive-glass__eyebrow">PLU ARGENTINA · FICHA DE ATLETA</span>
+            <span className="auth-immersive-glass__eyebrow">{cardEyebrow}</span>
             {/* key por modo: React reemplaza el nodo y la animación CSS de
                 entrada vuelve a correr sin montar un AnimatePresence extra
                 (que dejaría dos h1 con el mismo id durante el crossfade). */}
@@ -462,12 +473,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
           {mode === 'recoverSent' && (
             <div className="login-form login-form--sent">
+              <span className="login-form__mark" aria-hidden>
+                <Mail size={18} strokeWidth={1.75} />
+              </span>
               <p className="login-form__notice" role="status">
-                {recoverMessage || t('login.forgotSentDesc')}
+                {recoverMessage || t('login.forgotSentDesc', { email: normalizeEmail(email) })}
               </p>
               <p className="login-form__hint">{t('login.forgotSentHint')}</p>
               <button type="button" className="login-submit" onClick={backToLogin}>
                 <span className="login-submit__label">{t('login.backToLogin')}</span>
+                <span className="login-submit__mark" aria-hidden>
+                  <ArrowRight size={16} />
+                </span>
               </button>
             </div>
           )}

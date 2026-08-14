@@ -361,6 +361,16 @@
   margin: 0;
 }
 
+.results-archive-row__main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.results-archive-row--pitbull .pitbull-brand-mark {
+  min-width: 0;
+}
+
 .results-archive-row__tag {
   background: rgba(31, 95, 158, 0.1);
   border: 1px solid var(--color-accent-celeste-border-subtle);
@@ -1827,7 +1837,7 @@
 }
 
 .results-page--premium .results-page__toolbar {
-  margin-bottom: clamp(14px, 2.2vw, 20px);
+  margin-bottom: 0;
 }
 
 .results-toolbar--page {
@@ -2449,6 +2459,8 @@
 }
 
 .results-page--premium .results-page__inner {
+  display: grid;
+  gap: clamp(32px, 5vw, 56px);
   margin: 0 auto;
   max-width: var(--max-width-content);
   padding: clamp(10px, 1.8vw, 16px) clamp(20px, 5vw, 64px) clamp(40px, 5vw, 56px);
@@ -2475,6 +2487,13 @@
 
 .results-page--premium .results-shell--minimal .results-archive-list {
   gap: 12px;
+}
+
+.results-page--premium .results-empty--premium {
+  border-radius: 14px;
+  margin: 0;
+  max-width: none;
+  width: 100%;
 }
 
 .results-page--premium .design-hero--compact {

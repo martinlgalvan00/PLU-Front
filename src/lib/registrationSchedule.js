@@ -1,4 +1,4 @@
-import { isAppProduction, resolvePaidCheckoutOverride, resolvePaymentsMockFlag } from './featureAvailability.js'
+import { resolvePaidCheckoutOverride } from './featureAvailability.js'
 import { isRegistrationOpen } from './status.js'
 
 function toValidMs(value) {
@@ -89,8 +89,5 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
  */
 export function isPaidCheckoutOpen(_event, envLike, _now = new Date()) {
   const override = resolvePaidCheckoutOverride(envLike)
-  if (override !== null) return override
-  if (isAppProduction(envLike) && resolvePaymentsMockFlag(envLike) === false) return false
-  if (!isAppProduction(envLike)) return true
-  return false
+  return override !== false
 }

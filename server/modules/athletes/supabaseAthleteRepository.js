@@ -373,6 +373,15 @@ export function createSupabaseAthleteRepository(
 
     // La credencial vigente cuelga del atleta, no del período de afiliación
     // (ver 20260806140000): rotar acá es lo que invalida la card impresa.
+    deleteMembership: (membershipId, actor) => rpc('delete_membership', {
+      p_membership_id: membershipId,
+      p_actor: actor,
+    }, 'No se pudo eliminar la afiliación.'),
+    deleteRegistration: (registrationId, actor) => rpc('delete_event_registration', {
+      p_registration_id: registrationId,
+      p_actor: actor,
+    }, 'No se pudo eliminar la inscripción.'),
+
     rotateAthleteCredentialToken: (athleteId, actor) => rpc('staff_rotate_athlete_credential_token', {
       p_athlete_id: athleteId,
       p_actor: actor,

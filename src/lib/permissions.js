@@ -27,6 +27,15 @@ export const PERMISSION_CATALOG = [
     sortOrder: 21,
   },
   {
+    key: 'admin.athletes.delete',
+    module: 'athletes',
+    moduleLabel: 'Atletas',
+    action: 'delete',
+    actionLabel: 'Eliminar',
+    description: 'Eliminar definitivamente atletas y sus datos operativos asociados.',
+    sortOrder: 22,
+  },
+  {
     key: 'admin.memberships.read',
     module: 'memberships',
     moduleLabel: 'Afiliaciones',
@@ -43,6 +52,15 @@ export const PERMISSION_CATALOG = [
     actionLabel: 'Escribir',
     description: 'Gestionar afiliaciones y renovaciones.',
     sortOrder: 31,
+  },
+  {
+    key: 'admin.memberships.delete',
+    module: 'memberships',
+    moduleLabel: 'Afiliaciones',
+    action: 'delete',
+    actionLabel: 'Eliminar',
+    description: 'Eliminar definitivamente una afiliación y sus dependencias operativas.',
+    sortOrder: 32,
   },
   {
     key: 'admin.events.read',
@@ -63,6 +81,15 @@ export const PERMISSION_CATALOG = [
     sortOrder: 41,
   },
   {
+    key: 'admin.events.delete',
+    module: 'events',
+    moduleLabel: 'Eventos',
+    action: 'delete',
+    actionLabel: 'Eliminar',
+    description: 'Eliminar definitivamente eventos y su operación asociada.',
+    sortOrder: 42,
+  },
+  {
     key: 'admin.registrations.read',
     module: 'registrations',
     moduleLabel: 'Inscripciones',
@@ -79,6 +106,15 @@ export const PERMISSION_CATALOG = [
     actionLabel: 'Escribir',
     description: 'Modificar el estado operativo de inscripciones.',
     sortOrder: 51,
+  },
+  {
+    key: 'admin.registrations.delete',
+    module: 'registrations',
+    moduleLabel: 'Inscripciones',
+    action: 'delete',
+    actionLabel: 'Eliminar',
+    description: 'Eliminar definitivamente inscripciones y sus acreditaciones.',
+    sortOrder: 52,
   },
   {
     key: 'admin.payments.read',
@@ -196,6 +232,15 @@ export const PERMISSION_CATALOG = [
     actionLabel: 'Gestionar',
     description: 'Crear cuentas y asignar roles permitidos.',
     sortOrder: 111,
+  },
+  {
+    key: 'admin.users.delete',
+    module: 'users',
+    moduleLabel: 'Usuarios',
+    action: 'delete',
+    actionLabel: 'Eliminar',
+    description: 'Eliminar cuentas de staff administrables.',
+    sortOrder: 112,
   },
   {
     key: 'admin.roles.read',
@@ -328,6 +373,9 @@ export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   results: ['admin.results.read'],
   shop: ['admin.shop.read'],
   payments: ['admin.payments.read'],
+  // Finanzas reutiliza la lectura/aprobación de pagos: los ingresos salen del
+  // ledger canónico y sólo quien puede validar pagos puede registrar egresos.
+  finance: ['admin.payments.read'],
   pricing: ['admin.pricing.read'],
   exports: ['admin.exports.admin', 'admin.exports.plu_usa'],
   users: ['admin.users.read'],
@@ -381,6 +429,13 @@ export function canManageRolePermissions(actor, targetRole) {
     !targetIsProtected &&
     actorLevel < targetLevel
   )
+}
+
+export function canManageRoleLifecycle(actor, targetRole) {
+  const actorLevel = getRoleHierarchyLevel(actor)
+  const targetKey = getAccessRoleKey(targetRole)
+  const protectedRole = targetRole?.isProtected === true || ['admin_maximal', 'admin_plu_arg'].includes(targetKey)
+  return actorLevel <= 2 && Boolean(targetKey) && !protectedRole && actorLevel < getRoleHierarchyLevel(targetRole)
 }
 
 export function hasPermission(subject, permissionKey) {

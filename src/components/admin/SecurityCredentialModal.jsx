@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Check, Copy, Mail, ShieldCheck, X } from 'lucide-react'
 import { generateCredentialQr } from '../../lib/credentialQr.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminModal } from './useAdminModal.js'
 
 /**
  * Card de credencial de acceso de una cuenta de seguridad: muestra el QR y
@@ -34,13 +35,7 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
     }
   }, [onGenerate])
 
-  useEffect(() => {
-    function handleKey(event) {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  const panelRef = useAdminModal(onClose)
 
   async function handleCopy() {
     try {
@@ -73,6 +68,7 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
         onClick={onClose}
       />
       <div
+        ref={panelRef}
         className="security-credential-modal__panel"
         role="dialog"
         aria-modal="true"

@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { CalendarDays, ChevronRight, MapPin } from 'lucide-react'
 import ResultsEventPanel from './ResultsEventPanel.jsx'
+import PitbullBrandMark from './PitbullBrandMark.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { isPitbullClassicEvent } from '../../lib/eventNavigation.js'
 import { hasEventResults } from '../../services/resultsService.js'
 import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 import { MOTION_DURATION } from '../../motion/tokens.ts'
@@ -31,6 +33,7 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
   const { reducedMotion } = useMotionConfig()
   const isPublished = entry.resultsStatus === 'published'
   const canShowResults = isPublished && hasEventResults(entry.slug)
+  const isPitbull = isPitbullClassicEvent(entry) || String(entry.slug ?? '').includes('pitbull')
   const { day, month, year } = formatArchiveDate(entry.dateISO, locale)
   const panelRef = useRef(null)
 
@@ -45,7 +48,7 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
       return
     }
 
-    if (!isPublished && entry.featured && entry.slug?.includes('pitbull')) {
+    if (!isPublished && entry.featured && isPitbull) {
       onNavigate?.('pitbull')
     }
   }
@@ -58,7 +61,7 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
       return
     }
 
-    if (!isPublished && entry.featured && entry.slug?.includes('pitbull')) {
+    if (!isPublished && entry.featured && isPitbull) {
       onNavigate?.('pitbull')
     }
   }
@@ -74,7 +77,7 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
   return (
     <div className={`results-archive-item${isExpanded ? ' results-archive-item--expanded' : ''}`}>
       <article
-        className={`results-archive-row ${entry.featured ? 'results-archive-row--featured' : ''} ${isPublished ? 'results-archive-row--published' : ''}${canShowResults ? ' results-archive-row--interactive' : ''}`.trim()}
+        className={`results-archive-row ${entry.featured ? 'results-archive-row--featured' : ''} ${isPitbull ? 'results-archive-row--pitbull' : ''} ${isPublished ? 'results-archive-row--published' : ''}${canShowResults ? ' results-archive-row--interactive' : ''}`.trim()}
         onClick={canShowResults ? handleRowActivate : undefined}
         onKeyDown={
           canShowResults
@@ -96,7 +99,14 @@ function ResultsArchiveRow({ entry, isExpanded, onSelect, onNavigate, t, locale 
         </div>
 
         <div className="results-archive-row__main">
-          <h3 className="results-archive-row__title">{entry.title}</h3>
+          {isPitbull ? (
+            <>
+              <PitbullBrandMark size="sm" label={entry.title} />
+              <h3 className="results-archive-row__title visually-hidden">{entry.title}</h3>
+            </>
+          ) : (
+            <h3 className="results-archive-row__title">{entry.title}</h3>
+          )}
           <p className="results-archive-row__meta">
             <MapPin size={12} aria-hidden />
             {entry.venue} · {entry.location}

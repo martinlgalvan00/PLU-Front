@@ -29,7 +29,16 @@ beforeAll(() => {
  * dejar los dos paneles montados.
  */
 
+vi.mock('../src/services/athleteApi.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    forgotAthletePassword: vi.fn(async () => ({})),
+  }
+})
+
 const LoginPage = (await import('../src/pages/LoginPage.jsx')).default
+const { forgotAthletePassword } = await import('../src/services/athleteApi.js')
 
 function renderLogin({ onLogin = vi.fn(), onNavigate = vi.fn() } = {}) {
   return render(
@@ -113,5 +122,28 @@ describe('LoginPage', () => {
       expect(screen.queryByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeNull()
     })
     expect(screen.getByRole('button', { name: /Enviar enlace/i })).toBeTruthy()
+  })
+
+  it('confirma el envío con un título de bandeja, no el de recuperar', async () => {
+    renderLogin()
+    fireEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Recuperar acceso' })).toBeTruthy()
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeNull()
+    })
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'atleta@plu.test' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Enviar enlace/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Revisá tu correo' })).toBeTruthy()
+    })
+    expect(forgotAthletePassword).toHaveBeenCalled()
+    expect(screen.getByText(/atleta@plu.test/)).toBeTruthy()
   })
 })

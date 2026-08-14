@@ -26,6 +26,13 @@ function rangeQuery({ days = 30, from, to, limit, path, deviceType } = {}) {
 export async function fetchAnalyticsOverview(range) {
   return apiGet(`/api/analytics/overview?${rangeQuery(range)}`)
 }
+export async function fetchAnalyticsOperationalSummary(range) {
+  return apiGet(`/api/analytics/operational-summary?${rangeQuery(range)}`)
+}
+export async function fetchAnalyticsOperationalAlerts() {
+  const result = await apiGet('/api/analytics/operational-alerts')
+  return result?.alerts ?? []
+}
 
 export async function fetchAnalyticsPages(range) {
   const result = await apiGet(`/api/analytics/pages?${rangeQuery(range)}`)

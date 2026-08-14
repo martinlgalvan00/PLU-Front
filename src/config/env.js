@@ -18,10 +18,6 @@ const paymentsMockRaw = String(import.meta.env.PAYMENTS_MOCK ?? '')
   .toLowerCase()
 const paymentsMockEnabled = ['true', '1', 'yes'].includes(paymentsMockRaw)
 const paymentsProvider = paymentsMockEnabled ? 'mock' : 'mercado_pago'
-const appProductionRaw = String(import.meta.env.APP_PRODUCTION ?? '')
-  .trim()
-  .toLowerCase()
-const appProduction = ['true', '1', 'yes'].includes(appProductionRaw)
 const paidCheckoutEnabledRaw = String(import.meta.env.PAID_CHECKOUT_ENABLED ?? '').trim()
 const paidCheckoutEnabledNormalized = paidCheckoutEnabledRaw.toLowerCase()
 const paidCheckoutEnabled = ['true', '1', 'yes'].includes(paidCheckoutEnabledNormalized)
@@ -39,11 +35,10 @@ export const env = {
   // true = presentación/comportamiento de producción (ocultar WIP, demos, etc.).
   // Independiente del build: en Vercel Production poné APP_PRODUCTION=true;
   // en Preview y local, false. Con true se ocultan WIPs (recurring + pricing writes).
-  appProduction,
   // Kill switch de cobros. null + APP_PRODUCTION=true = cerrado (“Próximamente”).
   // true fuerza apertura; false fuerza cierre. registrationOpensAt no abre cobros.
   paidCheckoutEnabled,
-  demoMode: import.meta.env.VITE_DEMO_MODE === 'true' && !appProduction,
+  demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
   supabase: {
     url: supabaseUrl,
     anonKey: supabaseAnonKey,

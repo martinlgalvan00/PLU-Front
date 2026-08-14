@@ -36,7 +36,7 @@ MERCADO_PAGO_ACCESS_TOKEN
 VITE_MERCADO_PAGO_PUBLIC_KEY
 MERCADO_PAGO_WEBHOOK_SECRET
 APP_URL
-API_URL
+# API_URL es opcional: si falta, se usa APP_URL.
 PAYMENT_RECOVERY_JOB_ENABLED=true
 DOMAIN_MAINTENANCE_JOB_ENABLED=true
 CRON_SECRET
@@ -47,6 +47,10 @@ CRON_SECRET
 `SESSION_COOKIE_SECURE=true`. Nunca exponer `SUPABASE_SERVICE_ROLE_KEY`,
 `MERCADO_PAGO_ACCESS_TOKEN`, `CRON_SECRET` ni el secreto del webhook al bundle
 Vite.
+
+`APP_URL` es la URL pública del sitio y también se usa como base del webhook
+de Mercado Pago cuando `API_URL` no está definida. Configurar `API_URL` sólo
+cuando la API se publique en un origen diferente.
 
 ## Webhook Mercado Pago
 

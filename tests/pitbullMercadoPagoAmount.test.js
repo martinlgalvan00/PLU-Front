@@ -51,7 +51,6 @@ describe('monto Pitbull enviado a Mercado Pago', () => {
         MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token-valid',
         MERCADO_PAGO_ENV: 'sandbox',
         APP_URL: 'http://localhost:5173',
-        API_URL: 'http://localhost:3003',
       },
     })
 
@@ -76,6 +75,7 @@ describe('monto Pitbull enviado a Mercado Pago', () => {
     expect(captures.payment.body).toMatchObject({
       transaction_amount: 75000,
       external_reference: order.id,
+      notification_url: 'http://localhost:5173/api/payments/webhook/mercadopago',
     })
   })
 })

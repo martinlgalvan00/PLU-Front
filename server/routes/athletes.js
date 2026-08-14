@@ -18,11 +18,11 @@ import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
 // dev/tests y cuando PAID_CHECKOUT_ENABLED ya decide.
 async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
-  if (!isAppProduction(env) || resolvePaidCheckoutOverride(env) !== null) return null
+  if (resolvePaidCheckoutOverride(env) !== null) return null
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
 }
 import { validateBody } from '../lib/validate.js'
-import { requirePermission, requireRole } from '../middleware/auth.js'
+import { requirePermission } from '../middleware/auth.js'
 import {
   athleteAuthLimiter,
   athleteWriteLimiter,
@@ -250,7 +250,10 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const membershipWriteGuard = requirePermission('admin.memberships.write', { prisma })
+  const membershipDeleteGuard = requirePermission('admin.memberships.delete', { prisma })
+  const registrationDeleteGuard = requirePermission('admin.registrations.delete', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
+  const athleteDeleteGuard = requirePermission('admin.athletes.delete', { prisma })
   // Mismo formato que usa el check-in (`server/routes/tickets.js`): el actor
   // queda identificable en `domain_audit_logs` sin depender de que el id de
   // usuario siga existiendo cuando se lea la auditoría.
@@ -925,6 +928,20 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       res.json(await repo().rotateMembershipQrToken(membershipId.data, actorLabel(req)))
     } catch (error) { next(error) }
   })
+  router.delete('/admin/memberships/:membershipId', ...membershipDeleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+      res.json({ deletedMembership: await repo().deleteMembership(membershipId.data, actorLabel(req)) })
+    } catch (error) { next(error) }
+  })
+  router.delete('/admin/registrations/:registrationId', ...registrationDeleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+      if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+      res.json({ deletedRegistration: await repo().deleteRegistration(registrationId.data, actorLabel(req)) })
+    } catch (error) { next(error) }
+  })
   router.post('/admin/:athleteId/credential', ...accountGuard, staffLimiter, validateBody(
     z.object({ password: z.string().min(12).max(72) }),
   ), async (req, res, next) => {
@@ -938,13 +955,11 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
 
   /**
    * Borrado definitivo del atleta y todo lo asociado (afiliaciones,
-   * inscripciones, ordenes, sesiones, foto). Solo Super Admin, igual que el
-   * borrado de cuentas de staff: es la accion mas destructiva del panel y no
-   * tiene vuelta atras. La cascada y la auditoria viven en la RPC
+   * inscripciones, ordenes, sesiones, foto). Exige el permiso granular
+   * admin.athletes.delete y no tiene vuelta atrás. La cascada y la auditoría viven en la RPC
    * delete_athlete (20260810230000_athlete_hard_delete.sql).
    */
-  const deleteGuard = requireRole(['admin_maximal'], { prisma })
-  router.delete('/admin/:athleteId', ...deleteGuard, staffLimiter, async (req, res, next) => {
+  router.delete('/admin/:athleteId', ...athleteDeleteGuard, staffLimiter, async (req, res, next) => {
     try {
       const athleteId = z.string().uuid().safeParse(req.params.athleteId)
       if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')

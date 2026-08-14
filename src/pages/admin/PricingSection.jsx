@@ -204,12 +204,14 @@ export default function PricingSection({
         </div>
         <button
           type="button"
-          className="admin-pricing__btn admin-pricing__btn--ghost"
+          className="admin-pricing__btn admin-pricing__btn--ghost admin-pricing__refresh"
+          aria-label={t('admin.sections.pricing.retry')}
+          title={t('admin.sections.pricing.retry')}
           onClick={() => onRefresh?.()}
           disabled={isLoading}
         >
           <RefreshCw size={15} aria-hidden />
-          {t('admin.sections.pricing.retry')}
+          <span className="admin-pricing__btn-label">{t('admin.sections.pricing.retry')}</span>
         </button>
       </header>
 
@@ -245,7 +247,7 @@ export default function PricingSection({
             disabled={locked}
           >
             <CirclePlus size={15} aria-hidden />
-            {t('admin.sections.pricing.newPlan')}
+            <span className="admin-pricing__btn-label">{t('admin.sections.pricing.newPlan')}</span>
           </button>
         </header>
 
@@ -260,6 +262,7 @@ export default function PricingSection({
               <article
                 className={`admin-pricing__plan-row admin-pricing__plan-row--${status}`}
                 key={plan.id}
+                role="listitem"
               >
                 <div className="admin-pricing__plan-main">
                   <div className="admin-pricing__plan-title-row">

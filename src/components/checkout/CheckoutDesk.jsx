@@ -152,6 +152,7 @@ export function CheckoutBar({
   ctaClassName = '',
   ctaLabel,
   disabled = false,
+  hideCta = false,
   onClick,
   packageLabel = '',
   submitting = false,
@@ -172,20 +173,22 @@ export function CheckoutBar({
           <strong>{total == null ? '—' : money(total, locale)}</strong>
         </div>
       </div>
-      <button
-        type={type}
-        className={ctaClassName || 'btn plu-checkout__submit'}
-        disabled={disabled || submitting}
-        aria-busy={submitting || undefined}
-        onClick={onClick}
-      >
-        {ctaLabel}
-        {submitting ? (
-          <span className="plu-checkout__submit-spinner" aria-hidden />
-        ) : (
-          <ArrowRight size={16} className="plu-checkout__submit-arrow" aria-hidden />
-        )}
-      </button>
+      {hideCta ? null : (
+        <button
+          type={type}
+          className={ctaClassName || 'btn plu-checkout__submit'}
+          disabled={disabled || submitting}
+          aria-busy={submitting || undefined}
+          onClick={onClick}
+        >
+          {ctaLabel}
+          {submitting ? (
+            <span className="plu-checkout__submit-spinner" aria-hidden />
+          ) : (
+            <ArrowRight size={16} className="plu-checkout__submit-arrow" aria-hidden />
+          )}
+        </button>
+      )}
     </div>
   )
 }

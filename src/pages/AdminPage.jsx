@@ -31,6 +31,7 @@ const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
 const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
 const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx'))
 const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
+const FinanceSection = lazy(() => import('./admin/FinanceSection.jsx'))
 const PricingSection = lazy(() => import('./admin/PricingSection.jsx'))
 const ShopSection = lazy(() => import('./admin/ShopSection.jsx'))
 const UsersSection = lazy(() => import('./admin/UsersSection.jsx'))
@@ -48,11 +49,14 @@ export default function AdminPage({
   authorization,
   canDeleteAthletes,
   canDeleteEvents,
+  canDeleteMemberships,
+  canDeleteRegistrations,
   canDeleteUsers,
   canManageUsers,
   dashboardOverview,
   filters,
   filteredRegistrations,
+  gatePendingIds,
   enrichedMemberships,
   pendingActions,
   adminNavBadges,
@@ -76,6 +80,8 @@ export default function AdminPage({
   onCreateUser,
   onDeleteUser,
   onDeleteAthlete,
+  onDeleteMembership,
+  onDeleteRegistration,
   onDeleteEvent,
   onFetchEventDeleteImpact,
   onCreateRole,
@@ -89,6 +95,7 @@ export default function AdminPage({
   onUpdateUserRole,
   onUpdateUserStatus,
   onUpdateRolePermissions,
+  onUpdateRoleStatus,
   permissionCatalog,
   onDeleteShopProduct,
   payments,
@@ -237,6 +244,8 @@ export default function AdminPage({
           onSelectAthlete={handleSelectAthlete}
           onSetMembershipStatus={onSetMembershipStatus}
           canManage={hasPermission(authorization, 'admin.memberships.write')}
+          canDelete={canDeleteMemberships && Boolean(onDeleteMembership)}
+          onDelete={onDeleteMembership}
         />
       )
     }
@@ -251,12 +260,13 @@ export default function AdminPage({
           ])}
           filters={filters}
           filteredRegistrations={filteredRegistrations}
+          gatePendingIds={gatePendingIds}
           payments={payments}
           registrations={registrations}
-          memberships={enrichedMemberships}
-          events={adminEvents}
           registrationsCount={registrations.length}
           onApprovePayment={onApprovePayment}
+          canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
+          onDelete={onDeleteRegistration}
           onExportAdmin={onExportAdmin}
           onExportPluUsa={onExportPluUsa}
           onGoToEvents={() => setSection('events')}
@@ -335,6 +345,7 @@ export default function AdminPage({
           authorization={authorization}
           onCreateRole={onCreateRole}
           onUpdatePermissions={onUpdateRolePermissions}
+          onUpdateStatus={onUpdateRoleStatus}
           permissionCatalog={permissionCatalog}
           roles={accessRoles}
         />
@@ -356,6 +367,7 @@ export default function AdminPage({
         />
       )
     }
+    if (section === 'finance') return <FinanceSection canEdit={hasPermission(authorization, 'admin.payments.approve')} />
 
     if (section === 'pricing') {
       return (
@@ -407,6 +419,7 @@ export default function AdminPage({
         <AnalyticsSection
           athletes={athletes}
           canViewIdentity={hasPermission(authorization, 'admin.analytics.identity')}
+          onNavigate={handleSectionChange}
         />
       )
     }

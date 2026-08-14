@@ -732,6 +732,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       ['shop', 'admin.nav.shop', 'ShoppingBag'],
       ['payments', 'admin.nav.payments', 'CreditCard'],
+      ['finance', 'admin.nav.finance', 'Landmark'],
       ['pricing', 'admin.nav.pricing', 'BadgeDollarSign'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],
