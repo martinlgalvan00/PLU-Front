@@ -9,6 +9,7 @@ import {
   Repeat,
   Save,
   X,
+  Trash2,
 } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
@@ -79,6 +80,7 @@ export default function PricingSection({
   error,
   isLoading = false,
   onCreatePlanVersion,
+  onDeletePlan,
   onRefresh,
   onSaveComboOffer,
   onSetPlanActive,
@@ -94,6 +96,8 @@ export default function PricingSection({
   const { locale, t } = useI18n()
   const [planDraft, setPlanDraft] = useState(null)
   const [planError, setPlanError] = useState('')
+  const [planToDelete, setPlanToDelete] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
   const [comboError, setComboError] = useState('')
   const [notice, setNotice] = useState('')
   const [pendingAction, setPendingAction] = useState('')
@@ -356,6 +360,22 @@ export default function PricingSection({
     setCancelTarget(null)
   }
 
+  async function confirmDeletePlan() {
+    if (!planToDelete) return
+    setPendingAction(`delete:${planToDelete.id}`)
+    setDeleteError('')
+    setNotice('')
+    const result = await onDeletePlan?.(planToDelete.id)
+    setPendingAction('')
+    if (result?.error) {
+      setDeleteError(result.error)
+      return
+    }
+    setPlanDraft((current) => (current?.sourcePlanId === planToDelete.id ? null : current))
+    setPlanToDelete(null)
+    setNotice(t('admin.sections.pricing.deleted'))
+  }
+
   async function submitCombo(event) {
     event.preventDefault()
     setComboError('')
@@ -502,10 +522,24 @@ export default function PricingSection({
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet"
                     onClick={() => openPlanForm(plan)}
-                    disabled={locked}
+                    disabled={locked || pendingAction === `delete:${plan.id}`}
                   >
                     <Pencil size={14} aria-hidden />
                     {t('admin.sections.pricing.newVersion')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    onClick={() => {
+                      setPlanToDelete(plan)
+                      setDeleteError('')
+                      setNotice('')
+                    }}
+                    disabled={locked || pendingAction === plan.id}
+                    aria-label={t('admin.sections.pricing.deletePlanAria', { name: plan.name })}
+                  >
+                    <Trash2 size={14} aria-hidden />
+                    {t('admin.sections.pricing.deletePlan')}
                   </button>
                   <label
                     className={`admin-pricing__switch${plan.active ? ' is-active' : ' is-cancelled'}`.trim()}
@@ -707,6 +741,27 @@ export default function PricingSection({
           </form>
         ) : null}
       </section>
+
+      {planToDelete ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingAction === `delete:${planToDelete.id}`}
+          error={deleteError}
+          title={t('admin.sections.pricing.deleteConfirmTitle', { name: planToDelete.name })}
+          description={t('admin.sections.pricing.deleteConfirmDescription', {
+            code: planToDelete.code ?? planToDelete.familyCode,
+          })}
+          warning={t('admin.sections.pricing.deleteConfirmWarning')}
+          cancelLabel={t('admin.sections.pricing.deleteConfirmCancel')}
+          confirmLabel={t('admin.sections.pricing.deleteConfirmConfirm')}
+          busyLabel={t('admin.sections.pricing.deleting')}
+          onCancel={() => {
+            if (pendingAction === `delete:${planToDelete.id}`) return
+            setPlanToDelete(null)
+            setDeleteError('')
+          }}
+          onConfirm={confirmDeletePlan}
+        />
+      ) : null}
 
       <section className="admin-pricing__block admin-pricing__block--combo" aria-labelledby="pricing-combo-title">
         <header className="admin-pricing__block-head">

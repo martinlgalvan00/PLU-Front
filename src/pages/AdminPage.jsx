@@ -72,6 +72,7 @@ export default function AdminPage({
   onRefreshAthleteData,
   onRefreshPricing,
   onCreateMembershipPlanVersion,
+  onDeleteMembershipPlan,
   onSetMembershipPlanActive,
   onSaveEventComboOffer,
   onSetMembershipPlanRetirement,
@@ -398,6 +399,7 @@ export default function AdminPage({
           error={pricingError}
           isLoading={pricingLoading}
           onCreatePlanVersion={onCreateMembershipPlanVersion}
+          onDeletePlan={onDeleteMembershipPlan}
           onRefresh={onRefreshPricing}
           onSaveComboOffer={onSaveEventComboOffer}
           onSetPlanActive={onSetMembershipPlanActive}

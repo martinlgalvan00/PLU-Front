@@ -24,6 +24,13 @@ export function createSupabasePricingRepository(client) {
         'No se pudo cambiar el estado del plan.',
       ),
 
+    deletePlan: (planId, actor) =>
+      rpc(
+        'staff_delete_membership_plan',
+        { p_plan_id: planId, p_actor: actor },
+        'No se pudo eliminar el plan.',
+      ),
+
     upsertComboOffer: (eventSlug, offer, actor) =>
       rpc(
         'staff_save_event_combo_offer',

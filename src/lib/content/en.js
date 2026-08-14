@@ -70,6 +70,7 @@ export const HOME_COMMUNITY = {
     'Affiliate venues and members competing on the official PLU Argentina calendar.',
   cta: 'View community',
   recentLabel: 'Recent members',
+  emptyRecentLabel: 'No active public members yet.',
   liveLabel: 'Live',
   visualCaption: 'Community gallery · coming soon',
   stats: [],

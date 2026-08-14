@@ -4150,6 +4150,14 @@
   padding: 0;
 }
 
+.community-spotlight__empty {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--color-text-primary) 56%, transparent);
+  font-size: clamp(0.86rem, 1vw, 0.95rem);
+  line-height: 1.5;
+  padding: 1.35rem 0;
+}
+
 .community-spotlight__row {
   align-items: center;
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
@@ -4389,6 +4397,11 @@
 [data-theme='light'] .community-spotlight__list,
 [data-theme='light'] .community-spotlight__row {
   border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .community-spotlight__empty {
+  border-color: rgba(15, 17, 23, 0.1);
+  color: rgba(15, 17, 23, 0.58);
 }
 
 [data-theme='light'] .community-spotlight__avatar {
