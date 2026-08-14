@@ -79,6 +79,7 @@ export default function PitbullSpotlight({
   onResults,
   recent = [],
   registerLabel,
+  registrationCheckoutEnabled = true,
   registered,
   slots,
 }) {
@@ -219,7 +220,9 @@ export default function PitbullSpotlight({
     const registrationOpen = isRegistrationOpen(eventStatus)
     const isFinished = eventStatus === 'finalizado'
     const isClosed = eventStatus === 'cerrado'
-    const checkoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
+    const checkoutOpen =
+      registrationCheckoutEnabled &&
+      isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
     const registrationOpensAt = resolveLaunchOpenAt({ event })
     const openDayLabel = registrationOpensAt ? formatOpenDayLabel(registrationOpensAt, locale) : ''
 

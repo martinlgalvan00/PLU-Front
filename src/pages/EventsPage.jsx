@@ -47,6 +47,7 @@ function EventsDetailPanel({
   athleteStatus = null,
   t,
   minimal = false,
+  registrationCheckoutEnabled = true,
 }) {
   if (!event) {
     return (
@@ -70,7 +71,9 @@ function EventsDetailPanel({
     )
   }
 
-  const checkoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
+  const checkoutOpen =
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const statusAllowsRegister =
     event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
   const canRegister =
@@ -313,6 +316,7 @@ export default function EventsPage({
   session,
   memberships = [],
   registrations = [],
+  checkoutAvailability = {},
 }) {
   const { locale, t } = useI18n()
   // El catálogo (título/venue/pricing) sigue viniendo del prop de arriba
@@ -471,6 +475,7 @@ export default function EventsPage({
 
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
   const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
 
   function handleRegister(event) {
     onSelectEvent?.(event)
@@ -478,6 +483,7 @@ export default function EventsPage({
 
   function isRegistrationOpen(event) {
     return (
+      registrationCheckoutEnabled &&
       isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' }) &&
       (event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados')
     )
@@ -627,6 +633,7 @@ export default function EventsPage({
                   onRegister={selected ? () => handleRegister(selected) : undefined}
                   onViewEvent={selected ? () => openEvent(selected) : undefined}
                   registerLabel={registerLabel}
+                  registrationCheckoutEnabled={registrationCheckoutEnabled}
                   t={t}
                 />
               </MotionContentSwap>

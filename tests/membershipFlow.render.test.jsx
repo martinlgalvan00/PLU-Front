@@ -45,6 +45,18 @@ vi.mock('../src/services/athleteApi.js', () => ({
   resendAthleteVerification: vi.fn(),
 }))
 
+vi.mock('../src/services/registrationAccessService.js', () => ({
+  fetchRegistrationAccessRequirements: vi.fn(async () => ({
+    membership: false,
+    registration: false,
+    membershipEnabled: true,
+    registrationEnabled: true,
+    membershipManualEnabled: true,
+    registrationManualEnabled: true,
+  })),
+  verifyRegistrationAccessCode: vi.fn(),
+}))
+
 // La clave pública de Mercado Pago llega por `import.meta.env`, que en jsdom
 // viene vacía: sin esto el checkout se renderiza como "no configurado" y el
 // test no podría distinguir eso de "no se ofrece pagar".
@@ -85,6 +97,7 @@ const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const MembershipPurchaseSection = (
   await import('../src/pages/profile/MembershipPurchaseSection.jsx')
 ).default
+const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
 const { listMembershipPlans } = await import('../src/services/paymentService.js')
 
 const ATHLETE = {
@@ -175,7 +188,15 @@ async function waitForMembershipPayButton() {
 const registerCredentialAction = () => screen.queryByRole('button', { name: 'Ver credencial' })
 const accountCredentialAction = () => screen.queryByRole('button', { name: 'Ver mi card' })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
+
+async function waitForAccessValidation() {
+  await waitFor(() => expect(fetchRegistrationAccessRequirements).toHaveBeenCalled())
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
 
 describe('confirmación del alta de afiliación', () => {
   it('no ofrece la credencial mientras la orden está pendiente', () => {
@@ -301,6 +322,7 @@ describe('credencial de inscripción a torneo', () => {
 
     expect(screen.getByRole('radio', { name: /afiliaci/i }).checked).toBe(true)
     expect(screen.getByRole('button', { name: /continuar al pago/i })).toBeTruthy()
+    await waitForAccessValidation()
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
     await waitFor(() => {
@@ -339,6 +361,7 @@ describe('credencial de inscripción a torneo', () => {
     })
 
     const submit = screen.getByRole('button', { name: /continuar al pago/i })
+    await waitForAccessValidation()
     fireEvent.click(submit)
     expect((await screen.findByRole('alert')).textContent).toContain('No se pudo iniciar el pago')
     expect(submit.disabled).toBe(false)

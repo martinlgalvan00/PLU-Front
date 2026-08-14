@@ -903,6 +903,7 @@ export default function PitbullPage({
   events = UPCOMING_EVENTS,
   session = null,
   memberships = [],
+  checkoutAvailability = {},
 }) {
   const {
     PITBULL_CLASSIC,
@@ -924,7 +925,10 @@ export default function PitbullPage({
     title: pitbullEvent?.title ?? PITBULL_CLASSIC.title,
   }
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
-  const paidCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'registration' })
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
+  const paidCheckoutOpen =
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'registration' })
   const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'ticket' })
   const checkoutLocked = !paidCheckoutOpen
   const hasActiveMembership = session?.role === 'athlete_plu'
@@ -980,6 +984,10 @@ export default function PitbullPage({
   }
 
   function handlePitbullRegistration() {
+    if (!canRegister) {
+      scrollToSection('inscripcion')
+      return
+    }
     if (onSelectEvent) onSelectEvent(pitbullEvent)
     else onNavigate('competition')
   }

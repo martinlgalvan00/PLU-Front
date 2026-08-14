@@ -22,7 +22,10 @@ beforeAll(() => {
   })
 })
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
 
 vi.mock('../src/config/env.js', () => ({
   env: {
@@ -42,6 +45,18 @@ vi.mock('../src/services/athleteApi.js', () => ({
   resendAthleteVerification: vi.fn(),
   checkAthleteAvailability: vi.fn(),
   verifyAthleteEmailCode: vi.fn(),
+}))
+
+vi.mock('../src/services/registrationAccessService.js', () => ({
+  fetchRegistrationAccessRequirements: vi.fn(async () => ({
+    membership: false,
+    registration: false,
+    membershipEnabled: true,
+    registrationEnabled: true,
+    membershipManualEnabled: true,
+    registrationManualEnabled: true,
+  })),
+  verifyRegistrationAccessCode: vi.fn(),
 }))
 
 vi.mock('../src/lib/registrationSchedule.js', async (importOriginal) => {
@@ -66,6 +81,12 @@ vi.mock('../src/services/paymentService.js', () => ({
 }))
 
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
+const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
+
+async function waitForAccessValidation() {
+  await waitFor(() => expect(fetchRegistrationAccessRequirements).toHaveBeenCalled())
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
 
 const athlete = {
   id: 'ath-1',
@@ -102,6 +123,7 @@ function renderCompetition({
   onNavigate = () => {},
   onSubmit = vi.fn(async () => ({})),
   onUpdateForm = () => {},
+  checkoutAvailability,
 } = {}) {
   return render(
     <I18nProvider>
@@ -123,6 +145,7 @@ function renderCompetition({
         onNavigate={onNavigate}
         onSubmit={onSubmit}
         onUpdateForm={onUpdateForm}
+        checkoutAvailability={checkoutAvailability}
       />
     </I18nProvider>,
   )
@@ -132,6 +155,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
   it('abre el modal de transferencia al generar la orden', async () => {
     const onSubmit = vi.fn(async () => ({ createdOrder: pendingOrder, payment: pendingOrder }))
     renderCompetition({ onSubmit })
+    await waitForAccessValidation()
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
 
@@ -148,6 +172,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       code: 'PLU08',
     }))
     renderCompetition({ onSubmit })
+    await waitForAccessValidation()
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
 
@@ -165,6 +190,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
       resumeMembershipPayment: true,
     }))
     renderCompetition({ onNavigate, onSubmit })
+    await waitForAccessValidation()
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
 
@@ -173,6 +199,20 @@ describe('RegisterPage — link de pago de inscripción', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /retomar mi afiliación/i }))
     expect(onNavigate).toHaveBeenCalledWith('membership')
+  })
+
+  it('bloquea el formulario si admin deshabilito la inscripcion al torneo', () => {
+    renderCompetition({
+      checkoutAvailability: {
+        membershipEnabled: true,
+        registrationEnabled: false,
+      },
+    })
+
+    expect(screen.queryByRole('button', { name: /continuar al pago/i })).toBeNull()
+    expect(screen.getByText(/inscripciones cerradas/i)).toBeTruthy()
+    expect(screen.getByText(/inscripción a torneos próximamente/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /volver a eventos/i })).toBeTruthy()
   })
 
   it('permite reabrir los datos de transferencia desde la orden visible', async () => {
@@ -250,6 +290,7 @@ describe('RegisterPage — link de pago de inscripción', () => {
     }
 
     render(<Harness />)
+    await waitForAccessValidation()
 
     fireEvent.click(screen.getByRole('button', { name: /pagar por transferencia/i }))
 
@@ -277,5 +318,62 @@ describe('RegisterPage — link de pago de inscripción', () => {
     expect(screen.getByRole('button', { name: /continuar al pago/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /volver a mercado pago/i })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: /pagá con mercado pago/i })).toBeNull()
+  })
+  it('permite volver desde transferencia para elegir Mercado Pago', async () => {
+    const mercadoPagoOrder = {
+      ...pendingOrder,
+      paymentMethod: 'mercado_pago',
+      manualPaymentChannel: null,
+      status: 'pendiente',
+    }
+    const onSubmit = vi.fn(async () => ({
+      createdOrder: mercadoPagoOrder,
+      payment: mercadoPagoOrder,
+    }))
+    function Harness() {
+      const [createdOrder, setCreatedOrder] = useState(pendingOrder)
+      const [form, setForm] = useState({
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: '83',
+        paymentMethod: 'manual_link',
+      })
+      return (
+        <I18nProvider>
+          <RegisterPage
+            athlete={athlete}
+            createdOrder={createdOrder}
+            event={event}
+            flow="competition"
+            form={form}
+            memberships={[]}
+            registrations={[]}
+            total={75000}
+            onNavigate={() => {}}
+            onSubmit={async (...args) => {
+              const result = await onSubmit(...args)
+              if (result?.createdOrder) setCreatedOrder(result.createdOrder)
+              return result
+            }}
+            onUpdateForm={(event) => {
+              setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+            }}
+          />
+        </I18nProvider>
+      )
+    }
+
+    render(<Harness />)
+    await waitForAccessValidation()
+
+    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
+
+    expect(screen.getByRole('button', { name: /volver a transferencia/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /mercado pago/i }).checked).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'mercado_pago' })
   })
 })
