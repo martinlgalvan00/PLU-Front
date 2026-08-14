@@ -88,6 +88,24 @@ describe('configuración económica administrativa', () => {
     }
   })
 
+  it('permite eliminar un plan sin referencias desde el panel', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/membership-plans/${PLAN_ID}`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ id: PLAN_ID })
+      expect(rpc).toHaveBeenCalledWith('staff_delete_membership_plan', {
+        p_plan_id: PLAN_ID,
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
   it('valida importes, moneda y ventanas antes de persistir', () => {
     expect(membershipPlanVersionSchema.safeParse(planPayload({ price: 0 })).success).toBe(false)
     expect(membershipPlanVersionSchema.safeParse(planPayload({ currency: 'USD' })).success).toBe(false)
