@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const migration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260817140000_admin_individual_hard_delete.sql'),
+  resolve(process.cwd(), 'supabase/migrations/20260817150000_admin_individual_hard_delete.sql'),
   'utf8',
 )
 

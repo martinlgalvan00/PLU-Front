@@ -2109,6 +2109,7 @@ export default {
       periodAnnual: 'annual',
       perYear: 'per year',
       featuresAria: 'Included benefits',
+      includesLabel: 'Includes',
       benefitsReelAria: 'Membership benefits',
       benefitsNavAria: 'Choose a benefit',
       benefitsPrev: 'Previous benefit',

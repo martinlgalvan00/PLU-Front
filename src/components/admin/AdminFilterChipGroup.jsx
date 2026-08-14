@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 function resolveNeutralValue(options, defaultValue) {
   if (defaultValue !== undefined && defaultValue !== null) return defaultValue
@@ -38,6 +38,7 @@ export default function AdminFilterChipGroup({
 }) {
   const labelId = label ? `${id}-label` : undefined
   const chipsRef = useRef(null)
+  const [overflowing, setOverflowing] = useState(false)
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -58,6 +59,38 @@ export default function AdminFilterChipGroup({
       return true
     })
   }, [hideEmpty, neutral, omitNeutral, options, value])
+
+  const showAllChip = omitNeutral && Boolean(allLabel)
+  const allActive = value === neutral
+  const allCount = useMemo(() => {
+    const allOption = options.find(([optionValue]) => optionValue === neutral)
+    return allOption?.[2]
+  }, [neutral, options])
+  const showAllCount = allCount !== undefined && allCount !== null && allCount !== ''
+  const populatedCounted = visibleOptions.filter(([, , optionCount]) => {
+    return optionCount !== undefined && optionCount !== null && optionCount !== '' && Number(optionCount) > 0
+  })
+  const allCountIsTwin =
+    showAllCount &&
+    populatedCounted.length === 1 &&
+    Number(populatedCounted[0][2]) === Number(allCount)
+  const renderAllCount = showAllCount && !allCountIsTwin
+
+  useEffect(() => {
+    const el = chipsRef.current
+    if (!el) return undefined
+
+    function syncOverflow() {
+      setOverflowing(el.scrollWidth > el.clientWidth + 1)
+    }
+
+    syncOverflow()
+    if (typeof ResizeObserver === 'undefined') return undefined
+
+    const observer = new ResizeObserver(syncOverflow)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [allLabel, showAllChip, visibleOptions])
 
   const endDrag = useCallback((event) => {
     const state = dragRef.current
@@ -120,9 +153,6 @@ export default function AdminFilterChipGroup({
     onChange(optionValue)
   }
 
-  const showAllChip = omitNeutral && Boolean(allLabel)
-  const allActive = value === neutral
-
   return (
     <div
       className={[
@@ -143,7 +173,11 @@ export default function AdminFilterChipGroup({
           {label}
         </span>
       )}
-      <div className="admin-filter-chips-rail">
+      <div
+        className={['admin-filter-chips-rail', overflowing ? 'is-overflowing' : '']
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div
           ref={chipsRef}
           className="admin-filter-chips"
@@ -159,6 +193,7 @@ export default function AdminFilterChipGroup({
               'admin-filter-chip',
               'admin-filter-chip--all',
               allActive ? 'is-active' : '',
+              renderAllCount ? 'admin-filter-chip--counted' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -167,6 +202,11 @@ export default function AdminFilterChipGroup({
             onClick={() => onChange(neutral)}
           >
             <span className="admin-filter-chip__label">{allLabel}</span>
+            {renderAllCount ? (
+              <span className="admin-filter-chip__count" aria-hidden>
+                {allCount}
+              </span>
+            ) : null}
           </button>
         ) : null}
 

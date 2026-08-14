@@ -316,14 +316,14 @@ export default function RegistrationsSection({
         isGloballyEmpty ? null : (
           <>
             <ExportButton
-              iconOnly
-              label={t('admin.actions.exportCsvAdmin')}
+              label={t('admin.actions.exportCsvShort')}
+              ariaLabel={t('admin.actions.exportCsvAdmin')}
               onClick={onExportAdmin}
               disabled={!canEdit}
             />
             <ExportButton
-              iconOnly
-              label={t('admin.actions.exportPluUsa')}
+              label={t('admin.actions.exportPluUsaShort')}
+              ariaLabel={t('admin.actions.exportPluUsa')}
               onClick={onExportPluUsa}
               variant="gold"
             />

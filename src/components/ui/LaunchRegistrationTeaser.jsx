@@ -180,7 +180,7 @@ export default function LaunchRegistrationTeaser({
   const isCompact = variant === 'compact'
   const isHero = variant === 'hero'
   const isDossier = /\blaunch-teaser--dossier\b/.test(className)
-  const paidCheckoutOpen = isPaidCheckoutOpen(event, env, now, { checkoutKind: 'registration' })
+  const paidCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const eventLabel = resolveEventLabel(event)
   const showAccountCta = !paidCheckoutOpen && typeof onNavigate === 'function'
   const secondaryCta = showAccountCta

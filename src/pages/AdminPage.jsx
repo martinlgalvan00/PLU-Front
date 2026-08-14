@@ -419,6 +419,7 @@ export default function AdminPage({
         <AnalyticsSection
           athletes={athletes}
           canViewIdentity={hasPermission(authorization, 'admin.analytics.identity')}
+          canViewPaymentFailures={hasPermission(authorization, 'admin.payments.read')}
           onNavigate={handleSectionChange}
         />
       )

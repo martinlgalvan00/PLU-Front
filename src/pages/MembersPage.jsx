@@ -287,6 +287,28 @@ export default function MembersPage({
             </p>
           </header>
 
+          {visiblePlans.length ? (
+            <div className={gridClassName}>
+              {visiblePlans.map((plan) => (
+                <MembershipCard
+                  key={plan.id}
+                  {...plan}
+                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
+                  billingAutoRenew={billingMode === 'recurring'}
+                  billingToggleHint={billingHint}
+                  billingToggleLabel={t('pages.members.autoRenewLabel')}
+                  ctaLabel={affiliationCta}
+                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
+                  onBillingAutoRenewChange={(enabled) => {
+                    setBillingMode(enabled ? 'recurring' : 'one_time')
+                  }}
+                  onSelect={goToAffiliation}
+                  variant="plu"
+                />
+              ))}
+            </div>
+          ) : null}
+
           {showComboPromo ? (
             <Reveal
               as="aside"
@@ -338,7 +360,7 @@ export default function MembersPage({
                 </div>
                 <button
                   type="button"
-                  className="btn btn--gold members-combo-promo__cta"
+                  className="btn btn--outline members-combo-promo__cta"
                   disabled={checkoutLocked}
                   onClick={goToCombo}
                 >
@@ -346,28 +368,6 @@ export default function MembersPage({
                 </button>
               </div>
             </Reveal>
-          ) : null}
-
-          {visiblePlans.length ? (
-            <div className={gridClassName}>
-              {visiblePlans.map((plan) => (
-                <MembershipCard
-                  key={plan.id}
-                  {...plan}
-                  billingToggleEnabled={billingSwitchEnabled && !checkoutLocked}
-                  billingAutoRenew={billingMode === 'recurring'}
-                  billingToggleHint={billingHint}
-                  billingToggleLabel={t('pages.members.autoRenewLabel')}
-                  ctaLabel={affiliationCta}
-                  ctaDisabled={hasActiveMembership || checkoutLocked || livePlansUnavailable}
-                  onBillingAutoRenewChange={(enabled) => {
-                    setBillingMode(enabled ? 'recurring' : 'one_time')
-                  }}
-                  onSelect={goToAffiliation}
-                  variant="plu"
-                />
-              ))}
-            </div>
           ) : null}
           {!hasActiveMembership && visiblePlans.length ? (
             <p className="members-plu-plans__reassure">

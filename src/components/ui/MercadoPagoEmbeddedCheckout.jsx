@@ -192,6 +192,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [checking, setChecking] = useState(false)
   const [simulating, setSimulating] = useState(false)
   const [pollExhausted, setPollExhausted] = useState(false)
+  const [walletPreferenceId, setWalletPreferenceId] = useState(null)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'

@@ -228,7 +228,25 @@ export default function EventsSection({
     setSelectedId(adminEvents[0]?.id ?? null)
   }, [adminEvents, selectedId])
 
-  const statusOptions = useMemo(() => translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t), [t])
+  const statusCounts = useMemo(() => {
+    const counts = Object.create(null)
+    for (const event of adminEvents) {
+      const key = event.status
+      if (!key) continue
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, [adminEvents])
+
+  const statusOptions = useMemo(
+    () =>
+      translateFilterOptions(ADMIN_EVENT_STATUS_OPTIONS, t).map(([value, label]) => [
+        value,
+        label,
+        value === 'all' ? adminEvents.length : (statusCounts[value] ?? 0),
+      ]),
+    [adminEvents.length, statusCounts, t],
+  )
 
   const rows = useMemo(
     () => filterAdminEvents(adminEvents, { query, status }),
@@ -465,32 +483,33 @@ export default function EventsSection({
       : (selectedEvent.date ?? '')
     : ''
 
-  const filterActions = (
-    <div className="admin-events__toolbar-actions">
-      {onRefresh ? (
-        <AdminIconButton
-          className={
-            isLoading ? 'admin-events__refresh-btn is-spinning' : 'admin-events__refresh-btn'
-          }
-          disabled={isLoading}
-          icon={RefreshCw}
-          label={
-            isLoading
-              ? t('admin.sections.events.refreshing')
-              : t('admin.sections.events.refresh')
-          }
-          onClick={onRefresh}
-          variant="ghost"
-        />
-      ) : null}
-      {canEdit ? (
-        <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
-          <Plus size={15} aria-hidden />
-          {t('admin.actions.newEvent')}
-        </Button>
-      ) : null}
-    </div>
-  )
+  const headerActions =
+    onRefresh || canEdit ? (
+      <div className="admin-events__header-actions">
+        {onRefresh ? (
+          <AdminIconButton
+            className={
+              isLoading ? 'admin-events__refresh-btn is-spinning' : 'admin-events__refresh-btn'
+            }
+            disabled={isLoading}
+            icon={RefreshCw}
+            label={
+              isLoading
+                ? t('admin.sections.events.refreshing')
+                : t('admin.sections.events.refresh')
+            }
+            onClick={onRefresh}
+            variant="ghost"
+          />
+        ) : null}
+        {canEdit ? (
+          <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
+            <Plus size={15} aria-hidden />
+            {t('admin.actions.newEvent')}
+          </Button>
+        ) : null}
+      </div>
+    ) : null
 
   const eventsKpis = (
     <div
@@ -520,8 +539,8 @@ export default function EventsSection({
   return (
     <AdminListSection
       eyebrow={t('admin.sections.events.eyebrow')}
+      actions={headerActions}
       filteredCount={rows.length}
-      filterActions={filterActions}
       placeholder={t('admin.search.event')}
       query={query}
       showHeader
