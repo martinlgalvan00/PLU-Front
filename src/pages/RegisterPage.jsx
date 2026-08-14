@@ -1441,13 +1441,23 @@ export default function RegisterPage({
                         onBlur={blurField}
                         onChange={changeField}
                       />
+                      <Select
+                        error={visibleErrors.country}
+                        icon={Globe}
+                        label={t('pages.register.country')}
+                        name="country"
+                        value={form.country}
+                        onBlur={blurField}
+                        onChange={changeField}
+                        options={formOptions.country}
+                      />
                       <Field
                         error={visibleErrors.documentId}
                         icon={Hash}
                         inputMode="numeric"
-                        label={t('pages.register.documentIdLabel')}
+                        label={form.country === 'Argentina' || !form.country ? t('pages.register.documentIdLabel') : t('pages.register.documentIdPassport')}
                         name="documentId"
-                        placeholder={t('pages.register.documentPlaceholder')}
+                        placeholder={form.country === 'Argentina' || !form.country ? t('pages.register.documentPlaceholder') : t('pages.register.documentPlaceholderPassport')}
                         value={form.documentId}
                         onBlur={blurField}
                         onChange={changeField}
@@ -1526,16 +1536,7 @@ export default function RegisterPage({
                     description={t('pages.register.locationDesc')}
                   >
                     <div className="form-grid">
-                      <Select
-                        error={visibleErrors.country}
-                        icon={Globe}
-                        label={t('pages.register.country')}
-                        name="country"
-                        value={form.country}
-                        onBlur={blurField}
-                        onChange={changeField}
-                        options={formOptions.country}
-                      />
+
                       <Field
                         error={visibleErrors.province}
                         icon={MapPin}
