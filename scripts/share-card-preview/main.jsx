@@ -55,6 +55,19 @@ const FIXTURES = [
     },
   },
   {
+    name: 'afiliacion-foto-historia',
+    label: 'Afiliación con foto de perfil · historia',
+    props: {
+      variant: 'membership',
+      format: 'story',
+      athleteName: 'Martina Rivas',
+      athleteCode: 'PLU-ARG-2026-001',
+      athletePhotoUrl: 'https://picsum.photos/seed/plu-athlete/400/400',
+      membershipSeason: '2026',
+      membershipExpiration: '31 ene 2027',
+    },
+  },
+  {
     name: 'inscripcion-historia',
     label: 'Inscripción a torneo · historia',
     props: {

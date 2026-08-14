@@ -145,7 +145,13 @@ export default function PaymentValidationDialog({
   // El archivo tiene que haberse abierto correctamente antes de permitir una
   // decisión. La existencia de una ruta no alcanza como prueba revisada.
   const proofReadyForReview = hasProof && !proofLoading && Boolean(proofUrl) && !proofError
-  const canConfirm = item.cashAtPitbull || proofReadyForReview
+  const canDecide = item.cashAtPitbull || proofReadyForReview
+  // El efectivo no trae archivo, así que el rechazo tampoco puede pedirlo: es
+  // la única vía para devolver el cupo que reserva una orden presencial cuando
+  // el atleta no se presenta a pagar. Se muestra desde el principio y se
+  // habilita al estar lista la decisión, para no hacer saltar la botonera
+  // cuando termina de cargar el comprobante.
+  const showReject = Boolean(onReject) && (hasProof || item.cashAtPitbull)
   const noProofLead = item.cashAtPitbull
     ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
     : isView
@@ -346,18 +352,18 @@ export default function PaymentValidationDialog({
               </Button>
               {isView ? null : (
                 <>
-                  {hasProof && onReject ? (
+                  {showReject ? (
                     <Button
                       type="button"
                       variant="danger"
-                      disabled={busy || !proofReadyForReview}
+                      disabled={busy || !canDecide}
                       onClick={() => setRejecting(true)}
                     >
                       <XCircle size={15} aria-hidden />
                       {t('admin.paymentValidation.reject')}
                     </Button>
                   ) : null}
-                  <Button type="button" disabled={busy || !canConfirm} onClick={onConfirm}>
+                  <Button type="button" disabled={busy || !canDecide} onClick={onConfirm}>
                     {busy ? (
                       <LoaderCircle size={15} aria-hidden className="is-spinning" />
                     ) : (

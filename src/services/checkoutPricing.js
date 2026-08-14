@@ -6,7 +6,7 @@ export function previewCheckoutPrice({ concept, paymentMethod, fallback, now = n
   if (now >= PRE_SALE_END) return fallback
   const bankTransfer = paymentMethod === 'manual_link' || paymentMethod === 'transferencia'
   const cashAtPitbull = paymentMethod === 'cash_pitbull'
-  if (concept === 'combo') return bankTransfer ? 120000 : cashAtPitbull ? 150000 : 170000
+  if (concept === 'combo') return bankTransfer || cashAtPitbull ? 120000 : 170000
   if (concept === 'membership' || concept === 'registration') {
     return bankTransfer || cashAtPitbull ? 75000 : 85000
   }

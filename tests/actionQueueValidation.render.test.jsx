@@ -115,6 +115,40 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     })
   })
 
+  /**
+   * El efectivo reserva el cupo hasta el día del torneo, así que rechazarlo es
+   * la única forma de devolverlo cuando el atleta no se presenta a pagar. No
+   * hay archivo que revisar: la decisión es operativa.
+   */
+  it('deja rechazar el efectivo presencial aunque no haya comprobante', async () => {
+    const onRejectPayment = vi.fn(async () => ({}))
+    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true }], { onRejectPayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rechazar' }))
+    fireEvent.change(within(dialog).getByLabelText('Motivo del rechazo'), {
+      target: { value: 'No se presentó a pagar en la sede.' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar rechazo' }))
+
+    await waitFor(() => {
+      expect(onRejectPayment).toHaveBeenCalledWith('p2', 'No se presentó a pagar en la sede.')
+    })
+  })
+
+  it('no ofrece rechazar una transferencia que todavía no adjuntó nada', async () => {
+    const onRejectPayment = vi.fn(async () => ({}))
+    renderQueue([PAYMENT_NO_PROOF], { onRejectPayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(within(dialog).queryByRole('button', { name: 'Rechazar' })).toBeNull()
+    expect(onRejectPayment).not.toHaveBeenCalled()
+  })
+
   it('no permite confirmar hasta que el comprobante se pueda abrir', async () => {
     getAthletePaymentProofUrl.mockRejectedValueOnce(new Error('Archivo no disponible'))
     const onApprovePayment = vi.fn(async () => ({}))
