@@ -25,6 +25,7 @@ import {
   createPaymentPreference,
   processClaimedPaymentEvent,
   processPaymentWebhook,
+  reconcileReturnPayment,
 } from '../modules/payments/paymentWorkflow.js'
 import { processEmbeddedPayment } from '../modules/payments/embeddedPaymentWorkflow.js'
 import {
@@ -93,6 +94,15 @@ const paymentClientEventSchema = z.object({
   stage: z.enum(['initialization', 'render']),
   errorCode: z.string().trim().max(80).optional(),
   message: z.string().trim().max(240).optional(),
+})
+
+const mercadoPagoReturnSchema = z.object({
+  paymentOrderId: z.string().uuid(),
+  orderAccessToken: z.string().trim().min(32).optional(),
+  paymentId: z.union([z.string(), z.number()]).optional(),
+  collectionId: z.union([z.string(), z.number()]).optional(),
+  preferenceId: z.string().trim().min(1).optional(),
+  status: z.string().trim().min(1).optional(),
 })
 
 const embeddedSubscriptionSchema = z.object({
@@ -279,6 +289,19 @@ export function createPaymentRoutes(deps = {}) {
         order,
       })
       res.status(result.duplicate ? 200 : 201).json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  router.post('/return/mercadopago', checkoutLimiter, validateBody(mercadoPagoReturnSchema), async (req, res, next) => {
+    try {
+      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
+      const result = await reconcileReturnPayment(req.validatedBody, {
+        ...services({ notifications: true }),
+        order,
+      })
+      res.status(result.reconciled ? 200 : 202).json(result)
     } catch (error) {
       next(error)
     }
