@@ -39,6 +39,12 @@ import {
   recordOperationalAuditEvent,
   requestAuditMetadata,
 } from '../modules/audit/operationalAuditWriter.js'
+import {
+  PAYMENT_TRAIL_ACTIONS,
+  createPaymentAuditTrail,
+} from '../modules/payments/paymentAuditTrail.js'
+import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
+import { logger } from '../lib/logger.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -258,14 +264,16 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
   const mailer = brevo ?? createBrevoAdapter({ env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
-  function recordFailedLogin(req, email) {
-    let auditClient = null
+  function auditClient() {
     try {
-      auditClient = client()
+      return client()
     } catch {
-      auditClient = null
+      return null
     }
-    return recordOperationalAuditEvent(auditClient, {
+  }
+
+  function recordFailedLogin(req, email) {
+    return recordOperationalAuditEvent(auditClient(), {
       source: 'identity',
       action: 'auth.login_failed',
       entityType: 'athlete',
@@ -274,6 +282,77 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       status: 'failed',
       severity: 'warning',
       metadata: requestAuditMetadata(req, { method: 'password', reason: 'invalid_credentials' }),
+    })
+  }
+
+  /**
+   * Alta fallida. El trigger de `athletes` ya asienta las altas exitosas, pero
+   * un alta que no llega a completarse (documento duplicado, base caida) no
+   * dejaba nada: la unica evidencia de que alguien intento afiliarse y no pudo
+   * era el reclamo del atleta.
+   */
+  function recordFailedRegistration(req, { email, documentId, error }) {
+    const diagnosis = diagnosePaymentFailure(error)
+    logger.warn('identity.registration_failed', {
+      requestId: req.requestId,
+      reason: error?.details?.code ?? error?.status ?? null,
+      err: error,
+    })
+    return recordOperationalAuditEvent(auditClient(), {
+      source: 'identity',
+      action: 'account.registration_failed',
+      entityType: 'athlete',
+      entityId: anonymousIdentityId('email', email),
+      actorType: 'anonymous',
+      status: 'failed',
+      severity: error?.status >= 500 ? 'danger' : 'warning',
+      metadata: requestAuditMetadata(req, {
+        reason: error?.details?.code ?? 'unexpected_error',
+        status: error?.status ?? 500,
+        message: error?.message ?? String(error),
+        documentFingerprint: documentId ? anonymousIdentityId('document', documentId) : null,
+        diagnosis: { code: diagnosis.code, fix: diagnosis.fix },
+        stack: typeof error?.stack === 'string' ? error.stack.slice(0, 4_000) : null,
+      }),
+    })
+  }
+
+  /**
+   * Alta de una orden de cobro (afiliacion, inscripcion o combo). Es el
+   * eslabon anterior al checkout: sin este asiento, una orden que se creaba y
+   * nunca llegaba a pagarse no se distinguia de una que jamas se creo.
+   */
+  function paymentTrail() {
+    return createPaymentAuditTrail({ client: auditClient() })
+  }
+
+  async function recordOrderCreated(req, { concept, result, planCode = null, eventSlug = null }) {
+    const order = result?.paymentOrder ?? result?.order ?? result
+    const orderId = order?.id ?? order?.paymentId ?? null
+    if (!orderId) return false
+    return paymentTrail().record({
+      action: PAYMENT_TRAIL_ACTIONS.orderCreated,
+      entityType: 'athlete_payment_order',
+      entityId: orderId,
+      status: order?.status ?? 'pendiente',
+      metadata: {
+        concept,
+        planCode,
+        eventSlug,
+        method: order?.method ?? null,
+        amount: order?.amount ?? null,
+        currency: order?.currency ?? null,
+      },
+    })
+  }
+
+  async function recordOrderFailure(req, { concept, error, planCode = null, eventSlug = null }) {
+    return paymentTrail().recordFailure({
+      stage: `order_create:${concept}`,
+      entityType: 'athlete_payment_order',
+      entityId: `pending:${concept}`,
+      error,
+      metadata: { concept, planCode, eventSlug },
     })
   }
 
@@ -392,7 +471,13 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
         documentId: form.documentId,
       })
       if (availability.emailTaken || availability.documentTaken) {
-        throw athleteExistsError(availability)
+        const conflict = athleteExistsError(availability)
+        await recordFailedRegistration(req, {
+          email: form.email,
+          documentId: form.documentId,
+          error: conflict,
+        })
+        throw conflict
       }
       const row = await repo().register(form, await hashPassword(password))
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
@@ -402,8 +487,12 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       // el email crítico quede enviado o programado para reintento antes de que
       // una función serverless pueda finalizar después de responder.
       const delivery = await sendOnboardingEmails(row).catch((error) => {
-        console.warn('[onboarding] no se pudieron enviar los emails de alta', error?.message ?? error)
+        logger.warn('identity.onboarding_email_failed', { athleteId: row.id, err: error })
         return { status: 'failed' }
+      })
+      logger.info('identity.account_created', {
+        athleteId: row.id,
+        emailVerificationSent: emailWasSent(delivery),
       })
       res.status(201).json({
         athlete: row,
@@ -413,11 +502,26 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
       // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
       if (error instanceof HttpError && error.details?.code === 'PLU07') {
-        next(new HttpError(409, 'Ya existe una cuenta con ese correo o documento.', {
+        const conflict = new HttpError(409, 'Ya existe una cuenta con ese correo o documento.', {
           code: 'ATHLETE_EXISTS',
           fields: { email: 'taken', documentId: 'taken' },
-        }))
+        })
+        await recordFailedRegistration(req, {
+          email: req.validatedBody?.email,
+          documentId: req.validatedBody?.documentId,
+          error: conflict,
+        })
+        next(conflict)
         return
+      }
+      // El asiento del conflicto pre-chequeado ya salio arriba; este cubre
+      // todo lo demas (base caida, sesion no emitida, hash fallido).
+      if (!(error instanceof HttpError && error.details?.code === 'ATHLETE_EXISTS')) {
+        await recordFailedRegistration(req, {
+          email: req.validatedBody?.email,
+          documentId: req.validatedBody?.documentId,
+          error,
+        })
       }
       next(error)
     }
@@ -650,6 +754,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     catch (error) { next(error) }
   })
   router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
+    const planCode = req.validatedBody?.planCode ?? null
     try {
       await assertPaidCheckoutAvailable(env, new Date(), { client: client() })
       const auth = await athlete(req)
@@ -659,33 +764,50 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       if (isAppProduction(env) && isRecurringMembershipPlan(plan)) {
         assertRecurringMembershipAvailable(env)
       }
-      res.status(201).json(await repo().createMembershipOrder(auth.athleteId, {
+      const created = await repo().createMembershipOrder(auth.athleteId, {
         ...req.validatedBody,
         planCode: plan.code,
-      }))
-    } catch (error) { next(error) }
+      })
+      await recordOrderCreated(req, { concept: 'membership', result: created, planCode: plan.code })
+      res.status(201).json(created)
+    } catch (error) {
+      await recordOrderFailure(req, { concept: 'membership', error, planCode })
+      next(error)
+    }
   })
   router.post('/me/registrations', publicWriteLimiter, validateBody(registrationSchema), async (req, res, next) => {
+    const eventSlug = req.validatedBody?.eventSlug ?? null
     try {
       const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
       await assertPaidCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
-      res.status(201).json(await repo().createRegistration(auth.athleteId, req.validatedBody))
-    } catch (error) { next(error) }
+      const created = await repo().createRegistration(auth.athleteId, req.validatedBody)
+      await recordOrderCreated(req, { concept: 'registration', result: created, eventSlug })
+      res.status(201).json(created)
+    } catch (error) {
+      await recordOrderFailure(req, { concept: 'registration', error, eventSlug })
+      next(error)
+    }
   })
   router.post(
     '/me/registration-combos',
     publicWriteLimiter,
     validateBody(comboRegistrationSchema),
     async (req, res, next) => {
+      const eventSlug = req.validatedBody?.eventSlug ?? null
       try {
         const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
         await assertComboCheckoutAvailable(env, new Date(), { registrationOpensAt, skipScheduleLookup: true })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
-        res.status(201).json(await repo().createRegistrationCombo(auth.athleteId, req.validatedBody))
-      } catch (error) { next(error) }
+        const created = await repo().createRegistrationCombo(auth.athleteId, req.validatedBody)
+        await recordOrderCreated(req, { concept: 'combo', result: created, eventSlug })
+        res.status(201).json(created)
+      } catch (error) {
+        await recordOrderFailure(req, { concept: 'combo', error, eventSlug })
+        next(error)
+      }
     },
   )
   /**
@@ -826,16 +948,40 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
     } catch (error) { next(error) }
   })
   router.post('/admin/payment-orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
+    const orderId = z.string().uuid().safeParse(req.params.orderId)
     try {
-      const orderId = z.string().uuid().safeParse(req.params.orderId)
       if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
       const result = await repo().approvePayment(orderId.data, actorLabel(req))
+      // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
+      // misma bitacora, con el operador que la firmo.
+      await paymentTrail().record({
+        action: PAYMENT_TRAIL_ACTIONS.applied,
+        entityType: 'athlete_payment_order',
+        entityId: orderId.data,
+        status: result?.order?.status ?? 'aprobado',
+        severity: 'success',
+        metadata: {
+          stage: 'manual_approval',
+          method: result?.order?.method ?? 'manual_link',
+          approvedBy: actorLabel(req),
+          amount: result?.order?.amount ?? null,
+        },
+      })
       // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
       await notifyManualApproval(result).catch((error) =>
-        console.warn('[payment-approval] no se pudieron enviar los emails', error?.message ?? error),
+        logger.warn('payment.manual_approval_email_failed', { orderId: orderId.data, err: error }),
       )
       res.json(result)
-    } catch (error) { next(error) }
+    } catch (error) {
+      await paymentTrail().recordFailure({
+        stage: 'manual_approval',
+        entityType: 'athlete_payment_order',
+        entityId: orderId.success ? orderId.data : String(req.params.orderId),
+        error,
+        metadata: { approvedBy: req.auth?.user?.email ?? null },
+      })
+      next(error)
+    }
   })
   /**
    * Credencial de un socio desde el panel: hasta ahora no había forma de ver
