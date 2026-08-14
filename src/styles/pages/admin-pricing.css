@@ -202,7 +202,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   display: grid;
   gap: 0.75rem 1.1rem;
-  grid-template-columns: minmax(0, 1fr) auto minmax(220px, auto);
+  grid-template-columns: minmax(0, 1fr) auto minmax(320px, auto);
   padding: 0.85rem 0.15rem;
   position: relative;
   transition: background-color 160ms var(--ease-out, ease);
@@ -340,7 +340,7 @@
   flex-wrap: nowrap;
   gap: 0.7rem;
   justify-content: flex-end;
-  min-width: 220px;
+  min-width: 320px;
 }
 
 .admin-pricing__switch {

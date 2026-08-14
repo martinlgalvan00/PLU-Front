@@ -131,6 +131,26 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
     },
   )
 
+  router.delete(
+    '/membership-plans/:planId',
+    ...writeGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const planId = parseRouteParam(
+          z.string().uuid(),
+          req.params.planId,
+          'El identificador del plan es invÃ¡lido.',
+        )
+        const result = await repository().deletePlan(planId, actor(req))
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.put(
     '/events/:eventSlug/combo',
     ...writeGuard,

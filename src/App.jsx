@@ -457,6 +457,7 @@ export default function App() {
           pricingError={app.pricingError}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
+          onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
           onCreateSecurityUser={app.createSecurityUserAction}

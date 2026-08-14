@@ -136,6 +136,7 @@ import {
 import { enrichMemberships } from '../services/membershipService.js'
 import {
   createMembershipPlanVersionRequest,
+  deleteMembershipPlanRequest,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
   setMembershipPlanActiveRequest,
@@ -2206,6 +2207,20 @@ export function useAppData() {
     }
   }, [refreshPricingConfiguration, session])
 
+  const deleteMembershipPlan = useCallback(async (planId) => {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const result = await deleteMembershipPlanRequest(planId)
+      clearMembershipPlansCache()
+      await refreshPricingConfiguration()
+      return result
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo eliminar el plan.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
   const saveEventComboOffer = useCallback(async (eventSlug, offer) => {
     if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
@@ -2279,6 +2294,7 @@ export function useAppData() {
     refreshPricingConfiguration,
     createMembershipPlanVersion,
     setMembershipPlanActive,
+    deleteMembershipPlan,
     saveEventComboOffer,
     shopProducts,
     saveAdminEvent,
