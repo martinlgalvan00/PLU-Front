@@ -146,8 +146,7 @@ const registerSchema = z.object({
   documentId: z
     .string()
     .trim()
-    .transform((value) => value.replace(/[.\-\s]/g, ''))
-    .pipe(z.string().regex(/^\d{7,8}$/, 'El documento debe tener 7 u 8 dígitos.')),
+    .transform((value) => value.replace(/[.\-\s]/g, '')),
   email: z.string().trim().toLowerCase().email(),
   birthDate: birthDateSchema,
   phone: z.string().trim().refine(
@@ -174,6 +173,25 @@ const registerSchema = z.object({
       return Number.isFinite(parsed) && parsed >= 10 && parsed <= 250
     }, 'El peso estimado debe estar entre 10 y 250 kg.'),
   password: z.string().min(12).max(72),
+}).superRefine((data, ctx) => {
+  const isArgentina = data.country === 'Argentina' || !data.country
+  if (isArgentina) {
+    if (!/^\d{7,8}$/.test(data.documentId)) {
+      ctx.addIssue({
+        path: ['documentId'],
+        code: z.ZodIssueCode.custom,
+        message: 'El documento debe tener 7 u 8 dígitos.',
+      })
+    }
+  } else {
+    if (data.documentId.length < 5 || data.documentId.length > 20) {
+      ctx.addIssue({
+        path: ['documentId'],
+        code: z.ZodIssueCode.custom,
+        message: 'El pasaporte o ID debe tener entre 5 y 20 caracteres.',
+      })
+    }
+  }
 })
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -290,7 +308,6 @@ const availabilitySchema = z
       .string()
       .trim()
       .transform((value) => value.replace(/[.\-\s]/g, ''))
-      .pipe(z.string().regex(/^\d{7,8}$/))
       .optional(),
   })
   .refine((value) => Boolean(value.email || value.documentId), {

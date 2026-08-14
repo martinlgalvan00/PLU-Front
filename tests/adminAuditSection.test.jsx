@@ -185,12 +185,13 @@ describe('sección de auditoría', () => {
     expect(await screen.findByText('Supabase caído')).toBeTruthy()
   })
 
-  it('visibiliza las incidencias de emails y afiliaciones en el resumen', async () => {
+  it('visibiliza las incidencias de emails, pagos y afiliaciones en el resumen', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview({
       status: 'attention',
-      emailAttention: 2,
+      emailAttention: 290,
+      paymentAttention: 3,
       activeMembershipsWithoutConfirmation: 1,
-      approvedOrdersWithoutActiveMembership: 1,
+      approvedOrdersWithoutActiveMembership: 0,
     }))
     fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
     fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
@@ -198,8 +199,16 @@ describe('sección de auditoría', () => {
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByText('Requiere revisión')).toBeTruthy()
-    expect(screen.getAllByText('4').length).toBeGreaterThan(0)
-    expect(screen.getByText(/1 órdenes aprobadas sin afiliación activa/)).toBeTruthy()
+    expect(screen.getAllByText('294').length).toBeGreaterThan(0)
+    expect(screen.getByText('Emails')).toBeTruthy()
+    expect(screen.getByText('290')).toBeTruthy()
+    expect(screen.getByText('Pagos')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
+    expect(screen.getByText('Afiliaciones')).toBeTruthy()
+    expect(screen.getByText('Órdenes aprobadas sin afiliación activa')).toBeTruthy()
+    expect(screen.getByText('Afiliaciones activas sin confirmación entregada (30 d)')).toBeTruthy()
+    // El "1" aparece en el subtotal de afiliaciones y en el detalle de confirmación.
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2)
   })
 
   it('deja fuente y estado a la vista y pliega acción, actor y entidad', async () => {

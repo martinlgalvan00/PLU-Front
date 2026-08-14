@@ -1766,7 +1766,11 @@ export default {
     healthDelivered: 'Emails entregados',
     healthRetrying: 'Reintentos en curso',
     healthIncidents: 'Incidencias abiertas',
-    healthMembershipNotice: '{{orders}} órdenes aprobadas sin afiliación activa y {{emails}} afiliaciones activas sin confirmación entregada en los últimos 30 días.',
+    healthBreakdownEmails: 'Emails',
+    healthBreakdownPayments: 'Pagos',
+    healthBreakdownAffiliation: 'Afiliaciones',
+    healthBreakdownOrdersGap: 'Órdenes aprobadas sin afiliación activa',
+    healthBreakdownMembershipEmails: 'Afiliaciones activas sin confirmación entregada (30 d)',
     actions: {
       'account.created': 'Cuenta creada',
       'account.reactivated': 'Cuenta reactivada',
