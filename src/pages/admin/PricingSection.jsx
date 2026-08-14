@@ -823,7 +823,7 @@ export default function PricingSection({
               >
                 <div className="admin-pricing__combo-stack">
                   <div className="admin-pricing__combo-line">
-                    <span>{t('admin.sections.pricing.membershipPlan')}</span>
+                    <span>{t('admin.sections.pricing.membershipAmount')}</span>
                     <strong>{money(selectedPlan.price, locale)}</strong>
                   </div>
                   <div className="admin-pricing__combo-op" aria-hidden>

@@ -7,7 +7,7 @@ import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 
 export const platformFeatureToggleSchema = z.object({
-  feature: z.enum(['membership', 'registration']),
+  feature: z.enum(['checkout', 'membership', 'registration']),
   enabled: z.boolean(),
 })
 

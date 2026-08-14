@@ -165,6 +165,12 @@ export default {
     reloadCheckout: 'Recargar checkout',
     statusError:
       'No se pudo consultar el estado. El sistema seguirá conciliando el pago automáticamente.',
+    submitPay: 'Pagar',
+    submitContinueMp: 'Continuar en Mercado Pago',
+    submitPayMpCredit: 'Pagar con crédito de Mercado Pago',
+    submitPayDebit: 'Pagar con tarjeta de débito',
+    submitPayCredit: 'Pagar con tarjeta',
+    submitPayTicket: 'Continuar con este medio',
   },
   ticketAvailability: {
     soldOut: 'Entradas de público agotadas',
@@ -173,6 +179,18 @@ export default {
     publicTickets: 'entradas de público',
     lowStock: '¡Solo {{count}} entradas de público!',
     availableCount: 'Quedan {{count}} entradas de público',
+  },
+  comboDeal: {
+    eyebrow: 'Oferta especial',
+    title: 'Promoción ambas',
+    percent: '{{percent}}% de descuento',
+    percentMark: '−{{percent}}%',
+    summary: 'Combo con {{percent}}% de descuento: {{amount}}',
+    compare: 'en lugar de {{amount}}',
+    membership: 'Afiliación',
+    registration: 'Inscripción',
+    until: 'Vigente hasta {{date}}',
+    cta: 'Aprovechar promoción',
   },
   nav: {
     home: 'Inicio',
@@ -885,7 +903,10 @@ export default {
       transferVerifyTitle: 'Verificá alias y titular',
       transferVerifyWarning:
         'El alias y el titular tienen que coincidir exactamente. Pagos a otros datos no se pueden recuperar.',
-      transferUnderstood: 'Entendido',
+      transferCopy: 'Copiar',
+      transferCopied: 'Copiado',
+      transferCopyField: 'Copiar {{field}}',
+      transferUnderstood: 'Enviar a validación',
       proofAction: 'Adjuntar comprobante',
       proofUploading: 'Subiendo comprobante...',
       proofUploaded: 'Recibimos tu comprobante. Administración lo valida en hasta 48 horas y te avisamos por email.',

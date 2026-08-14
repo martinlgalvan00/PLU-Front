@@ -163,7 +163,7 @@ export default function PaymentValidationDialog({
       />
       <section
         ref={panelRef}
-        className={`payment-validation-dialog__panel${isView ? ' payment-validation-dialog__panel--view' : ''}`}
+        className={`payment-validation-dialog__panel${isView ? ' payment-validation-dialog__panel--view' : ''}${!hasProof ? ' payment-validation-dialog__panel--empty-proof' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -214,9 +214,19 @@ export default function PaymentValidationDialog({
 
         <div className="payment-validation-dialog__proof" aria-live="polite">
           {!hasProof ? (
-            <div className="payment-validation-dialog__empty" role="status">
-              <FileWarning size={18} aria-hidden />
+            <div
+              className={`payment-validation-dialog__empty${isView ? ' payment-validation-dialog__empty--view' : ''}`}
+              role="status"
+            >
+              <span className="payment-validation-dialog__empty-icon" aria-hidden>
+                <FileWarning size={20} />
+              </span>
               <div>
+                {isView ? (
+                  <span className="payment-validation-dialog__empty-state">
+                    {t('admin.paymentValidation.proofPending')}
+                  </span>
+                ) : null}
                 <strong>{item.cashAtPitbull ? 'Cobro presencial en Pitbull' : t('admin.paymentValidation.noProofTitle')}</strong>
                 <p>{noProofLead}</p>
               </div>

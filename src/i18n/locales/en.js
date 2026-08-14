@@ -162,6 +162,12 @@ export default {
     reloadCheckout: 'Reload checkout',
     statusError:
       'Could not check the status. The system will continue reconciling the payment automatically.',
+    submitPay: 'Pay',
+    submitContinueMp: 'Continue in Mercado Pago',
+    submitPayMpCredit: 'Pay with Mercado Pago Credit',
+    submitPayDebit: 'Pay with debit card',
+    submitPayCredit: 'Pay with card',
+    submitPayTicket: 'Continue with this method',
   },
   ticketAvailability: {
     soldOut: 'Spectator tickets sold out',
@@ -170,6 +176,18 @@ export default {
     publicTickets: 'spectator tickets',
     lowStock: 'Only {{count}} spectator tickets left!',
     availableCount: '{{count}} spectator tickets left',
+  },
+  comboDeal: {
+    eyebrow: 'Special offer',
+    title: 'Combined promotion',
+    percent: '{{percent}}% off',
+    percentMark: '−{{percent}}%',
+    summary: '{{percent}}% off combo: {{amount}}',
+    compare: 'instead of {{amount}}',
+    membership: 'Membership',
+    registration: 'Registration',
+    until: 'Available until {{date}}',
+    cta: 'Get the promotion',
   },
   nav: {
     home: 'Home',
@@ -884,7 +902,10 @@ export default {
       transferVerifyTitle: 'Check alias and account holder',
       transferVerifyWarning:
         'Alias and account holder must match exactly. Payments sent to other details cannot be recovered.',
-      transferUnderstood: 'Got it',
+      transferCopy: 'Copy',
+      transferCopied: 'Copied',
+      transferCopyField: 'Copy {{field}}',
+      transferUnderstood: 'Send for review',
       proofAction: 'Attach receipt',
       proofUploading: 'Uploading receipt...',
       proofUploaded: 'We got your receipt. Administration reviews it within up to 48 hours and we email you back.',
