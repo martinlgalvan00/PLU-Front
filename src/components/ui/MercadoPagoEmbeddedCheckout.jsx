@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CardPayment, Payment, Wallet, initMercadoPago } from '@mercadopago/sdk-react'
-import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, Clock3, ExternalLink, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { money } from '../../lib/format.js'
 import { syncMercadoPagoSubmitLabel } from '../../lib/mercadoPagoBrickUi.js'
@@ -56,11 +56,22 @@ function buildBrickVisual() {
     },
   }
 }
-const PAYMENT_METHODS = {
+/**
+ * Medios del Payment Brick. `mercadoPago` (dinero en cuenta y Mercado Crédito)
+ * sólo aparece si la preferencia existe, y Mercado Pago además lo filtra por
+ * monto mínimo, así que no se puede confiar en que el brick lo ofrezca. Cuando
+ * podemos montar el Wallet Brick la cuenta de Mercado Pago vive ahí y sólo ahí
+ * —`PAYMENT_METHODS_CARD_ONLY`—, para no ofrecer el mismo medio dos veces en la
+ * misma pantalla.
+ */
+const PAYMENT_METHODS_CARD_ONLY = {
   creditCard: 'all',
   debitCard: 'all',
   prepaidCard: 'all',
   ticket: 'all',
+}
+const PAYMENT_METHODS = {
+  ...PAYMENT_METHODS_CARD_ONLY,
   mercadoPago: 'all',
 }
 const WALLET_CUSTOMIZATION = {
@@ -225,13 +236,18 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     ? resolvedPreferenceId
     : null
   const realPreferenceId = walletPreferenceId ?? initialPreferenceId
-  // Wallet Brick redirige (el botón queda en "Redirigiendo") y duplica el
-  // medio "Mercado Pago" que ya trae Payment Brick. En settle —afiliación e
-  // inscripción— el cobro tiene que quedar embebido en la página.
-  const canRenderWallet = !isSettle && !isSubscription && Boolean(realPreferenceId)
+  // Pagar con el dinero de la cuenta exige iniciar sesión en Mercado Pago: no
+  // hay forma embebida de hacerlo, el Wallet Brick redirige y vuelve por
+  // `back_urls`. Antes esto estaba apagado en settle, y como afiliación e
+  // inscripción son las dos presentaciones settle, la cuenta de Mercado Pago no
+  // se podía usar en ningún checkout. Las tarjetas siguen cobrándose embebidas.
+  const canRenderWallet = !isSubscription && Boolean(realPreferenceId)
   const paymentCustomization = useMemo(
-    () => ({ paymentMethods: PAYMENT_METHODS, visual: brickVisual }),
-    [brickVisual],
+    () => ({
+      paymentMethods: canRenderWallet ? PAYMENT_METHODS_CARD_ONLY : PAYMENT_METHODS,
+      visual: brickVisual,
+    }),
+    [brickVisual, canRenderWallet],
   )
   const subscriptionCustomization = useMemo(
     () => ({
@@ -665,6 +681,13 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                   />
                 </div>
               </PaymentBrickErrorBoundary>
+              {/* El salto a Mercado Pago no es opcional: el saldo de la cuenta
+                  requiere iniciar sesión ahí. Anunciarlo antes evita que la
+                  persona crea que perdió el checkout. */}
+              <p className="mp-embedded-checkout__wallet-note">
+                <ExternalLink size={13} aria-hidden />
+                {t('payments.walletRedirectNote')}
+              </p>
             </div>
           ) : null}
 

@@ -25,7 +25,10 @@ export function checkoutPriceFor({ concept, paymentMethod, now = new Date() }) {
   if (now >= PITBULL_PRE_SALE_END) return null
   const bankTransfer = paymentMethod === 'manual_link'
   const cashAtPitbull = paymentMethod === 'cash_pitbull'
-  if (concept === 'combo') return bankTransfer ? 120000 : cashAtPitbull ? 150000 : 170000
+  // La promo de combo vale para los dos canales manuales: transferencia y
+  // efectivo en Pitbull. Antes el efectivo pagaba 150000 —la suma sin descuento—
+  // y quedaba peor que transferir, sin que nadie lo hubiera decidido así.
+  if (concept === 'combo') return bankTransfer || cashAtPitbull ? 120000 : 170000
   if (concept === 'membership' || concept === 'registration') {
     return bankTransfer || cashAtPitbull ? 75000 : 85000
   }

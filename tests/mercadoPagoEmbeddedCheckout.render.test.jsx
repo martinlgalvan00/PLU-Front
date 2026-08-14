@@ -172,7 +172,7 @@ describe('checkout embebido controlado dentro de la pagina', () => {
 })
 
 describe('presentación settle embebida', () => {
-  it('en settle no monta Wallet Brick: el cobro queda en Payment Brick', async () => {
+  it('en settle también ofrece la cuenta de Mercado Pago, no solo tarjeta', async () => {
     render(
       <I18nProvider>
         <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
@@ -180,9 +180,44 @@ describe('presentación settle embebida', () => {
     )
 
     expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    expect(screen.getByTestId('wallet-brick')).toBeTruthy()
+    expect(screen.getByText('Dinero en cuenta de Mercado Pago')).toBeTruthy()
+    expect(screen.getByText('O pagá con tarjeta')).toBeTruthy()
+    // El salto a Mercado Pago se avisa antes de tocar el botón.
+    expect(
+      screen.getByText('Se abre Mercado Pago para que inicies sesión y volvés acá al confirmar.'),
+    ).toBeTruthy()
+  })
+
+  it('con Wallet montado el Payment Brick no repite el medio Mercado Pago', async () => {
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick')
+    const { paymentMethods } = sdk.payment.mock.calls[0][0].customization
+    expect(paymentMethods.mercadoPago).toBeUndefined()
+    expect(paymentMethods.creditCard).toBe('all')
+    expect(paymentMethods.debitCard).toBe('all')
+  })
+
+  it('sin preferencia no hay Wallet y el Payment Brick vuelve a ofrecer Mercado Pago', async () => {
+    paymentApi.createPreference.mockResolvedValue({})
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout
+          order={{ ...ORDER, preferenceId: null }}
+          presentation="settle"
+        />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick')
     expect(screen.queryByTestId('wallet-brick')).toBeNull()
-    expect(screen.queryByText('Dinero en cuenta de Mercado Pago')).toBeNull()
-    expect(screen.queryByText('O pagá con tarjeta')).toBeNull()
+    expect(sdk.payment.mock.calls[0][0].customization.paymentMethods.mercadoPago).toBe('all')
   })
 
   it('en la presentación default sí ofrece Wallet junto al Payment Brick', async () => {

@@ -35,6 +35,23 @@ ni composición. En `event-share-card.css` está prohibido:
 - `mix-blend-mode`, filtros SVG, `backdrop-filter` dentro de la card.
 - `position: fixed` con offsets negativos en la card de captura — rompe el
   rasterizado de texto.
+- `box-shadow` con spread para dibujar anillos o bordes (`0 0 0 2px …`) — no
+  se rasteriza como anillo: se pinta como un **relleno macizo del color del
+  shadow por debajo del elemento**. El medallón de iniciales del avatar salía
+  como una mancha dorada con las letras doradas encima (contraste 1.6:1) y el
+  chip del QR con un halo crema grueso. Usar `border` real +
+  `box-sizing: border-box`. Los `inset` sí funcionan.
+- Gradientes de fondo en un elemento que también lleva anillo: el anillo
+  queda por encima. Usar `background-color` plano.
+
+Y dos que no son de html2canvas pero solo se ven en el PNG:
+
+- Los `<h2>`/`<p>` sin `margin: 0` arrastran el margen del UA y abren huecos
+  de ~90px que en el preview escalado del modal pasan desapercibidos.
+- El formato `square` (1080×1080) es el más ajustado del set: el body es
+  `flex: 1 1 0%` pero no encoge por debajo de su contenido, así que si una
+  variante crece, el pie se va **fuera del lienzo** y el QR sale cortado sin
+  ningún aviso. Revisar siempre el post, no solo la historia.
 
 Si el preview del modal se ve bien pero el PNG sale roto, casi seguro es una
 de estas.
