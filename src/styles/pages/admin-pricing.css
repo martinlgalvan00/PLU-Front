@@ -180,6 +180,14 @@
   gap: 0.85rem;
 }
 
+.admin-pricing__block--combo {
+  background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 42%, var(--color-border-subtle));
+  border-radius: 4px;
+  padding: clamp(1rem, 2.4vw, 1.35rem);
+}
+
 .admin-pricing__block > .admin-pricing__form {
   order: 1;
 }
@@ -558,6 +566,13 @@
   width: 100%;
 }
 
+.admin-pricing__form--combo .admin-pricing__combo-toolbar select {
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 2px;
+  padding-inline: 0.75rem;
+}
+
 .admin-pricing__combo-toolbar select:focus-visible {
   border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
   box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
@@ -580,9 +595,9 @@
 
 .admin-pricing__combo-stack {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 0.55rem 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.12fr);
 }
 
 .admin-pricing__combo-line {
@@ -710,6 +725,7 @@
 }
 
 .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
   margin: 0;
 }
 
@@ -989,7 +1005,7 @@
   }
 
   @container admin-pricing (max-width: 430px) {
-    .admin-pricing__combo-window {
+    .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
       grid-template-columns: 1fr;
     }
 
@@ -1126,6 +1142,88 @@
 
   .admin-pricing__wide {
     grid-column: auto;
+  }
+}
+
+@supports (container-type: inline-size) {
+  @container admin-pricing (min-width: 560px) and (max-width: 899px) {
+    .admin-pricing__block-head {
+      align-items: flex-end;
+      flex-direction: row;
+      gap: 1rem;
+    }
+
+    .admin-pricing__block-head .admin-pricing__btn {
+      flex: none;
+      min-height: 40px;
+      width: auto;
+    }
+
+    .admin-pricing__combo-toolbar {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    }
+
+    .admin-pricing__combo-board {
+      grid-template-columns: minmax(0, 1.35fr) minmax(190px, 0.65fr);
+    }
+
+    .admin-pricing__combo-stack {
+      align-items: center;
+      display: grid;
+      gap: 0.4rem 0.55rem;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.1fr);
+    }
+
+    .admin-pricing__combo-line {
+      display: grid;
+      grid-template-columns: 1fr;
+      width: auto;
+    }
+
+    .admin-pricing__combo-op {
+      padding-top: 0.95rem;
+    }
+
+    .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    }
+
+    .admin-pricing__form--combo .admin-pricing__form-actions {
+      flex-direction: row;
+    }
+
+    .admin-pricing__form--combo .admin-pricing__form-actions .admin-pricing__btn {
+      min-height: 40px;
+      width: auto;
+    }
+  }
+
+  @container admin-pricing (max-width: 559px) {
+    .admin-pricing__combo-stack {
+      align-items: stretch;
+      display: grid;
+      gap: 0.55rem;
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__combo-line {
+      align-items: baseline;
+      grid-template-columns: minmax(0, 1fr) auto;
+      width: 100%;
+    }
+
+    .admin-pricing__combo-line--total {
+      border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+      padding-top: 0.55rem;
+    }
+
+    .admin-pricing__combo-op {
+      display: none;
+    }
+
+    .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
+      grid-template-columns: 1fr;
+    }
   }
 }
 

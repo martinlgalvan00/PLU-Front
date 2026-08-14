@@ -7355,6 +7355,14 @@
   order: 2;
 }
 
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__meta {
+  order: 1;
+}
+
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__proof {
+  order: 2;
+}
+
 .payment-validation-dialog__panel--view .payment-validation-dialog__error {
   order: 3;
 }
@@ -7665,6 +7673,35 @@
   padding: var(--space-sm);
 }
 
+.payment-validation-dialog__empty--view {
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 104px;
+  padding: clamp(var(--space-md), 3vw, var(--space-lg));
+}
+
+.payment-validation-dialog__empty-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, var(--color-border-subtle));
+  border-radius: 50%;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  flex: 0 0 44px;
+  height: 44px;
+  justify-content: center;
+}
+
+.payment-validation-dialog__empty-state {
+  color: var(--color-brand-gold);
+  display: block;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
 .payment-validation-dialog__empty strong,
 .payment-validation-dialog__loading span {
   color: var(--admin-ink, var(--color-text-primary));
@@ -7715,6 +7752,10 @@
 .payment-validation-dialog__panel--view .payment-validation-dialog__proof {
   min-height: 180px;
   padding: var(--space-sm);
+}
+
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__proof {
+  min-height: 0;
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__image {
@@ -7856,6 +7897,14 @@
     max-width: 100%;
     min-height: 100dvh;
     width: 100%;
+  }
+
+  .payment-validation-dialog__panel--empty-proof {
+    grid-template-rows: auto auto auto minmax(40px, 1fr);
+  }
+
+  .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__actions {
+    align-self: end;
   }
 
   .payment-validation-dialog__panel--view .payment-validation-dialog__image {

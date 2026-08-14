@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, XCircle } from 'lucide-react'
+import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { fetchPlatformFeatureToggles, savePlatformFeatureToggle } from '../../services/platformSettingsAdminService.js'
 import '../../styles/pages/admin-registration-access.css'
@@ -22,11 +23,21 @@ function toLocalDateTime(value) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-function gateState(gate, now = new Date()) {
-  if (!gate?.active) return 'Cerrada'
-  if (gate.startsAt && new Date(gate.startsAt) > now) return 'Programada'
-  if (gate.endsAt && new Date(gate.endsAt) <= now) return 'Vencida'
-  return 'Abierta'
+function gateStateKey(gate, now = new Date()) {
+  if (!gate?.active) return 'closed'
+  if (gate.startsAt && new Date(gate.startsAt) > now) return 'scheduled'
+  if (gate.endsAt && new Date(gate.endsAt) <= now) return 'expired'
+  return 'open'
+}
+
+function mapOperationalError(error, messages) {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return messages.routeMissing
+    if (error.status === 0) return messages.apiDown
+  }
+  const raw = error?.message ?? ''
+  if (raw === 'Ruta no encontrada') return messages.routeMissing
+  return raw || messages.fallback
 }
 
 export default function RegistrationAccessSection({
@@ -38,8 +49,8 @@ export default function RegistrationAccessSection({
   onRefresh,
   onSave,
 }) {
-  const { locale } = useI18n()
-  const [draft, setDraft] = useState(EMPTY_GATE)
+  const { locale, t } = useI18n()
+  const [draft, setDraft] = useState(null)
   const [notice, setNotice] = useState('')
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -47,10 +58,21 @@ export default function RegistrationAccessSection({
   const [togglesLoading, setTogglesLoading] = useState(true)
   const [togglesError, setTogglesError] = useState('')
   const [savingFeature, setSavingFeature] = useState(null)
+  const formRef = useRef(null)
+  const triggerRef = useRef(null)
   const eventGates = configuration.eventGates ?? []
   const events = useMemo(
     () => adminEvents.filter((event) => event.slug && event.status !== 'archived'),
     [adminEvents],
+  )
+
+  const operationalMessages = useMemo(
+    () => ({
+      routeMissing: t('admin.sections.accessGates.routeMissing'),
+      apiDown: t('admin.sections.accessGates.apiDown'),
+      fallback: t('admin.sections.accessGates.togglesLoadError'),
+    }),
+    [t],
   )
 
   const loadToggles = useCallback(async () => {
@@ -59,14 +81,32 @@ export default function RegistrationAccessSection({
     try {
       setToggles(await fetchPlatformFeatureToggles())
     } catch (loadError) {
-      setTogglesError(loadError?.message ?? 'No se pudieron leer los interruptores generales.')
+      setTogglesError(mapOperationalError(loadError, operationalMessages))
     } finally {
       setTogglesLoading(false)
     }
-  }, [])
+  }, [operationalMessages])
 
-  useEffect(() => { onRefresh?.() }, [onRefresh])
-  useEffect(() => { void loadToggles() }, [loadToggles])
+  useEffect(() => {
+    onRefresh?.()
+  }, [onRefresh])
+
+  useEffect(() => {
+    void loadToggles()
+  }, [loadToggles])
+
+  useEffect(() => {
+    if (!draft) return undefined
+    const form = formRef.current
+    if (typeof form?.scrollIntoView === 'function') {
+      form.scrollIntoView({ block: 'nearest' })
+    }
+    const firstField = form?.querySelector(
+      'input:not([disabled]):not([type="checkbox"]), select:not([disabled]), textarea:not([disabled])',
+    )
+    firstField?.focus?.()
+    return undefined
+  }, [draft])
 
   async function handleToggleFeature(feature, enabled) {
     setSavingFeature(feature)
@@ -74,191 +114,516 @@ export default function RegistrationAccessSection({
     try {
       setToggles(await savePlatformFeatureToggle(feature, enabled))
     } catch (toggleError) {
-      setTogglesError(toggleError?.message ?? 'No se pudo actualizar el interruptor.')
+      setTogglesError(
+        mapOperationalError(toggleError, {
+          ...operationalMessages,
+          fallback: t('admin.sections.accessGates.togglesSaveError'),
+        }),
+      )
     } finally {
       setSavingFeature(null)
     }
   }
 
-  function editGate(gate = null, scope = 'membership') {
+  function openEditor(gate = null, scope = 'membership', trigger = null) {
+    triggerRef.current = trigger
     setNotice('')
     setFormError('')
-    setDraft(gate ? {
-      scope: gate.scope,
-      eventSlug: gate.eventSlug ?? '',
-      label: gate.label,
-      code: '',
-      active: gate.active,
-      startsAt: toLocalDateTime(gate.startsAt),
-      endsAt: toLocalDateTime(gate.endsAt),
-    } : { ...EMPTY_GATE, scope, eventSlug: scope === 'registration' ? events[0]?.slug ?? '' : '' })
+    setDraft(
+      gate
+        ? {
+            scope: gate.scope,
+            eventSlug: gate.eventSlug ?? '',
+            label: gate.label,
+            code: '',
+            active: gate.active,
+            startsAt: toLocalDateTime(gate.startsAt),
+            endsAt: toLocalDateTime(gate.endsAt),
+          }
+        : {
+            ...EMPTY_GATE,
+            scope,
+            eventSlug: scope === 'registration' ? events[0]?.slug ?? '' : '',
+          },
+    )
   }
+
+  function cancelEditor() {
+    setDraft(null)
+    setFormError('')
+    const trigger = triggerRef.current
+    triggerRef.current = null
+    if (typeof trigger?.focus === 'function') {
+      trigger.focus()
+    }
+  }
+
+  const currentGate =
+    draft?.scope === 'membership'
+      ? configuration.membershipGate
+      : eventGates.find((gate) => gate.eventSlug === draft?.eventSlug) ?? null
 
   async function submit(event) {
     event.preventDefault()
     setFormError('')
     setNotice('')
-    if (!draft.label.trim()) {
-      setFormError('Nombrá la tanda para identificarla en la auditoría.')
+    if (!draft?.label.trim()) {
+      setFormError(t('admin.sections.accessGates.labelRequired'))
       return
     }
     if (draft.scope === 'registration' && !draft.eventSlug) {
-      setFormError('Elegí el torneo que querés habilitar.')
+      setFormError(t('admin.sections.accessGates.eventRequired'))
       return
     }
     if (draft.active && !draft.code && !currentGate?.active) {
-      setFormError('Definí un código nuevo de al menos 10 caracteres para abrir la tanda.')
+      setFormError(t('admin.sections.accessGates.codeRequired'))
       return
     }
     setSaving(true)
     const result = await onSave?.(draft)
     setSaving(false)
     if (result?.error) {
-      setFormError(result.error)
+      setFormError(
+        mapOperationalError(
+          { message: result.error, status: result.error === 'Ruta no encontrada' ? 404 : undefined },
+          {
+            ...operationalMessages,
+            fallback: t('admin.sections.accessGates.saveError'),
+          },
+        ),
+      )
       return
     }
-    setDraft(EMPTY_GATE)
-    setNotice('Tanda guardada. El código nunca se vuelve a mostrar ni se guarda en texto plano.')
+    setDraft(null)
+    triggerRef.current = null
+    setNotice(t('admin.sections.accessGates.saved'))
   }
 
-  const currentGate = draft.scope === 'membership'
-    ? configuration.membershipGate
-    : eventGates.find((gate) => gate.eventSlug === draft.eventSlug) ?? null
+  const gatesError = error
+    ? mapOperationalError(
+        { message: error, status: error === 'Ruta no encontrada' ? 404 : undefined },
+        {
+          ...operationalMessages,
+          fallback: t('admin.sections.accessGates.gatesLoadError'),
+        },
+      )
+    : ''
+
+  function stateLabel(key) {
+    return t(`admin.sections.accessGates.state.${key}`)
+  }
+
+  function stateClass(key) {
+    if (key === 'open') return 'abierta'
+    if (key === 'scheduled') return 'programada'
+    if (key === 'expired') return 'vencida'
+    return 'cerrada'
+  }
+
+  function formatEndsAt(value) {
+    if (!value) return ''
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  }
 
   return (
     <section className="admin-registration-access" aria-labelledby="access-gates-title">
       <header className="admin-registration-access__hero">
-        <div>
-          <p className="admin-registration-access__eyebrow"><KeyRound size={14} aria-hidden /> Aperturas controladas</p>
-          <h1 id="access-gates-title">Acceso y habilitación</h1>
-          <p>Controlá quién puede iniciar una afiliación o inscripción antes de abrirla al público.</p>
+        <div className="admin-registration-access__hero-copy">
+          <p className="admin-registration-access__eyebrow">
+            <KeyRound size={14} aria-hidden />
+            {t('admin.sections.accessGates.eyebrow')}
+          </p>
+          <h1 id="access-gates-title">{t('admin.sections.accessGates.title')}</h1>
+          <p className="admin-registration-access__subtitle">{t('admin.sections.accessGates.subtitle')}</p>
         </div>
-        <button type="button" className="admin-registration-access__button admin-registration-access__button--quiet" onClick={() => onRefresh?.()} disabled={isLoading}>
-          <RefreshCw size={15} aria-hidden /> Actualizar
+        <button
+          type="button"
+          className="admin-registration-access__button admin-registration-access__button--quiet"
+          onClick={() => {
+            onRefresh?.()
+            void loadToggles()
+          }}
+          disabled={isLoading || togglesLoading}
+        >
+          <RefreshCw size={15} aria-hidden />
+          {t('admin.sections.accessGates.refresh')}
         </button>
       </header>
 
-      <div className="admin-registration-access__block-head">
-        <div>
-          <h2>Habilitación general</h2>
-          <p>Corte total, con o sin código: apagado acá, nadie puede empezar una afiliación, inscripción, entrada o suscripción nueva.</p>
+      {gatesError ? (
+        <div className="admin-registration-access__message admin-registration-access__message--error" role="alert">
+          <XCircle size={15} aria-hidden />
+          <span>{gatesError}</span>
+          <button type="button" className="admin-registration-access__button" onClick={() => onRefresh?.()}>
+            {t('admin.sections.accessGates.retry')}
+          </button>
         </div>
-      </div>
-      <div className="admin-registration-access__rule">
-        <div>
-          <span className={`admin-registration-access__state admin-registration-access__state--${toggles.checkoutEnabled ? 'abierta' : 'cerrada'}`}>
-            {toggles.checkoutEnabled ? 'Habilitados' : 'Pausados'}
-          </span>
-          <h3>Cobros generales</h3>
-          <p>Interruptor maestro: cubre afiliaciones, inscripciones, entradas y suscripciones. Reemplaza a la variable de entorno de Vercel — ya no hace falta redeploy para pausar la venta.</p>
-        </div>
-        {canEdit ? (
-          <label className="admin-registration-access__switch">
-            <input
-              type="checkbox"
-              checked={toggles.checkoutEnabled}
-              disabled={togglesLoading || savingFeature === 'checkout'}
-              onChange={(event) => handleToggleFeature('checkout', event.target.checked)}
-              aria-label="Habilitar cobros generales"
-            />
-            <span><Power size={13} aria-hidden /> {savingFeature === 'checkout' ? 'Guardando…' : toggles.checkoutEnabled ? 'Habilitados' : 'Pausados'}</span>
-          </label>
-        ) : null}
-      </div>
-      <div className="admin-registration-access__rule">
-        <div>
-          <span className={`admin-registration-access__state admin-registration-access__state--${toggles.membershipEnabled ? 'abierta' : 'cerrada'}`}>
-            {toggles.membershipEnabled ? 'Habilitadas' : 'Cerradas'}
-          </span>
-          <h3>Afiliaciones</h3>
-          <p>Con esto apagado, nadie puede iniciar ni renovar una afiliación, tenga o no el código de la tanda privada.</p>
-        </div>
-        {canEdit ? (
-          <label className="admin-registration-access__switch">
-            <input
-              type="checkbox"
-              checked={toggles.membershipEnabled}
-              disabled={togglesLoading || savingFeature === 'membership'}
-              onChange={(event) => handleToggleFeature('membership', event.target.checked)}
-              aria-label="Habilitar afiliaciones"
-            />
-            <span><Power size={13} aria-hidden /> {savingFeature === 'membership' ? 'Guardando…' : toggles.membershipEnabled ? 'Habilitadas' : 'Cerradas'}</span>
-          </label>
-        ) : null}
-      </div>
-      <div className="admin-registration-access__rule">
-        <div>
-          <span className={`admin-registration-access__state admin-registration-access__state--${toggles.registrationEnabled ? 'abierta' : 'cerrada'}`}>
-            {toggles.registrationEnabled ? 'Habilitadas' : 'Cerradas'}
-          </span>
-          <h3>Inscripciones</h3>
-          <p>Se suma a la ventana propia de cada torneo (publicado + fecha de apertura): si acá está apagado, ningún evento admite inscripciones nuevas.</p>
-        </div>
-        {canEdit ? (
-          <label className="admin-registration-access__switch">
-            <input
-              type="checkbox"
-              checked={toggles.registrationEnabled}
-              disabled={togglesLoading || savingFeature === 'registration'}
-              onChange={(event) => handleToggleFeature('registration', event.target.checked)}
-              aria-label="Habilitar inscripciones"
-            />
-            <span><Power size={13} aria-hidden /> {savingFeature === 'registration' ? 'Guardando…' : toggles.registrationEnabled ? 'Habilitadas' : 'Cerradas'}</span>
-          </label>
-        ) : null}
-      </div>
-      {togglesError ? <p className="admin-registration-access__error" role="alert"><XCircle size={15} aria-hidden /> {togglesError}</p> : null}
-
-      <div className="admin-registration-access__block-head">
-        <div><h2>Tandas privadas</h2><p>Además del corte general, cada tanda puede pedir un código para abrir de a poco.</p></div>
-      </div>
-      <div className="admin-registration-access__rule">
-        <div>
-          <span className={`admin-registration-access__state admin-registration-access__state--${gateState(configuration.membershipGate).toLowerCase()}`}>
-            {gateState(configuration.membershipGate)}
-          </span>
-          <h2>Afiliaciones</h2>
-          <p>{configuration.membershipGate ? `${configuration.membershipGate.label}.` : 'Sin código: la afiliación está disponible según su ventana normal.'}</p>
-        </div>
-        {canEdit ? <button type="button" className="admin-registration-access__button" onClick={() => editGate(configuration.membershipGate, 'membership')}>Configurar</button> : null}
-      </div>
-
-      <div className="admin-registration-access__block-head">
-        <div><h2>Inscripciones por torneo</h2><p>Cada evento puede tener su propio código y ventana.</p></div>
-        {canEdit ? <button type="button" className="admin-registration-access__button" onClick={() => editGate(null, 'registration')}>Nueva tanda</button> : null}
-      </div>
-
-      <div className="admin-registration-access__list">
-        {eventGates.length ? eventGates.map((gate) => (
-          <article className="admin-registration-access__rule" key={gate.id}>
-            <div>
-              <span className={`admin-registration-access__state admin-registration-access__state--${gateState(gate).toLowerCase()}`}>{gateState(gate)}</span>
-              <h3>{gate.eventTitle ?? gate.eventSlug}</h3>
-              <p>{gate.label}{gate.endsAt ? ` · Hasta ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(gate.endsAt))}` : ''}</p>
-            </div>
-            {canEdit ? <button type="button" className="admin-registration-access__button" onClick={() => editGate(gate, 'registration')}>Editar</button> : null}
-          </article>
-        )) : <p className="admin-registration-access__empty">No hay tandas privadas para torneos.</p>}
-      </div>
-
-      {canEdit ? (
-        <form className="admin-registration-access__form" onSubmit={submit}>
-          <header><LockKeyhole size={17} aria-hidden /><div><h2>{draft.scope === 'membership' ? 'Configurar afiliaciones' : 'Configurar inscripción'}</h2><p>Al cerrar una tanda se invalida su código. Para reabrirla hay que crear otro.</p></div></header>
-          <div className="admin-registration-access__fields">
-            <label>Alcance<select value={draft.scope} onChange={(event) => setDraft({ ...EMPTY_GATE, scope: event.target.value, eventSlug: event.target.value === 'registration' ? events[0]?.slug ?? '' : '' })}><option value="membership">Afiliaciones</option><option value="registration">Inscripción a torneo</option></select></label>
-            {draft.scope === 'registration' ? <label>Torneo<select value={draft.eventSlug} onChange={(event) => setDraft({ ...draft, eventSlug: event.target.value })}>{events.map((event) => <option key={event.slug} value={event.slug}>{event.title}</option>)}</select></label> : null}
-            <label>Nombre de tanda<input value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} placeholder="Ej. Selección clubes — tanda 1" maxLength="80" /></label>
-            <label>Código {currentGate?.active ? <small>Dejá vacío para conservarlo</small> : null}<input type="password" autoComplete="new-password" value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value })} placeholder="Mínimo 10 caracteres" minLength="10" maxLength="72" /></label>
-            <label>Abre<input type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} /></label>
-            <label>Cierra<input type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} /></label>
-            <label className="admin-registration-access__switch"><input type="checkbox" checked={draft.active} onChange={(event) => setDraft({ ...draft, active: event.target.checked })} /><span>{draft.active ? 'Habilitada' : 'Cerrada'}</span></label>
-          </div>
-          {formError ? <p className="admin-registration-access__error" role="alert"><XCircle size={15} aria-hidden /> {formError}</p> : null}
-          {notice ? <p className="admin-registration-access__notice" role="status"><ShieldCheck size={15} aria-hidden /> {notice}</p> : null}
-          <footer><button type="submit" className="admin-registration-access__button admin-registration-access__button--primary" disabled={saving}>{saving ? 'Guardando…' : <><Save size={15} aria-hidden /> Guardar tanda</>}</button></footer>
-        </form>
       ) : null}
-      {error ? <p className="admin-registration-access__error" role="alert">{error}</p> : null}
+      {notice ? (
+        <p className="admin-registration-access__notice" role="status">
+          <ShieldCheck size={15} aria-hidden /> {notice}
+        </p>
+      ) : null}
+      {isLoading && !configuration.membershipGate && eventGates.length === 0 ? (
+        <p className="admin-registration-access__loading">{t('admin.sections.accessGates.loading')}</p>
+      ) : null}
+
+      <section className="admin-registration-access__block" aria-labelledby="access-toggles-title">
+        <header className="admin-registration-access__block-head">
+          <div>
+            <h2 id="access-toggles-title">{t('admin.sections.accessGates.togglesTitle')}</h2>
+            <p>{t('admin.sections.accessGates.togglesLead')}</p>
+          </div>
+        </header>
+
+        <div className="admin-registration-access__rules admin-registration-access__rules--primary">
+          <div className="admin-registration-access__rule admin-registration-access__rule--master">
+            <div>
+              <span
+                className={`admin-registration-access__state admin-registration-access__state--${toggles.checkoutEnabled ? 'abierta' : 'cerrada'}`}
+              >
+                {toggles.checkoutEnabled
+                  ? t('admin.sections.accessGates.checkoutOn')
+                  : t('admin.sections.accessGates.checkoutOff')}
+              </span>
+              <h3>{t('admin.sections.accessGates.checkoutTitle')}</h3>
+              <p>{t('admin.sections.accessGates.checkoutLead')}</p>
+            </div>
+            {canEdit ? (
+              <label className="admin-registration-access__switch">
+                <input
+                  type="checkbox"
+                  checked={toggles.checkoutEnabled}
+                  disabled={togglesLoading || savingFeature === 'checkout'}
+                  onChange={(event) => handleToggleFeature('checkout', event.target.checked)}
+                  aria-label={t('admin.sections.accessGates.checkoutAria')}
+                />
+                <span>
+                  <Power size={13} aria-hidden />
+                  {savingFeature === 'checkout'
+                    ? t('admin.sections.accessGates.saving')
+                    : toggles.checkoutEnabled
+                      ? t('admin.sections.accessGates.checkoutOn')
+                      : t('admin.sections.accessGates.checkoutOff')}
+                </span>
+              </label>
+            ) : null}
+          </div>
+
+          <div className="admin-registration-access__rule">
+            <div>
+              <span
+                className={`admin-registration-access__state admin-registration-access__state--${toggles.membershipEnabled ? 'abierta' : 'cerrada'}`}
+              >
+                {toggles.membershipEnabled
+                  ? t('admin.sections.accessGates.enabledPlural')
+                  : t('admin.sections.accessGates.closedPlural')}
+              </span>
+              <h3>{t('admin.sections.accessGates.membershipToggleTitle')}</h3>
+              <p>{t('admin.sections.accessGates.membershipToggleLead')}</p>
+            </div>
+            {canEdit ? (
+              <label className="admin-registration-access__switch">
+                <input
+                  type="checkbox"
+                  checked={toggles.membershipEnabled}
+                  disabled={togglesLoading || savingFeature === 'membership'}
+                  onChange={(event) => handleToggleFeature('membership', event.target.checked)}
+                  aria-label={t('admin.sections.accessGates.membershipToggleAria')}
+                />
+                <span>
+                  <Power size={13} aria-hidden />
+                  {savingFeature === 'membership'
+                    ? t('admin.sections.accessGates.saving')
+                    : toggles.membershipEnabled
+                      ? t('admin.sections.accessGates.enabledPlural')
+                      : t('admin.sections.accessGates.closedPlural')}
+                </span>
+              </label>
+            ) : null}
+          </div>
+
+          <div className="admin-registration-access__rule">
+            <div>
+              <span
+                className={`admin-registration-access__state admin-registration-access__state--${toggles.registrationEnabled ? 'abierta' : 'cerrada'}`}
+              >
+                {toggles.registrationEnabled
+                  ? t('admin.sections.accessGates.enabledPlural')
+                  : t('admin.sections.accessGates.closedPlural')}
+              </span>
+              <h3>{t('admin.sections.accessGates.registrationToggleTitle')}</h3>
+              <p>{t('admin.sections.accessGates.registrationToggleLead')}</p>
+            </div>
+            {canEdit ? (
+              <label className="admin-registration-access__switch">
+                <input
+                  type="checkbox"
+                  checked={toggles.registrationEnabled}
+                  disabled={togglesLoading || savingFeature === 'registration'}
+                  onChange={(event) => handleToggleFeature('registration', event.target.checked)}
+                  aria-label={t('admin.sections.accessGates.registrationToggleAria')}
+                />
+                <span>
+                  <Power size={13} aria-hidden />
+                  {savingFeature === 'registration'
+                    ? t('admin.sections.accessGates.saving')
+                    : toggles.registrationEnabled
+                      ? t('admin.sections.accessGates.enabledPlural')
+                      : t('admin.sections.accessGates.closedPlural')}
+                </span>
+              </label>
+            ) : null}
+          </div>
+        </div>
+
+        {togglesLoading ? (
+          <p className="admin-registration-access__loading">{t('admin.sections.accessGates.togglesLoading')}</p>
+        ) : null}
+        {togglesError ? (
+          <div className="admin-registration-access__message admin-registration-access__message--error" role="alert">
+            <XCircle size={15} aria-hidden />
+            <span>{togglesError}</span>
+            <button type="button" className="admin-registration-access__button" onClick={() => void loadToggles()}>
+              {t('admin.sections.accessGates.retry')}
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="admin-registration-access__block" aria-labelledby="access-gates-private-title">
+        <header className="admin-registration-access__block-head">
+          <div>
+            <h2 id="access-gates-private-title">{t('admin.sections.accessGates.gatesTitle')}</h2>
+            <p>{t('admin.sections.accessGates.gatesLead')}</p>
+          </div>
+        </header>
+
+        <article className="admin-registration-access__rule">
+          <div>
+            <span
+              className={`admin-registration-access__state admin-registration-access__state--${stateClass(gateStateKey(configuration.membershipGate))}`}
+            >
+              {stateLabel(gateStateKey(configuration.membershipGate))}
+            </span>
+            <h3>{t('admin.sections.accessGates.membershipGateTitle')}</h3>
+            <p>
+              {configuration.membershipGate
+                ? t('admin.sections.accessGates.membershipGateWithLabel', {
+                    label: configuration.membershipGate.label,
+                  })
+                : t('admin.sections.accessGates.membershipGateEmpty')}
+            </p>
+          </div>
+          {canEdit ? (
+            <button
+              type="button"
+              className="admin-registration-access__button"
+              onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
+            >
+              {t('admin.sections.accessGates.configure')}
+            </button>
+          ) : null}
+        </article>
+
+        <div className="admin-registration-access__subhead">
+          <div>
+            <h3 id="access-event-gates-title">{t('admin.sections.accessGates.eventGatesTitle')}</h3>
+            <p>{t('admin.sections.accessGates.eventGatesLead')}</p>
+          </div>
+          {canEdit ? (
+            <button
+              type="button"
+              className="admin-registration-access__button"
+              onClick={(event) => openEditor(null, 'registration', event.currentTarget)}
+            >
+              {t('admin.sections.accessGates.newGate')}
+            </button>
+          ) : null}
+        </div>
+
+        <div
+          className="admin-registration-access__list"
+          role="list"
+          aria-labelledby="access-event-gates-title"
+        >
+          {eventGates.length ? (
+            eventGates.map((gate) => {
+              const key = gateStateKey(gate)
+              return (
+                <article className="admin-registration-access__rule" role="listitem" key={gate.id}>
+                  <div>
+                    <span className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}>
+                      {stateLabel(key)}
+                    </span>
+                    <h3>{gate.eventTitle ?? gate.eventSlug}</h3>
+                    <p>
+                      {gate.label}
+                      {gate.endsAt
+                        ? t('admin.sections.accessGates.until', { date: formatEndsAt(gate.endsAt) })
+                        : ''}
+                    </p>
+                  </div>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className="admin-registration-access__button"
+                      onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
+                    >
+                      {t('admin.sections.accessGates.edit')}
+                    </button>
+                  ) : null}
+                </article>
+              )
+            })
+          ) : (
+            <p className="admin-registration-access__empty">{t('admin.sections.accessGates.eventGatesEmpty')}</p>
+          )}
+        </div>
+
+        {canEdit && draft ? (
+          <form ref={formRef} className="admin-registration-access__form" onSubmit={submit} noValidate>
+            <header>
+              <LockKeyhole size={17} aria-hidden />
+              <div>
+                <h3>
+                  {draft.scope === 'membership'
+                    ? t('admin.sections.accessGates.formTitleMembership')
+                    : t('admin.sections.accessGates.formTitleRegistration')}
+                </h3>
+                <p>{t('admin.sections.accessGates.formLead')}</p>
+              </div>
+            </header>
+
+            <fieldset className="admin-registration-access__fields" disabled={saving}>
+              <label htmlFor="access-gate-scope">
+                <span>{t('admin.sections.accessGates.scope')}</span>
+                <select
+                  id="access-gate-scope"
+                  value={draft.scope}
+                  onChange={(event) =>
+                    setDraft({
+                      ...EMPTY_GATE,
+                      scope: event.target.value,
+                      eventSlug: event.target.value === 'registration' ? events[0]?.slug ?? '' : '',
+                    })
+                  }
+                >
+                  <option value="membership">{t('admin.sections.accessGates.scopeMembership')}</option>
+                  <option value="registration">{t('admin.sections.accessGates.scopeRegistration')}</option>
+                </select>
+              </label>
+
+              {draft.scope === 'registration' ? (
+                <label htmlFor="access-gate-event">
+                  <span>{t('admin.sections.accessGates.event')}</span>
+                  <select
+                    id="access-gate-event"
+                    value={draft.eventSlug}
+                    onChange={(event) => setDraft({ ...draft, eventSlug: event.target.value })}
+                  >
+                    {events.map((item) => (
+                      <option key={item.slug} value={item.slug}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
+              <label htmlFor="access-gate-label">
+                <span>{t('admin.sections.accessGates.label')}</span>
+                <input
+                  id="access-gate-label"
+                  value={draft.label}
+                  onChange={(event) => setDraft({ ...draft, label: event.target.value })}
+                  placeholder={t('admin.sections.accessGates.labelPlaceholder')}
+                  maxLength={80}
+                />
+              </label>
+
+              <label htmlFor="access-gate-code">
+                <span>
+                  {t('admin.sections.accessGates.code')}
+                  {currentGate?.active ? (
+                    <small> {t('admin.sections.accessGates.codeKeepHint')}</small>
+                  ) : null}
+                </span>
+                <input
+                  id="access-gate-code"
+                  type="password"
+                  autoComplete="new-password"
+                  value={draft.code}
+                  onChange={(event) => setDraft({ ...draft, code: event.target.value })}
+                  placeholder={t('admin.sections.accessGates.codePlaceholder')}
+                  minLength={10}
+                  maxLength={72}
+                />
+              </label>
+
+              <label htmlFor="access-gate-starts">
+                <span>{t('admin.sections.accessGates.startsAt')}</span>
+                <input
+                  id="access-gate-starts"
+                  type="datetime-local"
+                  value={draft.startsAt}
+                  onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })}
+                />
+              </label>
+
+              <label htmlFor="access-gate-ends">
+                <span>{t('admin.sections.accessGates.endsAt')}</span>
+                <input
+                  id="access-gate-ends"
+                  type="datetime-local"
+                  value={draft.endsAt}
+                  onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })}
+                />
+              </label>
+
+              <label className="admin-registration-access__switch" htmlFor="access-gate-active">
+                <input
+                  id="access-gate-active"
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(event) => setDraft({ ...draft, active: event.target.checked })}
+                  aria-label={t('admin.sections.accessGates.activeAria')}
+                />
+                <span>
+                  {draft.active
+                    ? t('admin.sections.accessGates.enabledSingular')
+                    : t('admin.sections.accessGates.closedSingular')}
+                </span>
+              </label>
+            </fieldset>
+
+            {formError ? (
+              <p className="admin-registration-access__error" role="alert">
+                <XCircle size={15} aria-hidden /> {formError}
+              </p>
+            ) : null}
+
+            <footer className="admin-registration-access__form-actions">
+              <button type="button" className="admin-registration-access__button" onClick={cancelEditor}>
+                {t('admin.sections.accessGates.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="admin-registration-access__button admin-registration-access__button--primary"
+                disabled={saving}
+              >
+                {saving ? (
+                  t('admin.sections.accessGates.saving')
+                ) : (
+                  <>
+                    <Save size={15} aria-hidden /> {t('admin.sections.accessGates.save')}
+                  </>
+                )}
+              </button>
+            </footer>
+          </form>
+        ) : null}
+      </section>
     </section>
   )
 }

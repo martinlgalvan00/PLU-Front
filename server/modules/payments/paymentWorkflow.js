@@ -170,6 +170,35 @@ export async function applyCanonicalPayment(payment, order, options = {}) {
 }
 
 /**
+ * El retorno del navegador no acredita por si solo: vuelve a consultar el
+ * recurso canónico de Mercado Pago y aplica exactamente las mismas
+ * validaciones que el webhook. Si MP todavía no expuso el pago, el cliente
+ * puede quedar en espera sin inventar un estado de cobro.
+ */
+export async function reconcileReturnPayment(input, options = {}) {
+  const { repository, mercadoPago, order, notifyPaymentApplied, auditTrail } = options
+  if (!repository || !mercadoPago || !order?.id) {
+    throw new HttpError(503, 'La conciliación de pagos no está configurada.')
+  }
+
+  const paymentId = input?.paymentId ?? input?.payment_id ?? null
+  const payment = paymentId
+    ? await mercadoPago.getPayment(paymentId)
+    : await mercadoPago.findPaymentForOrder(order)
+
+  if (!payment) return { reconciled: false, reason: 'payment_not_found' }
+
+  const { appliedPayment, result } = await applyCanonicalPayment(payment, order, {
+    repository,
+    notifyPaymentApplied,
+    auditTrail,
+    stage: 'return',
+  })
+
+  return { reconciled: true, payment: appliedPayment, ...result }
+}
+
+/**
  * Reusa el email `payment_rejected` (mismo copy: "no pudimos procesar tu
  * pago... reintenta") para dos eventos de suscripcion que hasta ahora no
  * avisaban a nadie. No inventa un template nuevo -- necesitaria su propia

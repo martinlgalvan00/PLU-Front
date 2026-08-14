@@ -15,4 +15,10 @@ describe('oferta activa del combo Pitbull', () => {
     expect(migration).toContain("event.slug = 'pitbull-classic-2026'")
     expect(migration).toContain('offer.membership_plan_id <> active_annual_plan.id')
   })
+
+  it('no bloquea un reset limpio y desactiva una oferta existente sin plan apto', () => {
+    expect(migration).toContain('set active = false, updated_at = now()')
+    expect(migration).toContain('raise notice')
+    expect(migration).not.toContain("raise exception 'La oferta activa de Pitbull no tiene un plan anual vigente.'")
+  })
 })
