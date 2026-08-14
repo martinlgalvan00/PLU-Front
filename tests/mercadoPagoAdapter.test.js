@@ -97,10 +97,38 @@ describe('adaptador de Mercado Pago', () => {
       body: expect.objectContaining({
         notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
         back_urls: expect.objectContaining({
-          success: 'https://powerliftingunited.ar/registro?payment=success&order=order-1',
+          success: 'https://powerliftingunited.ar/perfil?payment=success&order=order-1',
         }),
       }),
       requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
+    }))
+  })
+
+  it('redirige las inscripciones de atleta al perfil', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-registration',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-registration',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-registration',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({
+      order: { ...order, id: 'registration-order-1', concept: 'registration' },
+      idempotencyKey: 'registration-order-1',
+    })
+
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        back_urls: expect.objectContaining({
+          success: 'https://powerliftingunited.ar/perfil?payment=success&order=registration-order-1',
+        }),
+      }),
     }))
   })
 

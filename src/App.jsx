@@ -44,6 +44,7 @@ import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from '
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
+  ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
   getTransitionDirection,
@@ -191,12 +192,21 @@ export default function App() {
     })
       .then((result) => {
         if (result?.reconciled) {
+          const orderConcept = result.order?.concept ?? result.order?.payment_order?.concept ?? null
+          const targetProfileTab = ['registration', 'combo'].includes(orderConcept)
+            ? ACCOUNT_EVENTS_TAB
+            : DEFAULT_ACCOUNT_TAB
           window.dispatchEvent(new CustomEvent('plu:payment-updated', {
             detail: {
               orderId,
               status: result.order?.status ?? result.payment?.status ?? status,
             },
           }))
+          window.history.replaceState({ view: 'profile' }, '', '/perfil')
+          setProfileTab(targetProfileTab)
+          setProfileTabNonce((current) => current + 1)
+          setTransitionDirection(getTransitionDirection(view, 'profile'))
+          setView('profile')
         }
       })
       .catch((error) => {
@@ -206,7 +216,7 @@ export default function App() {
         window.sessionStorage?.setItem(`plu:mp-return:${key}`, '1')
         paymentReturnInFlightRef.current = null
       })
-  }, [app.createdOrder])
+  }, [app.createdOrder, view])
 
   useEffect(() => {
     function onPopState() {
