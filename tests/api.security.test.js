@@ -27,6 +27,17 @@ describe('api security baseline', () => {
     expect(isServerToServerMutationPath(req)).toBe(true)
   })
 
+  it('resuelve el path público de analítica aunque un rewrite apunte a /api/index', () => {
+    const req = {
+      path: '/api/index',
+      originalUrl: '/api/index',
+      url: '/api/index',
+      get: (name) => (name === 'x-invoke-path' ? '/api/analytics/collect' : undefined),
+    }
+
+    expect(resolveMutationPathname(req)).toBe('/api/analytics/collect')
+  })
+
   it('oculta x-powered-by y aplica headers basicos', async () => {
     const target = listen(createApp())
 
@@ -122,6 +133,40 @@ describe('api security baseline', () => {
     })
 
     expect(response.status).toBe(400)
+
+    await target.close()
+  })
+
+  it('permite el beacon de analitica sin header custom: sendBeacon no puede mandarlo', async () => {
+    const target = listen(createApp())
+
+    const response = await fetch(`${target.url}/api/analytics/collect`, {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:5173',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ events: [{ type: 'pageview' }], context: { path: '/' } }),
+    })
+
+    expect(response.status).not.toBe(403)
+
+    await target.close()
+  })
+
+  it('rechaza el beacon de analitica con origen no permitido', async () => {
+    const target = listen(createApp())
+
+    const response = await fetch(`${target.url}/api/analytics/collect`, {
+      method: 'POST',
+      headers: {
+        Origin: 'https://evil.example',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ events: [{ type: 'pageview' }], context: { path: '/' } }),
+    })
+
+    expect(response.status).toBe(403)
 
     await target.close()
   })

@@ -41,6 +41,7 @@
     "mercado-pago:doctor": "node scripts/mercado-pago-doctor.mjs",
     "payments:audit": "node scripts/payments-audit.mjs",
     "payments:trace": "node scripts/payments-trace.mjs",
+    "purge:test-athletes": "node scripts/purge-test-athletes.mjs",
     "mercado-pago:urls": "node scripts/mercado-pago-urls.mjs",
     "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",
     "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1",

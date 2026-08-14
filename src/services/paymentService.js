@@ -183,6 +183,16 @@ export async function getRequestAudit(requestId) {
   return apiGet(`/api/payments/audit/requests/${encodeURIComponent(requestId)}`)
 }
 
+/** Motivos de rechazo de pago en un rango, de mayor a menor frecuencia. */
+export async function getPaymentFailureReasons({ from, to } = {}) {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
+  const query = params.toString()
+  const result = await apiGet(`/api/payments/operations/failure-reasons${query ? `?${query}` : ''}`)
+  return result?.reasons ?? []
+}
+
 export async function validatePayment(paymentOrderId) {
   const result = await getPaymentOrderStatus(paymentOrderId)
   return result.order

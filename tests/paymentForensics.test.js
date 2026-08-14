@@ -254,6 +254,87 @@ describe('linea de tiempo de una orden', () => {
       buildOrderTimeline(clientWith({}), { orderId: ORDER_ID, organizationId: ORG }),
     ).rejects.toMatchObject({ status: 404 })
   })
+
+  it('una orden de entradas no exige membresia ni inscripcion para llegar a "ok"', async () => {
+    // A diferencia de una orden de atleta, "cobrado" ya es "cumplido": no hay
+    // efecto de dominio que verificar aparte del ledger de entradas.
+    const report = await buildOrderTimeline(
+      clientWith({
+        athlete_payment_orders: [],
+        ticket_orders: [{
+          id: ORDER_ID,
+          organization_id: ORG,
+          amount: 25_000,
+          currency: 'ARS',
+          method: 'mercado_pago',
+          status: 'aprobado',
+          reference: 'TORD-1',
+          payer_email: 'comprador@example.com',
+          created_at: '2026-08-01T10:00:00.000Z',
+          event: { id: 'evt-1', title: 'Pitbull Classic', slug: 'pitbull-classic' },
+        }],
+        ticket_payments: [{
+          order_id: ORDER_ID,
+          external_payment_id: 'mp-9',
+          status: 'aprobado',
+          amount: 25_000,
+          currency: 'ARS',
+          status_detail: 'accredited',
+          payer_email: 'comprador@example.com',
+          created_at: '2026-08-01T10:02:00.000Z',
+          confirmed_at: '2026-08-01T10:02:00.000Z',
+        }],
+        embedded_payment_attempts: [],
+        payment_integration_events: [],
+        operational_event_logs: [],
+      }),
+      { orderId: ORDER_ID, organizationId: ORG },
+    )
+
+    expect(report.kind).toBe('ticket')
+    expect(report.verdict.state).toBe('ok')
+    expect(report.fulfillment).toBeNull()
+  })
+
+  it('con varias fallas, el veredicto cuenta la mas reciente', async () => {
+    const report = await buildOrderTimeline(
+      clientWith({
+        ...baseTables,
+        athlete_payment_orders: [{ ...baseTables.athlete_payment_orders[0], status: 'pendiente' }],
+        athlete_payments: [],
+        memberships: [],
+        operational_event_logs: [
+          {
+            created_at: '2026-08-01T10:01:00.000Z',
+            source: 'payment',
+            action: 'payment.webhook_failed',
+            status: 'failed',
+            severity: 'danger',
+            metadata: failureMetadata(),
+          },
+          {
+            created_at: '2026-08-01T10:03:00.000Z',
+            source: 'payment',
+            action: 'payment.webhook_failed',
+            status: 'failed',
+            severity: 'degraded',
+            metadata: failureMetadata({
+              error: { message: 'Firma de webhook invalida.' },
+              trail: [],
+            }),
+          },
+        ],
+      }),
+      { orderId: ORDER_ID, organizationId: ORG },
+    )
+
+    expect(report.failures).toHaveLength(2)
+    expect(report.failures[0].diagnosis.code).toBe('ORDER_AMOUNT_MISMATCH')
+    expect(report.failures[1].diagnosis.code).toBe('MP_WEBHOOK_SIGNATURE_INVALID')
+    // El veredicto no promedia fallas: cuenta la ultima, que es la que dejo la
+    // orden en el estado en que esta ahora.
+    expect(report.verdict.summary).toBe('Firma del webhook invalida')
+  })
 })
 
 describe('recorrido de afiliacion', () => {

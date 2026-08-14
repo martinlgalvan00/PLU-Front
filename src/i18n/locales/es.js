@@ -2118,6 +2118,7 @@ export default {
       periodAnnual: 'anual',
       perYear: 'por año',
       featuresAria: 'Beneficios incluidos',
+      includesLabel: 'Incluye',
       benefitsReelAria: 'Beneficios de la afiliación',
       benefitsNavAria: 'Elegir beneficio',
       benefitsPrev: 'Beneficio anterior',

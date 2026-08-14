@@ -80,3 +80,48 @@ export const PluFeatured = {
     ),
   ],
 }
+
+export const PluWithDistinctKicker = {
+  args: {
+    variant: 'plu',
+    highlighted: true,
+    title: 'Afiliación + Pitbull Classic',
+    kicker: 'Hasta el 28 ago',
+    price: 120000,
+    features: [
+      'Afiliación anual PLU ARG',
+      'Inscripción Pitbull Classic',
+      'Un solo pago',
+    ],
+    compareWith: [{ price: 75000 }, { price: 75000 }],
+  },
+  decorators: [
+    (Story) => (
+      <PluFrame>
+        <Story />
+      </PluFrame>
+    ),
+  ],
+}
+
+export const PluWithBilling = {
+  args: {
+    variant: 'plu',
+    highlighted: true,
+    title: 'Afiliación PLU anual',
+    kicker: 'Anual',
+    price: 75000,
+    features: pluFeatures,
+    billingToggleEnabled: true,
+    billingAutoRenew: false,
+    billingToggleHint: 'Pago único por temporada.',
+    onBillingAutoRenewChange: () => {},
+  },
+  decorators: [
+    (Story) => (
+      <PluFrame>
+        <Story />
+      </PluFrame>
+    ),
+  ],
+}

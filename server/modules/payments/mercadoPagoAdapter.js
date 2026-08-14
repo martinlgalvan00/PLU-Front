@@ -7,6 +7,7 @@ import {
 } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
+import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -201,7 +202,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         explicit: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         label: 'APP_URL',
         env,
-      )
+      })
       const webhookBase = requireIntegrationUrl(
         resolveApiUrl({ apiUrl, appUrl, env }),
         'API_URL o APP_URL',

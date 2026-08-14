@@ -1362,7 +1362,7 @@
   padding: 25px 27px 22px;
 }
 
-.admin-shell .admin-list-section > .admin-list-shell__header {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-list-shell__header {
   border-bottom: 0;
   padding: 0 2px 8px;
 }
@@ -1478,7 +1478,7 @@
   padding: 8px 16px 10px;
 }
 
-.admin-shell .admin-list-section > .admin-filters--external {
+.admin-shell .admin-list-section > .admin-list-section__chrome > .admin-filters--external {
   background: transparent;
   border: 0;
   padding: 2px 2px 4px;
@@ -1914,7 +1914,7 @@
     display: none !important;
   }
 
-  .admin-shell .admin-list-shell__header:not(:has(.admin-list-shell__actions)):not(:has(.admin-list-shell__meta)) {
+  .admin-shell .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))):not(:has(.admin-list-shell__meta)) {
     display: none;
   }
 }

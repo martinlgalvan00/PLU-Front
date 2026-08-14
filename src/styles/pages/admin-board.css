@@ -376,8 +376,8 @@
 
 /* ── Layout ─────────────────────────────────────────────────────────
    Desktop (≥900 del tablero): pendientes sticky a la izquierda.
-   Notebook/mobile: bolsa compacta arriba y días en riel con snap —
-   el rail de 76px achica el contenido sin achicar el viewport. */
+   Tablet/notebook: bolsa arriba y días apilados a 100% — se opera
+   desde la sede y el riel de 76px no puede dejar columnas a 36rem. */
 .admin-board__layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -405,26 +405,23 @@
 
 .admin-board__days {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
 }
 
 .admin-board__day {
-  flex: 0 0 85%;
-  max-width: 36rem;
-  min-width: min(100%, 18rem);
-  scroll-snap-align: start;
+  flex: none;
+  max-width: none;
+  min-width: 0;
+  width: auto;
 }
 
 .admin-board__panel-head {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-width: 0;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-border-subtle);
 }
@@ -493,17 +490,7 @@
   }
 
   .admin-board__days {
-    flex-direction: column;
     gap: var(--space-lg);
-    overflow-x: visible;
-    scroll-snap-type: none;
-  }
-
-  .admin-board__day {
-    flex: none;
-    max-width: none;
-    min-width: 0;
-    width: auto;
   }
 
   .admin-board__pool .admin-board__list {
@@ -530,16 +517,24 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-sm);
+  width: 100%;
 }
 
 .admin-board__autofill-field {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .admin-board__autofill-field input {
-  width: 84px;
+  width: min(100%, 8rem);
+}
+
+.admin-board__autofill .btn {
+  flex: none;
+  margin-left: auto;
 }
 
 /* ── Tandas ─────────────────────────────────────────────────────────
@@ -580,6 +575,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-width: 0;
 }
 
 /* Lápiz de edición inline: aparece al hover para no ensuciar 200 filas;
@@ -623,6 +619,10 @@
   .admin-board__icon-btn {
     width: 44px;
     height: 44px;
+  }
+
+  .admin-board__autofill .btn {
+    min-height: 44px;
   }
 }
 
@@ -676,6 +676,7 @@
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 
 /* ── Atletas ────────────────────────────────────────────────────────── */

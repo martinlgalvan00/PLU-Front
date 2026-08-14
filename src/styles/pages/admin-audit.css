@@ -12,8 +12,19 @@
   border: 1px solid var(--color-border-subtle);
   border-left: 3px solid var(--color-status-success);
   border-radius: var(--border-radius-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: 0;
   padding: var(--space-md) var(--space-lg);
+}
+
+/* Salud primero, filtros después: el operador ve si hay que revisar
+   antes de recortar la bitácora. */
+.admin-shell .admin-list-section--audit > .audit-health {
+  margin: 0 2px 4px;
+}
+
+.admin-shell .admin-list-section--audit > .admin-list-section__chrome > .admin-filters--audit {
+  margin-top: 8px;
+  padding-top: 10px;
 }
 
 .audit-health--attention {
@@ -101,9 +112,9 @@
   padding-top: var(--space-sm);
 }
 
-/* Filtros: selects etiquetados (fuente / estado / acción / actor / entidad).
-   Las opciones de auditoría son muchas y con labels largos: el select compacto
-   escala mejor que rieles de chips apilados. */
+/* Filtros de auditoría: fuente como recorte operativo (chips), estado a la
+   vista, y acción/actor/entidad detrás de «Más filtros». El auto-fit de
+   cinco selects apilaba una pared de opciones en viewports de ~600px. */
 .admin-shell .admin-filters--audit.admin-filters--inline.admin-filters--compact {
   gap: 10px;
 }
@@ -112,8 +123,15 @@
 .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
   align-items: stretch;
   display: grid !important;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-shell .admin-filters--audit .admin-filter-group,
+.admin-shell .admin-list-section--audit .admin-filter-group {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters--audit .admin-filters__select,
@@ -122,10 +140,66 @@
   width: 100%;
 }
 
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
+  align-items: center;
+  align-self: end;
+  background: transparent;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 2px;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle:hover,
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle.is-open,
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle.is-active {
+  border-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle .admin-filters__toggle-icon {
+  flex: none;
+}
+
+.admin-shell .admin-filters--audit .admin-filters__advanced-toggle.is-open .admin-filters__toggle-icon {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 900px) {
+  .admin-shell .admin-filters--audit .admin-filters__groups--multi,
+  .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
+    justify-self: start;
+    max-width: 11.5rem;
+  }
+}
+
 @media (max-width: 540px) {
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
+    max-width: none;
   }
 }
 
@@ -202,6 +276,125 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.audit-event {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.audit-event__lead {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.audit-event__lead--alert {
+  border-left: 2px solid var(--color-brand-red);
+  padding-left: 10px;
+}
+
+.audit-event__facts,
+.audit-event__technical dl {
+  display: grid;
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.audit-event__facts > div,
+.audit-event__technical dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.audit-event__facts dt,
+.audit-event__technical dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.audit-event__facts dd,
+.audit-event__technical dd {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.audit-event__long {
+  font-weight: 500;
+}
+
+.audit-event__technical summary {
+  align-items: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  list-style: none;
+  min-height: 36px;
+}
+
+.audit-event__technical summary::-webkit-details-marker {
+  display: none;
+}
+
+.audit-event__technical summary::before {
+  border-color: transparent transparent transparent currentColor;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  content: '';
+  display: inline-block;
+  height: 0;
+  width: 0;
+}
+
+.audit-event__technical[open] summary::before {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audit-event__technical[open] summary::before {
+    transform: none;
+  }
+}
+
+.audit-event__technical summary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-data-table--audit tbody td .audit-event__technical {
+  display: none;
+}
+
+/* La card compacta genérica recorta meta a una línea. El detalle de auditoría
+   tiene que leerse entero: el error es la razón de que el operador abrió esto. */
+.admin-shell .admin-list-shell--audit .data-table-card__meta-value,
+.admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact .data-table-card__meta-value {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact .data-table-card__meta--inline {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .audit-loadmore {
@@ -365,6 +558,39 @@
 
   .admin-shell .admin-list-shell--audit .audit-entry__detail dd {
     font-size: 13px;
+    max-width: none;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-event {
+    gap: 10px;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card .audit-event {
+    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+    padding-top: 10px;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-event__lead {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card .audit-event__facts {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+
+  .admin-shell .admin-list-shell--audit .data-table-card .audit-event__facts > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-event__technical summary {
+    min-height: 44px;
+  }
+
+  .admin-shell .admin-list-shell--audit .audit-event__technical .data-table__mono {
     max-width: none;
     overflow-wrap: anywhere;
     white-space: normal;

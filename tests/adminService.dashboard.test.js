@@ -134,9 +134,13 @@ describe('buildPendingActions — hasProof', () => {
     })
 
     expect(actions.find((item) => item.id === 'action-pay-p1')?.hasProof).toBe(true)
+    expect(actions.find((item) => item.id === 'action-pay-p1')?.paymentProofPath).toBe('proofs/p1.jpg')
     expect(actions.find((item) => item.id === 'action-pay-p2')?.hasProof).toBe(false)
+    expect(actions.find((item) => item.id === 'action-pay-p2')?.paymentProofPath).toBeNull()
     expect(actions.find((item) => item.id === 'action-tord-t1')?.hasProof).toBe(true)
+    expect(actions.find((item) => item.id === 'action-tord-t1')?.paymentProofPath).toBe('tickets/t1.pdf')
     expect(actions.find((item) => item.id === 'action-tord-t2')?.hasProof).toBe(false)
+    expect(actions.find((item) => item.id === 'action-tord-t2')?.paymentProofPath).toBeNull()
   })
 })
 

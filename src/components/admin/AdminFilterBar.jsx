@@ -15,6 +15,9 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * @property {'chips' | 'select' | 'toggle'} [variant]
  * @property {string} [defaultValue] Valor sin filtro; por convención, la primera opción.
  * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
+ * @property {string} [ariaLabel] Nombre accesible cuando el label visual está oculto.
+ * @property {boolean} [advanced] Si es true, queda detrás de «Más filtros».
+ * @property {string} [allLabel] Etiqueta corta del valor neutro cuando el grupo es de chips.
  */
 
 function neutralValue(filter) {
@@ -26,20 +29,32 @@ function isFilterActive(filter) {
 }
 
 /** Toggle binario: una sola opción no-neutra que se prende/apaga. */
-function AdminFilterToggle({ id, label, value, onChange, options = [], defaultValue, disabled = false }) {
+function AdminFilterToggle({
+  id,
+  label,
+  ariaLabel,
+  value,
+  onChange,
+  options = [],
+  defaultValue,
+  disabled = false,
+}) {
   const neutral = defaultValue ?? options[0]?.[0]
   const activeOption = options.find(([optionValue]) => optionValue !== neutral) ?? options[1]
   if (!activeOption) return null
 
-  const [optionValue, optionLabel] = activeOption
+  const [optionValue, optionLabel, optionCount] = activeOption
   const pressed = value === optionValue
   const labelId = label ? `${id}-label` : undefined
+  const showCount = optionCount !== undefined && optionCount !== null && optionCount !== ''
+  const zeroCount = showCount && Number(optionCount) === 0
+  if (zeroCount && !pressed) return null
 
   return (
     <div
       className="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle"
       role="group"
-      aria-label={!label ? optionLabel : undefined}
+      aria-label={!label ? ariaLabel || optionLabel : undefined}
       aria-labelledby={labelId}
     >
       {label ? (
@@ -55,6 +70,11 @@ function AdminFilterToggle({ id, label, value, onChange, options = [], defaultVa
         onClick={() => onChange(pressed ? neutral : optionValue)}
       >
         <span className="admin-filter-chip__label">{optionLabel}</span>
+        {showCount ? (
+          <span className="admin-filter-chip__count" aria-hidden>
+            {optionCount}
+          </span>
+        ) : null}
       </button>
     </div>
   )
@@ -78,14 +98,19 @@ export default function AdminFilterBar({
   const hasMountedFilters = useRef(false)
   /** En listados (inline), los chips van siempre a la vista: el toggle suma un click de más. */
   const alwaysShowFilters = inline
+  const visibleFilters = filters.filter((filter) => !filter.advanced)
+  const advancedFilters = filters.filter((filter) => filter.advanced)
+  const advancedActiveCount = advancedFilters.filter(isFilterActive).length
+  const [advancedOpen, setAdvancedOpen] = useState(() => advancedActiveCount > 0)
+  const shownFilters = advancedOpen ? filters : visibleFilters
   const activeFilters = filters.filter(isFilterActive)
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
   const panelOpen = alwaysShowFilters || filtersOpen
-  const chipGroupCount = filters.filter(
+  const chipGroupCount = shownFilters.filter(
     (filter) => filter.variant !== 'select' && filter.variant !== 'toggle',
   ).length
-  const isMultiGroup = filters.length > 1
+  const isMultiGroup = shownFilters.length > 1 || advancedFilters.length > 0
   const rootClassName = [
     'admin-filters',
     'admin-filters--chips',
@@ -117,6 +142,10 @@ export default function AdminFilterBar({
     const timer = window.setTimeout(() => root.classList.remove('is-filter-applied'), 420)
     return () => window.clearTimeout(timer)
   }, [filterSignature])
+
+  useEffect(() => {
+    if (advancedActiveCount > 0) setAdvancedOpen(true)
+  }, [advancedActiveCount])
 
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
@@ -153,6 +182,7 @@ export default function AdminFilterBar({
           key={filter.id}
           id={filter.id}
           label={sharedLabel}
+          ariaLabel={filter.ariaLabel ?? filter.label}
           value={filter.value}
           onChange={filter.onChange}
           options={filter.options}
@@ -176,7 +206,7 @@ export default function AdminFilterBar({
         disabled={filter.disabled}
         defaultValue={neutralValue(filter)}
         omitNeutral
-        allLabel={t('admin.filters.showingAll')}
+        allLabel={filter.allLabel ?? t('admin.filters.showingAll')}
         clearable
         hideEmpty
       />
@@ -242,7 +272,35 @@ export default function AdminFilterBar({
                 .filter(Boolean)
                 .join(' ')}
             >
-              {filters.map(renderFilter)}
+              {visibleFilters.map(renderFilter)}
+              {advancedOpen ? advancedFilters.map(renderFilter) : null}
+              {advancedFilters.length > 0 ? (
+                <button
+                  type="button"
+                  className={[
+                    'admin-filters__advanced-toggle',
+                    advancedOpen ? 'is-open' : '',
+                    advancedActiveCount > 0 ? 'is-active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-expanded={advancedOpen}
+                  onClick={() => setAdvancedOpen((current) => !current)}
+                >
+                  <span>
+                    {advancedOpen ? t('admin.filters.fewerFilters') : t('admin.filters.moreFilters')}
+                  </span>
+                  {!advancedOpen && advancedActiveCount > 0 ? (
+                    <span
+                      className="admin-filters__active-count"
+                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
+                    >
+                      {advancedActiveCount}
+                    </span>
+                  ) : null}
+                  <ChevronDown className="admin-filters__toggle-icon" size={13} aria-hidden />
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

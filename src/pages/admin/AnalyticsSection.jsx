@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
+  CircleAlert,
   Flame,
   MousePointerClick,
   RefreshCw,
@@ -11,7 +12,6 @@ import {
   Users,
 } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
-import AdminMetricCard from '../../components/admin/AdminMetricCard.jsx'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
@@ -30,6 +30,7 @@ import {
   fetchAthleteJourney,
   withFunnelRates,
 } from '../../services/analyticsReportService.js'
+import { getPaymentFailureReasons } from '../../services/paymentService.js'
 
 /**
  * AnalyticsSection — PLU ARG
@@ -93,6 +94,60 @@ function percent(value, locale) {
 
 function count(value, locale) {
   return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR').format(Number(value ?? 0))
+}
+
+/**
+ * Rango inmediatamente anterior al actual, de igual longitud. `days` no
+ * alcanza para pedirlo directo (el backend lo resuelve siempre contra "ahora"),
+ * así que acá se arma el `from`/`to` explícito del tramo previo.
+ */
+function previousRange(days) {
+  const now = Date.now()
+  const spanMs = days * 24 * 60 * 60 * 1000
+  return {
+    from: new Date(now - spanMs * 2).toISOString(),
+    to: new Date(now - spanMs).toISOString(),
+  }
+}
+
+function currentRange(days) {
+  const now = Date.now()
+  return { from: new Date(now - days * 24 * 60 * 60 * 1000).toISOString(), to: new Date(now).toISOString() }
+}
+
+const FAILURE_SEVERITY_TONE = { blocker: 'danger', degraded: 'warning', expected: 'neutral' }
+
+/** `null` sin base de comparación (período anterior en cero o sin dato). */
+function percentChange(current, previous) {
+  const prev = Number(previous ?? 0)
+  if (!(prev > 0)) return null
+  return (Number(current ?? 0) - prev) / prev
+}
+
+function percentChangeLabel(value, locale) {
+  if (value === null) return null
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    style: 'percent',
+    maximumFractionDigits: 1,
+    signDisplay: 'exceptZero',
+  }).format(value)
+}
+
+/** Variación contra el período anterior, al lado del número absoluto. */
+function MetricDelta({ current, previous, locale, t }) {
+  const change = percentChange(current, previous)
+  if (change === null) return null
+  const label = percentChangeLabel(change, locale)
+  const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat'
+  return (
+    <span
+      className={`admin-analytics__metric-delta admin-analytics__metric-delta--${direction}`}
+      title={t('admin.analytics.metricsDeltaCaption')}
+      aria-label={t('admin.analytics.metricsDeltaAria', { value: label })}
+    >
+      {label}
+    </span>
+  )
 }
 
 function duration(seconds) {
@@ -315,17 +370,24 @@ function AthleteJourney({ athletes, days, locale, t }) {
   )
 }
 
-export default function AnalyticsSection({ athletes = [], canViewIdentity = false, onNavigate }) {
+export default function AnalyticsSection({
+  athletes = [],
+  canViewIdentity = false,
+  canViewPaymentFailures = false,
+  onNavigate,
+}) {
   const { locale, t } = useI18n()
   const [days, setDays] = useState(30)
   const [activeTab, setActiveTab] = useState(TABS.overview)
   const [overview, setOverview] = useState(null)
+  const [previousOverview, setPreviousOverview] = useState(null)
   const [pages, setPages] = useState([])
   const [flows, setFlows] = useState([])
   const [funnel, setFunnel] = useState([])
   const [elements, setElements] = useState([])
   const [operational, setOperational] = useState(null)
   const [operationalAlerts, setOperationalAlerts] = useState([])
+  const [failureReasons, setFailureReasons] = useState([])
   const [heatmapPath, setHeatmapPath] = useState(null)
   const [heatmapDevice, setHeatmapDevice] = useState('')
   const [heatmap, setHeatmap] = useState(null)
@@ -341,19 +403,34 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
     try {
       // Primer pintado: overview, paginas, embudo y operativos. Recorridos y
       // ranking esperan al tab Uso; el mapa espera al tab Paginas.
-      const [overviewResult, pagesResult, funnelResult, operationalResult, alertsResult] =
-        await Promise.all([
-          fetchAnalyticsOverview({ days }),
-          fetchAnalyticsPages({ days, limit: 25 }),
-          fetchAnalyticsFunnel({ days }),
-          fetchAnalyticsOperationalSummary({ days }),
-          fetchAnalyticsOperationalAlerts(),
-        ])
+      const [
+        overviewResult,
+        previousOverviewResult,
+        pagesResult,
+        funnelResult,
+        operationalResult,
+        alertsResult,
+        failureReasonsResult,
+      ] = await Promise.all([
+        fetchAnalyticsOverview({ days }),
+        // Mismo largo, tramo inmediatamente anterior: sin esto un numero
+        // absoluto no dice si mejoro o empeoro respecto de lo de siempre.
+        fetchAnalyticsOverview(previousRange(days)),
+        fetchAnalyticsPages({ days, limit: 25 }),
+        fetchAnalyticsFunnel({ days }),
+        fetchAnalyticsOperationalSummary({ days }),
+        fetchAnalyticsOperationalAlerts(),
+        // Vive bajo `admin.payments.read`, no `admin.analytics.read`: sin el
+        // permiso ni se pide, para no ofrecer un panel que iba a responder 403.
+        canViewPaymentFailures ? getPaymentFailureReasons(currentRange(days)) : Promise.resolve([]),
+      ])
       setOverview(overviewResult)
+      setPreviousOverview(previousOverviewResult)
       setPages(pagesResult)
       setFunnel(withFunnelRates(funnelResult))
       setOperational(operationalResult)
       setOperationalAlerts(alertsResult)
+      setFailureReasons(failureReasonsResult)
       // La ruta mas vista es el mapa de calor por defecto: es la que el equipo
       // va a querer mirar primero y evita una pantalla vacia.
       setHeatmapPath((current) => current ?? pagesResult[0]?.path ?? null)
@@ -362,7 +439,7 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
     } finally {
       setLoading(false)
     }
-  }, [days, t])
+  }, [canViewPaymentFailures, days, t])
 
   useEffect(() => {
     void load()
@@ -493,10 +570,16 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
                   key={range}
                   type="button"
                   className={range === days ? 'is-active' : ''}
+                  aria-label={t('admin.analytics.rangeDays', { days: range })}
                   aria-pressed={range === days}
                   onClick={() => setDays(range)}
                 >
-                  {t('admin.analytics.rangeDays', { days: range })}
+                  <span className="admin-analytics__range-long">
+                    {t('admin.analytics.rangeDays', { days: range })}
+                  </span>
+                  <span className="admin-analytics__range-short" aria-hidden>
+                    {t('admin.analytics.rangeDaysShort', { days: range })}
+                  </span>
                 </button>
               ))}
             </div>
@@ -507,44 +590,55 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
         }
       />
 
-      <div className="admin-analytics__metrics" role="group" aria-label={t('admin.analytics.metricsAria')}>
-        <AdminMetricCard
-          minimal
-          hideIcon
-          value={count(overview?.visitors, locale)}
-          label={t('admin.analytics.metrics.visitors')}
-          index={0}
-        />
-        <AdminMetricCard
-          minimal
-          hideIcon
-          value={count(overview?.pageviews, locale)}
-          label={t('admin.analytics.metrics.pageviews')}
-          index={1}
-        />
-        <AdminMetricCard
-          minimal
-          hideIcon
-          value={count(overview?.identifiedVisitors, locale)}
-          label={t('admin.analytics.metrics.identified')}
-          index={2}
-        />
-        <AdminMetricCard
-          minimal
-          hideIcon
-          value={percent(overview?.bounceRate, locale)}
-          label={t('admin.analytics.metrics.bounce')}
-          index={3}
-        />
-      </div>
-
-      <p className="admin-analytics__summary">
-        {t('admin.analytics.summary', {
-          sessions: count(overview?.sessions, locale),
-          duration: duration(overview?.avgDurationSeconds),
-          interactions: count(overview?.interactions, locale),
-        })}
-      </p>
+      <section className="admin-analytics__pulse" aria-label={t('admin.analytics.metricsAria')}>
+        <dl className="admin-analytics__metrics">
+          <div>
+            <dt>{t('admin.analytics.metrics.visitors')}</dt>
+            <dd>
+              {count(overview?.visitors, locale)}
+              <MetricDelta current={overview?.visitors} previous={previousOverview?.visitors} locale={locale} t={t} />
+            </dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.pageviews')}</dt>
+            <dd>
+              {count(overview?.pageviews, locale)}
+              <MetricDelta current={overview?.pageviews} previous={previousOverview?.pageviews} locale={locale} t={t} />
+            </dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.identified')}</dt>
+            <dd>
+              {count(overview?.identifiedVisitors, locale)}
+              <MetricDelta
+                current={overview?.identifiedVisitors}
+                previous={previousOverview?.identifiedVisitors}
+                locale={locale}
+                t={t}
+              />
+            </dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.bounce')}</dt>
+            <dd>
+              {percent(overview?.bounceRate, locale)}
+              <MetricDelta
+                current={overview?.bounceRate}
+                previous={previousOverview?.bounceRate}
+                locale={locale}
+                t={t}
+              />
+            </dd>
+          </div>
+        </dl>
+        <p className="admin-analytics__summary">
+          {t('admin.analytics.summary', {
+            sessions: count(overview?.sessions, locale),
+            duration: duration(overview?.avgDurationSeconds),
+            interactions: count(overview?.interactions, locale),
+          })}
+        </p>
+      </section>
 
       {operationalAlerts.length ? (
         <aside className="admin-analytics__alerts" aria-label={t('admin.analytics.alertsTitle')}>
@@ -654,6 +748,32 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
               </div>
             </div>
           </section>
+
+          {canViewPaymentFailures ? (
+            <section className="admin-analytics__block" aria-labelledby="analytics-failure-reasons">
+              <h3 id="analytics-failure-reasons">
+                <CircleAlert size={16} aria-hidden /> {t('admin.analytics.failureReasonsTitle')}
+              </h3>
+              {failureReasons.length === 0 ? (
+                <p className="admin-analytics__empty">{t('admin.analytics.failureReasonsEmpty')}</p>
+              ) : (
+                <ul className="admin-analytics__journey-list">
+                  {failureReasons.map((reason) => (
+                    <li key={reason.code}>
+                      <span
+                        className={`status-pill status-pill--${FAILURE_SEVERITY_TONE[reason.severity] ?? 'neutral'}`}
+                      >
+                        {reason.title}
+                      </span>
+                      <strong>
+                        {t('admin.analytics.failureReasonsCount', { count: count(reason.count, locale) })}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
         </div>
       ) : null}
 

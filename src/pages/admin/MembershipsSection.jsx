@@ -94,9 +94,16 @@ export default function MembershipsSection({
     [memberships.length, statusCounts, t],
   )
 
+  const metrics = useMemo(() => getMembershipStats(memberships), [memberships])
+
   const expiringOptions = useMemo(
-    () => translateFilterOptions(MEMBERSHIP_EXPIRING_FILTER_OPTIONS, t),
-    [t],
+    () =>
+      translateFilterOptions(MEMBERSHIP_EXPIRING_FILTER_OPTIONS, t).map(([value, label]) =>
+        value === 'soon'
+          ? [value, t('admin.stats.expiringSoon'), metrics.expiringSoon]
+          : [value, label],
+      ),
+    [metrics.expiringSoon, t],
   )
 
   const rows = useMemo(
@@ -135,8 +142,6 @@ export default function MembershipsSection({
   // saber de un vistazo es cuántos socios cubre hoy la afiliación, cuántos
   // entraron este mes, a quiénes hay que ir a renovar y cuánto quedó trabado
   // esperando pago.
-  const metrics = useMemo(() => getMembershipStats(memberships), [memberships])
-
   const stats = useMemo(
     () => [
       {
@@ -186,6 +191,7 @@ export default function MembershipsSection({
         {
           id: 'expiring',
           label: t('admin.filters.expiration'),
+          ariaLabel: t('admin.filters.expiringSoon'),
           value: expiring,
           onChange: setExpiring,
           options: expiringOptions,

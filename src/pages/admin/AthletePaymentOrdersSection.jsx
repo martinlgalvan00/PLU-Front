@@ -138,6 +138,7 @@ export default function AthletePaymentOrdersSection({
       reference: order.reference,
       createdAt: order.createdAt,
       hasProof: Boolean(order.paymentProofPath),
+      paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
     }))
   }, [orders, status])
@@ -173,6 +174,7 @@ export default function AthletePaymentOrdersSection({
       type: 'payment',
       paymentId: row.id,
       hasProof: row.hasProof,
+      paymentProofPath: row.paymentProofPath,
       subject: row.athlete,
       detail: `${row.concept} · ${row.reference}`,
       meta: money(row.amount, locale),

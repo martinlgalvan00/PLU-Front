@@ -114,6 +114,11 @@ const operationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(50),
 })
 
+const failureReasonsQuerySchema = z.object({
+  from: z.string().trim().min(1).optional(),
+  to: z.string().trim().min(1).optional(),
+})
+
 const mockNotifySchema = z.object({
   paymentId: z.string().trim().min(1),
   orderId: z.string().uuid().optional(),
@@ -344,6 +349,21 @@ export function createPaymentRoutes(deps = {}) {
           recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Cuántos cobros se cortaron por cada motivo en un rango de fechas, de
+   * mayor a menor frecuencia. Reusa el diagnóstico que `paymentAuditTrail`
+   * ya guardó en cada asiento fallido — no reclasifica nada de nuevo.
+   */
+  router.get('/operations/failure-reasons', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseInput(failureReasonsQuerySchema, req.query)
+      const reasons = await repository().getFailureReasonBreakdown(query)
+      res.json({ reasons })
     } catch (error) {
       next(error)
     }
