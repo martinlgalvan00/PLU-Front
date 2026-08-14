@@ -82,8 +82,7 @@ export function formatRegistrationOpenMoment(iso, locale = 'es') {
  * Cobros/inscripciones de pago abiertos:
  * - override env PAID_CHECKOUT_ENABLED (true abre, false cierra)
  * - fuera de producción: abierto (dev/preview)
- * - APP_PRODUCTION=true sin override: cerrado (“Próximamente”), ignore
- *   `registrationOpensAt` del admin. Esa fecha sigue alimentando el countdown.
+ * - sin override: abierto para el lanzamiento público.
  *
  * Crear cuenta / perfil no usa este gate.
  */

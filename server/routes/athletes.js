@@ -7,7 +7,6 @@ import {
   assertComboCheckoutAvailable,
   assertPaidCheckoutAvailable,
   assertRecurringMembershipAvailable,
-  isAppProduction,
   isRecurringMembershipPlan,
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
@@ -659,9 +658,7 @@ export function createAthleteRoutes({ getPrisma, getSupabaseAdmin, repository, e
       await assertEmailVerified(auth.athleteId)
       const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
       if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
-      if (isAppProduction(env) && isRecurringMembershipPlan(plan)) {
-        assertRecurringMembershipAvailable(env)
-      }
+      if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
       res.status(201).json(await repo().createMembershipOrder(auth.athleteId, {
         ...req.validatedBody,
         planCode: plan.code,

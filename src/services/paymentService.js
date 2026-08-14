@@ -1,4 +1,3 @@
-import { env } from '../config/env.js'
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 import { filterPublicMembershipPlans } from '../lib/featureAvailability.js'
 
@@ -9,9 +8,9 @@ let membershipPlansRequest = null
 
 export function filterMembershipPlansForApp(
   plans,
-  { appProduction = env.appProduction } = {},
+  _options = {},
 ) {
-  return filterPublicMembershipPlans(plans, { appProduction })
+  return filterPublicMembershipPlans(plans)
 }
 
 export function isMercadoPagoConfigured() {

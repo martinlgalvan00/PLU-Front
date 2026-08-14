@@ -27,10 +27,10 @@ describe('deployment environment', () => {
     ).toBe(OFFICIAL_APP_URL)
   })
 
-  it('en produccion no deja que APP_URL local contamine los emails', () => {
+  it('en producción usa el dominio oficial según Vercel', () => {
     expect(
       resolveDeploymentAppUrl({
-        APP_PRODUCTION: 'true',
+        VERCEL_ENV: 'production',
         APP_URL: 'http://localhost:5173',
       }),
     ).toBe(OFFICIAL_APP_URL)

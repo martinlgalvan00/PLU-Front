@@ -256,7 +256,7 @@ export default {
       title: 'Tarifas y planes',
       subtitle: 'Una sola fuente para afiliaciones, inscripciones y ofertas del calendario.',
       comingSoonTitle: 'Próximamente en producción',
-      comingSoonLead: 'La configuración se puede revisar, pero permanece deshabilitada mientras APP_PRODUCTION esté activa.',
+      comingSoonLead: 'La configuración se puede revisar mientras se reanuda la operación.',
       loadError: 'No pudimos cargar la configuración económica.',
       retry: 'Reintentar',
       loading: 'Cargando tarifas…',

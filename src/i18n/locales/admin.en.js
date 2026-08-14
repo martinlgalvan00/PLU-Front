@@ -256,7 +256,7 @@ export default {
       title: 'Pricing and plans',
       subtitle: 'A single source for memberships, registrations and calendar offers.',
       comingSoonTitle: 'Coming soon in production',
-      comingSoonLead: 'Configuration can be reviewed but remains disabled while APP_PRODUCTION is enabled.',
+      comingSoonLead: 'Configuration can be reviewed while operations resume.',
       loadError: 'We could not load pricing configuration.',
       retry: 'Retry',
       loading: 'Loading pricing…',
