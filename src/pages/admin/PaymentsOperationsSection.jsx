@@ -206,19 +206,23 @@ export default function PaymentsOperationsSection({
     },
   ]
 
-  const operationRows = [
-    ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
-    ...(data?.reconciliations ?? []).map((attempt) => ({
-      ...attempt,
-      operationKind: 'reconciliation',
-      event_type: t('admin.paymentOperations.reconciliation'),
-      resource_id: attempt.external_payment_id,
-      status: attempt.reconciliation_status,
-      attempts_count: attempt.reconciliation_attempts,
-      max_attempts: 12,
-      last_attempt_at: attempt.updated_at,
-    })),
-  ].filter((row) => !status || row.status === status)
+  const operationRows = useMemo(
+    () =>
+      [
+        ...(data?.events ?? []).map((event) => ({ ...event, operationKind: 'webhook' })),
+        ...(data?.reconciliations ?? []).map((attempt) => ({
+          ...attempt,
+          operationKind: 'reconciliation',
+          event_type: t('admin.paymentOperations.reconciliation'),
+          resource_id: attempt.external_payment_id,
+          status: attempt.reconciliation_status,
+          attempts_count: attempt.reconciliation_attempts,
+          max_attempts: 12,
+          last_attempt_at: attempt.updated_at,
+        })),
+      ].filter((row) => !status || row.status === status),
+    [data?.events, data?.reconciliations, status, t],
+  )
 
   const showHealthyEmpty =
     !loading &&

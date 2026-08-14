@@ -1,5 +1,10 @@
 import { fetchEventRegistrationSummary } from './eventRegistrationApi.js'
 import { fetchTicketAvailability } from './ticketApi.js'
+import {
+  publishEventLiveDataInvalidation,
+  publishEventRegistrationInvalidation,
+  subscribeLiveSync,
+} from './liveSyncService.js'
 
 /**
  * eventLiveStore.js — cache compartida de los datos live de un evento
@@ -164,6 +169,7 @@ export const ticketAvailabilityStore = createLiveStore({
 /** Después de crear una inscripción de atleta para ese evento. */
 export function invalidateEventRegistrationSummary(eventSlug) {
   registrationSummaryStore.invalidate(eventSlug)
+  publishEventRegistrationInvalidation(eventSlug)
 }
 
 /** Después de crear una orden de entradas para ese evento. */
@@ -178,4 +184,18 @@ export function invalidateTicketAvailability(eventSlug) {
 export function invalidateEventLiveData() {
   registrationSummaryStore.invalidateAll()
   ticketAvailabilityStore.invalidateAll()
+  publishEventLiveDataInvalidation()
 }
+
+// Señales de otras pestañas: sólo vencen la cache local. La siguiente lectura
+// vuelve a la API, que sigue siendo la única fuente de verdad.
+subscribeLiveSync((message) => {
+  if (message.type === 'event-registration-invalidated') {
+    registrationSummaryStore.invalidate(message.eventSlug)
+    return
+  }
+  if (message.type === 'event-live-data-invalidated') {
+    registrationSummaryStore.invalidateAll()
+    ticketAvailabilityStore.invalidateAll()
+  }
+})

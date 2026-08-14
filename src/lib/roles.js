@@ -1,7 +1,6 @@
 import { ROLES } from './constants.js'
 import {
   ACCESS_ROLE_TEMPLATES,
-  getAccessRoleKey,
   getAllowedAdminSections,
   hasAnyPermission,
   hasPermission,
@@ -45,20 +44,28 @@ export function canManageUsers(subject) {
 }
 
 export function canDeleteUsers(subject) {
-  return getAccessRoleKey(subject) === 'admin_maximal'
+  return hasPermission(subject, 'admin.users.delete')
 }
 
 // Mismo criterio que canDeleteUsers: borrar un atleta con toda su historia
 // (pagos, inscripciones, credenciales) es la accion mas destructiva del panel.
 export function canDeleteAthletes(subject) {
-  return getAccessRoleKey(subject) === 'admin_maximal'
+  return hasPermission(subject, 'admin.athletes.delete')
+}
+
+export function canDeleteMemberships(subject) {
+  return hasPermission(subject, 'admin.memberships.delete')
+}
+
+export function canDeleteRegistrations(subject) {
+  return hasPermission(subject, 'admin.registrations.delete')
 }
 
 // Mismo criterio que canDeleteAthletes: borrar un evento se lleva puestas sus
 // inscripciones, entradas y acreditaciones. `admin.events.write` alcanza para
 // editarlo y cerrarlo, no para hacerlo desaparecer.
 export function canDeleteEvents(subject) {
-  return getAccessRoleKey(subject) === 'admin_maximal'
+  return hasPermission(subject, 'admin.events.delete')
 }
 
 export function canManageRoles(subject) {

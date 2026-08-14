@@ -7,12 +7,8 @@ function asHttpsUrl(value) {
 
 export const OFFICIAL_APP_URL = 'https://powerliftingunited.ar'
 
-function isTruthyFlag(value) {
-  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
-}
-
 function isProductionRuntime(env) {
-  return env.VERCEL_ENV === 'production' || isTruthyFlag(env.APP_PRODUCTION)
+  return env.VERCEL_ENV === 'production'
 }
 
 export function resolveDeploymentAppUrl(env = process.env) {

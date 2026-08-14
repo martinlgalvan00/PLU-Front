@@ -40,6 +40,8 @@ export const updateAccessRolePermissionsSchema = z.object({
   permissionKeys: z.array(permissionKeySchema).max(PERMISSION_KEYS.length),
 })
 
+export const updateAccessRoleStatusSchema = z.object({ active: z.boolean() })
+
 export const updateUserAccessRoleSchema = z.object({
   roleKey: roleKeySchema,
 })

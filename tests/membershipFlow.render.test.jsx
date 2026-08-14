@@ -305,7 +305,7 @@ describe('credencial de inscripción a torneo', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ slug: 'pitbull-classic-2026' }),
-        { purchaseType: 'combo' },
+        expect.objectContaining({ purchaseType: 'combo', paymentMethod: 'mercado_pago' }),
       )
     })
   })
@@ -447,36 +447,46 @@ describe('sección de afiliación de la cuenta', () => {
     expect(screen.getByRole('button', { name: /continuar con mercado pago/i }).disabled).toBe(false)
   })
 
-  it('abre Mercado Pago en un modal y permite reabrirlo sin cancelar la orden', async () => {
-    const onStartMembershipPayment = vi.fn(async () => ({
-      createdOrder: {
-        paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
-        amount: 75000,
-        preferenceId: 'pref-membership',
-        paymentMode: 'payment',
-        status: 'pendiente',
-        payerEmail: 'ana@pluarg.local',
-      },
-    }))
+  it('paga con Mercado Pago inline (sin modal) y deja volver a elegir el método sin perder la orden', async () => {
+    const createdOrder = {
+      paymentId: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+      amount: 75000,
+      preferenceId: 'pref-membership',
+      paymentMode: 'payment',
+      paymentMethod: 'mercado_pago',
+      status: 'pendiente',
+      payerEmail: 'ana@pluarg.local',
+    }
+    const onStartMembershipPayment = vi.fn(async () => ({ createdOrder }))
     renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
 
     fireEvent.click(await waitForMembershipPayButton())
 
+    // Mismo diseño que el settle de inscripción a torneo: el Brick queda
+    // embebido en la propia página, no en un diálogo aparte.
     await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /completá el pago/i })).toBeTruthy()
+      expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
     })
-    expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
-    expect(screen.queryByText(/terminá el checkout de mercado pago debajo/i)).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: /cerrar checkout/i }))
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: /completá el pago/i })).toBeNull()
-    })
-
-    const reopen = screen.getByRole('button', { name: /continuar el pago/i })
-    expect(reopen.disabled).toBe(false)
-    fireEvent.click(reopen)
-    expect(screen.getByRole('dialog', { name: /completá el pago/i })).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
+
+    // "Elegir otro medio" vuelve al selector sin cancelar la orden creada.
+    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
+    await waitFor(() => {
+      expect(screen.queryByTestId('mp-payment-brick')).toBeNull()
+    })
+    expect(screen.getByRole('button', { name: /volver a mercado pago/i })).toBeTruthy()
+
+    // Si vuelve a confirmar Mercado Pago, el hook decide si crea una orden
+    // nueva o resume la pendiente — acá simplemente se vuelve a invocar. El
+    // CTA sigue diciendo "Continuar el pago" porque la orden previa sigue
+    // en memoria (`embeddedOrder`) mientras se elige de nuevo el método.
+    fireEvent.click(screen.getByRole('button', { name: /continuar el pago/i }))
+    await waitFor(() => {
+      expect(onStartMembershipPayment).toHaveBeenCalledTimes(2)
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
+    })
   })
 })

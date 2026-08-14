@@ -14,7 +14,29 @@ import {
 import { trackConversion, trackEvent } from '../../services/analyticsService.js'
 
 let initializedPublicKey = null
-const SUBSCRIPTION_CUSTOMIZATION = { paymentMethods: { minInstallments: 1, maxInstallments: 1 } }
+
+// Re-skin del Brick con la identidad PLU: mismo acento dorado y misma
+// tipografía que el resto del sitio, en vez del celeste/Poppins-less default
+// de Mercado Pago. `font` solo alcanza los campos seguros (tarjeta/CVV);
+// los valores de color salen de palette.css (--plu-gold-500 /
+// --color-brand-action-text) — son tokens de marca, no cambian por tema.
+const BRICK_VISUAL_CUSTOMIZATION = {
+  font: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
+  style: {
+    theme: 'default',
+    customVariables: {
+      baseColor: '#f2b705',
+      buttonTextColor: '#14181f',
+      borderRadiusSmall: '6px',
+      borderRadiusMedium: '10px',
+      borderRadiusLarge: '10px',
+    },
+  },
+}
+const SUBSCRIPTION_CUSTOMIZATION = {
+  paymentMethods: { minInstallments: 1, maxInstallments: 1 },
+  visual: BRICK_VISUAL_CUSTOMIZATION,
+}
 const PAYMENT_CUSTOMIZATION = {
   paymentMethods: {
     creditCard: 'all',
@@ -23,6 +45,7 @@ const PAYMENT_CUSTOMIZATION = {
     ticket: 'all',
     mercadoPago: 'all',
   },
+  visual: BRICK_VISUAL_CUSTOMIZATION,
 }
 
 /**
@@ -35,6 +58,32 @@ const CHECKOUT_OPENED_STEPS = {
   membership: 'membership_checkout_opened',
   competition: 'registration_checkout_opened',
   tickets: 'tickets_checkout_opened',
+}
+
+// Motivo puntual de rechazo que manda Mercado Pago (`payment.status_detail`),
+// mapeado a un mensaje accionable en vez del genérico "reintentá con otro
+// medio" — así la persona sabe si tiene que revisar el CVV, llamar al banco
+// o directamente probar otra tarjeta. Códigos no listados acá (o ausentes)
+// caen al mensaje genérico `payments.paymentRejected`.
+const REJECTION_REASON_KEYS = {
+  cc_rejected_bad_filled_card_number: 'paymentRejectedCardNumber',
+  cc_rejected_bad_filled_date: 'paymentRejectedExpiry',
+  cc_rejected_bad_filled_security_code: 'paymentRejectedCvv',
+  cc_rejected_bad_filled_other: 'paymentRejectedBadData',
+  cc_rejected_insufficient_amount: 'paymentRejectedInsufficientFunds',
+  cc_rejected_card_disabled: 'paymentRejectedCardDisabled',
+  cc_rejected_call_for_authorize: 'paymentRejectedCallForAuthorize',
+  cc_rejected_duplicated_payment: 'paymentRejectedDuplicated',
+  cc_rejected_high_risk: 'paymentRejectedHighRisk',
+  cc_rejected_blacklist: 'paymentRejectedHighRisk',
+  cc_rejected_invalid_installments: 'paymentRejectedInstallments',
+  cc_rejected_max_attempts: 'paymentRejectedMaxAttempts',
+  cc_rejected_time_out: 'paymentRejectedTimeout',
+}
+
+function resolveRejectionMessage(statusDetail, t) {
+  const key = REJECTION_REASON_KEYS[statusDetail]
+  return t(key ? `payments.${key}` : 'payments.paymentRejected')
 }
 
 const MOCK_TOKEN = 'mock_card_token_local_dev_only'
@@ -123,11 +172,13 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [brickVersion, setBrickVersion] = useState(0)
   const [checking, setChecking] = useState(false)
   const [simulating, setSimulating] = useState(false)
+  const [pollExhausted, setPollExhausted] = useState(false)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
   const isMock = env.payments.isMock
   const isModal = presentation === 'modal'
+  const isSettle = presentation === 'settle'
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
   const realPreferenceId = isRealMercadoPagoPreferenceId(order?.preferenceId)
     ? order.preferenceId
@@ -299,11 +350,19 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
 
   useEffect(() => {
     if (result?.status !== 'pending') return undefined
+    setPollExhausted(false)
     let checks = 0
     const timer = setInterval(() => {
       checks += 1
       void refreshStatus({ quiet: true }).then((status) => {
-        if (status !== 'pending' || checks >= 20) clearInterval(timer)
+        if (status !== 'pending' || checks >= 20) {
+          clearInterval(timer)
+          // Mercado Pago no confirmó en el minuto que esperamos automático:
+          // no significa que haya fallado, solo que la revisión del banco
+          // está tardando. Dejar de sondear en silencio a la persona sin
+          // explicarle nada se sentía como que el pago se había perdido.
+          if (status === 'pending') setPollExhausted(true)
+        }
       })
     }, 3_000)
     return () => clearInterval(timer)
@@ -313,6 +372,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     setResult(null)
     setError('')
     setReady(isMock)
+    setPollExhausted(false)
     setBrickVersion((current) => current + 1)
   }
 
@@ -324,7 +384,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const resultMessage = result?.status === 'approved'
     ? t(isSubscription ? 'payments.subscriptionActivated' : 'payments.paymentApproved')
     : result?.status === 'rejected'
-      ? t('payments.paymentRejected')
+      ? resolveRejectionMessage(result?.data?.payment?.statusDetail, t)
       : t(isSubscription ? 'payments.subscriptionPendingCharge' : 'payments.paymentPending')
   const mockPaymentId = result?.data?.payment?.id ?? null
   const payerEmail = resolvePayerEmail(order)
@@ -337,10 +397,12 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
 
   return (
     <section
-      className={`mp-embedded-checkout${isModal ? ' mp-embedded-checkout--modal' : ''}`}
+      className={`mp-embedded-checkout${isModal ? ' mp-embedded-checkout--modal' : ''}${
+        isSettle ? ' mp-embedded-checkout--settle' : ''
+      }`}
       aria-labelledby={`mp-checkout-title-${orderId}`}
     >
-      <header className="mp-embedded-checkout__header">
+      <header className={`mp-embedded-checkout__header${isSettle ? ' visually-hidden' : ''}`}>
         <span className="mp-embedded-checkout__icon"><ShieldCheck size={20} aria-hidden /></span>
         <div>
           <h3 id={`mp-checkout-title-${orderId}`}>
@@ -350,7 +412,15 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
         </div>
       </header>
 
-      {!isMock && !ready && !result && <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>}
+      {!isMock && !ready && !result && (
+        <div className="mp-embedded-checkout__skeleton" role="status" aria-live="polite">
+          <span className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--wide" aria-hidden="true" />
+          <span className="mp-embedded-checkout__skeleton-bar" aria-hidden="true" />
+          <span className="mp-embedded-checkout__skeleton-bar" aria-hidden="true" />
+          <span className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--cta" aria-hidden="true" />
+          <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>
+        </div>
+      )}
       {isMock && simulating && !result && (
         <p className="mp-embedded-checkout__loading">{t('payments.mockProcessing')}</p>
       )}
@@ -484,9 +554,12 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
 
       {result && (
         <div className={`mp-embedded-checkout__result mp-embedded-checkout__result--${result.status}`} role="status">
-          {result.status === 'approved' ? <CheckCircle2 size={20} aria-hidden /> : <Clock3 size={20} aria-hidden />}
+          {result.status === 'approved' ? <CheckCircle2 size={26} aria-hidden /> : <Clock3 size={20} aria-hidden />}
           <p>{resultMessage}</p>
         </div>
+      )}
+      {result?.status === 'pending' && pollExhausted && (
+        <p className="mp-embedded-checkout__poll-followup">{t('payments.pollExhausted')}</p>
       )}
       {result?.status === 'pending' && (
         <div className="mp-embedded-checkout__actions">
@@ -513,7 +586,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
           {t('payments.reloadCheckout')}
         </button>
       )}
-      {!isModal ? (
+      {!isModal && !isSettle ? (
         <small className="mp-embedded-checkout__security">
           {t(isMock ? 'payments.mockSecurity' : 'payments.embeddedSecurity')}
         </small>

@@ -53,24 +53,25 @@ export default function MembershipCard({
           <div className="membership-card__offer">
             <header className="membership-card__identity">
               <p className="membership-card__kicker">{resolvedKicker}</p>
+              <div className="membership-card__price-stack">
+                <span className="membership-card__amount">{money(price, locale)}</span>
+                <span className="membership-card__period">{periodLabel}</span>
+                {hasCompare ? (
+                  <span className="membership-card__save-note">
+                    {t('pages.membershipCard.save', { amount: money(savings, locale) })}
+                  </span>
+                ) : null}
+              </div>
               <h3 className="membership-card__title">{title}</h3>
             </header>
-
-            <div className="membership-card__price-stack">
-              <span className="membership-card__amount">{money(price, locale)}</span>
-              <span className="membership-card__period">{periodLabel}</span>
-              {hasCompare ? (
-                <span className="membership-card__save-note">
-                  {t('pages.membershipCard.save', { amount: money(savings, locale) })}
-                </span>
-              ) : null}
-            </div>
           </div>
 
           <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
             {features.map((feature, i) => (
               <li key={`${id}-${i}`} className="membership-card__feature">
-                <span className="membership-card__feature-mark" aria-hidden />
+                <span className="membership-card__feature-index" aria-hidden>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
                 <span className="membership-card__feature-text">{feature}</span>
               </li>
             ))}

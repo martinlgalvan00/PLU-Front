@@ -18,23 +18,30 @@ beforeAll(() => {
   })
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
-function renderNav(session) {
-  return render(
-    <I18nProvider>
-      <ThemeProvider>
-        <MotionProvider>
-          <NavbarPublic
-            activeView="profile"
-            onNavigate={vi.fn()}
-            onLogout={vi.fn()}
-            session={session}
-          />
-        </MotionProvider>
-      </ThemeProvider>
-    </I18nProvider>,
-  )
+function renderNav(session, { onLogout = vi.fn(), onNavigate = vi.fn() } = {}) {
+  return {
+    onLogout,
+    onNavigate,
+    ...render(
+      <I18nProvider>
+        <ThemeProvider>
+          <MotionProvider>
+            <NavbarPublic
+              activeView="profile"
+              onNavigate={onNavigate}
+              onLogout={onLogout}
+              session={session}
+            />
+          </MotionProvider>
+        </ThemeProvider>
+      </I18nProvider>,
+    ),
+  }
 }
 
 describe('NavbarPublic profile menu', () => {
@@ -51,5 +58,36 @@ describe('NavbarPublic profile menu', () => {
     expect(screen.getByRole('menuitem', { name: /mi perfil/i })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: /cerrar sesión/i })).toBeTruthy()
     expect(screen.getByText('Atleta oficial')).toBeTruthy()
+  })
+
+  it('centers the profile menu in a narrow viewport', () => {
+    const viewportWidth = 360
+    vi.stubGlobal('innerWidth', viewportWidth)
+
+    renderNav({ name: 'Agustin Di Santo', role: 'admin' })
+
+    const trigger = document.getElementById('plu-profile-menu-trigger-mobile')
+    expect(trigger).toBeTruthy()
+    fireEvent.click(trigger)
+
+    const menu = screen.getByRole('menu')
+    const menuWidth = Math.min(272, viewportWidth - 24)
+    expect(menu.style.left).toBe(`${Math.round((viewportWidth - menuWidth) / 2)}px`)
+    expect(menu.style.right).toBe('')
+  })
+
+  it('opens Cerrar sesión from the mobile account mark without navigating away', () => {
+    const { onLogout, onNavigate } = renderNav({ name: 'Agustin Di Santo', role: 'athlete_plu' })
+
+    const trigger = document.getElementById('plu-profile-menu-trigger-mobile')
+    expect(trigger).toBeTruthy()
+
+    fireEvent.click(trigger)
+
+    expect(onNavigate).not.toHaveBeenCalled()
+    const logout = screen.getByRole('menuitem', { name: /cerrar sesión/i })
+    fireEvent.click(logout)
+
+    expect(onLogout).toHaveBeenCalledTimes(1)
   })
 })

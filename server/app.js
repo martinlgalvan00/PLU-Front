@@ -14,6 +14,7 @@ import { createAnalyticsRoutes } from './routes/analytics.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
+import { createFinanceRoutes } from './routes/finance.js'
 import { createCommunityRoutes } from './routes/community.js'
 import { createLaunchInterestRoutes } from './routes/launchInterest.js'
 import { createInternalJobRoutes } from './routes/internalJobs.js'
@@ -158,6 +159,10 @@ export function createApp(deps = {}) {
     getPrisma: () => deps.prisma ?? getPrisma(),
     getSupabaseAdmin: resolveSupabaseAdmin,
     env: deps.env ?? process.env,
+  }))
+  app.use('/api/finance', createFinanceRoutes({
+    getPrisma: () => deps.prisma ?? getPrisma(),
+    getSupabaseAdmin: resolveSupabaseAdmin,
   }))
   app.use(
     '/api/community',

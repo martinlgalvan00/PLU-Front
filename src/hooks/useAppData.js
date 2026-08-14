@@ -22,11 +22,13 @@ import {
   securityGateRequest,
   updateSecurityUserStatusRequest,
   updateAccessRolePermissionsRequest,
+  updateAccessRoleStatusRequest,
   updateStaffUserRoleRequest,
   updateStaffUserStatusRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
+import { markSignedOut } from '../lib/sessionNotice.js'
 import {
   FEATURE_KEYS,
   getFeatureAvailability,
@@ -48,6 +50,8 @@ import {
   createCompetitionRegistrationCombo as createCompetitionRegistrationComboRequest,
   createMembershipOrder as createMembershipOrderRequest,
   deleteAthleteRequest,
+  deleteMembershipRequest,
+  deleteRegistrationRequest,
   fetchAdminAthleteData,
   fetchAthleteSession,
   fetchAthleteSnapshot,
@@ -64,6 +68,10 @@ import {
   invalidateEventRegistrationSummary,
   invalidateTicketAvailability,
 } from '../services/eventLiveStore.js'
+import {
+  publishAthleteSnapshotInvalidation,
+  subscribeLiveSync,
+} from '../services/liveSyncService.js'
 import {
   demoAthletes,
   demoMemberships,
@@ -138,6 +146,14 @@ import {
   getInitialShopProducts,
   upsertShopProduct,
 } from '../services/shopService.js'
+
+// Los derechos de una persona se confirman en el backend (webhook de Mercado
+// Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
+// cambios que llegaron desde otra sesión: el browser sólo relee su proyección
+// autorizada, nunca intenta confirmar una afiliación o inscripción localmente.
+const LIVE_ATHLETE_SYNC_MS = 5_000
+const LIVE_STAFF_SYNC_MS = 15_000
+const LIVE_PUBLIC_CATALOG_SYNC_MS = 15_000
 
 // El login de esta app corre sobre Prisma/Auth0, nunca sobre supabase.auth
 // -- sin esto, auth.uid() es siempre null en el navegador y ninguna RPC
@@ -232,6 +248,7 @@ export function useAppData() {
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
+  const liveRefreshInFlightRef = useRef(false)
 
   useEffect(() => {
     const onPaymentUpdated = (event) => {
@@ -263,9 +280,11 @@ export function useAppData() {
 
   useEffect(() => {
     let active = true
-    fetchPublishedEvents()
+    let timerId = null
+
+    const refreshPublicCatalog = () => fetchPublishedEvents()
       .then((remoteEvents) => {
-        if (!active || remoteEvents.length === 0) return
+        if (!active) return
         setAdminEvents((current) => {
           const bySlug = new Map(current.map((event) => [event.slug, event]))
           return remoteEvents.map((event) => ({
@@ -277,8 +296,34 @@ export function useAppData() {
         })
       })
       .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
+
+    const start = () => {
+      if (timerId != null) return
+      timerId = window.setInterval(() => {
+        void refreshPublicCatalog()
+      }, LIVE_PUBLIC_CATALOG_SYNC_MS)
+    }
+    const stop = () => {
+      if (timerId == null) return
+      window.clearInterval(timerId)
+      timerId = null
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshPublicCatalog()
+        start()
+        return
+      }
+      stop()
+    }
+
+    void refreshPublicCatalog()
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       active = false
+      stop()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
 
@@ -402,6 +447,51 @@ export function useAppData() {
     refreshAthleteData()
   }, [refreshAthleteData])
 
+  // Sincronización continua, pero consciente de visibilidad. Cubre los
+  // webhooks y las acciones de staff que no disparan `plu:payment-updated` en
+  // esta pestaña. Al recuperar foco se refresca enseguida; en background no
+  // consume red ni deja timers compitiendo con el navegador.
+  useEffect(() => {
+    if (!session || isDemoSession(session)) return undefined
+
+    const pollMs = session.role === 'athlete_plu'
+      ? LIVE_ATHLETE_SYNC_MS
+      : LIVE_STAFF_SYNC_MS
+    let timerId = null
+
+    const refresh = () => {
+      if (liveRefreshInFlightRef.current) return
+      liveRefreshInFlightRef.current = true
+      void refreshAthleteData().finally(() => {
+        liveRefreshInFlightRef.current = false
+      })
+    }
+    const start = () => {
+      if (timerId != null) return
+      timerId = window.setInterval(refresh, pollMs)
+    }
+    const stop = () => {
+      if (timerId == null) return
+      window.clearInterval(timerId)
+      timerId = null
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refresh()
+        start()
+        return
+      }
+      stop()
+    }
+
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [refreshAthleteData, session])
+
   useEffect(() => {
     if (!session?.athleteId || session.role !== 'athlete_plu') return
     const athlete = athletes.find((item) => item.id === session.athleteId)
@@ -426,6 +516,7 @@ export function useAppData() {
         // trae el evento, así que se vencen las dos caches públicas y el
         // próximo lector vuelve a preguntarle al servidor.
         invalidateEventLiveData()
+        publishAthleteSnapshotInvalidation()
       }
       void refreshAthleteData()
     }
@@ -436,6 +527,15 @@ export function useAppData() {
       window.removeEventListener('plu:email-verified', refreshFromServer)
     }
   }, [refreshAthleteData])
+
+  // Una pestaña hermana puede haber creado una orden o el staff pudo cambiar
+  // un derecho desde este mismo navegador. La señal es opaca: cada sesión
+  // relee únicamente su propio snapshot o los datos autorizados del panel.
+  useEffect(() => subscribeLiveSync((message) => {
+    if (message.type === 'athlete-snapshot-invalidated') {
+      void refreshAthleteData()
+    }
+  }), [refreshAthleteData])
 
   useEffect(() => {
     if (env.demoMode) return undefined
@@ -529,13 +629,15 @@ export function useAppData() {
 
   const dashboard = dashboardOverview.primary
 
+  const athletesById = useMemo(() => new Map(athletes.map((athlete) => [athlete.id, athlete])), [athletes])
+
   const enrichedRegistrations = useMemo(
     () =>
       registrations.map((registration) => ({
         ...registration,
-        athlete: athletes.find((a) => a.id === registration.athleteId),
+        athlete: athletesById.get(registration.athleteId),
       })),
-    [registrations, athletes],
+    [registrations, athletesById],
   )
 
   const enrichedMemberships = useMemo(
@@ -587,17 +689,22 @@ export function useAppData() {
     [athletes, memberships, registrations, payments],
   )
 
-  const filteredRegistrations = useMemo(() => {
-    const gatePendingIds =
-      filters.status === 'gate_pending'
-        ? new Set(
-            findGatePendingRegistrations(registrations, {
-              memberships,
-              events: adminEvents,
-            }).map((item) => item.id),
-          )
-        : null
+  // Se calcula siempre (no solo cuando el filtro activo es gate_pending):
+  // RegistrationsSection también lo necesita, siempre, para el contador del
+  // chip "pendiente en puerta" — antes lo recalculaba por su cuenta con el
+  // mismo input, en un segundo O(registrations × memberships).
+  const gatePendingIds = useMemo(
+    () =>
+      new Set(
+        findGatePendingRegistrations(registrations, {
+          memberships,
+          events: adminEvents,
+        }).map((item) => item.id),
+      ),
+    [registrations, memberships, adminEvents],
+  )
 
+  const filteredRegistrations = useMemo(() => {
     return enrichedRegistrations.filter((registration) => {
       const statusMatch =
         filters.status === 'all' ||
@@ -616,7 +723,7 @@ export function useAppData() {
         registration.division?.toLowerCase().includes(query)
       return statusMatch && eventMatch && queryMatch
     })
-  }, [enrichedRegistrations, filters, registrations, memberships, adminEvents])
+  }, [enrichedRegistrations, filters, gatePendingIds])
 
   const updateForm = useCallback((event) => {
     const { name, value } = event.target
@@ -723,6 +830,49 @@ export function useAppData() {
         if (error instanceof ApiError) {
           const membershipPaymentInProgress =
             error.message?.includes('Ya existe un pago de afiliacion en curso') ?? false
+
+          // La orden ya existe del lado del servidor: en vez de dejar a la
+          // persona frente a un cartel sin salida, reabrimos ESA misma orden
+          // si todavía la tenemos en memoria — mismo patrón que ya usa
+          // `registerForCompetition` para el equivalente en inscripciones
+          // (PLU08 más abajo en este archivo).
+          if (membershipPaymentInProgress) {
+            const pendingMembership = memberships
+              .filter((item) => item.athleteId === athlete.id && item.status === 'pendiente_pago')
+              .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))[0]
+            const payment = pendingMembership?.paymentOrderId
+              ? payments.find(
+                  (item) =>
+                    item.id === pendingMembership.paymentOrderId &&
+                    item.method === 'mercado_pago' &&
+                    ['pendiente', 'validacion_manual'].includes(item.status),
+                )
+              : null
+
+            if (payment) {
+              try {
+                const checkout = await createPreferenceRequest({ paymentId: payment.id })
+                const createdOrder = {
+                  type: 'membership',
+                  athleteName: athlete.fullName,
+                  athleteDocument: athlete.documentId,
+                  athleteId: athlete.id,
+                  payerEmail: athlete.email ?? session?.email ?? null,
+                  paymentId: payment.id,
+                  paymentMethod: payment.method,
+                  preferenceId: checkout?.preference?.id ?? null,
+                  paymentMode: 'payment',
+                  ...payment,
+                }
+                setCreatedOrder(createdOrder)
+                return { membership: pendingMembership, payment, createdOrder }
+              } catch {
+                // No se pudo recrear la preferencia: cae al mensaje de error
+                // de siempre en vez de tirar una excepción distinta acá.
+              }
+            }
+          }
+
           return {
             error: error.message,
             code: error.body?.code ?? null,
@@ -735,7 +885,7 @@ export function useAppData() {
         throw error
       }
     },
-    [athletes, form, session],
+    [athletes, form, memberships, payments, session],
   )
 
   const submitMembership = useCallback(
@@ -754,13 +904,14 @@ export function useAppData() {
 
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
+        const paymentMethod = options.paymentMethod ?? form.paymentMethod
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
           form.division,
           form.category,
           form.estimatedWeight,
-          form.paymentMethod,
+          paymentMethod,
           purchaseType,
         ])
         if (registrationAttemptRef.current?.fingerprint !== attemptFingerprint) {
@@ -780,13 +931,12 @@ export function useAppData() {
           bodyweightKg: form.estimatedWeight
             ? Number(String(form.estimatedWeight).replace(',', '.'))
             : null,
-          paymentMethod: form.paymentMethod,
+          paymentMethod,
           idempotencyKey: registrationAttemptRef.current.idempotencyKey,
         })
-        const checkout =
-          order.method === 'mercado_pago'
-            ? await createPreferenceRequest({ paymentId: order.id })
-            : null
+        // El Payment Brick de inscripción se inicializa con amount. Crear una
+        // preference de Checkout Pro escribe provider_preference_id y bloquea
+        // el cambio a transferencia si el atleta se arrepiente.
         const enrichedRegistration = {
           ...registration,
           event: selectedEvent.title,
@@ -797,6 +947,7 @@ export function useAppData() {
         // dossier de Pitbull lo repintan sin esperar el próximo tick de
         // polling. El número sigue saliendo del servidor, no de acá.
         invalidateEventRegistrationSummary(selectedEvent.slug)
+        publishAthleteSnapshotInvalidation()
         if (membership) {
           setMemberships((current) => [
             membership,
@@ -826,7 +977,7 @@ export function useAppData() {
           payerEmail: athlete.email ?? session?.email ?? null,
           paymentId: order.id,
           paymentMethod: order.method,
-          preferenceId: checkout?.preference?.id ?? null,
+          preferenceId: order.preferenceId ?? null,
           paymentMode: 'payment',
           purchaseType,
           plan,
@@ -848,16 +999,12 @@ export function useAppData() {
           const payment = findOpenPaymentForRegistration(payments, pending)
           if (payment) {
             try {
-              const checkout =
-                payment.method === 'mercado_pago'
-                  ? await createPreferenceRequest({ paymentId: payment.id })
-                  : null
               const createdOrder = buildCompetitionCreatedOrder({
                 athlete,
                 payment,
                 purchaseType: options.purchaseType === 'combo' ? 'combo' : 'registration',
                 session,
-                preferenceId: checkout?.preference?.id ?? null,
+                preferenceId: payment.preferenceId ?? null,
               })
               setCreatedOrder(createdOrder)
               return { registration: pending, payment, createdOrder }
@@ -1347,6 +1494,48 @@ export function useAppData() {
     [accessRoles, session, setSession],
   )
 
+  const deleteMembershipAction = useCallback(async (membershipId) => {
+    if (!hasPermission(session, 'admin.memberships.delete')) {
+      throw new Error('Sin permisos para eliminar afiliaciones.')
+    }
+    const applyLocalRemoval = () => setMemberships((current) => current.filter((item) => item.id !== membershipId))
+    if (isDemoSession(session)) {
+      applyLocalRemoval()
+      return { id: membershipId }
+    }
+    const { deletedMembership } = await deleteMembershipRequest(membershipId)
+    applyLocalRemoval()
+    void refreshAthleteData()
+    publishAthleteSnapshotInvalidation()
+    return deletedMembership
+  }, [refreshAthleteData, session])
+
+  const deleteRegistrationAction = useCallback(async (registrationId) => {
+    if (!hasPermission(session, 'admin.registrations.delete')) {
+      throw new Error('Sin permisos para eliminar inscripciones.')
+    }
+    const applyLocalRemoval = () => setRegistrations((current) => current.filter((item) => item.id !== registrationId))
+    if (isDemoSession(session)) {
+      applyLocalRemoval()
+      return { id: registrationId }
+    }
+    const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
+    applyLocalRemoval()
+    void refreshAthleteData()
+    publishAthleteSnapshotInvalidation()
+    return deletedRegistration
+  }, [refreshAthleteData, session])
+
+  const updateAccessRoleStatusAction = useCallback(async (roleId, active) => {
+    const currentRole = accessRoles.find((role) => role.id === roleId)
+    if (!currentRole) throw new Error('El rol seleccionado no existe.')
+    const response = isDemoSession(session)
+      ? { role: { ...currentRole, active }, activity: null }
+      : await updateAccessRoleStatusRequest(roleId, active)
+    setAccessRoles((current) => current.map((role) => (role.id === roleId ? response.role : role)))
+    return response.role
+  }, [accessRoles, session])
+
   const createSecurityUserAction = useCallback(async (draft) => {
     const { user, tempPassword, emailed, accessUrl, expiresAt } =
       await createSecurityUserRequest(draft)
@@ -1551,9 +1740,10 @@ export function useAppData() {
     [setSession],
   )
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async ({ notify = true } = {}) => {
     const currentSession = session
     setSession(null)
+    if (notify) markSignedOut()
 
     if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
       await logoutAthleteSession().catch((error) => {
@@ -1615,6 +1805,9 @@ export function useAppData() {
         }
 
         setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        publishAthleteSnapshotInvalidation()
+
+        return { order, membership, registration }
       } catch (error) {
         console.error('handleApprovePayment:', error)
         return { error: error?.message ?? 'No se pudo aprobar el pago.' }
@@ -1639,6 +1832,7 @@ export function useAppData() {
         // El estado del atleta lo recalcula la RPC (afiliado_activo/registrado),
         // así que se refleja el padrón entero en vez de adivinarlo acá.
         void refreshAthleteData()
+        publishAthleteSnapshotInvalidation()
         return { membership }
       } catch (error) {
         if (error instanceof ApiError) return { error: error.message }
@@ -2094,6 +2288,7 @@ export function useAppData() {
     saveShopProduct,
     deleteShopProductAction,
     filteredRegistrations,
+    gatePendingIds,
     handleScheduleAssigned,
     enrichedMemberships,
     pendingActions,
@@ -2131,8 +2326,11 @@ export function useAppData() {
     resetStaffPasswordAction,
     deleteUserAction,
     deleteAthleteAction,
+    deleteMembershipAction,
+    deleteRegistrationAction,
     createAccessRoleAction,
     updateAccessRolePermissionsAction,
+    updateAccessRoleStatusAction,
     createSecurityUserAction,
     createSecurityUsersBulkAction,
     createSecurityAccessLinkAction,

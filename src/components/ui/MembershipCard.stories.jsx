@@ -1,4 +1,21 @@
+import '../../styles/pages/members.css'
 import MembershipCard from './MembershipCard.jsx'
+
+const pluFeatures = [
+  'Mayores de 18 años',
+  'Credencial digital',
+  'Eventos del calendario PLU ARG',
+]
+
+function PluFrame({ children }) {
+  return (
+    <section className="members-plu-plans">
+      <div className="membership-grid membership-grid--plu membership-grid--plu-solo">
+        {children}
+      </div>
+    </section>
+  )
+}
 
 export default {
   title: 'UI/MembershipCard',
@@ -6,6 +23,7 @@ export default {
   tags: ['autodocs'],
   args: {
     id: 'athlete',
+    variant: 'editorial',
     title: 'Atleta',
     price: 25000,
     features: ['Acceso a torneos', 'Credencial digital', 'Seguro deportivo'],
@@ -26,4 +44,39 @@ export const Combo = {
     price: 40000,
     compareWith: [{ price: 25000 }, { price: 25000 }],
   },
+}
+
+export const Plu = {
+  args: {
+    variant: 'plu',
+    title: 'Afiliación PLU anual',
+    kicker: 'Anual',
+    price: 75000,
+    features: pluFeatures,
+  },
+  decorators: [
+    (Story) => (
+      <PluFrame>
+        <Story />
+      </PluFrame>
+    ),
+  ],
+}
+
+export const PluFeatured = {
+  args: {
+    variant: 'plu',
+    highlighted: true,
+    title: 'Afiliación PLU anual',
+    kicker: 'Anual',
+    price: 75000,
+    features: pluFeatures,
+  },
+  decorators: [
+    (Story) => (
+      <PluFrame>
+        <Story />
+      </PluFrame>
+    ),
+  ],
 }

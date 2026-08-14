@@ -352,6 +352,47 @@
   opacity: 0;
 }
 
+.mp-embedded-checkout__skeleton {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.mp-embedded-checkout__skeleton-bar {
+  animation: mp-skeleton-pulse 1.6s ease-in-out infinite;
+  background: color-mix(in srgb, var(--color-text-muted, #666) 16%, transparent);
+  border-radius: 8px;
+  height: 2.5rem;
+  width: 100%;
+}
+
+.mp-embedded-checkout__skeleton-bar--wide {
+  height: 1.1rem;
+  width: 55%;
+}
+
+.mp-embedded-checkout__skeleton-bar--cta {
+  height: 2.75rem;
+  margin-top: 0.2rem;
+}
+
+.mp-embedded-checkout__skeleton .mp-embedded-checkout__loading {
+  font-size: 12px;
+  margin: 0.2rem 0 0;
+  text-align: center;
+}
+
+@keyframes mp-skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-embedded-checkout__skeleton-bar {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 .mp-embedded-checkout__result {
   display: flex;
   align-items: center;
@@ -359,16 +400,56 @@
   padding: 0.9rem 1rem;
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--color-warning, #a66b00) 12%, transparent);
+  animation: mp-result-enter var(--motion-base, 280ms) var(--ease-out, ease) both;
 }
 
+/* Es el momento de conversión: más peso que pendiente/rechazado, que quedan
+   neutros a propósito. */
 .mp-embedded-checkout__result--approved {
+  align-items: flex-start;
   color: var(--color-success, #177245);
   background: color-mix(in srgb, var(--color-success, #177245) 12%, transparent);
+  padding: 1.1rem 1.2rem;
+}
+
+.mp-embedded-checkout__result--approved p {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mp-embedded-checkout__result--approved svg {
+  animation: mp-result-icon-pop 420ms var(--ease-out, ease) 80ms both;
+  flex: none;
 }
 
 .mp-embedded-checkout__result--rejected,
 .mp-embedded-checkout__error {
   color: var(--color-danger, #b42318);
+}
+
+@keyframes mp-result-enter {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes mp-result-icon-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-embedded-checkout__result,
+  .mp-embedded-checkout__result--approved svg {
+    animation: none;
+  }
+}
+
+.mp-embedded-checkout__poll-followup {
+  color: var(--color-text-muted, #666);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: -0.3rem 0 0;
 }
 
 .mp-embedded-checkout__actions {

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -48,6 +49,20 @@ vi.mock('../src/lib/registrationSchedule.js', async (importOriginal) => {
   return { ...actual, isPaidCheckoutOpen: () => true }
 })
 
+vi.mock('@mercadopago/sdk-react', () => ({
+  initMercadoPago: vi.fn(),
+  Payment: () => <div data-testid="payment-brick" />,
+  CardPayment: () => <div data-testid="card-payment-brick" />,
+}))
+
+vi.mock('../src/services/paymentService.js', () => ({
+  getPaymentOrderStatus: vi.fn(),
+  notifyMockPayment: vi.fn(),
+  processEmbeddedPayment: vi.fn(),
+  processEmbeddedSubscription: vi.fn(),
+  reportPaymentClientEvent: vi.fn(async () => ({ accepted: true })),
+}))
+
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 
 const athlete = {
@@ -81,8 +96,10 @@ const pendingOrder = {
 
 function renderCompetition({
   createdOrder = null,
+  form = {},
   onNavigate = () => {},
   onSubmit = vi.fn(async () => ({})),
+  onUpdateForm = () => {},
 } = {}) {
   return render(
     <I18nProvider>
@@ -96,13 +113,14 @@ function renderCompetition({
           category: 'Raw',
           estimatedWeight: '83',
           paymentMethod: 'manual_link',
+          ...form,
         }}
         memberships={[]}
         registrations={[]}
         total={75000}
         onNavigate={onNavigate}
         onSubmit={onSubmit}
-        onUpdateForm={() => {}}
+        onUpdateForm={onUpdateForm}
       />
     </I18nProvider>,
   )
@@ -163,5 +181,99 @@ describe('RegisterPage — link de pago de inscripción', () => {
 
     expect(screen.getByRole('dialog', { name: /completar tu inscripción/i })).toBeTruthy()
     expect(screen.getByText('PLU ARG')).toBeTruthy()
+  })
+
+  it('deja el brick de Mercado Pago y el total fuera del formulario', () => {
+    renderCompetition({
+      createdOrder: {
+        ...pendingOrder,
+        paymentMethod: 'mercado_pago',
+        amount: 120000,
+        concept: 'Afiliación + inscripción Pitbull Classic',
+        reference: 'CORD-89d27562a2589e98',
+        status: 'pendiente',
+      },
+      form: { paymentMethod: 'mercado_pago' },
+    })
+
+    expect(screen.getByRole('heading', { name: /pagá con mercado pago/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /continuar al pago/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /elegir otro medio/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /pagar por transferencia/i })).toBeTruthy()
+    expect(document.querySelector('.register-settle-bar .plu-checkout__total')).toBeTruthy()
+    expect(document.querySelector('form.athlete-form')).toBeNull()
+  })
+
+  it('permite volver a elegir transferencia desde el brick de Mercado Pago', async () => {
+    const onSubmit = vi.fn(async () => ({
+      createdOrder: pendingOrder,
+      payment: pendingOrder,
+    }))
+
+    function Harness() {
+      const [createdOrder, setCreatedOrder] = useState({
+        ...pendingOrder,
+        paymentMethod: 'mercado_pago',
+        status: 'pendiente',
+      })
+      const [form, setForm] = useState({
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: '83',
+        paymentMethod: 'mercado_pago',
+      })
+      return (
+        <I18nProvider>
+          <RegisterPage
+            athlete={athlete}
+            createdOrder={createdOrder}
+            event={event}
+            flow="competition"
+            form={form}
+            memberships={[]}
+            registrations={[]}
+            total={75000}
+            onNavigate={() => {}}
+            onSubmit={async (...args) => {
+              const result = await onSubmit(...args)
+              if (result?.createdOrder) setCreatedOrder(result.createdOrder)
+              return result
+            }}
+            onUpdateForm={(event) => {
+              setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+            }}
+          />
+        </I18nProvider>
+      )
+    }
+
+    render(<Harness />)
+
+    fireEvent.click(screen.getByRole('button', { name: /pagar por transferencia/i }))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalled()
+    })
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'manual_link' })
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /completar tu inscripción/i })).toBeTruthy()
+    })
+  })
+
+  it('vuelve al formulario de medio de pago sin perder la orden', () => {
+    renderCompetition({
+      createdOrder: {
+        ...pendingOrder,
+        paymentMethod: 'mercado_pago',
+        status: 'pendiente',
+      },
+      form: { paymentMethod: 'mercado_pago' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
+
+    expect(screen.getByRole('button', { name: /continuar al pago/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /volver a mercado pago/i })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /pagá con mercado pago/i })).toBeNull()
   })
 })

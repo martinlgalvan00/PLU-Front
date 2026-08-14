@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminMetricCard from '../../components/admin/AdminMetricCard.jsx'
+import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
+import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
@@ -22,6 +24,8 @@ import {
   fetchAnalyticsFunnel,
   fetchAnalyticsHeatmap,
   fetchAnalyticsOverview,
+  fetchAnalyticsOperationalSummary,
+  fetchAnalyticsOperationalAlerts,
   fetchAnalyticsPages,
   fetchAthleteJourney,
   withFunnelRates,
@@ -44,6 +48,12 @@ import {
 
 const RANGES = [7, 30, 90]
 const HEATMAP_GRID = 40
+const TABS = {
+  overview: 'overview',
+  pages: 'pages',
+  usage: 'usage',
+  athlete: 'athlete',
+}
 
 /**
  * Un mapa de calor que mezcla mobile y desktop promedia dos documentos de alto
@@ -305,39 +315,45 @@ function AthleteJourney({ athletes, days, locale, t }) {
   )
 }
 
-export default function AnalyticsSection({ athletes = [], canViewIdentity = false }) {
+export default function AnalyticsSection({ athletes = [], canViewIdentity = false, onNavigate }) {
   const { locale, t } = useI18n()
   const [days, setDays] = useState(30)
+  const [activeTab, setActiveTab] = useState(TABS.overview)
   const [overview, setOverview] = useState(null)
   const [pages, setPages] = useState([])
   const [flows, setFlows] = useState([])
   const [funnel, setFunnel] = useState([])
   const [elements, setElements] = useState([])
+  const [operational, setOperational] = useState(null)
+  const [operationalAlerts, setOperationalAlerts] = useState([])
   const [heatmapPath, setHeatmapPath] = useState(null)
   const [heatmapDevice, setHeatmapDevice] = useState('')
   const [heatmap, setHeatmap] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [usageLoaded, setUsageLoaded] = useState(false)
+  const [usageLoading, setUsageLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    setUsageLoaded(false)
     try {
-      // Las consultas son independientes: en serie el panel tardaba lo que
-      // suman, y son las mismas tablas con distinta agregacion.
-      const [overviewResult, pagesResult, flowsResult, funnelResult, elementsResult] =
+      // Primer pintado: overview, paginas, embudo y operativos. Recorridos y
+      // ranking esperan al tab Uso; el mapa espera al tab Paginas.
+      const [overviewResult, pagesResult, funnelResult, operationalResult, alertsResult] =
         await Promise.all([
           fetchAnalyticsOverview({ days }),
           fetchAnalyticsPages({ days, limit: 25 }),
-          fetchAnalyticsFlows({ days, limit: 20 }),
           fetchAnalyticsFunnel({ days }),
-          fetchAnalyticsElements({ days, limit: 25 }),
+          fetchAnalyticsOperationalSummary({ days }),
+          fetchAnalyticsOperationalAlerts(),
         ])
       setOverview(overviewResult)
       setPages(pagesResult)
-      setFlows(flowsResult)
       setFunnel(withFunnelRates(funnelResult))
-      setElements(elementsResult)
+      setOperational(operationalResult)
+      setOperationalAlerts(alertsResult)
       // La ruta mas vista es el mapa de calor por defecto: es la que el equipo
       // va a querer mirar primero y evita una pantalla vacia.
       setHeatmapPath((current) => current ?? pagesResult[0]?.path ?? null)
@@ -353,7 +369,38 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
   }, [load])
 
   useEffect(() => {
-    if (!heatmapPath) return
+    if (activeTab !== TABS.usage || usageLoaded) return undefined
+
+    let cancelled = false
+    setUsageLoading(true)
+
+    Promise.all([
+      fetchAnalyticsFlows({ days, limit: 20 }),
+      fetchAnalyticsElements({ days, limit: 25 }),
+    ])
+      .then(([flowsResult, elementsResult]) => {
+        if (cancelled) return
+        setFlows(flowsResult)
+        setElements(elementsResult)
+        setUsageLoaded(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setFlows([])
+        setElements([])
+        setUsageLoaded(true)
+      })
+      .finally(() => {
+        if (!cancelled) setUsageLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, days, usageLoaded])
+
+  useEffect(() => {
+    if (!heatmapPath || activeTab !== TABS.pages) return undefined
     let cancelled = false
     fetchAnalyticsHeatmap({ days, path: heatmapPath, deviceType: heatmapDevice || undefined })
       .then((result) => {
@@ -365,7 +412,7 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
     return () => {
       cancelled = true
     }
-  }, [days, heatmapDevice, heatmapPath])
+  }, [activeTab, days, heatmapDevice, heatmapPath])
 
   // DataTable identifica cada fila por `row.id`; la RPC agrega por ruta y no
   // devuelve uno.
@@ -375,104 +422,116 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
     () => [
       {
         key: 'path',
-        header: t('admin.analytics.columns.path'),
+        label: t('admin.analytics.columns.path'),
+        mobile: 'primary',
         render: (row) => <AdminMonoCell>{row.path}</AdminMonoCell>,
       },
       {
         key: 'pageviews',
-        header: t('admin.analytics.columns.pageviews'),
+        label: t('admin.analytics.columns.pageviews'),
+        desktop: 'numeric',
         render: (row) => count(row.pageviews, locale),
       },
       {
         key: 'visitors',
-        header: t('admin.analytics.columns.visitors'),
+        label: t('admin.analytics.columns.visitors'),
+        desktop: 'numeric',
         render: (row) => count(row.visitors, locale),
       },
       {
         key: 'clicks',
-        header: t('admin.analytics.columns.clicks'),
+        label: t('admin.analytics.columns.clicks'),
+        desktop: 'numeric',
         render: (row) => count(row.clicks, locale),
       },
       {
         key: 'scroll',
-        header: t('admin.analytics.columns.scroll'),
+        label: t('admin.analytics.columns.scroll'),
+        desktop: 'numeric',
+        mobile: 'hidden',
         render: (row) => percent(row.avg_scroll_depth, locale),
       },
       {
         key: 'exits',
-        header: t('admin.analytics.columns.exits'),
+        label: t('admin.analytics.columns.exits'),
+        desktop: 'numeric',
+        mobile: 'hidden',
         render: (row) => count(row.exits, locale),
       },
-      {
-        key: 'heatmap',
-        header: '',
-        render: (row) => (
-          <button
-            type="button"
-            className="admin-analytics__heatmap-trigger"
-            onClick={() => setHeatmapPath(row.path)}
-            aria-pressed={heatmapPath === row.path}
-          >
-            <Flame size={14} aria-hidden />
-            {t('admin.analytics.viewHeatmap')}
-          </button>
-        ),
-      },
     ],
-    [heatmapPath, locale, t],
+    [locale, t],
   )
+
+  const tabs = useMemo(() => {
+    const items = [
+      { id: TABS.overview, label: t('admin.analytics.tabs.overview') },
+      { id: TABS.pages, label: t('admin.analytics.tabs.pages') },
+      { id: TABS.usage, label: t('admin.analytics.tabs.usage') },
+    ]
+    if (canViewIdentity) {
+      items.push({ id: TABS.athlete, label: t('admin.analytics.tabs.athlete') })
+    }
+    return items
+  }, [canViewIdentity, t])
 
   if (loading && !overview) return <LoadingState label={t('admin.analytics.loading')} />
   if (error && !overview) return <ErrorState message={error} onRetry={load} />
 
   return (
     <section className="admin-analytics">
-      <header className="admin-analytics__header">
-        <div>
-          <h2>{t('admin.analytics.title')}</h2>
-          <p>{t('admin.analytics.subtitle')}</p>
-        </div>
-        <div className="admin-analytics__controls">
-          <div className="admin-analytics__ranges" role="group" aria-label={t('admin.analytics.rangeLabel')}>
-            {RANGES.map((range) => (
-              <button
-                key={range}
-                type="button"
-                className={range === days ? 'is-active' : ''}
-                aria-pressed={range === days}
-                onClick={() => setDays(range)}
-              >
-                {t('admin.analytics.rangeDays', { days: range })}
-              </button>
-            ))}
+      <AdminPageHeader
+        className="admin-analytics__page-header"
+        compact
+        eyebrow={t('admin.analytics.eyebrow')}
+        title={t('admin.analytics.title')}
+        subtitle={t('admin.analytics.subtitle')}
+        actions={
+          <div className="admin-analytics__controls">
+            <div className="admin-analytics__ranges" role="group" aria-label={t('admin.analytics.rangeLabel')}>
+              {RANGES.map((range) => (
+                <button
+                  key={range}
+                  type="button"
+                  className={range === days ? 'is-active' : ''}
+                  aria-pressed={range === days}
+                  onClick={() => setDays(range)}
+                >
+                  {t('admin.analytics.rangeDays', { days: range })}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="btn btn--small btn--outline" onClick={load} disabled={loading}>
+              <RefreshCw size={14} aria-hidden /> {t('admin.analytics.refresh')}
+            </button>
           </div>
-          <button type="button" className="btn btn--small btn--outline" onClick={load} disabled={loading}>
-            <RefreshCw size={14} aria-hidden /> {t('admin.analytics.refresh')}
-          </button>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="admin-analytics__metrics">
+      <div className="admin-analytics__metrics" role="group" aria-label={t('admin.analytics.metricsAria')}>
         <AdminMetricCard
-          icon="users"
+          minimal
+          hideIcon
           value={count(overview?.visitors, locale)}
           label={t('admin.analytics.metrics.visitors')}
           index={0}
         />
         <AdminMetricCard
-          icon="clipboard"
+          minimal
+          hideIcon
           value={count(overview?.pageviews, locale)}
           label={t('admin.analytics.metrics.pageviews')}
           index={1}
         />
         <AdminMetricCard
-          icon="badge"
+          minimal
+          hideIcon
           value={count(overview?.identifiedVisitors, locale)}
           label={t('admin.analytics.metrics.identified')}
           index={2}
         />
         <AdminMetricCard
-          icon="shield"
+          minimal
+          hideIcon
           value={percent(overview?.bounceRate, locale)}
           label={t('admin.analytics.metrics.bounce')}
           index={3}
@@ -487,148 +546,241 @@ export default function AnalyticsSection({ athletes = [], canViewIdentity = fals
         })}
       </p>
 
-      <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
-        <h3 id="analytics-funnel">
-          <Activity size={16} aria-hidden /> {t('admin.analytics.funnelTitle')}
-        </h3>
-        {funnel.length === 0 ? (
-          <p className="admin-analytics__empty">{t('admin.analytics.funnelEmpty')}</p>
-        ) : (
-          <ol className="admin-analytics__funnel">
-            {funnel.map((step) => (
-              <li key={step.step_name}>
-                <div className="admin-analytics__funnel-head">
-                  <span className="admin-analytics__funnel-name">
-                    {funnelLabel(step.step_name, t)}
-                  </span>
-                  <strong>{count(step.visitors, locale)}</strong>
-                </div>
-                <div
-                  className="admin-analytics__funnel-bar"
-                  role="img"
-                  aria-label={t('admin.analytics.funnelBarAlt', {
-                    rate: percent(step.totalRate, locale),
-                  })}
+      {operationalAlerts.length ? (
+        <aside className="admin-analytics__alerts" aria-label={t('admin.analytics.alertsTitle')}>
+          <ul>
+            {operationalAlerts.map((alert) => (
+              <li key={`${alert.kind}-${alert.entity_id}`}>
+                <span>
+                  <strong>{alert.subject}</strong>
+                  {alert.detail ? ` · ${alert.detail}` : ''}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn--small btn--outline"
+                  onClick={() => onNavigate?.('payments', alert.entity_id)}
                 >
-                  <span style={{ '--funnel-fill': step.totalRate ?? 0 }} />
-                </div>
-                <small>
-                  {t('admin.analytics.funnelStepRate', {
-                    rate: percent(step.stepRate, locale),
-                    dropoff: count(step.dropoff, locale),
-                  })}
-                </small>
+                  {t('admin.analytics.alertsResolve')}
+                </button>
               </li>
             ))}
-          </ol>
-        )}
-      </section>
+          </ul>
+        </aside>
+      ) : null}
 
-      <section className="admin-analytics__block" aria-labelledby="analytics-pages">
-        <h3 id="analytics-pages">
-          <MousePointerClick size={16} aria-hidden /> {t('admin.analytics.pagesTitle')}
-        </h3>
-        <AdminDataTable
-          columns={pageColumns}
-          rows={pageRows}
-          emptyMessage={t('admin.analytics.pagesEmpty')}
+      <div className="admin-analytics__tabs">
+        <DetailTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          variant="editorial"
+          ariaLabel={t('admin.analytics.tabsAria')}
         />
-      </section>
-
-      <div className="admin-analytics__split">
-        <section className="admin-analytics__block" aria-labelledby="analytics-heatmap">
-          <h3 id="analytics-heatmap">
-            <Flame size={16} aria-hidden /> {t('admin.analytics.heatmapTitle')}
-          </h3>
-          <div
-            className="admin-analytics__devices"
-            role="group"
-            aria-label={t('admin.analytics.heatmapDeviceLabel')}
-          >
-            {HEATMAP_DEVICES.map((device) => (
-              <button
-                key={device || 'all'}
-                type="button"
-                className={device === heatmapDevice ? 'is-active' : ''}
-                aria-pressed={device === heatmapDevice}
-                onClick={() => setHeatmapDevice(device)}
-              >
-                {t(`admin.analytics.devices.${device || 'all'}`)}
-              </button>
-            ))}
-          </div>
-          <Heatmap data={heatmap} locale={locale} t={t} />
-          {heatmap?.elements?.length ? (
-            <ul className="admin-analytics__elements">
-              {heatmap.elements.slice(0, 8).map((element) => (
-                <li key={element.element_selector}>
-                  <span className="admin-analytics__element-label">
-                    {element.label || element.element_selector}
-                  </span>
-                  <strong>{count(element.clicks, locale)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
-
-        <section className="admin-analytics__block" aria-labelledby="analytics-flows">
-          <h3 id="analytics-flows">
-            <Users size={16} aria-hidden /> {t('admin.analytics.flowsTitle')}
-          </h3>
-          {flows.length === 0 ? (
-            <p className="admin-analytics__empty">{t('admin.analytics.flowsEmpty')}</p>
-          ) : (
-            <ul className="admin-analytics__flows">
-              {flows.map((flow) => (
-                <li key={`${flow.from_path}->${flow.to_path}`}>
-                  <code>{flow.from_path}</code>
-                  <ArrowRight size={13} aria-hidden />
-                  <code>{flow.to_path}</code>
-                  <strong>{count(flow.transitions, locale)}</strong>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
 
-      {/* Lo mas usado del sitio entero. El bloque del mapa de calor ya lista los
-          elementos de *una* ruta; esto responde la otra pregunta: que control usa
-          mas la gente sin importar donde este. `visitors` va al lado de `clicks`
-          porque mil clicks de una persona no son mil personas. */}
-      <section className="admin-analytics__block" aria-labelledby="analytics-elements">
-        <h3 id="analytics-elements">
-          <Sparkles size={16} aria-hidden /> {t('admin.analytics.elementsTitle')}
-        </h3>
-        {elements.length === 0 ? (
-          <p className="admin-analytics__empty">{t('admin.analytics.elementsEmpty')}</p>
-        ) : (
-          <ol className="admin-analytics__ranking">
-            {elements.map((element) => (
-              <li key={element.element_selector}>
-                <span className="admin-analytics__ranking-label">
-                  {element.label || element.element_selector}
-                </span>
-                <code className="admin-analytics__ranking-path">
-                  {Number(element.paths) > 1
-                    ? t('admin.analytics.elementsPaths', { count: count(element.paths, locale) })
-                    : element.sample_path}
-                </code>
-                <strong>{count(element.clicks, locale)}</strong>
-                <small>
-                  {t('admin.analytics.elementsVisitors', {
-                    visitors: count(element.visitors, locale),
-                  })}
-                </small>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      {activeTab === TABS.overview ? (
+        <div className="admin-analytics__panel" role="tabpanel">
+          <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
+            <h3 id="analytics-funnel">
+              <Activity size={16} aria-hidden /> {t('admin.analytics.funnelTitle')}
+            </h3>
+            {funnel.length === 0 ? (
+              <p className="admin-analytics__empty">{t('admin.analytics.funnelEmpty')}</p>
+            ) : (
+              <ol className="admin-analytics__funnel">
+                {funnel.map((step) => (
+                  <li key={step.step_name}>
+                    <div className="admin-analytics__funnel-head">
+                      <span className="admin-analytics__funnel-name">
+                        {funnelLabel(step.step_name, t)}
+                      </span>
+                      <strong>{count(step.visitors, locale)}</strong>
+                    </div>
+                    <div
+                      className="admin-analytics__funnel-bar"
+                      role="img"
+                      aria-label={t('admin.analytics.funnelBarAlt', {
+                        rate: percent(step.totalRate, locale),
+                      })}
+                    >
+                      <span style={{ '--funnel-fill': step.totalRate ?? 0 }} />
+                    </div>
+                    <small>
+                      {t('admin.analytics.funnelStepRate', {
+                        rate: percent(step.stepRate, locale),
+                        dropoff: count(step.dropoff, locale),
+                      })}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
-      {canViewIdentity ? (
-        <AthleteJourney athletes={athletes} days={days} locale={locale} t={t} />
+          <section className="admin-analytics__block" aria-labelledby="analytics-activity">
+            <h3 id="analytics-activity">
+              <Users size={16} aria-hidden /> {t('admin.analytics.activityTitle')}
+            </h3>
+            <p className="admin-analytics__summary">
+              {t('admin.analytics.activitySummary', {
+                people: count(operational?.engagedVisitors, locale),
+                entries: count(operational?.access?.total, locale),
+              })}
+            </p>
+            <div className="admin-analytics__journey-grid">
+              <div>
+                <h4>{t('admin.analytics.activityActions')}</h4>
+                <ul className="admin-analytics__journey-list">
+                  {(operational?.keyActions ?? []).map((item) => (
+                    <li key={item.action}>
+                      <span>{item.action}</span>
+                      <strong>
+                        {t('admin.analytics.activityPeople', { count: count(item.people, locale) })}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4>{t('admin.analytics.activityGates')}</h4>
+                <ul className="admin-analytics__journey-list">
+                  {(operational?.access?.byGate ?? []).map((item) => (
+                    <li key={item.gate}>
+                      <span>{item.gate}</span>
+                      <strong>{count(item.entries, locale)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {activeTab === TABS.pages ? (
+        <div className="admin-analytics__panel" role="tabpanel">
+          <div className="admin-analytics__pages">
+            <section className="admin-analytics__block" aria-labelledby="analytics-pages">
+              <h3 id="analytics-pages">
+                <MousePointerClick size={16} aria-hidden /> {t('admin.analytics.pagesTitle')}
+              </h3>
+              <div className="admin-analytics__pages-table">
+                <AdminDataTable
+                  ariaLabel={t('admin.analytics.pagesTitle')}
+                  columns={pageColumns}
+                  rows={pageRows}
+                  emptyMessage={t('admin.analytics.pagesEmpty')}
+                  onRowClick={(row) => setHeatmapPath(row.path)}
+                  getRowClassName={(row) =>
+                    row.path === heatmapPath ? 'data-table__row--selected' : ''
+                  }
+                />
+              </div>
+            </section>
+
+            <section className="admin-analytics__block" aria-labelledby="analytics-heatmap">
+              <h3 id="analytics-heatmap">
+                <Flame size={16} aria-hidden /> {t('admin.analytics.heatmapTitle')}
+              </h3>
+              <div
+                className="admin-analytics__devices"
+                role="group"
+                aria-label={t('admin.analytics.heatmapDeviceLabel')}
+              >
+                {HEATMAP_DEVICES.map((device) => (
+                  <button
+                    key={device || 'all'}
+                    type="button"
+                    className={device === heatmapDevice ? 'is-active' : ''}
+                    aria-pressed={device === heatmapDevice}
+                    onClick={() => setHeatmapDevice(device)}
+                  >
+                    {t(`admin.analytics.devices.${device || 'all'}`)}
+                  </button>
+                ))}
+              </div>
+              <Heatmap data={heatmap} locale={locale} t={t} />
+              {heatmap?.elements?.length ? (
+                <ul className="admin-analytics__elements">
+                  {heatmap.elements.slice(0, 8).map((element) => (
+                    <li key={element.element_selector}>
+                      <span className="admin-analytics__element-label">
+                        {element.label || element.element_selector}
+                      </span>
+                      <strong>{count(element.clicks, locale)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === TABS.usage ? (
+        <div className="admin-analytics__panel" role="tabpanel">
+          {usageLoading && !usageLoaded ? (
+            <LoadingState label={t('admin.analytics.usageLoading')} />
+          ) : (
+            <div className="admin-analytics__split">
+              <section className="admin-analytics__block" aria-labelledby="analytics-flows">
+                <h3 id="analytics-flows">
+                  <Users size={16} aria-hidden /> {t('admin.analytics.flowsTitle')}
+                </h3>
+                {flows.length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.flowsEmpty')}</p>
+                ) : (
+                  <ul className="admin-analytics__flows">
+                    {flows.map((flow) => (
+                      <li key={`${flow.from_path}->${flow.to_path}`}>
+                        <code>{flow.from_path}</code>
+                        <ArrowRight size={13} aria-hidden />
+                        <code>{flow.to_path}</code>
+                        <strong>{count(flow.transitions, locale)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <section className="admin-analytics__block" aria-labelledby="analytics-elements">
+                <h3 id="analytics-elements">
+                  <Sparkles size={16} aria-hidden /> {t('admin.analytics.elementsTitle')}
+                </h3>
+                {elements.length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.elementsEmpty')}</p>
+                ) : (
+                  <ol className="admin-analytics__ranking">
+                    {elements.map((element) => (
+                      <li key={element.element_selector}>
+                        <span className="admin-analytics__ranking-label">
+                          {element.label || element.element_selector}
+                        </span>
+                        <code className="admin-analytics__ranking-path">
+                          {Number(element.paths) > 1
+                            ? t('admin.analytics.elementsPaths', { count: count(element.paths, locale) })
+                            : element.sample_path}
+                        </code>
+                        <strong>{count(element.clicks, locale)}</strong>
+                        <small>
+                          {t('admin.analytics.elementsVisitors', {
+                            visitors: count(element.visitors, locale),
+                          })}
+                        </small>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </section>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {activeTab === TABS.athlete && canViewIdentity ? (
+        <div className="admin-analytics__panel" role="tabpanel">
+          <AthleteJourney athletes={athletes} days={days} locale={locale} t={t} />
+        </div>
       ) : null}
     </section>
   )

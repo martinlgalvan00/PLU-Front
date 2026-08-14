@@ -149,7 +149,16 @@ export default function AthletePaymentOrdersSection({
         setError(result.error)
         return false
       }
-      await load()
+      // El backend ya devuelve la orden actualizada: parchear la fila en vez
+      // de volver a traer las 200 evita un roundtrip completo por cada
+      // aprobación (el operador suele aprobar varias seguidas).
+      if (result?.order) {
+        setOrders((current) =>
+          current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
+        )
+      } else {
+        await load()
+      }
       return true
     } finally {
       setApprovingId(null)

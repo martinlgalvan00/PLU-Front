@@ -28,7 +28,15 @@ describe('EmailVerificationNotice', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await waitFor(() => expect(verifyAthleteEmail).toHaveBeenCalledTimes(2))
-    await screen.findByText('Tu correo quedó confirmado. Ya podés afiliarte e inscribirte.')
+    await screen.findByText('Cuenta verificada. Ya podés afiliarte e inscribirte.')
     expect(window.location.search).toBe('')
+  })
+
+  it('notifica la cuenta verificada al confirmar el código desde la cuenta', async () => {
+    render(<EmailVerificationNotice />)
+
+    window.dispatchEvent(new CustomEvent('plu:email-verified'))
+
+    await screen.findByText('Cuenta verificada. Ya podés afiliarte e inscribirte.')
   })
 })

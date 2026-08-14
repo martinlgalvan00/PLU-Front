@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -19,6 +19,8 @@ const funnel = vi.fn()
 const elements = vi.fn()
 const heatmap = vi.fn()
 const journey = vi.fn()
+const operationalSummary = vi.fn()
+const operationalAlerts = vi.fn()
 
 vi.mock('../src/services/analyticsReportService.js', async () => {
   const actual = await vi.importActual('../src/services/analyticsReportService.js')
@@ -30,6 +32,8 @@ vi.mock('../src/services/analyticsReportService.js', async () => {
     fetchAnalyticsFunnel: (...args) => funnel(...args),
     fetchAnalyticsElements: (...args) => elements(...args),
     fetchAnalyticsHeatmap: (...args) => heatmap(...args),
+    fetchAnalyticsOperationalSummary: (...args) => operationalSummary(...args),
+    fetchAnalyticsOperationalAlerts: (...args) => operationalAlerts(...args),
     fetchAthleteJourney: (...args) => journey(...args),
   }
 })
@@ -44,6 +48,10 @@ function renderSection(props = {}) {
       <AnalyticsSection athletes={ATHLETES} {...props} />
     </I18nProvider>,
   )
+}
+
+async function openTab(name) {
+  fireEvent.click(await screen.findByRole('tab', { name }))
 }
 
 beforeAll(() => {
@@ -94,6 +102,12 @@ beforeEach(() => {
     elements: [{ element_selector: '#cta-afiliarme', label: 'Afiliarme', clicks: 3 }],
     timeline: [],
   })
+  operationalSummary.mockResolvedValue({
+    engagedVisitors: 18,
+    access: { total: 7, byGate: [] },
+    keyActions: [],
+  })
+  operationalAlerts.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -104,6 +118,7 @@ afterEach(() => {
 describe('geometría del mapa de calor', () => {
   it('la caja toma el alto real del documento, no un cuadrado', async () => {
     renderSection()
+    await openTab('Páginas')
 
     const svg = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__heatmap svg')
@@ -135,6 +150,7 @@ describe('geometría del mapa de calor', () => {
     })
 
     renderSection()
+    await openTab('Páginas')
 
     const svg = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__heatmap svg')
@@ -149,6 +165,7 @@ describe('geometría del mapa de calor', () => {
 
   it('cambiar de dispositivo vuelve a pedir el mapa con ese filtro', async () => {
     renderSection()
+    await openTab('Páginas')
     await waitFor(() => expect(heatmap).toHaveBeenCalled())
 
     const mobileButton = await screen.findByRole('button', { name: 'Mobile' })
@@ -163,6 +180,11 @@ describe('geometría del mapa de calor', () => {
 describe('lo más usado', () => {
   it('muestra clicks y personas, y agrupa cuando el elemento vive en varias rutas', async () => {
     renderSection()
+    await waitFor(() => expect(overview).toHaveBeenCalled())
+    expect(elements).not.toHaveBeenCalled()
+    expect(flows).not.toHaveBeenCalled()
+
+    await openTab('Uso')
 
     const ranking = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__ranking')
@@ -180,12 +202,14 @@ describe('límite del recorrido identificado', () => {
   it('no se ofrece sin el permiso de identidad', async () => {
     renderSection({ canViewIdentity: false })
     await waitFor(() => expect(overview).toHaveBeenCalled())
+    expect(screen.queryByRole('tab', { name: 'Atleta' })).toBeNull()
     expect(document.querySelector('.admin-analytics__journey-search')).toBeNull()
     expect(journey).not.toHaveBeenCalled()
   })
 
   it('con permiso avisa que la consulta queda registrada antes de buscar', async () => {
     renderSection({ canViewIdentity: true })
+    await openTab('Atleta')
 
     const notice = await waitFor(() => {
       const node = document.querySelector('.admin-analytics__notice')
@@ -195,5 +219,21 @@ describe('límite del recorrido identificado', () => {
     expect(notice.textContent).toContain('queda registrada en Auditoría')
     // No carga sola: hay que elegir a alguien.
     expect(journey).not.toHaveBeenCalled()
+  })
+})
+
+describe('alertas accionables', () => {
+  it('lleva la alerta a la orden de pagos que debe resolverse', async () => {
+    const onNavigate = vi.fn()
+    operationalAlerts.mockResolvedValue([{
+      kind: 'transfer_overdue',
+      entity_id: 'order-1',
+      subject: 'MORD-1',
+      detail: 'Comprobante pendiente de validación por más de 48 horas',
+    }])
+    renderSection({ onNavigate })
+
+    fireEvent.click(await screen.findByRole('button', { name: /revisar y resolver/i }))
+    expect(onNavigate).toHaveBeenCalledWith('payments', 'order-1')
   })
 })

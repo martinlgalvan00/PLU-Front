@@ -53,6 +53,13 @@ function requireIntegrationUrl(value, label, env) {
   return url.toString()
 }
 
+// Normalmente Vite y Express comparten origen. API_URL queda disponible para
+// despliegues con API separada, pero no debe ser obligatorio cuando APP_URL ya
+// identifica el origen público que recibe el webhook.
+function resolveApiUrl({ apiUrl, appUrl, env }) {
+  return apiUrl ?? env.API_URL ?? appUrl ?? env.APP_URL ?? env.VITE_APP_URL
+}
+
 function assertProviderRequest(order, idempotencyKey) {
   if (!Number.isInteger(order.amount) || order.amount <= 0) {
     throw new HttpError(409, 'La orden tiene un monto invalido.')
@@ -102,7 +109,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         'APP_URL',
         env,
       )
-      const webhookBase = requireIntegrationUrl(apiUrl ?? env.API_URL, 'API_URL', env)
+      const webhookBase = requireIntegrationUrl(
+        resolveApiUrl({ apiUrl, appUrl, env }),
+        'API_URL o APP_URL',
+        env,
+      )
 
       const returnPath = order.kind === 'ticket' ? '/eventos' : '/registro'
       const body = {
@@ -158,7 +169,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
-      const webhookBase = requireIntegrationUrl(env.API_URL, 'API_URL', env)
+      const webhookBase = requireIntegrationUrl(
+        resolveApiUrl({ env }),
+        'API_URL o APP_URL',
+        env,
+      )
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
         ...(formData.payer?.identification ? { identification: formData.payer.identification } : {}),

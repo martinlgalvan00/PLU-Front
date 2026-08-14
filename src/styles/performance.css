@@ -45,7 +45,7 @@
   }
 
   /* Perfil: nav sticky sin glass al scrollear */
-  .account-nav__inner {
+  .account-nav__viewport {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background: var(--color-bg-surface);

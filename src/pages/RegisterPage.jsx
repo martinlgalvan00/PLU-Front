@@ -379,6 +379,7 @@ export default function RegisterPage({
   const [purchaseType, setPurchaseType] = useState('combo')
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
+  const [changingMethod, setChangingMethod] = useState(false)
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
@@ -403,6 +404,7 @@ export default function RegisterPage({
     setMembershipPaymentInProgress(false)
     setTransferOpen(false)
     setTransferOrderId(null)
+    setChangingMethod(false)
   }, [flow])
 
   const content = {
@@ -713,6 +715,47 @@ export default function RegisterPage({
     setSubmitError('')
   }
 
+  function applyRegisterSubmitResult(result, { requestedPaymentMethod } = {}) {
+    if (result?.error) {
+      const fieldErrors = {}
+      if (result.fields?.email === 'taken') fieldErrors.email = takenMessage('email')
+      if (result.fields?.documentId === 'taken') fieldErrors.documentId = takenMessage('documentId')
+
+      if (Object.keys(fieldErrors).length) {
+        setErrors((current) => ({ ...current, ...fieldErrors }))
+        setTouched((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(fieldErrors).map((field) => [field, true])),
+        }))
+        if (flow === 'profile') {
+          setProfileStepIndex(0)
+          setProfileErrorStepIndex(0)
+        }
+        focusFirstError(fieldErrors)
+      }
+      setSubmitError(
+        result.code === 'PLU08' ? t('pages.register.alreadyRegisteredPaid') : result.error,
+      )
+      setMembershipPaymentInProgress(Boolean(result.resumeMembershipPayment))
+      setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
+      setResendState('idle')
+      return
+    }
+    if (flow === 'competition') {
+      const method = result?.createdOrder?.paymentMethod ?? result?.payment?.method
+      if (method === 'manual_link') {
+        setChangingMethod(false)
+        setTransferOrderId(result?.createdOrder?.paymentId ?? result?.payment?.id ?? null)
+        setTransferOpen(true)
+      } else if (requestedPaymentMethod === 'manual_link') {
+        setChangingMethod(true)
+        setSubmitError(t('pages.register.paymentMethodLocked'))
+      } else {
+        setChangingMethod(false)
+      }
+    } else if (flow === 'profile') onNavigate?.('profile')
+  }
+
   async function submit(eventObject) {
     eventObject.preventDefault()
     if (submitting || submissionInFlightRef.current) return
@@ -784,43 +827,41 @@ export default function RegisterPage({
     setSubmitting(true)
     let result
     try {
-      result = await onSubmit(eventObject, event, { purchaseType: effectivePurchaseType })
+      result = await onSubmit(eventObject, event, {
+        purchaseType: effectivePurchaseType,
+        paymentMethod: form.paymentMethod,
+      })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
     } finally {
       setSubmitting(false)
       submissionInFlightRef.current = false
     }
-    if (result?.error) {
-      const fieldErrors = {}
-      if (result.fields?.email === 'taken') fieldErrors.email = takenMessage('email')
-      if (result.fields?.documentId === 'taken') fieldErrors.documentId = takenMessage('documentId')
+    applyRegisterSubmitResult(result, { requestedPaymentMethod: form.paymentMethod })
+  }
 
-      if (Object.keys(fieldErrors).length) {
-        setErrors((current) => ({ ...current, ...fieldErrors }))
-        setTouched((current) => ({
-          ...current,
-          ...Object.fromEntries(Object.keys(fieldErrors).map((field) => [field, true])),
-        }))
-        if (flow === 'profile') {
-          setProfileStepIndex(0)
-          setProfileErrorStepIndex(0)
-        }
-        focusFirstError(fieldErrors)
-      }
-      setSubmitError(
-        result.code === 'PLU08' ? t('pages.register.alreadyRegisteredPaid') : result.error,
+  async function switchToTransfer() {
+    if (submitting || submissionInFlightRef.current || checkoutFlowsLocked) return
+    submissionInFlightRef.current = true
+    onUpdateForm({ target: { name: 'paymentMethod', value: 'manual_link' } })
+    setSubmitError('')
+    setMembershipPaymentInProgress(false)
+    setEmailBlocked(false)
+    setSubmitting(true)
+    let result
+    try {
+      result = await onSubmit(
+        { preventDefault() {} },
+        event,
+        { purchaseType: effectivePurchaseType, paymentMethod: 'manual_link' },
       )
-      setMembershipPaymentInProgress(Boolean(result.resumeMembershipPayment))
-      setEmailBlocked(result.code === 'EMAIL_NOT_VERIFIED')
-      setResendState('idle')
-    } else if (flow === 'competition') {
-      const method = result?.createdOrder?.paymentMethod ?? result?.payment?.method
-      if (method === 'manual_link') {
-        setTransferOrderId(result?.createdOrder?.paymentId ?? result?.payment?.id ?? null)
-        setTransferOpen(true)
-      }
-    } else if (flow === 'profile') onNavigate?.('profile')
+    } catch (error) {
+      result = { error: error?.message ?? t('common.errorMessage') }
+    } finally {
+      setSubmitting(false)
+      submissionInFlightRef.current = false
+    }
+    applyRegisterSubmitResult(result, { requestedPaymentMethod: 'manual_link' })
   }
 
   async function resendVerification() {
@@ -868,6 +909,8 @@ export default function RegisterPage({
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
   const membershipConfirmedActive =
     membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
+  const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
+  const mpSettling = competitionSettling && visibleOrder.paymentMethod === 'mercado_pago'
 
   const registerIntro =
     membershipOrderConfirmed ? (
@@ -933,19 +976,21 @@ export default function RegisterPage({
   const registerStatus =
     flow !== 'profile' &&
     visibleOrder &&
-    flow !== 'membership' && (
-      <div className="register-status">
+    flow !== 'membership' &&
+    !((mpSettling || changingMethod) && !cardData) && (
+      <div className="register-status register-status--settle">
         {visibleOrder ? (
           <div className="register-status__body register-status__body--success">
-            <span className="register-status__name">{visibleOrder.athleteName}</span>
-
-            <strong>{money(visibleOrder.amount, locale)}</strong>
+            {flow === 'competition' ? null : (
+              <>
+                <span className="register-status__name">{visibleOrder.athleteName}</span>
+                <strong>{money(visibleOrder.amount, locale)}</strong>
+              </>
+            )}
             <p>{visibleOrder.concept}</p>
             <StatusPill value={visibleOrder.status} />
             <code>{visibleOrder.reference}</code>
-            {visibleOrder.paymentMethod === 'mercado_pago' ? (
-              <p>{t('payments.embeddedLead')}</p>
-            ) : (
+            {visibleOrder.paymentMethod === 'mercado_pago' ? null : (
               <>
                 <p className="manual-note">{t('pages.register.manualNote')}</p>
                 {flow === 'competition' ? (
@@ -1007,7 +1052,9 @@ export default function RegisterPage({
         flow === 'profile' ? ' register-page--profile' : ''
       }${flow === 'competition' ? ' register-page--competition' : ''}${
         flow === 'membership' ? ' register-page--membership' : ''
-      }`.trim()}
+      }${competitionSettling ? ' register-page--settling' : ''}${
+        mpSettling ? ' register-page--settling-mp' : ''
+      }${changingMethod ? ' register-page--change-method' : ''}`.trim()}
     >
       <div className="auth-immersive-glass auth-immersive-glass--wide register-shell">
         {(flow === 'profile' || flow === 'membership' || flow === 'competition') && onNavigate && (
@@ -1073,10 +1120,6 @@ export default function RegisterPage({
             {(flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && registerStatus}
           </div>
 
-          {flow === 'competition' && visibleOrder?.paymentMethod === 'mercado_pago' && (
-            <MercadoPagoEmbeddedCheckout order={visibleOrder} />
-          )}
-
           {membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
@@ -1107,6 +1150,49 @@ export default function RegisterPage({
                 variant="compact"
                 source={flow === 'membership' ? 'register_membership' : 'register_competition'}
               />
+            </div>
+          ) : competitionSettling ? (
+            <div className="register-settle">
+              {mpSettling ? (
+                <div className="register-settle__toolbar">
+                  <div className="register-settle__nav">
+                    <button
+                      type="button"
+                      className="register-topbar__back register-settle__back"
+                      onClick={() => setChangingMethod(true)}
+                    >
+                      <ArrowLeft size={15} aria-hidden />
+                      {t('pages.register.changePaymentMethod')}
+                    </button>
+                    <button
+                      type="button"
+                      className="register-topbar__link register-settle__alt"
+                      disabled={submitting}
+                      onClick={() => void switchToTransfer()}
+                    >
+                      {t('pages.register.payByTransfer')}
+                    </button>
+                  </div>
+                  <RegisterCheckoutBar
+                    checkoutTotal={visibleOrder.amount ?? checkoutTotal}
+                    flow={flow}
+                    hideCta
+                    packageLabel={visibleOrder.concept || packageLabel}
+                    settle
+                  />
+                </div>
+              ) : null}
+              {mpSettling ? (
+                <MercadoPagoEmbeddedCheckout order={visibleOrder} presentation="settle" />
+              ) : (
+                <RegisterCheckoutBar
+                  checkoutTotal={visibleOrder.amount ?? checkoutTotal}
+                  flow={flow}
+                  hideCta
+                  packageLabel={visibleOrder.concept || packageLabel}
+                  settle
+                />
+              )}
             </div>
           ) : (
           <form className="register-card athlete-form" onSubmit={submit} noValidate>
@@ -1355,7 +1441,33 @@ export default function RegisterPage({
               </div>
             )}
 
-            {flow === 'competition' && (
+            {flow === 'competition' && changingMethod ? (
+              <div className="register-competition-form register-competition-form--change-method">
+                <button
+                  type="button"
+                  className="register-topbar__back"
+                  onClick={() => {
+                    setChangingMethod(false)
+                    setSubmitError('')
+                  }}
+                >
+                  <ArrowLeft size={15} aria-hidden />
+                  {t('pages.register.backToMercadoPago')}
+                </button>
+                <FormSection
+                  title={t('pages.register.competitionPaymentTitle')}
+                  description={t('pages.register.changePaymentLead')}
+                >
+                  <RegisterSettle
+                    onPaymentBlur={blurField}
+                    onPaymentChange={changeField}
+                    paymentError={errors.paymentMethod}
+                    paymentMethod={form.paymentMethod}
+                    showPayment
+                  />
+                </FormSection>
+              </div>
+            ) : flow === 'competition' ? (
               <div className="register-competition-form">
                 {/* Sin `step`: la inscripción tiene una sola sección. El "01"
                     prometía una secuencia que no existe. */}
@@ -1432,7 +1544,7 @@ export default function RegisterPage({
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
 
             {submitError && !emailBlocked && (
               <div className="form-submit-error" role="alert">
