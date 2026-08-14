@@ -1754,7 +1754,11 @@ export default {
     healthDelivered: 'Emails delivered',
     healthRetrying: 'Retries in progress',
     healthIncidents: 'Open incidents',
-    healthMembershipNotice: '{{orders}} approved orders without an active membership and {{emails}} active memberships without a delivered confirmation in the last 30 days.',
+    healthBreakdownEmails: 'Emails',
+    healthBreakdownPayments: 'Payments',
+    healthBreakdownAffiliation: 'Memberships',
+    healthBreakdownOrdersGap: 'Approved orders without an active membership',
+    healthBreakdownMembershipEmails: 'Active memberships without delivered confirmation (30 d)',
     actions: {
       'account.created': 'Account created',
       'account.reactivated': 'Account reactivated',

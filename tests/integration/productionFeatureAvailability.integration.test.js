@@ -17,13 +17,17 @@ describe('features productivas contra el catalogo real de Supabase', () => {
     await target.close()
   })
 
-  it('publica afiliacion one-time y oculta debito automatico', async () => {
+  // `APP_PRODUCTION` ya no gatea el catálogo público (ver "remove APP_PRODUCTION
+  // references"; server/lib/featureAvailability.js#filterPublicMembershipPlans
+  // quedó como no-op a propósito) — el débito automático se publica igual que
+  // la afiliación one-time.
+  it('publica afiliacion one-time y debito automatico', async () => {
     const response = await fetch(`${target.url}/api/payments/plans`)
     const body = await response.json()
 
     expect(response.status, JSON.stringify(body)).toBe(200)
     expect(body.plans.some((plan) => plan.collectionMode === 'one_time')).toBe(true)
-    expect(body.plans.some((plan) => plan.collectionMode === 'recurring')).toBe(false)
+    expect(body.plans.some((plan) => plan.collectionMode === 'recurring')).toBe(true)
   })
 
   it('publica Pitbull Classic en ARS 75.000 y el combo en ARS 120.000', async () => {

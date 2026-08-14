@@ -233,6 +233,35 @@ const CATALOG = [
     retryable: false,
   },
   {
+    code: 'ATHLETE_PROFILE_INCOMPLETE',
+    match: /ATHLETE_PROFILE_INCOMPLETE|Complet[aá] tu perfil antes de inscribirte/i,
+    title: 'El perfil deportivo está incompleto',
+    cause:
+      'La inscripción y el combo se frenan antes de crear una orden si faltan datos obligatorios del atleta. No se inició ningún cobro.',
+    fix: [
+      'Completar los campos indicados en Mi perfil (fecha de nacimiento, sexo competitivo, equipo o gimnasio, teléfono, país y provincia).',
+      'Volver a iniciar la inscripción o el combo después de guardar el perfil.',
+    ],
+    severity: 'expected',
+    scope: 'cliente',
+    retryable: true,
+  },
+  {
+    code: 'COMBO_PLAN_NOT_CURRENT',
+    match: /El plan del combo no est[aá] vigente/i,
+    title: 'El plan asociado al combo ya no está vigente',
+    cause:
+      'La oferta conjunta referencia un plan inactivo, futuro, retirado, recurrente o perteneciente a otra organización. La orden no se creó y no hubo cobro.',
+    fix: [
+      'En Panel > Tarifas, publicar una versión vigente de la afiliación de pago único.',
+      'En Panel > Eventos, vincular esa versión a la oferta de combo y verificar que ambas pertenezcan a la misma organización.',
+      'Reintentar recién después de corregir la oferta; no acreditar ni recrear un pago manualmente.',
+    ],
+    severity: 'expected',
+    scope: 'configuracion',
+    retryable: true,
+  },
+  {
     code: 'ORDER_ACCESS_DENIED',
     match: /no pertenece a la sesion actual|Token de orden invalido|Falta el token de acceso de la orden/i,
     statuses: [401, 403],
