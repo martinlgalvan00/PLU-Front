@@ -38,6 +38,14 @@
   padding: 3px 7px;
 }
 
+.plu-checkout__offer.has-deal {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plu-checkout__offer.has-deal .season-combo-offer {
+  grid-column: 1 / -1;
+}
+
 .plu-checkout__offer-list {
   display: grid;
   gap: 8px;

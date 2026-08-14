@@ -180,6 +180,14 @@
   gap: 0.85rem;
 }
 
+.admin-pricing__block > .admin-pricing__form {
+  order: 1;
+}
+
+.admin-pricing__block > .admin-pricing__plan-list {
+  order: 2;
+}
+
 .admin-pricing__block + .admin-pricing__block {
   border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   padding-top: clamp(1.2rem, 2.4vw, 1.7rem);
@@ -227,6 +235,10 @@
   background: color-mix(in srgb, var(--color-brand-celeste) 78%, transparent);
 }
 
+.admin-pricing__plan-row--inactive {
+  opacity: 0.78;
+}
+
 .admin-pricing__plan-row:hover {
   background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
 }
@@ -267,6 +279,7 @@
 
 .admin-pricing__status {
   color: var(--color-text-muted);
+  flex: none;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -341,6 +354,54 @@
   gap: 0.7rem;
   justify-content: flex-end;
   min-width: 220px;
+}
+
+.admin-pricing__plan-amount--percent {
+  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 92%, var(--color-text-primary));
+}
+
+.admin-pricing__retirement-form {
+  align-items: end;
+  animation: admin-block-enter 0.22s var(--ease-out, ease) backwards;
+  display: flex;
+  gap: 0.75rem 1rem;
+  grid-column: 1 / -1;
+  padding: 0.5rem 0.15rem 0.85rem 0.7rem;
+}
+
+.admin-pricing__retirement-form label {
+  color: var(--color-text-muted);
+  display: grid;
+  flex: 1 1 220px;
+  font-size: 0.7rem;
+  font-weight: 650;
+  gap: 0.35rem;
+  letter-spacing: 0.08em;
+  max-width: 280px;
+  text-transform: uppercase;
+}
+
+.admin-pricing__retirement-form input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 38px;
+  padding: 0.4rem 0 0.5rem;
+  width: 100%;
+}
+
+.admin-pricing__retirement-form input:focus-visible {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  outline: none;
+}
+
+.admin-pricing__retirement-actions {
+  display: flex;
+  flex: none;
+  gap: 0.5rem;
 }
 
 .admin-pricing__switch {
@@ -746,17 +807,77 @@
    Los cortes miran el tablero, con @media como fallback. */
 @supports (container-type: inline-size) {
   @container admin-pricing (max-width: 899px) {
+    .admin-pricing__hero,
+    .admin-pricing__block-head {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .admin-pricing__block-head .admin-pricing__btn {
+      min-height: 44px;
+      width: 100%;
+    }
+
     .admin-pricing__combo-toolbar,
     .admin-pricing__combo-board {
       grid-template-columns: 1fr;
     }
 
+    .admin-pricing__combo-stack {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .admin-pricing__combo-op {
+      padding-top: 0;
+    }
+
+    .admin-pricing__combo-line {
+      grid-template-columns: minmax(0, 1fr) auto;
+      width: 100%;
+    }
+
     .admin-pricing__combo-window {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
     }
 
     .admin-pricing__combo-window .admin-pricing__toggle {
       grid-column: 1 / -1;
+      min-height: 44px;
+    }
+
+    .admin-pricing__plan-row {
+      align-items: start;
+      gap: 0.55rem 0.85rem;
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 0.75rem 0.1rem;
+    }
+
+    .admin-pricing__plan-amount {
+      font-size: 1.2rem;
+      padding-top: 0.15rem;
+    }
+
+    .admin-pricing__plan-actions {
+      grid-column: 1 / -1;
+      justify-content: space-between;
+      min-width: 0;
+      padding-left: 0.7rem;
+      width: 100%;
+    }
+
+    .admin-pricing__plan-actions .admin-pricing__btn {
+      min-height: 44px;
+    }
+
+    .admin-pricing__plan-row h3 {
+      white-space: normal;
+    }
+
+    .admin-pricing__switch {
+      width: auto;
     }
   }
 
@@ -885,17 +1006,93 @@
 }
 
 @media (max-width: 900px) {
+  .admin-pricing__hero,
+  .admin-pricing__block-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .admin-pricing__block-head .admin-pricing__btn {
+    min-height: 44px;
+    width: 100%;
+  }
+
   .admin-pricing__combo-toolbar,
   .admin-pricing__combo-board {
     grid-template-columns: 1fr;
   }
 
+  .admin-pricing__combo-stack {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .admin-pricing__combo-op {
+    padding-top: 0;
+  }
+
+  .admin-pricing__combo-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
   .admin-pricing__combo-window {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .admin-pricing__combo-window .admin-pricing__toggle {
     grid-column: 1 / -1;
+    min-height: 44px;
+  }
+
+  .admin-pricing__plan-row {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-pricing__plan-actions {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-width: 0;
+    padding-left: 0.7rem;
+    width: 100%;
+  }
+
+  .admin-pricing__plan-actions .admin-pricing__btn,
+  .admin-pricing__form-actions .admin-pricing__btn {
+    min-height: 44px;
+  }
+
+  .admin-pricing__form fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pricing__form-actions {
+    flex-direction: column-reverse;
+    gap: 0.55rem;
+  }
+
+  .admin-pricing__form-actions .admin-pricing__btn {
+    width: 100%;
+  }
+
+  .admin-pricing__switch {
+    width: auto;
+  }
+
+  .admin-pricing__retirement-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-pricing__retirement-form label {
+    max-width: none;
+  }
+
+  .admin-pricing__retirement-actions .admin-pricing__btn {
+    min-height: 44px;
   }
 }
 
@@ -991,10 +1188,15 @@
 
 [data-theme='light'] .admin-pricing__combo-decision input,
 [data-theme='light'] .admin-pricing__combo-delta strong,
-[data-theme='light'] .admin-pricing__offer-pill.is-on {
+[data-theme='light'] .admin-pricing__offer-pill.is-on,
+[data-theme='light'] .admin-pricing__plan-amount--percent {
   color: var(--plu-gold-600, var(--color-brand-gold));
 }
 
 [data-theme='light'] .admin-pricing__combo-decision input {
+  border-bottom-color: color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 55%, transparent);
+}
+
+[data-theme='light'] .admin-pricing__retirement-form input:focus-visible {
   border-bottom-color: color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 55%, transparent);
 }

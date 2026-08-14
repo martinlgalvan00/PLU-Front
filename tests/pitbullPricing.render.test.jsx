@@ -75,13 +75,11 @@ describe('precio publico de Pitbull Classic', () => {
       </I18nProvider>,
     )
 
-    const prices = [...container.querySelectorAll('.pitbull-inscription-shell__price dd')]
-      .map((node) => node.textContent)
-      .join(' | ')
-
-    expect(prices).toContain('$\u00a075.000')
-    expect(prices).toContain('$\u00a0120.000')
-    expect(prices).not.toMatch(/\$\s*[123](?:\D|$)/)
+    const comboText = container.querySelector('.season-combo-offer')?.textContent ?? ''
+    expect(comboText).toContain('$\u00a075.000')
+    expect(comboText).toContain('$\u00a0120.000')
+    expect(comboText).toMatch(/20%/)
+    expect(comboText).not.toMatch(/\$\s*[123](?:\D|$)/)
 
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
     expect(onSelectEvent).toHaveBeenCalledWith(pitbull)

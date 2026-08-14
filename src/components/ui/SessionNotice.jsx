@@ -9,6 +9,9 @@ const DISMISS_MS = 5000
  * Aviso breve al cerrar sesión. El flag vive en sessionStorage para
  * sobrevivir el cambio de layout privado → público; el evento cubre el
  * logout sin remount (home, calendario, etc.).
+ *
+ * El listener no consume el flag: si el layout se desmonta al ir a home,
+ * la instancia nueva todavía puede leerlo y mostrar la pill.
  */
 export default function SessionNotice() {
   const { t } = useI18n()
@@ -16,7 +19,6 @@ export default function SessionNotice() {
 
   useEffect(() => {
     function show() {
-      consumeSignedOutFlag()
       setVisible(true)
     }
 
@@ -26,7 +28,10 @@ export default function SessionNotice() {
 
   useEffect(() => {
     if (!visible) return undefined
-    const timer = setTimeout(() => setVisible(false), DISMISS_MS)
+    const timer = setTimeout(() => {
+      consumeSignedOutFlag()
+      setVisible(false)
+    }, DISMISS_MS)
     return () => clearTimeout(timer)
   }, [visible])
 
@@ -34,7 +39,7 @@ export default function SessionNotice() {
 
   return (
     <div className="session-notice" role="status" aria-live="polite">
-      <Pill tone="info">{t('nav.logoutDone')}</Pill>
+      <Pill tone="success">{t('nav.logoutDone')}</Pill>
     </div>
   )
 }

@@ -141,11 +141,16 @@ export function assertMutablePermissionSet(actor, role, permissionKeys) {
     throw new HttpError(403, 'No tenés jerarquía suficiente para modificar este rol.')
   }
 
-  const reservedPermissions = ['admin.users.write', 'admin.roles.write', 'admin.pricing.write']
+  const reservedPermissions = [
+    'admin.users.write',
+    'admin.roles.write',
+    'admin.pricing.write',
+    'admin.registration_access.write',
+  ]
   if (permissionKeys.some((permissionKey) => reservedPermissions.includes(permissionKey))) {
     throw new HttpError(
       400,
-      'La gestión de usuarios, roles y tarifas queda reservada a Super Admin y Administrador.',
+      'La gestión de usuarios, roles, tarifas y tandas queda reservada a Super Admin y Administrador.',
     )
   }
 

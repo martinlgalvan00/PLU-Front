@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import AdminListSection from '../src/components/admin/AdminListSection.jsx'
+import RegistrationsSection from '../src/pages/admin/RegistrationsSection.jsx'
 
 beforeAll(() => {
   window.matchMedia ??= (query) => ({
@@ -136,5 +137,86 @@ describe('AdminListSection — sin duplicar el censo', () => {
 
     expect(container.querySelector('.admin-list-section__chrome')).not.toBeNull()
     expect(container.querySelector('.admin-list-shell__actions')).toBeNull()
+  })
+
+  it('mueve las acciones del header a la barra de filtros en viewport angosto', () => {
+    const { container } = render(
+      <I18nProvider>
+        <AdminListSection
+          variant="registrations"
+          title="Inscripciones"
+          actions={<button type="button">CSV</button>}
+          query=""
+          onQueryChange={() => {}}
+        >
+          <p>tabla</p>
+        </AdminListSection>
+      </I18nProvider>,
+    )
+
+    const csv = screen.getByRole('button', { name: 'CSV' })
+    expect(csv.closest('.admin-filters')).toBeTruthy()
+    expect(container.querySelector('.admin-list-shell__actions')).toBeNull()
+  })
+})
+
+describe('Inscripciones — rieles etiquetados', () => {
+  function renderRegistrations() {
+    const registrations = [
+      {
+        id: 'reg-1',
+        athleteId: 'ath-1',
+        athlete: { fullName: 'Ana Torres', documentId: '30111222' },
+        event: 'Pitbull Classic 2026',
+        eventSlug: 'pitbull-classic-2026',
+        category: 'Raw',
+        division: 'Open',
+        status: 'confirmada',
+      },
+      {
+        id: 'reg-2',
+        athleteId: 'ath-2',
+        athlete: { fullName: 'Bruno Diaz', documentId: '30111333' },
+        event: 'Pit Elite 2026',
+        eventSlug: 'pit-elite-2026',
+        category: 'Raw',
+        division: 'Open',
+        status: 'pendiente_pago',
+      },
+    ]
+
+    return render(
+      <I18nProvider>
+        <RegistrationsSection
+          canEdit
+          filters={{ event: 'all', status: 'all', query: '' }}
+          filteredRegistrations={registrations}
+          payments={[]}
+          registrations={registrations}
+          registrationsCount={registrations.length}
+          onExportAdmin={() => {}}
+          onExportPluUsa={() => {}}
+          onSetFilters={() => {}}
+        />
+      </I18nProvider>,
+    )
+  }
+
+  it('etiqueta evento y estado cuando hay más de un riel', () => {
+    const { container } = renderRegistrations()
+
+    const labels = [...container.querySelectorAll('.admin-filter-group__label')].map(
+      (label) => label.textContent,
+    )
+
+    expect(labels).toContain('Evento')
+    expect(labels).toContain('Estado')
+  })
+
+  it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {
+    renderRegistrations()
+
+    const csv = screen.getByRole('button', { name: 'Exportar inscripciones' })
+    expect(csv.querySelector('.export-btn__label')?.textContent).toBe('CSV')
   })
 })

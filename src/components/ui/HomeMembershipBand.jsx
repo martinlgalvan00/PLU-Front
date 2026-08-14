@@ -1,9 +1,12 @@
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import HomeMembershipCredential from './HomeMembershipCredential.jsx'
+import SeasonComboOffer from './SeasonComboOffer.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
+import { PRICING } from '../../lib/constants.js'
+import { resolveComboDeal, resolveEventPricing, resolveLiveComboOffer } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
@@ -38,8 +41,15 @@ const copyItemSubtle = {
   },
 }
 
+const SEASON_COMBO_FALLBACK = {
+  active: true,
+  price: PRICING.combo,
+  endsAt: '2026-08-28T23:59:59-03:00',
+}
+
 export default function HomeMembershipBand({
   onNavigate,
+  onSelectEvent,
   isLoggedInAthlete = false,
   hasActiveMembership = false,
   gateEvent = null,
@@ -48,6 +58,22 @@ export default function HomeMembershipBand({
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
+  const comboCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'combo' })
+  const liveComboOffer = hasActiveMembership
+    ? null
+    : (resolveLiveComboOffer(gateEvent)
+      ?? (gateEvent?.comboOffer
+        ? null
+        : resolveLiveComboOffer({ comboOffer: SEASON_COMBO_FALLBACK })))
+  const eventPricing = resolveEventPricing(gateEvent)
+  const comboDeal = liveComboOffer
+    ? resolveComboDeal({
+      membership: eventPricing.membership,
+      registration: eventPricing.registration,
+      combo: liveComboOffer.price,
+    })
+    : null
+  const showCombo = Boolean(comboDeal?.live)
 
   /** El CTA principal responde al estado real de la sesión — nunca invita a
    * "ver planes" a quien ya está afiliado, ni a "afiliarse" sin haber
@@ -65,6 +91,14 @@ export default function HomeMembershipBand({
       ? (hasActiveMembership ? 'profile' : 'membership')
       : 'members'
   const goToAffiliation = () => onNavigate(primaryTarget)
+  const goToCombo = () => {
+    if (hasActiveMembership || !comboCheckoutOpen) return
+    if (onSelectEvent && gateEvent) {
+      onSelectEvent(gateEvent)
+      return
+    }
+    onNavigate(isLoggedInAthlete ? 'competition' : 'register')
+  }
 
   const CopyShell = reducedMotion ? 'div' : m.div
   const copyProps = reducedMotion
@@ -114,29 +148,49 @@ export default function HomeMembershipBand({
           </CopyItem>
         ) : null}
 
-        <CopyItem {...itemProps} className="home-membership-band__actions">
-          <button type="button" className="btn btn--gold home-membership-band__cta" onClick={goToAffiliation}>
-            {primaryCta}
-            <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
-          </button>
-          <button
-            type="button"
-            className="home-membership-band__cta-secondary"
-            onClick={() => onNavigate('events')}
-          >
-            {t('pages.home.viewCalendar')}
-          </button>
-        </CopyItem>
+        {showCombo ? (
+          <CopyItem {...itemProps} className="home-membership-band__combo">
+            <SeasonComboOffer
+              variant="band"
+              membershipPrice={comboDeal.membership}
+              registrationPrice={comboDeal.registration}
+              comboPrice={comboDeal.combo}
+              endsAt={liveComboOffer.endsAt}
+              ctaDisabled={!comboCheckoutOpen}
+              ctaLabel={comboCheckoutOpen ? t('comboDeal.cta') : t('pages.members.ctaCheckoutSoon')}
+              onCta={goToCombo}
+              secondaryCtaLabel={primaryCta}
+              secondaryCtaDisabled={hasActiveMembership || !paidCheckoutOpen}
+              onSecondaryCta={goToAffiliation}
+            />
+          </CopyItem>
+        ) : (
+          <CopyItem {...itemProps} className="home-membership-band__actions">
+            <button type="button" className="btn btn--gold home-membership-band__cta" onClick={goToAffiliation}>
+              {primaryCta}
+              <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
+            </button>
+            <button
+              type="button"
+              className="home-membership-band__cta-secondary"
+              onClick={() => onNavigate('events')}
+            >
+              {t('pages.home.viewCalendar')}
+            </button>
+          </CopyItem>
+        )}
 
-        <CopyItem {...subtleItemProps}>
-          <p className="home-membership-band__meta" aria-label={t('pages.home.membershipMetaAria')}>
-            <span>{HOME_MEMBERSHIP.seasonNote}</span>
-            <span aria-hidden className="home-membership-band__meta-sep">
-              ·
-            </span>
-            <span>{HOME_MEMBERSHIP.planLabel}</span>
-          </p>
-        </CopyItem>
+        {showCombo ? null : (
+          <CopyItem {...subtleItemProps}>
+            <p className="home-membership-band__meta" aria-label={t('pages.home.membershipMetaAria')}>
+              <span>{HOME_MEMBERSHIP.seasonNote}</span>
+              <span aria-hidden className="home-membership-band__meta-sep">
+                ·
+              </span>
+              <span>{HOME_MEMBERSHIP.planLabel}</span>
+            </p>
+          </CopyItem>
+        )}
       </CopyShell>
 
       {/* Spine entre copy y credencial — el grid es copy | spine | card */}

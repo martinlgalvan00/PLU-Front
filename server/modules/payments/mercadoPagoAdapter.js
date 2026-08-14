@@ -92,6 +92,14 @@ async function callProvider(operation, context, run) {
   }
 }
 
+// Sin category_id explicito, Mercado Pago clasifica el titulo del item con
+// su propio clasificador de texto y puede acertar cualquier cosa (p. ej.
+// "Plan Nutricional" para "Afiliacion PLU"). IDs verificados contra
+// GET /item_categories.
+function categoryIdForOrder(order) {
+  return order.kind === 'ticket' ? 'tickets' : 'services'
+}
+
 function safeUrl(base, path) {
   const url = new URL(path, base.endsWith('/') ? base : `${base}/`)
   return url.toString()
@@ -215,6 +223,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
           {
             id: order.id,
             title: order.displayConcept,
+            category_id: categoryIdForOrder(order),
             quantity: 1,
             currency_id: order.currency,
             unit_price: order.amount,
@@ -364,6 +373,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     async getSubscription(id) {
       return callProvider('getSubscription', { subscriptionId: String(id) }, () =>
         subscriptionClient.get({ id: String(id) }))
+    },
+
+    async cancelSubscription(id) {
+      return callProvider('cancelSubscription', { subscriptionId: String(id) }, () =>
+        subscriptionClient.update({ id: String(id), body: { status: 'cancelled' } }))
     },
 
     async getAuthorizedPayment(id) {

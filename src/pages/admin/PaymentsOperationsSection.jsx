@@ -70,7 +70,9 @@ export default function PaymentsOperationsSection({
   isLoading: manualLoading,
   loadError: manualError,
   onApprovePayment,
+  onRejectPayment,
   onApproveTicketOrder,
+  onRejectTicketOrder,
   onRefresh: onRefreshManual,
 }) {
   const { locale, t } = useI18n()
@@ -435,6 +437,7 @@ export default function PaymentsOperationsSection({
         canEdit={canEdit}
         highlightOrderId={highlightOrderId}
         onApprovePayment={onApprovePayment}
+        onRejectPayment={onRejectPayment}
         onSummaryChange={handleAthleteSummaryChange}
         refreshKey={athleteRefreshKey}
         statusFilter={athleteStatusRequest}
@@ -448,6 +451,7 @@ export default function PaymentsOperationsSection({
           isLoading={manualLoading}
           loadError={manualError}
           onApproveTicketOrder={onApproveTicketOrder}
+          onRejectTicketOrder={onRejectTicketOrder}
           onRefresh={onRefreshManual}
         />
       </div>

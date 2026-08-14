@@ -26,7 +26,8 @@ export function buildPendingActions({
 
   pendingTicketOrders.forEach((order) => {
     const attendeeLabel = order.attendees?.[0]?.name ?? 'Comprador'
-    const hasProof = Boolean(order.paymentProofPath)
+    const paymentProofPath = order.paymentProofPath?.trim() || null
+    const hasProof = Boolean(paymentProofPath)
     actions.push({
       id: `action-tord-${order.orderId}`,
       type: 'ticket_order',
@@ -37,8 +38,10 @@ export function buildPendingActions({
       meta: money(order.amount),
       section: 'payments',
       orderId: order.orderId,
+      provider: order.provider,
       hasProof,
-      paymentProofPath: order.paymentProofPath ?? null,
+      paymentProofPath,
+      paymentProofUploadedAt: order.paymentProofUploadedAt ?? null,
     })
   })
 
@@ -46,7 +49,9 @@ export function buildPendingActions({
     .filter((payment) => PENDING_PAYMENT_STATUSES.includes(payment.status))
     .forEach((payment) => {
       const athlete = athletes.find((item) => item.id === payment.athleteId)
-      const hasProof = Boolean(payment.paymentProofPath)
+      const paymentProofPath = payment.paymentProofPath?.trim() || null
+      const hasProof = Boolean(paymentProofPath)
+      const cashAtPitbull = payment.manualPaymentChannel === 'cash_pitbull'
       actions.push({
         id: `action-pay-${payment.id}`,
         type: 'payment',
@@ -58,8 +63,12 @@ export function buildPendingActions({
         meta: money(payment.amount),
         section: 'payments',
         paymentId: payment.id,
+        method: payment.method,
+        cashAtPitbull,
+        documentId: athlete?.documentId ?? null,
         hasProof,
-        paymentProofPath: payment.paymentProofPath ?? null,
+        paymentProofPath,
+        paymentProofUploadedAt: payment.paymentProofUploadedAt ?? null,
       })
     })
 

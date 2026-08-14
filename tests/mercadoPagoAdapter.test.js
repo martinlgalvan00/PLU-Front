@@ -96,6 +96,10 @@ describe('adaptador de Mercado Pago', () => {
     expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
       body: expect.objectContaining({
         notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
+        items: [expect.objectContaining({
+          title: 'Afiliacion PLU',
+          category_id: 'services',
+        })],
         back_urls: expect.objectContaining({
           success: 'https://powerliftingunited.ar/registro?payment=success&order=order-1',
         }),

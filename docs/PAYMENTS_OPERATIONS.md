@@ -60,10 +60,11 @@ El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y 
 
 ### URLs DEV y PROD (copiar/pegar)
 
-Frontend y API comparten origen en Vercel (`APP_URL` = `API_URL`). Usar dos
+Frontend y API comparten origen en Vercel: alcanza con `APP_URL`; no hace falta
+definir `API_URL`. Usar dos
 aplicaciones distintas en Mercado Pago (TEST para DEV, PROD para produccion).
 
-| Entorno | `APP_URL` / `API_URL` | Webhook en panel MP |
+| Entorno | `APP_URL` | Webhook en panel MP |
 |---------|------------------------|---------------------|
 | DEV (preview rama `dev`) | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app` | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
 | PROD | `https://www.powerliftingunited.ar` | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
@@ -88,7 +89,6 @@ VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
 MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app TEST>
 APP_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
-API_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
 
 # Production (app PROD)
 PAYMENTS_MOCK=false
@@ -97,7 +97,6 @@ VITE_MERCADO_PAGO_PUBLIC_KEY=<public key PROD>
 MERCADO_PAGO_ACCESS_TOKEN=<access token PROD>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app PROD>
 APP_URL=https://www.powerliftingunited.ar
-API_URL=https://www.powerliftingunited.ar
 APP_PRODUCTION=true
 ```
 

@@ -224,4 +224,39 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
     expect(csv.className).not.toMatch(/icon-only/)
     expect(pluUsa.className).not.toMatch(/icon-only/)
   })
+
+  it('traduce el chip de confirmadas sin afiliación', () => {
+    const registrations = [
+      {
+        id: 'reg-1',
+        athleteId: 'ath-1',
+        athlete: { fullName: 'Ana Torres', documentId: '30111222' },
+        event: 'Pitbull Classic 2026',
+        eventSlug: 'pitbull-classic-2026',
+        category: 'Raw',
+        division: 'Open',
+        status: 'confirmada',
+      },
+    ]
+
+    render(
+      <I18nProvider>
+        <RegistrationsSection
+          canEdit
+          filters={{ event: 'all', status: 'all', query: '' }}
+          filteredRegistrations={registrations}
+          gatePendingIds={new Set(['reg-1'])}
+          payments={[]}
+          registrations={registrations}
+          registrationsCount={1}
+          onExportAdmin={() => {}}
+          onExportPluUsa={() => {}}
+          onSetFilters={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.queryByText('status.gate_pending')).toBeNull()
+    expect(screen.getByRole('button', { name: /Confirmada sin afiliación/ })).toBeTruthy()
+  })
 })

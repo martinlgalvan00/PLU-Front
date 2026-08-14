@@ -42,12 +42,16 @@ una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
 afiliación y la inscripción. El precio, la moneda y el plan siempre se releen
 del catálogo en PostgreSQL y nunca llegan como datos autoritativos del browser.
 Su activación y ventana son independientes por evento. La compra del combo (y
-cualquier otro checkout de pago) exige `paidCheckout` abierto: fuera de
-producción, o `PAID_CHECKOUT_ENABLED=true`. Con `APP_PRODUCTION=true` y sin ese
-override, los cobros quedan cerrados (“Próximamente”). La fecha **Abre la
-inscripción** del panel (`registration_opens_at`) alimenta el countdown, no
-Mercado Pago. La administración del catálogo económico conserva su política de
-escritura separada.
+cualquier otro checkout de pago) exige que "Cobros generales" esté habilitado
+en el panel (Administración > Acceso y habilitación), que abre por defecto y
+cubre afiliación, inscripción, entradas y suscripciones con un solo
+interruptor — reemplaza a la variable de entorno `PAID_CHECKOUT_ENABLED`, que
+queda en el código sólo como freno de emergencia si Supabase no respondiera.
+El combo además exige "Afiliaciones" **y** "Inscripciones" habilitadas, cada
+una con su propio interruptor. La fecha **Abre la inscripción** del panel
+(`registration_opens_at`) alimenta el countdown, no el cobro. La
+administración del catálogo económico conserva su política de escritura
+separada.
 
 Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
 otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo

@@ -11,3 +11,7 @@ export const Default = {}
 export const CustomLabel = {
   args: { label: 'Procesando pago...' },
 }
+
+export const Page = {
+  args: { variant: 'page' },
+}

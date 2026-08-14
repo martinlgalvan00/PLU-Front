@@ -90,8 +90,29 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     const body = await response.json()
 
     expect(response.status, JSON.stringify(body)).toBe(201)
-    expect(body.order).toMatchObject({ amount: 75000, currency: 'ARS' })
+    expect(body.order).toMatchObject({
+      amount: 75000,
+      currency: 'ARS',
+      method: 'manual_link',
+      manual_payment_channel: 'bank_transfer',
+    })
     expect(body.registration.payment_order_id).toBe(body.order.id)
+
+    // No depende de la UI: la propia RPC rechaza una transferencia con el
+    // precio de Mercado Pago antes de crear/reanudar una orden.
+    const wrongTransferPrice = await admin.rpc('create_competition_registration_checkout', {
+      p_athlete_id: athleteId,
+      p_event_slug: EVENT_SLUG,
+      p_division: 'Open',
+      p_category: 'Raw',
+      p_bodyweight_kg: 90,
+      p_payment_method: 'manual_link',
+      p_idempotency_key: randomUUID(),
+      p_discount_code: null,
+      p_order_amount: 85000,
+      p_manual_payment_channel: 'bank_transfer',
+    })
+    expect(wrongTransferPrice.error?.message).toContain('La cotizacion no coincide con la politica vigente.')
 
     const proof = await admin.rpc('register_athlete_payment_proof', {
       p_order_id: body.order.id,
@@ -137,7 +158,12 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     const body = await response.json()
 
     expect(response.status, JSON.stringify(body)).toBe(201)
-    expect(body.order).toMatchObject({ amount: 120000, currency: 'ARS' })
+    expect(body.order).toMatchObject({
+      amount: 120000,
+      currency: 'ARS',
+      method: 'manual_link',
+      manual_payment_channel: 'bank_transfer',
+    })
     expect(body.membership.payment_order_id).toBe(body.order.id)
     expect(body.registration.payment_order_id).toBe(body.order.id)
 

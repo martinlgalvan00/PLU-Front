@@ -161,6 +161,7 @@ export default function HomePage({
         <div className="home-section__inner home-mid-stack">
           <HomeMembershipBand
             onNavigate={onNavigate}
+            onSelectEvent={onSelectEvent}
             isLoggedInAthlete={isLoggedInAthlete}
             hasActiveMembership={hasActiveMembership}
             gateEvent={launchEvent}

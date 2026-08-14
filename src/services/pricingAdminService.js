@@ -29,6 +29,22 @@ export function mapMembershipPlan(row) {
   }
 }
 
+export function mapDiscountCode(row) {
+  return {
+    id: row.id,
+    code: row.code,
+    description: row.description ?? '',
+    percentOff: Number(row.percent_off ?? row.percentOff) || 0,
+    appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
+    maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
+    expiresAt: row.expires_at ?? row.expiresAt ?? null,
+    active: row.active !== false,
+    redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    updatedAt: row.updated_at ?? row.updatedAt ?? null,
+  }
+}
+
 export function mapPricingConfiguration(payload = {}) {
   return {
     plans: (payload.plans ?? []).map(mapMembershipPlan),
@@ -39,6 +55,7 @@ export function mapPricingConfiguration(payload = {}) {
         ? { ...event.comboOffer, price: Number(event.comboOffer.price) || 0 }
         : null,
     })),
+    discountCodes: (payload.discountCodes ?? []).map(mapDiscountCode),
     availability: payload.availability ?? { editable: true, reason: null },
   }
 }
@@ -72,4 +89,42 @@ export async function saveEventComboOfferRequest(eventSlug, offer) {
       endsAt: dateTimeToIso(offer.endsAt),
     }),
   })
+}
+
+export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
+  const result = await apiPatch(
+    `/api/pricing/membership-plans/${encodeURIComponent(planId)}/retirement`,
+    { retiresAt: dateTimeToIso(retiresAt) },
+  )
+  return mapMembershipPlan(result.plan)
+}
+
+export async function upsertDiscountCodeRequest(code) {
+  const result = await apiPost('/api/pricing/discount-codes', {
+    ...code,
+    expiresAt: dateTimeToIso(code.expiresAt),
+  })
+  return mapDiscountCode(result.code)
+}
+
+export async function setDiscountCodeActiveRequest(codeId, active) {
+  const result = await apiPatch(
+    `/api/pricing/discount-codes/${encodeURIComponent(codeId)}/status`,
+    { active },
+  )
+  return mapDiscountCode(result.code)
+}
+
+export async function fetchBillingSubscriptionsRequest(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.status) params.set('status', filters.status)
+  if (filters.athleteId) params.set('athleteId', filters.athleteId)
+  const query = params.toString()
+  const result = await apiGet(`/api/payments/subscriptions${query ? `?${query}` : ''}`)
+  return result.subscriptions ?? []
+}
+
+export async function cancelBillingSubscriptionRequest(subscriptionId) {
+  const result = await apiPost(`/api/payments/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {})
+  return result.subscription
 }

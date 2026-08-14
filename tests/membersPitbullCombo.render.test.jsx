@@ -71,11 +71,11 @@ describe('CTA del combo Pitbull desde afiliaciones', () => {
     )
 
     await waitFor(() => {
-      expect(container.querySelector('.members-combo-promo__price')?.textContent)
+      expect(container.querySelector('.season-combo-offer__amount')?.textContent)
         .toContain('$\u00a0120.000')
     })
 
-    fireEvent.click(container.querySelector('.members-combo-promo__cta'))
+    fireEvent.click(container.querySelector('.season-combo-offer__cta'))
     expect(onSelectEvent).toHaveBeenCalledWith(pitbull)
   })
 })

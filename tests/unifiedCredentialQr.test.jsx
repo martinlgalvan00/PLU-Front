@@ -124,4 +124,62 @@ describe('QR único por atleta', () => {
     expect(ticketUrl.searchParams.get('evento')).toBe('pitbull-classic-2026')
     expect(ticketUrl.searchParams.get('tipo')).toBe('ticket')
   })
+
+  it('muestra la placa sin emitir y una sola acción de afiliación', () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{ id: 'athlete-1', fullName: 'Ana Torres' }}
+          membership={null}
+          registrations={[]}
+          onNavigateSection={vi.fn()}
+          onNavigate={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Mi QR' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Activá tu credencial' })).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Con afiliación activa o una inscripción confirmada generás tu QR de ingreso.',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Afiliarme para generar mi credencial' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ver calendario de meets' })).toBeTruthy()
+    expect(screen.queryByTestId('credential-status')).toBeNull()
+  })
+
+  it('en dual muestra una credencial y la banda de conversión, no dos QR', async () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{
+            id: 'athlete-1',
+            fullName: 'Ana Torres',
+            credentialToken: 'credential-token-1',
+          }}
+          membership={null}
+          latestMembership={{
+            id: 'membership-pending',
+            status: 'pendiente_pago',
+            memberCode: 'PLU-ARG-2026-014',
+          }}
+          registrations={[{
+            id: 'registration-1',
+            status: 'confirmada',
+            event: 'Pitbull Classic 2026',
+            eventSlug: 'pitbull-classic-2026',
+            requiresMembership: true,
+          }]}
+          onNavigateSection={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByTestId('credential-status')).toBeTruthy()
+    expect(screen.getByText('Pendiente de activación')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Pagar afiliación' })).toBeTruthy()
+    expect(screen.queryByTestId('share-card-variant')).toBeNull()
+  })
 })

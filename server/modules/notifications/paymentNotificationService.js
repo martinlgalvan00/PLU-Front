@@ -2,7 +2,7 @@ import { createEmailDispatcher } from './emailDispatcher.js'
 import { buildEventPagePath } from '../../../src/lib/eventPageRoute.js'
 import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
-function displayPaymentConcept(concept) {
+export function displayPaymentConcept(concept) {
   if (concept === 'membership') return 'Afiliación PLU'
   if (concept === 'registration') return 'Inscripción a competencia'
   if (concept === 'combo') return 'Afiliación + inscripción'
@@ -28,6 +28,7 @@ export function buildPaymentConfirmationParams({
   recipientName,
   appUrl = '',
   registrationEvent = null,
+  isFirstMembership = false,
 }) {
   const membership = result?.membership ?? null
   const registration = order?.registration ?? result?.registration ?? null
@@ -59,6 +60,7 @@ export function buildPaymentConfirmationParams({
     memberCode: membership?.member_code ?? '',
     expirationDate: membership?.expiration_date ?? '',
     membershipPending: includesMembership && !membership?.id,
+    isFirstMembership: includesMembership && isFirstMembership,
     accountUrl: includesMembership ? `${baseUrl}/mi-cuenta` : '',
 
     eventTitle: event?.title ?? '',

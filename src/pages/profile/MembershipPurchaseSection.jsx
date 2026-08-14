@@ -7,12 +7,15 @@ import {
   ImageDown,
   RefreshCw,
   ShieldCheck,
+  Tag,
 } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
+import { previewDiscountCode } from '../../services/athleteApi.js'
+import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -24,6 +27,8 @@ import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
+import RegistrationAccessCodeFields from '../../components/checkout/RegistrationAccessCodeFields.jsx'
+import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -57,6 +62,13 @@ export default function MembershipPurchaseSection({
   const [plansError, setPlansError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [checkoutIsError, setCheckoutIsError] = useState(false)
+  const [discountCodeInput, setDiscountCodeInput] = useState('')
+  const [discountPreview, setDiscountPreview] = useState(null)
+  const [discountChecking, setDiscountChecking] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+  const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
+  const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
+  const [membershipAccessCode, setMembershipAccessCode] = useState('')
   // Vigencia y no `status === 'activa'`: es la condición que exige la RPC de
   // inscripción y la que responde la puerta al escanear. Una fila marcada
   // activa con fechas vencidas daba acá una afiliación "al día", escondía el
@@ -73,7 +85,7 @@ export default function MembershipPurchaseSection({
   // el atleta cancele sin querer la orden que está en validación.
   const transferUnderReview = membership?.paymentStatus === 'validacion_manual'
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
+  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) && membershipCheckoutEnabled
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   const cardData = membershipActive
@@ -97,6 +109,9 @@ export default function MembershipPurchaseSection({
     : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
+  const selectedPlanPrice = previewCheckoutPrice({
+    concept: 'membership', paymentMethod, fallback: selectedPlan?.price ?? 0,
+  })
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
   const ctaDisabled = !selectedPlan || submitting
   // Igual que el settle de inscripción a torneo: en cuanto hay una orden de
@@ -189,10 +204,54 @@ export default function MembershipPurchaseSection({
   }, [loadPlans])
 
   useEffect(() => {
+    let active = true
+    fetchRegistrationAccessRequirements()
+      .then((requirements) => {
+        if (!active) return
+        setMembershipAccessRequired(requirements.membership)
+        setMembershipCheckoutEnabled(requirements.membershipEnabled)
+      })
+      .catch(() => {
+        if (active) setMembershipAccessRequired(false)
+      })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
     if (selectedPlan?.collectionMode === 'recurring' && paymentMethod !== 'mercado_pago') {
       setPaymentMethod('mercado_pago')
     }
   }, [paymentMethod, selectedPlan?.collectionMode])
+
+  async function applyDiscountCode() {
+    const code = discountCodeInput.trim().toUpperCase()
+    if (!code || !selectedPlan) return
+    setDiscountChecking(true)
+    setDiscountError('')
+    setDiscountPreview(null)
+    try {
+      const preview = await previewDiscountCode({
+        code,
+        appliesTo: 'membership',
+        planCode: selectedPlan.code,
+      })
+      if (!preview.valid) {
+        setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
+        return
+      }
+      setDiscountPreview(preview)
+    } catch (error) {
+      setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
+    } finally {
+      setDiscountChecking(false)
+    }
+  }
+
+  function clearDiscountCode() {
+    setDiscountCodeInput('')
+    setDiscountPreview(null)
+    setDiscountError('')
+  }
 
   async function startMembershipPayment(methodOverride) {
     const method = methodOverride ?? paymentMethod
@@ -207,7 +266,12 @@ export default function MembershipPurchaseSection({
 
     setSubmitting(true)
     try {
-      const result = await onStartMembershipPayment?.(method, selectedPlan.code)
+      const result = await onStartMembershipPayment?.(
+        method,
+        selectedPlan.code,
+        discountPreview?.code ?? '',
+        membershipAccessCode,
+      )
       if (result?.error) {
         setCheckoutMessage(result.error)
         setCheckoutIsError(true)
@@ -223,6 +287,12 @@ export default function MembershipPurchaseSection({
         // modal: es el momento en que el atleta tiene el ticket bancario a mano.
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
         setTransferOpen(true)
+        return
+      }
+      if (method === 'cash_pitbull') {
+        setEmbeddedOrder(null)
+        setChangingMethod(false)
+        setCheckoutMessage(t('account.membership.cashPitbullCreated'))
         return
       }
       if (result?.createdOrder) {
@@ -249,6 +319,7 @@ export default function MembershipPurchaseSection({
     setPlanCode(nextPlanCode)
     setCheckoutMessage('')
     setCheckoutIsError(false)
+    clearDiscountCode()
   }
 
   function changeBillingMode(nextMode) {
@@ -517,6 +588,58 @@ export default function MembershipPurchaseSection({
                 </div>
               ) : null}
 
+              {selectedPlan ? (
+                <div className="account-discount">
+                  {discountPreview ? (
+                    <p className="account-discount__applied">
+                      <Tag size={14} aria-hidden />
+                      {t('account.membership.discountApplied', {
+                        code: discountPreview.code,
+                        amount: money(discountPreview.discountAmount, locale),
+                      })}
+                      <button type="button" onClick={clearDiscountCode} disabled={checkoutLocked}>
+                        {t('account.membership.discountRemove')}
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="account-discount__field">
+                      <label htmlFor="membership-discount-code">
+                        {t('account.membership.discountLabel')}
+                      </label>
+                      <div className="account-discount__row">
+                        <input
+                          id="membership-discount-code"
+                          type="text"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder={t('account.membership.discountPlaceholder')}
+                          value={discountCodeInput}
+                          disabled={checkoutLocked || discountChecking}
+                          onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
+                        />
+                        <button
+                          type="button"
+                          disabled={checkoutLocked || discountChecking || !discountCodeInput.trim()}
+                          onClick={applyDiscountCode}
+                        >
+                          {discountChecking ? t('account.membership.discountChecking') : t('account.membership.discountApply')}
+                        </button>
+                      </div>
+                      {discountError ? (
+                        <p className="account-discount__error" role="alert">{discountError}</p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <RegistrationAccessCodeFields
+                membershipRequired={membershipAccessRequired}
+                membershipCode={membershipAccessCode}
+                onMembershipCodeChange={setMembershipAccessCode}
+                disabled={checkoutLocked}
+              />
+
               <CheckoutDesk
                 bar={
                   selectedPlan ? (
@@ -524,7 +647,7 @@ export default function MembershipPurchaseSection({
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
-                      total={selectedPlan.price}
+                      total={discountPreview ? discountPreview.finalAmount : selectedPlanPrice}
                       totalLabel={t('account.membership.priceLabel')}
                       type="button"
                       onClick={handleCheckoutAction}
@@ -538,6 +661,11 @@ export default function MembershipPurchaseSection({
                     label: t('account.membership.transfer'),
                     disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
                   },
+                  {
+                    value: 'cash_pitbull',
+                    label: t('account.membership.cashPitbull'),
+                    disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                  },
                 ]}
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
@@ -549,7 +677,7 @@ export default function MembershipPurchaseSection({
                           featured: true,
                           id: selectedPlan.code,
                           name: selectedPlan.name,
-                          priceLabel: money(selectedPlan.price, locale),
+                          priceLabel: money(selectedPlanPrice, locale),
                         },
                       ]
                     : []

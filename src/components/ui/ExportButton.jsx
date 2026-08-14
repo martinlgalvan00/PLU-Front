@@ -22,7 +22,7 @@ export default function ExportButton({
       title={accessibleName}
     >
       <Icon size={16} aria-hidden />
-      {!iconOnly && label}
+      {!iconOnly && <span className="export-btn__label">{label}</span>}
     </button>
   )
 }

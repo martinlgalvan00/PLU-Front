@@ -1,8 +1,9 @@
-import { Component, useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { Component, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CardPayment, Payment, Wallet, initMercadoPago } from '@mercadopago/sdk-react'
 import { CheckCircle2, Clock3, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { money } from '../../lib/format.js'
+import { syncMercadoPagoSubmitLabel } from '../../lib/mercadoPagoBrickUi.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   createPreference as createPreferenceRequest,
@@ -16,37 +17,51 @@ import { trackConversion, trackEvent } from '../../services/analyticsService.js'
 
 let initializedPublicKey = null
 
-// Re-skin del Brick con la identidad PLU: mismo acento dorado y misma
-// tipografía que el resto del sitio, en vez del celeste/Poppins-less default
-// de Mercado Pago. `font` solo alcanza los campos seguros (tarjeta/CVV);
-// los valores de color salen de palette.css (--plu-gold-500 /
-// --color-brand-action-text) — son tokens de marca, no cambian por tema.
-const BRICK_VISUAL_CUSTOMIZATION = {
-  font: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
-  style: {
-    theme: 'default',
-    customVariables: {
-      baseColor: '#f2b705',
-      buttonTextColor: '#14181f',
-      borderRadiusSmall: '6px',
-      borderRadiusMedium: '10px',
-      borderRadiusLarge: '10px',
+// Re-skin del Brick: acento oro PLU, tipografía del sitio y fondo
+// transparente para que el formulario se sienta parte de la página.
+// `font` solo alcanza campos seguros (tarjeta/CVV). Los hex de marca
+// salen de palette.css (--plu-gold-500 / --color-brand-action-text).
+const BRICK_FONT = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'
+
+function readCssColor(name, fallback) {
+  if (typeof document === 'undefined') return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
+function buildBrickVisual() {
+  const isLight = typeof document !== 'undefined'
+    && document.documentElement.getAttribute('data-theme') === 'light'
+  return {
+    font: BRICK_FONT,
+    hideFormTitle: true,
+    style: {
+      theme: isLight ? 'default' : 'dark',
+      customVariables: {
+        baseColor: '#f2b705',
+        buttonTextColor: '#14181f',
+        formBackgroundColor: 'transparent',
+        formPadding: '0px',
+        inputBackgroundColor: 'transparent',
+        textPrimaryColor: readCssColor('--color-text-primary', isLight ? '#0d0e12' : '#f4f4f5'),
+        textSecondaryColor: readCssColor('--color-text-muted', isLight ? '#636878' : '#9a9aa8'),
+        outlinePrimaryColor: readCssColor('--color-border', isLight ? 'rgba(15, 17, 23, 0.10)' : 'rgba(255, 255, 255, 0.14)'),
+        outlineSecondaryColor: readCssColor('--color-border-subtle', isLight ? 'rgba(15, 17, 23, 0.06)' : 'rgba(255, 255, 255, 0.08)'),
+        errorColor: readCssColor('--color-danger-text', isLight ? '#b42318' : '#ff8b86'),
+        borderRadiusSmall: '6px',
+        borderRadiusMedium: '10px',
+        borderRadiusLarge: '10px',
+        inputFocusedBoxShadow: '0 0 0 2px rgba(242, 183, 5, 0.28)',
+      },
     },
-  },
+  }
 }
-const SUBSCRIPTION_CUSTOMIZATION = {
-  paymentMethods: { minInstallments: 1, maxInstallments: 1 },
-  visual: BRICK_VISUAL_CUSTOMIZATION,
-}
-const PAYMENT_CUSTOMIZATION = {
-  paymentMethods: {
-    creditCard: 'all',
-    debitCard: 'all',
-    prepaidCard: 'all',
-    ticket: 'all',
-    mercadoPago: 'all',
-  },
-  visual: BRICK_VISUAL_CUSTOMIZATION,
+const PAYMENT_METHODS = {
+  creditCard: 'all',
+  debitCard: 'all',
+  prepaidCard: 'all',
+  ticket: 'all',
+  mercadoPago: 'all',
 }
 const WALLET_CUSTOMIZATION = {
   valueProp: 'practicality',
@@ -193,6 +208,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [simulating, setSimulating] = useState(false)
   const [pollExhausted, setPollExhausted] = useState(false)
   const [walletPreferenceId, setWalletPreferenceId] = useState(null)
+  const [preferenceReady, setPreferenceReady] = useState(() => (
+    isRealMercadoPagoPreferenceId(resolvePreferenceId(order))
+  ))
+  const [brickVisual] = useState(buildBrickVisual)
+  const brickRef = useRef(null)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
@@ -205,11 +225,30 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     ? resolvedPreferenceId
     : null
   const realPreferenceId = walletPreferenceId ?? initialPreferenceId
-  const canRenderWallet = !isSubscription && Boolean(realPreferenceId)
+  // Wallet Brick redirige (el botón queda en "Redirigiendo") y duplica el
+  // medio "Mercado Pago" que ya trae Payment Brick. En settle —afiliación e
+  // inscripción— el cobro tiene que quedar embebido en la página.
+  const canRenderWallet = !isSettle && !isSubscription && Boolean(realPreferenceId)
+  const paymentCustomization = useMemo(
+    () => ({ paymentMethods: PAYMENT_METHODS, visual: brickVisual }),
+    [brickVisual],
+  )
+  const subscriptionCustomization = useMemo(
+    () => ({
+      paymentMethods: { minInstallments: 1, maxInstallments: 1 },
+      visual: brickVisual,
+    }),
+    [brickVisual],
+  )
   const initialization = useMemo(() => ({
     amount: Number(order?.amount ?? 0),
     ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
   }), [isSubscription, order?.amount, realPreferenceId])
+  const walletInitialization = useMemo(
+    () => ({ preferenceId: realPreferenceId, redirectMode: 'self' }),
+    [realPreferenceId],
+  )
+  const canRenderPaymentBrick = isSubscription || preferenceReady
 
   useEffect(() => {
     if (isMock) {
@@ -238,11 +277,16 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   }, [initialPreferenceId, orderId])
 
   useEffect(() => {
-    if (isMock || isSubscription || realPreferenceId || !orderId || !env.mercadoPago.configured) {
+    if (isMock || isSubscription) {
+      setPreferenceReady(true)
       return undefined
     }
-    let cancelled = false
+    if (realPreferenceId || !orderId || !env.mercadoPago.configured) {
+      setPreferenceReady(true)
+      return undefined
+    }
 
+    let cancelled = false
     void createPreferenceRequest({
       paymentId: orderId,
       orderAccessToken: order?.orderAccessToken,
@@ -255,12 +299,15 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       })
       .catch((preferenceError) => {
         if (!env.appProduction) {
-          console.info('[mp-checkout] no se pudo preparar Wallet Brick', {
+          console.info('[mp-checkout] no se pudo preparar la preferencia embebida', {
             orderId,
             status: preferenceError?.status,
             message: preferenceError?.message,
           })
         }
+      })
+      .finally(() => {
+        if (!cancelled) setPreferenceReady(true)
       })
 
     return () => {
@@ -371,6 +418,23 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   }, [onResult, order?.orderAccessToken, orderId, result?.data?.payment?.id, t])
 
   const handleReady = useCallback(() => setReady(true), [])
+
+  useEffect(() => {
+    if (isMock || isSubscription || !canRenderPaymentBrick) return undefined
+    const root = brickRef.current
+    if (!root) return undefined
+
+    const sync = () => syncMercadoPagoSubmitLabel(root, t)
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(root, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'aria-checked', 'aria-selected'],
+    })
+    return () => observer.disconnect()
+  }, [brickVersion, canRenderPaymentBrick, isMock, isSubscription, ready, t])
   const handleRenderError = useCallback((brickError) => {
     setError(t('payments.embeddedRenderError'))
     void reportPaymentClientEvent({
@@ -593,7 +657,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                   <Wallet
                     key={`wallet-brick-${brickVersion}`}
                     id={`wallet-brick-${reactId}-${brickVersion}`}
-                    initialization={{ preferenceId: realPreferenceId, redirectMode: 'self' }}
+                    initialization={walletInitialization}
                     customization={WALLET_CUSTOMIZATION}
                     locale={localeCode}
                     onReady={handleReady}
@@ -610,33 +674,38 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
             </div>
           ) : null}
 
-          <PaymentBrickErrorBoundary key={`payment-${brickVersion}`} onError={handleRenderError}>
-            <div className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}>
-              {isSubscription ? (
-                <CardPayment
-                  key={brickVersion}
-                  id={`card-payment-brick-${reactId}-${brickVersion}`}
-                  initialization={initialization}
-                  customization={SUBSCRIPTION_CUSTOMIZATION}
-                  locale={localeCode}
-                  onReady={handleReady}
-                  onError={handleRenderError}
-                  onSubmit={submitSubscription}
-                />
-              ) : (
-                <Payment
-                  key={brickVersion}
-                  id={`payment-brick-${reactId}-${brickVersion}`}
-                  initialization={initialization}
-                  customization={PAYMENT_CUSTOMIZATION}
-                  locale={localeCode}
-                  onReady={handleReady}
-                  onError={handleRenderError}
-                  onSubmit={submitPayment}
-                />
-              )}
-            </div>
-          </PaymentBrickErrorBoundary>
+          {canRenderPaymentBrick ? (
+            <PaymentBrickErrorBoundary key={`payment-${brickVersion}`} onError={handleRenderError}>
+              <div
+                ref={brickRef}
+                className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}
+              >
+                {isSubscription ? (
+                  <CardPayment
+                    key={brickVersion}
+                    id={`card-payment-brick-${reactId}-${brickVersion}`}
+                    initialization={initialization}
+                    customization={subscriptionCustomization}
+                    locale={localeCode}
+                    onReady={handleReady}
+                    onError={handleRenderError}
+                    onSubmit={submitSubscription}
+                  />
+                ) : (
+                  <Payment
+                    key={brickVersion}
+                    id={`payment-brick-${reactId}-${brickVersion}`}
+                    initialization={initialization}
+                    customization={paymentCustomization}
+                    locale={localeCode}
+                    onReady={handleReady}
+                    onError={handleRenderError}
+                    onSubmit={submitPayment}
+                  />
+                )}
+              </div>
+            </PaymentBrickErrorBoundary>
+          ) : null}
         </div>
       )}
 

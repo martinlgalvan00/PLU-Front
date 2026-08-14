@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BadgeDollarSign,
   CalendarClock,
+  CalendarOff,
   CirclePlus,
   Pencil,
   RefreshCw,
+  Repeat,
   Save,
+  X,
 } from 'lucide-react'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import { FEATURE_KEYS, isFeatureEnabled } from '../../lib/featureAvailability.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -24,6 +28,27 @@ const EMPTY_PLAN = {
   intervalCount: 1,
   graceDays: 0,
   effectiveFrom: '',
+  retiresAt: '',
+}
+
+const EMPTY_DISCOUNT_CODE = {
+  id: undefined,
+  code: '',
+  description: '',
+  percentOff: '',
+  appliesTo: 'membership',
+  maxRedemptions: '',
+  expiresAt: '',
+  active: true,
+}
+
+const SUBSCRIPTION_STATUS_LABELS = {
+  pending: 'pending',
+  authorized: 'active',
+  paused: 'paused',
+  past_due: 'pastDue',
+  cancelled: 'cancelled',
+  ended: 'ended',
 }
 
 function toLocalDateTime(value) {
@@ -40,15 +65,31 @@ function planStatus(plan, now) {
   return 'active'
 }
 
+function codeStatus(code, now) {
+  if (!code.active) return 'inactive'
+  if (code.expiresAt && new Date(code.expiresAt) < now) return 'expired'
+  if (code.maxRedemptions != null && code.redeemedCount >= code.maxRedemptions) return 'expired'
+  return 'active'
+}
+
 export default function PricingSection({
   canEdit = false,
-  configuration = { plans: [], events: [], availability: { editable: true } },
+  canEditSubscriptions = false,
+  configuration = { plans: [], events: [], discountCodes: [], availability: { editable: true } },
   error,
   isLoading = false,
   onCreatePlanVersion,
   onRefresh,
   onSaveComboOffer,
   onSetPlanActive,
+  onSetPlanRetirement,
+  onUpsertDiscountCode,
+  onSetDiscountCodeActive,
+  subscriptions = [],
+  subscriptionsLoading = false,
+  subscriptionsError,
+  onRefreshSubscriptions,
+  onCancelSubscription,
 }) {
   const { locale, t } = useI18n()
   const [planDraft, setPlanDraft] = useState(null)
@@ -64,19 +105,55 @@ export default function PricingSection({
     endsAt: '',
     active: false,
   })
+  const [retirementPlanId, setRetirementPlanId] = useState(null)
+  const [retirementDraft, setRetirementDraft] = useState('')
+  const [codeDraft, setCodeDraft] = useState(null)
+  const [codeError, setCodeError] = useState('')
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelError, setCancelError] = useState('')
+  const planFormRef = useRef(null)
+  const codeFormRef = useRef(null)
 
   useEffect(() => {
     onRefresh?.()
   }, [onRefresh])
+
+  useEffect(() => {
+    onRefreshSubscriptions?.()
+  }, [onRefreshSubscriptions])
 
   const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
   const locked =
     !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
   const showProductionLock =
     !pricingWritesEnabled || configuration.availability?.reason === 'production_coming_soon'
-  const plans = useMemo(() => configuration.plans ?? [], [configuration.plans])
-  const events = useMemo(() => configuration.events ?? [], [configuration.events])
   const now = useMemo(() => new Date(), [])
+  const plans = useMemo(() => {
+    const list = [...(configuration.plans ?? [])]
+    const rank = (plan) => {
+      const status = planStatus(plan, now)
+      if (status === 'active') return 0
+      if (status === 'scheduled') return 1
+      return 2
+    }
+    return list.sort((left, right) => {
+      const byStatus = rank(left) - rank(right)
+      if (byStatus !== 0) return byStatus
+      const byFamily = String(left.familyCode).localeCompare(String(right.familyCode))
+      if (byFamily !== 0) return byFamily
+      return (Number(right.version) || 0) - (Number(left.version) || 0)
+    })
+  }, [configuration.plans, now])
+  const events = useMemo(() => configuration.events ?? [], [configuration.events])
+  const discountCodes = useMemo(() => {
+    const list = [...(configuration.discountCodes ?? [])]
+    const rank = (code) => (codeStatus(code, now) === 'active' ? 0 : 1)
+    return list.sort((left, right) => {
+      const byStatus = rank(left) - rank(right)
+      if (byStatus !== 0) return byStatus
+      return new Date(right.createdAt ?? 0) - new Date(left.createdAt ?? 0)
+    })
+  }, [configuration.discountCodes, now])
   const oneTimePlans = useMemo(
     () => plans.filter((plan) => {
       if (!plan.active || plan.collectionMode !== 'one_time') return false
@@ -111,6 +188,28 @@ export default function PricingSection({
     setComboError('')
   }, [oneTimePlans, selectedEvent])
 
+  useEffect(() => {
+    if (!planDraft) return undefined
+    const form = planFormRef.current
+    if (typeof form?.scrollIntoView === 'function') {
+      form.scrollIntoView({ block: 'nearest' })
+    }
+    const firstField = form?.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])')
+    firstField?.focus?.()
+    return undefined
+  }, [planDraft])
+
+  useEffect(() => {
+    if (!codeDraft) return undefined
+    const form = codeFormRef.current
+    if (typeof form?.scrollIntoView === 'function') {
+      form.scrollIntoView({ block: 'nearest' })
+    }
+    const firstField = form?.querySelector('input:not([disabled]), select:not([disabled])')
+    firstField?.focus?.()
+    return undefined
+  }, [codeDraft])
+
   function openPlanForm(source = null) {
     setNotice('')
     setPlanError('')
@@ -128,6 +227,7 @@ export default function PricingSection({
             intervalCount: source.intervalCount,
             graceDays: source.graceDays,
             effectiveFrom: '',
+            retiresAt: '',
           }
         : { ...EMPTY_PLAN },
     )
@@ -164,6 +264,96 @@ export default function PricingSection({
     setPendingAction('')
     if (result?.error) setPlanError(result.error)
     else setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  function openRetirementEditor(plan) {
+    setNotice('')
+    setPlanError('')
+    setRetirementPlanId(plan.id)
+    setRetirementDraft(toLocalDateTime(plan.retiredAt))
+  }
+
+  async function submitRetirement(event, plan) {
+    event.preventDefault()
+    setPendingAction(`retire-${plan.id}`)
+    const result = await onSetPlanRetirement?.(plan.id, retirementDraft || null)
+    setPendingAction('')
+    if (result?.error) {
+      setPlanError(result.error)
+      return
+    }
+    setRetirementPlanId(null)
+    setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  function openCodeForm(source = null) {
+    setNotice('')
+    setCodeError('')
+    setCodeDraft(
+      source
+        ? {
+            id: source.id,
+            code: source.code,
+            description: source.description,
+            percentOff: source.percentOff,
+            appliesTo: source.appliesTo,
+            maxRedemptions: source.maxRedemptions ?? '',
+            expiresAt: toLocalDateTime(source.expiresAt),
+            active: source.active,
+          }
+        : { ...EMPTY_DISCOUNT_CODE },
+    )
+  }
+
+  async function submitCode(event) {
+    event.preventDefault()
+    setCodeError('')
+    const percentOff = Number(codeDraft.percentOff)
+    if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(codeDraft.code.toUpperCase())) {
+      setCodeError(t('admin.sections.pricing.codeFormatHint'))
+      return
+    }
+    if (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 100) {
+      setCodeError(t('admin.sections.pricing.loadError'))
+      return
+    }
+
+    setPendingAction('code')
+    const result = await onUpsertDiscountCode?.({
+      ...codeDraft,
+      code: codeDraft.code.toUpperCase(),
+      percentOff,
+      maxRedemptions: codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
+    })
+    setPendingAction('')
+    if (result?.error) {
+      setCodeError(result.error)
+      return
+    }
+    setCodeDraft(null)
+    setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  async function toggleCode(code) {
+    setPendingAction(code.id)
+    setNotice('')
+    const result = await onSetDiscountCodeActive?.(code.id, !code.active)
+    setPendingAction('')
+    if (result?.error) setCodeError(result.error)
+    else setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  async function confirmCancelSubscription() {
+    if (!cancelTarget) return
+    setPendingAction(`cancel-${cancelTarget.id}`)
+    setCancelError('')
+    const result = await onCancelSubscription?.(cancelTarget.id)
+    setPendingAction('')
+    if (result?.error) {
+      setCancelError(result.error)
+      return
+    }
+    setCancelTarget(null)
   }
 
   async function submitCombo(event) {
@@ -269,10 +459,12 @@ export default function PricingSection({
                   <div className="admin-pricing__plan-title-row">
                     <span
                       className={`admin-pricing__status-dot admin-pricing__status-dot--${status}`}
-                      aria-label={t(`admin.sections.pricing.${status}`)}
-                      title={t(`admin.sections.pricing.${status}`)}
+                      aria-hidden
                     />
                     <h3>{plan.name}</h3>
+                    <span className={`admin-pricing__status admin-pricing__status--${status}`}>
+                      {t(`admin.sections.pricing.${status}`)}
+                    </span>
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span><code>{plan.familyCode}</code></span>
@@ -294,11 +486,26 @@ export default function PricingSection({
                   <button
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => openRetirementEditor(plan)}
+                    disabled={locked}
+                  >
+                    <CalendarOff size={14} aria-hidden />
+                    {plan.retiredAt
+                      ? t('admin.sections.pricing.retiresOn', {
+                          date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                            new Date(plan.retiredAt),
+                          ),
+                        })
+                      : t('admin.sections.pricing.scheduleRetirement')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
                     onClick={() => openPlanForm(plan)}
                     disabled={locked}
                   >
                     <Pencil size={14} aria-hidden />
-                    {t('admin.sections.pricing.edit')}
+                    {t('admin.sections.pricing.newVersion')}
                   </button>
                   <label
                     className={`admin-pricing__switch${plan.active ? ' is-active' : ' is-cancelled'}`.trim()}
@@ -316,6 +523,40 @@ export default function PricingSection({
                     </strong>
                   </label>
                 </div>
+
+                {retirementPlanId === plan.id ? (
+                  <form
+                    className="admin-pricing__retirement-form"
+                    onSubmit={(event) => submitRetirement(event, plan)}
+                    noValidate
+                  >
+                    <label>
+                      <span>{t('admin.sections.pricing.retiresAt')}</span>
+                      <input
+                        type="datetime-local"
+                        value={retirementDraft}
+                        onChange={(event) => setRetirementDraft(event.target.value)}
+                        disabled={locked || pendingAction === `retire-${plan.id}`}
+                      />
+                    </label>
+                    <div className="admin-pricing__retirement-actions">
+                      <button
+                        type="button"
+                        className="admin-pricing__btn admin-pricing__btn--ghost"
+                        onClick={() => setRetirementPlanId(null)}
+                      >
+                        {t('admin.sections.pricing.cancel')}
+                      </button>
+                      <button
+                        type="submit"
+                        className="admin-pricing__btn admin-pricing__btn--primary"
+                        disabled={locked || pendingAction === `retire-${plan.id}`}
+                      >
+                        {t('admin.sections.pricing.save')}
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
               </article>
             )
           })}
@@ -325,11 +566,16 @@ export default function PricingSection({
         </div>
 
         {planDraft ? (
-          <form className="admin-pricing__form" onSubmit={submitPlan} noValidate>
+          <form
+            ref={planFormRef}
+            className="admin-pricing__form"
+            onSubmit={submitPlan}
+            noValidate
+          >
             <header>
               <h3>
                 {planDraft.sourcePlanId
-                  ? t('admin.sections.pricing.formTitleEdit', { name: planDraft.name })
+                  ? t('admin.sections.pricing.formTitleVersion', { name: planDraft.name })
                   : t('admin.sections.pricing.formTitleNew')}
               </h3>
             </header>
@@ -428,6 +674,15 @@ export default function PricingSection({
                   onChange={(event) => setPlanDraft({ ...planDraft, effectiveFrom: event.target.value })}
                 />
               </label>
+              <label>
+                <span>{t('admin.sections.pricing.retiresAt')}</span>
+                <input
+                  type="datetime-local"
+                  value={planDraft.retiresAt}
+                  onChange={(event) => setPlanDraft({ ...planDraft, retiresAt: event.target.value })}
+                />
+                <small>{t('admin.sections.pricing.retiresAtHint')}</small>
+              </label>
             </fieldset>
             {planError ? <p className="admin-pricing__form-error" role="alert">{planError}</p> : null}
             <div className="admin-pricing__form-actions">
@@ -446,9 +701,7 @@ export default function PricingSection({
                 <Save size={15} aria-hidden />
                 {pendingAction === 'plan'
                   ? t('admin.sections.pricing.saving')
-                  : planDraft.sourcePlanId
-                    ? t('admin.sections.pricing.saveChanges')
-                    : t('admin.sections.pricing.publish')}
+                  : t('admin.sections.pricing.publish')}
               </button>
             </div>
           </form>
@@ -612,6 +865,278 @@ export default function PricingSection({
           </form>
         )}
       </section>
+
+      <section className="admin-pricing__block" aria-labelledby="pricing-codes-title">
+        <header className="admin-pricing__block-head">
+          <div>
+            <h2 id="pricing-codes-title">{t('admin.sections.pricing.discountCodesTitle')}</h2>
+            <p>{t('admin.sections.pricing.discountCodesLead')}</p>
+          </div>
+          <button
+            type="button"
+            className="admin-pricing__btn admin-pricing__btn--primary"
+            onClick={() => openCodeForm()}
+            disabled={locked}
+          >
+            <CirclePlus size={15} aria-hidden />
+            <span className="admin-pricing__btn-label">{t('admin.sections.pricing.newDiscountCode')}</span>
+          </button>
+        </header>
+
+        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.discountCodesTitle')}>
+          {discountCodes.map((code) => {
+            const status = codeStatus(code, now)
+            const expiresLabel = code.expiresAt
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(code.expiresAt))
+              : t('admin.sections.pricing.noExpiry')
+            const usageLabel = code.maxRedemptions != null
+              ? t('admin.sections.pricing.redeemedOf', { count: code.redeemedCount, max: code.maxRedemptions })
+              : t('admin.sections.pricing.redeemedUnlimited', { count: code.redeemedCount })
+
+            return (
+              <article
+                className={`admin-pricing__plan-row admin-pricing__plan-row--${status === 'expired' ? 'inactive' : status}`}
+                key={code.id}
+                role="listitem"
+              >
+                <div className="admin-pricing__plan-main">
+                  <div className="admin-pricing__plan-title-row">
+                    <span
+                      className={`admin-pricing__status-dot${status === 'active' ? ' admin-pricing__status-dot--active' : ''}`}
+                      aria-hidden
+                    />
+                    <h3><code>{code.code}</code></h3>
+                    <span className={`admin-pricing__status${status === 'active' ? ' admin-pricing__status--active' : ''}`}>
+                      {t(`admin.sections.pricing.discountStatus.${status}`)}
+                    </span>
+                  </div>
+                  <p className="admin-pricing__plan-meta">
+                    <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
+                    <span>{usageLabel}</span>
+                    <span className="admin-pricing__plan-meta-date">
+                      <CalendarClock size={12} aria-hidden />
+                      {expiresLabel}
+                    </span>
+                  </p>
+                  {code.description ? <p className="admin-pricing__plan-meta">{code.description}</p> : null}
+                </div>
+
+                <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
+                  −{code.percentOff}%
+                </strong>
+
+                <div className="admin-pricing__plan-actions">
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => openCodeForm(code)}
+                    disabled={locked}
+                  >
+                    <Pencil size={14} aria-hidden />
+                    {t('admin.sections.pricing.edit')}
+                  </button>
+                  <label
+                    className={`admin-pricing__switch${code.active ? ' is-active' : ' is-cancelled'}`.trim()}
+                    aria-label={t(`admin.sections.pricing.${code.active ? 'active' : 'inactive'}`)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={code.active}
+                      onChange={() => toggleCode(code)}
+                      disabled={locked || pendingAction === code.id}
+                    />
+                    <span aria-hidden />
+                    <strong>
+                      {t(`admin.sections.pricing.${code.active ? 'activeSwitch' : 'cancelledSwitch'}`)}
+                    </strong>
+                  </label>
+                </div>
+              </article>
+            )
+          })}
+          {!isLoading && discountCodes.length === 0 ? (
+            <p className="admin-pricing__empty">{t('admin.sections.pricing.discountCodesEmpty')}</p>
+          ) : null}
+        </div>
+
+        {codeDraft ? (
+          <form ref={codeFormRef} className="admin-pricing__form" onSubmit={submitCode} noValidate>
+            <header>
+              <h3>
+                {codeDraft.id
+                  ? t('admin.sections.pricing.formTitleEditCode', { code: codeDraft.code })
+                  : t('admin.sections.pricing.formTitleNewCode')}
+              </h3>
+            </header>
+            <fieldset disabled={locked || pendingAction === 'code'}>
+              <label>
+                <span>{t('admin.sections.pricing.code')}</span>
+                <input
+                  name="code"
+                  value={codeDraft.code}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, code: event.target.value.toUpperCase() })}
+                  required
+                />
+                <small>{t('admin.sections.pricing.codeFormatHint')}</small>
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.percentOff')}</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={codeDraft.percentOff}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, percentOff: event.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.appliesToLabel')}</span>
+                <select
+                  value={codeDraft.appliesTo}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, appliesTo: event.target.value })}
+                >
+                  <option value="membership">{t('admin.sections.pricing.appliesTo.membership')}</option>
+                  <option value="registration">{t('admin.sections.pricing.appliesTo.registration')}</option>
+                  <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                </select>
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.maxRedemptions')}</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder={t('admin.sections.pricing.unlimitedUses')}
+                  value={codeDraft.maxRedemptions}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, maxRedemptions: event.target.value })}
+                />
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.expiresAt')}</span>
+                <input
+                  type="datetime-local"
+                  value={codeDraft.expiresAt}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, expiresAt: event.target.value })}
+                />
+              </label>
+              <label className="admin-pricing__wide">
+                <span>{t('admin.sections.pricing.description')}</span>
+                <input
+                  value={codeDraft.description}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, description: event.target.value })}
+                />
+              </label>
+            </fieldset>
+            {codeError ? <p className="admin-pricing__form-error" role="alert">{codeError}</p> : null}
+            <div className="admin-pricing__form-actions">
+              <button
+                type="button"
+                className="admin-pricing__btn admin-pricing__btn--ghost"
+                onClick={() => setCodeDraft(null)}
+              >
+                {t('admin.sections.pricing.cancel')}
+              </button>
+              <button
+                type="submit"
+                className="admin-pricing__btn admin-pricing__btn--primary"
+                disabled={locked || pendingAction === 'code'}
+              >
+                <Save size={15} aria-hidden />
+                {pendingAction === 'code' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.publish')}
+              </button>
+            </div>
+          </form>
+        ) : null}
+      </section>
+
+      <section className="admin-pricing__block" aria-labelledby="pricing-subscriptions-title">
+        <header className="admin-pricing__block-head">
+          <div>
+            <h2 id="pricing-subscriptions-title">{t('admin.sections.pricing.subscriptionsTitle')}</h2>
+            <p>{t('admin.sections.pricing.subscriptionsLead')}</p>
+          </div>
+        </header>
+
+        {subscriptionsError ? (
+          <div className="admin-pricing__message admin-pricing__message--error" role="alert">
+            {subscriptionsError}
+          </div>
+        ) : null}
+        {subscriptionsLoading && subscriptions.length === 0 ? (
+          <p className="admin-pricing__loading">{t('admin.sections.pricing.loading')}</p>
+        ) : null}
+
+        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.subscriptionsTitle')}>
+          {subscriptions.map((subscription) => {
+            const statusKey = SUBSCRIPTION_STATUS_LABELS[subscription.status] ?? 'pending'
+            const canCancel = !['cancelled', 'ended'].includes(subscription.status)
+            const nextBillingLabel = subscription.nextBillingAt
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(subscription.nextBillingAt))
+              : '—'
+
+            return (
+              <article className="admin-pricing__plan-row" key={subscription.id} role="listitem">
+                <div className="admin-pricing__plan-main">
+                  <div className="admin-pricing__plan-title-row">
+                    <span
+                      className={`admin-pricing__status-dot${subscription.status === 'authorized' ? ' admin-pricing__status-dot--active' : ''}`}
+                      aria-hidden
+                    />
+                    <h3>{subscription.athleteName}</h3>
+                    <span className={`admin-pricing__status${subscription.status === 'authorized' ? ' admin-pricing__status--active' : ''}`}>
+                      {t(`admin.sections.pricing.subscriptionStatus.${statusKey}`)}
+                    </span>
+                  </div>
+                  <p className="admin-pricing__plan-meta">
+                    <span>{subscription.planName}</span>
+                    <span>{subscription.athleteEmail}</span>
+                    <span className="admin-pricing__plan-meta-date">
+                      <Repeat size={12} aria-hidden />
+                      {t('admin.sections.pricing.nextBilling', { date: nextBillingLabel })}
+                    </span>
+                  </p>
+                </div>
+
+                <strong className="admin-pricing__plan-amount">{money(subscription.amount, locale)}</strong>
+
+                <div className="admin-pricing__plan-actions">
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    onClick={() => { setCancelError(''); setCancelTarget(subscription) }}
+                    disabled={!canEditSubscriptions || !canCancel}
+                  >
+                    <X size={14} aria-hidden />
+                    {t('admin.sections.pricing.cancelSubscription')}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+          {!subscriptionsLoading && subscriptions.length === 0 ? (
+            <p className="admin-pricing__empty">{t('admin.sections.pricing.subscriptionsEmpty')}</p>
+          ) : null}
+        </div>
+      </section>
+
+      {cancelTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingAction === `cancel-${cancelTarget.id}`}
+          error={cancelError}
+          title={t('admin.sections.pricing.cancelSubscriptionConfirmTitle')}
+          description={t('admin.sections.pricing.cancelSubscriptionConfirmDescription', {
+            athlete: cancelTarget.athleteName,
+          })}
+          warning={t('admin.sections.pricing.cancelSubscriptionConfirmWarning')}
+          cancelLabel={t('admin.sections.pricing.cancel')}
+          confirmLabel={t('admin.sections.pricing.cancelSubscription')}
+          busyLabel={t('admin.sections.pricing.saving')}
+          onCancel={() => setCancelTarget(null)}
+          onConfirm={confirmCancelSubscription}
+        />
+      ) : null}
     </section>
   )
 }

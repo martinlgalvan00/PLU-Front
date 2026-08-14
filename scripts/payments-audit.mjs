@@ -62,11 +62,10 @@ if (runtime.provider === 'mock') {
   }
 }
 
-for (const [name, label] of [['APP_URL', 'sitio'], ['API_URL', 'API']]) {
-  const raw = String(process.env[name] ?? '').trim()
+function auditIntegrationUrl(name, raw) {
   if (!raw) {
-    blocker('runtime', `Falta ${name} (${label}).`, diagnosePaymentFailure({ message: `Falta ${name}` }))
-    continue
+    blocker('runtime', `Falta ${name}.`, diagnosePaymentFailure({ message: `Falta ${name}` }))
+    return false
   }
   try {
     const url = new URL(raw)
@@ -75,14 +74,27 @@ for (const [name, label] of [['APP_URL', 'sitio'], ['API_URL', 'API']]) {
       blocker('runtime', `${name} debe usar HTTPS.`, diagnosePaymentFailure({ message: `${name} debe usar HTTPS.` }))
     } else if (isLocal && runtime.provider !== 'mock') {
       warning('runtime', `${name} apunta a localhost: Mercado Pago no puede notificar la acreditacion.`, {
-        fix: ['Exponer la API con un tunel HTTPS o usar el preview de Vercel (`npm run mercado-pago:urls`).'],
+        fix: ['Exponer el sitio con un tunel HTTPS o usar el preview de Vercel (`npm run mercado-pago:urls`).'],
       })
     } else {
       ok('runtime', `${name} valida (${url.origin}).`)
     }
+    return true
   } catch {
     blocker('runtime', `${name} no es una URL valida.`, diagnosePaymentFailure({ message: `${name} no es una URL valida.` }))
+    return false
   }
+}
+
+const appUrl = String(process.env.APP_URL ?? process.env.VITE_APP_URL ?? '').trim()
+const apiUrl = String(process.env.API_URL ?? '').trim()
+
+auditIntegrationUrl('APP_URL', appUrl)
+
+if (apiUrl) {
+  auditIntegrationUrl('API_URL', apiUrl)
+} else if (appUrl) {
+  ok('runtime', 'API_URL no esta definida: se usa APP_URL como origen de la API.')
 }
 
 if (runtime.provider !== 'mock' && process.env.NODE_ENV === 'production' && mercadoPagoEnv === 'sandbox') {

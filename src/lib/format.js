@@ -71,6 +71,23 @@ export function formatShortDate(iso, locale = 'es') {
     .replace('.', '')
 }
 
+/**
+ * Cierre comercial de una promo con día de la semana, siempre en ART.
+ * 2026-08-28T23:59:59-03:00 y su equivalente UTC no pueden leerse como sábado 29.
+ */
+export function formatPromoDeadline(iso, locale = 'es') {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return String(iso)
+  const label = date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  })
+  return locale === 'en' ? label : label.replace(',', '')
+}
+
 export function formatDayMonth(iso, locale = 'es') {
   if (!iso) return ''
   const date = new Date(`${iso}T12:00:00`)

@@ -85,13 +85,14 @@ const CATALOG = [
   },
   {
     code: 'MP_INTEGRATION_URL_INVALID',
-    match: /Falta (APP_URL|API_URL)|(APP_URL|API_URL) (no es una URL valida|debe usar HTTPS)/i,
+    match: /Falta APP_URL|APP_URL (no es una URL valida|debe usar HTTPS)|API_URL (no es una URL valida|debe usar HTTPS)|API_URL o APP_URL/i,
     title: 'URLs de integracion invalidas',
     cause:
       'MP exige HTTPS publico para notification_url y back_urls. Con una URL local o vacia no puede notificar la acreditacion.',
     fix: [
-      'Definir API_URL con el origen HTTPS publico de la API y APP_URL con el del sitio.',
-      'En local, exponer la API con un tunel HTTPS (`npm run mercado-pago:urls` imprime las URLs a registrar).',
+      'Definir APP_URL con el origen HTTPS publico del sitio. Si API_URL no existe, se usa ese mismo origen para la API.',
+      'Definir API_URL solamente si la API se publica en un origen HTTPS diferente.',
+      'En local, exponer el sitio con un tunel HTTPS (`npm run mercado-pago:urls` imprime las URLs a registrar).',
       'Registrar esa notification_url en MP > Webhooks.',
     ],
     severity: 'blocker',

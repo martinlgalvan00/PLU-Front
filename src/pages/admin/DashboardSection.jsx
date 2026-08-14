@@ -632,7 +632,9 @@ export default function DashboardSection({
   pendingPayments,
   onNavigate,
   onApprovePayment,
+  onRejectPayment,
   onApproveTicketOrder,
+  onRejectTicketOrder,
   canEdit,
   canDeleteAthletes = false,
   onDeleteAthlete,
@@ -701,7 +703,9 @@ export default function DashboardSection({
         items={pendingActions}
         onNavigate={onNavigate}
         onApprovePayment={onApprovePayment}
+        onRejectPayment={onRejectPayment}
         onApproveTicketOrder={onApproveTicketOrder}
+        onRejectTicketOrder={onRejectTicketOrder}
         canEdit={canEdit}
       />
 
@@ -845,7 +849,14 @@ export default function DashboardSection({
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
-                <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
+                <div className="admin-ops__work-title-row">
+                  <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
+                  {hasWork ? (
+                    <span className="admin-ops__work-count" aria-hidden>
+                      {pendingActions.length || finance.pendingCount}
+                    </span>
+                  ) : null}
+                </div>
                 <h3>{t('admin.dashboard.workTitle')}</h3>
                 <p>{workSubtitle}</p>
               </div>
@@ -872,7 +883,9 @@ export default function DashboardSection({
                 items={queuePreview}
                 onNavigate={onNavigate}
                 onApprovePayment={onApprovePayment}
+                onRejectPayment={onRejectPayment}
                 onApproveTicketOrder={onApproveTicketOrder}
+                onRejectTicketOrder={onRejectTicketOrder}
                 canEdit={canEdit}
               />
             ) : null}

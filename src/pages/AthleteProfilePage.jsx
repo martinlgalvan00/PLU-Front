@@ -100,6 +100,8 @@ export default function AthleteProfilePage({
         athleteRegistrations={athleteRegistrations}
         membership={membership}
         onNavigate={onNavigate}
+        athlete={athlete}
+        onNavigateSection={setActiveTab}
       />
     ),
     'account-history': (
@@ -132,24 +134,31 @@ export default function AthleteProfilePage({
 
   return (
     <main className="page page--design account-page--design">
-      <Reveal>
-        <ProfileHero
-          athlete={athlete}
-          membership={membership}
-          athleteRegistrations={athleteRegistrations}
-          nextEvent={nextEvent}
-          onNavigateSection={setActiveTab}
-        />
-      </Reveal>
-      <EmailVerificationBanner athlete={athlete} />
-      <GateMembershipBanner
-        pendingEvents={gatePendingRegistrations}
-        onCompleteMembership={() => setActiveTab('account-membership')}
-      />
-      <AccountNav activeId={activeTab} onChange={setActiveTab} />
-      <div className="account-sections">
-        <div key={activeTab} className="account-tab-panel">
-          {tabContent[activeTab]}
+      <div className="account-dashboard">
+        <aside className="account-sidebar">
+          <Reveal>
+            <ProfileHero
+              athlete={athlete}
+              membership={membership}
+              athleteRegistrations={athleteRegistrations}
+              nextEvent={nextEvent}
+              onNavigateSection={setActiveTab}
+            />
+          </Reveal>
+          <AccountNav activeId={activeTab} onChange={setActiveTab} />
+        </aside>
+
+        <div className="account-main">
+          <EmailVerificationBanner athlete={athlete} />
+          <GateMembershipBanner
+            pendingEvents={gatePendingRegistrations}
+            onCompleteMembership={() => setActiveTab('account-membership')}
+          />
+          <div className="account-sections">
+            <div key={activeTab} className="account-tab-panel">
+              {tabContent[activeTab]}
+            </div>
+          </div>
         </div>
       </div>
     </main>

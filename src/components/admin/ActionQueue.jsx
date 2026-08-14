@@ -12,6 +12,11 @@ const TYPE_ICONS = {
   ticket_order: Ticket,
 }
 
+function itemHasProof(item) {
+  const path = typeof item?.paymentProofPath === 'string' ? item.paymentProofPath.trim() : item?.paymentProofPath
+  return Boolean(item?.hasProof || path)
+}
+
 export default function ActionQueue({
   compact = false,
   embedded = false,
@@ -20,7 +25,9 @@ export default function ActionQueue({
   items = [],
   onNavigate,
   onApprovePayment,
+  onRejectPayment,
   onApproveTicketOrder,
+  onRejectTicketOrder,
   canEdit,
 }) {
   const { t } = useI18n()
@@ -93,6 +100,30 @@ export default function ActionQueue({
     }
   }
 
+  async function rejectReview(reason) {
+    if (!reviewItem || confirmBusy || reviewMode === 'view') return
+    setConfirmBusy(true)
+    setConfirmError('')
+    try {
+      let result
+      if (reviewItem.paymentId) {
+        result = await onRejectPayment?.(reviewItem.paymentId, reason)
+      } else if (reviewItem.orderId) {
+        result = await onRejectTicketOrder?.(reviewItem.orderId, reason)
+      }
+      if (result?.error) {
+        setConfirmError(result.error)
+        return
+      }
+      setReviewItem(null)
+      setReviewMode('validate')
+    } catch (error) {
+      setConfirmError(error?.message ?? t('admin.paymentValidation.rejectError'))
+    } finally {
+      setConfirmBusy(false)
+    }
+  }
+
   if (!items.length) {
     return (
       <Wrapper className={panelClass}>
@@ -145,7 +176,18 @@ export default function ActionQueue({
               {groupItems.map((item) => {
                 const TypeIcon = TYPE_ICONS[item.type] ?? ClipboardList
                 const typeLabel = t(`admin.actionQueue.types.${item.type}`)
-                const hasPrimaryAction = Boolean(canEdit && (item.paymentId || item.orderId))
+                const hasProof = itemHasProof(item)
+                const isPaymentTask = Boolean(item.paymentId || item.orderId)
+                // La cola no es una vía alternativa de acreditación: una
+                // transferencia necesita su archivo y Mercado Pago queda
+                // exclusivamente en webhook. Efectivo Pitbull es la excepción
+                // operativa declarada por la orden.
+                const hasPrimaryAction = Boolean(
+                  canEdit && (
+                    (item.paymentId && item.method === 'manual_link' && (hasProof || item.cashAtPitbull))
+                    || (item.orderId && item.provider === 'manual' && hasProof)
+                  ),
+                )
 
                 return (
                   <li key={item.id} className={`action-queue__card action-queue__card--${item.priority}`}>
@@ -163,13 +205,21 @@ export default function ActionQueue({
                         {item.detail ? (
                           <span className="action-queue__meta-item">{item.detail}</span>
                         ) : null}
-                        {item.paymentId || item.orderId ? (
-                          <span
-                            className={`action-queue__proof${item.hasProof ? ' action-queue__proof--ok' : ''}`}
+                        {isPaymentTask && hasProof ? (
+                          <button
+                            type="button"
+                            className="action-queue__proof action-queue__proof--ok"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              openReview(item, 'view')
+                            }}
                           >
-                            {item.hasProof
-                              ? t('admin.actionQueue.proofAttached')
-                              : t('admin.actionQueue.proofMissing')}
+                            {t('admin.paymentValidation.viewProof')}
+                          </button>
+                        ) : null}
+                        {isPaymentTask && !hasProof ? (
+                          <span className="action-queue__proof">
+                            {t('admin.actionQueue.proofMissing')}
                           </span>
                         ) : null}
                       </span>
@@ -184,7 +234,7 @@ export default function ActionQueue({
                     )}
 
                     <div className="action-queue__actions">
-                      {item.paymentId && canEdit ? (
+                      {item.paymentId && hasPrimaryAction ? (
                         <button
                           type="button"
                           className="btn btn--small action-queue__btn action-queue__btn--primary"
@@ -196,7 +246,7 @@ export default function ActionQueue({
                           {t('admin.actions.validate')}
                         </button>
                       ) : null}
-                      {item.orderId && canEdit ? (
+                      {item.orderId && hasPrimaryAction ? (
                         <button
                           type="button"
                           className="btn btn--small action-queue__btn action-queue__btn--primary"
@@ -213,9 +263,9 @@ export default function ActionQueue({
                         className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
                         onClick={() => openItem(item)}
                       >
-                        {item.paymentId || item.orderId ? <Eye size={14} aria-hidden /> : null}
+                        {isPaymentTask ? <Eye size={14} aria-hidden /> : null}
                         {t('admin.actions.view')}
-                        {item.paymentId || item.orderId ? null : <ArrowRight size={14} aria-hidden />}
+                        {isPaymentTask ? null : <ArrowRight size={14} aria-hidden />}
                       </button>
                     </div>
                   </li>
@@ -234,6 +284,7 @@ export default function ActionQueue({
           error={confirmError}
           onCancel={closeReview}
           onConfirm={() => void confirmReview()}
+          onReject={(reason) => void rejectReview(reason)}
         />
       ) : null}
     </Wrapper>

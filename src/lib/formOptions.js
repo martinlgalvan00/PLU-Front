@@ -42,6 +42,7 @@ export function getFormOptions(t) {
     paymentMethod: [
       ['mercado_pago', t('formOptions.payment.mercadoPago')],
       ['manual_link', t('formOptions.payment.manualLink')],
+      ['cash_pitbull', t('formOptions.payment.cashPitbull')],
     ],
   }
 }

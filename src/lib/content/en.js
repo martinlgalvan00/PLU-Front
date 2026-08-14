@@ -648,6 +648,7 @@ export const ADMIN_NAV_GROUPS = [
       ['payments', 'admin.nav.payments', 'CreditCard'],
       ['finance', 'admin.nav.finance', 'Landmark'],
       ['pricing', 'admin.nav.pricing', 'BadgeDollarSign'],
+      ['access-gates', 'admin.nav.accessGates', 'KeyRound'],
       ['exports', 'admin.nav.exports', 'Download'],
     ],
   },

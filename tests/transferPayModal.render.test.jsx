@@ -44,8 +44,9 @@ describe('modal de transferencia', () => {
     expect(dialog.textContent).not.toContain('Verificá antes de transferir')
     expect(dialog.textContent).not.toContain('Datos para completar')
     expect(dialog.querySelector('.account-transfer-warning svg')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Copiar Alias' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /^entendido$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^enviar a validación$/i }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

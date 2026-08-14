@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { KeyRound } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { Field } from '../../components/ui/FormFields.jsx'
 
@@ -35,50 +34,77 @@ export default function SecuritySection({ session }) {
   }
 
   return (
-    <section id="account-security" className="account-section account-section--neutral">
-      <div className="account-section__heading">
-        <div className="account-section__icon account-section__icon--neutral"><KeyRound size={21} /></div>
-        <div><span>{t('account.security.eyebrow')}</span><h2>{t('account.security.title')}</h2></div>
-      </div>
-      <p className="account-section__lead">{t('account.security.lead')}</p>
-
-      <form className="form-grid form-grid--compact" onSubmit={handleSubmit} noValidate>
-        <Field
-          error={errors.currentPassword}
-          label={t('account.security.currentPassword')}
-          name="currentPassword"
-          type="password"
-          value={form.currentPassword}
-          onChange={changeField}
-        />
-        <Field
-          error={errors.newPassword}
-          label={t('account.security.newPassword')}
-          name="newPassword"
-          type="password"
-          value={form.newPassword}
-          onChange={changeField}
-        />
-        <Field
-          error={errors.confirmPassword}
-          label={t('account.security.confirmPassword')}
-          name="confirmPassword"
-          type="password"
-          value={form.confirmPassword}
-          onChange={changeField}
-        />
-        <div className="account-security-actions">
-          <button type="submit" className="account-primary-action">{t('account.security.updatePassword')}</button>
+    <section id="account-security" className="account-section account-section--security">
+      <header className="account-section__heading account-section__heading--simple">
+        <div>
+          <span>{t('account.security.eyebrow')}</span>
+          <h2>{t('account.security.title')}</h2>
         </div>
-      </form>
-      {message && <p className="account-checkout-message" role="status">{message}</p>}
-      <p className="account-security-note">{t('account.security.demoNote')}</p>
+      </header>
+      <p className="account-section__lead account-section__lead--compact">{t('account.security.lead')}</p>
 
-      <dl className="account-transfer-data">
-        <div><dt>{t('account.security.sessionEmail')}</dt><dd>{session?.email ?? '—'}</dd></div>
-        <div><dt>{t('account.security.sessionRole')}</dt><dd>{t('account.security.sessionRoleAthlete')}</dd></div>
-        <div><dt>{t('account.security.sessionDevice')}</dt><dd>{t('account.security.sessionDeviceValue')}</dd></div>
-      </dl>
+      <div className="account-security">
+        <form className="account-security__form" onSubmit={handleSubmit} noValidate>
+          <Field
+            autoComplete="current-password"
+            error={errors.currentPassword}
+            label={t('account.security.currentPassword')}
+            name="currentPassword"
+            type="password"
+            value={form.currentPassword}
+            onChange={changeField}
+          />
+          <div className="account-security__pair">
+            <Field
+              autoComplete="new-password"
+              error={errors.newPassword}
+              label={t('account.security.newPassword')}
+              name="newPassword"
+              type="password"
+              value={form.newPassword}
+              onChange={changeField}
+            />
+            <Field
+              autoComplete="new-password"
+              error={errors.confirmPassword}
+              label={t('account.security.confirmPassword')}
+              name="confirmPassword"
+              type="password"
+              value={form.confirmPassword}
+              onChange={changeField}
+            />
+          </div>
+          <div className="account-security-actions">
+            <button type="submit" className="account-primary-action">
+              {t('account.security.updatePassword')}
+            </button>
+            {message ? (
+              <p className="account-checkout-message" role="status">
+                {message}
+              </p>
+            ) : null}
+          </div>
+          <p className="account-security-note">{t('account.security.demoNote')}</p>
+        </form>
+
+        <aside className="account-security__session" aria-label={t('account.security.sessionTitle')}>
+          <h3>{t('account.security.sessionTitle')}</h3>
+          <dl>
+            <div>
+              <dt>{t('account.security.sessionEmail')}</dt>
+              <dd>{session?.email ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>{t('account.security.sessionRole')}</dt>
+              <dd>{t('account.security.sessionRoleAthlete')}</dd>
+            </div>
+            <div>
+              <dt>{t('account.security.sessionDevice')}</dt>
+              <dd>{t('account.security.sessionDeviceValue')}</dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
     </section>
   )
 }

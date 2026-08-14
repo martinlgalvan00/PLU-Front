@@ -30,5 +30,26 @@ export function createSupabasePricingRepository(client) {
         { p_event_slug: eventSlug, p_offer: offer, p_actor: actor },
         'No se pudo guardar la oferta combo.',
       ),
+
+    setPlanRetirement: (planId, retiresAt, actor) =>
+      rpc(
+        'staff_set_membership_plan_retirement',
+        { p_plan_id: planId, p_retires_at: retiresAt || null, p_actor: actor },
+        'No se pudo reprogramar la vigencia del plan.',
+      ),
+
+    upsertDiscountCode: (code, actor) =>
+      rpc(
+        'staff_upsert_discount_code',
+        { p_code: code, p_actor: actor },
+        'No se pudo guardar el código de descuento.',
+      ),
+
+    setDiscountCodeActive: (codeId, active, actor) =>
+      rpc(
+        'staff_set_discount_code_active',
+        { p_code_id: codeId, p_active: active, p_actor: actor },
+        'No se pudo cambiar el estado del código de descuento.',
+      ),
   }
 }

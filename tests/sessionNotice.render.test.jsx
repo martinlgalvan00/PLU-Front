@@ -44,4 +44,24 @@ describe('aviso de cierre de sesión', () => {
     markSignedOut()
     expect((await waitFor(() => screen.getByRole('status'))).textContent).toMatch(/cerraste sesión/i)
   })
+
+  it('sigue visible si el layout se remonta después del logout', async () => {
+    const first = render(
+      <I18nProvider>
+        <SessionNotice />
+      </I18nProvider>,
+    )
+
+    markSignedOut()
+    expect((await waitFor(() => screen.getByRole('status'))).textContent).toMatch(/cerraste sesión/i)
+
+    first.unmount()
+    render(
+      <I18nProvider>
+        <SessionNotice />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByRole('status').textContent).toMatch(/cerraste sesión/i)
+  })
 })

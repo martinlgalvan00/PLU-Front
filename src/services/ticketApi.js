@@ -79,7 +79,7 @@ function toCamelOrder(row) {
     provider: row.provider,
     status: row.status,
     reference: row.reference,
-    paymentProofPath: row.payment_proof_path,
+    paymentProofPath: row.payment_proof_path?.trim?.() || row.payment_proof_path || null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at,
     createdAt: row.created_at,
   }
@@ -110,6 +110,14 @@ export async function createTicketOrder({
 
 export async function approveTicketOrder(orderId) {
   const result = await apiPost(`/api/tickets/orders/${orderId}/approve`, {})
+  return {
+    order: toCamelOrder(result.order),
+    tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),
+  }
+}
+
+export async function rejectTicketOrder(orderId, reason) {
+  const result = await apiPost(`/api/tickets/orders/${orderId}/reject`, { reason })
   return {
     order: toCamelOrder(result.order),
     tickets: result.tickets.map((ticket) => toCamelTicket(ticket)),

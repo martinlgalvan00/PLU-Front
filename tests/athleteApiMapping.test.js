@@ -47,6 +47,7 @@ describe('normalización del padrón para el panel', () => {
           concept: 'registration',
           amount: 75000,
           method: 'manual_link',
+          manual_payment_channel: 'bank_transfer',
           status: 'validacion_manual',
           payment_proof_path: 'pay-1/comprobante.pdf',
           payment_proof_uploaded_at: '2026-08-11T13:30:00Z',
@@ -68,6 +69,7 @@ describe('normalización del padrón para el panel', () => {
     expect(mapped.payments[0]).toMatchObject({
       paymentProofPath: 'pay-1/comprobante.pdf',
       paymentProofUploadedAt: '2026-08-11T13:30:00Z',
+      manualPaymentChannel: 'bank_transfer',
     })
   })
 })

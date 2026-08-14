@@ -32,6 +32,7 @@ const PAYMENT_ITEM = {
   meta: '$ 38.000',
   section: 'payments',
   paymentId: 'p1',
+  method: 'manual_link',
   hasProof: true,
   paymentProofPath: 'proofs/p1.jpg',
 }
@@ -41,6 +42,7 @@ const PAYMENT_NO_PROOF = {
   id: 'action-pay-p2',
   paymentId: 'p2',
   hasProof: false,
+  paymentProofPath: null,
 }
 
 function renderQueue(items, overrides = {}) {
@@ -87,19 +89,45 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     })
   })
 
-  it('permite validar sin comprobante mostrando el aviso', async () => {
+  it('no ofrece acreditar una transferencia sin comprobante', async () => {
     const onApprovePayment = vi.fn(async () => ({}))
     renderQueue([PAYMENT_NO_PROOF], { onApprovePayment })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
+    expect(screen.queryByRole('button', { name: 'Validar' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
+    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
+    expect(onApprovePayment).not.toHaveBeenCalled()
+  })
+
+  it('mantiene el efectivo presencial como validación operativa sin archivo', async () => {
+    const onApprovePayment = vi.fn(async () => ({}))
+    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true }], { onApprovePayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
+    const dialog = await screen.findByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar validación' }))
 
     await waitFor(() => {
       expect(onApprovePayment).toHaveBeenCalledWith('p2')
     })
+  })
+
+  it('no permite confirmar hasta que el comprobante se pueda abrir', async () => {
+    getAthletePaymentProofUrl.mockRejectedValueOnce(new Error('Archivo no disponible'))
+    const onApprovePayment = vi.fn(async () => ({}))
+    renderQueue([PAYMENT_ITEM], { onApprovePayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
+    const dialog = await screen.findByRole('dialog')
+
+    await waitFor(() => {
+      expect(within(dialog).getByText('Archivo no disponible')).toBeTruthy()
+    })
+    expect(within(dialog).getByRole('button', { name: 'Confirmar validación' }).disabled).toBe(true)
+    expect(onApprovePayment).not.toHaveBeenCalled()
   })
 
   it('cancela sin aprobar', async () => {
@@ -122,8 +150,40 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
   it('muestra el chip de comprobante en la card', () => {
     renderQueue([PAYMENT_ITEM, PAYMENT_NO_PROOF])
 
-    expect(screen.getByText('Comprobante')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ver comprobante' })).toBeTruthy()
     expect(screen.getByText('Sin adjuntar')).toBeTruthy()
+  })
+
+  it('abre el preview desde el chip si hay archivo adjunto', async () => {
+    const onApprovePayment = vi.fn(async () => ({}))
+    renderQueue([PAYMENT_ITEM], { onApprovePayment })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver comprobante' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.className).toMatch(/payment-validation-dialog__panel--view/)
+    await waitFor(() => {
+      expect(within(dialog).getByRole('img', { name: 'Comprobante de pago' })).toBeTruthy()
+    })
+    expect(onApprovePayment).not.toHaveBeenCalled()
+  })
+
+  it('trata el path de storage como comprobante aunque hasProof venga false', async () => {
+    renderQueue([
+      {
+        ...PAYMENT_NO_PROOF,
+        hasProof: false,
+        paymentProofPath: 'proofs/p2.jpg',
+      },
+    ])
+
+    expect(screen.getByRole('button', { name: 'Ver comprobante' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Ver comprobante' }))
+
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => {
+      expect(within(dialog).getByRole('img', { name: 'Comprobante de pago' })).toBeTruthy()
+    })
   })
 
   it('abre el preview y no acredita el pago', async () => {
@@ -177,7 +237,7 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
       },
     ])
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ver comprobante' }))
 
     const dialog = await screen.findByRole('dialog')
     await waitFor(() => {

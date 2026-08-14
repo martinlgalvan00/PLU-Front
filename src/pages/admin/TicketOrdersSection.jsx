@@ -25,6 +25,7 @@ export default function TicketOrdersSection({
   isLoading = false,
   loadError = null,
   onApproveTicketOrder,
+  onRejectTicketOrder,
   onRefresh,
 }) {
   const { locale, t } = useI18n()
@@ -79,6 +80,27 @@ export default function TicketOrdersSection({
       return true
     } catch (error) {
       console.error('approve ticket order:', error)
+      setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
+      return false
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  async function handleReject(orderId, reason) {
+    if (!canEdit) return false
+    setApprovingId(orderId)
+    setActionError(null)
+    try {
+      const result = await onRejectTicketOrder?.(orderId, reason)
+      if (result?.error) {
+        setActionError(result.error)
+        return false
+      }
+      await onRefresh?.()
+      return true
+    } catch (error) {
+      console.error('reject ticket order:', error)
       setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
       return false
     } finally {
@@ -235,6 +257,12 @@ export default function TicketOrdersSection({
             const orderId = reviewRow.orderId
             void handleApprove(orderId).then((approved) => {
               if (approved) setReviewRow(null)
+            })
+          }}
+          onReject={(reason) => {
+            const orderId = reviewRow.orderId
+            void handleReject(orderId, reason).then((rejected) => {
+              if (rejected) setReviewRow(null)
             })
           }}
         />

@@ -105,6 +105,19 @@ export const SoloLectura = {
   args: { canEdit: false, event: BASE_EVENT, onSetState: acceptState },
 }
 
+/** Banda en viewport angosto: rail horizontal y Publicado en fila propia. */
+export const BandaAngosta = {
+  args: { canEdit: true, event: BASE_EVENT, onSetState: acceptState },
+  decorators: [
+    (Story) => (
+      <div style={{ maxWidth: 390 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: { layout: 'padded' },
+}
+
 /** El backend rechaza el cambio: el error se muestra en la misma banda. */
 export const ConError = {
   args: {

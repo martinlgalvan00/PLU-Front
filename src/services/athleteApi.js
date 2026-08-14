@@ -33,6 +33,10 @@ function toCamelAthlete(row) {
     division: row.division,
     category: row.category,
     estimatedWeight: row.estimated_weight,
+    bestTotalKg: row.declared_best_total_kg ?? row.bestTotalKg ?? null,
+    emergencyContactName: row.emergency_contact_name ?? row.emergencyContactName ?? '',
+    emergencyContactPhone: row.emergency_contact_phone ?? row.emergencyContactPhone ?? '',
+    instagramHandle: row.instagram_handle ?? row.instagramHandle ?? '',
     status: row.status,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
@@ -76,11 +80,14 @@ function toCamelPaymentOrder(row) {
     amount: row.amount,
     currency: row.currency,
     method: row.method,
+    manualPaymentChannel: row.manual_payment_channel ?? row.manualPaymentChannel ?? null,
     status: row.status,
     reference: row.reference,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt:
       row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    discountCode: row.discount_code ?? row.discountCode ?? null,
+    discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
     createdAt: row.created_at ?? row.createdAt ?? null,
   }
 }
@@ -143,15 +150,17 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
 
   const paymentRows = orders.map((order) => {
     const eventTitle = order.concept === 'registration' ? registrationEventByOrderId.get(order.id) : null
+    const paymentProofPath = order.payment_proof_path ?? order.paymentProofPath ?? null
     return {
       id: order.id,
       athleteId: order.athlete_id,
       concept: eventTitle ? `Inscripción ${eventTitle}` : CONCEPT_LABELS[order.concept] ?? order.concept,
       amount: order.amount,
       method: order.method,
+      manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
       status: order.status,
       reference: order.reference,
-      paymentProofPath: order.payment_proof_path ?? order.paymentProofPath ?? null,
+      paymentProofPath: typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
       paymentProofUploadedAt:
         order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
       createdAt: order.created_at ?? order.createdAt ?? null,
@@ -314,11 +323,20 @@ function toCamelMembershipPlan(row) {
   }
 }
 
-export async function createMembershipOrder(_athleteId, paymentMethod, planCode = 'plu-annual', idempotencyKey = crypto.randomUUID()) {
+export async function createMembershipOrder(
+  _athleteId,
+  paymentMethod,
+  planCode = 'plu-annual',
+  idempotencyKey = crypto.randomUUID(),
+  discountCode,
+  accessCode,
+) {
   const result = await apiPost('/api/athletes/me/membership-orders', {
     paymentMethod,
     planCode,
     idempotencyKey,
+    discountCode: discountCode || undefined,
+    accessCode: accessCode || undefined,
   })
   return {
     order: toCamelPaymentOrder(result.order),
@@ -334,6 +352,8 @@ export async function createCompetitionRegistration({
   bodyweightKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
+  discountCode,
+  accessCode,
 }) {
   const result = await apiPost('/api/athletes/me/registrations', {
     eventSlug,
@@ -342,10 +362,30 @@ export async function createCompetitionRegistration({
     bodyweightKg,
     paymentMethod,
     idempotencyKey,
+    discountCode: discountCode || undefined,
+    accessCode: accessCode || undefined,
   })
   return {
     order: toCamelPaymentOrder(result.order),
     registration: toCamelRegistrationEntry({ registration: result.registration, event: { slug: eventSlug } }),
+  }
+}
+
+export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug }) {
+  const result = await apiPost('/api/athletes/me/discount-preview', {
+    code,
+    appliesTo,
+    planCode: planCode || undefined,
+    eventSlug: eventSlug || undefined,
+  })
+  const preview = result.preview ?? {}
+  return {
+    valid: preview.valid === true,
+    reason: preview.reason ?? null,
+    code: preview.code ?? null,
+    percentOff: preview.percentOff ?? null,
+    discountAmount: preview.discountAmount ?? null,
+    finalAmount: preview.finalAmount ?? null,
   }
 }
 
@@ -356,6 +396,8 @@ export async function createCompetitionRegistrationCombo({
   bodyweightKg,
   paymentMethod,
   idempotencyKey = crypto.randomUUID(),
+  membershipAccessCode,
+  registrationAccessCode,
 }) {
   const result = await apiPost('/api/athletes/me/registration-combos', {
     eventSlug,
@@ -364,6 +406,8 @@ export async function createCompetitionRegistrationCombo({
     bodyweightKg,
     paymentMethod,
     idempotencyKey,
+    membershipAccessCode: membershipAccessCode || undefined,
+    registrationAccessCode: registrationAccessCode || undefined,
   })
   return {
     order: toCamelPaymentOrder(result.order),
@@ -393,6 +437,11 @@ export async function approveAthletePaymentOrder(orderId) {
     membership: toCamelMembership(result.membership),
     registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
   }
+}
+
+export async function rejectAthletePaymentOrder(orderId, reason) {
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/reject`, { reason })
+  return { order: toCamelPaymentOrder(result.order) }
 }
 
 function toCredentialResult(result, eventSlug) {
