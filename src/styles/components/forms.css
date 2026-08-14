@@ -361,6 +361,36 @@
   height: 1px;
 }
 
+.mp-embedded-checkout__wallet-panel {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* El botón de Mercado Pago llega con ancho propio y se renderiza dentro de un
+   iframe. En el checkout tiene que ocupar la fila igual que el submit de
+   tarjeta, para que las dos formas de pagar se lean con el mismo peso. */
+.mp-embedded-checkout__wallet,
+.mp-embedded-checkout__wallet iframe,
+.mp-embedded-checkout__wallet button {
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.mp-embedded-checkout__wallet-note {
+  align-items: center;
+  color: var(--color-text-muted, #666);
+  display: flex;
+  font-size: 0.75rem;
+  gap: 0.4rem;
+  line-height: 1.4;
+}
+
+.mp-embedded-checkout__wallet-note svg {
+  flex: none;
+}
+
 .mp-embedded-checkout--settle [data-testid='payment-form'] [class*='button-container'],
 .mp-embedded-checkout--settle [data-testid='submit-wrapper'] {
   max-width: none;

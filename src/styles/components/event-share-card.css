@@ -127,31 +127,25 @@
 }
 
 /* ─── Textura "foil" ─────────────────────────────────────────────
-   Sheen diagonal (como luz rebotando en una superficie metalizada) +
-   líneas finas repetidas. Deliberadamente solo gradientes CSS estándar
-   -- nada de filtros SVG ni mix-blend-mode, que html2canvas rasteriza de
-   forma inconsistente entre navegadores. */
+   Solo las líneas finas repetidas: dan material metalizado sin dibujar nada.
+   El sheen diagonal que había acá se veía bien en el preview del modal pero
+   en el PNG a 1080 cruzaba la cara del nombre y el chip del QR como una
+   banda gris translúcida — se leía como mancha de compresión, no como luz.
+   Con el glow del __bg ya hay un efecto atmosférico; este era el segundo.
+   Deliberadamente solo gradientes CSS estándar: nada de filtros SVG ni
+   mix-blend-mode, que html2canvas rasteriza de forma inconsistente. */
 .share-card__texture {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(
-      115deg,
-      transparent 42%,
-      rgba(255, 255, 255, 0.045) 49%,
-      rgba(255, 255, 255, 0.075) 50%,
-      rgba(255, 255, 255, 0.045) 51%,
-      transparent 58%
-    ),
-    repeating-linear-gradient(
-      115deg,
-      transparent 0px,
-      transparent 3px,
-      rgba(255, 255, 255, 0.012) 3px,
-      rgba(255, 255, 255, 0.012) 4px
-    );
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255, 255, 255, 0.012) 3px,
+    rgba(255, 255, 255, 0.012) 4px
+  );
 }
 
 /* ─── Franja de acento superior ───────────────────────────────────
@@ -265,6 +259,23 @@
   gap: 44px;
 }
 
+/* Square 1080×1080 es el formato más ajustado del set: con el eyebrow, el
+   nombre en dos líneas y las cuatro líneas del bloque de evento, el contenido
+   empujaba el pie fuera del lienzo y el QR de verificación salía cortado en el
+   PNG (o directamente ausente). El body es `flex: 1 1 0%` pero no puede
+   encogerse por debajo de su contenido, así que el ahorro tiene que venir del
+   ritmo vertical. La variante membership define su propio body y footer más
+   abajo en la hoja, así que no la afecta. */
+.share-card--square .share-card__body {
+  gap: 36px;
+  padding: 40px 72px;
+}
+
+.share-card--square .share-card__footer {
+  margin: 28px 72px 44px;
+  padding: 22px 30px;
+}
+
 /* Historia: composición con gravedad, no flotante. El bloque se ancla en
    el tercio superior (donde cae el ojo al abrir la historia) y el aire
    queda como UNA zona deliberada antes del footer — no tres huecos
@@ -297,29 +308,32 @@
   min-width: 0;
 }
 
+/* El anillo va como `border` real, NUNCA como box-shadow de spread:
+   html2canvas no rasteriza el spread como anillo — lo pinta como un disco
+   relleno del color del shadow DEBAJO del elemento. Con foto eso quedaba
+   invisible (la img tapaba el disco), pero en el medallón de iniciales el
+   PNG salía como una mancha dorada maciza con las letras doradas encima
+   (contraste ~1.6:1). El bug solo aparecía en la imagen descargada, no en
+   el preview del modal. Mismo criterio que .share-card__frame. */
 .share-card__avatar {
+  box-sizing: border-box;
   flex-shrink: 0;
   width: 140px;
   height: 140px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--card-surface);
-  box-shadow:
-    0 0 0 3px rgba(242, 183, 5, 0.45),
-    0 14px 32px rgba(0, 0, 0, 0.5);
+  background-color: var(--card-surface);
+  border: 3px solid rgba(242, 183, 5, 0.45);
 }
 
-/* Anillo fino sin sombra ambiental: sello institucional, no sticker de
-   card genérica. El drop-shadow pesado quedaba redundante contra el fondo
-   ya oscuro y le sumaba peso visual sin aportar jerarquía. */
+/* Anillo más fino: sello institucional, no sticker de card genérica. */
 .share-card--membership .share-card__avatar {
-  box-shadow: 0 0 0 2px rgba(242, 183, 5, 0.55);
+  border-width: 2px;
+  border-color: rgba(242, 183, 5, 0.6);
 }
 
 .share-card--ticket .share-card__avatar {
-  box-shadow:
-    0 0 0 3px rgba(116, 172, 223, 0.5),
-    0 14px 32px rgba(0, 0, 0, 0.5);
+  border-color: rgba(116, 172, 223, 0.5);
 }
 
 .share-card__avatar-img {
@@ -329,9 +343,10 @@
   display: block;
 }
 
-/* Medallón de iniciales: el avatar de quien no sube foto. Mismo anillo y
-   sombra; disco con un degradado apenas perceptible para que tenga
-   material, no un plastiquito plano. Todo hex/rgba plano (html2canvas). */
+/* Medallón de iniciales: el avatar de quien no sube foto — el caso por
+   defecto de todo socio recién afiliado. Disco grafito plano + iniciales
+   doradas: 9.9:1 de contraste. Sin gradiente, porque html2canvas lo pintaba
+   por debajo del anillo y el disco terminaba dorado macizo. */
 .share-card__avatar--initials {
   display: flex;
   align-items: center;
@@ -344,7 +359,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--card-accent);
-  background: linear-gradient(180deg, #1b1d24 0%, #141518 100%);
+  background-color: #1b1d24;
   text-indent: 0.01em;
 }
 
@@ -370,6 +385,9 @@
 }
 
 .share-card__athlete-name {
+  /* Sin esto el h2 arrastra el margen del UA y abría ~90px de hueco entre el
+     nombre y el número de socio, rompiendo el gap de 18px del bloque. */
+  margin: 0;
   font-size: 108px;
   font-weight: 800;
   line-height: 0.98;
@@ -518,17 +536,20 @@
    Chip blanco con quiet-zone propia: garantiza contraste/lectura sin
    importar el fondo oscuro de la card. */
 .share-card__qr-chip {
+  box-sizing: border-box;
   flex-shrink: 0;
   width: 148px;
   height: 148px;
   padding: 12px;
-  background: #ffffff;
+  background-color: #ffffff;
   border-radius: 14px;
-  box-shadow: 0 0 0 1.5px rgba(242, 183, 5, 0.3);
+  /* Border real, no box-shadow de spread — ver .share-card__avatar. Con
+     shadow, html2canvas dibujaba un halo crema grueso alrededor del chip. */
+  border: 2px solid rgba(242, 183, 5, 0.3);
 }
 
 .share-card--ticket .share-card__qr-chip {
-  box-shadow: 0 0 0 1.5px rgba(116, 172, 223, 0.32);
+  border-color: rgba(116, 172, 223, 0.32);
 }
 
 .share-card--story .share-card__qr-chip {
@@ -647,6 +668,23 @@
   padding: 12px 0 12px 36px;
 }
 
+.share-card--membership .share-card__athlete-text {
+  gap: 22px;
+}
+
+/* El número de socio lleva su etiqueta inline ("Socio n.º …"): es un campo de
+   credencial, no un ID suelto flotando bajo el nombre. Sube de 45% a 58% de
+   opacidad — a 24px sobre grafito, 45% quedaba en 4.1:1. */
+.share-card--membership .share-card__athlete-code {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.share-card--membership.share-card--story .share-card__athlete-code {
+  font-size: 26px;
+}
+
 .share-card--membership .share-card__event-eyebrow {
   font-size: 18px;
   letter-spacing: 0.2em;
@@ -699,8 +737,113 @@
   letter-spacing: -0.04em;
 }
 
-.share-card--membership.share-card--story .share-card__divider {
-  width: 48px;
+/* ─── Ficha de datos de la afiliación ────────────────────────────
+   Label + valor en dos columnas: el lenguaje de una credencial oficial.
+   Sin caja ni filo de acento — el chip del QR es la única caja de la
+   composición, y el filo izquierdo queda reservado para la variante de
+   evento (y para unified, que sigue usando __event-section). */
+.share-card__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 48px;
+  margin: 0;
+}
+
+.share-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.share-card__field-label {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.share-card__field-value {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--card-text);
+}
+
+.share-card--story .share-card__fields {
+  gap: 32px 56px;
+}
+
+.share-card--story .share-card__field-label {
+  font-size: 20px;
+  letter-spacing: 0.2em;
+}
+
+.share-card--story .share-card__field-value {
+  font-size: 52px;
+}
+
+/* Regla de credencial: cruza el ancho útil en vez del filo corto de 64px.
+   Separa al protagonista de sus datos y conserva la firma dorada, sin
+   brillo. `:not(--unified)` porque la credencial unificada comparte la
+   clase membership pero mantiene el bloque de evento con su filo. */
+.share-card--membership:not(.share-card--unified) .share-card__divider {
+  width: 100%;
+  height: 1px;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(242, 183, 5, 0.5) 0%,
+    rgba(255, 255, 255, 0.07) 62%,
+    transparent 100%
+  );
+}
+
+/* Story: dos bloques (protagonista y ficha) centrados como una sola unidad
+   en el lienzo, con la regla entre ellos. Antes el body usaba flex-start con
+   tres gaps y el vacío aparecía en tres lugares distintos; con
+   space-between el hueco central se comía media historia. Centrar deja el
+   aire arriba y abajo como presencia ambiental del fondo, que es lo único
+   que sostiene una credencial de pocos datos en 1920px de alto. */
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__body {
+  justify-content: center;
+  gap: 110px;
+  padding: 64px 80px 12px;
+}
+
+/* La regla viaja a la ficha para que el body tenga exactamente dos hijos y
+   space-between no deje el divisor flotando en la mitad del hueco. */
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__divider {
+  display: none;
+}
+
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__fields {
+  border-top: 1px solid rgba(242, 183, 5, 0.26);
+  padding-top: 48px;
+}
+
+/* 52px es el techo: a 58px "Temporada 2026" ya no entra en su columna de
+   432px y parte en dos líneas. */
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__field-value {
+  font-size: 52px;
+}
+
+/* Protagonista con más presencia: en 1920px de alto el medallón y el nombre
+   sostienen la mitad superior sin necesidad de rellenar con elementos. */
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar {
+  width: 232px;
+  height: 232px;
+}
+
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar--initials {
+  font-size: 70px;
+}
+
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__athlete-text {
+  gap: 26px;
 }
 
 /* Footer membership: sin placa — QR + firma fina sobre una regla. */
@@ -747,7 +890,8 @@
 }
 
 .share-card--membership .share-card__qr-chip {
-  box-shadow: 0 0 0 1px rgba(242, 183, 5, 0.22);
+  border-width: 1px;
+  border-color: rgba(242, 183, 5, 0.22);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
