@@ -1193,7 +1193,7 @@ export default function RegisterPage({
             <StatusPill value={visibleOrder.status} />
             <code>{visibleOrder.reference}</code>
             {visibleOrder.paymentMethod === 'mercado_pago' ? null : (
-              <>
+              <div className="register-status__manual-actions">
                 <p className="manual-note">{t('pages.register.manualNote')}</p>
                 {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
                   <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
@@ -1209,7 +1209,7 @@ export default function RegisterPage({
                     {t('pages.register.transferOpen')}
                   </button>
                 ) : null}
-              </>
+              </div>
             )}
             {cardData && (
               <>

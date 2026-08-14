@@ -2204,6 +2204,41 @@
   padding: 0;
 }
 
+.register-page--competition .register-status--settle .register-status__manual-actions {
+  align-self: stretch;
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+  justify-self: stretch;
+  margin-top: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.register-page--competition .register-status--settle .register-status__manual-actions .manual-note {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  color: var(--color-text-secondary) !important;
+  display: block;
+  grid-column: auto;
+  max-width: none;
+  min-width: 0;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+.register-page--competition .register-status--settle .register-status__manual-actions .card-trigger-btn {
+  grid-column: auto;
+  justify-self: stretch;
+}
+
+[data-theme='light'] .register-page--competition .register-status--settle .register-status__manual-actions .manual-note {
+  background: color-mix(in srgb, var(--color-brand-gold) 14%, #fff);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 34%, rgba(15, 17, 23, 0.12));
+  color: var(--color-text-primary) !important;
+}
+
 .register-settle {
   display: grid;
   gap: 10px;
@@ -2879,7 +2914,28 @@
   border: 1px solid var(--color-manual-note-border);
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary) !important;
+  line-height: 1.45;
+  margin: 0;
   padding: 12px;
+  width: 100%;
+}
+
+.register-status__manual-actions {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
+
+.register-status__manual-actions .card-trigger-btn {
+  justify-content: center;
+  max-width: 100%;
+  min-height: 46px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  width: 100%;
 }
 
 .access-grid { display: grid; gap: var(--space-lg); grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 auto; max-width: 900px; }
