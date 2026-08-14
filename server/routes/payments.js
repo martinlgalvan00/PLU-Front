@@ -31,6 +31,14 @@ import {
   reconcileClaimedPaymentAttempt,
   recoverPaymentOperations,
 } from '../modules/payments/paymentRecoveryWorkflow.js'
+import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
+import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
+import {
+  buildAthleteTimeline,
+  buildOrderTimeline,
+  buildRequestTimeline,
+} from '../modules/payments/paymentForensics.js'
+import { PRIMARY_ORGANIZATION_ID } from '../lib/organizations.js'
 import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
 import {
   createEmbeddedRecurringSubscription,
@@ -120,6 +128,26 @@ function parseInput(schema, value) {
   return result.data
 }
 
+/**
+ * Un mismo problema (token vencido, secreto faltante) genera decenas de filas
+ * fallidas. El panel necesita la lista de causas distintas con cuantas filas
+ * arrastra cada una, no cincuenta veces el mismo texto.
+ */
+function dedupeDiagnoses(rows) {
+  const byCode = new Map()
+  for (const row of rows) {
+    const diagnosis = row?.diagnosis
+    if (!diagnosis || diagnosis.severity === 'expected') continue
+    const current = byCode.get(diagnosis.code)
+    if (current) current.affected += 1
+    else byCode.set(diagnosis.code, { ...diagnosis, affected: 1 })
+  }
+  return [...byCode.values()].sort((a, b) => {
+    if (a.severity === b.severity) return b.affected - a.affected
+    return a.severity === 'blocker' ? -1 : 1
+  })
+}
+
 export function createPaymentRoutes(deps = {}) {
   const router = Router()
   const env = deps.env ?? process.env
@@ -130,6 +158,14 @@ export function createPaymentRoutes(deps = {}) {
       : getSupabaseAdmin()
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const financeWriteGuard = requirePermission('admin.payments.approve', { prisma })
+  // La traza de afiliacion mezcla datos de cobro y de padron: alcanza con
+  // poder leer cualquiera de los dos, porque no expone mas que lo que ya se ve
+  // en esas secciones (el correo va enmascarado).
+  const athleteAuditGuard = requirePermission(
+    ['admin.payments.read', 'admin.athletes.read'],
+    { prisma },
+    { mode: 'any' },
+  )
 
   function repository() {
     const client = resolveSupabaseAdmin()
@@ -142,6 +178,9 @@ export function createPaymentRoutes(deps = {}) {
     const result = {
       repository: repository(),
       mercadoPago: deps.mercadoPago ?? createPaymentProviderAdapter({ env }),
+      // Bitacora del ciclo de cobro. Sin cliente Supabase queda en no-op: la
+      // observabilidad se degrada, el cobro no.
+      auditTrail: deps.auditTrail ?? createPaymentAuditTrail({ client }),
     }
     if (!notifications) return result
     if (deps.notifyPaymentApplied) result.notifyPaymentApplied = deps.notifyPaymentApplied
@@ -256,6 +295,18 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
+  /**
+   * Cada fila fallida sale con su diagnostico: que paso, por que y como se
+   * resuelve. Antes el panel mostraba el texto crudo del proveedor y el
+   * operador tenia que adivinar si era configuracion, plata sin acreditar o un
+   * caso de borde esperable.
+   */
+  function withDiagnosis(row) {
+    if (!row?.error) return row
+    const diagnosis = diagnosePaymentFailure({ message: row.error })
+    return { ...row, diagnosis }
+  }
+
   router.get('/operations', ...financeReadGuard, staffLimiter, async (req, res, next) => {
     try {
       const query = parseInput(operationsQuerySchema, req.query)
@@ -265,16 +316,90 @@ export function createPaymentRoutes(deps = {}) {
         paymentRepository.listIntegrationEvents(query),
         paymentRepository.listReconciliationAttempts(query),
       ])
+      const diagnosedEvents = events.map(withDiagnosis)
+      const diagnosedReconciliations = reconciliations.map(withDiagnosis)
+      const runtime = getPaymentsRuntimeStatus(env)
       res.json({
         summary,
-        events,
-        reconciliations,
+        events: diagnosedEvents,
+        reconciliations: diagnosedReconciliations,
+        // Bloqueantes activos: config rota o fallas que ningun reintento
+        // resuelve solo. Es lo que hay que arreglar antes de reintentar nada.
+        blockers: [
+          ...runtime.issues.map((issue) => ({
+            code: 'RUNTIME_CONFIGURATION',
+            title: 'Configuracion de cobros incompleta',
+            cause: issue,
+            fix: diagnosePaymentFailure({ message: issue }).fix,
+            severity: 'blocker',
+            scope: 'configuracion',
+          })),
+          ...dedupeDiagnoses([...diagnosedEvents, ...diagnosedReconciliations]),
+        ],
         configuration: {
-          ...getPaymentsRuntimeStatus(env),
+          ...runtime,
           recoveryEnabled: PAYMENT_RECOVERY_JOB_ENABLED,
           recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Vida completa de una orden: orden, intentos del Brick, notificaciones de
+   * MP, asientos del ledger, efecto de dominio y bitacora, en una sola linea
+   * de tiempo con el veredicto de hasta donde llego el cobro.
+   *
+   * Antes esto era cruzar cinco tablas a mano en la base para poder contestarle
+   * a un socio por que no le figura la afiliacion.
+   */
+  router.get('/audit/orders/:orderId', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const orderId = parseInput(z.string().uuid(), req.params.orderId)
+      const client = resolveSupabaseAdmin()
+      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+      res.json(await buildOrderTimeline(client, {
+        orderId,
+        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+      }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Recorrido de afiliacion de un atleta: alta, verificacion de correo,
+   * ordenes, pagos y membresia, con el eslabon donde se corto.
+   */
+  router.get('/audit/athletes/:athleteId', ...athleteAuditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const athleteId = parseInput(z.string().uuid(), req.params.athleteId)
+      const client = resolveSupabaseAdmin()
+      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+      res.json(await buildAthleteTimeline(client, {
+        athleteId,
+        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+      }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Que pasó en una operacion puntual. El id sale del header `X-Request-Id`,
+   * del cuerpo de un error 500 o de cualquier linea del log.
+   */
+  router.get('/audit/requests/:requestId', ...financeReadGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const requestId = parseInput(z.string().trim().min(8).max(120), req.params.requestId)
+      const client = resolveSupabaseAdmin()
+      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+      res.json(await buildRequestTimeline(client, {
+        requestId,
+        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+      }))
     } catch (error) {
       next(error)
     }

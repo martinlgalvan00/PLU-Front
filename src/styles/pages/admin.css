@@ -5363,6 +5363,63 @@
   margin-top: 2px;
 }
 
+/* Diagnóstico accionable: título del problema, causa y pasos concretos. Se
+   lee como una lista de tareas, no como un volcado de errores. */
+.admin-payments-ops-callout__diagnoses {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding-left: 0;
+}
+
+.admin-payments-ops-callout__diagnoses > li {
+  border-left: 2px solid color-mix(in srgb, var(--admin-status-warning, #c9a227) 55%, transparent);
+  display: grid;
+  gap: 3px;
+  padding-left: 10px;
+}
+
+.admin-payments-ops-callout__diagnosis-title {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.admin-payments-ops-callout__diagnosis-count {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.admin-payments-ops-callout__diagnosis-cause {
+  opacity: 0.85;
+}
+
+.admin-payments-ops-callout__diagnosis-fix {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding-left: 1.1rem;
+}
+
+.admin-payment-ops__diagnosis {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.admin-payment-ops__diagnosis strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-payment-ops__diagnosis small {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
 @media (max-width: 1100px) {
   .admin-payments-ops-strip__kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7290,6 +7347,199 @@
 .payment-validation-dialog__head {
   display: grid;
   gap: 6px;
+}
+
+/* Traza del cobro: la línea de tiempo se lee de arriba abajo, con el
+   veredicto primero para que la respuesta esté antes que la evidencia. */
+.payment-trace__panel {
+  max-width: 780px;
+  width: min(100%, 780px);
+}
+
+.payment-trace__verdict {
+  border-left: 3px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding-left: 12px;
+}
+
+.payment-trace__verdict--ok {
+  border-left-color: var(--admin-status-success, #2f855a);
+}
+
+.payment-trace__verdict--critical,
+.payment-trace__verdict--blocked {
+  border-left-color: var(--admin-status-danger, #c53030);
+}
+
+.payment-trace__verdict--pending {
+  border-left-color: var(--admin-status-warning, #c9a227);
+}
+
+.payment-trace__verdict p {
+  font-size: 13px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.payment-trace__stage {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.payment-trace__timeline {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.payment-trace__step {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.payment-trace__step-icon {
+  color: var(--admin-muted, var(--color-text-muted));
+  margin-top: 2px;
+}
+
+.payment-trace__step--success .payment-trace__step-icon {
+  color: var(--admin-status-success, #2f855a);
+}
+
+.payment-trace__step--warning .payment-trace__step-icon {
+  color: var(--admin-status-warning, #c9a227);
+}
+
+.payment-trace__step--danger .payment-trace__step-icon {
+  color: var(--admin-status-danger, #c53030);
+}
+
+.payment-trace__step-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.payment-trace__step-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 8px;
+  margin: 0;
+}
+
+.payment-trace__step-source {
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.payment-trace__step-gap {
+  font-size: 11px;
+  font-style: normal;
+  opacity: 0.6;
+}
+
+.payment-trace__step-when {
+  font-size: 11px;
+  margin: 0;
+  opacity: 0.6;
+}
+
+.payment-trace__failure {
+  background: color-mix(in srgb, var(--admin-status-danger, #c53030) 8%, transparent);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px 12px;
+}
+
+.payment-trace__failure-message {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.payment-trace__failure-meta {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.payment-trace__failure-meta div {
+  display: grid;
+  font-size: 12px;
+  gap: 2px;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+}
+
+.payment-trace__failure-meta dt {
+  opacity: 0.65;
+}
+
+.payment-trace__failure-meta dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.payment-trace__diagnosis {
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.payment-trace__diagnosis p {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.payment-trace__diagnosis ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.payment-trace__crumbs ol {
+  display: grid;
+  font-size: 12px;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+}
+
+.payment-trace__stack pre {
+  font-size: 11px;
+  margin: 6px 0 0;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.payment-trace__error {
+  color: var(--admin-status-danger, #c53030);
+  font-size: 13px;
+}
+
+.payment-trace__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .payment-trace__failure-meta div {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .payment-validation-dialog__eyebrow {

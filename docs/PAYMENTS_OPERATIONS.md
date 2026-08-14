@@ -131,6 +131,174 @@ corre cada minuto en Supabase mediante la migración
 `20260724000000_domain_maintenance_cron.sql`. Los RPC de claim y las
 actualizaciones atómicas mantienen los reintentos idempotentes.
 
+## Auditoria, logs y diagnostico de fallas
+
+Todo el ciclo de cobro deja rastro en tres capas que comparten un mismo
+identificador de correlacion.
+
+### 1. `X-Request-Id`
+
+`server/middleware/requestContext.js` asigna un id a cada request, lo devuelve
+en el header `X-Request-Id` y lo propaga por `AsyncLocalStorage`. Todo lo que se
+loguee durante ese request lo lleva. En un `500` el id tambien viaja en el
+cuerpo (`{ "error": "Error interno", "requestId": "…" }`): es lo unico que el
+atleta o el operador necesitan pasarnos para que encontremos el stack exacto.
+
+Si el cliente ya manda un `X-Request-Id`, se reusa. En el webhook eso ata
+nuestra traza al `x-request-id` que muestra el panel de Mercado Pago -- y, como
+`payment_integration_events.request_id` guarda ese mismo valor, los asientos que
+escriben los triggers de la base quedan correlacionados con los de la
+aplicacion sin ningun trabajo extra.
+
+### 1b. Donde falla, que paso antes y por donde entro
+
+Tres datos convierten un stack en un diagnostico:
+
+- **`err.origin`** — archivo, linea y funcion del primer marco de codigo propio,
+  salteando `node_modules` y los internals de Node. El stack completo son 20
+  lineas que arrancan en Express o en el SDK de Mercado Pago; `origin` dice
+  directamente `server/modules/payments/paymentWorkflow.js:92`.
+- **`trail`** — los pasos que se dieron antes de romperse, con los milisegundos
+  de cada uno (`addBreadcrumb` en `server/lib/logger.js`). No emiten log propio:
+  se vuelcan solo cuando algo falla. Es la diferencia entre "fallo al aplicar el
+  pago" y "fallo al aplicar el pago tras reclamar el intento y recibir un
+  approved de MP con un monto distinto al de la orden".
+- **`entrypoint`** — por donde entro la operacion (`http:POST /api/payments/...`,
+  job de recuperacion, reintento manual). El mismo error se diagnostica distinto
+  segun el canal.
+
+Los tres se guardan tambien en el asiento de auditoria, asi que sobreviven a la
+rotacion de logs.
+
+### 2. Log estructurado (`server/lib/logger.js`)
+
+Una linea JSON por evento, con `ts`, `level`, `event`, `requestId` y contexto.
+Toda falla incluye `err.stack` completo y la cadena de `cause` -- ahi vive el
+detalle real del SDK de Mercado Pago, que antes se perdia. Cada error de cobro
+sale ademas con su `diagnosis` (causa probable y pasos de resolucion).
+
+Nunca se loguean secretos ni datos de tarjeta: `redact()` recorta por nombre de
+clave (`token`, `secret`, `authorization`, `card`, `cvv`, …) y enmascara emails
+conservando el dominio.
+
+Variables: `LOG_LEVEL` (`debug|info|warn|error|silent`) y `LOG_PRETTY=true` para
+salida legible en local.
+
+Eventos utiles para buscar:
+
+```text
+http.request                  cada request auditado, con status y latencia
+api.error                     toda respuesta de error, con stack y diagnostico
+mercadopago.request           llamada al proveedor, con operacion y latencia
+mercadopago.request_failed    falla del proveedor, con su codigo y descripcion
+payment.*                     etapas del ciclo de cobro (ver abajo)
+```
+
+### 3. Bitacora append-only (`operational_event_logs`, `source = 'payment'`)
+
+`server/modules/payments/paymentAuditTrail.js` asienta cada etapa. Se lee desde
+Panel > Auditoria y desde `npm run payments:audit`.
+
+```text
+payment.order_created         se emitio la orden (afiliacion, inscripcion, combo)
+payment.preference_created    preferencia de checkout creada en MP
+payment.preference_reused     el checkout reabrio una preferencia existente
+payment.attempt_claimed       el Brick tomo el lock del intento
+payment.provider_submitted    el pago se envio a MP
+payment.applied               el pago se acredito en el dominio
+payment.duplicate_submit      reenvio sobre una orden ya aprobada
+payment.webhook_received      notificacion firmada y persistida
+payment.webhook_processed     notificacion aplicada al dominio
+payment.webhook_failed        notificacion rechazada o fallida
+payment.reconciled            conciliacion resuelta contra MP
+payment.reconciliation_failed conciliacion fallida
+payment.recovery_run          corrida del job de recuperacion
+payment.failed                falla en cualquier etapa
+```
+
+Cada asiento fallido guarda `metadata.stage`, `metadata.requestId`,
+`metadata.diagnosis` (codigo, causa y pasos) y `metadata.error.stack`. Una misma
+falla se asienta una sola vez, en la capa que la vio primero.
+
+Las altas de atleta que no se completan quedan en `source = 'identity'` como
+`account.registration_failed`, con el documento y el correo como fingerprint
+(nunca en claro).
+
+### 4. Catalogo de diagnostico
+
+`server/modules/payments/paymentFailureCatalog.js` traduce una falla a
+`{ code, title, cause, fix[], severity, scope, retryable }`. La severidad
+distingue lo que hay que atender de lo que es correcto:
+
+- `blocker`: no se acredita ningun pago hasta resolverlo (config rota).
+- `degraded`: el cobro funciona pero hay riesgo de plata sin acreditar.
+- `expected`: caso de borde legitimo (orden ya pagada, tarjeta rechazada,
+  evento sin cupo). Queda registrado y no despierta a nadie.
+
+El panel de Pagos muestra el diagnostico en lugar del texto crudo del proveedor
+y agrupa los bloqueantes con sus pasos. Si aparece
+`UNCLASSIFIED_PAYMENT_FAILURE` de forma repetida, agregar el patron al catalogo.
+
+### 5. Traza forense de un cobro
+
+`server/modules/payments/paymentForensics.js` cruza las cinco fuentes -- orden,
+intentos del Brick, notificaciones de MP, ledger y bitacora -- en una sola linea
+de tiempo, con el tiempo transcurrido entre pasos y un veredicto de hasta donde
+llego el cobro.
+
+Desde el panel: boton **Ver traza del cobro** en cada orden de Finanzas. Muestra
+el veredicto arriba, la secuencia debajo y, en cada falla, donde se rompio, por
+donde entro, los pasos previos, el diagnostico y el stack completo. El boton
+**Copiar informe** deja el JSON listo para adjuntar a un reclamo.
+
+Por API (staff, `admin.payments.read`):
+
+```text
+GET /api/payments/audit/orders/:orderId       vida completa de una orden
+GET /api/payments/audit/athletes/:athleteId   recorrido de afiliacion
+GET /api/payments/audit/requests/:requestId   que paso en esa operacion
+```
+
+Por linea de comandos:
+
+```bash
+npm run payments:trace -- <orderId>            # vida completa de la orden
+npm run payments:trace -- <requestId>          # que paso en esa operacion
+npm run payments:trace -- <email|documento>    # recorrido de afiliacion
+npm run payments:trace -- <orderId> --stack    # con los stacks completos
+npm run payments:trace -- <orderId> --json
+```
+
+El veredicto distingue los casos que importan:
+
+- `ok` — cobrado y acreditado en el dominio.
+- `critical` — **el pago se acredito pero el efecto de negocio no se aplico**.
+  Es la falla mas cara: el atleta pago y no tiene lo que compro.
+- `blocked` — el cobro se corto por una falla que necesita accion.
+- `pending` — quedo a mitad de camino; indica si hay plata en juego o no.
+- `expected` / `closed` — caso de borde legitimo u orden cerrada.
+
+El recorrido de afiliacion evalua el embudo completo (alta, correo verificado,
+orden emitida, pago acreditado, afiliacion activa) y nombra el eslabon donde se
+corta.
+
+### 6. Auditoria bajo demanda
+
+```bash
+npm run payments:audit              # informe legible
+npm run payments:audit -- --json    # salida para CI
+npm run payments:audit -- --offline # sin llamar a la API de MP
+```
+
+Verifica credenciales y URLs, conectividad con MP, presencia de las 15 funciones
+y 10 tablas del flujo, integridad del ledger, webhooks fallidos agrupados por
+causa, afiliaciones cobradas sin membresia activa y las ultimas fallas con su
+stack. Sale con codigo `1` si hay bloqueantes.
+
+Complementos: `npm run mercado-pago:doctor` (credenciales),
+`npm run mercado-pago:urls` (webhooks a registrar),
+`npm run db:verify:payments` (maquina de estados transaccional).
+
 ## Pruebas de aceptacion
 
 Antes de habilitar produccion verificar en sandbox:
@@ -152,6 +320,34 @@ Los comandos locales de control son:
 npm run lint
 npm test
 npm run build
+npm run payments:audit
 npx prisma validate
 npm audit --omit=dev
 ```
+
+### Como se investiga un cobro que no acredito
+
+Con cualquier dato que traiga quien reporta -- el correo del atleta, el id de la
+orden o el `requestId` que muestra la pantalla de error -- alcanza:
+
+```bash
+npm run payments:trace -- <correo | orderId | requestId>
+```
+
+Eso responde de una: hasta donde llego el cobro, en que paso se corto, con que
+error, en que archivo y linea, por donde habia entrado la operacion, que venia
+pasando antes y cual es el paso siguiente. Desde el panel, el mismo informe esta
+en el boton **Ver traza del cobro** de cada orden.
+
+Si el problema no es de una orden puntual sino general:
+
+```bash
+npm run payments:audit
+```
+
+distingue si es configuracion, integridad del ledger o afiliaciones cobradas sin
+activar.
+
+Reprocesar siempre desde Panel > Pagos > Recuperar operaciones, nunca editando
+estados a mano: las RPC de claim mantienen la idempotencia y una edicion manual
+deja el ledger desalineado (queda registrado como drift en Integridad).

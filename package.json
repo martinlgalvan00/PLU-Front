@@ -39,6 +39,8 @@
     "email:previews": "node scripts/render-email-previews.mjs",
     "share-cards:previews": "node scripts/render-share-card-previews.mjs",
     "mercado-pago:doctor": "node scripts/mercado-pago-doctor.mjs",
+    "payments:audit": "node scripts/payments-audit.mjs",
+    "payments:trace": "node scripts/payments-trace.mjs",
     "mercado-pago:urls": "node scripts/mercado-pago-urls.mjs",
     "git:push-check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-unpushed-commits.ps1 -Notify",
     "git:push-reminder:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-push-reminder.ps1",
