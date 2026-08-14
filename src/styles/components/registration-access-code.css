@@ -50,3 +50,299 @@
   outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
   outline-offset: 2px;
 }
+
+/* Puerta de tanda privada — modal que corta el checkout hasta que el código
+   valide. Estilos propios y no los de `account.css`: el mismo modal lo usan la
+   página de inscripción y la sección de afiliación del perfil, que no comparten
+   hoja de estilos. */
+
+.registration-access-gate__overlay {
+  align-items: center;
+  animation: registration-access-gate-fade var(--motion-fast, 160ms) var(--ease-out, ease) both;
+  background: rgba(5, 6, 9, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 210;
+}
+
+.registration-access-gate {
+  animation: registration-access-gate-rise var(--motion-base, 240ms) var(--ease-out, ease) both;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: 0.7rem;
+  max-height: min(92vh, 640px);
+  max-width: 460px;
+  overflow: auto;
+  padding: 22px 22px calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+}
+
+.registration-access-gate__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.registration-access-gate__badge {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.registration-access-gate__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 44px;
+}
+
+.registration-access-gate__close:hover {
+  color: var(--color-text-primary);
+}
+
+.registration-access-gate h2 {
+  color: var(--color-text-primary);
+  font-size: 1.14rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.registration-access-gate__lead {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.registration-access-gate__form {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.registration-access-gate__form fieldset {
+  border: 0;
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.registration-access-gate__form label {
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 650;
+  gap: 0.4rem;
+}
+
+.registration-access-gate__form input {
+  background: var(--color-bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 0.72rem;
+  width: 100%;
+}
+
+.registration-access-gate__form input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.registration-access-gate__error {
+  background: var(--color-danger-bg);
+  border-left: 2px solid var(--color-danger-text);
+  color: var(--color-danger-text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+}
+
+.registration-access-gate__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.registration-access-gate__cancel,
+.registration-access-gate__submit {
+  align-items: center;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.registration-access-gate__cancel {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.registration-access-gate__cancel:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.registration-access-gate__submit {
+  background: var(--color-brand-celeste);
+  border: 1px solid var(--color-brand-celeste);
+  color: #05060a;
+}
+
+.registration-access-gate__submit:disabled,
+.registration-access-gate__cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.registration-access-gate__spinner {
+  animation: registration-access-gate-spin 900ms linear infinite;
+}
+
+.registration-access-gate__footnote {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Aviso que queda en el checkout cuando cierran el modal sin desbloquear. */
+.registration-access-locked {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 46%, transparent);
+  border-left: 2px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: space-between;
+  padding: 0.85rem 0.95rem;
+}
+
+.registration-access-locked p {
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.registration-access-locked strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 0.88rem;
+}
+
+.registration-access-locked button {
+  align-items: center;
+  background: var(--color-brand-celeste);
+  border: 1px solid var(--color-brand-celeste);
+  border-radius: 2px;
+  color: #05060a;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  gap: 0.42rem;
+  min-height: 44px;
+  padding: 0 0.95rem;
+}
+
+.registration-access-unlocked {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.42rem;
+  margin: 0;
+}
+
+@keyframes registration-access-gate-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes registration-access-gate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes registration-access-gate-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registration-access-gate__overlay,
+  .registration-access-gate {
+    animation: none;
+  }
+
+  .registration-access-gate__spinner {
+    animation-duration: 2400ms;
+  }
+}
+
+@media (max-width: 520px) {
+  .registration-access-gate {
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .registration-access-gate__actions {
+    flex-direction: column-reverse;
+  }
+
+  .registration-access-gate__cancel,
+  .registration-access-gate__submit {
+    width: 100%;
+  }
+
+  .registration-access-locked button {
+    width: 100%;
+  }
+}

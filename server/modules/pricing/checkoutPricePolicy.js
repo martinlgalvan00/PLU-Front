@@ -12,6 +12,15 @@ export function manualPaymentChannel(paymentMethod) {
   return null
 }
 
+/**
+ * Transferencia y efectivo comparten `method = 'manual_link'` y se distinguen
+ * por canal: los dos dependen de que alguien valide el cobro a mano, así que el
+ * interruptor de canal manual los cubre juntos.
+ */
+export function isManualPaymentMethod(paymentMethod) {
+  return manualPaymentChannel(paymentMethod) !== null
+}
+
 export function checkoutPriceFor({ concept, paymentMethod, now = new Date() }) {
   if (now >= PITBULL_PRE_SALE_END) return null
   const bankTransfer = paymentMethod === 'manual_link'

@@ -13,7 +13,10 @@ import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.js
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
+import {
+  useTicketAvailability,
+  useTicketCheckoutAvailability,
+} from '../hooks/useTicketAvailability.js'
 import { getUpcomingEventsByDate } from '../lib/eventNavigation.js'
 import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { env } from '../config/env.js'
@@ -57,7 +60,12 @@ export default function TicketsPage({
     ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
   const pricing = ticketPricingFromEvent(selectedEvent)
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), { checkoutKind: 'ticket' })
-  const ticketSalesOpen = paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled !== false
+  const eventSalesOpen = paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled !== false
+  // El interruptor global del panel se pide con el mismo request que el cupo, así
+  // que se consulta con el slug del evento aunque la venta ya esté cerrada por
+  // fecha o por configuración del torneo.
+  const ticketCheckout = useTicketCheckoutAvailability(selectedEvent?.slug ?? null)
+  const ticketSalesOpen = eventSalesOpen && ticketCheckout.ticketEnabled
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
     createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title ? createdOrder : null
@@ -299,6 +307,7 @@ export default function TicketsPage({
                 editorial
                 showPassPreview={false}
                 event={selectedEvent}
+                manualPaymentEnabled={ticketCheckout.ticketManualEnabled}
                 pricing={pricing}
                 tickets={tickets}
                 createdOrder={visibleCreatedOrder}

@@ -427,6 +427,42 @@ export default {
       registrationToggleLead:
         'When closed, no event accepts new registrations even if its opening date is active.',
       registrationToggleAria: 'Enable registrations',
+      ticketToggleTitle: 'Tickets',
+      ticketToggleLead:
+        'When closed, no event sells spectator tickets, without touching each event settings.',
+      ticketToggleAria: 'Enable ticket sales',
+      group: {
+        intakeTitle: 'New intake',
+        intakeLead: 'Who can start an operation right now, with or without a batch code.',
+        manualTitle: 'Bank transfer and cash',
+        manualLead:
+          'With the manual channel closed, checkout only offers Mercado Pago. Existing orders can still be validated.',
+        validationTitle: 'Validation and activation',
+        validationLead:
+          'Freezes the finance decision: nobody clears proofs or activates rights for that concept, even with permission.',
+      },
+      membershipManualTitle: 'Membership by transfer',
+      membershipManualLead:
+        'When closed, membership is paid only with Mercado Pago: transfer and cash at Pitbull are hidden.',
+      membershipManualAria: 'Enable membership by transfer or cash',
+      registrationManualTitle: 'Registration by transfer',
+      registrationManualLead: 'When closed, registration and combo are paid only with Mercado Pago.',
+      registrationManualAria: 'Enable registration by transfer or cash',
+      ticketManualTitle: 'Tickets by transfer',
+      ticketManualLead: 'When closed, tickets are paid only with Mercado Pago.',
+      ticketManualAria: 'Enable tickets by transfer',
+      membershipValidationTitle: 'Validate memberships',
+      membershipValidationLead:
+        'While frozen, membership proofs are neither approved nor rejected, and no membership is activated by hand.',
+      membershipValidationAria: 'Enable membership validation',
+      registrationValidationTitle: 'Validate registrations',
+      registrationValidationLead:
+        'While frozen, registration and combo proofs are neither approved nor rejected.',
+      registrationValidationAria: 'Enable registration validation',
+      ticketValidationTitle: 'Validate tickets',
+      ticketValidationLead:
+        'While frozen, ticket proofs are neither approved nor rejected and their QRs are not issued.',
+      ticketValidationAria: 'Enable ticket validation',
       gatesTitle: 'Private batches',
       gatesLead: 'On top of the general cut, each batch can require a code to open gradually.',
       membershipGateTitle: 'Memberships',
@@ -1878,6 +1914,7 @@ export default {
     proofMissing: 'No receipt',
     proofError: 'Could not open the receipt.',
     webhookOnly: 'Mercado Pago settles through the webhook',
+    validationPaused: 'Validation paused from Access and availability',
     empty: 'No orders match this filter',
     loading: 'Loading orders...',
     loadError: 'Could not load the orders.',

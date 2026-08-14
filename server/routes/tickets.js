@@ -30,7 +30,13 @@ import { buildEventPagePath } from '../../src/lib/eventPageRoute.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
-import { assertCheckoutEnabled } from '../services/platformFeatureToggleService.js'
+import {
+  assertCheckoutEnabled,
+  assertManualChannelEnabled,
+  assertTicketCheckoutEnabled,
+  assertValidationEnabled,
+  resolvePublicCheckoutAvailability,
+} from '../services/platformFeatureToggleService.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -78,7 +84,8 @@ export function createTicketRoutes({
     // conocen la tabla de interruptores, así que en test quedan abiertos por
     // defecto. En runtime real no hay bypass.
     if (!platformSettingsRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
-      return { get: async () => ({ checkoutEnabled: true }) }
+      // Vacío = abierto: los asserts sólo cortan con `false` explícito.
+      return { get: async () => ({}) }
     }
     return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(getSupabaseAdmin?.())
   }
@@ -147,7 +154,12 @@ export function createTicketRoutes({
           skipScheduleLookup: true,
           checkoutKind: 'ticket',
         })
-        assertCheckoutEnabled(await platformSettingsRepo().get())
+        const toggles = await platformSettingsRepo().get()
+        assertCheckoutEnabled(toggles)
+        assertTicketCheckoutEnabled(toggles)
+        if (req.validatedBody.provider === 'manual') {
+          assertManualChannelEnabled(toggles, 'ticket')
+        }
         res.status(201).json(await repo().createOrder(req.validatedBody))
       } catch (error) {
         next(error)
@@ -207,9 +219,20 @@ export function createTicketRoutes({
       next(error)
     }
   })
+  /**
+   * `checkout` viaja junto a la disponibilidad porque la pantalla de entradas
+   * necesita las dos cosas para armarse: cuántos lugares quedan y qué medios de
+   * pago están abiertos. Sin esto, la página ofrecía transferencia y el 409
+   * recién aparecía al enviar la compra.
+   */
   router.get('/availability/:eventSlug', publicReadLimiter, async (req, res, next) => {
     try {
-      res.json({ availability: await repo().availability(req.params.eventSlug) })
+      const [availability, toggles] = await Promise.all([
+        repo().availability(req.params.eventSlug),
+        platformSettingsRepo().get(),
+      ])
+      const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles)
+      res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
     } catch (error) {
       next(error)
     }
@@ -224,6 +247,7 @@ export function createTicketRoutes({
   })
   router.post('/orders/:orderId/approve', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
     try {
+      assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
       res.json(await repo().approve(parseOrderId(req), actor(req)))
     } catch (error) {
       next(error)
@@ -244,6 +268,7 @@ export function createTicketRoutes({
     async (req, res, next) => {
       try {
         const orderId = parseOrderId(req)
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
         const result = await repo().reject(orderId, req.validatedBody.reason, actor(req))
         const order = result?.order
         if (order?.buyer_email) {

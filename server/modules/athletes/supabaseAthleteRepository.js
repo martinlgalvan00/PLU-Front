@@ -297,6 +297,21 @@ export function createSupabaseAthleteRepository(
         'No se pudo leer el evento.',
       )
     },
+    /**
+     * Datos mínimos de una orden para decidir antes de tocarla. La ruta necesita
+     * el `concept` para saber qué interruptor de validación la cubre, y devolver
+     * 409 sin haber intentado la RPC.
+     */
+    async paymentOrderSummary(orderId) {
+      return assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('id, concept, method, status')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
+      )
+    },
     async approvePayment(orderId, actor = null) {
       const order = assertSupabaseResult(
         await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),

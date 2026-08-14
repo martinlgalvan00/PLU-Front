@@ -1,4 +1,5 @@
 import RegistrationAccessSection from './RegistrationAccessSection.jsx'
+import { PLATFORM_TOGGLE_KEYS } from '../../services/platformSettingsAdminService.js'
 
 const emptyConfiguration = {
   membershipGate: null,
@@ -48,10 +49,9 @@ function mockPlatformSettings(initialToggles) {
 
     if (String(options.method || 'GET').toUpperCase() === 'PUT') {
       const payload = JSON.parse(options.body)
-      toggles = {
-        ...toggles,
-        [`${payload.feature}Enabled`]: payload.enabled,
-      }
+      // `membership_manual` -> `membershipManualEnabled`, igual que la RPC.
+      const key = `${payload.feature.replace(/_(.)/g, (_match, char) => char.toUpperCase())}Enabled`
+      toggles = { ...toggles, [key]: payload.enabled }
     }
 
     return new Response(JSON.stringify(toggles), {
@@ -84,11 +84,7 @@ function mockPlatformSettingsFailure(status = 404, message = 'Ruta no encontrada
   }
 }
 
-const defaultToggles = {
-  checkoutEnabled: true,
-  membershipEnabled: true,
-  registrationEnabled: true,
-}
+const defaultToggles = Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true]))
 
 export default {
   title: 'Admin/Acceso y habilitación',
@@ -127,11 +123,7 @@ export const InterruptoresPausados = {
     onSave: async () => ({}),
   },
   beforeEach: () =>
-    mockPlatformSettings({
-      checkoutEnabled: false,
-      membershipEnabled: false,
-      registrationEnabled: false,
-    }),
+    mockPlatformSettings(Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, false]))),
 }
 
 export const SoloLectura = {
