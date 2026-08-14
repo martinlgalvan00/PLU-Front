@@ -370,13 +370,35 @@ export default function AuditSection() {
         </div>
       </dl>
 
-      {affiliationIncidents > 0 ? (
-        <p className="audit-health__notice">
-          {t('admin.audit.healthMembershipNotice', {
-            orders: overview.approvedOrdersWithoutActiveMembership,
-            emails: overview.activeMembershipsWithoutConfirmation,
-          })}
-        </p>
+      {attentionCount > 0 ? (
+        <div className="audit-health__notice">
+          <dl className="audit-health__breakdown" aria-label={t('admin.audit.healthIncidents')}>
+            <div>
+              <dt>{t('admin.audit.healthBreakdownEmails')}</dt>
+              <dd>{overview.emailAttention}</dd>
+            </div>
+            <div>
+              <dt>{t('admin.audit.healthBreakdownPayments')}</dt>
+              <dd>{overview.paymentAttention}</dd>
+            </div>
+            <div>
+              <dt>{t('admin.audit.healthBreakdownAffiliation')}</dt>
+              <dd>{affiliationIncidents}</dd>
+            </div>
+          </dl>
+          {affiliationIncidents > 0 ? (
+            <dl className="audit-health__detail">
+              <div>
+                <dt>{t('admin.audit.healthBreakdownOrdersGap')}</dt>
+                <dd>{overview.approvedOrdersWithoutActiveMembership}</dd>
+              </div>
+              <div>
+                <dt>{t('admin.audit.healthBreakdownMembershipEmails')}</dt>
+                <dd>{overview.activeMembershipsWithoutConfirmation}</dd>
+              </div>
+            </dl>
+          ) : null}
+        </div>
       ) : null}
     </section>
   )

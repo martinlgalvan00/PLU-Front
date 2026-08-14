@@ -931,6 +931,7 @@ export default {
       sportsSummary: 'Team, Instagram and total',
       fullName: 'Full name',
       documentId: 'ID document',
+      documentIdPassport: 'ID or Passport',
       birthDate: 'Date of birth',
       readonlyNote:
         'These identify your eligibility to compete. Contact the federation to change them.',
@@ -2519,7 +2520,9 @@ export default {
       email: 'Email',
       phone: 'Phone',
       documentIdLabel: 'ID document',
+      documentIdPassport: 'ID or Passport',
       documentPlaceholder: 'E.g. 40111222',
+      documentPlaceholderPassport: 'ID Number',
       emailPlaceholder: 'name@email.com',
       phonePlaceholder: 'E.g. +54 9 11 1234 5678',
       provincePlaceholder: 'E.g. Buenos Aires',

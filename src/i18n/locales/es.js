@@ -932,6 +932,7 @@ export default {
       sportsSummary: 'Equipo, Instagram y total',
       fullName: 'Nombre completo',
       documentId: 'DNI o documento',
+      documentIdPassport: 'ID o Pasaporte',
       birthDate: 'Fecha de nacimiento',
       readonlyNote:
         'Identifican tu elegibilidad para competir. Para modificarlos, contactate con la federación.',
@@ -2529,7 +2530,9 @@ export default {
       email: 'Correo electrónico',
       phone: 'Teléfono',
       documentIdLabel: 'DNI o documento',
+      documentIdPassport: 'ID o Pasaporte',
       documentPlaceholder: 'Ej.: 40111222',
+      documentPlaceholderPassport: 'Nº de identificación',
       emailPlaceholder: 'nombre@correo.com',
       phonePlaceholder: 'Ej.: +54 9 11 1234 5678',
       provincePlaceholder: 'Ej.: Buenos Aires',
