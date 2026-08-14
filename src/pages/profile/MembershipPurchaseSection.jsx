@@ -8,6 +8,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react'
+import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'

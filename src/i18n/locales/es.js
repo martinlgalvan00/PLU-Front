@@ -2390,8 +2390,8 @@ export default {
       membershipPaymentInProgress:
         'Ya tenés una afiliación pendiente. Retomá el pago vigente; si enviaste una transferencia, Administración la valida en hasta 48 horas.',
       membershipPaymentInProgressAction: 'Retomar mi afiliación',
-      transferEyebrow: 'Transferencia',
-      transferTitle: 'Transferencia',
+      transferEyebrow: 'Transferencia bancaria',
+      transferTitle: 'Datos para completar tu inscripción',
       transferNotice: 'Usá la referencia indicada para que el equipo pueda conciliar tu pago.',
       transferHint: 'Adjuntá el comprobante. Administración valida en hasta 48 horas.',
       transferOpen: 'Ver datos de transferencia',

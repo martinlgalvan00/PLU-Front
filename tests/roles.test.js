@@ -63,10 +63,12 @@ describe('roles', () => {
     expect(canManageUsers('plu_arg')).toBe(false)
     expect(canManageRoles('admin_plu_arg')).toBe(true)
     expect(canDeleteUsers('admin_maximal')).toBe(true)
-    expect(canDeleteUsers('admin_plu_arg')).toBe(true)
-    expect(canDeleteAthletes('admin_plu_arg')).toBe(true)
-    expect(canDeleteMemberships('admin_plu_arg')).toBe(true)
-    expect(canDeleteRegistrations('admin_plu_arg')).toBe(true)
+    // Borrado definitivo (cascada de datos, sin vuelta atrás): reservado a
+    // Super Admin. Administrador tiene acceso total para todo lo demás.
+    expect(canDeleteUsers('admin_plu_arg')).toBe(false)
+    expect(canDeleteAthletes('admin_plu_arg')).toBe(false)
+    expect(canDeleteMemberships('admin_plu_arg')).toBe(false)
+    expect(canDeleteRegistrations('admin_plu_arg')).toBe(false)
     expect(
       canDeleteUsers({
         role: 'admin_plu_arg',

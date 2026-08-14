@@ -27,7 +27,7 @@ function planPayload(overrides = {}) {
   }
 }
 
-async function setup({ appProduction = false } = {}) {
+async function setup() {
   const staff = await buildStaffUser({ email: 'pricing-admin@plu.test' })
   const prisma = createPrismaDouble([staff])
   const rpc = vi.fn(async (name) => {
@@ -42,7 +42,6 @@ async function setup({ appProduction = false } = {}) {
     env: {
       AUTH_SECRET: 'pricing-test-secret',
       APP_URL: 'http://localhost:5173',
-      APP_PRODUCTION: appProduction ? 'true' : 'false',
     },
   }))
   const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -68,17 +67,19 @@ describe('configuración económica administrativa', () => {
     }
   })
 
-  it('bloquea escrituras en APP_PRODUCTION aunque se intente saltear la UI', async () => {
-    const { cookie, rpc, target } = await setup({ appProduction: true })
+  // El lanzamiento público ya está en producción: la config económica se
+  // edita siempre, sin el gate de APP_PRODUCTION que existía antes del
+  // lanzamiento (removido en el refactor "remove APP_PRODUCTION references").
+  it('permite crear versiones de plan sin ningún gate de lanzamiento', async () => {
+    const { cookie, rpc, target } = await setup()
     try {
       const response = await fetch(`${target.url}/api/pricing/membership-plans/versions`, {
         method: 'POST',
         headers: authHeaders(cookie),
         body: JSON.stringify(planPayload()),
       })
-      expect(response.status).toBe(409)
-      expect(await response.json()).toMatchObject({ code: 'FEATURE_COMING_SOON' })
-      expect(rpc).not.toHaveBeenCalledWith(
+      expect(response.status).toBe(201)
+      expect(rpc).toHaveBeenCalledWith(
         'staff_create_membership_plan_version',
         expect.anything(),
       )

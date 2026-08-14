@@ -114,9 +114,7 @@ describe('adaptador de Mercado Pago', () => {
       env: {
         MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
         MERCADO_PAGO_ENV: 'production',
-        APP_PRODUCTION: 'true',
-        VERCEL: '1',
-        VERCEL_PROJECT_PRODUCTION_URL: 'example.vercel.app',
+        VERCEL_ENV: 'production',
       },
     })
 

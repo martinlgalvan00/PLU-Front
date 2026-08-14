@@ -38,6 +38,7 @@ vi.mock('@mercadopago/sdk-react', () => ({
   initMercadoPago: vi.fn(),
   Payment: () => <div data-testid="mp-payment-brick" />,
   CardPayment: () => <div data-testid="mp-card-brick" />,
+  Wallet: () => <div data-testid="mp-wallet-brick" />,
 }))
 
 vi.mock('../src/services/athleteApi.js', () => ({
@@ -61,6 +62,7 @@ vi.mock('../src/config/env.js', () => ({
 }))
 
 vi.mock('../src/services/paymentService.js', () => ({
+  createPreference: vi.fn(async () => ({})),
   listMembershipPlans: vi.fn(async () => ({
     plans: [
       {

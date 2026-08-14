@@ -45,8 +45,13 @@ beforeAll(() => {
 
 afterEach(cleanup)
 
-describe('afiliacion con APP_PRODUCTION y cobro cerrado', () => {
-  it('muestra combo y plan con todos los CTAs en Proximamente', async () => {
+// `isPaidCheckoutOpen` (src/lib/registrationSchedule.js) ya no cierra
+// membership/registration/combo por env: el lanzamiento público está en
+// producción y esos tres checkouts quedan siempre abiertos, incluso con
+// `appProduction: true` y sin `PAID_CHECKOUT_ENABLED` explícito. El estado
+// "Próximamente" que este archivo probaba ya no ocurre para estos flujos.
+describe('afiliacion en produccion, sin gate de lanzamiento', () => {
+  it('muestra combo y plan con los CTAs de pago activos, no en Proximamente', async () => {
     const pitbull = {
       slug: 'pitbull-classic-2026',
       title: 'Pitbull Classic',
@@ -76,15 +81,13 @@ describe('afiliacion con APP_PRODUCTION y cobro cerrado', () => {
 
     await waitFor(() => {
       expect(container.querySelector('.members-combo-promo__cta')?.textContent)
-        .toMatch(/Próximamente|Proximamente/i)
+        .not.toMatch(/Próximamente|Proximamente/i)
     })
-    expect(container.querySelector('.members-combo-promo__cta')?.disabled).toBe(true)
+    expect(container.querySelector('.members-combo-promo__cta')?.disabled).toBe(false)
     expect(container.querySelector('.membership-card__cta')?.textContent)
-      .toMatch(/Próximamente|Proximamente/i)
-    expect(container.querySelector('.membership-card__cta')?.disabled).toBe(true)
-    expect(container.querySelector('.members-plu-hero__cta-row .btn')?.textContent)
-      .toMatch(/Próximamente|Proximamente/i)
+      .not.toMatch(/Próximamente|Proximamente/i)
+    expect(container.querySelector('.membership-card__cta')?.disabled).toBe(false)
     fireEvent.click(container.querySelector('.members-combo-promo__cta'))
-    expect(onSelectEvent).not.toHaveBeenCalled()
+    expect(onSelectEvent).toHaveBeenCalled()
   })
 })

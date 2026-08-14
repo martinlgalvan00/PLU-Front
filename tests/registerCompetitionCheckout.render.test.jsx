@@ -53,9 +53,11 @@ vi.mock('@mercadopago/sdk-react', () => ({
   initMercadoPago: vi.fn(),
   Payment: () => <div data-testid="payment-brick" />,
   CardPayment: () => <div data-testid="card-payment-brick" />,
+  Wallet: () => <div data-testid="wallet-brick" />,
 }))
 
 vi.mock('../src/services/paymentService.js', () => ({
+  createPreference: vi.fn(async () => ({})),
   getPaymentOrderStatus: vi.fn(),
   notifyMockPayment: vi.fn(),
   processEmbeddedPayment: vi.fn(),
