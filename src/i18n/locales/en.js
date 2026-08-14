@@ -2381,7 +2381,7 @@ export default {
         'You already have a pending membership. Resume the current payment; if you sent a bank transfer, Administration validates it within up to 48 hours.',
       membershipPaymentInProgressAction: 'Resume my membership',
       transferEyebrow: 'Bank transfer',
-      transferTitle: 'Bank transfer',
+      transferTitle: 'Details to complete your registration',
       transferNotice: 'Use the indicated reference so the team can reconcile your payment.',
       transferHint: 'Attach the receipt. Administration reviews it within up to 48 hours.',
       transferOpen: 'View transfer details',

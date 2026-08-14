@@ -304,9 +304,23 @@ export const ROLE_HIERARCHY = Object.freeze([
 
 export const CONFIGURABLE_ROLE_KEYS = Object.freeze(['plu_arg', 'seguridad_plu_arg'])
 
+/**
+ * Borrado definitivo (cascada de datos, sin vuelta atrás): reservado a Super
+ * Admin. Administrador tiene "acceso total" para todo lo demás, pero no esto.
+ */
+const SUPER_ADMIN_ONLY_PERMISSIONS = Object.freeze([
+  'admin.athletes.delete',
+  'admin.memberships.delete',
+  'admin.events.delete',
+  'admin.registrations.delete',
+  'admin.users.delete',
+])
+
 export const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
   admin_maximal: PERMISSION_KEYS,
-  admin_plu_arg: PERMISSION_KEYS,
+  admin_plu_arg: Object.freeze(
+    PERMISSION_KEYS.filter((key) => !SUPER_ADMIN_ONLY_PERMISSIONS.includes(key)),
+  ),
   plu_arg: [
     'admin.dashboard.read',
     'admin.athletes.read',

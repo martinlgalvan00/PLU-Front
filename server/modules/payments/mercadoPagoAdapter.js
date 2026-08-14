@@ -132,7 +132,7 @@ function requireIntegrationUrl(value, label, env) {
 // despliegues con API separada, pero no debe ser obligatorio cuando APP_URL ya
 // identifica el origen público que recibe el webhook.
 function resolveApiUrl({ apiUrl, appUrl, env }) {
-  return apiUrl ?? env.API_URL ?? appUrl ?? env.APP_URL ?? env.VITE_APP_URL
+  return apiUrl ?? env.API_URL ?? appUrl ?? env.APP_URL ?? env.VITE_APP_URL ?? resolveDeploymentAppUrl(env)
 }
 
 function assertProviderRequest(order, idempotencyKey) {
