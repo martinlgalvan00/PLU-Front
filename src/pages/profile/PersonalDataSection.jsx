@@ -224,7 +224,11 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
               <dd>{athlete.fullName}</dd>
             </div>
             <div>
-              <dt>{t('account.personalData.documentId')}</dt>
+              <dt>{t('pages.register.country')}</dt>
+              <dd>{athlete.country || '—'}</dd>
+            </div>
+            <div>
+              <dt>{athlete.country === 'Argentina' || !athlete.country ? t('account.personalData.documentId') : t('account.personalData.documentIdPassport')}</dt>
               <dd>{athlete.documentId}</dd>
             </div>
             <div>
