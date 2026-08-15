@@ -139,6 +139,39 @@ describe('catalogo de diagnostico', () => {
       .toBe('COMBO_PLAN_NOT_CURRENT')
   })
 
+  /**
+   * Un rechazo deliberado no es una falla del sistema, y clasificarlo como tal
+   * tiene un costo concreto: sobre la bitácora real, 8 de las 10 "fallas de
+   * cobro recientes" que reportaba `npm run payments:audit` eran toggles
+   * apagados a propósito desde el panel, cada uno con severidad `degraded` y
+   * stack completo. Las dos fallas que sí importaban quedaban enterradas.
+   */
+  it('no trata como incidente un canal apagado a propósito', () => {
+    for (const message of [
+      'Los pagos están pausados temporalmente.',
+      'La afiliación por transferencia o efectivo está pausada. Podés pagar con Mercado Pago.',
+      'La inscripción por transferencia o efectivo está pausada. Podés pagar con Mercado Pago.',
+      'La validación de afiliaciones está pausada desde el panel.',
+    ]) {
+      const diagnosis = diagnosePaymentFailure({ message })
+      expect(diagnosis.code, message).toBe('CHECKOUT_CHANNEL_PAUSED')
+      expect(diagnosis.severity, message).toBe('expected')
+    }
+
+    expect(diagnosePaymentFailure({ message: 'El combo no esta disponible para este evento.' }).code)
+      .toBe('COMBO_NOT_AVAILABLE')
+  })
+
+  it('sigue tratando como incidente lo que sí lo es', () => {
+    // El riesgo del cambio anterior es pasarse de indulgente: un webhook con
+    // firma inválida no puede quedar como "esperado", y una falla nueva tiene
+    // que seguir apareciendo sin clasificar en vez de colarse en una categoría.
+    expect(diagnosePaymentFailure({ message: 'Firma de webhook invalida.' }).severity)
+      .toBe('degraded')
+    expect(diagnosePaymentFailure({ message: 'Algo que nadie catalogó todavía' }).code)
+      .toBe('UNCLASSIFIED_PAYMENT_FAILURE')
+  })
+
   it('siempre devuelve pasos concretos, incluso ante una falla desconocida', () => {
     const diagnosis = diagnosePaymentFailure(new Error('algo rarisimo'))
     expect(diagnosis.code).toBe('UNCLASSIFIED_PAYMENT_FAILURE')

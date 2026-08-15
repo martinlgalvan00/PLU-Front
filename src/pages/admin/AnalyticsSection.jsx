@@ -4,6 +4,7 @@ import {
   ArrowRight,
   CircleAlert,
   Flame,
+  LogIn,
   MousePointerClick,
   RefreshCw,
   ShieldAlert,
@@ -14,11 +15,13 @@ import {
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
+import LivePresenceBar from '../../components/admin/LivePresenceBar.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
+  fetchAccessMetrics,
   fetchAnalyticsElements,
   fetchAnalyticsFlows,
   fetchAnalyticsFunnel,
@@ -387,6 +390,7 @@ export default function AnalyticsSection({
   const [flows, setFlows] = useState([])
   const [funnel, setFunnel] = useState([])
   const [elements, setElements] = useState([])
+  const [access, setAccess] = useState(null)
   const [operational, setOperational] = useState(null)
   const [operationalAlerts, setOperationalAlerts] = useState([])
   const [failureReasons, setFailureReasons] = useState([])
@@ -410,6 +414,7 @@ export default function AnalyticsSection({
         previousOverviewResult,
         pagesResult,
         funnelResult,
+        accessResult,
         operationalResult,
         alertsResult,
         failureReasonsResult,
@@ -420,6 +425,7 @@ export default function AnalyticsSection({
         fetchAnalyticsOverview(previousRange(days)),
         fetchAnalyticsPages({ days, limit: 25 }),
         fetchAnalyticsFunnel({ days }),
+        fetchAccessMetrics({ days }),
         fetchAnalyticsOperationalSummary({ days }),
         fetchAnalyticsOperationalAlerts(),
         // Vive bajo `admin.payments.read`, no `admin.analytics.read`: sin el
@@ -430,6 +436,7 @@ export default function AnalyticsSection({
       setPreviousOverview(previousOverviewResult)
       setPages(pagesResult)
       setFunnel(withFunnelRates(funnelResult))
+      setAccess(accessResult)
       setOperational(operationalResult)
       setOperationalAlerts(alertsResult)
       setFailureReasons(failureReasonsResult)
@@ -592,6 +599,13 @@ export default function AnalyticsSection({
         }
       />
 
+      {/*
+        Arriba del pulso historico y no en una pestaña propia: cuando hay un
+        evento en curso, "ahora" manda sobre "los ultimos 30 dias". Se refresca
+        sola y no depende de `load`, asi que el boton Actualizar no la toca.
+      */}
+      <LivePresenceBar />
+
       <section className="admin-analytics__pulse" aria-label={t('admin.analytics.metricsAria')}>
         <dl className="admin-analytics__metrics">
           <div>
@@ -712,6 +726,83 @@ export default function AnalyticsSection({
 
       {activeTab === TABS.overview ? (
         <div className="admin-analytics__panel" role="tabpanel">
+          {/*
+            Accesos al sistema (login), distinto del bloque "Actividad y
+            accesos" de mas abajo, que cuenta ingresos por puerta a un evento.
+            Se separan porque responden preguntas distintas y confundirlos
+            llevaria a reportar entradas al predio como entradas a la cuenta.
+
+            Personas e intentos van siempre juntos y con nombre distinto: la
+            bitacora tiene cientos de asientos de login exitoso que son unas
+            pocas personas entrando muchas veces, y leer eventos como personas
+            es el error mas facil de cometer con este dato.
+          */}
+          <section className="admin-analytics__block" aria-labelledby="analytics-access">
+            <h3 id="analytics-access">
+              <LogIn size={16} aria-hidden /> {t('admin.analytics.access.title')}
+            </h3>
+            {!access || (!access.succeeded?.events && !access.failed?.events) ? (
+              <p className="admin-analytics__empty">{t('admin.analytics.access.empty')}</p>
+            ) : (
+              <>
+                <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
+                  <div>
+                    <dt>{t('admin.analytics.access.peopleIn')}</dt>
+                    <dd>{count(access.succeeded?.people, locale)}</dd>
+                    <p className="admin-analytics__metric-hint">
+                      {t('admin.analytics.access.athletes')} {count(access.succeeded?.athletes, locale)}
+                      {' · '}
+                      {t('admin.analytics.access.staff')} {count(access.succeeded?.staff, locale)}
+                    </p>
+                  </div>
+                  <div>
+                    <dt>{t('admin.analytics.access.failed')}</dt>
+                    <dd>{count(access.failed?.events, locale)}</dd>
+                    <p className="admin-analytics__metric-hint">
+                      {t('admin.analytics.access.failureRate')} {percent(access.failureRate, locale)}
+                    </p>
+                  </div>
+                  <div>
+                    <dt>{t('admin.analytics.access.blocked')}</dt>
+                    <dd>{count(access.blockedPeople, locale)}</dd>
+                    <p className="admin-analytics__metric-hint">
+                      {t('admin.analytics.access.blockedHint')}
+                    </p>
+                  </div>
+                  <div>
+                    <dt>{t('admin.analytics.access.accountsCreated')}</dt>
+                    <dd>{count(access.accountsCreated, locale)}</dd>
+                  </div>
+                </dl>
+
+                <h4>{t('admin.analytics.access.reasonsTitle')}</h4>
+                {(access.failureReasons ?? []).length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.access.reasonsEmpty')}</p>
+                ) : (
+                  <ul className="admin-analytics__journey-list">
+                    {access.failureReasons.map((reason) => {
+                      // El motivo lo escribe el backend; si aparece uno todavia
+                      // sin traducir se muestra crudo en vez de la clave.
+                      const key = `admin.analytics.access.reasons.${reason.reason}`
+                      const label = t(key)
+                      return (
+                        <li key={reason.reason}>
+                          <span>{label === key ? reason.reason : label}</span>
+                          <strong>
+                            {t('admin.analytics.access.reasonsCount', {
+                              attempts: count(reason.attempts, locale),
+                              people: count(reason.people, locale),
+                            })}
+                          </strong>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </>
+            )}
+          </section>
+
           <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
             <h3 id="analytics-funnel">
               <Activity size={16} aria-hidden /> {t('admin.analytics.funnelTitle')}

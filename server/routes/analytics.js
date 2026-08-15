@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
-import { analyticsIngestLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { analyticsIngestLimiter, liveLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabaseAnalyticsRepository } from '../modules/analytics/supabaseAnalyticsRepository.js'
 import {
   recordOperationalAuditEvent,
@@ -107,6 +107,16 @@ const collectSchema = z
     message: 'El lote no tiene eventos ni tiempo activo.',
     path: ['events'],
   })
+
+/**
+ * Ventana de "ahora". El techo de 60 minutos no es cosmetico: la RPC de
+ * presencia recorre sesiones sin acotar por `started_at`, y una ventana mayor
+ * la convertiria en el informe historico —que ya existe, con sus propios
+ * indices— servido por un endpoint pensado para consultarse cada 15 segundos.
+ */
+const liveQuerySchema = z.object({
+  windowMinutes: z.coerce.number().int().min(1).max(60).optional().default(5),
+})
 
 const rangeSchema = z.object({
   from: z.string().datetime({ offset: true }).optional(),
@@ -222,6 +232,46 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
   })
   router.get('/operational-alerts', ...analyticsGuard, staffLimiter, async (_req, res, next) => {
     try { res.json({ alerts: await repo().operationalAlerts() }) } catch (error) { next(error) }
+  })
+
+  /**
+   * Presencia en vivo: cuanta gente hay en el sitio ahora y donde esta parada.
+   *
+   * Es el unico endpoint del informe pensado para consultarse en bucle mientras
+   * dura un evento, y eso obliga a dos cosas que el resto no necesita:
+   *
+   *   - `no-store`. Un panel que refresca cada 15 segundos contra una respuesta
+   *     cacheada muestra un numero viejo con cara de numero nuevo, que es peor
+   *     que no mostrarlo.
+   *   - `liveLimiter` propio. Con `staffLimiter` (pensado para lecturas
+   *     esporadicas del panel) una sola pestaña abierta con auto-refresco
+   *     consumiria la cuota de todo el equipo.
+   */
+  router.get('/live', ...analyticsGuard, liveLimiter, async (req, res, next) => {
+    try {
+      const parsed = liveQuerySchema.safeParse(req.query)
+      if (!parsed.success) throw new HttpError(400, 'Ventana de tiempo real invalida.')
+      res.set('Cache-Control', 'no-store')
+      res.json(await repo().live(parsed.data))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Cuantas personas entraron correctamente y cuantas quedaron afuera.
+   *
+   * Vive en analitica y no en auditoria porque es una lectura agregada de
+   * producto, pero los datos salen de la bitacora de identidad: son accesos
+   * auditados, no visitas inferidas del tracker.
+   */
+  router.get('/access', ...analyticsGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseRange(req)
+      res.json(await repo().accessMetrics(resolveRange(query)))
+    } catch (error) {
+      next(error)
+    }
   })
 
   router.get('/pages', ...analyticsGuard, staffLimiter, async (req, res, next) => {

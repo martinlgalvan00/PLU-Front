@@ -56,11 +56,13 @@ import {
   fetchAdminAthleteData,
   fetchAthleteSession,
   fetchAthleteSnapshot,
+  forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
   logoutAthleteSession,
   loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
   rejectAthletePaymentOrder as rejectAthletePaymentOrderRequest,
+  setEventRegistrationStatus as setRegistrationStatusRequest,
   setMembershipStatus as setMembershipStatusRequest,
   setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
@@ -161,6 +163,10 @@ import {
   undismissQueueItem as undismissQueueItemRequest,
 } from '../services/adminQueueService.js'
 import { establishSupabaseSession } from '../services/supabaseSessionService.js'
+import {
+  DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
+  fetchPublicCheckoutAvailability,
+} from '../services/platformSettingsService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
@@ -250,6 +256,9 @@ export function useAppData() {
   const [registrationAccessError, setRegistrationAccessError] = useState(null)
   const [dismissedQueueItems, setDismissedQueueItems] = useState([])
   const [dismissedQueueItemsLoading, setDismissedQueueItemsLoading] = useState(false)
+  const [checkoutAvailability, setCheckoutAvailability] = useState(
+    DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
+  )
   const [billingSubscriptions, setBillingSubscriptions] = useState([])
   const [billingSubscriptionsLoading, setBillingSubscriptionsLoading] = useState(false)
   const [billingSubscriptionsError, setBillingSubscriptionsError] = useState(null)
@@ -363,7 +372,24 @@ export function useAppData() {
     }
   }, [])
 
-  const refreshAdminEvents = useCallback(async () => {
+  // Pública y sin sesión: la lee cualquier visitante para saber si el checkout
+  // de afiliación/inscripción/entradas está habilitado antes de tocar un botón.
+  const refreshCheckoutAvailability = useCallback(async () => {
+    try {
+      const availability = await fetchPublicCheckoutAvailability()
+      setCheckoutAvailability(availability)
+      return availability
+    } catch (error) {
+      console.warn('No se pudo cargar la disponibilidad de checkout.', error)
+      return null
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshCheckoutAvailability()
+  }, [refreshCheckoutAvailability])
+
+  const refreshAdminEvents = useCallback(async ({ silent = false } = {}) => {
     const currentSession = sessionRef.current
     if (
       !currentSession ||
@@ -373,18 +399,23 @@ export function useAppData() {
       return null
     }
 
-    setAdminEventsLoading(true)
-    setAdminEventsError(null)
+    if (!silent) {
+      setAdminEventsLoading(true)
+      setAdminEventsError(null)
+    }
     try {
       const remoteEvents = await fetchAdminEvents()
       setAdminEvents(remoteEvents)
+      setAdminEventsError(null)
       return remoteEvents
     } catch (error) {
-      setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      if (!silent) {
+        setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      }
       console.warn('No se pudieron cargar los eventos del panel.', error)
       return null
     } finally {
-      setAdminEventsLoading(false)
+      if (!silent) setAdminEventsLoading(false)
     }
   }, [])
 
@@ -464,6 +495,7 @@ export function useAppData() {
             setMemberships(data.memberships)
             setRegistrations(data.registrations)
             setPayments(data.payments)
+            setAthleteDataError(null)
           })
           .catch((error) => {
             // En background un fallo puntual no debe reemplazar la pantalla
@@ -491,7 +523,7 @@ export function useAppData() {
     }
 
     if (hasPermission(session, 'admin.events.read')) {
-      tasks.push(refreshAdminEvents())
+      tasks.push(refreshAdminEvents({ silent }))
     }
 
     if (hasPermission(session, 'admin.dashboard.read')) {
@@ -548,7 +580,7 @@ export function useAppData() {
     const refresh = () => {
       if (liveRefreshInFlightRef.current) return
       liveRefreshInFlightRef.current = true
-      void refreshAthleteData().finally(() => {
+      void refreshAthleteData({ silent: true }).finally(() => {
         liveRefreshInFlightRef.current = false
       })
     }
@@ -604,7 +636,7 @@ export function useAppData() {
         invalidateEventLiveData()
         publishAthleteSnapshotInvalidation()
       }
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
     window.addEventListener('plu:payment-updated', refreshFromServer)
     window.addEventListener('plu:email-verified', refreshFromServer)
@@ -619,7 +651,7 @@ export function useAppData() {
   // relee únicamente su propio snapshot o los datos autorizados del panel.
   useEffect(() => subscribeLiveSync((message) => {
     if (message.type === 'athlete-snapshot-invalidated') {
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
   }), [refreshAthleteData])
 
@@ -1652,7 +1684,7 @@ export function useAppData() {
     }
     const { deletedMembership } = await deleteMembershipRequest(membershipId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedMembership
   }, [refreshAthleteData, session])
@@ -1668,7 +1700,7 @@ export function useAppData() {
     }
     const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedRegistration
   }, [refreshAthleteData, session])
@@ -2010,6 +2042,82 @@ export function useAppData() {
     [session],
   )
 
+  // Acreditación manual de una orden que el proveedor dio por perdida. Refleja
+  // exactamente lo mismo que `handleApprovePayment` porque el backend devuelve
+  // la misma forma; la diferencia está en qué órdenes acepta, no en el efecto.
+  const handleForceSettlePayment = useCallback(
+    async (paymentId, { reason, reference } = {}) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para acreditar pagos.' }
+      }
+      try {
+        const { order, membership, registration, duplicate } =
+          await forceSettleAthletePaymentOrderRequest(paymentId, { reason, reference })
+        setPayments((c) =>
+          c.map((p) =>
+            p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,
+          ),
+        )
+
+        if (membership) {
+          setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
+          setAthletes((c) =>
+            c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)),
+          )
+        }
+
+        if (registration) {
+          setRegistrations((c) =>
+            c.map((r) =>
+              r.id === registration.id
+                ? { ...r, status: registration.status, paymentStatus: order.status }
+                : r,
+            ),
+          )
+        }
+
+        setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        publishAthleteSnapshotInvalidation()
+
+        return { order, membership, registration, duplicate }
+      } catch (error) {
+        console.error('handleForceSettlePayment:', error)
+        return { error: error?.message ?? 'No se pudo acreditar el pago.' }
+      }
+    },
+    [session],
+  )
+
+  // Corrección manual del estado de una inscripción (confirmar, observar o
+  // cancelar) sin tener que borrarla y volver a crearla.
+  const setRegistrationStatusAction = useCallback(
+    async (registrationId, status, reason) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para editar inscripciones.' }
+      }
+      try {
+        const { registration, duplicate } = await setRegistrationStatusRequest(
+          registrationId,
+          status,
+          reason,
+        )
+        if (registration) {
+          setRegistrations((current) =>
+            current.map((item) =>
+              item.id === registration.id ? { ...item, status: registration.status } : item,
+            ),
+          )
+        }
+        publishAthleteSnapshotInvalidation()
+        return { registration, duplicate }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de la inscripción.' }
+      }
+    },
+    [session],
+  )
+
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
@@ -2025,7 +2133,7 @@ export function useAppData() {
         )
         // El estado del atleta lo recalcula la RPC (afiliado_activo/registrado),
         // así que se refleja el padrón entero en vez de adivinarlo acá.
-        void refreshAthleteData()
+        void refreshAthleteData({ silent: true })
         publishAthleteSnapshotInvalidation()
         return { membership }
       } catch (error) {
@@ -2043,7 +2151,10 @@ export function useAppData() {
    * en vez de parchear las filas tocadas, porque la RPC descarta las canceladas
    * y las de otro evento y el resultado real puede no ser el pedido.
    */
-  const handleScheduleAssigned = useCallback(() => refreshAthleteData(), [refreshAthleteData])
+  const handleScheduleAssigned = useCallback(
+    () => refreshAthleteData({ silent: true }),
+    [refreshAthleteData],
+  )
 
   const activateDemoMembership = useCallback(
     (athleteId) => {
@@ -2650,6 +2761,8 @@ export function useAppData() {
     registrationAccessConfiguration,
     registrationAccessLoading,
     registrationAccessError,
+    checkoutAvailability,
+    refreshCheckoutAvailability,
     refreshRegistrationAccessConfiguration,
     saveRegistrationAccessGate,
     deleteRegistrationAccessGate,
@@ -2694,6 +2807,7 @@ export function useAppData() {
     activateDemoMembership,
     cancelDemoMembership,
     setMembershipStatusAction,
+    setRegistrationStatusAction,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
@@ -2730,6 +2844,7 @@ export function useAppData() {
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,
+    handleForceSettlePayment,
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,

@@ -76,6 +76,7 @@ export default function LaunchRegistrationTeaser({
   stage,
   // Override del label del ticker (“Apertura en” → copy de campaña).
   countdownLabel,
+  registrationCheckoutEnabled = true,
   // Numerado editorial del dossier anfitrión (ej. "01" en Pitbull #inscripcion),
   // mismo lenguaje que `pitbull-dossier__index` — hilo conductor con el resto de la página.
   indexLabel,
@@ -180,7 +181,9 @@ export default function LaunchRegistrationTeaser({
   const isCompact = variant === 'compact'
   const isHero = variant === 'hero'
   const isDossier = /\blaunch-teaser--dossier\b/.test(className)
-  const paidCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
+  const paidCheckoutOpen =
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const eventLabel = resolveEventLabel(event)
   const showAccountCta = !paidCheckoutOpen && typeof onNavigate === 'function'
   const secondaryCta = showAccountCta

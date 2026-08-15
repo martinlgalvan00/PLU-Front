@@ -24,13 +24,23 @@ export async function fetchRegistrationAccessConfiguration() {
 }
 
 export async function saveRegistrationAccessGate(gate) {
+  const body = {
+    scope: gate.scope,
+    label: String(gate.label ?? '').trim(),
+    active: gate.active !== false,
+    startsAt: gate.startsAt ? new Date(gate.startsAt).toISOString() : '',
+    endsAt: gate.endsAt ? new Date(gate.endsAt).toISOString() : '',
+  }
+  if (gate.scope === 'registration' && gate.eventSlug) {
+    body.eventSlug = String(gate.eventSlug).trim()
+  }
+  if (gate.code) {
+    body.code = String(gate.code).trim()
+  }
+
   const result = await apiRequest('/api/registration-access', {
     method: 'PUT',
-    body: JSON.stringify({
-      ...gate,
-      startsAt: gate.startsAt ? new Date(gate.startsAt).toISOString() : '',
-      endsAt: gate.endsAt ? new Date(gate.endsAt).toISOString() : '',
-    }),
+    body: JSON.stringify(body),
   })
   return mapGate(result.gate)
 }

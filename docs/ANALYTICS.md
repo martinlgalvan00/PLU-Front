@@ -185,6 +185,8 @@ exige).
 | GET | `/api/analytics/heatmap?path=…&deviceType=…` | `admin.analytics.read` |
 | GET | `/api/analytics/funnel` | `admin.analytics.read` |
 | GET | `/api/analytics/elements` | `admin.analytics.read` |
+| GET | `/api/analytics/live?windowMinutes=…` | `admin.analytics.read` (limiter propio) |
+| GET | `/api/analytics/access` | `admin.analytics.read` |
 | GET | `/api/analytics/athletes/:id/journey` | `admin.analytics.identity` |
 
 Los permisos viven en el catálogo de `src/lib/permissions.js` pero **la autorización los lee de
@@ -198,6 +200,44 @@ endpoints de negocio: un 429 de analítica no puede dejar a nadie sin poder afil
 
 Todas las lecturas devuelven datos **agregados en Postgres**. El navegador no recibe eventos
 individuales, que tienen identidad vinculada.
+
+## Presencia en vivo
+
+`GET /api/analytics/live` responde la pregunta que el informe histórico no contesta: **cuánta
+gente hay en el sitio ahora**. Se deriva de `analytics_sessions.last_seen_at`, que el tracker
+actualiza en cada latido; no hay tabla ni proceso nuevo.
+
+- **Ventana**: 5 minutos por omisión, tope duro de 60 (validado en el endpoint *y* en la RPC). El
+  tracker late cada 30s, así que 5 minutos tolera diez latidos perdidos antes de dar por ida a
+  una persona que sigue leyendo. Es la misma ventana que usa GA en su vista de tiempo real.
+- **`visitors` cuenta personas** (`visitor_id` distintos), no sesiones: alguien con dos pestañas
+  es una persona.
+- **`series` es concurrencia real**, no actividad por minuto: una sesión cuenta en el minuto que
+  su intervalo `[started_at, last_seen_at]` cubre, aunque no haya emitido ningún evento ahí.
+  Contar eventos daría una curva dentada que subestima a quien está leyendo sin tocar nada.
+- **`pages` usa `exit_path`**, que la ingesta mantiene apuntando al último pageview: es *dónde
+  está parada* la persona, no por dónde pasó.
+- El pico del día se calcula en baldes de 5 minutos y la serie por minuto: por minuto sobre 24
+  horas serían 1440 puntos cruzados contra todas las sesiones del día, un costo que no se
+  justifica para un solo número.
+
+En el panel es la franja superior de Analítica (`LivePresenceBar`), con auto-refresco de 15s que
+**se detiene con la pestaña oculta** y no borra la última lectura buena si el refresco falla: una
+barra vacía durante un evento se lee como "no hay nadie", que es la conclusión opuesta.
+
+## Accesos
+
+`GET /api/analytics/access` sale de `operational_event_logs` (bitácora de identidad), no del
+tracker: un acceso es un hecho auditado, no una visita inferida.
+
+La distinción que sostiene todo el endpoint es **personas vs. intentos**. Sobre datos reales del
+sitio, 736 asientos de login exitoso son 303 personas entrando muchas veces; reportar el conteo
+de eventos como si fueran personas es el error más fácil de cometer con este dato, así que las
+dos cifras viajan siempre juntas y con nombre distinto (`events` / `people`).
+
+Atletas y staff se cuentan por separado porque son poblaciones de tamaño y significado distinto.
+`failureRate` se mide sobre intentos (cuánto cuesta entrar) y `blockedPeople` sobre personas: son
+las que fallaron en **todos** sus intentos del período, es decir, las que siguen sin poder entrar.
 
 ## Mapa de calor
 

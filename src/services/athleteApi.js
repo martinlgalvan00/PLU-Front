@@ -377,12 +377,15 @@ export async function createCompetitionRegistration({
   }
 }
 
-export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug }) {
+export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug, paymentMethod }) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
     planCode: planCode || undefined,
     eventSlug: eventSlug || undefined,
+    // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
+    // y muestra un número distinto al que se cobra durante la ventana Pitbull.
+    paymentMethod: paymentMethod || undefined,
   })
   const preview = result.preview ?? {}
   return {
@@ -448,6 +451,32 @@ export async function approveAthletePaymentOrder(orderId) {
 export async function rejectAthletePaymentOrder(orderId, reason) {
   const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/reject`, { reason })
   return { order: toCamelPaymentOrder(result.order) }
+}
+
+/**
+ * Acredita a mano una orden que el proveedor dio por perdida. Devuelve la misma
+ * forma que `approveAthletePaymentOrder` para que la bandeja no tenga que
+ * distinguir de qué acción viene el resultado.
+ */
+export async function forceSettleAthletePaymentOrder(orderId, { reason, reference } = {}) {
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/force-settle`, {
+    reason,
+    ...(reference ? { reference } : {}),
+  })
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: toCamelMembership(result.membership),
+    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    duplicate: Boolean(result.duplicate),
+  }
+}
+
+export async function setEventRegistrationStatus(registrationId, status, reason) {
+  const result = await apiPost(`/api/athletes/admin/registrations/${registrationId}/status`, { status, reason })
+  return {
+    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    duplicate: Boolean(result.duplicate),
+  }
 }
 
 function toCredentialResult(result, eventSlug) {

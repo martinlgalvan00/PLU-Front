@@ -5,6 +5,7 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
+import { resolvePublicCheckoutAvailability } from '../services/platformFeatureToggleService.js'
 
 /**
  * Tres ejes por concepto: alta de órdenes, canal manual (transferencia y
@@ -46,6 +47,14 @@ export function createPlatformSettingsRoutes({ getPrisma, getSupabaseAdmin, repo
   const readGuard = requirePermission('admin.registration_access.read', { prisma })
   const writeGuard = requirePermission('admin.registration_access.write', { prisma })
   const repo = () => repository ?? createSupabasePlatformSettingsRepository(requireSupabaseClient(getSupabaseAdmin()))
+
+  router.get('/public', staffLimiter, async (_req, res, next) => {
+    try {
+      res.json(resolvePublicCheckoutAvailability(await repo().get()))
+    } catch (error) {
+      next(error)
+    }
+  })
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {

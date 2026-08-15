@@ -140,6 +140,22 @@ export const analyticsIngestLimiter = buildLimiter(
   'Demasiados eventos de analitica. Proba de nuevo en un momento.',
 )
 
+/**
+ * Presencia en vivo del panel. Limiter propio y NO `staffLimiter`: es el único
+ * endpoint staff que se consulta en bucle (auto-refresco cada 15s mientras dura
+ * un evento), y compartir balde con el resto del panel hacía que una sola
+ * pestaña abierta durante una hora se comiera 240 de los 900 cupos que usa todo
+ * el equipo para escanear en puerta.
+ *
+ * El volumen tolera varias pestañas por operador y sigue frenando un cliente
+ * que loopee sin intervalo.
+ */
+export const liveLimiter = buildLimiter(
+  60 * 1000,
+  60,
+  'Demasiadas consultas en vivo. Proba de nuevo en un momento.',
+)
+
 // Escrituras con cookie de atleta ya autenticada (editar perfil, foto) --
 // más generoso que publicWriteLimiter porque ya pasó por requireAthleteSession.
 export const athleteWriteLimiter = buildLimiter(

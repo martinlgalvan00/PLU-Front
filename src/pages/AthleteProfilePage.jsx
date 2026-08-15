@@ -37,6 +37,7 @@ export default function AthleteProfilePage({
   events = [],
   initialTab = DEFAULT_ACCOUNT_TAB,
   tabNonce = 0,
+  checkoutAvailability = {},
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
 
@@ -104,6 +105,7 @@ export default function AthleteProfilePage({
         onSelectEvent={onSelectEvent}
         athlete={athlete}
         onNavigateSection={setActiveTab}
+        checkoutAvailability={checkoutAvailability}
       />
     ),
     'account-history': (
@@ -123,6 +125,7 @@ export default function AthleteProfilePage({
         gateEvent={gateEvent}
         events={availableEvents}
         onSelectEvent={onSelectEvent}
+        checkoutAvailability={checkoutAvailability}
       />
     ),
     'account-personal-data': (

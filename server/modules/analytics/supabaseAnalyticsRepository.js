@@ -47,6 +47,32 @@ export function createSupabaseAnalyticsRepository(
       return rpc('get_operational_alerts', { p_organization_id: organizationId }, 'No se pudieron leer las alertas operativas.') ?? []
     },
 
+    /**
+     * Presencia en vivo. No lleva rango: "ahora" lo define la RPC contra el
+     * reloj del servidor, y dejar que el cliente mande la ventana permitiria
+     * pedir "los ultimos 30 dias" por un endpoint sin indices para eso.
+     */
+    async live({ windowMinutes = 5 } = {}) {
+      return rpc(
+        'get_analytics_live',
+        { p_organization_id: organizationId, p_window_minutes: windowMinutes },
+        'No se pudo leer la actividad en vivo.',
+      )
+    },
+
+    /**
+     * Accesos del periodo: quienes entraron, quienes no pudieron y por que.
+     * Lee la bitacora de identidad, no la analitica: un acceso es un hecho
+     * auditado, no una visita.
+     */
+    async accessMetrics({ from, to }) {
+      return rpc(
+        'get_access_metrics',
+        { p_from: from, p_to: to, p_organization_id: organizationId },
+        'No se pudieron leer las metricas de acceso.',
+      )
+    },
+
     async pages({ from, to, limit = 25 }) {
       return rpc(
         'get_analytics_pages',

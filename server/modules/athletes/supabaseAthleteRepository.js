@@ -364,6 +364,35 @@ export function createSupabaseAthleteRepository(
         p_actor: actor,
       }, 'No se pudo aprobar el pago.')
     },
+    /**
+     * Acreditación manual de una orden que el proveedor dio por perdida. Es la
+     * única vía para tocar una orden de Mercado Pago a mano, y existe justamente
+     * porque `approvePayment` se niega a hacerlo: cuando MP marca rechazado o
+     * cancelado pero el dinero entró igual, la orden quedaba muerta y el socio
+     * sin afiliación. Deja el intento fallido del proveedor intacto y suma un
+     * asiento contable propio, así el reporte financiero incluye ese cobro.
+     */
+    async forceSettlePayment(orderId, { reason, reference = null } = {}, actor = null) {
+      const order = assertSupabaseResult(
+        await client.from('athlete_payment_orders').select('status').eq('id', orderId).maybeSingle(),
+        'No se pudo leer la orden.',
+      )
+      if (!order) throw new HttpError(404, 'Orden no encontrada.')
+      return rpc('staff_force_settle_payment_order', {
+        p_order_id: orderId,
+        p_actor: actor,
+        p_reason: reason,
+        p_reference: reference,
+      }, 'No se pudo acreditar el pago a mano.')
+    },
+    async setRegistrationStatus(registrationId, status, reason, actor = null) {
+      return rpc('staff_set_registration_status', {
+        p_registration_id: registrationId,
+        p_status: status,
+        p_actor: actor,
+        p_reason: reason,
+      }, 'No se pudo cambiar el estado de la inscripción.')
+    },
     async rejectPayment(orderId, reason = null, actor = null) {
       const order = assertSupabaseResult(
         await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),

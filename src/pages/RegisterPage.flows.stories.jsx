@@ -1,4 +1,4 @@
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import RegisterPage from './RegisterPage.jsx'
 
 /**
@@ -59,7 +59,9 @@ export const Afiliacion = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const cta = await canvas.findByRole('button', { name: /continuar al pago/i })
-    await expect(cta).toBeEnabled()
+    // El CTA arranca deshabilitado hasta que resuelve el chequeo de tanda
+    // privada (`fetchRegistrationAccessRequirements`, sin backend en Storybook).
+    await waitFor(() => expect(cta).toBeEnabled())
   },
 }
 
@@ -79,7 +81,9 @@ export const Inscripcion = {
     const canvas = within(canvasElement)
     // El título vive dos veces: aside de desktop y contexto mobile.
     await expect(canvas.getAllByText('Pitbull Classic 2026').length).toBeGreaterThan(0)
-    await expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled()
+    await waitFor(() =>
+      expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled(),
+    )
   },
 }
 

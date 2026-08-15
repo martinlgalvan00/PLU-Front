@@ -5,7 +5,57 @@ function asHttpsUrl(value) {
   return `https://${candidate.replace(/\/+$/, '')}`
 }
 
-export const OFFICIAL_APP_URL = 'https://powerliftingunited.ar'
+/**
+ * Dominio canonico, **con `www`**.
+ *
+ * El apex (`powerliftingunited.ar`) no sirve la aplicacion: responde `308
+ * Permanent Redirect` hacia `www`. Para un navegador eso es invisible, pero
+ * Mercado Pago exige que la `notification_url` conteste 200/201 y no sigue
+ * redirects: con el apex, cada notificacion se daba por fallida.
+ *
+ * Ese era el motivo de que `payment_integration_events` estuviera en cero con
+ * pagos reales acreditados. Los cobros con tarjeta funcionaban igual porque el
+ * checkout embebido acredita contra la respuesta del Brick, asi que la falla
+ * solo se manifestaba en lo que depende del webhook: acreditacion diferida
+ * (transferencia, efectivo, cuotas pendientes), contracargos y reembolsos.
+ *
+ * `emailTemplates.js` ya usaba `www` para los assets, asi que la constante
+ * tambien era inconsistente con el resto del sistema.
+ */
+export const OFFICIAL_APP_URL = 'https://www.powerliftingunited.ar'
+
+/** Apex del dominio oficial. No sirve la aplicacion: redirige a `www`. */
+const OFFICIAL_APEX_HOST = 'powerliftingunited.ar'
+
+/**
+ * Promueve el apex del dominio oficial a `www`.
+ *
+ * Corregir `OFFICIAL_APP_URL` no alcanza: `resolveApiUrl` lee `env.API_URL` y
+ * `env.APP_URL` **antes** que el valor derivado del deployment, asi que una
+ * variable de entorno cargada con el apex —el dominio que uno escribe de
+ * memoria, y el que tenia esta misma constante— volveria a producir una
+ * `notification_url` que redirige, con el mismo sintoma silencioso.
+ *
+ * Se normaliza el host y no se rechaza la URL: fallar el checkout porque falta
+ * un `www` seria peor que la falla que se esta corrigiendo. Cualquier otro
+ * dominio (previews de Vercel, tuneles locales) pasa intacto.
+ */
+export function normalizeOfficialHost(value) {
+  const candidate = String(value ?? '').trim()
+  if (!candidate) return candidate
+
+  try {
+    const url = new URL(candidate)
+    if (url.hostname === OFFICIAL_APEX_HOST) {
+      url.hostname = `www.${OFFICIAL_APEX_HOST}`
+      return url.toString().replace(/\/+$/, '')
+    }
+    return candidate
+  } catch {
+    // No es una URL absoluta: la validacion de quien llama se encarga.
+    return candidate
+  }
+}
 
 function isProductionRuntime(env) {
   return env.VERCEL_ENV === 'production'

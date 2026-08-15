@@ -69,6 +69,19 @@ aplicaciones distintas en Mercado Pago (TEST para DEV, PROD para produccion).
 | DEV (preview rama `dev`) | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app` | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
 | PROD | `https://www.powerliftingunited.ar` | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
 
+> **Siempre con `www`.** El apex `powerliftingunited.ar` no sirve la aplicacion: responde `308
+> Permanent Redirect` hacia `www`. Un navegador lo sigue y no se nota, pero Mercado Pago exige
+> 200/201 en la `notification_url` y **no sigue redirects**, asi que toda notificacion se da por
+> fallida. Eso tuvo `payment_integration_events` en cero durante toda la vida del sistema con
+> pagos reales acreditados: los cobros con tarjeta seguian funcionando porque el checkout
+> embebido acredita contra la respuesta del Brick, y la falla solo aparecia en lo que depende del
+> webhook (acreditacion diferida, contracargos, reembolsos).
+>
+> El backend promueve el apex a `www` por su cuenta (`normalizeOfficialHost`), asi que una
+> variable mal cargada ya no reintroduce el problema. Verificacion rapida:
+> `curl -i -X POST <notification_url>` tiene que responder **400 o 401**, nunca `3xx`.
+> `npm run mercado-pago:urls` lo chequea y marca cualquier redirect como bloqueante.
+
 En el panel MP (Tu integracion → Webhooks):
 
 1. Pegar la URL de webhook de la fila correspondiente.
@@ -222,6 +235,28 @@ falla se asienta una sola vez, en la capa que la vio primero.
 Las altas de atleta que no se completan quedan en `source = 'identity'` como
 `account.registration_failed`, con el documento y el correo como fingerprint
 (nunca en claro).
+
+#### Dos convenciones para el mismo hecho
+
+La lista de arriba es la que escribe la aplicacion. Los triggers de
+`payment_integration_events` y `embedded_payment_attempts` asientan **los mismos hechos con otra
+convencion**: `payment_webhook.<status>`, `payment_attempt.<status>`,
+`payment_reconciliation.<status>`. Tambien conviven `payment.applied` y `payment.aprobado`.
+
+No se unificaron los nombres a proposito: la bitacora es append-only y reescribir el historico
+para que quede prolijo destruiria su valor probatorio. En su lugar, la lectura agrupa las
+acciones en **categorias** (`server/modules/audit/auditActionCategories.js`), que es lo que usa
+el filtro del panel:
+
+| Categoria | Agrupa |
+|---|---|
+| `webhook` | `payment.webhook_*` **y** `payment_webhook.*` |
+| `conciliacion` | `payment.reconcil*`, `payment_reconciliation.*`, `payment.recovery_*` |
+| `checkout_cliente` | `payment_brick.*` (falla en el navegador del atleta, no del servidor) |
+| `cobro` | el resto del ciclo, incluidos `payment_attempt.*` |
+
+Filtrar por categoria en Panel > Auditoria trae las dos convenciones juntas; el filtro de accion
+exacta sigue disponible para cuando ya se sabe que se busca.
 
 ### 4. Catalogo de diagnostico
 

@@ -321,79 +321,74 @@
 
 .mp-embedded-checkout__real-options {
   display: grid;
-  gap: 12px;
+  gap: 0.85rem;
 }
 
-/* Preparar la preferencia embebida falló dos veces: la cuenta de Mercado Pago
-   no puede aparecer como fila de la lista, así que se explica al pie sin
-   robarle peso a los medios que sí están disponibles. */
-.mp-embedded-checkout__wallet-missing {
-  align-items: baseline;
+/* La cuenta de Mercado Pago ya no es una superficie aparte: es una fila más
+   del Payment Brick. Lo único que sobrevive del tile es el aviso de cuando
+   no se pudo preparar la preferencia y esa fila no se puede ofrecer. */
+.mp-embedded-checkout__wallet-tile {
+  align-items: start;
+  border: 1px solid var(--color-border-subtle, #d8d8d8);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-width: 0;
+  padding: 14px;
+}
+
+.mp-embedded-checkout__wallet-tile-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.mp-embedded-checkout__wallet-tile-copy strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mp-embedded-checkout__wallet-tile-copy span {
+  color: var(--color-text-muted, #666);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* Preparar la preferencia embebida falló dos veces: se avisa en vez de
+   desaparecer en silencio, sin bloquear el pago con tarjeta de abajo. */
+.mp-embedded-checkout__wallet-tile--notice {
+  background: var(--color-warning-bg);
+  border-color: color-mix(in srgb, var(--color-warning-text) 35%, transparent);
+}
+
+.mp-embedded-checkout__wallet-tile--notice .mp-embedded-checkout__wallet-tile-copy strong {
+  color: var(--color-warning-text);
+}
+
+.mp-embedded-checkout__redirect-note {
+  align-items: center;
   color: var(--color-text-muted, #666);
   display: flex;
-  flex-wrap: wrap;
-  font-size: 12.5px;
-  gap: 4px 10px;
-  line-height: 1.5;
-  margin: 0;
+  font-size: 0.75rem;
+  gap: 0.4rem;
+  line-height: 1.4;
 }
 
-.mp-embedded-checkout__wallet-missing-retry {
-  align-items: center;
-  background: none;
-  border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-muted) 40%, transparent);
-  color: var(--color-text-secondary, #555);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  gap: 5px;
-  padding: 0 0 1px;
-  transition: color var(--motion-fast, 160ms) var(--ease-out, ease);
+.mp-embedded-checkout__redirect-note svg {
+  flex: none;
 }
 
-.mp-embedded-checkout__wallet-missing-retry:hover:not(:disabled) {
-  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
-  color: var(--color-text-primary, #111);
-}
-
-.mp-embedded-checkout__wallet-missing-retry:disabled {
-  cursor: progress;
-  opacity: 0.6;
-}
-
-.mp-embedded-checkout__wallet-missing-retry:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mp-embedded-checkout__wallet-missing-retry {
-    transition: none;
-  }
-}
-
-/* El Brick apoya el submit contra la última opción de la lista (1px de aire en
-   el render real). El botón cierra la decisión: necesita respirar respecto de
-   los medios, sin quedar tan lejos como para leerse desprendido del formulario.
-   Los `data-testid` son la única referencia estable del widget; las clases
-   llevan hash. */
-.mp-embedded-checkout [data-testid='submit-wrapper'],
-.mp-embedded-checkout [data-testid='payment-form'] [class*='button-container'] {
-  margin-top: 20px;
-}
-
-.mp-embedded-checkout [data-testid='submit-wrapper'] [class*='button-container'] {
-  margin-top: 0;
-}
-
-.mp-embedded-checkout--settle [data-testid='payment-form'] [class*='button-container'],
-.mp-embedded-checkout--settle [data-testid='submit-wrapper'] {
+/* Un solo medio elegido, un solo botón: el submit del Brick es la acción
+   principal del bloque en las tres presentaciones (default, modal y settle). */
+.mp-embedded-checkout [data-testid='payment-form'] [class*='button-container'],
+.mp-embedded-checkout [data-testid='submit-wrapper'] {
   max-width: none;
   width: 100%;
 }
 
-.mp-embedded-checkout--settle [data-testid='payment-form'] button[type='submit'] {
+.mp-embedded-checkout [data-testid='payment-form'] button[type='submit'] {
   min-height: 48px;
   width: 100%;
 }
@@ -411,106 +406,83 @@
   padding: 0 !important;
 }
 
+/* ── Lista única de medios ────────────────────────────────────────
+   Mercado Pago, tarjeta de crédito y tarjeta de débito llegan como filas
+   del mismo grupo de radios. Se tratan como una sola familia de opciones
+   comparables: misma altura, mismo peso tipográfico y una sola marca de
+   selección. El acento oro sólo aparece en la fila elegida. */
 .mp-embedded-checkout [class*='mp-checkout-bricks__payment-option'] {
   background: transparent !important;
   display: grid !important;
-  gap: 10px !important;
+  gap: 8px !important;
 }
 
-/* El prefijo `selector` también aparece en hijos como `selector-icon` y
-   `selector-text-container`. Acotar por hijo directo evita convertir esos
-   elementos internos en falsas tarjetas y deformar la altura de cada opción. */
+/* El Brick anida nodos que comparten el prefijo `__selector` dentro de cada
+   fila (la fila interna, el badge de cuotas). `:not([...] *)` deja la caja sólo
+   en el nivel de arriba; sin esto quedaba una tarjeta dibujada dentro de otra
+   y el badge heredaba los 60px de alto de una fila. */
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector'] {
-  align-items: center !important;
-  background: transparent !important;
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *) {
+  /* El relleno se deriva del texto y no de un gris fijo, así la fila tiene
+     el mismo peso sobre el grafito del tema oscuro y sobre el papel del claro. */
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent) !important;
   border: 1px solid var(--color-border-subtle) !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   box-shadow: none !important;
-  column-gap: 16px !important;
   cursor: pointer;
-  min-height: 72px;
-  padding: 14px 18px !important;
+  min-height: 60px;
+  padding: 13px 15px !important;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-out, ease),
     border-color var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector']
-  > [class*='mp-checkout-bricks__selector-icon'] {
-  flex: 0 0 40px !important;
-  margin: 0 !important;
+.mp-embedded-checkout [class*='mp-checkout-bricks__selector'] input[type='radio'] {
+  accent-color: var(--color-brand-gold);
 }
 
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector']
-  > [class*='mp-checkout-bricks__selector-text-container'] {
-  min-width: 0;
-}
-
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector-text-container']
-  > p {
-  display: grid !important;
-  gap: 4px !important;
-  line-height: 1.35 !important;
-  margin: 0 !important;
-}
-
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector-text-container']
-  > p
-  > span {
-  line-height: 1.35 !important;
-}
-
-/* "Cuotas disponibles" llega como chip con un verde sólido propio de Mercado
-   Pago (sin padding y con radio, así que se lee como un bloque pegado al
-   texto) y encima ese verde no pertenece a la paleta. Es metadato del medio de
-   pago, no un estado de éxito: queda como los demás subtítulos de la lista y
-   se comporta igual en ambos temas. */
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector-text-container']
-  [class*='value-prop-'] {
-  background: transparent !important;
-  font-size: 0.8rem !important;
-  font-weight: 400 !important;
-}
-
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector']:hover {
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *):hover {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent) !important;
   border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent) !important;
 }
 
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector']:has(input:checked),
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *):has(input:checked),
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector'][aria-checked='true'],
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[aria-checked='true'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector'][aria-selected='true'],
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[aria-selected='true'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector'][class*='selected'],
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[class*='selected'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector'][class*='active'] {
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[class*='active'] {
   background: color-mix(in srgb, var(--color-brand-gold) 9%, transparent) !important;
   border-color: color-mix(in srgb, var(--color-brand-gold) 58%, transparent) !important;
 }
 
-.mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']
-  > [class*='mp-checkout-bricks__selector']:focus-visible {
+.mp-embedded-checkout [class*='mp-checkout-bricks__selector']:focus-visible,
+.mp-embedded-checkout [class*='mp-checkout-bricks__selector']:has(input:focus-visible) {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+/* "Cuotas disponibles" llega como badge del Brick. El color lo fija
+   `successColor` en customVariables; acá sólo se le da forma de píldora que
+   abrace su texto, para que no se lea como un bloque sólido bajo el título. */
+.mp-embedded-checkout [class*='mp-checkout-bricks__selector'] [class*='installment'],
+.mp-embedded-checkout [class*='mp-checkout-bricks__selector'] [class*='badge'] {
+  align-self: center;
+  background: color-mix(in srgb, currentcolor 12%, transparent) !important;
+  border-radius: 999px !important;
+  display: inline-block;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  justify-self: start;
+  line-height: 1.5 !important;
+  min-height: 0 !important;
+  padding: 1px 9px !important;
+  width: fit-content;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -518,16 +490,6 @@
     [class*='mp-checkout-bricks__payment-option']
     > [class*='mp-checkout-bricks__selector'] {
     transition: none;
-  }
-}
-
-@media (max-width: 520px) {
-  .mp-embedded-checkout
-    [class*='mp-checkout-bricks__payment-option']
-    > [class*='mp-checkout-bricks__selector'] {
-    column-gap: 14px !important;
-    min-height: 68px;
-    padding: 12px 14px !important;
   }
 }
 

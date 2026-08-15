@@ -14,6 +14,13 @@
 
   --color-bg-code: #1a1a22;
 
+  /* La nota de transferencia se definía solo en :root con --plu-warm-100
+     (#f0efec). En dark quedaba texto blanco sobre casi-blanco: la nota que
+     explica cómo pagar era la parte ilegible de la pantalla. */
+  --color-manual-note-bg: rgba(242, 183, 5, 0.08);
+
+  --color-manual-note-border: rgba(242, 183, 5, 0.22);
+
   --color-bg-muted: var(--plu-cool-700);
 
   --color-bg-glass: rgba(255, 255, 255, 0.03);
