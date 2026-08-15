@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { consumeSignedOutFlag, SIGNED_OUT_EVENT } from '../../lib/sessionNotice.js'
+import { initials } from '../../lib/format.js'
 
 const DISMISS_MS = 8000
 const TICK_MS = 250
@@ -157,8 +158,17 @@ export default function SessionNotice({ onNavigate }) {
             <X size={14} strokeWidth={1.75} aria-hidden />
           </button>
         </div>
-        <p className="session-notice__eyebrow">{t('nav.logoutEyebrow')}</p>
-        <p className="session-notice__title">{title}</p>
+        <div className="session-notice__body">
+          {notice.name ? (
+            <span className="session-notice__avatar" aria-hidden>
+              {initials(notice.name)}
+            </span>
+          ) : null}
+          <div className="session-notice__copy">
+            <p className="session-notice__eyebrow">{t('nav.logoutEyebrow')}</p>
+            <p className="session-notice__title">{title}</p>
+          </div>
+        </div>
         <div className="session-notice__foot">
           <span className="session-notice__meta">{t('nav.logoutHint')}</span>
           {onNavigate ? (

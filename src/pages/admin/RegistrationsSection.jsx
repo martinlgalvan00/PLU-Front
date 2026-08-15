@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { BadgeCheck, ClipboardList, PencilLine, Trash2 } from 'lucide-react'
+import { BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
@@ -80,7 +80,9 @@ export default function RegistrationsSection({
   onSetRegistrationStatus,
   canSetStatus = false,
   onDelete,
+  onSetPublicVisibility,
   canDelete = false,
+  canManageVisibility = false,
   unreconciledPayments = [],
 }) {
   const { locale, t } = useI18n()
@@ -89,6 +91,7 @@ export default function RegistrationsSection({
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [visibilityChangingId, setVisibilityChangingId] = useState(null)
   const [statusTarget, setStatusTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
@@ -180,6 +183,7 @@ export default function RegistrationsSection({
           eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
           category: `${reg.category} · ${reg.division}`,
           bodyweight: formatRegistrationWeight(reg),
+          publicVisible: reg.publicVisible !== false,
           schedule: reg.schedule ?? null,
           status: reg.status,
           paymentStatus: payment?.status,
@@ -265,6 +269,16 @@ export default function RegistrationsSection({
       setDeleteError(error?.message ?? 'No se pudo eliminar la inscripción.')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function togglePublicVisibility(row) {
+    if (!onSetPublicVisibility || visibilityChangingId) return
+    setVisibilityChangingId(row.id)
+    try {
+      await onSetPublicVisibility(row.id, !row.publicVisible)
+    } finally {
+      setVisibilityChangingId(null)
     }
   }
 
@@ -553,7 +567,10 @@ export default function RegistrationsSection({
                   label: t('admin.columns.action'),
                   mobile: 'action',
                   render: (row) =>
-                    canValidateRegistrationPayment(row, canEdit) || canSetStatus || canDelete ? (
+                    canValidateRegistrationPayment(row, canEdit) ||
+                    canManageVisibility ||
+                    canSetStatus ||
+                    canDelete ? (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
                         {canValidateRegistrationPayment(row, canEdit) ? (
                           <AdminIconButton
@@ -561,6 +578,20 @@ export default function RegistrationsSection({
                             label={t('admin.actions.validate')}
                             onClick={() => onApprovePayment(row.paymentId)}
                             variant="celeste"
+                          />
+                        ) : null}
+                        {canManageVisibility && onSetPublicVisibility ? (
+                          <AdminIconButton
+                            disabled={visibilityChangingId === row.id}
+                            icon={row.publicVisible ? EyeOff : Eye}
+                            label={t(
+                              row.publicVisible
+                                ? 'admin.actions.hideRegistrationPublic'
+                                : 'admin.actions.showRegistrationPublic',
+                            )}
+                            onClick={() => void togglePublicVisibility(row)}
+                            spinning={visibilityChangingId === row.id}
+                            variant={row.publicVisible ? 'ghost' : 'celeste'}
                           />
                         ) : null}
                         {canSetStatus && onSetRegistrationStatus ? (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'lucide-react'
+import { Inbox, KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -196,6 +196,10 @@ export default function RegistrationAccessSection({
     void loadToggles()
   }, [loadToggles])
 
+  // shouldFocusEditorRef, prendido solo por openEditor(), evita que el efecto
+  // reenfoque en cada tecla (el draft cambia en cada keystroke) y también
+  // vuelve a enfocar si se abre otra fila mientras el formulario ya estaba
+  // abierto.
   useEffect(() => {
     if (!draft || !shouldFocusEditorRef.current) return undefined
     shouldFocusEditorRef.current = false
@@ -275,7 +279,9 @@ export default function RegistrationAccessSection({
     event.preventDefault()
     setFormError('')
     setNotice('')
-    if (!draft?.label.trim()) {
+    const trimmedLabel = draft?.label.trim() ?? ''
+    const trimmedCode = draft?.code.trim() ?? ''
+    if (!trimmedLabel) {
       setFormError(t('admin.sections.accessGates.labelRequired'))
       return
     }
@@ -283,7 +289,7 @@ export default function RegistrationAccessSection({
       setFormError(t('admin.sections.accessGates.eventRequired'))
       return
     }
-    if (requiresNewCode && !draft.code) {
+    if (requiresNewCode && !trimmedCode) {
       setFormError(t('admin.sections.accessGates.codeRequired'))
       return
     }
@@ -291,10 +297,8 @@ export default function RegistrationAccessSection({
     const result = await onSave?.({
       ...draft,
       eventSlug: draft.scope === 'registration' ? draft.eventSlug.trim() : undefined,
-      label: draft.label.trim(),
+      label: trimmedLabel,
       code: trimmedCode || undefined,
-      startsAt: draft.startsAt || undefined,
-      endsAt: draft.endsAt || undefined,
     })
     setSaving(false)
     if (result?.error) {
@@ -557,7 +561,12 @@ export default function RegistrationAccessSection({
               )
             })
           ) : (
-            <p className="admin-registration-access__empty">{t('admin.sections.accessGates.eventGatesEmpty')}</p>
+            <div className="admin-registration-access__empty-state" role="status">
+              <span className="admin-registration-access__empty-icon" aria-hidden>
+                <Inbox size={18} />
+              </span>
+              <p className="admin-registration-access__empty">{t('admin.sections.accessGates.eventGatesEmpty')}</p>
+            </div>
           )}
         </div>
 
@@ -641,6 +650,7 @@ export default function RegistrationAccessSection({
                   minLength={10}
                   maxLength={72}
                 />
+                <small>{t('admin.sections.accessGates.codePlaceholder')}</small>
               </label>
 
               <label htmlFor="access-gate-starts">

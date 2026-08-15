@@ -20,9 +20,10 @@ import { HttpError } from '../lib/errors.js'
  * necesita más de uno (el combo exige cuatro) hace una sola consulta a Supabase
  * y la reusa, en vez de repetirla por cada assert.
  *
- * El default es abierto: `undefined` no cierra nada. Un interruptor sólo corta
- * cuando vale explícitamente `false`, así que una lectura incompleta —o una
- * tabla sin fila— no deja la plataforma sin cobrar.
+ * Las altas conservan el default abierto para no interrumpir cobros ante una
+ * lectura incompleta. Los canales manuales de afiliación e inscripción, en
+ * cambio, requieren habilitación explícita: el lanzamiento actual admite
+ * únicamente Mercado Pago y el panel puede reabrirlos cuando corresponda.
  */
 
 const ALTA = {
@@ -99,7 +100,13 @@ export function assertTicketCheckoutEnabled(toggles) {
  * primeros: si cualquiera de los dos canales está cerrado no hay combo manual.
  */
 export function assertManualChannelEnabled(toggles, scope) {
-  assertToggle(toggles, MANUAL, scope)
+  const entry = MANUAL[scope]
+  if (!entry) throw new HttpError(500, `Alcance de interruptor desconocido: ${scope}`)
+  const [key, message, code] = entry
+  // Afiliaciones e inscripciones empiezan solamente con Mercado Pago. Las
+  // entradas conservan su contrato previo y sólo se cierran explícitamente.
+  const enabled = scope === 'ticket' ? toggles?.[key] !== false : toggles?.[key] === true
+  if (!enabled) throw new HttpError(409, message, { code })
 }
 
 export function assertValidationEnabled(toggles, scope) {
@@ -134,8 +141,8 @@ export function resolvePublicCheckoutAvailability(toggles) {
     membershipEnabled: open('membershipEnabled'),
     registrationEnabled: open('registrationEnabled'),
     ticketEnabled: open('ticketEnabled'),
-    membershipManualEnabled: open('membershipEnabled') && toggles?.membershipManualEnabled !== false,
-    registrationManualEnabled: open('registrationEnabled') && toggles?.registrationManualEnabled !== false,
+    membershipManualEnabled: open('membershipEnabled') && toggles?.membershipManualEnabled === true,
+    registrationManualEnabled: open('registrationEnabled') && toggles?.registrationManualEnabled === true,
     ticketManualEnabled: open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
   }
 }

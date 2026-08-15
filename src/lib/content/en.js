@@ -504,7 +504,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'How do I pay for membership or registration?',
-    a: 'Through Mercado Pago from the web form. If you have an issue with online payment, the PLU ARG team can manually validate your receipt.',
+    a: 'For now, memberships and registrations can only be paid through Mercado Pago from the web form. Bank transfer and cash at Pitbull will be enabled soon.',
   },
   {
     q: 'What is Pitbull Classic?',

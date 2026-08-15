@@ -274,25 +274,20 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [preferenceReady, setPreferenceReady] = useState(() => (
     isRealMercadoPagoPreferenceId(resolvePreferenceId(order))
   ))
-  // Si crear la preferencia embebida falla dos veces seguidas, el checkout de
-  // tarjeta sigue funcionando (fallback silencioso a `PAYMENT_METHODS`), pero
-  // la opción de cuenta MP se pierde sin que nadie se entere. Este estado le
-  // da a la persona una salida visible en vez de un botón que simplemente
-  // nunca aparece.
+  // Si crear la preferencia embebida falla dos veces seguidas, las tarjetas y
+  // el efectivo siguen funcionando, pero la cuenta de Mercado Pago desaparece
+  // de la lista sin que nadie se entere. Este estado le da a la persona una
+  // salida visible en vez de una opción que simplemente nunca aparece.
   const [walletPreferenceError, setWalletPreferenceError] = useState(false)
   const [preferenceRetrying, setPreferenceRetrying] = useState(false)
   const [preferenceRetryNonce, setPreferenceRetryNonce] = useState(0)
-  // Sin memoizar a propósito: el Brick real tarda en montar (la preferencia
-  // embebida reintenta con espera antes de asentarse — ver el efecto de
-  // `preferenceReady` más abajo), y ese margen es lo que deja que
-  // `readCssColor` lea los tokens ya resueltos por el CSS del tema en vez de
-  // los del primer render, cuando la hoja de estilos puede no estar aplicada
-  // todavía. Memoizar por tema congelaba esa primera lectura para siempre.
-  // El objeto es liviano; recalcularlo en cada render no pesa, y el Brick de
-  // Mercado Pago solo lee `customization` al montar (no se reconstruye si
-  // cambia en un render posterior), así que esto no dispara remontajes ni
-  // pierde una tarjeta a medio completar.
-  const brickVisual = buildBrickVisual(currentThemeIsLight())
+  // El tema activo se resuelve en un efecto, no durante el render: así
+  // `readCssColor` lee los tokens ya aplicados por la hoja del tema y, sobre
+  // todo, `visual` conserva la misma referencia entre renders. El SDK compara
+  // `customization` por identidad y desmonta el brick cuando cambia, de modo
+  // que un objeto nuevo por render lo remontaba con cada cambio de estado
+  // (skeleton, polling, resultado) y borraba la tarjeta a medio completar.
+  const [brickTheme, setBrickTheme] = useState(null)
   const brickRef = useRef(null)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
@@ -310,6 +305,14 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   // hay forma embebida de hacerlo, la opción redirige y vuelve por `back_urls`.
   // Las tarjetas se siguen cobrando embebidas, sin salir del sitio.
   const canOfferWallet = !isSubscription && Boolean(realPreferenceId)
+  // Memoizado por `brickTheme` (no recalculado en cada render): el SDK compara
+  // `customization` por identidad y desmonta el Brick cuando cambia, así que un
+  // objeto `visual` nuevo en cada render lo remontaba con cada cambio de estado
+  // (skeleton, polling, resultado) y borraba una tarjeta a medio completar.
+  const brickVisual = useMemo(
+    () => (brickTheme ? buildBrickVisual(brickTheme === 'light') : null),
+    [brickTheme],
+  )
   const paymentCustomization = useMemo(
     () => ({
       paymentMethods: canOfferWallet ? PAYMENT_METHODS_WITH_WALLET : PAYMENT_METHODS_CARDS_ONLY,
@@ -328,7 +331,22 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     amount: Number(order?.amount ?? 0),
     ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
   }), [isSubscription, order?.amount, realPreferenceId])
-  const canRenderPaymentBrick = isSubscription || preferenceReady
+  const canRenderPaymentBrick = (isSubscription || preferenceReady) && Boolean(brickVisual)
+
+  // Un cambio de tema sí tiene que rehacer el brick (el re-skin viaja en
+  // `customization`), pero sólo cuando el tema cambió de verdad: repetir el
+  // mismo valor no crea estado nuevo y React corta el render.
+  useEffect(() => {
+    const readTheme = () => (currentThemeIsLight() ? 'light' : 'dark')
+    setBrickTheme(readTheme())
+    if (typeof MutationObserver === 'undefined') return undefined
+    const observer = new MutationObserver(() => setBrickTheme(readTheme()))
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (isMock) {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CalendarClock, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Unlock } from 'lucide-react'
+import { CalendarClock, CheckCircle2, Eye, EyeOff, LockKeyhole, Unlock } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
@@ -175,7 +175,7 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
           onClick={handleVisibilityToggle}
         >
           {busy ? (
-            <Loader2 className="admin-event-state__spinner" size={14} aria-hidden />
+            <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
           ) : published ? (
             <Eye size={14} aria-hidden />
           ) : (

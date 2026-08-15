@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
-import { abbreviatePublicMemberName } from '../server/modules/community/supabaseCommunityRepository.js'
+import {
+  abbreviatePublicMemberName,
+  createSupabaseCommunityRepository,
+} from '../server/modules/community/supabaseCommunityRepository.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
 describe('community spotlight', () => {
@@ -47,5 +50,37 @@ describe('community spotlight', () => {
     })
 
     await target.close()
+  })
+  it('firma las fotos del spotlight en lote y reutiliza la URL en el proceso caliente', async () => {
+    const createSignedUrls = vi.fn(async (paths) => ({
+      data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })),
+      error: null,
+    }))
+    const repository = createSupabaseCommunityRepository({
+      getSupabaseAdmin: () => ({
+        rpc: vi.fn(async () => ({
+          data: {
+            members: [
+              { id: 'a', name: 'Ana', photoPath: 'spotlight/ana.jpg' },
+              { id: 'b', name: 'Bruno', photoPath: 'spotlight/bruno.jpg' },
+            ],
+            stats: {},
+          },
+          error: null,
+        })),
+        storage: { from: vi.fn(() => ({ createSignedUrls })) },
+      }),
+    })
+
+    const first = await repository.getSpotlight(2)
+    const second = await repository.getSpotlight(2)
+
+    expect(createSignedUrls).toHaveBeenCalledTimes(1)
+    expect(createSignedUrls).toHaveBeenCalledWith(
+      ['spotlight/ana.jpg', 'spotlight/bruno.jpg'],
+      3600,
+    )
+    expect(first.members[0]).toMatchObject({ photoUrl: 'https://signed.test/spotlight/ana.jpg' })
+    expect(second.members[0]).not.toHaveProperty('photoPath')
   })
 })
