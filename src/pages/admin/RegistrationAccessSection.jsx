@@ -143,6 +143,7 @@ export default function RegistrationAccessSection({
   onRefresh,
   onSave,
   onDelete,
+  onToggleSaved,
 }) {
   const { locale, t } = useI18n()
   const [draft, setDraft] = useState(null)

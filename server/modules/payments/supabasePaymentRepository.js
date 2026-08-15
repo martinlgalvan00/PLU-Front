@@ -214,7 +214,14 @@ export function createSupabasePaymentRepository(
             signature_valid: true,
             status: 'received',
             attempts_count: 0,
-            next_retry_at: new Date().toISOString(),
+            // Se reclama inline inmediatamente después de insertar. Dejarlo
+            // exactamente en "ahora" dependía de que el reloj del proceso y
+            // el de Postgres coincidieran al milisegundo: si la base quedaba
+            // apenas adelantada, `claim_payment_integration_event` devolvía
+            // null y el webhook respondía 200 sin acreditarlo. Un segundo de
+            // margen lo deja elegible tanto para el reclamo inline como para
+            // el worker, sin cambiar la política de reintentos.
+            next_retry_at: new Date(Date.now() - 1_000).toISOString(),
             payload,
           })
           .select()

@@ -434,6 +434,10 @@
   padding-left: 10px;
 }
 
+.audit-event__lead--warning {
+  border-left-color: var(--color-warning-text);
+}
+
 .audit-event__facts,
 .audit-event__technical dl {
   display: grid;

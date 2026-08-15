@@ -134,6 +134,7 @@ export default function AdminPage({
   onRefreshRegistrationAccess,
   onSaveRegistrationAccessGate,
   onDeleteRegistrationAccessGate,
+  onRefreshCheckoutAvailability,
   athletes,
   registrations,
   tickets,
@@ -476,6 +477,7 @@ export default function AdminPage({
           onRefresh={onRefreshRegistrationAccess}
           onSave={onSaveRegistrationAccessGate}
           onDelete={onDeleteRegistrationAccessGate}
+          onToggleSaved={onRefreshCheckoutAvailability}
         />
       )
     }

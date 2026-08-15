@@ -192,6 +192,9 @@ afterAll(async () => {
     await admin.from('athletes').delete().eq('id', athleteId)
   }
   await admin.from('payment_integration_events').delete().eq('resource_id', paymentId)
+  // La firma invalida se rechaza antes de resolver la orden: el asiento de
+  // auditoria queda con entity_id = paymentId, no orderId.
+  await admin.from('operational_event_logs').delete().eq('entity_id', paymentId)
   await target?.close()
 })
 

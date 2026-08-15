@@ -156,7 +156,7 @@ export function createTicketRoutes({
         })
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
-        assertTicketCheckoutEnabled(toggles)
+        assertTicketCheckoutEnabled(toggles, env)
         if (req.validatedBody.provider === 'manual') {
           assertManualChannelEnabled(toggles, 'ticket')
         }
@@ -231,7 +231,7 @@ export function createTicketRoutes({
         repo().availability(req.params.eventSlug),
         platformSettingsRepo().get(),
       ])
-      const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles)
+      const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles, env)
       res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
     } catch (error) {
       next(error)

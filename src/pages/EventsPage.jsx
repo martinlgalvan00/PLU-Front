@@ -269,7 +269,7 @@ function EventsDetailPanel({
 function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = false }) {
   const pricing = ticketPricingFromEvent(event)
   const ticketPrice = cheapestTicketTypePrice(pricing)
-  const hasPublishedPrice = event?.pricing?.ticketsEnabled !== false && ticketPrice != null
+  const hasPublishedPrice = event?.pricing?.ticketsEnabled === true && ticketPrice != null
 
   if (minimal) {
     return (

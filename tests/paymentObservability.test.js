@@ -211,6 +211,7 @@ describe('bitacora del ciclo de cobro', () => {
     expect(table).toBe('operational_event_logs')
     expect(row.source).toBe('payment')
     expect(row.status).toBe('failed')
+    expect(row.severity).toBe('warning')
     expect(row.metadata.stage).toBe('webhook')
     expect(row.metadata.requestId).toBe('req-1')
     expect(row.metadata.diagnosis.code).toBe('ORDER_AMOUNT_MISMATCH')

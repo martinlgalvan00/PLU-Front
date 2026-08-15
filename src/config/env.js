@@ -15,6 +15,8 @@ const paidCheckoutEnabledRaw = String(import.meta.env.PAID_CHECKOUT_ENABLED ?? '
 const paidCheckoutEnabled = ['true', '1', 'yes'].includes(paidCheckoutEnabledRaw)
   ? true
   : ['false', '0', 'no'].includes(paidCheckoutEnabledRaw) ? false : null
+const ticketSalesEnabledRaw = String(import.meta.env.VITE_TICKET_SALES_ENABLED ?? '').trim().toLowerCase()
+const ticketSalesEnabled = ['true', '1', 'yes'].includes(ticketSalesEnabledRaw)
 const isConfiguredValue = (value) => Boolean(value && !/^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i.test(value))
 
 export const env = {
@@ -23,6 +25,9 @@ export const env = {
   isDev: import.meta.env.DEV,
   // Kill switch operativo: sin valor el checkout público queda abierto.
   paidCheckoutEnabled,
+  // Lanzamiento explícito: mientras no se declare true, las entradas de
+  // espectadores permanecen en "Próximamente" aunque el evento tenga catálogo.
+  ticketSalesEnabled,
   demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
   supabase: { url: supabaseUrl, anonKey: supabaseAnonKey, configured: Boolean(supabaseUrl && supabaseAnonKey) },
   mercadoPago: { publicKey: mercadoPagoPublicKey, configured: isConfiguredValue(mercadoPagoPublicKey) },

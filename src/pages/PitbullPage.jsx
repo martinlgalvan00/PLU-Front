@@ -33,6 +33,7 @@ import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
+import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { env } from '../config/env.js'
@@ -954,8 +955,9 @@ export default function PitbullPage({
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
-  const ticketsOpen = ticketCheckoutOpen && eventPricing.ticketsEnabled !== false
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
+  const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
+  const ticketsOpen = env.ticketSalesEnabled && ticketCheckoutOpen && eventPricing.ticketsEnabled === true && ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,
     registered: liveRegistered,

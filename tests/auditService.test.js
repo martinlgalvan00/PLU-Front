@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   auditActionTone,
+  auditEntryTone,
   describeAuditError,
   normalizeAuditEntry,
   residualMetadata,
@@ -81,6 +82,24 @@ describe('auditActionTone', () => {
 
   it('cae a "default" para una acción sin tono configurado', () => {
     expect(auditActionTone('unknown.action')).toBe('default')
+  })
+})
+
+describe('auditEntryTone', () => {
+  it('baja a advertencia una falla de webhook ya contenida aunque la fila histórica diga danger', () => {
+    expect(auditEntryTone({
+      action: 'payment_webhook.failed',
+      severity: 'danger',
+      metadata: { error: '[ORDER_AMOUNT_MISMATCH] webhook: Monto de pago inválido para la orden.' },
+    })).toBe('warning')
+  })
+
+  it('mantiene como crítico un diagnóstico que bloquea todos los cobros', () => {
+    expect(auditEntryTone({
+      action: 'payment.webhook_failed',
+      severity: 'warning',
+      metadata: { diagnosis: { severity: 'blocker' } },
+    })).toBe('danger')
   })
 })
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock3, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/DSC00392-display.jpg'
 import heroPhotoAvif from '../assets/DSC00392-display.avif'
@@ -60,7 +60,7 @@ export default function TicketsPage({
     ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
   const pricing = ticketPricingFromEvent(selectedEvent)
   const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), { checkoutKind: 'ticket' })
-  const eventSalesOpen = paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled !== false
+  const eventSalesOpen = env.ticketSalesEnabled && paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled === true
   // El interruptor global del panel se pide con el mismo request que el cupo, así
   // que se consulta con el slug del evento aunque la venta ya esté cerrada por
   // fecha o por configuración del torneo.
@@ -171,6 +171,15 @@ export default function TicketsPage({
                 </Item>
               ) : null}
 
+              {!ticketSalesOpen ? (
+                <Item {...itemProps}>
+                  <p className="tickets-page__sales-paused" role="status">
+                    <Clock3 size={15} aria-hidden />
+                    {t('pages.ticketsPage.salesPaused')}
+                  </p>
+                </Item>
+              ) : null}
+
               {ticketSalesOpen ? (
                 <Item {...itemProps}>
                   <div className="tickets-page__hero-actions">
@@ -257,7 +266,8 @@ export default function TicketsPage({
         </section>
       )}
 
-      <section className="tickets-page__offers tickets-page__shell" aria-labelledby="tickets-offers-title">
+      {ticketSalesOpen ? (
+        <section className="tickets-page__offers tickets-page__shell" aria-labelledby="tickets-offers-title">
         <header className="tickets-page__offers-head">
           <span className="tickets-page__eyebrow">{t('pages.ticketsPage.offersEyebrow')}</span>
           <h2 id="tickets-offers-title">{t('pages.ticketsPage.offersTitle')}</h2>
@@ -281,7 +291,8 @@ export default function TicketsPage({
             </article>
           ))}
         </div>
-      </section>
+        </section>
+      ) : null}
 
       <section
         id="checkout"
@@ -291,14 +302,20 @@ export default function TicketsPage({
         <div className="tickets-page__shell tickets-page__checkout-inner">
           <header className="tickets-page__checkout-head">
             <div className="tickets-page__checkout-copy">
-              <span className="tickets-page__eyebrow">{t('pages.ticketsPage.checkoutEyebrow')}</span>
-              <h2 id="tickets-checkout-title">{t('pages.ticketsPage.checkoutTitle')}</h2>
-              <p>{t('pages.ticketsPage.checkoutLead')}</p>
+              <span className="tickets-page__eyebrow">
+                {ticketSalesOpen ? t('pages.ticketsPage.checkoutEyebrow') : t('pages.ticketsPage.salesPausedEyebrow')}
+              </span>
+              <h2 id="tickets-checkout-title">
+                {ticketSalesOpen ? t('pages.ticketsPage.checkoutTitle') : t('pages.ticketsPage.salesPausedTitle')}
+              </h2>
+              <p>{ticketSalesOpen ? t('pages.ticketsPage.checkoutLead') : t('pages.ticketsPage.salesPausedLead')}</p>
             </div>
-            <p className="tickets-page__trust">
-              <ShieldCheck size={16} aria-hidden />
-              {t('pages.ticketsPage.secureFlow')}
-            </p>
+            {ticketSalesOpen ? (
+              <p className="tickets-page__trust">
+                <ShieldCheck size={16} aria-hidden />
+                {t('pages.ticketsPage.secureFlow')}
+              </p>
+            ) : null}
           </header>
 
           <div className="tickets-page__checkout-panel">
@@ -315,11 +332,7 @@ export default function TicketsPage({
                 onUploadPaymentProof={onUploadPaymentProof}
               />
             ) : (
-              <p className="tickets-page__closed">
-                {paidCheckoutOpen
-                  ? t('pages.ticketsPage.closed')
-                  : t('pages.ticketsPage.checkoutSoon')}
-              </p>
+              <p className="tickets-page__closed">{t('pages.ticketsPage.salesPausedLead')}</p>
             )}
           </div>
         </div>
