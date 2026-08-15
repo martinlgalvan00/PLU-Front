@@ -434,6 +434,7 @@ export default {
       togglesTitle: 'General enablement',
       togglesLead:
         'Hard cut, with or without a code: when this is off, nobody can start a new membership, registration, ticket, or subscription.',
+      togglesSummary: '{{open}} of {{total}} enabled',
       togglesLoading: 'Loading switches…',
       togglesLoadError: 'Could not read the general switches.',
       togglesSaveError: 'Could not update the switch.',

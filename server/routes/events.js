@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
@@ -396,7 +397,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           .order('starts_at'),
         'No se pudieron leer los eventos públicos.',
       )
-      res.set('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=60')
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.CATALOG))
       res.json({ events: Array.isArray(events) ? events : [] })
     } catch (error) {
       next(error)
@@ -412,6 +413,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
       )
+      // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
+      // en una difusión son cientos de invocaciones por minuto contra el mismo número.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
       res.json({ summary: await attachRecentRegistrationPortraits(client, summary) })
     } catch (error) {
       next(error)

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyDeploymentEnvironmentDefaults,
+  buildDirectDatabaseUrl,
   buildRuntimeDatabaseUrl,
   OFFICIAL_APP_URL,
+  POOLER_SESSION_CONNECTION_LIMIT,
   resolveDeploymentAppUrl,
 } from '../server/lib/deploymentEnvironment.js'
 
@@ -112,6 +114,41 @@ describe('deployment environment', () => {
         }),
       ).port,
     ).toBe('5432')
+  })
+
+  /**
+   * El `pool_size` del Session mode es 15 para todo el proyecto. Sin tope, el
+   * default de Prisma (`num_cpus * 2 + 1`) hacía que un solo `npm run dev:api`
+   * se llevara casi el cupo entero: migraciones, Studio y scripts recibían
+   * `FATAL: (EMAXCONNSESSION)`, y cada conexión ociosa seguía costando un
+   * backend de Postgres en una instancia de 1 GB.
+   */
+  it('acota el pool de los procesos de larga vida contra el pooler', () => {
+    const url = new URL(buildRuntimeDatabaseUrl(POOLER, {}))
+
+    expect(url.port).toBe('5432')
+    expect(url.searchParams.get('connection_limit')).toBe(
+      String(POOLER_SESSION_CONNECTION_LIMIT),
+    )
+    expect(url.searchParams.get('pool_timeout')).toBe('15')
+    // Session mode soporta prepared statements: desactivarlos sería perder
+    // rendimiento sin motivo.
+    expect(url.searchParams.get('pgbouncer')).toBeNull()
+  })
+
+  it('no toca el pool de una base que no pasa por el pooler', () => {
+    const url = new URL(buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {}))
+
+    expect(url.searchParams.get('connection_limit')).toBeNull()
+    expect(url.searchParams.get('pool_timeout')).toBeNull()
+  })
+
+  it('las migraciones van sin los parámetros de pooling', () => {
+    const url = new URL(buildDirectDatabaseUrl(buildRuntimeDatabaseUrl(POOLER, {})))
+
+    expect(url.port).toBe('5432')
+    expect(url.searchParams.get('connection_limit')).toBeNull()
+    expect(url.searchParams.get('pool_timeout')).toBeNull()
   })
 
   // La DATABASE_URL puesta a mano en Vercel ganaba sobre la derivada y el

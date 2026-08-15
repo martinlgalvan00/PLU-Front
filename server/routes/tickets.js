@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
 import { assertPaidCheckoutAvailable, resolvePaidCheckoutOverride } from '../lib/featureAvailability.js'
+import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
@@ -232,6 +233,10 @@ export function createTicketRoutes({
         platformSettingsRepo().get(),
       ])
       const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles, env)
+      // Ventana corta: el stock que se muestra acá decide una compra. La
+      // reserva real se valida igual al crear la orden, así que 10 s de atraso
+      // no habilitan una venta de más -- como mucho un 409 al confirmar.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
       res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
     } catch (error) {
       next(error)

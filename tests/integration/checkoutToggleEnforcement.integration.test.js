@@ -329,6 +329,10 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(200)
     expect(body.checkout).toEqual({ ticketEnabled: false, ticketManualEnabled: false })
+    // La pantalla de entradas la repregunta mientras el visitante decide: el
+    // borde absorbe el poll, pero con ventana corta porque de acá sale el stock
+    // que se muestra antes de comprar.
+    expect(response.headers.get('cache-control')).toContain('s-maxage=10')
   })
 
   it('corta el alta de entradas con el interruptor global, por los dos medios', async () => {

@@ -91,7 +91,27 @@ function isServerlessRuntime(env) {
 }
 
 /** Host del pooler de Supabase (Supavisor). 5432 = session, 6543 = transaction. */
-const POOLER_HOST = /\.pooler\.supabase\.com$/i
+export const POOLER_HOST = /\.pooler\.supabase\.com$/i
+
+/**
+ * Tope de conexiones para procesos de larga vida (`npm run dev:api`, un
+ * contenedor, Prisma Studio) que entran por el Session mode del pooler.
+ *
+ * El Session mode tiene un `pool_size` de 15 **compartido por todo el
+ * proyecto**, no por proceso. Prisma, sin `connection_limit`, abre
+ * `num_cpus * 2 + 1` conexiones: una sola máquina de desarrollo se lleva casi
+ * el cupo entero y el resto —migraciones, Studio, los scripts de `scripts/`,
+ * otra persona del equipo— empieza a recibir
+ * `FATAL: (EMAXCONNSESSION) max clients reached in session mode`.
+ *
+ * Además cada una de esas conexiones es un backend de Postgres vivo en una
+ * instancia de 1 GB, ocioso la mayor parte del tiempo. Dos alcanzan para
+ * desarrollar (una consulta en vuelo más una de reserva) y devuelven el resto
+ * del cupo al proyecto.
+ *
+ * En serverless no aplica: ahí se usa Transaction mode con `connection_limit=1`.
+ */
+export const POOLER_SESSION_CONNECTION_LIMIT = 2
 
 export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) {
   const url = new URL(supabaseDatabaseUrl)
@@ -99,6 +119,8 @@ export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) 
     throw new Error('SUPABASE_DATABASE_URL debe ser una conexión PostgreSQL válida.')
   }
   url.searchParams.set('schema', 'plu_prisma')
+
+  const isPooler = POOLER_HOST.test(url.hostname)
 
   if (isServerlessRuntime(env)) {
     // El Session mode (5432) le reserva a cada instancia una conexión de
@@ -109,7 +131,7 @@ export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) 
     // *todas* las rutas mientras PostgREST sigue respondiendo bien, porque no
     // pasa por Postgres directo. El Transaction mode devuelve la conexión al
     // terminar cada consulta, que es lo que corresponde acá.
-    if (POOLER_HOST.test(url.hostname) && url.port === '5432') url.port = '6543'
+    if (isPooler && url.port === '5432') url.port = '6543'
     url.searchParams.set('connection_limit', '1')
     // Sin esto, agotado el pool la request queda colgada 10 s (default) antes
     // de fallar; con maxDuration de 60 s eso se come el presupuesto entero.
@@ -120,6 +142,15 @@ export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) 
     // instancia nacía fallando.
     url.searchParams.set('connect_timeout', '10')
     if (url.port === '6543') url.searchParams.set('pgbouncer', 'true')
+  } else if (isPooler) {
+    // Proceso de larga vida contra el pooler compartido: se acota el pool para
+    // no quedarse con el cupo de Session mode del proyecto entero
+    // (ver POOLER_SESSION_CONNECTION_LIMIT). No se cambia el puerto: el Session
+    // mode conserva los prepared statements y acá no hay instancias que se
+    // multipliquen, que es lo que obliga al Transaction mode en serverless.
+    url.searchParams.set('connection_limit', String(POOLER_SESSION_CONNECTION_LIMIT))
+    url.searchParams.set('pool_timeout', '15')
+    url.searchParams.set('connect_timeout', '10')
   }
 
   return url.toString()

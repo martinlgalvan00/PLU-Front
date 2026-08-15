@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
@@ -50,6 +51,9 @@ export function createPlatformSettingsRoutes({ getPrisma, getSupabaseAdmin, repo
 
   router.get('/public', staffLimiter, async (_req, res, next) => {
     try {
+      // Cerrar un canal de pago tiene que llegar al público sin esperar un
+      // deploy: 30 s es el techo del atraso entre el toggle y la pantalla.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.SETTINGS))
       res.json(resolvePublicCheckoutAvailability(await repo().get()))
     } catch (error) {
       next(error)
