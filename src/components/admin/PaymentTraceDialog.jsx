@@ -99,6 +99,45 @@ function TraceFailure({ failure, t }) {
   )
 }
 
+function CancellationSummary({ cancellation, locale, t }) {
+  if (cancellation?.code !== 'expired_without_payment') return null
+
+  const hasPaymentEvidence = cancellation.paymentEvidence || cancellation.providerPaymentStarted
+  return (
+    <section className="payment-trace__cancellation" aria-labelledby="payment-trace-cancellation-title">
+      <strong id="payment-trace-cancellation-title">
+        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.title')}
+      </strong>
+      <p>
+        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.summary', {
+          expiresAt: formatWhen(cancellation.expiresAt, locale),
+        })}
+      </p>
+      <dl>
+        <div>
+          <dt>{t('admin.paymentTrace.cancellation.checkoutOpened')}</dt>
+          <dd>{formatWhen(cancellation.checkoutOpenedAt, locale)}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.paymentTrace.cancellation.cancelledAt')}</dt>
+          <dd>{formatWhen(cancellation.cancelledAt, locale)}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.paymentTrace.cancellation.paymentEvidence')}</dt>
+          <dd>
+            {hasPaymentEvidence
+              ? t('admin.paymentTrace.cancellation.paymentEvidencePresent')
+              : t('admin.paymentTrace.cancellation.paymentEvidenceAbsent')}
+          </dd>
+        </div>
+      </dl>
+      <p className="payment-trace__cancellation-action">
+        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.action')}
+      </p>
+    </section>
+  )
+}
+
 export default function PaymentTraceDialog({ orderId, onClose }) {
   const { locale, t } = useI18n()
   const titleId = useId()
@@ -203,6 +242,7 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
                 {t('admin.paymentTrace.stageReached')}: <code>{report.stageReached}</code>
               </span>
             </div>
+            <CancellationSummary cancellation={report.cancellation} locale={locale} t={t} />
 
             <ol className="payment-trace__timeline">
               {report.timeline.map((item, index) => {

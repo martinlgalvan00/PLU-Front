@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { consumeSignedOutFlag, SIGNED_OUT_EVENT } from '../../lib/sessionNotice.js'
+import { consumeSignedOutFlag, SIGNED_OUT_EVENT, SIGNED_IN_EVENT } from '../../lib/sessionNotice.js'
 import { initials } from '../../lib/format.js'
 
 const DISMISS_MS = 8000
@@ -18,7 +18,10 @@ const MIN_RESUME_MS = 800
  */
 export default function SessionNotice({ onNavigate }) {
   const { t } = useI18n()
-  const [notice, setNotice] = useState(() => consumeSignedOutFlag())
+  const [notice, setNotice] = useState(() => {
+    const outFlag = consumeSignedOutFlag()
+    return outFlag ? { type: 'out', name: outFlag.name } : false
+  })
   const [leaving, setLeaving] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(() => Math.ceil(DISMISS_MS / 1000))
   const cardRef = useRef(null)
@@ -27,15 +30,26 @@ export default function SessionNotice({ onNavigate }) {
   const dismissRef = useRef(null)
 
   useEffect(() => {
-    function show(event) {
+    function showOut(event) {
       if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
       setLeaving(false)
       setSecondsLeft(Math.ceil(DISMISS_MS / 1000))
-      setNotice({ name: String(event?.detail?.name ?? '').trim() })
+      setNotice({ type: 'out', name: String(event?.detail?.name ?? '').trim() })
     }
 
-    window.addEventListener(SIGNED_OUT_EVENT, show)
-    return () => window.removeEventListener(SIGNED_OUT_EVENT, show)
+    function showIn(event) {
+      if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
+      setLeaving(false)
+      setSecondsLeft(Math.ceil(DISMISS_MS / 1000))
+      setNotice({ type: 'in', name: String(event?.detail?.name ?? '').trim() })
+    }
+
+    window.addEventListener(SIGNED_OUT_EVENT, showOut)
+    window.addEventListener(SIGNED_IN_EVENT, showIn)
+    return () => {
+      window.removeEventListener(SIGNED_OUT_EVENT, showOut)
+      window.removeEventListener(SIGNED_IN_EVENT, showIn)
+    }
   }, [])
 
   function dismiss() {
@@ -127,9 +141,10 @@ export default function SessionNotice({ onNavigate }) {
 
   if (!notice) return null
 
+  const isLogin = notice.type === 'in'
   const title = notice.name
-    ? t('nav.logoutByeNamed', { name: notice.name })
-    : t('nav.logoutBye')
+    ? t(isLogin ? 'nav.loginWelcomeNamed' : 'nav.logoutByeNamed', { name: notice.name })
+    : t(isLogin ? 'nav.loginWelcome' : 'nav.logoutBye')
 
   return (
     <div
@@ -165,13 +180,13 @@ export default function SessionNotice({ onNavigate }) {
             </span>
           ) : null}
           <div className="session-notice__copy">
-            <p className="session-notice__eyebrow">{t('nav.logoutEyebrow')}</p>
+            <p className="session-notice__eyebrow">{t(isLogin ? 'nav.loginEyebrow' : 'nav.logoutEyebrow')}</p>
             <p className="session-notice__title">{title}</p>
           </div>
         </div>
         <div className="session-notice__foot">
-          <span className="session-notice__meta">{t('nav.logoutHint')}</span>
-          {onNavigate ? (
+          <span className="session-notice__meta">{t(isLogin ? 'nav.loginHint' : 'nav.logoutHint')}</span>
+          {onNavigate && !isLogin ? (
             <button
               type="button"
               className="session-notice__login"

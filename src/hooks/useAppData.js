@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
   acceptStaffInvitationRequest,
@@ -29,7 +29,7 @@ import {
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
 import { sessionDisplayName } from '../lib/format.js'
-import { markSignedOut } from '../lib/sessionNotice.js'
+import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
 import {
   FEATURE_KEYS,
   getFeatureAvailability,
@@ -1924,6 +1924,7 @@ export function useAppData() {
       try {
         const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
         setSession(user)
+        markSignedIn(sessionDisplayName(user ?? {}, { short: true }))
         await establishSupabaseSession(supabaseAuth)
         return user
       } catch (error) {
@@ -1934,6 +1935,7 @@ export function useAppData() {
         if (error?.status !== 401 && error?.status !== 429) throw error
         const { user } = await loginAthleteSession(credentialsOrAccountType)
         setSession(user)
+        markSignedIn(sessionDisplayName(user ?? {}, { short: true }))
         return user
       }
     },

@@ -1253,6 +1253,18 @@ export default {
     copy: 'Copy report',
     copied: 'Report copied',
     copyError: 'Could not copy the report.',
+    cancellation: {
+      checkoutOpened: 'Checkout opened',
+      cancelledAt: 'Automatically cancelled',
+      paymentEvidence: 'Payment evidence',
+      paymentEvidencePresent: 'Payment activity exists; review it before creating another order.',
+      paymentEvidenceAbsent: 'No payment attempt or charge was recorded.',
+      expiredWithoutPayment: {
+        title: 'Automatically expired without payment',
+        summary: 'The payment window expired at {{expiresAt}}.',
+        action: 'Do not credit manually. Ask the person to generate a new order. If they report a debit, revalidate with Mercado Pago first.',
+      },
+    },
   },
   registrationStatus: {
     title: 'Correct registration status',
@@ -2273,4 +2285,3 @@ export default {
     actionError: 'The action could not be completed',
   },
 }
-
