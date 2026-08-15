@@ -49,6 +49,11 @@ export const PAYMENT_TRAIL_ACTIONS = {
   manualRejection: 'payment.manual_rejection',
   forceSettled: 'payment.force_settled',
   reconciled: 'payment.reconciled',
+  // Revalidacion contra el proveedor: releer que dice Mercado Pago de una orden
+  // y corregir el estado local con esa respuesta.
+  revalidated: 'payment.revalidated',
+  revalidationMismatch: 'payment.revalidation_mismatch',
+  revalidationSweep: 'payment.revalidation_sweep',
   reconciliationFailed: 'payment.reconciliation_failed',
   recoveryRun: 'payment.recovery_run',
   orderCreated: 'payment.order_created',

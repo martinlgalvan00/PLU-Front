@@ -385,3 +385,43 @@ activar.
 Reprocesar siempre desde Panel > Pagos > Recuperar operaciones, nunca editando
 estados a mano: las RPC de claim mantienen la idempotencia y una edicion manual
 deja el ledger desalineado (queda registrado como drift en Integridad).
+
+### La orden figura cancelada o rechazada pero la plata entro
+
+Ese es el unico caso que **no** resuelve Recuperar operaciones. Recuperar drena
+dos colas: notificaciones que llegaron (`payment_integration_events`) e intentos
+embebidos que quedaron sin conciliar (`embedded_payment_attempts`). Si el cobro
+se hizo por el checkout redirigido y la notificacion nunca llego --URL mal
+configurada, redirect en el camino, notificacion perdida-- y ademas el atleta no
+volvio al sitio, no hay ninguna fila en esas dos colas: la orden se queda con el
+ultimo estado conocido y nadie vuelve a preguntarle al proveedor.
+
+El orden de resolucion es:
+
+1. **Revalidar contra Mercado Pago** -- Panel > Pagos, boton `Revalidar con
+   Mercado Pago` de la fila (o el barrido `Revalidar con Mercado Pago` de la
+   franja de operaciones, que lista todas las divergencias de los ultimos 30
+   dias antes de tocar nada). Relee los pagos que el proveedor tiene contra esa
+   orden por `external_reference` y aplica el mismo camino canonico del webhook,
+   con sus validaciones de monto, moneda y pertenencia. Es la via correcta
+   siempre que el cobro exista en Mercado Pago: el estado queda respaldado por
+   el proveedor, no por la firma de un operador.
+
+   ```
+   POST /api/payments/orders/:orderId/revalidate   { "apply": true }
+   POST /api/payments/operations/revalidate        { "sinceDays": 30, "limit": 50, "apply": false }
+   ```
+
+   Permiso: `admin.payments.approve`. Deja asiento `payment.revalidated` /
+   `payment.revalidation_mismatch` en la bitacora (categoria `conciliacion`).
+
+2. **Acreditar a mano** (`Acreditar a mano`, `staff_force_settle_payment_order`)
+   solo si Mercado Pago **no** tiene el pago: transferencia acreditada por fuera
+   del checkout, cobro resuelto por otro canal. Exige comprobante adjunto y
+   motivo, y queda asentado como `payment.force_settled` con severidad
+   `warning`.
+
+Si la revalidacion devuelve `amount_mismatch`, el cobro existe pero por otro
+importe (cambio de tarifa entre el alta de la orden y el pago, cupon aplicado
+despues). No se aplica solo: hay que decidir a mano si se acredita, se ajusta la
+orden o se reintegra.

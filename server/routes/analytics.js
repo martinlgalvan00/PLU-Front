@@ -235,6 +235,28 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
   })
 
   /**
+   * Consumo del plan de Supabase.
+   *
+   * Vive en analitica y no en `/api/health` a proposito: health responde si el
+   * sistema esta vivo y lo consulta la infraestructura sin sesion, mientras que
+   * esto es un informe de capacidad -- expone el detalle de tablas y filas, que
+   * es informacion de la instalacion y va detras del mismo permiso que el resto
+   * del panel.
+   *
+   * `no-store`: un numero de ocupacion cacheado es peor que no tenerlo, porque
+   * se sigue mirando cuando ya cambio.
+   */
+  router.get('/database-usage', ...analyticsGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 15))
+      res.set('Cache-Control', 'no-store')
+      res.json(await repo().databaseUsage({ limit }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
    * Presencia en vivo: cuanta gente hay en el sitio ahora y donde esta parada.
    *
    * Es el unico endpoint del informe pensado para consultarse en bucle mientras

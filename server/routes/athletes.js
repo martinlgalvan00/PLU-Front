@@ -30,6 +30,13 @@ import {
   registrationAccessCodeLimiter,
   staffLimiter,
 } from '../middleware/rateLimit.js'
+import { passwordHashShedder } from '../middleware/loadShedder.js'
+import {
+  assertIdentityNotLocked,
+  clearIdentityFailures,
+  IDENTITY_SCOPES,
+  registerIdentityFailure,
+} from '../lib/defense/identityGuard.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
   checkoutPriceFor,
@@ -809,17 +816,31 @@ export function createAthleteRoutes({
   // permisivo), pero con instancia propia: `authLimiter` lo comparte el login
   // de staff, que el cliente prueba primero en cada intento (ver
   // athleteAuthLimiter en middleware/rateLimit.js).
-  router.post('/login', athleteAuthLimiter, validateBody(loginSchema), async (req, res, next) => {
+  router.post('/login', athleteAuthLimiter, passwordHashShedder, validateBody(loginSchema), async (req, res, next) => {
     try {
+      // Mismo esquema que el login de staff: el bloqueo por cuenta se consulta
+      // antes del bcrypt. Acá pesa incluso más, porque el padrón es mucho más
+      // grande que el puñado de cuentas operativas y una lista de credenciales
+      // filtradas tiene muchas más casillas para probar.
+      const identity = {
+        scope: IDENTITY_SCOPES.athleteLogin,
+        identity: req.validatedBody.email,
+        deps: { supabaseAdmin: client() },
+        env,
+      }
+      await assertIdentityNotLocked(identity)
+
       const row = await repo().findLogin(req.validatedBody.email)
       // Igual que en el login de staff: bcrypt corre siempre, exista o no la
       // cuenta, para que el tiempo de respuesta no enumere el padrón.
       const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
 
       if (!row || row.status === 'bloqueado' || !passwordMatches) {
+        await registerIdentityFailure(identity)
         await recordFailedLogin(req, req.validatedBody.email)
         throw new HttpError(401, 'Credenciales invalidas.')
       }
+      await clearIdentityFailures(identity)
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
       res.json({ user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email } })

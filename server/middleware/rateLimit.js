@@ -1,4 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
+import { createSharedStore } from '../lib/defense/sharedRateLimitStore.js'
 
 /**
  * rateLimit.js — PLU ARG
@@ -10,9 +11,20 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
  * ningún límite (el más grave: GET /api/tickets/verify/:qrToken, que permitía
  * enumerar QR tokens sin fricción).
  *
- * Nota: el store en memoria default de express-rate-limit no comparte estado
- * entre procesos -- si el deploy pasa a multi-instancia, migrar a un store
- * compartido (ej. Redis, vía `rate-limit-redis`).
+ * ── Estado compartido ─────────────────────────────────────────────────────
+ *
+ * Estos límites corrían sobre el store en memoria de express-rate-limit, que no
+ * comparte nada entre procesos. En Vercel cada request concurrente puede
+ * aterrizar en una instancia nueva con el contador en cero, así que el límite
+ * real no era el número configurado sino ese número por instancia -- y la
+ * cantidad de instancias la elige quien ataca, subiendo la concurrencia. Los
+ * números de acá estaban bien pensados y en producción no se aplicaban.
+ *
+ * Ahora cada preset lleva un store respaldado en Postgres
+ * (`lib/defense/sharedRateLimitStore.js`), que cuenta primero en memoria y sólo
+ * sincroniza cuando hace falta, para no pagar una consulta por request en el
+ * plan gratuito. Cuando no hay Supabase configurado -- o en los tests -- cae al
+ * store en memoria de siempre y el comportamiento no cambia.
  */
 
 /**
@@ -39,7 +51,16 @@ function clientKey(req) {
   return 'desconocido'
 }
 
-function buildLimiter(windowMs, limit, message) {
+/**
+ * @param {string} name Prefijo del balde compartido. Separa los presets entre sí
+ *   en la tabla: sin esto, una IP que agota el límite de analítica se llevaría
+ *   puesto también su cupo de login.
+ * @param {'strict'|'sampled'} mode Cada cuánto se sincroniza con la base.
+ *   `strict` va a la base en cada hit y se reserva para lo que se cuenta de a
+ *   poco (login, checkout, código de acceso); `sampled` acumula y sincroniza por
+ *   lotes, para el volumen alto donde interesa frenar abuso, no contar exacto.
+ */
+function buildLimiter(windowMs, limit, message, { name, mode = 'sampled' } = {}) {
   return rateLimit({
     windowMs,
     limit,
@@ -47,6 +68,7 @@ function buildLimiter(windowMs, limit, message) {
     legacyHeaders: false,
     keyGenerator: clientKey,
     message: { error: message },
+    store: name ? createSharedStore({ name, mode }) : undefined,
   })
 }
 
@@ -55,6 +77,7 @@ export const authLimiter = buildLimiter(
   15 * 60 * 1000,
   20,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
+  { name: 'auth', mode: 'strict' },
 )
 
 /**
@@ -73,6 +96,7 @@ export const athleteAuthLimiter = buildLimiter(
   15 * 60 * 1000,
   40,
   'Demasiados intentos. Proba de nuevo en unos minutos.',
+  { name: 'athlete-auth', mode: 'strict' },
 )
 
 // Escritura pública sin auth: registro de atleta, alta de orden de membresía.
@@ -80,6 +104,7 @@ export const publicWriteLimiter = buildLimiter(
   10 * 60 * 1000,
   30,
   'Demasiadas solicitudes. Proba de nuevo en unos minutos.',
+  { name: 'public-write', mode: 'strict' },
 )
 
 // Compra de tickets -- más alto que publicWriteLimiter a propósito: una
@@ -88,6 +113,7 @@ export const ticketPublicWriteLimiter = buildLimiter(
   10 * 60 * 1000,
   40,
   'Demasiadas solicitudes. Proba de nuevo en unos minutos.',
+  { name: 'ticket-write', mode: 'strict' },
 )
 
 // Lecturas públicas sin auth (verificación de QR, estado de pago con
@@ -97,6 +123,7 @@ export const publicReadLimiter = buildLimiter(
   60 * 1000,
   60,
   'Demasiadas solicitudes. Proba de nuevo en un momento.',
+  { name: 'public-read', mode: 'sampled' },
 )
 
 // Checkout: preferencias de pago, checkout embebido, suscripciones.
@@ -104,6 +131,7 @@ export const checkoutLimiter = buildLimiter(
   15 * 60 * 1000,
   30,
   'Demasiados intentos de checkout. Probá nuevamente en unos minutos.',
+  { name: 'checkout', mode: 'strict' },
 )
 
 /**
@@ -122,6 +150,7 @@ export const paymentTelemetryLimiter = buildLimiter(
   5 * 60 * 1000,
   30,
   'Demasiados reportes de checkout. Proba de nuevo en unos minutos.',
+  { name: 'payment-telemetry', mode: 'sampled' },
 )
 
 /**
@@ -138,6 +167,7 @@ export const analyticsIngestLimiter = buildLimiter(
   60 * 1000,
   120,
   'Demasiados eventos de analitica. Proba de nuevo en un momento.',
+  { name: 'analytics', mode: 'sampled' },
 )
 
 /**
@@ -154,6 +184,7 @@ export const liveLimiter = buildLimiter(
   60 * 1000,
   60,
   'Demasiadas consultas en vivo. Proba de nuevo en un momento.',
+  { name: 'live', mode: 'sampled' },
 )
 
 // Escrituras con cookie de atleta ya autenticada (editar perfil, foto) --
@@ -162,6 +193,7 @@ export const athleteWriteLimiter = buildLimiter(
   10 * 60 * 1000,
   60,
   'Demasiadas solicitudes. Proba de nuevo en unos minutos.',
+  { name: 'athlete-write', mode: 'sampled' },
 )
 
 /**
@@ -180,6 +212,7 @@ export const registrationAccessCodeLimiter = buildLimiter(
   15 * 60 * 1000,
   15,
   'Demasiados intentos con el código de acceso. Proba de nuevo en unos minutos.',
+  { name: 'access-code', mode: 'strict' },
 )
 
 /**
@@ -195,6 +228,7 @@ export const webhookLimiter = buildLimiter(
   60 * 1000,
   120,
   'Demasiadas notificaciones. Proba de nuevo en un momento.',
+  { name: 'webhook', mode: 'sampled' },
 )
 
 // Todo lo staff-only: ya protegido por rol (requireRole), este límite es
@@ -208,4 +242,5 @@ export const staffLimiter = buildLimiter(
   5 * 60 * 1000,
   900,
   'Demasiadas solicitudes. Proba de nuevo en unos minutos.',
+  { name: 'staff', mode: 'sampled' },
 )

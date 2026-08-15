@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, HandCoins, RefreshCw, Route } from 'lucide-react'
+import { BadgeCheck, HandCoins, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -14,6 +14,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
+import { revalidatePaymentOrder } from '../../services/paymentService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 
@@ -91,6 +92,8 @@ export default function AthletePaymentOrdersSection({
   const [approvingId, setApprovingId] = useState(null)
   const [reviewRow, setReviewRow] = useState(null)
   const [traceOrderId, setTraceOrderId] = useState(null)
+  const [revalidatingId, setRevalidatingId] = useState(null)
+  const [revalidation, setRevalidation] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -218,6 +221,32 @@ export default function AthletePaymentOrdersSection({
     }
   }
 
+  /**
+   * Confronta la orden contra Mercado Pago y aplica lo que diga el proveedor.
+   * No es una corrección a mano: si Mercado Pago no tiene un pago aprobado, el
+   * estado no se mueve y el resultado lo dice.
+   */
+  async function revalidate(orderId) {
+    setRevalidatingId(orderId)
+    setError('')
+    setRevalidation(null)
+    try {
+      const result = await revalidatePaymentOrder(orderId)
+      setRevalidation({ orderId, ...result })
+      if (result?.resultStatus && result.resultStatus !== result.localStatus) {
+        setOrders((current) =>
+          current.map((order) =>
+            order.id === orderId ? { ...order, status: result.resultStatus } : order,
+          ),
+        )
+      }
+    } catch (revalidateError) {
+      setError(revalidateError?.message ?? t('admin.athletePayments.revalidateError'))
+    } finally {
+      setRevalidatingId(null)
+    }
+  }
+
   async function reject(orderId, reason) {
     setApprovingId(orderId)
     setError('')
@@ -296,6 +325,27 @@ export default function AthletePaymentOrdersSection({
           message={error}
           onRetry={() => void load()}
         />
+      ) : null}
+
+      {/* Resultado de la última revalidación: qué decía el panel, qué dice
+          Mercado Pago y qué quedó. Es la constancia de que el estado que se ve
+          ahora salió del proveedor y no de una corrección a mano. */}
+      {revalidation ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <ScanSearch size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            <strong>{t(`admin.athletePayments.revalidate.${revalidation.outcome}`)}</strong>
+            <p>
+              {t('admin.athletePayments.revalidateDetail', {
+                reference: revalidation.order?.reference ?? '—',
+                local: t(`status.${revalidation.localStatus}`),
+                provider: revalidation.providerStatus
+                  ? t(`status.${revalidation.providerStatus}`)
+                  : t('admin.athletePayments.revalidateNoPayment'),
+              })}
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {loading ? (
@@ -395,6 +445,20 @@ export default function AthletePaymentOrdersSection({
                     onClick={() => setTraceOrderId(row.id)}
                     variant="ghost"
                   />
+                  {/* Confrontar contra el proveedor es la vía sana cuando el
+                      estado que figura no coincide con la plata: no acredita
+                      nada por sí sola, aplica lo que responde Mercado Pago.
+                      Va antes que la acreditación manual para que sea lo
+                      primero que se prueba. */}
+                  {canEdit && row.method === 'mercado_pago' ? (
+                    <AdminIconButton
+                      disabled={revalidatingId === row.id || approvingId === row.id}
+                      icon={ScanSearch}
+                      label={t('admin.athletePayments.revalidate.action')}
+                      onClick={() => void revalidate(row.id)}
+                      variant="ghost"
+                    />
+                  ) : null}
                   <AdminIconButton
                     disabled={
                       !canEdit ||

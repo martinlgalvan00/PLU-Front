@@ -128,6 +128,14 @@ async function setup(role = 'admin_maximal', supabaseOptions, extraUsers = []) {
   const target = listen(createApp({ prisma, supabaseAdmin: supabase.client }))
   const { cookie } = await loginStaff(target.url, { email: staff.email })
 
+  // El login gasta RPCs propias del guard de identidad
+  // (`inspect_identity_lock` / `clear_identity_failures`, ver
+  // `lib/defense/identityGuard.js`). Son del armado del fixture, no de lo que
+  // cada test mide, así que el contador arranca en cero después de loguear:
+  // los `expect(supabase.rpc).not.toHaveBeenCalled()` siguen afirmando lo mismo
+  // de siempre -- que un request denegado no llega a ninguna RPC de dominio.
+  supabase.rpc.mockClear()
+
   return { target, cookie, supabase, prisma, users }
 }
 
