@@ -1213,15 +1213,27 @@ export default function RegisterPage({
             )}
             {cardData && (
               <>
-                <button
-                  type="button"
-                  className="card-trigger-btn"
-                  onClick={openCardModal}
-                  id="register-generate-card-btn"
-                >
-                  <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
-                  {t('pages.register.generateCard')}
-                </button>
+                {/* Inscripción admitida: el momento merece una acción propia,
+                    no un botón más en la lista de datos de la orden. El bloque
+                    ocupa la fila completa para no entrar en el grid de dos
+                    columnas que arma el resto del estado. */}
+                <div className="register-status__celebration">
+                  <span className="register-status__celebration-label">
+                    {t('pages.register.competitionCardEyebrow')}
+                  </span>
+                  <p className="register-status__celebration-copy">
+                    {t('pages.register.competitionCardDesc')}
+                  </p>
+                  <button
+                    type="button"
+                    className="register-status__celebration-cta"
+                    onClick={openCardModal}
+                    id="register-generate-card-btn"
+                  >
+                    <ImageDown size={16} aria-hidden />
+                    {t('pages.register.competitionShareCard')}
+                  </button>
+                </div>
                 <CardPreviewModal
                   open={cardOpen}
                   onClose={() => setCardOpen(false)}
@@ -1327,6 +1339,7 @@ export default function RegisterPage({
           {membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
+                cardData={cardData}
                 memberCode={memberCode}
                 membershipExpiration={
                   cardData?.membershipExpiration ??
