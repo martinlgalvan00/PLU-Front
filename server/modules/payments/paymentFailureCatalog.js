@@ -100,6 +100,29 @@ const CATALOG = [
     retryable: false,
   },
   {
+    /**
+     * Falla silenciosa por definicion: no la produce ninguna excepcion nuestra,
+     * porque el cobro con tarjeta funciona igual (el Brick acredita contra su
+     * propia respuesta). Se manifiesta como ausencia — cero filas en
+     * `payment_integration_events` — y por eso el catalogo la clasifica por el
+     * sintoma, para que quien la encuentre no la busque como error de codigo.
+     */
+    code: 'MP_WEBHOOK_URL_REDIRECTS',
+    match: /notification_url.*(redirect|308|301)|webhook.*redirige|Permanent Redirect/i,
+    title: 'La URL de webhook redirige y MP la da por fallida',
+    cause:
+      'Mercado Pago exige 200/201 en la notification_url y no sigue redirects. Un apex que responde 308 hacia www —invisible en el navegador— hace que toda notificacion se pierda: los cobros con tarjeta siguen acreditando por el Brick, pero la acreditacion diferida (transferencia, efectivo, cuotas), los contracargos y los reembolsos dejan de llegar.',
+    fix: [
+      'Correr `npm run mercado-pago:urls`: marca el redirect y muestra el destino final.',
+      'Poner el destino final (con www si corresponde) en APP_URL/API_URL de Vercel y en OFFICIAL_APP_URL.',
+      'Verificar con `curl -i -X POST <notification_url>`: tiene que responder 400 por falta de firma, nunca 3xx.',
+      'Confirmar que `payment_integration_events` deja de estar en cero tras el primer pago real.',
+    ],
+    severity: 'blocker',
+    scope: 'configuracion',
+    retryable: false,
+  },
+  {
     code: 'MP_TIMEOUT',
     match:
       /aborted|AbortError|timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|fetch failed|socket hang up|provider unavailable|bad gateway/i,
@@ -170,6 +193,44 @@ const CATALOG = [
       'Confirmar el estado en Panel > Pagos > Ordenes de atleta.',
       'Si el atleta necesita pagar de nuevo, emitir una orden nueva en vez de reabrir la anterior.',
       'Si figura aprobada sin acreditacion visible, revisar el ledger de webhooks antes de emitir otra.',
+    ],
+    severity: 'expected',
+    scope: 'dominio',
+    retryable: false,
+  },
+  {
+    /**
+     * No es una falla del sistema: es el sistema haciendo lo que el panel le
+     * pidio. Sin catalogar, estos rechazos entraban como
+     * `UNCLASSIFIED_PAYMENT_FAILURE` con severidad `degraded` y stack completo.
+     * Sobre la bitacora real eran 8 de las 10 "fallas de cobro recientes" que
+     * reportaba `npm run payments:audit`: ruido que tapaba las dos que si
+     * importaban. Marcarlas `expected` es lo que deja ver una falla de verdad.
+     */
+    code: 'CHECKOUT_CHANNEL_PAUSED',
+    match:
+      /est[aá]n? pausad[oa]s?( temporalmente)?|est[aá] pausada desde el panel|Pod[eé]s pagar con Mercado Pago/i,
+    title: 'El canal de cobro esta pausado desde el panel',
+    cause:
+      'Un toggle operativo (pagos, canal manual de transferencia/efectivo, o validacion de afiliaciones) esta apagado. El rechazo es deliberado y le llega al atleta como aviso, no como error.',
+    fix: [
+      'Si el corte es intencional, no hay nada que hacer: el asiento documenta que se rechazo y por que.',
+      'Para reabrirlo, Panel > Configuracion > Toggles de plataforma.',
+      'Si nadie lo apago, revisar quien lo cambio en Panel > Auditoria (accion `platform_feature_toggle.updated`).',
+    ],
+    severity: 'expected',
+    scope: 'configuracion',
+    retryable: false,
+  },
+  {
+    code: 'COMBO_NOT_AVAILABLE',
+    match: /El combo no esta disponible para este evento/i,
+    title: 'El combo no esta habilitado para ese evento',
+    cause:
+      'La orden pidio un combo (afiliacion + inscripcion) que ese evento no ofrece, o que se dio de baja despues de que el atleta abriera el checkout.',
+    fix: [
+      'Verificar el combo del evento en Panel > Eventos > Inscripciones.',
+      'Si el combo deberia existir, revisar su alta; si no, el atleta paga afiliacion e inscripcion por separado.',
     ],
     severity: 'expected',
     scope: 'dominio',

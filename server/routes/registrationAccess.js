@@ -8,6 +8,8 @@ import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 
+const emptyStringToUndefined = (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value)
+
 const optionalDateTime = z.string().trim().optional().default('').refine(
   (value) => !value || !Number.isNaN(Date.parse(value)),
   'Fecha inválida.',
@@ -23,7 +25,10 @@ export const registrationAccessGateSchema = z.object({
   active: z.boolean().default(true),
   startsAt: optionalDateTime,
   endsAt: optionalDateTime,
-  code: z.string().min(10, 'El código debe tener al menos 10 caracteres.').max(72).optional(),
+  code: z.preprocess(
+    emptyStringToUndefined,
+    z.string().min(10, 'El código debe tener al menos 10 caracteres.').max(72).optional(),
+  ),
 }).superRefine((value, context) => {
   if (value.scope === 'registration' && !value.eventSlug) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['eventSlug'], message: 'Elegí el torneo.' })

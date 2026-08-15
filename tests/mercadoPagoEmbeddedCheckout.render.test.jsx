@@ -172,7 +172,7 @@ describe('checkout embebido controlado dentro de la pagina', () => {
 })
 
 describe('presentación settle embebida', () => {
-  it('ofrece la cuenta de Mercado Pago como un medio más de la lista, sin widget aparte', async () => {
+  it('ofrece una sola lista con Mercado Pago, crédito y débito', async () => {
     render(
       <I18nProvider>
         <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
@@ -181,17 +181,47 @@ describe('presentación settle embebida', () => {
 
     await screen.findByTestId('payment-brick')
     const { paymentMethods } = sdk.payment.mock.calls[0][0].customization
-    expect(paymentMethods.mercadoPago).toBe('all')
+    // Tres opciones y ninguna más: `wallet_purchase` deja afuera Mercado Crédito.
+    expect(paymentMethods.mercadoPago).toEqual(['wallet_purchase'])
     expect(paymentMethods.creditCard).toBe('all')
     expect(paymentMethods.debitCard).toBe('all')
-    expect(paymentMethods.prepaidCard).toBe('all')
-    expect(paymentMethods.ticket).toBe('all')
-    // La preferencia es la que habilita ese medio dentro del Brick.
-    expect(sdk.payment.mock.calls[0][0].initialization.preferenceId).toBe('pref-checkout-test')
-    expect(sdk.wallet).not.toHaveBeenCalled()
+    expect(paymentMethods.ticket).toBeUndefined()
+    expect(paymentMethods.prepaidCard).toBeUndefined()
   })
 
-  it('sin preferencia el Brick igual monta para cobrar con tarjeta', async () => {
+  it('no monta un Wallet Brick aparte: la cuenta es una fila más del formulario', async () => {
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick')
+    expect(sdk.wallet).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('wallet-brick')).toBeNull()
+    expect(screen.getAllByTestId('payment-brick')).toHaveLength(1)
+  })
+
+  it('avisa el salto a Mercado Pago una vez montado el formulario', async () => {
+    sdk.payment.mockImplementation((props) => {
+      queueMicrotask(() => props.onReady?.())
+      return <div data-testid="payment-brick" />
+    })
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={ORDER} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    expect(
+      await screen.findByText(
+        'Si elegís Mercado Pago te llevamos a iniciar sesión y volvés acá al confirmar.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('sin preferencia el formulario sólo ofrece tarjetas', async () => {
     paymentApi.createPreference.mockResolvedValue({})
 
     render(
@@ -204,8 +234,14 @@ describe('presentación settle embebida', () => {
     )
 
     await screen.findByTestId('payment-brick')
-    expect(sdk.payment.mock.calls[0][0].initialization.preferenceId).toBeUndefined()
-    expect(sdk.wallet).not.toHaveBeenCalled()
+    // La cuenta de Mercado Pago necesita `preferenceId`: sin preferencia no se
+    // pide el medio, para no listar una opción que el Brick no puede resolver.
+    expect(sdk.payment.mock.calls[0][0].customization.paymentMethods.mercadoPago).toBeUndefined()
+    expect(
+      screen.queryByText(
+        'Si elegís Mercado Pago te llevamos a iniciar sesión y volvés acá al confirmar.',
+      ),
+    ).toBeNull()
   })
 
   it('si falla preparar la preferencia dos veces, explica la ausencia y permite reintentar', async () => {
@@ -222,19 +258,20 @@ describe('presentación settle embebida', () => {
 
     await screen.findByTestId('payment-brick', {}, { timeout: 4000 })
     expect(
-      await screen.findByText(/La cuenta de Mercado Pago no está disponible ahora/, {}, { timeout: 4000 }),
+      await screen.findByText('Cuenta de Mercado Pago no disponible', {}, { timeout: 4000 }),
     ).toBeTruthy()
     expect(paymentApi.reportPaymentClientEvent).toHaveBeenCalledWith(
       expect.objectContaining({ stage: 'preference' }),
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    // Recuperada la preferencia, el Brick se remonta y la cuenta de Mercado
+    // Pago vuelve a la lista de medios: no hay una superficie aparte que mirar.
     await waitFor(() => {
-      expect(screen.queryByText(/La cuenta de Mercado Pago no está disponible ahora/)).toBeNull()
+      expect(sdk.payment.mock.calls.at(-1)[0].customization.paymentMethods.mercadoPago)
+        .toEqual(['wallet_purchase'])
     })
-    // Recuperada la preferencia, el medio vuelve a la lista del propio Brick.
-    const inits = sdk.payment.mock.calls.map((call) => call[0].initialization)
-    expect(inits.at(-1).preferenceId).toBe('pref-recovered')
+    expect(screen.queryByText('Cuenta de Mercado Pago no disponible')).toBeNull()
   })
 
   it('no rehace el Brick cuando cambia el estado del checkout', async () => {
@@ -263,6 +300,15 @@ describe('presentación settle embebida', () => {
       expect(call[0].initialization).toBe(mountedWith.initialization)
       expect(call[0].onSubmit).toBe(mountedWith.onSubmit)
     }
+  })
+
+  it('en la presentación default también lista Mercado Pago dentro del formulario', async () => {
+    renderCheckout()
+
+    expect(await screen.findByTestId('payment-brick')).toBeTruthy()
+    expect(sdk.wallet).not.toHaveBeenCalled()
+    expect(sdk.payment.mock.calls[0][0].customization.paymentMethods.mercadoPago)
+      .toEqual(['wallet_purchase'])
   })
 
   it('espera la preferencia antes de montar Payment Brick para no remountarlo', async () => {

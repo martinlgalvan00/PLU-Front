@@ -4,6 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRepository.js'
+import { AUDIT_CATEGORY_KEYS } from '../modules/audit/auditActionCategories.js'
 
 /**
  * audit.js — PLU ARG
@@ -19,6 +20,14 @@ import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRep
 
 const listQuerySchema = z.object({
   action: z.string().trim().min(1).max(80).optional(),
+  /**
+   * Agrupa los nombres que describen el mismo hecho con distinta convención
+   * (`payment.webhook_failed` de la app y `payment_webhook.failed` del
+   * trigger). Se valida contra el catálogo cerrado y no como texto libre: el
+   * valor termina en un `like` de PostgREST, así que aceptar cualquier string
+   * sería dejar entrar el patrón a la consulta.
+   */
+  category: z.enum(AUDIT_CATEGORY_KEYS).optional(),
   entityType: z.string().trim().min(1).max(60).optional(),
   entityId: z.string().trim().min(1).max(120).optional(),
   entityIds: z

@@ -17,7 +17,7 @@ import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
-import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
+import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import {
   getMembershipLifecycle,
@@ -45,6 +45,7 @@ export default function MembershipPurchaseSection({
   gateEvent = null,
   events = [],
   onSelectEvent,
+  checkoutAvailability = {},
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -76,9 +77,9 @@ export default function MembershipPurchaseSection({
   const [discountOpen, setDiscountOpen] = useState(false)
   const discountInputRef = useRef(null)
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
-  const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
   // Mercado Pago es el único canal inicial. Transferencia y efectivo requieren
-  // una habilitación explícita desde Administración.
+  // una habilitación explícita desde Administración: arrancar en `false` evita
+  // que el selector muestre esos medios un instante y falle con 409 al enviar.
   const [manualChannelEnabled, setManualChannelEnabled] = useState(false)
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
   const [accessUnlocked, setAccessUnlocked] = useState(false)
@@ -99,7 +100,12 @@ export default function MembershipPurchaseSection({
   // el atleta cancele sin querer la orden que está en validación.
   const transferUnderReview = membership?.paymentStatus === 'validacion_manual'
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) && membershipCheckoutEnabled
+  const publicMembershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
+  const publicManualChannelEnabled = checkoutAvailability.membershipManualEnabled !== false
+  const paidCheckoutOpen =
+    isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
+    publicMembershipCheckoutEnabled
+  const effectiveManualChannelEnabled = manualChannelEnabled && publicManualChannelEnabled
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -236,7 +242,6 @@ export default function MembershipPurchaseSection({
       .then((requirements) => {
         if (!active) return
         setMembershipAccessRequired(requirements.membership)
-        setMembershipCheckoutEnabled(requirements.membershipEnabled)
         setManualChannelEnabled(requirements.membershipManualEnabled)
       })
       .catch(() => {
@@ -246,7 +251,7 @@ export default function MembershipPurchaseSection({
         }
       })
     return () => { active = false }
-  }, [])
+  }, [checkoutAvailability.membershipEnabled, checkoutAvailability.membershipManualEnabled])
 
   /**
    * La puerta salta sola en cuanto se sabe que la afiliación está restringida:
@@ -274,7 +279,7 @@ export default function MembershipPurchaseSection({
     ) {
       setPaymentMethod('mercado_pago')
     }
-  }, [manualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
+  }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -287,6 +292,7 @@ export default function MembershipPurchaseSection({
         code,
         appliesTo: 'membership',
         planCode: selectedPlan.code,
+        paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
@@ -299,6 +305,16 @@ export default function MembershipPurchaseSection({
       setDiscountChecking(false)
     }
   }
+
+  // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
+  // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
+  // descuento calculado sobre el precio anterior. Se revalida contra el canal
+  // nuevo en vez de obligar al atleta a volver a tipear el código.
+  useEffect(() => {
+    if (!discountPreview) return
+    void applyDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')
@@ -781,7 +797,7 @@ export default function MembershipPurchaseSection({
                 }
                 methods={[
                   { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-                  ...(manualChannelEnabled
+                  ...(effectiveManualChannelEnabled
                     ? [
                         {
                           value: 'transferencia',

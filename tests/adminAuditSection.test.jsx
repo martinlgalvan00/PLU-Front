@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -238,6 +238,46 @@ describe('sección de auditoría', () => {
     expect(screen.getByLabelText('Actor')).toBeTruthy()
     expect(screen.getByLabelText('Entidad')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Estado' }).textContent).toMatch(/Parcial/)
+  })
+
+  /**
+   * El filtro que resuelve el problema de fondo: la bitácora asienta el mismo
+   * hecho con dos nombres según quién lo escriba (`payment.webhook_failed` de
+   * la app, `payment_webhook.failed` del trigger). El filtro de acción exacta
+   * ofrecía las dos variantes sin decir que eran lo mismo, así que buscar "qué
+   * pasó con los webhooks" devolvía la mitad sin avisar que faltaba algo.
+   *
+   * Queda a la vista y no en "Más filtros": es por donde conviene empezar a
+   * buscar, y el de acción exacta sirve recién cuando ya se sabe qué se busca.
+   */
+  it('ofrece el filtro por categoría a la vista y lo manda al backend', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: ['payment.webhook_failed', 'payment_webhook.failed'],
+      categories: ['acceso', 'webhook', 'cobro'],
+      entityTypes: [],
+      actorTypes: [],
+      sources: ['payment'],
+      statuses: ['failed'],
+    })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    const categoria = await screen.findByLabelText('Categoría')
+    expect(categoria).toBeTruthy()
+    // Solo las categorías presentes en la bitácora: ofrecer una que devolvería
+    // cero filas es peor que no ofrecerla.
+    expect(categoria.textContent).toMatch(/Webhooks de pago/)
+    expect(categoria.textContent).not.toMatch(/Correos/)
+
+    fireEvent.change(categoria, { target: { value: 'webhook' } })
+
+    await waitFor(() => {
+      expect(fetchAuditEntries).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'webhook' }),
+      )
+    })
   })
 
   it('muestra la salud del flujo antes de los filtros', async () => {

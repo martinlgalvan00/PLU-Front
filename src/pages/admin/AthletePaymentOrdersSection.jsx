@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, RefreshCw, Route } from 'lucide-react'
+import { BadgeCheck, HandCoins, RefreshCw, Route } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -62,10 +62,22 @@ function canValidateConcept(concept, validationEnabled) {
   return validationEnabled[concept] !== false
 }
 
+/**
+ * Órdenes que el flujo normal ya no puede resolver pero todavía tienen arreglo:
+ * un cobro de Mercado Pago que quedó rechazado, o una transferencia rechazada
+ * cuyo dinero terminó entrando igual. Son las candidatas a acreditación manual.
+ */
+function canForceSettleRow(row) {
+  if (row.status === 'aprobado') return false
+  return row.method === 'mercado_pago' || row.status === 'rechazado'
+}
+
 export default function AthletePaymentOrdersSection({
   canEdit,
+  canForceSettle = false,
   highlightOrderId = null,
   onApprovePayment,
+  onForceSettlePayment,
   onRejectPayment,
   onSummaryChange,
   refreshKey = 0,
@@ -187,6 +199,28 @@ export default function AthletePaymentOrdersSection({
     }
   }
 
+  async function forceSettle(orderId, { reason, reference }) {
+    setApprovingId(orderId)
+    setError('')
+    try {
+      const result = await onForceSettlePayment?.(orderId, { reason, reference })
+      if (result?.error) {
+        setError(result.error)
+        return false
+      }
+      if (result?.order) {
+        setOrders((current) =>
+          current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
+        )
+      } else {
+        await load()
+      }
+      return true
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
   async function reject(orderId, reason) {
     setApprovingId(orderId)
     setError('')
@@ -211,9 +245,10 @@ export default function AthletePaymentOrdersSection({
     }
   }
 
-  function openReview(row) {
+  function openReview(row, mode = 'validate') {
     setError('')
     setReviewRow({
+      mode,
       type: 'payment',
       paymentId: row.id,
       hasProof: row.hasProof,
@@ -385,6 +420,22 @@ export default function AthletePaymentOrdersSection({
                     onClick={() => openReview(row)}
                     variant="celeste"
                   />
+                  {/* Vía de excepción: sólo aparece en las órdenes que el botón
+                      de validar no puede tocar (Mercado Pago, o rechazadas),
+                      para que no compita con el flujo normal. */}
+                  {canForceSettle && canForceSettleRow(row) ? (
+                    <AdminIconButton
+                      disabled={!row.validatable || approvingId === row.id}
+                      icon={HandCoins}
+                      label={
+                        row.validatable
+                          ? t('admin.athletePayments.forceSettle')
+                          : t('admin.athletePayments.validationPaused')
+                      }
+                      onClick={() => openReview(row, 'settle')}
+                      variant="ghost"
+                    />
+                  ) : null}
                 </AdminTableActions>
               ),
             },
@@ -401,13 +452,17 @@ export default function AthletePaymentOrdersSection({
       {reviewRow ? (
         <PaymentValidationDialog
           item={reviewRow}
+          mode={reviewRow.mode ?? 'validate'}
           busy={approvingId === reviewRow.paymentId}
           error={error}
           onCancel={() => setReviewRow(null)}
-          onConfirm={() => {
+          onConfirm={(settlement) => {
             const paymentId = reviewRow.paymentId
-            void approve(paymentId).then((approved) => {
-              if (approved) setReviewRow(null)
+            const action = reviewRow.mode === 'settle'
+              ? forceSettle(paymentId, settlement)
+              : approve(paymentId)
+            void action.then((done) => {
+              if (done) setReviewRow(null)
             })
           }}
           onReject={(reason) => {

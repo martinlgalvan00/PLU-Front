@@ -7,7 +7,7 @@ import {
 } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
-import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
+import { normalizeOfficialHost, resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -121,7 +121,14 @@ function resolveIntegrationUrl({ explicit, fallback, label, env }) {
   )
 }
 
-function requireIntegrationUrl(value, label, env) {
+/**
+ * Punto unico por donde pasan las dos URLs que se le mandan a Mercado Pago
+ * (`notification_url` y `back_urls`), asi que es el lugar correcto para
+ * normalizar el host: cubre las dos sin depender de que cada llamador se
+ * acuerde. Ver `normalizeOfficialHost` para por que el apex no sirve.
+ */
+function requireIntegrationUrl(rawValue, label, env) {
+  const value = normalizeOfficialHost(rawValue)
   if (!value) throw new HttpError(503, `Falta ${label} para crear el checkout.`)
   let url
   try {

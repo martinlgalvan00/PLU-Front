@@ -1,20 +1,31 @@
 /* ═══════════════════════════════════════════════════════════════════
    event-share-card.css — PLU ARG
-   Card de inscripción compartible (1080×1080) + Modal de preview
+   Card compartible (1080×1080 / 1080×1920) + Modal de preview
+
+   Composición: póster personal anclado al pie. El contenido se apoya en
+   el borde inferior y el aire superior lo ocupa el material — retrato a
+   sangre si el atleta tiene foto, sello de iniciales si no. Centrar el
+   cuerpo (como hacía la versión anterior) dejaba huecos muertos entre la
+   ficha y el footer en los dos formatos.
+
+   Regla técnica de toda la hoja: hex/rgba planos y gradientes CSS
+   estándar. html2canvas no rasteriza color-mix()/oklab, mask-image,
+   filter ni mix-blend-mode.
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Variables locales ─────────────────────────────────────────── */
 .share-card {
   --card-bg: #0d0e11;
+  --card-deep: #08090c;
   --card-surface: #141518;
   --card-border: rgba(255, 255, 255, 0.08);
-  /* Acentos de marca planos (hex/rgba) — html2canvas no rasteriza
-     color-mix()/oklab, así que acá nunca entran funciones de color. */
+  /* Acentos de marca planos (hex/rgba) — ver nota de arriba. */
   --card-accent: #f2b705;
   --card-accent-alt: #74acdf;
   --card-text: #ffffff;
   --card-muted: rgba(255, 255, 255, 0.55);
   --card-size: 1080px;
+  --card-gutter: 76px;
 }
 
 /* ─── Wrapper base ──────────────────────────────────────────────── */
@@ -53,10 +64,10 @@
 }
 
 /* Formato historia (9:16) — mismo ancho nativo (1080px), alto de Instagram
-   Story (1920px). Los deltas de espaciado están más abajo, junto a cada
-   sección, para no repetir toda la hoja de estilos. */
+   Story (1920px). Los deltas de espaciado están junto a cada sección. */
 .share-card--story {
   height: 1920px;
+  --card-gutter: 80px;
 }
 
 .share-card-scale-wrap {
@@ -70,11 +81,11 @@
   aspect-ratio: 9 / 16;
 }
 
-/* ─── Fondo con gradiente ─────────────────────────────────────────
-   Mismo grafito que la credencial física (#161820 → #0c0d12 → #08090c).
-   Un solo efecto atmosférico: glow dorado arriba a la derecha +
-   contra-glow del acento secundario abajo. Sin tercer halo blanco:
-   el aire limpio es el lujo. */
+/* ─── Fondo ───────────────────────────────────────────────────────
+   Mismo grafito que la credencial física. Un solo efecto atmosférico:
+   glow dorado arriba a la derecha + contra-glow del acento secundario
+   abajo. Con retrato el fondo queda tapado; se mantiene igual para no
+   duplicar reglas y porque es el color de respaldo si la foto no carga. */
 .share-card__bg {
   position: absolute;
   inset: 0;
@@ -99,14 +110,80 @@
     linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
 }
 
-/* Formato historia: el lienzo es mucho más alto (9:16), así que el cuerpo
-   centrado deja aire de sobra arriba y abajo del bloque de texto. Ese aire
-   es deliberado — presencia ambiental detrás del nombre, no un vacío. */
 .share-card--story .share-card__bg {
   background:
     radial-gradient(ellipse 70% 30% at 88% 5%, rgba(242, 183, 5, 0.14) 0%, transparent 55%),
     radial-gradient(ellipse 60% 28% at 6% 97%, rgba(116, 172, 223, 0.1) 0%, transparent 50%),
     linear-gradient(180deg, #161820 0%, #0c0d12 46%, #08090c 100%);
+}
+
+/* ─── Retrato a sangre ────────────────────────────────────────────
+   La foto de perfil como material de la pieza, no como accesorio: cubre
+   el lienzo entero y el velo la funde al grafito antes de llegar al
+   bloque de datos. `object-position` empuja el encuadre hacia arriba —
+   en fotos horizontales la cara vive en el tercio superior.
+
+   La imagen llega inlineada como data: URL desde el componente (ver
+   inlineImageAsDataUrl): un `<img>` cross-origin sin CORS se ve en el
+   preview y sale vacío en el PNG. */
+.share-card__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.share-card__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
+  display: block;
+}
+
+/* Velo: capa aparte en vez de mask-image (html2canvas ignora las máscaras).
+   Oscurece la franja del header para que la marca se lea sobre cualquier
+   foto, deja una ventana limpia sobre la cara y cierra opaco antes del
+   bloque de identidad. Los stops difieren por formato porque la ventana
+   útil cambia: en 9:16 hay casi el doble de alto libre. */
+/* Velo global: solo asienta la foto y garantiza el header. NO es responsable
+   de la legibilidad del bloque de datos — de eso se ocupa el plinto, que sí
+   conoce la altura real del contenido. Por eso puede quedarse suave y dejar
+   ver el retrato en vez de tapar medio lienzo por las dudas. */
+.share-card__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0.88) 0%,
+    rgba(8, 9, 12, 0.46) 14%,
+    rgba(8, 9, 12, 0.24) 30%,
+    rgba(8, 9, 12, 0.3) 62%,
+    rgba(8, 9, 12, 0.45) 100%
+  );
+}
+
+.share-card--story .share-card__veil {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0.9) 0%,
+    rgba(8, 9, 12, 0.5) 10%,
+    rgba(8, 9, 12, 0.2) 24%,
+    rgba(8, 9, 12, 0.2) 46%,
+    rgba(8, 9, 12, 0.34) 70%,
+    rgba(8, 9, 12, 0.45) 100%
+  );
+}
+
+/* Filo de acento sobre el retrato: sólido, no degradado. Un fade a
+   transparente de 88px queda como una raya sucia sobre la foto. */
+.share-card--portrait .share-card__divider {
+  background: var(--card-accent);
+}
+
+.share-card--portrait.share-card--ticket .share-card__divider {
+  background: var(--card-accent-alt);
 }
 
 /* ─── Marco interior ──────────────────────────────────────────────
@@ -122,18 +199,14 @@
   z-index: 3;
 }
 
-.share-card--story .share-card__frame {
-  inset: 26px 26px 26px;
+.share-card--portrait .share-card__frame {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /* ─── Textura "foil" ─────────────────────────────────────────────
-   Solo las líneas finas repetidas: dan material metalizado sin dibujar nada.
-   El sheen diagonal que había acá se veía bien en el preview del modal pero
-   en el PNG a 1080 cruzaba la cara del nombre y el chip del QR como una
-   banda gris translúcida — se leía como mancha de compresión, no como luz.
-   Con el glow del __bg ya hay un efecto atmosférico; este era el segundo.
-   Deliberadamente solo gradientes CSS estándar: nada de filtros SVG ni
-   mix-blend-mode, que html2canvas rasteriza de forma inconsistente. */
+   Solo las líneas finas repetidas: dan material metalizado sin dibujar
+   nada. No se monta sobre un retrato — la foto ya es el material, y una
+   trama encima se lee como ruido de compresión en el PNG. */
 .share-card__texture {
   position: absolute;
   inset: 0;
@@ -170,26 +243,29 @@
 .share-card__header {
   position: relative;
   z-index: 5;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 64px 72px 0;
+  gap: 24px;
+  padding: 60px var(--card-gutter) 0;
 }
 
 /* En Story, Instagram superpone el avatar/usuario del que publica arriba a
    la izquierda — bajamos el header para no quedar tapados. */
 .share-card--story .share-card__header {
-  padding-top: 184px;
+  padding-top: 178px;
 }
 
 .share-card__brand {
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
 }
 
 .share-card__logo {
-  height: 92px;
+  height: 96px;
   width: auto;
   aspect-ratio: 1 / 1;
   object-fit: contain;
@@ -198,18 +274,18 @@
 }
 
 .share-card--story .share-card__logo {
-  height: 128px;
+  height: 124px;
 }
 
 .share-card__brand-name {
-  font-size: 23px;
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .share-card--story .share-card__brand-name {
-  font-size: 26px;
+  font-size: 27px;
 }
 
 /* Estado: texto neutro, el acento vive solo en el dot. Un glow tipo LED
@@ -217,14 +293,15 @@
 .share-card__status {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
+  align-self: center;
   gap: 12px;
+  flex: none;
   padding: 13px 26px;
   font-size: 19px;
   font-weight: 650;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   border: 1px solid rgba(242, 183, 5, 0.4);
   border-radius: 999px;
@@ -234,6 +311,17 @@
 .share-card--ticket .share-card__status {
   border-color: rgba(116, 172, 223, 0.45);
   background: rgba(116, 172, 223, 0.09);
+}
+
+/* Sobre un retrato el pill necesita un fondo propio: la foto puede tener
+   cualquier luminancia detrás del texto. */
+.share-card--portrait .share-card__status {
+  background: rgba(10, 11, 14, 0.55);
+  border-color: rgba(242, 183, 5, 0.55);
+}
+
+.share-card--portrait.share-card--ticket .share-card__status {
+  border-color: rgba(116, 172, 223, 0.6);
 }
 
 .share-card__status-dot {
@@ -247,146 +335,132 @@
   background: var(--card-accent-alt);
 }
 
-/* ─── Body ──────────────────────────────────────────────────────── */
+/* ─── Body ────────────────────────────────────────────────────────
+   Anclado al pie: el contenido se apoya sobre el footer y el aire queda
+   arriba, donde vive el material (retrato o sello). Es lo que elimina
+   los huecos muertos de la versión centrada. */
 .share-card__body {
   position: relative;
   z-index: 5;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 56px 72px;
+  justify-content: flex-end;
+  padding: 44px var(--card-gutter) 0;
+  gap: 34px;
+}
+
+.share-card--story .share-card__body {
+  padding-top: 56px;
   gap: 44px;
 }
 
-/* Square 1080×1080 es el formato más ajustado del set: con el eyebrow, el
-   nombre en dos líneas y las cuatro líneas del bloque de evento, el contenido
-   empujaba el pie fuera del lienzo y el QR de verificación salía cortado en el
-   PNG (o directamente ausente). El body es `flex: 1 1 0%` pero no puede
-   encogerse por debajo de su contenido, así que el ahorro tiene que venir del
-   ritmo vertical. La variante membership define su propio body y footer más
-   abajo en la hoja, así que no la afecta. */
-.share-card--square .share-card__body {
-  gap: 36px;
-  padding: 40px 72px;
+/* ─── Sello de iniciales (sin foto) ───────────────────────────────
+   El material de la variante sin retrato: un disco grabado que ocupa el
+   aire superior en vez de dejarlo vacío. `margin-bottom: auto` lo empuja
+   arriba mientras el resto del cuerpo queda anclado al pie.
+
+   El anillo va como `border` real, NUNCA como box-shadow de spread:
+   html2canvas no rasteriza el spread como anillo — lo pinta como un disco
+   relleno del color del shadow DEBAJO del elemento, y el PNG salía como
+   una mancha dorada maciza con las letras encima. Mismo criterio que
+   .share-card__frame. */
+.share-card__seal-mark {
+  box-sizing: border-box;
+  flex: none;
+  align-self: flex-start;
+  margin-bottom: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 232px;
+  height: 232px;
+  border-radius: 50%;
+  /* Peso liviano y aire alrededor: a este tamaño, letras bold llenan el
+     disco y se leen como una mancha sólida en miniatura (feed de
+     Instagram). El aire es lo que lo hace leer como medalla grabada. */
+  font-size: 78px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-indent: 0.04em;
+  color: var(--card-accent);
+  background-color: #16181f;
+  border: 2px solid rgba(242, 183, 5, 0.45);
 }
 
-.share-card--square .share-card__footer {
-  margin: 28px 72px 44px;
-  padding: 22px 30px;
+.share-card--ticket .share-card__seal-mark {
+  color: var(--card-accent-alt);
+  border-color: rgba(116, 172, 223, 0.5);
 }
 
-/* Historia: composición con gravedad, no flotante. El bloque se ancla en
-   el tercio superior (donde cae el ojo al abrir la historia) y el aire
-   queda como UNA zona deliberada antes del footer — no tres huecos
-   simétricos que hacen sentir el lienzo vacío. */
-.share-card--story .share-card__body {
-  justify-content: flex-start;
-  padding: 150px 72px 48px;
-  gap: 64px;
+.share-card--story .share-card__seal-mark {
+  width: 300px;
+  height: 300px;
+  font-size: 100px;
 }
 
-/* Sección atleta */
-.share-card__athlete-section {
+/* ─── Plinto de contenido ─────────────────────────────────────────
+   Identidad + datos como una unidad. Sin retrato es un simple contenedor
+   de flujo; con retrato arrastra su propio degradado, que arranca en el
+   borde superior del bloque y cierra opaco 150px más abajo — antes de la
+   primera línea de texto, mida lo que mida el bloque.
+
+   Los stops van en px, no en %: en % el fade se estiraría con la altura
+   del plinto y volvería a caer sobre el nombre en las variantes con más
+   contenido, que es exactamente el bug que esto resuelve. */
+.share-card__plate {
+  position: relative;
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 34px;
+  min-width: 0;
 }
 
-/* Con medallón/foto a la izquierda: credencial oficial en vez de texto
-   suelto. */
-.share-card__athlete-section--with-avatar {
-  flex-direction: row;
-  align-items: center;
-  gap: 36px;
+.share-card--story .share-card__plate {
+  gap: 44px;
 }
 
-.share-card__athlete-text {
+.share-card--portrait .share-card__plate {
+  padding-top: 150px;
+  margin-top: -116px;
+}
+
+.share-card__plate-veil {
+  position: absolute;
+  top: 0;
+  left: calc(var(--card-gutter) * -1);
+  right: calc(var(--card-gutter) * -1);
+  /* Alto fijo mayor que el lienzo: el plinto no sabe cuánto falta hasta el
+     pie, así que el degradado se derrama y lo recorta el overflow de la
+     card. Cubre también la franja del footer. */
+  height: 2000px;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 9, 12, 0) 0px,
+    rgba(8, 9, 12, 0.35) 60px,
+    rgba(8, 9, 12, 0.8) 130px,
+    rgba(8, 9, 12, 0.97) 190px,
+    #08090c 230px,
+    #08090c 100%
+  );
+}
+
+/* El contenido se apoya sobre el degradado del plinto, no debajo. */
+.share-card__plate > .share-card__identity,
+.share-card__plate > .share-card__divider,
+.share-card__plate > .share-card__fields,
+.share-card__plate > .share-card__event-section {
+  position: relative;
+}
+
+/* ─── Identidad ──────────────────────────────────────────────────── */
+.share-card__identity {
   display: flex;
   flex-direction: column;
   gap: 18px;
   min-width: 0;
-}
-
-/* El anillo va como `border` real, NUNCA como box-shadow de spread:
-   html2canvas no rasteriza el spread como anillo — lo pinta como un disco
-   relleno del color del shadow DEBAJO del elemento. Con foto eso quedaba
-   invisible (la img tapaba el disco), pero en el medallón de iniciales el
-   PNG salía como una mancha dorada maciza con las letras doradas encima
-   (contraste ~1.6:1). El bug solo aparecía en la imagen descargada, no en
-   el preview del modal. Mismo criterio que .share-card__frame. */
-.share-card__avatar {
-  box-sizing: border-box;
-  flex-shrink: 0;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  overflow: hidden;
-  background-color: var(--card-surface);
-  border: 3px solid rgba(242, 183, 5, 0.45);
-}
-
-/* Anillo más fino: sello institucional, no sticker de card genérica. */
-.share-card--membership .share-card__avatar {
-  border-width: 2px;
-  border-color: rgba(242, 183, 5, 0.6);
-}
-
-/* El retrato es el protagonista de la afiliación: más grande que en event/
-   ticket, donde el nombre y el dato del evento compiten por atención.
-   Unified queda afuera (comparte la clase membership pero mantiene el
-   layout de evento, más apretado). */
-.share-card--membership:not(.share-card--unified) .share-card__avatar {
-  width: 196px;
-  height: 196px;
-}
-
-.share-card--membership:not(.share-card--unified) .share-card__avatar--initials {
-  font-size: 54px;
-}
-
-.share-card--ticket .share-card__avatar {
-  border-color: rgba(116, 172, 223, 0.5);
-}
-
-.share-card__avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Medallón de iniciales: el avatar de quien no sube foto — el caso por
-   defecto de todo socio recién afiliado. Disco grafito plano + iniciales
-   doradas: 9.9:1 de contraste. Sin gradiente, porque html2canvas lo pintaba
-   por debajo del anillo y el disco terminaba dorado macizo. */
-.share-card__avatar--initials {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Chico y liviano a propósito: a este tamaño, letras grandes/bold llenan
-     el disco y se leen como una mancha sólida en miniatura (feed de
-     Instagram). Dejar aire alrededor es lo que lo hace leer como medalla
-     grabada, no como sticker de avatar. */
-  font-size: 40px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--card-accent);
-  background-color: #1b1d24;
-  text-indent: 0.01em;
-}
-
-.share-card--ticket .share-card__avatar--initials {
-  color: var(--card-accent-alt);
-}
-
-.share-card--story .share-card__avatar {
-  width: 196px;
-  height: 196px;
-}
-
-.share-card--story .share-card__avatar--initials {
-  font-size: 58px;
 }
 
 .share-card__eyebrow {
@@ -397,13 +471,17 @@
   color: var(--card-accent);
 }
 
+.share-card--ticket .share-card__eyebrow {
+  color: var(--card-accent-alt);
+}
+
 .share-card__athlete-name {
   /* Sin esto el h2 arrastra el margen del UA y abría ~90px de hueco entre el
-     nombre y el número de socio, rompiendo el gap de 18px del bloque. */
+     nombre y el número de socio, rompiendo el gap del bloque. */
   margin: 0;
   font-size: 108px;
   font-weight: 800;
-  line-height: 0.98;
+  line-height: 0.96;
   letter-spacing: -0.035em;
   color: var(--card-text);
   /* Truncar nombres muy largos */
@@ -417,35 +495,35 @@
   font-size: 24px;
   font-weight: 500;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-/* Divisor: firma fina de marca (dorado → celeste), corta y sin brillo. */
+.share-card--story .share-card__athlete-code {
+  font-size: 27px;
+}
+
+/* Divisor: firma fina de marca, corta y sin brillo. */
 .share-card__divider {
-  width: 64px;
+  flex: none;
+  width: 88px;
   height: 2px;
   background: linear-gradient(90deg, var(--card-accent) 0%, var(--card-accent-alt) 100%);
   border-radius: 999px;
-}
-
-/* Variante entrada: el divisor invierte el orden del acento. */
-.share-card--ticket .share-card__eyebrow {
-  color: var(--card-accent-alt);
 }
 
 .share-card--ticket .share-card__divider {
   background: linear-gradient(90deg, var(--card-accent-alt) 0%, var(--card-accent) 100%);
 }
 
-/* Sección evento */
-/* Tratamiento editorial abierto: filo de acento a la izquierda, sin caja.
-   Mismo lenguaje que la variante membership — evita repetir el recuadro
-   que ya usa el QR-chip del footer (una sola caja por composición). */
+/* ─── Sección evento ──────────────────────────────────────────────
+   Tratamiento editorial abierto: filo de acento a la izquierda, sin caja.
+   Una sola caja por composición, y esa caja es el chip del QR. */
 .share-card__event-section {
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   border-left: 2px solid var(--card-accent);
   padding: 4px 0 4px 32px;
 }
@@ -455,7 +533,7 @@
 }
 
 .share-card--story .share-card__event-section {
-  gap: 20px;
+  gap: 18px;
   padding: 8px 0 8px 40px;
 }
 
@@ -470,294 +548,42 @@
 /* Título del evento en blanco: el nombre del atleta es el protagonista y el
    dorado queda reservado para eyebrow, divisor y filos (un solo acento). */
 .share-card__event-title {
-  font-size: 48px;
+  font-size: 50px;
   font-weight: 600;
-  line-height: 1.12;
+  line-height: 1.1;
   color: var(--card-text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0;
+}
+
+.share-card--story .share-card__event-title {
+  font-size: 58px;
 }
 
 .share-card__event-meta {
   font-size: 26px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.55);
   margin: 0;
 }
 
 .share-card__event-category {
   font-size: 21px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.66);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin: 0;
 }
 
-/* ─── Footer ──────────────────────────────────────────────────────
-   Banda enmarcada: mismo lenguaje que la placa del evento y el pill
-   de estado. El QR queda sellado dentro de la placa; la firma de
-   marca y la URL cierran la composición. */
-.share-card__footer {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  margin: 40px 72px 60px;
-  padding: 28px 36px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.035);
-}
-
-/* En Story, la barra de respuesta/stickers de Instagram vive abajo de todo —
-   dejamos un margen de seguridad extra para que el footer no quede tapado. */
-.share-card--story .share-card__footer {
-  margin-top: 48px;
-  margin-bottom: 186px;
-  padding: 32px 40px;
-  border-radius: 24px;
-}
-
-.share-card__footer-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.share-card__tagline {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.share-card__url {
-  flex-shrink: 0;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.42);
-  white-space: nowrap;
-}
-
-/* ─── QR de verificación ──────────────────────────────────────────
-   Chip blanco con quiet-zone propia: garantiza contraste/lectura sin
-   importar el fondo oscuro de la card. */
-.share-card__qr-chip {
-  box-sizing: border-box;
-  flex-shrink: 0;
-  width: 148px;
-  height: 148px;
-  padding: 12px;
-  background-color: #ffffff;
-  border-radius: 14px;
-  /* Border real, no box-shadow de spread — ver .share-card__avatar. Con
-     shadow, html2canvas dibujaba un halo crema grueso alrededor del chip. */
-  border: 2px solid rgba(242, 183, 5, 0.3);
-}
-
-.share-card--ticket .share-card__qr-chip {
-  border-color: rgba(116, 172, 223, 0.32);
-}
-
-.share-card--story .share-card__qr-chip {
-  width: 224px;
-  height: 224px;
-  padding: 16px;
-  border-radius: 22px;
-}
-
-.share-card__qr-img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  image-rendering: pixelated;
-}
-
-.share-card__qr-caption {
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
-  letter-spacing: 0.02em;
-}
-
-.share-card--story .share-card__tagline {
-  font-size: 22px;
-}
-
-.share-card--story .share-card__qr-caption {
-  font-size: 19px;
-}
-
-.share-card--story .share-card__url {
-  font-size: 18px;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   MEMBERSHIP — jerarquía editorial (solo variante membership)
-   Marca más presente, afiliación con peso, footer mínimo.
-   Hex/rgba planos: html2canvas no rasteriza color-mix.
-   Square 1080×1080 es ajustado: los bumps fuertes van en story.
-   ═══════════════════════════════════════════════════════════════════ */
-
-.share-card--membership .share-card__logo {
-  height: 112px;
-}
-
-.share-card--membership.share-card--story .share-card__logo {
-  height: 152px;
-}
-
-.share-card--membership .share-card__brand-name {
-  font-size: 28px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.share-card--membership.share-card--story .share-card__brand-name {
-  font-size: 34px;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.share-card--membership .share-card__status {
-  padding: 10px 18px;
-  background: transparent;
-  border-color: rgba(242, 183, 5, 0.32);
-  font-size: 17px;
-  letter-spacing: 0.14em;
-}
-
-/* Story: header institucional limpio — status como firma, sin pill. */
-.share-card--membership.share-card--story .share-card__header {
-  align-items: flex-start;
-  padding-top: 200px;
-}
-
-.share-card--membership.share-card--story .share-card__brand {
-  gap: 22px;
-}
-
-.share-card--membership.share-card--story .share-card__status {
-  border: none;
-  padding: 6px 0 0;
-  font-size: 18px;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.62);
-  background: transparent;
-}
-
-.share-card--membership .share-card__body {
-  gap: 44px;
-  padding-top: 48px;
-  padding-bottom: 36px;
-}
-
-/* Story body: composición editorial — aire, tipografía, menos cajas. */
-.share-card--membership.share-card--story .share-card__body {
-  gap: 72px;
-  justify-content: flex-start;
-  padding: 120px 80px 40px;
-}
-
-/* La base ya es editorial abierta (sin caja) para todas las variantes —
-   membership solo pide un filo más translúcido que el resto. */
-.share-card--membership .share-card__event-section {
-  border-left-color: rgba(242, 183, 5, 0.55);
-}
-
-.share-card--membership.share-card--story .share-card__event-section {
-  border-left-color: rgba(242, 183, 5, 0.55);
-  flex: 1 1 auto;
-  gap: 20px;
-  justify-content: center;
-  min-height: 0;
-  padding: 12px 0 12px 36px;
-}
-
-.share-card--membership .share-card__athlete-text {
-  gap: 22px;
-}
-
-/* El número de socio lleva su etiqueta inline ("Socio n.º …"): es un campo de
-   credencial, no un ID suelto flotando bajo el nombre. Sube de 45% a 58% de
-   opacidad — a 24px sobre grafito, 45% quedaba en 4.1:1. */
-.share-card--membership .share-card__athlete-code {
-  font-size: 22px;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.share-card--membership.share-card--story .share-card__athlete-code {
-  font-size: 26px;
-}
-
-.share-card--membership .share-card__event-eyebrow {
-  font-size: 18px;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.48);
-}
-
-.share-card--membership.share-card--story .share-card__event-eyebrow {
-  font-size: 20px;
-  letter-spacing: 0.24em;
-  color: rgba(255, 255, 255, 0.42);
-}
-
-.share-card--membership .share-card__event-title {
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-}
-
-.share-card--membership.share-card--story .share-card__event-title {
-  font-size: 64px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-}
-
-.share-card--membership .share-card__event-meta {
-  font-size: 24px;
-}
-
-.share-card--membership.share-card--story .share-card__event-meta {
-  font-size: 26px;
-  color: rgba(255, 255, 255, 0.48);
-}
-
-.share-card--membership .share-card__event-category {
-  font-size: 18px;
-  margin-top: 4px;
-  color: rgba(242, 183, 5, 0.88);
-  letter-spacing: 0.08em;
-}
-
-.share-card--membership.share-card--story .share-card__event-category {
-  font-size: 20px;
-  margin-top: 10px;
-  letter-spacing: 0.12em;
-}
-
-.share-card--membership.share-card--story .share-card__athlete-name {
-  letter-spacing: -0.04em;
-}
-
 /* ─── Ficha de datos de la afiliación ────────────────────────────
-   Una sola línea de credencial (temporada + vigencia como un mismo hecho),
-   no una grilla de campos de formulario. Sin caja ni filo de acento — el
-   chip del QR es la única caja de la composición, y el filo izquierdo
-   queda reservado para la variante de evento (y para unified, que sigue
-   usando __event-section). */
+   Label + valor en dos columnas: el lenguaje de una credencial oficial.
+   Sin caja ni filo — el chip del QR es la única caja de la composición. */
 .share-card__fields {
-  display: block;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 48px;
   margin: 0;
 }
 
@@ -773,31 +599,22 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .share-card__field-value {
   margin: 0;
-  font-size: 42px;
+  font-size: 44px;
   font-weight: 650;
   line-height: 1.05;
   letter-spacing: -0.015em;
   color: var(--card-text);
 }
 
-/* Detalle inline dentro del mismo valor (ej. vigencia junto a la temporada):
-   tamaño relativo (em) para heredar el font-size del campo que lo contiene,
-   en vez de un segundo campo/columna independiente. */
-.share-card__field-detail {
-  font-size: 0.44em;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.5);
-  margin-left: 14px;
-}
-
-.share-card__field-detail::before {
-  content: '· ';
+/* 56px es el techo: más grande, "Temporada 2026" no entra en su columna
+   de 460px y parte en dos líneas. */
+.share-card--story .share-card__fields {
+  gap: 30px 56px;
 }
 
 .share-card--story .share-card__field-label {
@@ -806,10 +623,162 @@
 }
 
 .share-card--story .share-card__field-value {
-  font-size: 52px;
+  font-size: 56px;
 }
 
-/* Regla de credencial: cruza el ancho útil en vez del filo corto de 64px.
+/* ─── Footer ──────────────────────────────────────────────────────
+   Regla fina + QR + firma. Sin placa: la banda enmarcada que había antes
+   sumaba una segunda caja y encerraba el cierre de la composición en vez
+   de dejarlo respirar contra el borde. */
+.share-card__footer {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  margin: 40px var(--card-gutter) 56px;
+  padding: 26px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* En Story, la barra de respuesta/stickers de Instagram vive abajo de todo —
+   dejamos un margen de seguridad extra para que el footer no quede tapado. */
+.share-card--story .share-card__footer {
+  margin-top: 52px;
+  margin-bottom: 176px;
+  padding-top: 32px;
+}
+
+.share-card__footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.share-card__tagline {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.share-card--story .share-card__tagline {
+  font-size: 22px;
+}
+
+.share-card__qr-caption {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+}
+
+.share-card--story .share-card__qr-caption {
+  font-size: 18px;
+}
+
+.share-card__url {
+  flex: none;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+  white-space: nowrap;
+}
+
+.share-card--story .share-card__url {
+  font-size: 18px;
+}
+
+/* ─── QR de verificación ──────────────────────────────────────────
+   Chip blanco con quiet-zone propia: garantiza contraste/lectura sin
+   importar el fondo oscuro de la card. */
+.share-card__qr-chip {
+  box-sizing: border-box;
+  flex: none;
+  width: 140px;
+  height: 140px;
+  padding: 11px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  /* Border real, no box-shadow de spread — ver .share-card__seal-mark. Con
+     shadow, html2canvas dibujaba un halo crema grueso alrededor del chip. */
+  border: 2px solid rgba(242, 183, 5, 0.3);
+}
+
+.share-card--ticket .share-card__qr-chip {
+  border-color: rgba(116, 172, 223, 0.32);
+}
+
+.share-card--story .share-card__qr-chip {
+  width: 188px;
+  height: 188px;
+  padding: 15px;
+  border-radius: 20px;
+}
+
+.share-card__qr-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MEMBERSHIP — la afiliación es la credencial, no un evento.
+   Marca más presente en el header y ficha de campos en vez de bloque
+   editorial. El resto lo hereda de la composición base.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.share-card--membership .share-card__logo {
+  height: 112px;
+}
+
+.share-card--membership.share-card--story .share-card__logo {
+  height: 148px;
+}
+
+.share-card--membership .share-card__brand-name {
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.share-card--membership.share-card--story .share-card__brand-name {
+  font-size: 34px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.share-card--membership .share-card__status {
+  padding: 11px 20px;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+}
+
+.share-card--membership .share-card__identity {
+  gap: 22px;
+}
+
+/* El número de socio lleva su etiqueta inline ("Socio n.º …"): es un campo de
+   credencial, no un ID suelto flotando bajo el nombre. */
+.share-card--membership .share-card__athlete-code {
+  font-size: 23px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.share-card--membership.share-card--story .share-card__athlete-code {
+  font-size: 26px;
+}
+
+/* Regla de credencial: cruza el ancho útil en vez del filo corto.
    Separa al protagonista de sus datos y conserva la firma dorada, sin
    brillo. `:not(--unified)` porque la credencial unificada comparte la
    clase membership pero mantiene el bloque de evento con su filo. */
@@ -819,119 +788,47 @@
   border-radius: 0;
   background: linear-gradient(
     90deg,
-    rgba(242, 183, 5, 0.5) 0%,
-    rgba(255, 255, 255, 0.07) 62%,
+    rgba(242, 183, 5, 0.55) 0%,
+    rgba(255, 255, 255, 0.08) 62%,
     transparent 100%
   );
 }
 
-/* Story: dos bloques (protagonista y ficha) centrados como una sola unidad
-   en el lienzo, con la regla entre ellos. Antes el body usaba flex-start con
-   tres gaps y el vacío aparecía en tres lugares distintos; con
-   space-between el hueco central se comía media historia. Centrar deja el
-   aire arriba y abajo como presencia ambiental del fondo, que es lo único
-   que sostiene una credencial de pocos datos en 1920px de alto. */
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__body {
-  justify-content: center;
-  gap: 110px;
-  padding: 64px 80px 12px;
+/* La afiliación con retrato usa el filo corto: una regla a todo el ancho
+   sobre la foto corta el retrato en dos. */
+.share-card--membership.share-card--portrait:not(.share-card--unified) .share-card__divider {
+  width: 88px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--card-accent);
 }
 
-/* La regla viaja a la ficha para que el body tenga exactamente dos hijos y
-   space-between no deje el divisor flotando en la mitad del hueco. */
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__divider {
-  display: none;
+.share-card--membership .share-card__event-section {
+  border-left-color: rgba(242, 183, 5, 0.55);
 }
 
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__fields {
-  border-top: 1px solid rgba(242, 183, 5, 0.26);
-  padding-top: 48px;
-}
-
-/* Con una sola línea de credencial (ya no una columna de 432px), el valor
-   puede leerse con más peso: es el único dato duro de la pieza. */
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__field-value {
-  font-size: 60px;
-}
-
-/* Retrato arriba, nombre abajo: composición de certificado en vez de fila
-   de tabla. Con una sola línea de credencial, la fila horizontal (avatar a
-   la izquierda) dejaba un vacío grande sin resolver en los 1920px de alto;
-   apilar y centrar deja que el retrato ocupe el espacio que antes quedaba
-   vacío, y sostiene el momento de orgullo — es lo primero que se lee al
-   abrir la historia. Solo story: en square la fila funciona porque el
-   lienzo es más ancho que alto. */
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__athlete-section--with-avatar {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 56px;
-}
-
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar {
-  width: 420px;
-  height: 420px;
-}
-
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar--initials {
-  font-size: 128px;
-}
-
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__athlete-text {
-  align-items: center;
-  gap: 26px;
-}
-
-.share-card--membership:not(.share-card--unified).share-card--story .share-card__fields {
-  text-align: center;
-}
-
-/* Footer membership: sin placa — QR + firma fina sobre una regla. */
-.share-card--membership .share-card__footer {
-  margin: 0 72px 56px;
-  padding: 22px 0 0;
-  gap: 24px;
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0;
-  background: transparent;
-}
-
-.share-card--membership.share-card--story .share-card__footer {
-  margin-top: 40px;
-  margin-bottom: 186px;
-  padding-top: 36px;
-  gap: 28px;
-}
-
-.share-card--membership .share-card__tagline {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.share-card--membership.share-card--story .share-card__tagline {
+.share-card--membership .share-card__event-eyebrow {
   font-size: 18px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.share-card--membership .share-card__qr-caption {
-  font-size: 14px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.42);
+.share-card--membership .share-card__event-title {
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.share-card--membership .share-card__url {
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.36);
+.share-card--membership.share-card--story .share-card__event-title {
+  font-size: 60px;
+  letter-spacing: -0.03em;
 }
 
-.share-card--membership .share-card__qr-chip {
-  border-width: 1px;
-  border-color: rgba(242, 183, 5, 0.22);
+.share-card--membership .share-card__event-category {
+  font-size: 19px;
+  margin-top: 4px;
+  color: rgba(242, 183, 5, 0.9);
+  letter-spacing: 0.08em;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

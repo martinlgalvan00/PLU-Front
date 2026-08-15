@@ -53,12 +53,20 @@ export default function HomeMembershipBand({
   isLoggedInAthlete = false,
   hasActiveMembership = false,
   gateEvent = null,
+  checkoutAvailability = {},
 }) {
   const { HOME_MEMBERSHIP, HOME_MEMBERSHIP_FEATURES } = useContent()
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
-  const comboCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'combo' })
+  const membershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
+  const paidCheckoutOpen =
+    membershipCheckoutEnabled &&
+    isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' })
+  const comboCheckoutOpen =
+    membershipCheckoutEnabled &&
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'combo' })
   const liveComboOffer = hasActiveMembership
     ? null
     : (resolveLiveComboOffer(gateEvent)

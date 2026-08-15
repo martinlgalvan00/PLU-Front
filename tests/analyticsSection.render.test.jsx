@@ -22,6 +22,8 @@ const journey = vi.fn()
 const operationalSummary = vi.fn()
 const operationalAlerts = vi.fn()
 const failureReasons = vi.fn()
+const accessMetrics = vi.fn()
+const live = vi.fn()
 
 vi.mock('../src/services/analyticsReportService.js', async () => {
   const actual = await vi.importActual('../src/services/analyticsReportService.js')
@@ -36,6 +38,8 @@ vi.mock('../src/services/analyticsReportService.js', async () => {
     fetchAnalyticsOperationalSummary: (...args) => operationalSummary(...args),
     fetchAnalyticsOperationalAlerts: (...args) => operationalAlerts(...args),
     fetchAthleteJourney: (...args) => journey(...args),
+    fetchAccessMetrics: (...args) => accessMetrics(...args),
+    fetchAnalyticsLive: (...args) => live(...args),
   }
 })
 
@@ -114,6 +118,30 @@ beforeEach(() => {
   })
   operationalAlerts.mockResolvedValue([])
   failureReasons.mockResolvedValue([])
+  accessMetrics.mockResolvedValue({
+    succeeded: { events: 736, people: 303, athletes: 290, staff: 13 },
+    failed: { events: 77, people: 15, athletes: 7, staff: 15 },
+    accountsCreated: 452,
+    failureRate: 0.0947,
+    blockedPeople: 15,
+    series: [],
+    failureReasons: [{ reason: 'invalid_credentials', attempts: 77, people: 15 }],
+  })
+  live.mockResolvedValue({
+    generatedAt: '2026-08-15T13:00:00.000Z',
+    windowMinutes: 5,
+    visitors: 7,
+    sessions: 8,
+    identified: 2,
+    peakLastHour: 12,
+    peakToday: 30,
+    visitorsToday: 94,
+    series: [{ minute: '2026-08-15T12:59:00.000Z', sessions: 5 }],
+    pages: [{ path: '/pitbull', visitors: 4, sessions: 4 }],
+    devices: [],
+    countries: [],
+    referrers: [],
+  })
 })
 
 afterEach(() => {

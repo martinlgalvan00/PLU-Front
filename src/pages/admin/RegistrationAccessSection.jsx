@@ -160,6 +160,7 @@ export default function RegistrationAccessSection({
   const [deleting, setDeleting] = useState(false)
   const formRef = useRef(null)
   const triggerRef = useRef(null)
+  const shouldFocusEditorRef = useRef(false)
   const eventGates = configuration.eventGates ?? []
   const events = useMemo(
     () => adminEvents.filter((event) => event.slug && event.status !== 'archived'),
@@ -195,12 +196,13 @@ export default function RegistrationAccessSection({
     void loadToggles()
   }, [loadToggles])
 
-  // Dependemos de si el formulario está abierto, no del draft entero: el
-  // draft cambia en cada tecla y antes reenfocaba el primer campo en cada
-  // keystroke, sacando el cursor de donde el operador estaba escribiendo.
-  const formOpen = Boolean(draft)
+  // shouldFocusEditorRef, prendido solo por openEditor(), evita que el efecto
+  // reenfoque en cada tecla (el draft cambia en cada keystroke) y también
+  // vuelve a enfocar si se abre otra fila mientras el formulario ya estaba
+  // abierto.
   useEffect(() => {
-    if (!formOpen) return undefined
+    if (!draft || !shouldFocusEditorRef.current) return undefined
+    shouldFocusEditorRef.current = false
     const form = formRef.current
     if (typeof form?.scrollIntoView === 'function') {
       form.scrollIntoView({ block: 'nearest' })
@@ -210,13 +212,15 @@ export default function RegistrationAccessSection({
     )
     firstField?.focus?.()
     return undefined
-  }, [formOpen])
+  }, [draft])
 
   async function handleToggleFeature(feature, enabled) {
     setSavingFeature(feature)
     setTogglesError('')
     try {
-      setToggles(await savePlatformFeatureToggle(feature, enabled))
+      const nextToggles = await savePlatformFeatureToggle(feature, enabled)
+      setToggles(nextToggles)
+      await onToggleSaved?.()
     } catch (toggleError) {
       setTogglesError(
         mapOperationalError(toggleError, {
@@ -231,6 +235,7 @@ export default function RegistrationAccessSection({
 
   function openEditor(gate = null, scope = 'membership', trigger = null) {
     triggerRef.current = trigger
+    shouldFocusEditorRef.current = true
     setNotice('')
     setFormError('')
     const reopening = isGateReopenable(gate)
@@ -289,7 +294,12 @@ export default function RegistrationAccessSection({
       return
     }
     setSaving(true)
-    const result = await onSave?.({ ...draft, label: trimmedLabel, code: trimmedCode })
+    const result = await onSave?.({
+      ...draft,
+      eventSlug: draft.scope === 'registration' ? draft.eventSlug.trim() : undefined,
+      label: trimmedLabel,
+      code: trimmedCode || undefined,
+    })
     setSaving(false)
     if (result?.error) {
       setFormError(
