@@ -309,6 +309,7 @@ export default {
     statusNextMeet: 'Próximo meet',
     statusNextMeetValue: 'Pitbull Classic',
     statusLive: 'Inscripciones a Pitbull Classic próximamente',
+    statusRegistrationOpen: 'Ya podés inscribirte',
     stat2026: '2026',
     stat2026Label: 'Temporada en curso',
     statPluUsa: 'PLU USA',

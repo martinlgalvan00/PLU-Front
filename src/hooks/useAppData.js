@@ -167,12 +167,12 @@ import {
 // cambios que llegaron desde otra sesión: el browser sólo relee su proyección
 // autorizada, nunca intenta confirmar una afiliación o inscripción localmente.
 const LIVE_ATHLETE_SYNC_MS = 5_000
-const LIVE_STAFF_SYNC_MS = 15_000
+const LIVE_STAFF_SYNC_MS = 60_000
 // El cambio de estado hecho por un staff en otra sesión debe alcanzar la
 // landing sin requerir una recarga manual. La misma sesión se actualiza en el
-// acto desde `setAdminEventState`; este sondeo corto cubre las demás pestañas
-// y dispositivos sin exponer acceso directo del navegador a Supabase.
-const LIVE_PUBLIC_CATALOG_SYNC_MS = 5_000
+// acto desde `setAdminEventState`; este sondeo cubre las demás pestañas y
+// dispositivos sin exponer acceso directo del navegador a Supabase.
+const LIVE_PUBLIC_CATALOG_SYNC_MS = 30_000
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -334,7 +334,7 @@ export function useAppData() {
     }
   }, [])
 
-  const refreshAdminEvents = useCallback(async () => {
+  const refreshAdminEvents = useCallback(async ({ silent = false } = {}) => {
     const currentSession = sessionRef.current
     if (
       !currentSession ||
@@ -344,22 +344,27 @@ export function useAppData() {
       return null
     }
 
-    setAdminEventsLoading(true)
-    setAdminEventsError(null)
+    if (!silent) {
+      setAdminEventsLoading(true)
+      setAdminEventsError(null)
+    }
     try {
       const remoteEvents = await fetchAdminEvents()
       setAdminEvents(remoteEvents)
+      setAdminEventsError(null)
       return remoteEvents
     } catch (error) {
-      setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      if (!silent) {
+        setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      }
       console.warn('No se pudieron cargar los eventos del panel.', error)
       return null
     } finally {
-      setAdminEventsLoading(false)
+      if (!silent) setAdminEventsLoading(false)
     }
   }, [])
 
-  const refreshAthleteData = useCallback(async () => {
+  const refreshAthleteData = useCallback(async ({ silent = false } = {}) => {
     if (!session || isDemoSession(session)) return
 
     if (session.role === 'athlete_plu') {
@@ -388,8 +393,10 @@ export function useAppData() {
     ])
 
     if (canReadAthleteData) {
-      setAthleteDataLoading(true)
-      setAthleteDataError(null)
+      if (!silent) {
+        setAthleteDataLoading(true)
+        setAthleteDataError(null)
+      }
       tasks.push(
         fetchAdminAthleteData()
           .then((data) => {
@@ -397,14 +404,19 @@ export function useAppData() {
             setMemberships(data.memberships)
             setRegistrations(data.registrations)
             setPayments(data.payments)
+            setAthleteDataError(null)
           })
           .catch((error) => {
-            setAthleteDataError(
-              error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
-            )
+            if (!silent) {
+              setAthleteDataError(
+                error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
+              )
+            }
             console.error('refreshAthleteData:', error)
           })
-          .finally(() => setAthleteDataLoading(false)),
+          .finally(() => {
+            if (!silent) setAthleteDataLoading(false)
+          }),
       )
     } else {
       setAthleteDataLoading(false)
@@ -416,7 +428,7 @@ export function useAppData() {
     }
 
     if (hasPermission(session, 'admin.events.read')) {
-      tasks.push(refreshAdminEvents())
+      tasks.push(refreshAdminEvents({ silent }))
     }
 
     if (hasPermission(session, 'admin.users.read')) {
@@ -469,7 +481,7 @@ export function useAppData() {
     const refresh = () => {
       if (liveRefreshInFlightRef.current) return
       liveRefreshInFlightRef.current = true
-      void refreshAthleteData().finally(() => {
+      void refreshAthleteData({ silent: true }).finally(() => {
         liveRefreshInFlightRef.current = false
       })
     }
@@ -525,7 +537,7 @@ export function useAppData() {
         invalidateEventLiveData()
         publishAthleteSnapshotInvalidation()
       }
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
     window.addEventListener('plu:payment-updated', refreshFromServer)
     window.addEventListener('plu:email-verified', refreshFromServer)
@@ -540,7 +552,7 @@ export function useAppData() {
   // relee únicamente su propio snapshot o los datos autorizados del panel.
   useEffect(() => subscribeLiveSync((message) => {
     if (message.type === 'athlete-snapshot-invalidated') {
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
   }), [refreshAthleteData])
 
@@ -1568,7 +1580,7 @@ export function useAppData() {
     }
     const { deletedMembership } = await deleteMembershipRequest(membershipId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedMembership
   }, [refreshAthleteData, session])
@@ -1584,7 +1596,7 @@ export function useAppData() {
     }
     const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedRegistration
   }, [refreshAthleteData, session])
@@ -1920,7 +1932,7 @@ export function useAppData() {
         )
         // El estado del atleta lo recalcula la RPC (afiliado_activo/registrado),
         // así que se refleja el padrón entero en vez de adivinarlo acá.
-        void refreshAthleteData()
+        void refreshAthleteData({ silent: true })
         publishAthleteSnapshotInvalidation()
         return { membership }
       } catch (error) {
@@ -1938,7 +1950,10 @@ export function useAppData() {
    * en vez de parchear las filas tocadas, porque la RPC descarta las canceladas
    * y las de otro evento y el resultado real puede no ser el pedido.
    */
-  const handleScheduleAssigned = useCallback(() => refreshAthleteData(), [refreshAthleteData])
+  const handleScheduleAssigned = useCallback(
+    () => refreshAthleteData({ silent: true }),
+    [refreshAthleteData],
+  )
 
   const activateDemoMembership = useCallback(
     (athleteId) => {
