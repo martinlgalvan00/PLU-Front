@@ -505,8 +505,10 @@ export default function App() {
           adminNavBadges={app.adminNavBadges}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
+          onForceSettlePayment={app.handleForceSettlePayment}
           onRejectPayment={app.handleRejectPayment}
           onSetMembershipStatus={app.setMembershipStatusAction}
+          onSetRegistrationStatus={app.setRegistrationStatusAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
           onRejectTicketOrder={app.rejectTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}

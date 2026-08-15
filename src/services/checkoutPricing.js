@@ -2,6 +2,19 @@
 // importe persistido antes de iniciar Mercado Pago.
 const PRE_SALE_END = new Date('2026-08-29T03:00:00.000Z')
 
+/**
+ * La UI llama `transferencia` a lo que la API llama `manual_link`. Todo lo que
+ * viaje al backend tiene que ir traducido: el preview de un cupón calculado
+ * sobre el canal equivocado le muestra al atleta un ahorro que después no se
+ * cumple.
+ */
+export function toApiPaymentMethod(paymentMethod) {
+  if (paymentMethod === 'transferencia') return 'manual_link'
+  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull') return paymentMethod
+  if (paymentMethod === 'manual_link') return 'manual_link'
+  return null
+}
+
 export function previewCheckoutPrice({ concept, paymentMethod, fallback, now = new Date() }) {
   if (now >= PRE_SALE_END) return fallback
   const bankTransfer = paymentMethod === 'manual_link' || paymentMethod === 'transferencia'

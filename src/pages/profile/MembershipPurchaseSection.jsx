@@ -16,7 +16,7 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
-import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
+import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -267,6 +267,7 @@ export default function MembershipPurchaseSection({
         code,
         appliesTo: 'membership',
         planCode: selectedPlan.code,
+        paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
@@ -279,6 +280,16 @@ export default function MembershipPurchaseSection({
       setDiscountChecking(false)
     }
   }
+
+  // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
+  // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
+  // descuento calculado sobre el precio anterior. Se revalida contra el canal
+  // nuevo en vez de obligar al atleta a volver a tipear el código.
+  useEffect(() => {
+    if (!discountPreview) return
+    void applyDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')

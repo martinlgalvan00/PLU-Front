@@ -95,13 +95,13 @@ describe('adaptador de Mercado Pago', () => {
 
     expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
       body: expect.objectContaining({
-        notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
+        notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
         items: [expect.objectContaining({
           title: 'Afiliacion PLU',
           category_id: 'services',
         })],
         back_urls: expect.objectContaining({
-          success: 'https://powerliftingunited.ar/perfil?payment=success&order=order-1',
+          success: 'https://www.powerliftingunited.ar/perfil?payment=success&order=order-1',
         }),
       }),
       requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
@@ -130,7 +130,7 @@ describe('adaptador de Mercado Pago', () => {
     expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
       body: expect.objectContaining({
         back_urls: expect.objectContaining({
-          success: 'https://powerliftingunited.ar/perfil?payment=success&order=registration-order-1',
+          success: 'https://www.powerliftingunited.ar/perfil?payment=success&order=registration-order-1',
         }),
       }),
     }))
@@ -155,10 +155,67 @@ describe('adaptador de Mercado Pago', () => {
       idempotencyKey: 'membership-order-2',
     })
 
+    // Con `www`: el apex responde 308 hacia él y Mercado Pago no sigue
+    // redirects, así que la notificación se daba por fallida. Esta afirmación
+    // fijaba el apex, que era justamente el valor roto.
     expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
       body: expect.objectContaining({
-        notification_url: 'https://powerliftingunited.ar/api/payments/webhook/mercadopago',
+        notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
       }),
     }))
+  })
+
+  /**
+   * La defensa que importa: corregir la constante no alcanzaba porque
+   * `resolveApiUrl` lee `env.API_URL` y `env.APP_URL` antes que el valor
+   * derivado del deployment. Una variable de Vercel cargada con el apex —el
+   * dominio que uno escribe de memoria— reintroducía el bug entero, y otra vez
+   * sin síntoma visible.
+   */
+  it('promueve el apex a www aunque las variables de entorno traigan el apex', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-3',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-3',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-3',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+        API_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({ order, idempotencyKey: 'membership-order-3' })
+
+    const body = mpMocks.preferenceCreate.mock.calls.at(-1)[0].body
+    expect(body.notification_url).toBe(
+      'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+    )
+    // Las back_urls pasan por el mismo normalizador: un redirect ahí no pierde
+    // el cobro, pero manda al atleta por un salto extra al volver del checkout.
+    expect(body.back_urls.success).toContain('https://www.powerliftingunited.ar/')
+  })
+
+  it('no toca dominios que no son el apex oficial', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-4',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-4',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-4',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'sandbox',
+        APP_URL: 'https://plu-git-dev.example.vercel.app',
+      },
+    })
+
+    await adapter.createPreference({ order, idempotencyKey: 'membership-order-4' })
+
+    expect(mpMocks.preferenceCreate.mock.calls.at(-1)[0].body.notification_url).toBe(
+      'https://plu-git-dev.example.vercel.app/api/payments/webhook/mercadopago',
+    )
   })
 })

@@ -64,6 +64,7 @@ export default function AuditSection() {
   const [entries, setEntries] = useState([])
   const [facets, setFacets] = useState({
     actions: [],
+    categories: [],
     entityTypes: [],
     actorTypes: [],
     sources: [],
@@ -72,6 +73,7 @@ export default function AuditSection() {
   const [overview, setOverview] = useState(EMPTY_OVERVIEW)
   const [query, setQuery] = useState('')
   const [action, setAction] = useState('all')
+  const [category, setCategory] = useState('all')
   const [actorType, setActorType] = useState('all')
   const [entityType, setEntityType] = useState('all')
   const [source, setSource] = useState('all')
@@ -92,6 +94,7 @@ export default function AuditSection() {
   const filters = useMemo(
     () => ({
       action: action === 'all' ? undefined : action,
+      category: category === 'all' ? undefined : category,
       actorType: actorType === 'all' ? undefined : actorType,
       entityType: entityType === 'all' ? undefined : entityType,
       source: source === 'all' ? undefined : source,
@@ -99,7 +102,7 @@ export default function AuditSection() {
       search: query.trim() || undefined,
       limit: PAGE_SIZE,
     }),
-    [action, actorType, entityType, query, source, status],
+    [action, actorType, category, entityType, query, source, status],
   )
 
   const loadEntries = useCallback(async () => {
@@ -175,6 +178,7 @@ export default function AuditSection() {
   // tenga copy, en vez de desaparecer.
   const labels = useMemo(() => auditLabels(messages), [messages])
   const actionLabel = labels.action
+  const categoryLabel = labels.category
   const actorLabel = labels.actor
   const entityLabel = labels.entity
   const sourceLabel = labels.source
@@ -204,6 +208,25 @@ export default function AuditSection() {
         options: [
           ['all', t('admin.audit.filterAll')],
           ...facets.statuses.map((value) => [value, statusLabel(value)]),
+        ],
+      },
+      /*
+        Va antes que el filtro de acción y sin `advanced`: agrupa los nombres
+        que describen el mismo hecho con distinta convención
+        (`payment.webhook_failed` de la app y `payment_webhook.failed` del
+        trigger), así que es el filtro correcto para empezar a buscar. El de
+        acción exacta queda para cuando ya se sabe qué se busca.
+      */
+      {
+        id: 'category',
+        label: t('admin.audit.filterCategory'),
+        value: category,
+        onChange: setCategory,
+        variant: 'select',
+        showLabel: true,
+        options: [
+          ['all', t('admin.audit.filterAll')],
+          ...facets.categories.map((value) => [value, categoryLabel(value)]),
         ],
       },
       {
@@ -251,6 +274,8 @@ export default function AuditSection() {
       actionLabel,
       actorLabel,
       actorType,
+      category,
+      categoryLabel,
       entityLabel,
       entityType,
       facets,

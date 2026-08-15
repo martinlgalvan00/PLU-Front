@@ -48,7 +48,7 @@ import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
-import { previewCheckoutPrice } from '../services/checkoutPricing.js'
+import { previewCheckoutPrice, toApiPaymentMethod } from '../services/checkoutPricing.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
 import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
 import {
@@ -499,6 +499,7 @@ export default function RegisterPage({
         code,
         appliesTo: 'registration',
         eventSlug: event.slug,
+        paymentMethod: toApiPaymentMethod(form.paymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(t(`pages.register.discountError.${preview.reason ?? 'not_found'}`))
@@ -511,6 +512,15 @@ export default function RegisterPage({
       setDiscountChecking(false)
     }
   }
+
+  // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
+  // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
+  // descuento calculado sobre el precio anterior.
+  useEffect(() => {
+    if (!discountPreview) return
+    void applyDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.paymentMethod])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')

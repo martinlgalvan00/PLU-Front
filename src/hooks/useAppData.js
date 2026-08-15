@@ -56,11 +56,13 @@ import {
   fetchAdminAthleteData,
   fetchAthleteSession,
   fetchAthleteSnapshot,
+  forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
   logoutAthleteSession,
   loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
   rejectAthletePaymentOrder as rejectAthletePaymentOrderRequest,
+  setEventRegistrationStatus as setRegistrationStatusRequest,
   setMembershipStatus as setMembershipStatusRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
 } from '../services/athleteApi.js'
@@ -1905,6 +1907,82 @@ export function useAppData() {
     [session],
   )
 
+  // Acreditación manual de una orden que el proveedor dio por perdida. Refleja
+  // exactamente lo mismo que `handleApprovePayment` porque el backend devuelve
+  // la misma forma; la diferencia está en qué órdenes acepta, no en el efecto.
+  const handleForceSettlePayment = useCallback(
+    async (paymentId, { reason, reference } = {}) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para acreditar pagos.' }
+      }
+      try {
+        const { order, membership, registration, duplicate } =
+          await forceSettleAthletePaymentOrderRequest(paymentId, { reason, reference })
+        setPayments((c) =>
+          c.map((p) =>
+            p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,
+          ),
+        )
+
+        if (membership) {
+          setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
+          setAthletes((c) =>
+            c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)),
+          )
+        }
+
+        if (registration) {
+          setRegistrations((c) =>
+            c.map((r) =>
+              r.id === registration.id
+                ? { ...r, status: registration.status, paymentStatus: order.status }
+                : r,
+            ),
+          )
+        }
+
+        setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        publishAthleteSnapshotInvalidation()
+
+        return { order, membership, registration, duplicate }
+      } catch (error) {
+        console.error('handleForceSettlePayment:', error)
+        return { error: error?.message ?? 'No se pudo acreditar el pago.' }
+      }
+    },
+    [session],
+  )
+
+  // Corrección manual del estado de una inscripción (confirmar, observar o
+  // cancelar) sin tener que borrarla y volver a crearla.
+  const setRegistrationStatusAction = useCallback(
+    async (registrationId, status, reason) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para editar inscripciones.' }
+      }
+      try {
+        const { registration, duplicate } = await setRegistrationStatusRequest(
+          registrationId,
+          status,
+          reason,
+        )
+        if (registration) {
+          setRegistrations((current) =>
+            current.map((item) =>
+              item.id === registration.id ? { ...item, status: registration.status } : item,
+            ),
+          )
+        }
+        publishAthleteSnapshotInvalidation()
+        return { registration, duplicate }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de la inscripción.' }
+      }
+    },
+    [session],
+  )
+
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
@@ -2538,6 +2616,7 @@ export function useAppData() {
     activateDemoMembership,
     cancelDemoMembership,
     setMembershipStatusAction,
+    setRegistrationStatusAction,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
@@ -2573,6 +2652,7 @@ export function useAppData() {
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,
+    handleForceSettlePayment,
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,
