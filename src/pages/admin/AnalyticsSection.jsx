@@ -73,8 +73,10 @@ const FUNNEL_LABELS = {
   landing_view: 'admin.analytics.funnelSteps.landingView',
   membership_view: 'admin.analytics.funnelSteps.membershipView',
   membership_checkout_opened: 'admin.analytics.funnelSteps.checkoutOpened',
-  payment_submitted: 'admin.analytics.funnelSteps.paymentSubmitted',
-  payment_approved: 'admin.analytics.funnelSteps.paymentApproved',
+  // Calificados por flujo: el `payment_submitted` a secas lo emiten tambien
+  // inscripcion y entradas, y mezclarlos rompia la cadena del embudo.
+  membership_payment_submitted: 'admin.analytics.funnelSteps.paymentSubmitted',
+  membership_payment_approved: 'admin.analytics.funnelSteps.paymentApproved',
 }
 
 function funnelLabel(stepName, t) {
@@ -618,17 +620,27 @@ export default function AnalyticsSection({
               />
             </dd>
           </div>
+          {/*
+            Ocupa el lugar que tenía la tasa de rebote, que ahora es exactamente
+            su complemento (1 − engagement): mostrar las dos sería decir dos
+            veces lo mismo, y de las dos ésta es la que se puede accionar.
+          */}
           <div>
-            <dt>{t('admin.analytics.metrics.bounce')}</dt>
+            <dt>{t('admin.analytics.metrics.engaged')}</dt>
             <dd>
-              {percent(overview?.bounceRate, locale)}
+              {count(overview?.engagedSessions, locale)}
               <MetricDelta
-                current={overview?.bounceRate}
-                previous={previousOverview?.bounceRate}
+                current={overview?.engagedSessions}
+                previous={previousOverview?.engagedSessions}
                 locale={locale}
                 t={t}
               />
             </dd>
+            <p className="admin-analytics__metric-hint">
+              {t('admin.analytics.metricsEngagedHint', {
+                rate: percent(overview?.engagementRate, locale),
+              })}
+            </p>
           </div>
         </dl>
         <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
@@ -645,6 +657,25 @@ export default function AnalyticsSection({
             <dd>{count(overview?.interactions, locale)}</dd>
           </div>
         </dl>
+        <p className="admin-analytics__summary">
+          {/*
+            Sin tiempo activo el resumen no puede decir "0s de atención media":
+            el histórico anterior a la medición no lo tiene, y un cero ahí se
+            lee como un dato y no como una ausencia.
+          */}
+          {overview?.avgActiveSeconds
+            ? t('admin.analytics.summary', {
+              sessions: count(overview?.sessions, locale),
+              activeTime: duration(overview.avgActiveSeconds),
+              duration: duration(overview?.avgDurationSeconds),
+              interactions: count(overview?.interactions, locale),
+            })
+            : t('admin.analytics.summaryNoActiveTime', {
+              sessions: count(overview?.sessions, locale),
+              duration: duration(overview?.avgDurationSeconds),
+              interactions: count(overview?.interactions, locale),
+            })}
+        </p>
       </section>
 
       {operationalAlerts.length ? (

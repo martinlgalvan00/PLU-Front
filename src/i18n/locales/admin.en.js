@@ -1152,6 +1152,54 @@ export default {
     proofAttached: 'Receipt',
     proofMissing: 'Not attached',
   },
+  auditDetail: {
+    eyebrow: 'Audit event',
+    title: 'Event detail',
+    open: 'Open',
+    loading: 'Loading the event and its context…',
+    loadError: 'Could not load the event detail.',
+    closeOverlay: 'Close the detail',
+    copy: 'Copy the full event',
+    copied: 'Copied',
+    copyError: 'Could not copy to the clipboard.',
+
+    whatTitle: 'What happened',
+    factEntity: 'Entity',
+    factActor: 'Actor',
+    factSeverity: 'Severity',
+    factRequestId: 'Request ID',
+
+    failureTitle: 'What failed',
+    factCode: 'Code',
+    factHttp: 'HTTP status',
+    factErrorName: 'Error type',
+    factStage: 'Stage',
+    factEntrypoint: 'Entry point',
+    factProvider: 'Provider',
+
+    whyTitle: 'Why it failed',
+    fixTitle: 'How to resolve it',
+    retryable: 'Retryable',
+    notRetryable: 'Retrying will not help',
+    whereTitle: 'Where it failed',
+    causesTitle: 'Cause chain',
+    stackTitle: 'Full stack trace',
+
+    contextTitle: 'What was going on',
+    axisRequest: 'In the same operation',
+    axisRequestHint:
+      'Everything that happened inside the same server call. This is the real chain of causes, not a coincidence in timing.',
+    axisBefore: 'What this person did before',
+    axisBeforeHint: 'Their last actions in the previous 24 hours, oldest to newest.',
+    axisBeforeEmpty: 'No previous actions from this actor in the last 24 hours.',
+    axisAfter: 'What they did next',
+    axisEntity: 'History of this entity',
+    axisEntityHint: 'Everything that happened to this same object, regardless of who touched it.',
+    axisEmpty: 'No related events.',
+
+    rawTitle: 'Full event metadata',
+  },
+
   paymentTrace: {
     open: 'View payment trace',
     eyebrow: 'Audit',
@@ -1704,6 +1752,10 @@ export default {
     alertsTitle: 'Operational alerts',
     alertsResolve: 'Review and resolve',
     usageLoading: 'Loading journeys…',
+    summary:
+      '{{sessions}} sessions · {{activeTime}} average attention, out of {{duration}} with the tab open · {{interactions}} recorded interactions.',
+    summaryNoActiveTime:
+      '{{sessions}} sessions · {{duration}} with the tab open · {{interactions}} recorded interactions. Real attention time is measured from the day tracking shipped, so this period does not have it yet.',
     metricsAria: 'Figures for the period',
     metrics: {
       visitors: 'Unique visitors',
@@ -1713,7 +1765,9 @@ export default {
       sessions: 'Sessions',
       duration: 'Average duration',
       interactions: 'Interactions',
+      engaged: 'Engaged sessions',
     },
+    metricsEngagedHint: '{{rate}} of sessions · 10s in view, 2 pages, or a conversion',
     metricsDeltaAria: '{{value}} versus the previous period',
     metricsDeltaCaption: 'vs. previous period',
     funnelTitle: 'Membership funnel',
@@ -1721,7 +1775,7 @@ export default {
     funnelStepRate: '{{rate}} of the previous step · {{dropoff}} dropped off here',
     funnelBarAlt: '{{rate}} of everyone who entered the funnel',
     funnelSteps: {
-      landingView: 'Viewed the landing page',
+      landingView: 'Entered the site',
       membershipView: 'Viewed membership',
       checkoutOpened: 'Opened checkout',
       paymentSubmitted: 'Submitted payment',
