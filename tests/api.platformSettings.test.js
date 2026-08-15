@@ -94,6 +94,27 @@ describe('interruptores generales — /api/platform-settings', () => {
     }
   })
 
+  it('expone disponibilidad publica de checkout sin datos de admin', async () => {
+    const { target, toggles } = await setup()
+    toggles.registrationEnabled = false
+    toggles.updatedBy = 'admin-secret'
+
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/public`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        membershipEnabled: true,
+        registrationEnabled: false,
+        ticketEnabled: true,
+        membershipManualEnabled: true,
+        registrationManualEnabled: false,
+        ticketManualEnabled: true,
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
   it('expone los tres ejes por concepto', async () => {
     const { cookie, target } = await setup()
     try {

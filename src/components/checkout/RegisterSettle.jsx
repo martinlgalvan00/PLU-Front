@@ -114,6 +114,7 @@ export default function RegisterSettle({
 
 export function RegisterCheckoutBar({
   checkoutTotal,
+  disabled = false,
   flow,
   hideCta = false,
   packageLabel,
@@ -138,6 +139,7 @@ export function RegisterCheckoutBar({
         .filter(Boolean)
         .join(' ')}
       ctaLabel={hideCta ? undefined : submitting ? t('common.loading') : t('pages.register.checkoutContinue')}
+      disabled={disabled}
       hideCta={hideCta}
       packageLabel={packageLabel}
       submitting={submitting}
