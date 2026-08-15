@@ -7,7 +7,7 @@ import { getStatusMeta } from '../../lib/status.js'
  * Proof del hero — franja tipo invitación al próximo meet.
  * Fecha tipográfica + copy; superficie suave, sin glass agresivo.
  */
-export default function HeroStatusCard({ event, onSelect }) {
+export default function HeroStatusCard({ event, onSelect, statusLabelOverride }) {
   const { PITBULL_CLASSIC } = useContent()
   const { t } = useI18n()
   const isButton = typeof onSelect === 'function'
@@ -15,7 +15,8 @@ export default function HeroStatusCard({ event, onSelect }) {
   // Mismo criterio que PitbullSpotlight: el estado sale del evento real, no
   // de un texto fijo — si no, esta franja se queda anunciando "próximamente"
   // aunque la inscripción ya esté abierta.
-  const { label: statusLabel } = getStatusMeta(event?.status ?? 'proximamente', t)
+  const { label: fallbackStatusLabel } = getStatusMeta(event?.status ?? 'proximamente', t)
+  const statusLabel = statusLabelOverride || fallbackStatusLabel
 
   return (
     <Tag
