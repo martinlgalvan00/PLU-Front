@@ -47,8 +47,15 @@ const CATEGORY_DEFINITIONS = [
   },
   {
     key: 'conciliacion',
-    // Lo que recupera un cobro que no cerro solo.
-    patterns: ['payment.reconcil%', 'payment\\_reconciliation.%', 'payment.recovery\\_%'],
+    // Lo que recupera un cobro que no cerro solo. La revalidacion contra el
+    // proveedor entra aca y no en `cobro`: no mueve plata nueva, corrige un
+    // estado local que quedo desfasado del que tiene Mercado Pago.
+    patterns: [
+      'payment.reconcil%',
+      'payment\\_reconciliation.%',
+      'payment.recovery\\_%',
+      'payment.revalid%',
+    ],
   },
   {
     key: 'checkout_cliente',

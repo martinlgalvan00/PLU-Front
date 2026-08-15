@@ -5,6 +5,7 @@ import {
   LoaderCircle,
   RefreshCw,
   RotateCcw,
+  ScanSearch,
   ShieldAlert,
   ShieldCheck,
   Ticket,
@@ -23,6 +24,8 @@ import {
   recoverPaymentOperations,
   retryPaymentEvent,
   retryPaymentReconciliation,
+  revalidatePaymentOrder,
+  revalidatePaymentOrders,
 } from '../../services/paymentService.js'
 import { fetchPlatformFeatureToggles } from '../../services/platformSettingsAdminService.js'
 import AthletePaymentOrdersSection from './AthletePaymentOrdersSection.jsx'
@@ -92,6 +95,9 @@ export default function PaymentsOperationsSection({
   const [error, setError] = useState('')
   const [recovering, setRecovering] = useState(false)
   const [retryingId, setRetryingId] = useState(null)
+  const [revalidating, setRevalidating] = useState(false)
+  const [revalidation, setRevalidation] = useState(null)
+  const [fixingOrderId, setFixingOrderId] = useState(null)
   const [status, setStatus] = useState('')
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
@@ -158,6 +164,45 @@ export default function PaymentsOperationsSection({
       setError(recoverError?.message ?? t('admin.paymentOperations.recoverError'))
     } finally {
       setRecovering(false)
+    }
+  }
+
+  /**
+   * Barrido de diagnóstico: le pregunta a Mercado Pago por cada orden no
+   * aprobada de la ventana y lista las que no coinciden. No escribe nada — la
+   * corrección se decide fila por fila, con el estado del proveedor a la vista.
+   */
+  async function handleRevalidate() {
+    setRevalidating(true)
+    setError('')
+    try {
+      setRevalidation(await revalidatePaymentOrders({ sinceDays: 30, limit: 50 }))
+    } catch (revalidateError) {
+      setError(revalidateError?.message ?? t('admin.paymentOperations.revalidateError'))
+    } finally {
+      setRevalidating(false)
+    }
+  }
+
+  async function handleFixDivergence(orderId) {
+    setFixingOrderId(orderId)
+    setError('')
+    try {
+      const result = await revalidatePaymentOrder(orderId)
+      setRevalidation((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          divergences: current.divergences.map((item) =>
+            item.order?.id === orderId ? { ...item, ...result } : item,
+          ),
+        }
+      })
+      setAthleteRefreshKey((key) => key + 1)
+    } catch (fixError) {
+      setError(fixError?.message ?? t('admin.paymentOperations.revalidateError'))
+    } finally {
+      setFixingOrderId(null)
     }
   }
 
@@ -405,14 +450,29 @@ export default function PaymentsOperationsSection({
             <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
           </button>
           {canEdit ? (
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => void handleRecover()}
-              disabled={recovering}
-            >
-              <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn--outline btn--small"
+                onClick={() => void handleRevalidate()}
+                disabled={revalidating || recovering}
+              >
+                {revalidating ? (
+                  <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                ) : (
+                  <ScanSearch size={14} aria-hidden />
+                )}{' '}
+                {t('admin.paymentOperations.revalidate')}
+              </button>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => void handleRecover()}
+                disabled={recovering}
+              >
+                <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+              </button>
+            </>
           ) : null}
         </div>
       </div>
@@ -460,6 +520,123 @@ export default function PaymentsOperationsSection({
             ) : null}
           </div>
         </div>
+      ) : null}
+
+      {/* Divergencias contra Mercado Pago: qué estado figura acá y cuál dice el
+          proveedor, enfrentados. Es el bloque que responde "figura cancelado
+          pero la plata entró" sin salir del panel. */}
+      {revalidation ? (
+        <section className="admin-payment-ops" aria-labelledby="payment-revalidation-title">
+          <header className="admin-payment-ops__header admin-payment-ops__header--compact">
+            <div className="admin-payment-ops__intro">
+              <span className="admin-payment-ops__eyebrow">
+                <ScanSearch size={14} aria-hidden /> {t('admin.paymentOperations.revalidateEyebrow')}
+              </span>
+              <h2 id="payment-revalidation-title">
+                {t('admin.paymentOperations.revalidateTitle')}
+              </h2>
+              <p className="admin-payment-ops__subtitle">
+                {t('admin.paymentOperations.revalidateSummary', {
+                  checked: revalidation.summary?.checked ?? 0,
+                  days: revalidation.summary?.sinceDays ?? 30,
+                  divergent: revalidation.summary?.divergent ?? 0,
+                })}
+              </p>
+            </div>
+          </header>
+
+          {(revalidation.divergences?.length ?? 0) === 0 ? (
+            <p className="admin-payment-ops__healthy-line" role="status">
+              <ShieldCheck size={16} aria-hidden />
+              <span>{t('admin.paymentOperations.revalidateHealthy')}</span>
+            </p>
+          ) : (
+            <AdminDataTable
+              variant="admin"
+              rows={revalidation.divergences.map((item) => ({
+                id: item.order?.id,
+                reference: item.order?.reference ?? item.order?.id,
+                athlete: item.order?.athleteName ?? '—',
+                amount: item.order?.amount ?? null,
+                localStatus: item.localStatus,
+                providerStatus: item.providerStatus,
+                outcome: item.outcome,
+                corrected: item.corrected,
+                resultStatus: item.resultStatus,
+              }))}
+              emptyMessage={t('admin.paymentOperations.revalidateHealthy')}
+              columns={[
+                {
+                  key: 'reference',
+                  label: t('admin.columns.reference'),
+                  mobile: 'primary',
+                  sortable: true,
+                },
+                {
+                  key: 'athlete',
+                  label: t('admin.columns.athlete'),
+                  mobile: 'default',
+                },
+                {
+                  key: 'amount',
+                  label: t('admin.columns.amount'),
+                  mobile: 'hidden',
+                  desktop: 'numeric',
+                  align: 'end',
+                  render: (row) => (row.amount == null ? '—' : money(row.amount, locale)),
+                },
+                {
+                  key: 'localStatus',
+                  label: t('admin.paymentOperations.revalidateLocal'),
+                  mobile: 'badge',
+                  render: (row) => <StatusBadge value={row.localStatus} />,
+                },
+                {
+                  key: 'providerStatus',
+                  label: t('admin.paymentOperations.revalidateProvider'),
+                  mobile: 'badge',
+                  render: (row) =>
+                    row.providerStatus ? (
+                      <StatusBadge value={row.providerStatus} />
+                    ) : (
+                      <span className="data-table__mono data-table__mono--empty">—</span>
+                    ),
+                },
+                {
+                  key: 'outcome',
+                  label: t('admin.paymentOperations.detail'),
+                  mobile: 'default',
+                  render: (row) => t(`admin.paymentOperations.revalidateOutcome.${row.outcome}`),
+                },
+                {
+                  key: 'actions',
+                  label: t('admin.columns.action'),
+                  mobile: 'action',
+                  className: 'data-table__column--actions',
+                  render: (row) => {
+                    // Solo se corrige lo que el proveedor puede resolver solo.
+                    // Un monto distinto o una orden ilegible se miran a mano.
+                    if (!canEdit || row.corrected || row.outcome !== 'divergent') {
+                      return <AdminTableActionsEmpty />
+                    }
+                    const fixing = fixingOrderId === row.id
+                    return (
+                      <AdminTableActions>
+                        <AdminIconButton
+                          disabled={fixing}
+                          icon={fixing ? LoaderCircle : ScanSearch}
+                          label={t('admin.paymentOperations.revalidateApply')}
+                          onClick={() => void handleFixDivergence(row.id)}
+                          variant="celeste"
+                        />
+                      </AdminTableActions>
+                    )
+                  },
+                },
+              ]}
+            />
+          )}
+        </section>
       ) : null}
 
       <AthletePaymentOrdersSection

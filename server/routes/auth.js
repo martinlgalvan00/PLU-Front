@@ -38,6 +38,13 @@ import { fetchSupabaseEvent, requireSupabaseEvent } from '../services/securityEv
 import { validateBody } from '../lib/validate.js'
 import { requireAuth, requirePermission } from '../middleware/auth.js'
 import { authLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { passwordHashShedder } from '../middleware/loadShedder.js'
+import {
+  assertIdentityNotLocked,
+  clearIdentityFailures,
+  IDENTITY_SCOPES,
+  registerIdentityFailure,
+} from '../lib/defense/identityGuard.js'
 import { resolveOAuthUser, serializeOAuthUser } from '../services/oauthUserService.js'
 import {
   generateTempPassword,
@@ -347,10 +354,30 @@ export function createAuthRoutes({
     },
   )
 
-  router.post('/login', authLimiter, validateBody(loginSchema), async (req, res, next) => {
+  /**
+   * Tres capas antes de llegar al bcrypt, y el orden importa:
+   *
+   *   `authLimiter`         — cuota por IP, ahora con estado compartido entre
+   *                            instancias (ver `middleware/rateLimit.js`).
+   *   `passwordHashShedder` — techo de hasheos simultáneos por instancia. Frena
+   *                            el ataque distribuido que respeta la cuota de
+   *                            cada IP pero satura el CPU con todas juntas.
+   *   `assertIdentityNotLocked` — bloqueo por cuenta, adentro del handler porque
+   *                            necesita el email ya validado por el schema.
+   *
+   * El bloqueo por cuenta se consulta **antes** de `verifyPassword`: bcryptjs
+   * con coste 12 son ~250 ms de un solo hilo, así que dejarlo correr en un
+   * intento que ya sabemos que vamos a rechazar convierte el login en el
+   * amplificador de DoS más barato del sistema.
+   */
+  router.post('/login', authLimiter, passwordHashShedder, validateBody(loginSchema), async (req, res, next) => {
     try {
       const prisma = getPrisma()
       const { email, password, eventSlug } = req.validatedBody
+      const identity = { scope: IDENTITY_SCOPES.staffLogin, identity: email, deps: { getSupabaseAdmin }, env }
+
+      await assertIdentityNotLocked(identity)
+
       const user = await prisma.user.findUnique({
         where: { email },
         include: {
@@ -365,6 +392,10 @@ export function createAuthRoutes({
       const passwordMatches = await verifyPassword(password, user?.passwordHash)
 
       if (!user || user.status !== 'active' || !passwordMatches) {
+        // Se cuenta el fallo incluso cuando la cuenta no existe: si sólo
+        // contáramos los emails reales, la presencia o ausencia del bloqueo
+        // después de cinco intentos delataría qué casillas están dadas de alta.
+        await registerIdentityFailure(identity)
         await recordFailedLogin(req, email, 'invalid_credentials')
         next(invalidCredentials())
         return
@@ -387,10 +418,17 @@ export function createAuthRoutes({
       // El alcance por evento pertenece a la cuenta, no al nombre del rol.
       // Esto también cubre futuros roles personalizados de operación.
       if (user.eventId && user.eventSlug !== eventSlug) {
+        await registerIdentityFailure(identity)
         await recordFailedLogin(req, email, 'event_scope_mismatch')
         next(invalidCredentials())
         return
       }
+
+      // Credencial correcta: se limpia el contador de fallos. El nivel de la
+      // escalera no se resetea (ver `clear_identity_failures` en la migración):
+      // acertar una vez después de un bloqueo largo es justo lo que consigue
+      // quien dio con la contraseña, no motivo para perdonarle el historial.
+      await clearIdentityFailures(identity)
 
       const session = await createSession({ prisma, userId: user.id, req })
 

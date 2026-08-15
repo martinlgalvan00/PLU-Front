@@ -32,6 +32,10 @@ import {
   reconcileClaimedPaymentAttempt,
   recoverPaymentOperations,
 } from '../modules/payments/paymentRecoveryWorkflow.js'
+import {
+  revalidatePaymentOrder,
+  revalidatePaymentOrders,
+} from '../modules/payments/paymentRevalidationWorkflow.js'
 import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import {
@@ -135,6 +139,26 @@ const operationsQuerySchema = z.object({
 const failureReasonsQuerySchema = z.object({
   from: z.string().trim().min(1).optional(),
   to: z.string().trim().min(1).optional(),
+})
+
+const revalidationSweepSchema = z.object({
+  // Ventana corta por defecto: cada orden es una llamada a la API de Mercado
+  // Pago, y las divergencias que importan son recientes (un cobro perdido se
+  // reclama a los dias, no a los meses).
+  sinceDays: z.coerce.number().int().min(1).max(365).optional().default(30),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(25),
+  // `apply` es opt-in: el barrido informa antes de tocar nada, para que quien
+  // opera vea que se va a corregir.
+  apply: z.boolean().optional().default(false),
+  statuses: z
+    .array(z.enum(['pendiente', 'rechazado', 'cancelado', 'reembolsado', 'aprobado']))
+    .min(1)
+    .max(5)
+    .optional(),
+})
+
+const revalidateOrderSchema = z.object({
+  apply: z.boolean().optional().default(true),
 })
 
 const mockNotifySchema = z.object({
@@ -539,6 +563,49 @@ export function createPaymentRoutes(deps = {}) {
         requestId,
         organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
       }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Revalidacion de una orden contra Mercado Pago.
+   *
+   * Es la respuesta a "la orden figura cancelada pero la plata entro": relee
+   * los pagos que el proveedor tiene contra esa orden y aplica el mismo camino
+   * canonico del webhook. No acredita nada por su cuenta — si Mercado Pago no
+   * tiene un pago aprobado, el estado no se mueve. Para el caso contrario (el
+   * dinero entro por fuera del checkout, sin pago en MP) sigue estando
+   * `POST /api/athletes/admin/payment-orders/:orderId/force-settle`, que exige
+   * comprobante y motivo.
+   */
+  router.post('/orders/:orderId/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidateOrderSchema), async (req, res, next) => {
+    try {
+      const orderId = parseInput(z.string().uuid(), req.params.orderId)
+      const result = await revalidatePaymentOrder(orderId, {
+        ...services({ notifications: true }),
+        apply: req.validatedBody.apply,
+        actor: `${req.auth.user.id}:${req.auth.user.email}`,
+      })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Barrido: revalida las ordenes de Mercado Pago que todavia no estan
+   * aprobadas y devuelve las que difieren de lo que dice el proveedor. Sin
+   * `apply` no toca nada: primero se ve que hay, despues se corrige.
+   */
+  router.post('/operations/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidationSweepSchema), async (req, res, next) => {
+    try {
+      const result = await revalidatePaymentOrders({
+        ...services({ notifications: true }),
+        ...req.validatedBody,
+        actor: `${req.auth.user.id}:${req.auth.user.email}`,
+      })
+      res.json(result)
     } catch (error) {
       next(error)
     }
