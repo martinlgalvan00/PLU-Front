@@ -189,6 +189,52 @@ describe('API administrativa de eventos', () => {
     }
   })
 
+  /**
+   * El hook de cupo repregunta cada 30 s por visitante. En una difusión eso es
+   * una invocación de la función y una consulta a la base por cada persona
+   * mirando la misma pantalla, todas para el mismo número: con `s-maxage` el
+   * borde las colapsa en una sola por ventana.
+   */
+  it('deja que el borde absorba el poll público de cupo', async () => {
+    const supabase = createSupabaseDouble({
+      rpcResult: { data: { capacity: 120, registered: 48, remaining: 72, recent: [] }, error: null },
+    })
+    const target = listen(createApp({ prisma: createPrismaDouble([]), supabaseAdmin: supabase.client }))
+
+    try {
+      const response = await fetch(
+        `${target.url}/api/events/pitbull-classic-2026/registration-summary`,
+      )
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toContain('s-maxage=10')
+      // El navegador revalida siempre: al volver a la pestaña el cupo tiene que
+      // ser el del momento, no uno servido desde el disco del cliente.
+      expect(response.headers.get('cache-control')).toContain('max-age=0')
+    } finally {
+      await target.close()
+    }
+  })
+
+  /**
+   * El borde no distingue quién pregunta. Si una respuesta que depende de la
+   * sesión saliera con `public`, el CDN se la serviría al visitante siguiente:
+   * la lista completa de inscripciones del panel, a cualquiera.
+   */
+  it('nunca marca como pública una respuesta que depende de la sesión', async () => {
+    const { target, cookie } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/events`, { headers: { Cookie: cookie } })
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control') ?? '').not.toContain('public')
+      expect(response.headers.get('cache-control') ?? '').not.toContain('s-maxage')
+    } finally {
+      await target.close()
+    }
+  })
+
   it('guarda por RPC con actor y devuelve la colección canónica', async () => {
     const { target, cookie, supabase } = await setup()
 

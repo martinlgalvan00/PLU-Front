@@ -434,6 +434,7 @@ export default {
       togglesTitle: 'Habilitación general',
       togglesLead:
         'Corte total, con o sin código: apagado acá, nadie puede empezar una afiliación, inscripción, entrada o suscripción nueva.',
+      togglesSummary: '{{open}} de {{total}} habilitados',
       togglesLoading: 'Cargando interruptores…',
       togglesLoadError: 'No se pudieron leer los interruptores generales.',
       togglesSaveError: 'No se pudo actualizar el interruptor.',

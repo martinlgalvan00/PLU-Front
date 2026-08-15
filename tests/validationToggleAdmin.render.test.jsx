@@ -139,6 +139,56 @@ describe('pantalla de Acceso y habilitación', () => {
     }
   })
 
+  it('resume cuántos interruptores quedaron abiertos', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
+      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      ticketManualEnabled: false,
+      ticketValidationEnabled: false,
+    })
+
+    render(
+      <I18nProvider>
+        <RegistrationAccessSection
+          canEdit
+          configuration={{ membershipGate: null, eventGates: [] }}
+          adminEvents={[]}
+          onRefresh={() => {}}
+          onSave={async () => ({})}
+        />
+      </I18nProvider>,
+    )
+
+    // El operador tiene que poder responder "¿está todo abierto?" sin leer las
+    // diez filas.
+    expect(await screen.findByText('8 de 10 habilitados')).toBeTruthy()
+  })
+
+  it('sigue diciendo el estado de cada interruptor sin permiso de edición', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
+      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      registrationEnabled: false,
+    })
+
+    render(
+      <I18nProvider>
+        <RegistrationAccessSection
+          canEdit={false}
+          configuration={{ membershipGate: null, eventGates: [] }}
+          adminEvents={[]}
+          onRefresh={() => {}}
+          onSave={async () => ({})}
+        />
+      </I18nProvider>,
+    )
+
+    // Sin switch que lo muestre, el estado viaja como texto: nueve habilitados
+    // y el de inscripciones cerrado.
+    await waitFor(() => expect(screen.queryAllByRole('checkbox')).toHaveLength(0))
+    expect(screen.getAllByText('Habilitadas')).toHaveLength(8)
+    expect(screen.getByText('Habilitados')).toBeTruthy()
+    expect(screen.getByText('Cerradas')).toBeTruthy()
+  })
+
   it('muestra cerrado el interruptor apagado', async () => {
     vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
       ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),

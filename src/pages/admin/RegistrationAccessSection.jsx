@@ -57,6 +57,15 @@ const TOGGLE_GROUPS = [
   },
 ]
 
+/**
+ * Fila de interruptor. El estado vive en una sola columna —la derecha, junto al
+ * control que lo cambia— y a la izquierda queda un indicador de ancho fijo: así
+ * los diez nombres arrancan en la misma X y la columna se lee de un vistazo.
+ * Antes el estado se repetía como badge sobre el título, que además empujaba
+ * cada nombre a una sangría distinta.
+ */
+const ALL_FEATURES = TOGGLE_GROUPS.flatMap((group) => group.features)
+
 function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle, t }) {
   const stateLabelFor = (value) => {
     if (feature.state === 'checkout') {
@@ -68,19 +77,23 @@ function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle,
       ? t('admin.sections.accessGates.enabledPlural')
       : t('admin.sections.accessGates.closedPlural')
   }
+  const tone = enabled ? 'on' : 'off'
 
   return (
     <div
       className={`admin-registration-access__rule${
         feature.master ? ' admin-registration-access__rule--master' : ''
-      }`}
+      }${feature.master && !enabled ? ' admin-registration-access__rule--halted' : ''}`}
     >
-      <div>
-        <span
-          className={`admin-registration-access__state admin-registration-access__state--${enabled ? 'abierta' : 'cerrada'}`}
-        >
-          {stateLabelFor(enabled)}
-        </span>
+      {/* El maestro es el único que gana icono: ahí el símbolo de encendido
+          informa el rol de la fila en vez de decorar. */}
+      <span
+        className={`admin-registration-access__dot admin-registration-access__dot--${tone}`}
+        aria-hidden
+      >
+        {feature.master ? <Power size={15} /> : null}
+      </span>
+      <div className="admin-registration-access__rule-copy">
         <h3>{t(`admin.sections.accessGates.${feature.i18n}Title`)}</h3>
         <p>{t(`admin.sections.accessGates.${feature.i18n}Lead`)}</p>
       </div>
@@ -93,12 +106,15 @@ function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle,
             onChange={(event) => onToggle(feature.feature, event.target.checked)}
             aria-label={t(`admin.sections.accessGates.${feature.i18n}Aria`)}
           />
-          <span>
-            <Power size={13} aria-hidden />
-            {busy ? t('admin.sections.accessGates.saving') : stateLabelFor(enabled)}
-          </span>
+          <span>{busy ? t('admin.sections.accessGates.saving') : stateLabelFor(enabled)}</span>
         </label>
-      ) : null}
+      ) : (
+        <span
+          className={`admin-registration-access__state admin-registration-access__state--${tone}`}
+        >
+          {stateLabelFor(enabled)}
+        </span>
+      )}
     </div>
   )
 }
@@ -167,6 +183,13 @@ export default function RegistrationAccessSection({
     () => adminEvents.filter((event) => event.slug && event.status !== 'archived'),
     [adminEvents],
   )
+
+  // Lo primero que pregunta el operador es "¿está todo abierto?". Contarlo acá
+  // evita tener que leer los diez interruptores para responderlo.
+  const togglesSummary = useMemo(() => {
+    const open = ALL_FEATURES.filter((feature) => toggles[feature.key] !== false).length
+    return { open, total: ALL_FEATURES.length, allOpen: open === ALL_FEATURES.length }
+  }, [toggles])
 
   const operationalMessages = useMemo(
     () => ({
@@ -408,6 +431,20 @@ export default function RegistrationAccessSection({
             <h2 id="access-toggles-title">{t('admin.sections.accessGates.togglesTitle')}</h2>
             <p>{t('admin.sections.accessGates.togglesLead')}</p>
           </div>
+          {togglesLoading || togglesError ? null : (
+            <p className="admin-registration-access__summary" role="status">
+              <span
+                className={`admin-registration-access__dot admin-registration-access__dot--${
+                  togglesSummary.allOpen ? 'on' : 'off'
+                }`}
+                aria-hidden
+              />
+              {t('admin.sections.accessGates.togglesSummary', {
+                open: togglesSummary.open,
+                total: togglesSummary.total,
+              })}
+            </p>
+          )}
         </header>
 
         {TOGGLE_GROUPS.map((group) => (
@@ -461,12 +498,11 @@ export default function RegistrationAccessSection({
         </header>
 
         <article className="admin-registration-access__rule">
-          <div>
-            <span
-              className={`admin-registration-access__state admin-registration-access__state--${stateClass(gateStateKey(configuration.membershipGate))}`}
-            >
-              {stateLabel(gateStateKey(configuration.membershipGate))}
-            </span>
+          <span
+            className={`admin-registration-access__dot admin-registration-access__dot--${stateClass(gateStateKey(configuration.membershipGate))}`}
+            aria-hidden
+          />
+          <div className="admin-registration-access__rule-copy">
             <h3>{t('admin.sections.accessGates.membershipGateTitle')}</h3>
             <p>
               {configuration.membershipGate
@@ -476,28 +512,35 @@ export default function RegistrationAccessSection({
                 : t('admin.sections.accessGates.membershipGateEmpty')}
             </p>
           </div>
-          {canEdit ? (
-            <div className="admin-registration-access__actions">
-              <button
-                type="button"
-                className="admin-registration-access__button"
-                onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
-              >
-                {isGateReopenable(configuration.membershipGate)
-                  ? t('admin.sections.accessGates.reopen')
-                  : t('admin.sections.accessGates.configure')}
-              </button>
-              {configuration.membershipGate ? (
+          <div className="admin-registration-access__trailing">
+            <span
+              className={`admin-registration-access__state admin-registration-access__state--${stateClass(gateStateKey(configuration.membershipGate))}`}
+            >
+              {stateLabel(gateStateKey(configuration.membershipGate))}
+            </span>
+            {canEdit ? (
+              <div className="admin-registration-access__actions">
                 <button
                   type="button"
-                  className="admin-registration-access__button admin-registration-access__button--danger"
-                  onClick={() => setDeleteTarget(configuration.membershipGate)}
+                  className="admin-registration-access__button"
+                  onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
                 >
-                  <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
+                  {isGateReopenable(configuration.membershipGate)
+                    ? t('admin.sections.accessGates.reopen')
+                    : t('admin.sections.accessGates.configure')}
                 </button>
-              ) : null}
-            </div>
-          ) : null}
+                {configuration.membershipGate ? (
+                  <button
+                    type="button"
+                    className="admin-registration-access__button admin-registration-access__button--danger"
+                    onClick={() => setDeleteTarget(configuration.membershipGate)}
+                  >
+                    <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </article>
 
         <div className="admin-registration-access__subhead">
@@ -526,10 +569,11 @@ export default function RegistrationAccessSection({
               const key = gateStateKey(gate)
               return (
                 <article className="admin-registration-access__rule" role="listitem" key={gate.id}>
-                  <div>
-                    <span className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}>
-                      {stateLabel(key)}
-                    </span>
+                  <span
+                    className={`admin-registration-access__dot admin-registration-access__dot--${stateClass(key)}`}
+                    aria-hidden
+                  />
+                  <div className="admin-registration-access__rule-copy">
                     <h3>{gate.eventTitle ?? gate.eventSlug}</h3>
                     <p>
                       {gate.label}
@@ -538,26 +582,31 @@ export default function RegistrationAccessSection({
                         : ''}
                     </p>
                   </div>
-                  {canEdit ? (
-                    <div className="admin-registration-access__actions">
-                      <button
-                        type="button"
-                        className="admin-registration-access__button"
-                        onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
-                      >
-                        {isGateReopenable(gate)
-                          ? t('admin.sections.accessGates.reopen')
-                          : t('admin.sections.accessGates.edit')}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-registration-access__button admin-registration-access__button--danger"
-                        onClick={() => setDeleteTarget(gate)}
-                      >
-                        <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
-                      </button>
-                    </div>
-                  ) : null}
+                  <div className="admin-registration-access__trailing">
+                    <span className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}>
+                      {stateLabel(key)}
+                    </span>
+                    {canEdit ? (
+                      <div className="admin-registration-access__actions">
+                        <button
+                          type="button"
+                          className="admin-registration-access__button"
+                          onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
+                        >
+                          {isGateReopenable(gate)
+                            ? t('admin.sections.accessGates.reopen')
+                            : t('admin.sections.accessGates.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-registration-access__button admin-registration-access__button--danger"
+                          onClick={() => setDeleteTarget(gate)}
+                        >
+                          <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </article>
               )
             })
@@ -647,10 +696,11 @@ export default function RegistrationAccessSection({
                   autoComplete="new-password"
                   value={draft.code}
                   onChange={(event) => setDraft({ ...draft, code: event.target.value })}
-                  placeholder={t('admin.sections.accessGates.codePlaceholder')}
                   minLength={10}
                   maxLength={72}
                 />
+                {/* El requisito va solo en la ayuda: como placeholder desaparecía
+                    justo cuando se empieza a tipear, y se leía dos veces. */}
                 <small>{t('admin.sections.accessGates.codePlaceholder')}</small>
               </label>
 

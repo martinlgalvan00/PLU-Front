@@ -96,7 +96,11 @@ function planStatus(plan, now) {
   return 'active'
 }
 
-const PRICING_LIVE_SYNC_MS = 10_000
+// Lo que se mira acá son cupos de códigos de descuento que se canjean de a uno
+// desde los checkouts, no un contador que corra solo. A 10 s una pestaña de
+// panel abierta durante la jornada pedía el catálogo completo unas 2.900 veces
+// por operador; a 30 s el operador ve lo mismo y la función se invoca un tercio.
+const PRICING_LIVE_SYNC_MS = 30_000
 const COPY_FEEDBACK_MS = 2_000
 
 async function copyText(value) {
