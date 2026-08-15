@@ -132,6 +132,64 @@ describe('cabecera y cifras', () => {
     expect(pulse.textContent).toContain('40')
     expect(pulse.textContent).toContain('sesiones')
   })
+
+  it('muestra las sesiones con atención y el criterio con el que se cuentan', async () => {
+    // Un absoluto suelto no dice nada: 34 sesiones con atención sobre 55 es una
+    // lectura distinta según el corte, y el corte tiene que estar a la vista.
+    overview.mockReset()
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      engagedSessions: 34,
+      engagementRate: 0.6182,
+      avgActiveSeconds: 72,
+      avgDurationSeconds: 318,
+      interactions: 210,
+    })
+
+    renderSection()
+
+    const pulse = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__pulse')
+      expect(node.textContent).toContain('Sesiones con atención')
+      return node
+    })
+    expect(pulse.textContent).toContain('34')
+    expect(pulse.textContent).toContain('61,8%')
+    expect(pulse.textContent).toContain('10s a la vista')
+    // El contraste entre atención real y pestaña abierta es el dato: 1m 12s
+    // contra 5m 18s es exactamente lo que la duración vieja escondía.
+    expect(pulse.textContent).toContain('de atención media')
+    expect(pulse.textContent).toContain('con la pestaña abierta')
+  })
+
+  it('sin tiempo activo registrado lo dice, en vez de mostrar cero', async () => {
+    // El histórico anterior a la medición tiene `avgActiveSeconds` en 0, y un
+    // cero ahí se lee como "nadie prestó atención" y no como "todavía no se
+    // medía".
+    overview.mockReset()
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      engagedSessions: 20,
+      engagementRate: 0.3636,
+      avgActiveSeconds: 0,
+      avgDurationSeconds: 318,
+      interactions: 210,
+    })
+
+    renderSection()
+
+    const summary = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__summary')
+      expect(node).toBeTruthy()
+      return node
+    })
+    expect(summary.textContent).toContain('todavía no lo tiene')
+    expect(summary.textContent).not.toContain('de atención media')
+  })
 })
 
 describe('comparación entre períodos', () => {

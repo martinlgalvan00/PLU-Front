@@ -45,6 +45,8 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
 })
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
   const router = Router()
   const prisma = getPrisma()
@@ -70,6 +72,30 @@ export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
           ? entries[entries.length - 1].created_at
           : null,
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Detalle de un evento con su contexto alrededor.
+   *
+   * La tabla muestra el mensaje del error y nada más. Todo lo que hace falta
+   * para diagnosticar —código, status HTTP, archivo y línea de origen, stack
+   * completo, cadena de causas, diagnóstico— ya se guarda en `metadata`, pero
+   * no había forma de abrirlo. Y la pregunta que más se repite frente a una
+   * falla, "¿qué venía haciendo esta persona?", no la contestaba nadie.
+   */
+  router.get('/:id/context', ...auditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const id = String(req.params.id ?? '').trim()
+      if (!UUID_PATTERN.test(id)) throw new HttpError(400, 'Identificador de evento inválido.')
+
+      const store = repo()
+      const event = await store.getById(id)
+      if (!event) throw new HttpError(404, 'El evento de auditoría no existe.')
+
+      res.json({ event, context: await store.context(event) })
     } catch (error) {
       next(error)
     }
