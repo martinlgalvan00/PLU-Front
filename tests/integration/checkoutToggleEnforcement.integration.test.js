@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -13,19 +14,27 @@ import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.j
  * validación congelada devuelva 409 al aprobar, con la sesión y los permisos
  * reales. Los interruptores se inyectan como doble para no tocar la fila
  * compartida de la organización mientras corre la suite.
+ *
+ * `appWith` parte de los dos canales manuales abiertos y cada caso cierra lo
+ * que quiere probar: el default de producción los tiene cerrados, así que sin
+ * esa base ningún caso llegaría a crear la orden manual que necesita.
  */
 const EVENT_SLUG = 'pitbull-classic-2026'
 
-function appWith(toggles, { admin, staffUsers }) {
+function appWithRepository(platformSettingsRepository, { admin, staffUsers }) {
   return listen(
     createApp({
       supabaseAdmin: admin,
       prisma: createPrismaDouble(staffUsers),
-      platformSettingsRepository: { get: async () => toggles },
+      platformSettingsRepository,
       brevo: { configured: false, send: async () => ({ messageId: 'integration-noop' }) },
       env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
     }),
   )
+}
+
+function appWith(toggles, deps) {
+  return appWithRepository(manualChannelsOpen(toggles), deps)
 }
 
 describe('interruptores de canal manual y validación por HTTP', () => {
@@ -166,6 +175,35 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const mpBody = await mercadoPago.json()
     expect(mercadoPago.status, JSON.stringify(mpBody)).toBe(201)
     expect(mpBody.order.method).toBe('mercado_pago')
+  })
+
+  it('mantiene el canal manual cerrado mientras el panel no lo habilite', async () => {
+    // Sin `manualChannelsOpen`: la fila real no trae los canales manuales
+    // encendidos y el canal es opt-in explícito, así que el alta manual cierra
+    // aunque nadie haya apagado nada.
+    const target = open(appWithRepository({ get: async () => ({}) }, { admin, staffUsers: [] }))
+    const cookie = await athleteSessionCookie(admin, await newAthlete('manual-default'))
+    const planCode = await activeAnnualPlanCode()
+
+    const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
+      method: 'POST',
+      headers: authHeaders(cookie),
+      body: JSON.stringify({ planCode, paymentMethod: 'manual_link', idempotencyKey: randomUUID() }),
+    })
+    const body = await response.json()
+    expect(response.status, JSON.stringify(body)).toBe(409)
+    expect(body.code).toBe('MEMBERSHIP_MANUAL_DISABLED')
+
+    const requirements = await fetch(
+      `${target.url}/api/athletes/me/registration-access-requirements`,
+      { headers: authHeaders(cookie) },
+    )
+    const requirementsBody = await requirements.json()
+    expect(requirements.status, JSON.stringify(requirementsBody)).toBe(200)
+    expect(requirementsBody).toMatchObject({
+      membershipManualEnabled: false,
+      registrationManualEnabled: false,
+    })
   })
 
   it('publica el canal cerrado en los requisitos que lee el checkout', async () => {

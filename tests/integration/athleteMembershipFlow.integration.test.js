@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 const mutationHeaders = {
@@ -87,7 +88,11 @@ describe('flujo de atleta: idempotencia de orden y aislamiento entre atletas', (
   })
 
   it('create_membership_order_v2 es idempotente: la misma clave no duplica la orden', async () => {
-    const target = listen(createApp({ supabaseAdmin }))
+    // La idempotencia se prueba sobre una orden manual, así que el caso declara
+    // el canal abierto en vez de heredarlo de la fila compartida.
+    const target = listen(
+      createApp({ supabaseAdmin, platformSettingsRepository: manualChannelsOpen() }),
+    )
     try {
       const { athlete, cookie } = await registerAthlete(target.url, 1, {
         verifyEmail: true,
