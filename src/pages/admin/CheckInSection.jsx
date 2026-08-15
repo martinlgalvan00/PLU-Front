@@ -9,6 +9,7 @@ import { AdminIdentityCell, AdminTableActions } from '../../components/admin/Adm
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
+import { formatDocumentWithKind } from '../../lib/format.js'
 
 export default function CheckInSection({
   athletes,
@@ -149,7 +150,7 @@ export default function CheckInSection({
             key: 'name',
             label: t('admin.columns.attendee'),
             mobile: 'primary',
-            render: (row) => <AdminIdentityCell name={row.name} sub={row.document} subMono />,
+            render: (row) => <AdminIdentityCell name={row.name} sub={formatDocumentWithKind(row.document)} subMono />,
           },
           {
             key: 'type',

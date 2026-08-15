@@ -32,6 +32,19 @@ const MAX_BATCH = 50
 // Un click cada menos de esto sobre el mismo destino es doble disparo del
 // navegador, no dos intenciones distintas.
 const CLICK_DEDUPE_MS = 300
+/**
+ * Tiempo activo acumulado que dispara un envio aunque no haya ningun evento en
+ * la cola. Sin este latido, alguien que abre una nota y la lee sin tocar nada
+ * no reporta nada hasta cerrar la pestaña, y si el navegador descarta el beacon
+ * final su lectura entera se pierde.
+ */
+const ACTIVE_HEARTBEAT_MS = 30_000
+/**
+ * Techo por lote. El latido mantiene el acumulado bien por debajo; esto es solo
+ * la red de contencion para un reloj que salta (suspension del equipo, cambio
+ * de hora) y evita mandar horas de "atencion" que nunca ocurrieron.
+ */
+const MAX_ACTIVE_MS = 900_000
 
 const state = {
   started: false,
@@ -42,6 +55,11 @@ const state = {
   lastClickAt: 0,
   lastClickSelector: null,
   listeners: [],
+  // Momento en que arranco el tramo visible en curso; `null` con la pestaña
+  // oculta. Ver `settleActiveTime`.
+  activeSince: null,
+  // Tiempo visible acumulado y todavia no enviado.
+  pendingActiveMs: 0,
 }
 
 /**
@@ -151,6 +169,42 @@ function documentSize() {
   }
 }
 
+/**
+ * Tiempo activo — el reloj que mide atencion real y no pestañas olvidadas.
+ *
+ * La duracion de sesion que ya guardaba la base es `last_seen - started`: una
+ * pestaña abierta en segundo plano toda la tarde cuenta igual que una tarde de
+ * lectura. Eso no es una imprecision menor, es la diferencia entre creer que la
+ * gente se queda cinco minutos y saber que se queda uno.
+ *
+ * Se cuenta solo el tramo con la pestaña visible, sumando por tramos: cada vez
+ * que se oculta se congela el tramo en curso, y al volver arranca uno nuevo. Se
+ * usa `visibilityState` y no el foco de la ventana porque leer con el navegador
+ * en segundo plano —otra app encima, pantalla partida— sigue siendo leer, y el
+ * evento `blur` lo descartaria.
+ */
+function isTabVisible() {
+  return typeof document === 'undefined' || document.visibilityState !== 'hidden'
+}
+
+/** Congela el tramo visible en curso y lo suma al acumulado sin enviar. */
+function settleActiveTime() {
+  if (state.activeSince === null) return
+  const elapsed = Date.now() - state.activeSince
+  state.activeSince = null
+  // Un reloj que retrocede (cambio de hora, suspension) daria negativo.
+  if (elapsed > 0) {
+    state.pendingActiveMs = Math.min(MAX_ACTIVE_MS, state.pendingActiveMs + elapsed)
+  }
+}
+
+/** Abre un tramo nuevo, solo si la pestaña esta visible y la medicion activa. */
+function resumeActiveTime() {
+  if (state.activeSince !== null) return
+  if (!isTabVisible() || !trackingEnabled()) return
+  state.activeSince = Date.now()
+}
+
 function currentContext() {
   const params = new URLSearchParams(window.location.search)
   return {
@@ -191,19 +245,45 @@ function enqueue(event) {
  * es el dato que cierra la sesion y alimenta el rebote.
  */
 export function flush({ useBeacon = false } = {}) {
-  if (state.queue.length === 0) return
+  // El tramo visible en curso se cierra antes de armar el lote: si no, el
+  // tiempo transcurrido desde el ultimo envio viajaria recien en el siguiente,
+  // y el ultimo tramo —el que termina cuando se cierra la pestaña— no viajaria
+  // nunca.
+  settleActiveTime()
+
+  const activeMs = state.pendingActiveMs
+  // Un lote sin eventos pero con tiempo activo sigue siendo informacion: es
+  // exactamente el caso de alguien leyendo sin interactuar.
+  if (state.queue.length === 0 && activeMs <= 0) {
+    resumeActiveTime()
+    return
+  }
+
   const events = state.queue.slice(0, MAX_BATCH)
   state.queue = state.queue.slice(events.length)
+  state.pendingActiveMs = 0
+  // La pestaña puede seguir visible despues del envio: se abre el tramo
+  // siguiente en el acto para no perder el intervalo entre lotes.
+  resumeActiveTime()
 
-  const payload = JSON.stringify({ events, context: currentContext() })
+  const payload = JSON.stringify({
+    events,
+    context: { ...currentContext(), activeMs: Math.round(activeMs) },
+  })
+
+  /** Devuelve el lote a la cola: si algo se pierde, que no sea en silencio. */
+  const restore = () => {
+    state.queue = events.concat(state.queue)
+    state.pendingActiveMs = Math.min(MAX_ACTIVE_MS, state.pendingActiveMs + activeMs)
+  }
 
   try {
     if (useBeacon && typeof navigator.sendBeacon === 'function') {
       const blob = new Blob([payload], { type: 'application/json' })
       const delivered = navigator.sendBeacon(ENDPOINT, blob)
-      // Si el navegador rechaza el beacon (cola llena), se devuelven los
-      // eventos a la cola en vez de perderlos en silencio.
-      if (!delivered) state.queue = events.concat(state.queue)
+      // Si el navegador rechaza el beacon (cola llena), se devuelve el lote en
+      // vez de perderlo en silencio.
+      if (!delivered) restore()
       return
     }
 
@@ -312,8 +392,14 @@ function handleScroll() {
 function handleVisibility() {
   if (document.visibilityState === 'hidden') {
     flushScrollDepth()
+    // `flush` congela el tramo visible antes de armar el lote, asi que el
+    // tiempo hasta este mismo instante viaja con el.
     flush({ useBeacon: true })
+    return
   }
+  // Volvio al frente: arranca un tramo nuevo. El tiempo que estuvo oculta no
+  // se cuenta, que es justamente el punto.
+  resumeActiveTime()
 }
 
 function handlePageHide() {
@@ -343,9 +429,23 @@ export function startAnalytics() {
     state.listeners.push([target, type, handler, options])
   }
 
-  state.timer = window.setInterval(() => flush(), FLUSH_INTERVAL_MS)
+  resumeActiveTime()
+  state.timer = window.setInterval(tick, FLUSH_INTERVAL_MS)
 
   return stopAnalytics
+}
+
+/**
+ * Latido del tracker. Cierra y reabre el tramo visible en cada vuelta para que
+ * el acumulado avance aunque nadie toque nada, pero envia solo cuando hay algo
+ * que contar: eventos en la cola, o medio minuto de lectura acumulada. Sin esa
+ * condicion, una pestaña abierta generaria una request cada diez segundos por
+ * visitante.
+ */
+function tick() {
+  settleActiveTime()
+  resumeActiveTime()
+  if (state.queue.length > 0 || state.pendingActiveMs >= ACTIVE_HEARTBEAT_MS) flush()
 }
 
 export function stopAnalytics() {
@@ -358,6 +458,7 @@ export function stopAnalytics() {
   state.timer = null
   state.started = false
   flush({ useBeacon: true })
+  state.activeSince = null
 }
 
 /** Solo para tests: devuelve el tracker a su estado inicial. */
@@ -368,9 +469,20 @@ export function resetAnalyticsForTests() {
   state.maxScrollDepth = 0
   state.lastClickAt = 0
   state.lastClickSelector = null
+  state.activeSince = null
+  state.pendingActiveMs = 0
 }
 
 /** Solo para tests: inspecciona la cola sin descargarla. */
 export function peekQueueForTests() {
   return [...state.queue]
+}
+
+/**
+ * Solo para tests: tiempo activo acumulado sin enviar, en milisegundos. No
+ * incluye el tramo visible todavia abierto —para eso hace falta cerrarlo, y
+ * cerrarlo es justamente lo que hace `flush`.
+ */
+export function peekActiveMsForTests() {
+  return state.pendingActiveMs
 }

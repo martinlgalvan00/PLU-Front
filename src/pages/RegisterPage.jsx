@@ -27,6 +27,7 @@ import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFiel
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
@@ -50,7 +51,7 @@ import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
-import { previewCheckoutPrice } from '../services/checkoutPricing.js'
+import { previewCheckoutPrice, toApiPaymentMethod } from '../services/checkoutPricing.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
 import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
 import {
@@ -122,7 +123,10 @@ function ageAtEvent(birthDate, eventDate) {
 
 function RegisterLiveCredential({ form, t }) {
   const name = form.fullName && form.fullName.trim() ? form.fullName.trim() : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
-  const doc = form.documentId && form.documentId.trim() ? `DNI ${form.documentId.trim()}` : 'DNI —'
+  // La credencial en vivo refleja el mismo criterio del formulario: DNI para
+  // Argentina, ID o pasaporte para el resto.
+  const docLabel = form.country && form.country !== 'Argentina' ? 'ID' : 'DNI'
+  const doc = form.documentId && form.documentId.trim() ? `${docLabel} ${form.documentId.trim()}` : `${docLabel} —`
   const locationParts = [form.city, form.province, form.country]
     .map((value) => String(value ?? '').trim())
     .filter(Boolean)
@@ -194,10 +198,17 @@ function isFieldFilled(form, field) {
       return str.includes('@') && str.length >= 5
     case 'fullName':
       return str.length >= 3
-    case 'documentId':
-      // Mismo umbral que la validación real (7 u 8 dígitos): con 6 la barra de
-      // progreso daba el paso por completo y el error salía al continuar.
-      return /^\d{7,8}$/.test(str.replace(/[.\-\s]/g, ''))
+    case 'documentId': {
+      // Mismo umbral que la validación real, que depende de la nacionalidad:
+      // DNI de 7 u 8 dígitos para Argentina, ID/pasaporte de 5 a 20 caracteres
+      // para el resto. Con el umbral fijo de DNI, un extranjero con pasaporte
+      // nunca completaba el paso aunque su documento fuera válido.
+      const isArgentina = form.country === 'Argentina' || !form.country
+      const clean = str.replace(/[.\-\s]/g, '')
+      return isArgentina
+        ? /^\d{7,8}$/.test(clean)
+        : clean.length >= 5 && clean.length <= 20
+    }
     case 'birthDate':
       return /^\d{4}-\d{2}-\d{2}$/.test(str)
     case 'password':
@@ -423,6 +434,14 @@ export default function RegisterPage({
     () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
     [athlete, flow],
   )
+  const committedCompetitionRegistration = useMemo(() => {
+    if (flow !== 'competition' || !athlete || !event?.slug) return null
+    return registrations.find((registration) => (
+      registration.athleteId === athlete.id &&
+      registration.eventSlug === event.slug &&
+      !['cancelada', 'cancelled'].includes(String(registration.status ?? '').toLowerCase())
+    )) ?? null
+  }, [athlete, event?.slug, flow, registrations])
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
     const age = ageAtEvent(athlete.birthDate, event?.startsAt ?? event?.starts_at)
@@ -485,6 +504,22 @@ export default function RegisterPage({
     })
   }, [athlete, flow, onUpdateForm])
 
+  // La categoría, división y peso declarados pertenecen a la inscripción, no
+  // a las preferencias del perfil. Si ya existe una inscripción activa para
+  // este evento, se muestran exactamente esos datos y quedan sólo de lectura.
+  useEffect(() => {
+    if (!committedCompetitionRegistration) return
+    ;[
+      ['division', committedCompetitionRegistration.division],
+      ['category', committedCompetitionRegistration.category],
+      ['estimatedWeight', committedCompetitionRegistration.bodyweightKg],
+    ].forEach(([name, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        onUpdateForm({ target: { name, value: String(value) } })
+      }
+    })
+  }, [committedCompetitionRegistration, onUpdateForm])
+
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
     if (!code || !event?.slug) return
@@ -496,6 +531,7 @@ export default function RegisterPage({
         code,
         appliesTo: 'registration',
         eventSlug: event.slug,
+        paymentMethod: toApiPaymentMethod(form.paymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(t(`pages.register.discountError.${preview.reason ?? 'not_found'}`))
@@ -508,6 +544,15 @@ export default function RegisterPage({
       setDiscountChecking(false)
     }
   }
+
+  // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
+  // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
+  // descuento calculado sobre el precio anterior.
+  useEffect(() => {
+    if (!discountPreview) return
+    void applyDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.paymentMethod])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')
@@ -710,14 +755,17 @@ export default function RegisterPage({
     setAccessGateOpen(false)
   }
 
-  // El combo necesita los dos canales abiertos porque acredita afiliación e
-  // inscripción en la misma orden. Ausente = abierto: un fetch fallido no puede
-  // dejar la pantalla sin medio de pago manual.
+  // Mercado Pago es el canal inicial. Transferencia y efectivo requieren una
+  // habilitación explícita de ambos alcances para el combo.
   const manualPaymentEnabled =
     checkoutAvailability.membershipManualEnabled !== false &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
-    accessRequirements.membershipManualEnabled !== false &&
-    (flow !== 'competition' || accessRequirements.registrationManualEnabled !== false)
+    // accessRequirements todavía no resolvió (arranca undefined): con !==
+    // false acá el selector mostraría transferencia/efectivo un instante y
+    // los sacaría al terminar de cargar, el mismo flash-y-409 que
+    // `manualChannelEnabled` evita en MembershipPurchaseSection.
+    accessRequirements.membershipManualEnabled === true &&
+    (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
   const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
 
   // El canal manual se cerró mientras la pantalla estaba abierta: la selección
@@ -783,6 +831,18 @@ export default function RegisterPage({
   function changeField(event) {
     const field = event.target.name
     onUpdateForm(event)
+    if (field === 'country') {
+      // La nacionalidad define qué documento se pide. Al cambiarla, el valor
+      // ya tipeado puede quedar inválido (letras en un DNI), así que se sanea
+      // hacia el formato del país elegido y el error de formato se replantea.
+      if (form.documentId) {
+        const clean = event.target.value === 'Argentina'
+          ? form.documentId.replace(/[^\d]/g, '')
+          : form.documentId
+        onUpdateForm({ target: { name: 'documentId', value: clean } })
+      }
+      if (errors.documentId) setErrors((current) => ({ ...current, documentId: '' }))
+    }
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
     setEmailBlocked(false)
@@ -1287,15 +1347,27 @@ export default function RegisterPage({
             )}
             {cardData && (
               <>
-                <button
-                  type="button"
-                  className="card-trigger-btn"
-                  onClick={openCardModal}
-                  id="register-generate-card-btn"
-                >
-                  <ImageDown className="card-trigger-btn__icon" size={16} aria-hidden />
-                  {t('pages.register.generateCard')}
-                </button>
+                {/* Inscripción admitida: el momento merece una acción propia,
+                    no un botón más en la lista de datos de la orden. El bloque
+                    ocupa la fila completa para no entrar en el grid de dos
+                    columnas que arma el resto del estado. */}
+                <div className="register-status__celebration">
+                  <ConfirmationSeal
+                    variant="registration"
+                    eyebrow={t('pages.register.sealRegistrationEyebrow')}
+                    title={t('pages.register.competitionCardEyebrow')}
+                    detail={t('pages.register.competitionCardDesc')}
+                  />
+                  <button
+                    type="button"
+                    className="register-status__celebration-cta"
+                    onClick={openCardModal}
+                    id="register-generate-card-btn"
+                  >
+                    <ImageDown size={16} aria-hidden />
+                    {t('pages.register.competitionShareCard')}
+                  </button>
+                </div>
                 <CardPreviewModal
                   open={cardOpen}
                   onClose={() => setCardOpen(false)}
@@ -1401,6 +1473,7 @@ export default function RegisterPage({
           {membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
+                cardData={cardData}
                 memberCode={memberCode}
                 membershipExpiration={
                   cardData?.membershipExpiration ??
@@ -1453,22 +1526,26 @@ export default function RegisterPage({
               {mpSettling ? (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
-                    <button
-                      type="button"
-                      className="register-topbar__back register-settle__back"
-                      onClick={() => startPaymentMethodChange('manual_link')}
-                    >
-                      <ArrowLeft size={15} aria-hidden />
-                      {t('pages.register.changePaymentMethod')}
-                    </button>
-                    <button
-                      type="button"
-                      className="register-topbar__link register-settle__alt"
-                      disabled={submitting}
-                      onClick={() => void switchToTransfer()}
-                    >
-                      {t('pages.register.payByTransfer')}
-                    </button>
+                    {manualPaymentEnabled ? (
+                      <>
+                        <button
+                          type="button"
+                          className="register-topbar__back register-settle__back"
+                          onClick={() => startPaymentMethodChange('manual_link')}
+                        >
+                          <ArrowLeft size={15} aria-hidden />
+                          {t('pages.register.changePaymentMethod')}
+                        </button>
+                        <button
+                          type="button"
+                          className="register-topbar__link register-settle__alt"
+                          disabled={submitting}
+                          onClick={() => void switchToTransfer()}
+                        >
+                          {t('pages.register.payByTransfer')}
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                   <RegisterCheckoutBar
                     checkoutTotal={visibleOrder.amount ?? checkoutTotal}
@@ -1623,7 +1700,7 @@ export default function RegisterPage({
                       <Select
                         error={visibleErrors.country}
                         icon={Globe}
-                        label={t('pages.register.country')}
+                        label={t('pages.register.nationalityLabel')}
                         name="country"
                         value={form.country}
                         onBlur={blurField}
@@ -1631,12 +1708,23 @@ export default function RegisterPage({
                         options={formOptions.country}
                       />
                       <Field
+                        disabled={!form.country}
                         error={visibleErrors.documentId}
                         icon={Hash}
-                        inputMode="numeric"
-                        label={form.country === 'Argentina' || !form.country ? t('pages.register.documentIdLabel') : t('pages.register.documentIdPassport')}
+                        inputMode={form.country && form.country !== 'Argentina' ? 'text' : 'numeric'}
+                        label={
+                          form.country && form.country !== 'Argentina'
+                            ? t('pages.register.documentIdPassport')
+                            : t('pages.register.documentIdLabel')
+                        }
                         name="documentId"
-                        placeholder={form.country === 'Argentina' || !form.country ? t('pages.register.documentPlaceholder') : t('pages.register.documentPlaceholderPassport')}
+                        placeholder={
+                          form.country
+                            ? form.country !== 'Argentina'
+                              ? t('pages.register.documentPlaceholderPassport')
+                              : t('pages.register.documentPlaceholder')
+                            : t('pages.register.documentPlaceholderWaiting')
+                        }
                         value={form.documentId}
                         onBlur={blurField}
                         onChange={changeField}
@@ -1790,30 +1878,48 @@ export default function RegisterPage({
               </div>
             ) : flow === 'competition' ? (
               <div className="register-competition-form">
-                <section className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}>
-                  <div>
-                    <strong>{t('pages.register.competitionProfileTitle')}</strong>
-                    <p>
-                      {competitionProfileMissing.length
-                        ? t('pages.register.competitionProfileMissing')
-                      : t('pages.register.competitionProfileReady')}
-                    </p>
-                    {competitionProfileDetails.length ? (
-                      <dl className="register-profile-readiness__details">
-                        {competitionProfileDetails.map(([label, value]) => (
-                          <div key={label}>
-                            <dt>{label}</dt>
-                            <dd>{value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
+                <section
+                  aria-labelledby="competition-profile-title"
+                  className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}
+                >
+                  <div className="register-profile-readiness__header">
+                    <div>
+                      <span className="register-profile-readiness__state">
+                        <Check aria-hidden size={13} strokeWidth={2.5} />
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileStateIncomplete')
+                          : t('pages.register.competitionProfileStateReady')}
+                      </span>
+                      <h2 id="competition-profile-title">{t('pages.register.competitionProfileTitle')}</h2>
+                      <p>
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileMissing')
+                          : t('pages.register.competitionProfileReady')}
+                      </p>
+                    </div>
+                    <button
+                      className="register-profile-readiness__action"
+                      type="button"
+                      onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
+                    >
+                      <span>
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileAction')
+                          : t('pages.register.competitionProfileReview')}
+                      </span>
+                      <ArrowRight aria-hidden size={15} strokeWidth={2.25} />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => onNavigate?.('profile')}>
-                    {competitionProfileMissing.length
-                      ? t('pages.register.competitionProfileAction')
-                      : t('pages.register.competitionProfileReview')}
-                  </button>
+                  {competitionProfileDetails.length ? (
+                    <dl className="register-profile-readiness__details">
+                      {competitionProfileDetails.map(([label, value]) => (
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd title={value}>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
                 </section>
                 {/* Sin `step`: la inscripción tiene una sola sección. El "01"
                     prometía una secuencia que no existe. */}
@@ -1821,9 +1927,15 @@ export default function RegisterPage({
                   title={t('pages.register.competitionFormTitle')}
                   description={t('pages.register.competitionFormDesc')}
                 >
+                  {committedCompetitionRegistration ? (
+                    <p className="register-competition-commitment" role="status">
+                      {t('pages.register.competitionCommitmentLocked')}
+                    </p>
+                  ) : null}
                   <div className="register-competition-fields">
                     <ChoiceField
                       className="register-competition-choice register-competition-choice--division"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.division}
                       label={t('pages.register.division')}
                       name="division"
@@ -1834,6 +1946,7 @@ export default function RegisterPage({
                     />
                     <ChoiceField
                       className="register-competition-choice register-competition-choice--category"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.category}
                       label={t('pages.register.category')}
                       name="category"
@@ -1844,6 +1957,7 @@ export default function RegisterPage({
                     />
                     <Field
                       className="register-competition-weight"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.estimatedWeight}
                       inputMode="decimal"
                       label={t('pages.register.bodyWeight')}
@@ -2015,7 +2129,7 @@ export default function RegisterPage({
                 >
                   {advancing ? t('common.loading') : t('pages.register.continue')}
                   {advancing ? (
-                    <span className="register-card__submit-spinner" aria-hidden />
+                    <span className="plu-spinner" aria-hidden />
                   ) : (
                     <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                   )}
@@ -2060,7 +2174,7 @@ export default function RegisterPage({
                       >
                         {submitting ? t('common.loading') : content[2]}
                         {submitting ? (
-                          <span className="register-card__submit-spinner" aria-hidden />
+                          <span className="plu-spinner" aria-hidden />
                         ) : (
                           <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                         )}

@@ -41,7 +41,14 @@ function createAuditRepositoryDouble(rows = [auditRow()]) {
     eventsLast24h: 1,
     emailAttention: 0,
   }))
-  return { repository: { list, facets, overview }, list, facets, overview }
+  const getById = vi.fn(async (id) => rows.find((row) => row.id === id) ?? null)
+  const context = vi.fn(async () => ({
+    request: [], actorBefore: [], actorAfter: [], entity: [],
+  }))
+  return {
+    repository: { list, facets, overview, getById, context },
+    list, facets, overview, getById, context,
+  }
 }
 
 async function setup({ role = 'admin_maximal', rows } = {}) {
@@ -192,10 +199,44 @@ describe('API de auditoría (/api/audit)', () => {
       const full = await fetch(`${target.url}/api/audit`, { headers: { Cookie: cookie } })
       const fullBody = await full.json()
       expect(fullBody.nextCursor).toBe(rows.at(-1).created_at)
+      expect(fullBody.nextCursorId).toBe(rows.at(-1).id)
 
       const partial = await fetch(`${target.url}/api/audit?limit=200`, { headers: { Cookie: cookie } })
       const partialBody = await partial.json()
       expect(partialBody.nextCursor).toBeNull()
+      expect(partialBody.nextCursorId).toBeNull()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('propaga el cursor compuesto (before + beforeId) al repositorio', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      await fetch(
+        `${target.url}/api/audit?before=${encodeURIComponent('2026-08-02T12:00:00.000Z')}&beforeId=row-42`,
+        { headers: { Cookie: cookie } },
+      )
+
+      expect(audit.list).toHaveBeenCalledWith(
+        expect.objectContaining({ before: '2026-08-02T12:00:00.000Z', beforeId: 'row-42' }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un beforeId con caracteres de sintaxis PostgREST', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/audit?beforeId=row-42),or(`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(400)
+      expect(audit.list).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }
@@ -218,6 +259,91 @@ describe('API de auditoría (/api/audit)', () => {
       expect(response.ok).toBe(false)
       expect(audit.list).not.toHaveBeenCalled()
       expect(audit.repository.create).toBeUndefined()
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+/**
+ * Detalle de un evento. Lo que la tabla mostraba era el mensaje del error; el
+ * código, el status HTTP, el archivo de origen, el stack y la cadena de causas
+ * ya se guardaban en `metadata` y no se podían abrir desde ningún lado.
+ */
+describe('contexto de un evento (/api/audit/:id/context)', () => {
+  const EVENT_ID = '99999999-9999-4999-8999-999999999999'
+
+  it('devuelve el evento con su metadata completa y los cuatro ejes de contexto', async () => {
+    const { target, cookie, audit } = await setup({
+      rows: [auditRow({
+        action: 'payment.failed',
+        severity: 'danger',
+        status: 'failed',
+        metadata: {
+          requestId: 'req-1',
+          error: { message: 'falló', code: 'X', stack: 'HttpError: falló\n  at algo' },
+        },
+      })],
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/audit/${EVENT_ID}/context`, {
+        headers: { Cookie: cookie },
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      // El stack tiene que llegar entero al panel: recortarlo acá dejaría el
+      // detalle sin lo único que ubica la falla en el código.
+      expect(body.event.metadata.error.stack).toContain('at algo')
+      expect(body.context).toMatchObject({
+        request: [], actorBefore: [], actorAfter: [], entity: [],
+      })
+      expect(audit.getById).toHaveBeenCalledWith(EVENT_ID)
+      expect(audit.context).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un identificador que no es UUID sin tocar el repositorio', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/audit/no-es-uuid/context`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(400)
+      expect(audit.getById).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('responde 404 cuando el evento no existe, en vez de un detalle vacío', async () => {
+    const { target, cookie } = await setup({ rows: [] })
+
+    try {
+      const response = await fetch(`${target.url}/api/audit/${EVENT_ID}/context`, {
+        headers: { Cookie: cookie },
+      })
+      expect(response.status).toBe(404)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('exige admin.audit.read igual que el listado', async () => {
+    const { target, cookie, audit } = await setup({ role: 'seguridad_plu_arg' })
+
+    try {
+      const response = await fetch(`${target.url}/api/audit/${EVENT_ID}/context`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(403)
+      expect(audit.getById).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }

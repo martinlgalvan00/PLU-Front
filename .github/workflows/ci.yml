@@ -75,6 +75,17 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.109.1
+      - name: Reject duplicated migration versions
+        run: |
+          # El timestamp del archivo es la PK de supabase_migrations.schema_migrations.
+          # Dos archivos con el mismo prefijo hacen fallar `db reset` con 23505 y dejan
+          # la segunda migración sin aplicar, acá y en la base hosteada.
+          set -euo pipefail
+          dupes=$(ls supabase/migrations | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d)
+          if [[ -n "$dupes" ]]; then
+            echo "::error title=Versiones de migración duplicadas::$dupes. Renombrá el archivo más nuevo con un timestamp libre."
+            exit 1
+          fi
       - run: supabase start
       - run: supabase db reset
       - name: Lint Supabase schemas
@@ -108,6 +119,11 @@ jobs:
         run: npm run supabase:assert
       - run: npm run test:integration
       - run: npm run db:verify:payments
+      # Postura de seguridad contra el catalogo real: RLS activo, el navegador
+      # sin escritura, las RPC de cobro cerradas y toda funcion definer con
+      # search_path. Los tests estaticos auditan lo que dicen las migraciones;
+      # esto, lo que la base terminó teniendo puesto.
+      - run: npm run db:verify:schema
 
   integrations-live:
     if: >

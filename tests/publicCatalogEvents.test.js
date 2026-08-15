@@ -42,6 +42,25 @@ describe('catalogo publico — exclusion de stubs', () => {
     ])
   })
 
+  it('no expone eventos que el staff acaba de ocultar, aunque lleguen mezclados al cliente', () => {
+    const hidden = {
+      slug: 'regional-2026',
+      title: 'Regional Buenos Aires',
+      status: 'inscripcion_abierta',
+      published: false,
+    }
+    const live = {
+      slug: 'nacional-2026',
+      title: 'Nacional de Powerlifting',
+      status: 'inscripcion_abierta',
+      published: true,
+    }
+
+    expect(getPublicCatalogEvents([hidden, live]).map((event) => event.slug)).toEqual([
+      'nacional-2026',
+    ])
+  })
+
   it('no lista stubs aunque el caller pida includeDevelopmentStubs', () => {
     const stub = { slug: 'test-2026', title: 'PIT ELITE', status: 'inscripcion_abierta' }
     const pitbull = {

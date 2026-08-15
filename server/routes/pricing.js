@@ -54,7 +54,10 @@ export const discountCodeSchema = z.object({
     .max(32)
     .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
   description: z.string().trim().max(200).optional().default(''),
-  percentOff: z.coerce.number().int().min(1).max(100),
+  // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
+  // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
+  // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
+  percentOff: z.coerce.number().int().min(1).max(99),
   appliesTo: z.enum(['membership', 'registration', 'both']),
   maxRedemptions: z.coerce.number().int().positive().optional(),
   expiresAt: optionalDateTime,

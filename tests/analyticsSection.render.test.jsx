@@ -22,6 +22,8 @@ const journey = vi.fn()
 const operationalSummary = vi.fn()
 const operationalAlerts = vi.fn()
 const failureReasons = vi.fn()
+const accessMetrics = vi.fn()
+const live = vi.fn()
 
 vi.mock('../src/services/analyticsReportService.js', async () => {
   const actual = await vi.importActual('../src/services/analyticsReportService.js')
@@ -36,6 +38,8 @@ vi.mock('../src/services/analyticsReportService.js', async () => {
     fetchAnalyticsOperationalSummary: (...args) => operationalSummary(...args),
     fetchAnalyticsOperationalAlerts: (...args) => operationalAlerts(...args),
     fetchAthleteJourney: (...args) => journey(...args),
+    fetchAccessMetrics: (...args) => accessMetrics(...args),
+    fetchAnalyticsLive: (...args) => live(...args),
   }
 })
 
@@ -114,6 +118,30 @@ beforeEach(() => {
   })
   operationalAlerts.mockResolvedValue([])
   failureReasons.mockResolvedValue([])
+  accessMetrics.mockResolvedValue({
+    succeeded: { events: 736, people: 303, athletes: 290, staff: 13 },
+    failed: { events: 77, people: 15, athletes: 7, staff: 15 },
+    accountsCreated: 452,
+    failureRate: 0.0947,
+    blockedPeople: 15,
+    series: [],
+    failureReasons: [{ reason: 'invalid_credentials', attempts: 77, people: 15 }],
+  })
+  live.mockResolvedValue({
+    generatedAt: '2026-08-15T13:00:00.000Z',
+    windowMinutes: 5,
+    visitors: 7,
+    sessions: 8,
+    identified: 2,
+    peakLastHour: 12,
+    peakToday: 30,
+    visitorsToday: 94,
+    series: [{ minute: '2026-08-15T12:59:00.000Z', sessions: 5 }],
+    pages: [{ path: '/pitbull', visitors: 4, sessions: 4 }],
+    devices: [],
+    countries: [],
+    referrers: [],
+  })
 })
 
 afterEach(() => {
@@ -123,6 +151,14 @@ afterEach(() => {
 
 describe('cabecera y cifras', () => {
   it('muestra el período y las cifras en una sola ficha', async () => {
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      bounceRate: 0.4,
+      avgDurationSeconds: 317,
+      interactions: 5011,
+    })
     renderSection()
 
     expect(await screen.findByRole('button', { name: 'Últimos 30 días' })).toBeTruthy()
@@ -130,7 +166,73 @@ describe('cabecera y cifras', () => {
     expect(pulse).toBeTruthy()
     expect(pulse.textContent).toContain('Visitantes únicos')
     expect(pulse.textContent).toContain('40')
-    expect(pulse.textContent).toContain('sesiones')
+
+    const secondary = pulse.querySelector('.admin-analytics__metrics--secondary')
+    expect(secondary).toBeTruthy()
+    expect(secondary.textContent).toContain('Sesiones')
+    expect(secondary.textContent).toContain('55')
+    expect(secondary.textContent).toContain('Duración promedio')
+    expect(secondary.textContent).toContain('5m 17s')
+    expect(secondary.textContent).toContain('Interacciones')
+    expect(secondary.textContent).toContain('5.011')
+  })
+
+  it('muestra las sesiones con atención y el criterio con el que se cuentan', async () => {
+    // Un absoluto suelto no dice nada: 34 sesiones con atención sobre 55 es una
+    // lectura distinta según el corte, y el corte tiene que estar a la vista.
+    overview.mockReset()
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      engagedSessions: 34,
+      engagementRate: 0.6182,
+      avgActiveSeconds: 72,
+      avgDurationSeconds: 318,
+      interactions: 210,
+    })
+
+    renderSection()
+
+    const pulse = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__pulse')
+      expect(node.textContent).toContain('Sesiones con atención')
+      return node
+    })
+    expect(pulse.textContent).toContain('34')
+    expect(pulse.textContent).toContain('61,8%')
+    expect(pulse.textContent).toContain('10s a la vista')
+    // El contraste entre atención real y pestaña abierta es el dato: 1m 12s
+    // contra 5m 18s es exactamente lo que la duración vieja escondía.
+    expect(pulse.textContent).toContain('de atención media')
+    expect(pulse.textContent).toContain('con la pestaña abierta')
+  })
+
+  it('sin tiempo activo registrado lo dice, en vez de mostrar cero', async () => {
+    // El histórico anterior a la medición tiene `avgActiveSeconds` en 0, y un
+    // cero ahí se lee como "nadie prestó atención" y no como "todavía no se
+    // medía".
+    overview.mockReset()
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      engagedSessions: 20,
+      engagementRate: 0.3636,
+      avgActiveSeconds: 0,
+      avgDurationSeconds: 318,
+      interactions: 210,
+    })
+
+    renderSection()
+
+    const summary = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__summary')
+      expect(node).toBeTruthy()
+      return node
+    })
+    expect(summary.textContent).toContain('todavía no lo tiene')
+    expect(summary.textContent).not.toContain('de atención media')
   })
 })
 

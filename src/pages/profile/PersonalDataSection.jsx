@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
-import { CheckCircle2, AlertCircle, ChevronDown, Trash2, UserRound } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { Field } from '../../components/ui/FormFields.jsx'
+import { DateField, Field, Select } from '../../components/ui/FormFields.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { getFormOptions } from '../../lib/formOptions.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -15,6 +16,10 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
     city: athlete.city ?? '',
     province: athlete.province ?? '',
     gym: athlete.gym ?? '',
+    sex: athlete.sex ?? '',
+    fullName: athlete.fullName ?? '',
+    birthDate: athlete.birthDate ?? '',
+    country: athlete.country ?? '',
     emergencyContactName: athlete.emergencyContactName ?? '',
     emergencyContactPhone: athlete.emergencyContactPhone ?? '',
     instagramHandle: athlete.instagramHandle ?? '',
@@ -39,6 +44,10 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
   // Evaluar completitud del perfil mezclando lo que hay en BD + cambios locales del form
   const athleteWithForm = { ...athlete, ...form }
   const profileStatus = isProfileComplete(athleteWithForm)
+  const formOptions = getFormOptions(t)
+  const missingOfficialFields = ['fullName', 'birthDate', 'country'].filter(
+    (field) => !String(athlete[field] ?? '').trim(),
+  )
 
   async function handlePhotoChange(event) {
     const file = event.target.files?.[0]
@@ -84,6 +93,16 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
     const nextErrors = {}
     if (!EMAIL_PATTERN.test(form.email)) nextErrors.email = t('account.personalData.errorEmail')
     if (!form.phone.trim()) nextErrors.phone = t('account.personalData.errorPhone')
+    if (!['Masculino', 'Femenino'].includes(form.sex)) nextErrors.sex = t('validation.sex')
+    if (missingOfficialFields.includes('fullName') && form.fullName.trim().length < 3) {
+      nextErrors.fullName = t('account.personalData.errorFullName')
+    }
+    if (missingOfficialFields.includes('birthDate') && !form.birthDate) {
+      nextErrors.birthDate = t('account.personalData.errorBirthDate')
+    }
+    if (missingOfficialFields.includes('country') && !form.country) {
+      nextErrors.country = t('account.personalData.errorCountry')
+    }
     if (form.emergencyContactPhone.trim()) {
       const digits = form.emergencyContactPhone.replace(/\D/g, '')
       if (digits.length < 8 || digits.length > 15) {
@@ -132,32 +151,40 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
 
   return (
     <section id="account-personal-data" className="account-section account-section--gold">
-      <div className="account-section__heading">
-        <div className="account-section__icon account-section__icon--gold"><UserRound size={21} /></div>
-        <div>
-          <span>{t('account.personalData.eyebrow')}</span>
-          <h2>{t('account.personalData.title')}</h2>
+      <header className="account-section__heading account-section__heading--personal">
+        <div className="account-section__heading-copy">
+          <span className="account-section__eyebrow">{t('account.personalData.eyebrow')}</span>
+          <h2>
+            {t('account.personalData.title')}
+            {profileStatus.complete ? (
+              <span
+                className="account-profile-status account-profile-status--ok"
+                title={t('account.personalData.profileComplete')}
+              >
+                <CheckCircle2 size={16} strokeWidth={2} aria-hidden />
+                <span className="visually-hidden">{t('account.personalData.profileComplete')}</span>
+              </span>
+            ) : null}
+          </h2>
+          {!profileStatus.complete ? (
+            <p className="account-profile-status account-profile-status--pending" role="status">
+              {t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, {
+                count: profileStatus.missing.length,
+              })}
+            </p>
+          ) : null}
         </div>
-        <div
-          className={`account-profile-completeness ${profileStatus.complete ? 'is-complete' : 'is-incomplete'}`}
-          aria-label={profileStatus.complete ? t('account.personalData.profileComplete') : undefined}
-        >
-          {profileStatus.complete ? (
-            <>
-              <CheckCircle2 size={14} aria-hidden />
-              <span>{t('account.personalData.profileComplete')}</span>
-            </>
-          ) : (
-            <>
-              <AlertCircle size={14} aria-hidden />
-              <span>{t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, { count: profileStatus.missing.length })}</span>
-            </>
-          )}
-        </div>
-      </div>
+      </header>
 
       {!profileStatus.complete && (
-        <div className="account-profile-progress" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Completitud del perfil">
+        <div
+          className="account-profile-progress"
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t('account.personalData.progressLabel')}
+        >
           <div className="account-profile-progress__track">
             <div
               className="account-profile-progress__bar"
@@ -241,6 +268,44 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
       </div>
 
       <form className="account-personal-form" onSubmit={handleSubmit} noValidate>
+        {missingOfficialFields.length ? (
+          <section className="account-data-group account-data-group--official-completion account-data-group--required">
+            <div className="account-data-group__meta">
+              <p className="account-data-group__label">{t('account.personalData.officialCompletionTitle')}</p>
+              <p className="account-data-group__note">{t('account.personalData.officialCompletionNote')}</p>
+            </div>
+            <div className="form-grid form-grid--account account-data-group__content">
+              {missingOfficialFields.includes('fullName') ? (
+                <Field
+                  error={errors.fullName}
+                  label={`${t('account.personalData.fullName')} *`}
+                  name="fullName"
+                  value={form.fullName}
+                  onChange={changeField}
+                />
+              ) : null}
+              {missingOfficialFields.includes('birthDate') ? (
+                <DateField
+                  error={errors.birthDate}
+                  label={`${t('account.personalData.birthDate')} *`}
+                  name="birthDate"
+                  value={form.birthDate}
+                  onChange={changeField}
+                />
+              ) : null}
+              {missingOfficialFields.includes('country') ? (
+                <Select
+                  error={errors.country}
+                  label={`${t('pages.register.country')} *`}
+                  name="country"
+                  options={formOptions.country}
+                  value={form.country}
+                  onChange={changeField}
+                />
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         <section
           className={`account-data-group account-data-group--disclosure account-data-group--required${openGroups.contact ? ' is-open' : ''}`}
         >
@@ -331,6 +396,18 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
               label={`${t('account.personalData.gym')} *`}
               name="gym"
               value={form.gym}
+              onChange={changeField}
+            />
+            <Select
+              error={errors.sex}
+              label={`${t('pages.register.sexCompetitive')} *`}
+              name="sex"
+              options={[
+                ['', t('formOptions.selectPlaceholder')],
+                ['Masculino', t('formOptions.sex.male')],
+                ['Femenino', t('formOptions.sex.female')],
+              ]}
+              value={form.sex}
               onChange={changeField}
             />
             <Field

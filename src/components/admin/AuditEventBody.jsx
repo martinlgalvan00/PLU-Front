@@ -46,11 +46,11 @@ export default function AuditEventBody({ row, labels }) {
     <div className="audit-event">
       {lead ? (
         <p
-          className={
-            leadKind === 'error' || leadKind === 'reason'
-              ? 'audit-event__lead audit-event__lead--alert'
-              : 'audit-event__lead'
-          }
+          className={[
+            'audit-event__lead',
+            leadKind === 'error' || leadKind === 'reason' ? 'audit-event__lead--alert' : '',
+            row.tone === 'warning' ? 'audit-event__lead--warning' : '',
+          ].filter(Boolean).join(' ')}
         >
           {lead}
         </p>

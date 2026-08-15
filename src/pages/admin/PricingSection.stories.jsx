@@ -51,6 +51,31 @@ const configuration = {
       comboOffer: null,
     },
   ],
+  discountCodes: [
+    {
+      id: '44444444-4444-4444-8444-444444444444',
+      code: 'PRIMEROS-25',
+      description: 'Lanzamiento de afiliaciones y torneo.',
+      percentOff: 25,
+      appliesTo: 'both',
+      maxRedemptions: 25,
+      redeemedCount: 8,
+      expiresAt: '2026-11-15T23:59:00.000Z',
+      active: true,
+      createdAt: '2026-08-14T00:00:00.000Z',
+    },
+    {
+      id: '55555555-5555-4555-8555-555555555555',
+      code: 'EQUIPO-10',
+      description: 'Cupo completo.',
+      percentOff: 10,
+      appliesTo: 'membership',
+      maxRedemptions: 10,
+      redeemedCount: 10,
+      active: false,
+      createdAt: '2026-08-13T00:00:00.000Z',
+    },
+  ],
 }
 
 export default {
@@ -65,6 +90,8 @@ export default {
     onRefresh: () => {},
     onSaveComboOffer: async () => ({}),
     onSetPlanActive: async () => ({}),
+    onUpsertDiscountCode: async () => ({}),
+    onSetDiscountCodeActive: async () => ({}),
   },
 }
 

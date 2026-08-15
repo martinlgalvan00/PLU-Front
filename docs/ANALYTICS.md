@@ -23,6 +23,16 @@ sostiene los cobros.
 
 - `analytics_sessions` — una fila por sesión (30 min de inactividad la cierra). Entrada, salida,
   referrer, campaña, dispositivo, duración y rebote.
+  - `active_seconds` — tiempo con la **pestaña visible**, acumulado por tramos desde el tracker.
+    `duration_seconds` es reloj de pared y cuenta también la pestaña en segundo plano: sobre
+    tráfico real daban 5m17s de permanencia media, que no era permanencia sino pestañas abiertas.
+  - `is_engaged` / `is_quality` — columnas **generadas**, no mantenidas por la aplicación.
+    `is_engaged` es el corte de GA4 (10s de atención, o 2 páginas, o una conversión);
+    `is_quality` es el mismo sin el término temporal, y es el único comparable contra lo
+    registrado antes de que existiera `active_seconds`.
+  - El rebote se deriva de `is_engaged`. La condición vieja (`page_count <= 1 and
+    event_count <= 1`) daba 8% porque el tracker emite scroll y clicks por su cuenta; casi
+    ninguna sesión calificaba.
 - `analytics_events` — el detalle: `pageview`, `click`, `scroll`, `conversion`, eventos de
   formulario y de negocio.
 - `analytics_daily_rollups` — agregados diarios por ruta. **Perpetuos** y ya anónimos: son
@@ -108,14 +118,23 @@ instrumentarlo, ese test falla.
 | `pageview` | `AnalyticsTracker` en cada cambio de vista |
 | `click` | Listener global del tracker (con coordenadas y tamaño del documento) |
 | `scroll` | Listener global; se descarga al salir de la vista |
-| `landing_view` | `AnalyticsTracker` cuando la vista es `home` |
+| `landing_view` | `AnalyticsTracker` en la **primera vista de cualquier página**, una vez por montaje |
 | `membership_view` | `AnalyticsTracker` cuando la vista es `members` |
 | `membership_checkout_opened` | `MercadoPagoEmbeddedCheckout` con orden de tipo `membership` |
 | `registration_checkout_opened` | Idem con orden de tipo `competition` (fuera del embudo canónico) |
 | `tickets_checkout_opened` | Idem con orden de tipo `tickets` (fuera del embudo canónico) |
-| `payment_submitted` | `MercadoPagoEmbeddedCheckout` al enviar el pago |
-| `payment_approved` | Idem cuando el estado vuelve aprobado |
+| `payment_submitted` | `MercadoPagoEmbeddedCheckout` al enviar el pago (los tres flujos) |
+| `membership_payment_submitted` | Idem, calificado por flujo — es el que usa el embudo |
+| `registration_payment_submitted` / `tickets_payment_submitted` | Idem para los otros dos flujos |
+| `payment_approved` | Idem cuando el estado vuelve aprobado (único `type: 'conversion'`) |
+| `membership_payment_approved` | Idem, calificado por flujo — es el que usa el embudo |
 | `payment_rejected` | Idem cuando vuelve rechazado |
+
+`landing_view` **no depende de la portada**. Atado a `view === 'home'`, toda sesión que entrara
+directo a una landing profunda nunca lo emitía, y como el embudo exige arrancar por el paso 1,
+esas sesiones quedaban descartadas del embudo completo. Sobre el tráfico real eran el **39%**:
+95 sesiones entrando por `/pitbull` y 51 por `/afiliacion`, en su mayoría desde Instagram, que
+linkea a la página de cada cosa y no a `/`.
 
 ## Embudo de afiliación
 
@@ -123,13 +142,24 @@ Pasos canónicos, definidos en `server/routes/analytics.js` para que el panel no
 nombres que el tracker nunca emite:
 
 ```text
-landing_view → membership_view → membership_checkout_opened → payment_submitted → payment_approved
+landing_view → membership_view → membership_checkout_opened
+             → membership_payment_submitted → membership_payment_approved
 ```
 
 El conteo es **monotónico**: un visitante cuenta en el paso *k* solo si hizo los *k-1* anteriores
 y en ese orden, comparando la primera vez de cada paso. Sin eso, quien entraba directo a
 `/afiliarse` sumaba al paso 2 sin haber pasado por el 1, el embudo crecía y las tasas pasaban el
 100% — un informe peor que no tener informe.
+
+La cadena se evalúa **dentro de cada sesión** y después se cuentan visitantes distintos. Con
+`min(occurred_at)` por visitante sobre la ventana entera, dos intentos de compra se pisaban:
+quien paga, vuelve y reabre el checkout termina con su primer `checkout_opened` posterior a su
+primer `payment_submitted`, la condición de orden falla y desaparece del embudo desde ahí.
+
+Los dos últimos pasos van **calificados por flujo**. `payment_submitted` a secas lo emiten por
+igual afiliación, inscripción y entradas: un pago de inscripción entraba al embudo de afiliación
+sin haber pasado por `membership_checkout_opened`, cortaba la cadena y el paso se reportaba en
+cero. El panel mostraba 0 pagos habiendo dos registrados.
 
 Para instrumentar un paso nuevo:
 
@@ -155,6 +185,8 @@ exige).
 | GET | `/api/analytics/heatmap?path=…&deviceType=…` | `admin.analytics.read` |
 | GET | `/api/analytics/funnel` | `admin.analytics.read` |
 | GET | `/api/analytics/elements` | `admin.analytics.read` |
+| GET | `/api/analytics/live?windowMinutes=…` | `admin.analytics.read` (limiter propio) |
+| GET | `/api/analytics/access` | `admin.analytics.read` |
 | GET | `/api/analytics/athletes/:id/journey` | `admin.analytics.identity` |
 
 Los permisos viven en el catálogo de `src/lib/permissions.js` pero **la autorización los lee de
@@ -168,6 +200,44 @@ endpoints de negocio: un 429 de analítica no puede dejar a nadie sin poder afil
 
 Todas las lecturas devuelven datos **agregados en Postgres**. El navegador no recibe eventos
 individuales, que tienen identidad vinculada.
+
+## Presencia en vivo
+
+`GET /api/analytics/live` responde la pregunta que el informe histórico no contesta: **cuánta
+gente hay en el sitio ahora**. Se deriva de `analytics_sessions.last_seen_at`, que el tracker
+actualiza en cada latido; no hay tabla ni proceso nuevo.
+
+- **Ventana**: 5 minutos por omisión, tope duro de 60 (validado en el endpoint *y* en la RPC). El
+  tracker late cada 30s, así que 5 minutos tolera diez latidos perdidos antes de dar por ida a
+  una persona que sigue leyendo. Es la misma ventana que usa GA en su vista de tiempo real.
+- **`visitors` cuenta personas** (`visitor_id` distintos), no sesiones: alguien con dos pestañas
+  es una persona.
+- **`series` es concurrencia real**, no actividad por minuto: una sesión cuenta en el minuto que
+  su intervalo `[started_at, last_seen_at]` cubre, aunque no haya emitido ningún evento ahí.
+  Contar eventos daría una curva dentada que subestima a quien está leyendo sin tocar nada.
+- **`pages` usa `exit_path`**, que la ingesta mantiene apuntando al último pageview: es *dónde
+  está parada* la persona, no por dónde pasó.
+- El pico del día se calcula en baldes de 5 minutos y la serie por minuto: por minuto sobre 24
+  horas serían 1440 puntos cruzados contra todas las sesiones del día, un costo que no se
+  justifica para un solo número.
+
+En el panel es la franja superior de Analítica (`LivePresenceBar`), con auto-refresco de 15s que
+**se detiene con la pestaña oculta** y no borra la última lectura buena si el refresco falla: una
+barra vacía durante un evento se lee como "no hay nadie", que es la conclusión opuesta.
+
+## Accesos
+
+`GET /api/analytics/access` sale de `operational_event_logs` (bitácora de identidad), no del
+tracker: un acceso es un hecho auditado, no una visita inferida.
+
+La distinción que sostiene todo el endpoint es **personas vs. intentos**. Sobre datos reales del
+sitio, 736 asientos de login exitoso son 303 personas entrando muchas veces; reportar el conteo
+de eventos como si fueran personas es el error más fácil de cometer con este dato, así que las
+dos cifras viajan siempre juntas y con nombre distinto (`events` / `people`).
+
+Atletas y staff se cuentan por separado porque son poblaciones de tamaño y significado distinto.
+`failureRate` se mide sobre intentos (cuánto cuesta entrar) y `blockedPeople` sobre personas: son
+las que fallaron en **todos** sus intentos del período, es decir, las que siguen sin poder entrar.
 
 ## Mapa de calor
 

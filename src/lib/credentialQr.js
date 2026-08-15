@@ -6,6 +6,8 @@
  * cualquier hosting está sin depender de reglas de rewrite/SPA fallback del server.
  */
 
+import { BRAND } from './brand.js'
+
 /**
  * Arma la URL pública de verificación de una credencial.
  * @param {{ code: string, eventSlug?: string, type?: 'ticket' }} params
@@ -39,10 +41,94 @@ export function buildAthleteCredentialUrl(code) {
   return buildCredentialUrl({ code })
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el QR generado.'))
+    reader.readAsDataURL(blob)
+  })
+}
+
 /**
- * Genera el PNG (data URL) del QR para una credencial.
+ * QR plano (módulos cuadrados, sin isotipo). Es el fallback: se usa cuando el
+ * tratamiento de marca no puede resolverse en el dispositivo — sin canvas,
+ * sin el asset del emblema, o el navegador rechaza `toBlob`. Un QR feo que
+ * escanea siempre gana contra uno lindo que a veces no existe.
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+function renderPlainQr(url) {
+  // qrcode pesa ~60 KB y solo se necesita al generar (credencial/share):
+  // dynamic import para que readCredentialParams/parseCredentialScan no lo
+  // arrastren al chunk inicial vía App.jsx o el scanner.
+  return import('qrcode').then((module) => {
+    const QRCode = module.default ?? module
+    return QRCode.toDataURL(url, {
+      width: 320,
+      margin: 1,
+      color: {
+        dark: '#0d0e11',
+        light: '#ffffff',
+      },
+    })
+  })
+}
+
+/**
+ * QR con tratamiento de marca PLU: puntos redondeados, esquinas
+ * "extra-rounded" y el isotipo de PLU Argentina al centro.
+ *
+ * Nivel de corrección de errores 'H' (máximo) porque el isotipo tapa el
+ * centro del código: sin eso el logo degrada el escaneo. `hideBackgroundDots`
+ * limpia los módulos que quedarían debajo del emblema, así el lector no
+ * intenta interpretar píxeles del logo como datos.
+ *
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+function renderBrandedQr(url) {
+  return import('qr-code-styling').then(async (module) => {
+    const QRCodeStyling = module.default ?? module
+    const qr = new QRCodeStyling({
+      width: 320,
+      height: 320,
+      type: 'canvas',
+      data: url,
+      margin: 8,
+      qrOptions: { errorCorrectionLevel: 'H' },
+      image: BRAND.logoArgentinaUrl,
+      imageOptions: {
+        crossOrigin: 'anonymous',
+        hideBackgroundDots: true,
+        imageSize: 0.22,
+        margin: 4,
+      },
+      dotsOptions: { type: 'rounded', color: '#0d0e11' },
+      cornersSquareOptions: { type: 'extra-rounded', color: '#0d0e11' },
+      cornersDotOptions: { type: 'dot', color: '#0d0e11' },
+      backgroundOptions: { color: '#ffffff' },
+    })
+    const blob = await qr.getRawData('png')
+    if (!blob) throw new Error('No se pudo generar el QR estilizado.')
+    return blobToDataUrl(blob)
+  })
+}
+
+/**
+ * Genera el PNG (data URL) del QR para una credencial, con el tratamiento de
+ * marca PLU en todas las superficies: credencial del atleta, entradas,
+ * cards para compartir, panel admin y seguridad.
+ *
+ * Antes convivían dos generadores —uno plano para casi todo y uno de marca
+ * solo para el panel—: la misma persona veía dos QR distintos según por dónde
+ * entrara. Ahora hay uno solo, y el plano quedó como red de contención
+ * (`renderPlainQr`) para que un fallo del tratamiento nunca deje a alguien sin
+ * código en la puerta del meet.
+ *
  * Cachea por URL para no re-encodear cuando preview + capture montan
  * dos EventShareCard en el mismo flujo de share (pico CPU en mobile).
+ *
  * @param {string} url
  * @returns {Promise<string>}
  */
@@ -52,21 +138,8 @@ export function generateCredentialQr(url) {
   const cached = qrDataUrlCache.get(url)
   if (cached) return cached
 
-  // qrcode pesa ~60 KB y solo se necesita al generar (credencial/share):
-  // dynamic import para que readCredentialParams/parseCredentialScan no lo
-  // arrastren al chunk inicial vía App.jsx o el scanner.
-  const pending = import('qrcode')
-    .then((module) => {
-      const QRCode = module.default ?? module
-      return QRCode.toDataURL(url, {
-        width: 320,
-        margin: 1,
-        color: {
-          dark: '#0d0e11',
-          light: '#ffffff',
-        },
-      })
-    })
+  const pending = renderBrandedQr(url)
+    .catch(() => renderPlainQr(url))
     .catch((error) => {
       qrDataUrlCache.delete(url)
       throw error
@@ -74,6 +147,18 @@ export function generateCredentialQr(url) {
 
   qrDataUrlCache.set(url, pending)
   return pending
+}
+
+/**
+ * Alias histórico del QR de marca. Se conserva porque el panel admin y sus
+ * tests lo importan por nombre; ya no hay diferencia de tratamiento contra
+ * `generateCredentialQr`.
+ *
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+export function generateStyledAthleteCredentialQr(url) {
+  return generateCredentialQr(url)
 }
 
 /**

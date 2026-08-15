@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,10 +13,12 @@ import {
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
+import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
-import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
+import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
+import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -26,6 +28,8 @@ import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDes
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
+import Reveal from '../../components/ui/Reveal.jsx'
+import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
@@ -39,6 +43,8 @@ export default function MembershipPurchaseSection({
   onStartMembershipPayment,
   demoMode = false,
   gateEvent = null,
+  events = [],
+  onSelectEvent,
   checkoutAvailability = {},
 }) {
   const { locale, t } = useI18n()
@@ -68,10 +74,13 @@ export default function MembershipPurchaseSection({
   const [discountPreview, setDiscountPreview] = useState(null)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
+  const [discountOpen, setDiscountOpen] = useState(false)
+  const discountInputRef = useRef(null)
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
-  // Canal manual cerrado desde el panel: transferencia y efectivo salen del
-  // selector en vez de aparecer y fallar con 409 al enviar.
-  const [manualChannelEnabled, setManualChannelEnabled] = useState(true)
+  // Mercado Pago es el único canal inicial. Transferencia y efectivo requieren
+  // una habilitación explícita desde Administración: arrancar en `false` evita
+  // que el selector muestre esos medios un instante y falle con 409 al enviar.
+  const [manualChannelEnabled, setManualChannelEnabled] = useState(false)
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
   const [accessUnlocked, setAccessUnlocked] = useState(false)
   const [accessGateOpen, setAccessGateOpen] = useState(false)
@@ -99,6 +108,17 @@ export default function MembershipPurchaseSection({
   const effectiveManualChannelEnabled = manualChannelEnabled && publicManualChannelEnabled
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
+  // El combo se ofrece antes de vender la afiliación sola: el próximo evento
+  // con oferta vigente es el candidato natural, no cualquiera del calendario.
+  const comboEvent = useMemo(() => {
+    if (!membershipCanPurchase) return null
+    const eligible = events
+      .filter((event) => getEventComboAvailability(event, { hasActiveMembership: false }).enabled)
+      .sort((a, b) => new Date(a.dateISO ?? a.date ?? 0) - new Date(b.dateISO ?? b.date ?? 0))
+    return eligible[0] ?? null
+  }, [events, membershipCanPurchase])
+  const comboOffer = comboEvent?.comboOffer ?? null
+  const comboPricing = comboEvent ? resolveEventPricing(comboEvent) : null
   const cardData = membershipActive
     ? {
         athleteName: athlete.fullName,
@@ -225,7 +245,10 @@ export default function MembershipPurchaseSection({
         setManualChannelEnabled(requirements.membershipManualEnabled)
       })
       .catch(() => {
-        if (active) setMembershipAccessRequired(false)
+        if (active) {
+          setMembershipAccessRequired(false)
+          setManualChannelEnabled(false)
+        }
       })
     return () => { active = false }
   }, [checkoutAvailability.membershipEnabled, checkoutAvailability.membershipManualEnabled])
@@ -246,9 +269,14 @@ export default function MembershipPurchaseSection({
 
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
-    // Plan recurrente o canal manual cerrado: en los dos casos el único medio
-    // posible es Mercado Pago, así que la selección vuelve ahí sola.
-    if (selectedPlan?.collectionMode === 'recurring' || !effectiveManualChannelEnabled) {
+    // Plan recurrente, canal manual cerrado o medios manuales en
+    // "próximamente": el único medio operable es Mercado Pago.
+    if (
+      selectedPlan?.collectionMode === 'recurring' ||
+      !manualChannelEnabled ||
+      paymentMethod === 'transferencia' ||
+      paymentMethod === 'cash_pitbull'
+    ) {
       setPaymentMethod('mercado_pago')
     }
   }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
@@ -264,6 +292,7 @@ export default function MembershipPurchaseSection({
         code,
         appliesTo: 'membership',
         planCode: selectedPlan.code,
+        paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
@@ -277,11 +306,33 @@ export default function MembershipPurchaseSection({
     }
   }
 
+  // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
+  // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
+  // descuento calculado sobre el precio anterior. Se revalida contra el canal
+  // nuevo en vez de obligar al atleta a volver a tipear el código.
+  useEffect(() => {
+    if (!discountPreview) return
+    void applyDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod])
+
   function clearDiscountCode() {
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
+    setDiscountOpen(false)
   }
+
+  function openDiscountField() {
+    if (checkoutLocked) return
+    setDiscountOpen(true)
+    setDiscountError('')
+  }
+
+  useEffect(() => {
+    if (!discountOpen || discountPreview) return
+    discountInputRef.current?.focus()
+  }, [discountOpen, discountPreview])
 
   async function startMembershipPayment(methodOverride) {
     const method = methodOverride ?? paymentMethod
@@ -554,6 +605,22 @@ export default function MembershipPurchaseSection({
         />
       ) : null}
 
+      {showPurchaseCheckout && comboEvent && comboOffer ? (
+        <Reveal className="account-membership__combo" variant="up">
+          <p className="account-membership__combo-kicker">
+            {t('account.membership.comboKicker', { event: comboEvent.title })}
+          </p>
+          <SeasonComboOffer
+            variant="band"
+            membershipPrice={comboPricing?.membership}
+            registrationPrice={comboPricing?.registration}
+            comboPrice={comboOffer.price}
+            endsAt={comboOffer.endsAt}
+            onCta={() => onSelectEvent?.(comboEvent)}
+          />
+        </Reveal>
+      ) : null}
+
       {showPurchaseCheckout && (
         <div className="account-membership__decision account-membership__decision--solo">
           <ul className="account-benefits account-benefits--inline" aria-label={t('account.membership.includes')}>
@@ -572,14 +639,6 @@ export default function MembershipPurchaseSection({
                 >
                   <ArrowLeft size={15} aria-hidden />
                   {t('account.membership.changePaymentMethod')}
-                </button>
-                <button
-                  type="button"
-                  className="account-membership__settle-alt"
-                  disabled={submitting}
-                  onClick={() => void startMembershipPayment('transferencia')}
-                >
-                  {t('account.membership.payByTransfer')}
                 </button>
               </div>
               <MercadoPagoEmbeddedCheckout order={embeddedOrder} presentation="settle" />
@@ -643,13 +702,14 @@ export default function MembershipPurchaseSection({
                         {t('account.membership.discountRemove')}
                       </button>
                     </p>
-                  ) : (
+                  ) : discountOpen ? (
                     <div className="account-discount__field">
                       <label htmlFor="membership-discount-code">
                         {t('account.membership.discountLabel')}
                       </label>
                       <div className="account-discount__row">
                         <input
+                          ref={discountInputRef}
                           id="membership-discount-code"
                           type="text"
                           autoComplete="off"
@@ -658,6 +718,17 @@ export default function MembershipPurchaseSection({
                           value={discountCodeInput}
                           disabled={checkoutLocked || discountChecking}
                           onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault()
+                              void applyDiscountCode()
+                              return
+                            }
+                            if (event.key === 'Escape') {
+                              event.preventDefault()
+                              clearDiscountCode()
+                            }
+                          }}
                         />
                         <button
                           type="button"
@@ -671,6 +742,16 @@ export default function MembershipPurchaseSection({
                         <p className="account-discount__error" role="alert">{discountError}</p>
                       ) : null}
                     </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="account-discount__toggle"
+                      disabled={checkoutLocked}
+                      onClick={openDiscountField}
+                    >
+                      <Tag size={16} aria-hidden />
+                      {t('account.membership.discountToggle')}
+                    </button>
                   )}
                 </div>
               ) : null}
@@ -703,6 +784,7 @@ export default function MembershipPurchaseSection({
                 bar={
                   selectedPlan ? (
                     <CheckoutBar
+                      className="account-membership__bar"
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
@@ -719,13 +801,13 @@ export default function MembershipPurchaseSection({
                     ? [
                         {
                           value: 'transferencia',
-                          label: t('account.membership.transfer'),
-                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                          label: t('account.membership.transferComingSoon'),
+                          disabled: true,
                         },
                         {
                           value: 'cash_pitbull',
-                          label: t('account.membership.cashPitbull'),
-                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                          label: t('account.membership.cashPitbullComingSoon'),
+                          disabled: true,
                         },
                       ]
                     : []),
@@ -733,6 +815,7 @@ export default function MembershipPurchaseSection({
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
+                paymentHint={!manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''}
                 offers={
                   selectedPlan
                     ? [

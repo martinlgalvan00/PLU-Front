@@ -1,4 +1,4 @@
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import RegisterPage from './RegisterPage.jsx'
 
 /**
@@ -13,6 +13,13 @@ const athlete = {
   fullName: 'Ana Torres',
   documentId: '30111222',
   email: 'ana.torres@plu.test',
+  birthDate: '1999-11-03',
+  sex: 'Femenino',
+  gym: 'Maximal Strength Club',
+  phone: '+54 9 11 2500 7894',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'Quilmes',
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000002',
 }
 
@@ -52,7 +59,9 @@ export const Afiliacion = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const cta = await canvas.findByRole('button', { name: /continuar al pago/i })
-    await expect(cta).toBeEnabled()
+    // El CTA arranca deshabilitado hasta que resuelve el chequeo de tanda
+    // privada (`fetchRegistrationAccessRequirements`, sin backend en Storybook).
+    await waitFor(() => expect(cta).toBeEnabled())
   },
 }
 
@@ -72,7 +81,9 @@ export const Inscripcion = {
     const canvas = within(canvasElement)
     // El título vive dos veces: aside de desktop y contexto mobile.
     await expect(canvas.getAllByText('Pitbull Classic 2026').length).toBeGreaterThan(0)
-    await expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled()
+    await waitFor(() =>
+      expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled(),
+    )
   },
 }
 

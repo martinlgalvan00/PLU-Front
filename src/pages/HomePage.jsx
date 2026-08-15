@@ -122,7 +122,7 @@ export default function HomePage({
 
   return (
     <main className="home-page">
-      <HeroSection onNavigate={onNavigate} />
+      <HeroSection onNavigate={onNavigate} event={launchEvent} />
 
       {isRegistrationDisabled ? (
         <section

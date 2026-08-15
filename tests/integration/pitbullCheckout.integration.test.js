@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 const EVENT_SLUG = 'pitbull-classic-2026'
@@ -17,6 +18,9 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
   const target = listen(createApp({
     supabaseAdmin: admin,
     notifyPaymentApplied: async () => {},
+    // Inscripción y combo se crean por transferencia: el canal manual va
+    // abierto por doble, no por el estado de la fila compartida.
+    platformSettingsRepository: manualChannelsOpen(),
     env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
   }))
 

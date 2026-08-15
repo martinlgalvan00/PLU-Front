@@ -1,0 +1,193 @@
+/* ────────────────────────────────────────────────────────────────────
+   ConfirmationSeal — el acuse de afiliación, inscripción y pago
+
+   Una sola secuencia one-shot de ~900 ms: el anillo se traza, el check se
+   dibuja, el texto entra atrás. Nada queda animándose después. El acento es
+   oro PLU (uno solo por bloque) y el sello no lleva glow, glass ni sombra
+   apilada: la jerarquía la hace la escala del trazo contra el peso del texto.
+   ──────────────────────────────────────────────────────────────────── */
+
+.confirmation-seal {
+  align-items: center;
+  display: flex;
+  gap: clamp(12px, 1.8vw, 18px);
+  text-align: left;
+}
+
+/* ─── Sello ──────────────────────────────────────────────────────────── */
+
+.confirmation-seal__mark {
+  display: grid;
+  flex: 0 0 auto;
+  height: var(--confirmation-seal-size, 52px);
+  place-items: center;
+  width: var(--confirmation-seal-size, 52px);
+}
+
+.confirmation-seal--payment {
+  --confirmation-seal-size: 44px;
+}
+
+.confirmation-seal--membership {
+  --confirmation-seal-size: clamp(52px, 6vw, 62px);
+}
+
+.confirmation-seal__glyph {
+  height: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.confirmation-seal__ring {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-brand-gold) 58%, transparent);
+  stroke-width: 2;
+  /* El trazo arranca arriba y no a la derecha: el anillo se cierra como un
+     sello que gira, no como una barra de progreso. */
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.confirmation-seal__check {
+  fill: none;
+  stroke: var(--color-brand-gold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.2;
+}
+
+/* ─── Texto ──────────────────────────────────────────────────────────── */
+
+.confirmation-seal__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.confirmation-seal__eyebrow {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.confirmation-seal__stamp {
+  border: 1px solid color-mix(in oklab, var(--color-brand-gold) 34%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+}
+
+.confirmation-seal__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(17px, 2.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.confirmation-seal__detail {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 44ch;
+}
+
+/* ─── Secuencia one-shot ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .confirmation-seal__mark {
+    animation: confirmation-seal-land var(--motion-slow, 480ms) var(--ease-spring, ease-out) both;
+  }
+
+  .confirmation-seal__ring {
+    /* 2πr con r=21 ≈ 132. */
+    stroke-dasharray: 132;
+    animation: confirmation-seal-trace 560ms var(--ease-out, ease) 60ms both;
+  }
+
+  .confirmation-seal__check {
+    stroke-dasharray: 30;
+    animation: confirmation-seal-trace-check 320ms var(--ease-out, ease) 300ms both;
+  }
+
+  .confirmation-seal__eyebrow {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 200ms both;
+  }
+
+  .confirmation-seal__title {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 280ms both;
+  }
+
+  .confirmation-seal__detail {
+    animation: confirmation-seal-rise var(--motion-slow, 480ms) var(--ease-out, ease) 360ms both;
+  }
+}
+
+@keyframes confirmation-seal-land {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes confirmation-seal-trace {
+  from {
+    stroke-dashoffset: 132;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confirmation-seal-trace-check {
+  from {
+    stroke-dashoffset: 30;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confirmation-seal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Mobile: el sello queda arriba y el texto respira ───────────────── */
+
+@media (max-width: 480px) {
+  .confirmation-seal {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .confirmation-seal__detail {
+    max-width: none;
+  }
+}

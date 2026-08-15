@@ -214,7 +214,14 @@ export function createSupabasePaymentRepository(
             signature_valid: true,
             status: 'received',
             attempts_count: 0,
-            next_retry_at: new Date().toISOString(),
+            // Se reclama inline inmediatamente después de insertar. Dejarlo
+            // exactamente en "ahora" dependía de que el reloj del proceso y
+            // el de Postgres coincidieran al milisegundo: si la base quedaba
+            // apenas adelantada, `claim_payment_integration_event` devolvía
+            // null y el webhook respondía 200 sin acreditarlo. Un segundo de
+            // margen lo deja elegible tanto para el reclamo inline como para
+            // el worker, sin cambiar la política de reintentos.
+            next_retry_at: new Date(Date.now() - 1_000).toISOString(),
             payload,
           })
           .select()
@@ -352,6 +359,55 @@ export function createSupabasePaymentRepository(
       }
 
       return [...byCode.values()].sort((a, b) => b.count - a.count)
+    },
+
+    /**
+     * Ordenes de Mercado Pago candidatas a revalidacion: las que todavia no
+     * estan aprobadas.
+     *
+     * Son las unicas donde puede haber plata sin acreditar. Una orden aprobada
+     * tambien puede divergir (un reembolso posterior que no notifico), pero
+     * revalidar todo el historico cada vez costaria una llamada al proveedor
+     * por orden; el barrido masivo apunta al caso que rompe —el cobro que
+     * entro y no figura— y para el reembolso queda la revalidacion puntual.
+     */
+    async listOrdersForRevalidation({
+      statuses = ['pendiente', 'rechazado', 'cancelado'],
+      sinceDays = 30,
+      limit = 25,
+    } = {}) {
+      const since = new Date(Date.now() - Math.max(1, sinceDays) * 24 * 60 * 60 * 1000).toISOString()
+      const cap = Math.max(1, Math.min(limit, 100))
+
+      const [athleteOrders, ticketOrders] = await Promise.all([
+        client
+          .from('athlete_payment_orders')
+          .select('id, status, amount, currency, concept, reference, created_at')
+          .eq('organization_id', organizationId)
+          .eq('method', 'mercado_pago')
+          .in('status', statuses)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(cap),
+        client
+          .from('ticket_orders')
+          .select('id, status, amount, currency, reference, created_at')
+          .eq('organization_id', organizationId)
+          .eq('provider', 'mercado_pago')
+          .in('status', statuses)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(cap),
+      ])
+
+      const athletes = (assertResult(athleteOrders, 'No se pudieron leer las ordenes a revalidar.') ?? [])
+        .map((row) => ({ ...row, kind: 'athlete' }))
+      const tickets = (assertResult(ticketOrders, 'No se pudieron leer las ordenes a revalidar.') ?? [])
+        .map((row) => ({ ...row, kind: 'ticket', concept: 'tickets' }))
+
+      return [...athletes, ...tickets]
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+        .slice(0, cap)
     },
 
     async listIntegrationEvents({ status, limit = 50 } = {}) {

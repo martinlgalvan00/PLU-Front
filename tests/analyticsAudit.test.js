@@ -19,6 +19,15 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260814130000_web_analytics.sql'),
   'utf8',
 )
+/**
+ * Segunda migración del dominio: tiempo activo, engagement y el embudo por
+ * sesión. Se lee aparte porque redefine funciones de la primera, y afirmar el
+ * contrato nuevo sobre el archivo viejo daría verde sobre código muerto.
+ */
+const activeTimeMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260821130000_analytics_active_time_engagement.sql'),
+  'utf8',
+)
 
 const tracker = readFileSync(resolve(process.cwd(), 'src/services/analyticsService.js'), 'utf8')
 const trackerBridge = readFileSync(
@@ -43,8 +52,19 @@ describe('cobertura del embudo', () => {
   })
 
   it('los pasos de vista salen del puente del router, no de cada página', () => {
-    expect(trackerBridge).toContain("home: 'landing_view'")
     expect(trackerBridge).toContain("members: 'membership_view'")
+  })
+
+  it('el primer paso no depende de la portada', () => {
+    // Atado a `view === 'home'`, toda sesión que entrara directo a una landing
+    // profunda nunca emitía el paso 1, y como el embudo exige arrancar por ahí,
+    // quedaba descartada del embudo completo. Sobre el tráfico real eran el 39%
+    // de las sesiones: Instagram linkea a `/pitbull` y `/afiliacion`, no a `/`.
+    expect(trackerBridge).toContain("const ENTRY_FUNNEL_STEP = 'landing_view'")
+    expect(trackerBridge).not.toContain("home: 'landing_view'")
+    // Una sola vez por montaje: sin el guard, volver a la portada reabriría el
+    // embudo a mitad de la navegación.
+    expect(trackerBridge).toContain('entryTracked')
   })
 
   it('el checkout distingue afiliación de inscripción y de entradas', () => {
@@ -57,19 +77,83 @@ describe('cobertura del embudo', () => {
 describe('embudo monotónico en la RPC', () => {
   it('exige la cadena completa y en orden, en vez de contar cada paso aparte', () => {
     // La forma vieja era una subconsulta por paso sin relación entre pasos.
-    // La nueva ordena las primeras ocurrencias por visitante y corta la cadena
-    // en cuanto se saltea un paso o el tiempo retrocede.
-    expect(migration).toContain('lag(idx) over (partition by visitor_id order by idx)')
-    expect(migration).toContain('lag(at) over (partition by visitor_id order by idx)')
-    expect(migration).toContain('idx = prev_idx + 1 and at >= prev_at')
-    expect(migration).toContain('bool_and(')
+    // La nueva ordena las primeras ocurrencias y corta la cadena en cuanto se
+    // saltea un paso o el tiempo retrocede.
+    expect(activeTimeMigration).toContain('idx = prev_idx + 1 and at >= prev_at')
+    expect(activeTimeMigration).toContain('bool_and(')
+  })
+
+  it('encadena dentro de la sesión y no del visitante', () => {
+    // Con `min(occurred_at)` por visitante sobre la ventana entera, dos intentos
+    // de compra se pisan: quien paga, vuelve y reabre el checkout termina con su
+    // primer `checkout_opened` posterior a su primer `payment_submitted`, la
+    // condición de orden falla y desaparece del embudo. Con datos reales eso
+    // reportaba 0 en `payment_submitted` habiendo dos pagos registrados.
+    expect(activeTimeMigration).toContain('lag(idx) over (partition by session_id order by idx)')
+    expect(activeTimeMigration).toContain('lag(at) over (partition by session_id order by idx)')
+    // El conteo sigue siendo de personas, no de sesiones.
+    expect(activeTimeMigration).toContain('count(distinct visitor_id) as visitors')
   })
 
   it('devuelve todos los pasos aunque nadie los haya alcanzado', () => {
     // Sin el left join, un paso sin visitantes desaparecía de la respuesta y el
     // panel dibujaba un embudo con menos escalones de los que tiene.
-    expect(migration).toContain('left join reached on reached.idx = steps.idx')
-    expect(migration).toContain('coalesce(reached.visitors, 0)')
+    expect(activeTimeMigration).toContain('left join reached on reached.idx = steps.idx')
+    expect(activeTimeMigration).toContain('coalesce(reached.visitors, 0)')
+  })
+})
+
+describe('tiempo activo y engagement', () => {
+  it('el tracker cuenta sólo el tramo con la pestaña visible', () => {
+    // El punto entero: `duration_seconds` es reloj de pared y contaba igual una
+    // pestaña olvidada en segundo plano que una lectura real.
+    expect(tracker).toContain('function settleActiveTime()')
+    expect(tracker).toContain('function resumeActiveTime()')
+    expect(tracker).toContain("document.visibilityState !== 'hidden'")
+    expect(tracker).toContain('activeMs: Math.round(activeMs)')
+  })
+
+  it('el tiempo de lectura viaja aunque no haya un solo evento', () => {
+    // Alguien que lee sin tocar nada produce atención y cero interacción. Sin el
+    // latido, esa lectura no se registra en ningún lado.
+    expect(tracker).toContain('ACTIVE_HEARTBEAT_MS')
+    expect(tracker).toContain('state.pendingActiveMs >= ACTIVE_HEARTBEAT_MS')
+    expect(route).toContain('activeMs: z.coerce.number().int().min(0).max(900_000).optional()')
+    // El endpoint tiene que aceptar el lote sin eventos, pero no uno vacío del
+    // todo: eso abriría sesiones de la nada.
+    expect(route).toContain('body.events.length > 0 || (body.context?.activeMs ?? 0) > 0')
+  })
+
+  it('los cortes de engagement son columnas generadas, no lógica de la ingesta', () => {
+    // Calcularlos en la aplicación permitiría que una sesión quede marcada con
+    // un criterio y otra con otro.
+    expect(activeTimeMigration).toContain('generated always as (')
+    expect(activeTimeMigration).toContain('active_seconds >= 10 or page_count >= 2 or conversion_count >= 1')
+    expect(activeTimeMigration).toContain('generated always as (page_count >= 2 or conversion_count >= 1) stored')
+  })
+
+  it('el tiempo activo nunca supera al reloj de pared', () => {
+    // Un cliente con la hora corrida mostraría "3 minutos de atención" en una
+    // sesión de 40 segundos.
+    expect(activeTimeMigration).toContain('active_seconds = least(active_seconds + v_active_seconds, v_duration)')
+  })
+
+  it('el rebote se calcula sobre engagement y no sobre el contador de eventos', () => {
+    // La condición vieja (`page_count <= 1 and event_count <= 1`) daba 8% de
+    // rebote porque el tracker emite scroll y clicks por su cuenta.
+    expect(activeTimeMigration).toContain('count(*) filter (where not is_engaged)::numeric / count(*)')
+    expect(activeTimeMigration).toContain("'engagementRate'")
+    expect(activeTimeMigration).toContain("'avgActiveSeconds'")
+    // La lectura sin término temporal es la única comparable contra lo
+    // registrado antes de que existiera `active_seconds`.
+    expect(activeTimeMigration).toContain("'qualitySessions'")
+  })
+
+  it('la consolidación diaria arrastra las métricas nuevas', () => {
+    // Sin esto, la serie histórica sobrevive a la purga de 90 días con las
+    // métricas viejas y pierde las nuevas justo donde más sirven.
+    expect(activeTimeMigration).toContain('avg_active_seconds')
+    expect(activeTimeMigration).toContain('engaged_sessions')
   })
 })
 

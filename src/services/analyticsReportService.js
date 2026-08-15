@@ -34,6 +34,20 @@ export async function fetchAnalyticsOperationalAlerts() {
   return result?.alerts ?? []
 }
 
+/**
+ * Presencia en vivo. No lleva rango: "ahora" lo define el servidor contra su
+ * propio reloj, porque el del navegador puede estar corrido y la ventana es de
+ * minutos.
+ */
+export async function fetchAnalyticsLive({ windowMinutes = 5 } = {}) {
+  return apiGet(`/api/analytics/live?windowMinutes=${encodeURIComponent(windowMinutes)}`)
+}
+
+/** Accesos del periodo: quienes entraron, quienes no pudieron y por que. */
+export async function fetchAccessMetrics(range) {
+  return apiGet(`/api/analytics/access?${rangeQuery(range)}`)
+}
+
 export async function fetchAnalyticsPages(range) {
   const result = await apiGet(`/api/analytics/pages?${rangeQuery(range)}`)
   return result?.pages ?? []

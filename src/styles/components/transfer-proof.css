@@ -78,21 +78,10 @@
   line-height: 1.3;
 }
 
+/* Spinner de subida — primitivo `.plu-spinner` (states.css) en dorado. */
 .account-transfer-proof__spinner {
-  animation: account-transfer-proof-spin 620ms linear infinite;
-  block-size: 16px;
-  border: 1.75px solid color-mix(in oklab, var(--color-brand-gold) 28%, transparent);
-  border-radius: 50%;
-  border-top-color: var(--color-brand-gold);
-  display: block;
-  flex: none;
-  inline-size: 16px;
-}
-
-@keyframes account-transfer-proof-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  --spinner-accent: var(--color-brand-gold);
+  --spinner-track: color-mix(in oklab, var(--color-brand-gold) 28%, transparent);
 }
 
 .account-transfer-proof__error {
@@ -127,9 +116,5 @@
 @media (prefers-reduced-motion: reduce) {
   .account-transfer-proof__drop {
     transition: none;
-  }
-
-  .account-transfer-proof__spinner {
-    animation: none;
   }
 }

@@ -179,6 +179,9 @@ export function buildDashboardOverview({
   const cancelledMemberships = memberships.filter(
     (membership) => membership.status === 'cancelada',
   )
+  const confirmedRegistrations = registrations.filter((registration) =>
+    ['confirmada', 'acreditada'].includes(registration.status),
+  )
   const stableActiveMemberships = activeMemberships.length - expiringMemberships.length
   const openEvents = events.filter((event) =>
     ['inscripcion_abierta', 'cupos_limitados'].includes(event.status),
@@ -267,6 +270,7 @@ export function buildDashboardOverview({
       fullName: athlete.fullName,
       gym: athlete.gym,
       createdAt: athlete.createdAt,
+      photoUrl: athlete.photoUrl ?? null,
     }))
 
   // Afiliaciones recientes, distintas de `recentAthletes`: esa lista son altas
@@ -286,6 +290,7 @@ export function buildDashboardOverview({
         status: membership.status,
         startDate: membership.startDate,
         expirationDate: membership.expirationDate,
+        photoUrl: athlete?.photoUrl ?? null,
       }
     })
 
@@ -304,6 +309,7 @@ export function buildDashboardOverview({
         division: registration.division,
         status: registration.status,
         createdAt: registration.createdAt,
+        photoUrl: athlete?.photoUrl ?? null,
       }
     })
 
@@ -428,6 +434,29 @@ export function buildDashboardOverview({
           status: payment.status,
         }
       }),
+    },
+    // Esta proyección no toma decisiones de negocio: concentra los estados
+    // que el operador necesita leer juntos para elegir el circuito a abrir.
+    // Sus conteos salen del mismo snapshot que las tablas y la cola de trabajo.
+    operationalFlows: {
+      payments: {
+        manualValidation: manualValidationPayments.length,
+        reconciliationPending: softPendingPayments.length,
+      },
+      registrations: {
+        confirmed: confirmedRegistrations.length,
+        pendingPayment: pendingRegistrations.length,
+        observed: observedRegistrations.length,
+        gatePending: gatePendingRegistrations.length,
+      },
+      memberships: {
+        active: activeMemberships.length,
+        expiring: expiringMemberships.length,
+      },
+      events: {
+        open: events.filter((event) => event.status === 'inscripcion_abierta').length,
+        limited: events.filter((event) => event.status === 'cupos_limitados').length,
+      },
     },
     spotlightEvent,
     recentAthletes: {

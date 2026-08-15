@@ -141,6 +141,11 @@
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 0.9rem 0.15rem;
+  transition: background-color 160ms var(--ease-out, ease);
+}
+
+.admin-registration-access__list .admin-registration-access__rule:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
 }
 
 .admin-registration-access__rules--primary .admin-registration-access__rule {
@@ -170,6 +175,31 @@
 
 .admin-registration-access__list {
   display: grid;
+}
+
+.admin-registration-access__empty-state {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  display: flex;
+  gap: 0.7rem;
+  min-height: 52px;
+  padding: 0.65rem 0;
+}
+
+.admin-registration-access__empty-icon {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.admin-registration-access__empty-state .admin-registration-access__empty {
+  margin: 0;
 }
 
 .admin-registration-access__state {
@@ -240,6 +270,18 @@
   background: var(--color-brand-action);
   border-color: var(--color-brand-action);
   color: var(--color-text-on-light, #12151c);
+}
+
+.admin-registration-access__button--danger:hover:not(:disabled) {
+  border-color: var(--color-danger, #e87575);
+  color: var(--color-danger, #e87575);
+}
+
+.admin-registration-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
 }
 
 .admin-registration-access__form {

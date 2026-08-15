@@ -37,7 +37,7 @@ function AuthSubmit({ busy, busyLabel, className = '', label, ...props }) {
     >
       <span className="login-submit__label">{busy ? busyLabel : label}</span>
       <span className="login-submit__mark" aria-hidden>
-        {busy ? <span className="login-submit__spinner" /> : <ArrowRight size={16} />}
+        {busy ? <span className="plu-spinner" /> : <ArrowRight size={16} />}
       </span>
     </button>
   )
@@ -408,9 +408,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
                     </span>
                     {oauth.isLoading ? (
-                      <span className="login-submit__mark" aria-hidden>
-                        <span className="login-submit__spinner" />
-                      </span>
+                        <span className="login-submit__mark" aria-hidden>
+                          <span className="plu-spinner" />
+                        </span>
                     ) : null}
                   </button>
                 </>

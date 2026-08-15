@@ -347,6 +347,25 @@ function verdictFor({ kind, order, timeline, fulfillment }) {
     event: item.event,
     ...item.failure,
   }))
+  const expiresAt = toTime(order.expires_at)
+  const cancelledAt = toTime(order.updated_at)
+  const checkoutOpenedAt = timeline.find((item) => stageOf(item) === 'checkout_opened')?.at ?? null
+  const cancellation = order.status === 'cancelado'
+    // El cron de dominio vence la orden al minuto siguiente de expirar. Limitar
+    // la ventana evita atribuir como vencimiento una cancelacion manual tardia.
+    && expiresAt !== null
+    && cancelledAt !== null
+    && cancelledAt >= expiresAt
+    && cancelledAt - expiresAt <= 5 * 60 * 1000
+    ? {
+        code: 'expired_without_payment',
+        expiresAt: order.expires_at,
+        cancelledAt: order.updated_at,
+        checkoutOpenedAt,
+        paymentEvidence: timeline.some((item) => item.source === 'ledger'),
+        providerPaymentStarted: reached >= STAGE_ORDER.indexOf('provider_submitted'),
+      }
+    : null
 
   let verdict
   if (accredited && fulfilled) {
@@ -365,6 +384,12 @@ function verdictFor({ kind, order, timeline, fulfillment }) {
       summary: worst.diagnosis?.title ?? worst.message ?? 'El cobro se corto por una falla.',
       action: worst.diagnosis?.fix?.[0] ?? null,
     }
+  } else if (cancellation?.code === 'expired_without_payment') {
+    verdict = {
+      state: 'closed',
+      summary: 'La orden vencio automaticamente sin un pago iniciado.',
+      action: 'No acreditar manualmente. Generar una orden nueva; si la persona informa un debito, revalidar primero contra Mercado Pago.',
+    }
   } else if (['cancelado', 'rechazado', 'reembolsado'].includes(order.status)) {
     verdict = { state: 'closed', summary: `La orden termino en ${order.status}.`, action: null }
   } else {
@@ -381,6 +406,7 @@ function verdictFor({ kind, order, timeline, fulfillment }) {
     verdict,
     stageReached: STAGE_ORDER[Math.max(reached, 0)],
     failures,
+    cancellation,
   }
 }
 

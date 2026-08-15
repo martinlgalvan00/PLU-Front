@@ -38,6 +38,54 @@ export function preloadEventCardCapture() {
   return import('html2canvas')
 }
 
+/**
+ * Descarga una imagen remota y la devuelve como data: URL.
+ *
+ * La foto de perfil vive en Storage bajo una URL firmada de otro origen.
+ * html2canvas corre con `allowTaint: false`, así que una imagen cross-origin
+ * sin cabeceras CORS no se rasteriza: el `<img>` se ve perfecto en el preview
+ * y sale VACÍO en el PNG descargado. Con el retrato como material principal
+ * de la card, eso es la diferencia entre una pieza y un rectángulo negro.
+ *
+ * Inlinear a data: URL elimina el problema de raíz — para el canvas la imagen
+ * pasa a ser same-origin. Si la descarga falla (sin CORS, 404, timeout), se
+ * devuelve null y la card cae al sello de iniciales, que siempre rasteriza.
+ *
+ * @param {string|null|undefined} url
+ * @param {{ timeoutMs?: number }} [options]
+ * @returns {Promise<string|null>}
+ */
+export async function inlineImageAsDataUrl(url, { timeoutMs = 6000 } = {}) {
+  if (!url) return null
+  if (url.startsWith('data:')) return url
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(url, {
+      mode: 'cors',
+      credentials: 'omit',
+      signal: controller.signal,
+    })
+    if (!response.ok) return null
+
+    const blob = await response.blob()
+    if (!blob.type.startsWith('image/')) return null
+
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Deja que el browser pinte el spinner antes del trabajo pesado de raster. */
 function yieldToMain() {
   return new Promise((resolve) => {

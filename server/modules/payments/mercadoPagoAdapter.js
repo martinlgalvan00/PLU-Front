@@ -7,7 +7,8 @@ import {
 } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
-import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
+import { normalizeOfficialHost, resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
+import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -121,7 +122,14 @@ function resolveIntegrationUrl({ explicit, fallback, label, env }) {
   )
 }
 
-function requireIntegrationUrl(value, label, env) {
+/**
+ * Punto unico por donde pasan las dos URLs que se le mandan a Mercado Pago
+ * (`notification_url` y `back_urls`), asi que es el lugar correcto para
+ * normalizar el host: cubre las dos sin depender de que cada llamador se
+ * acuerde. Ver `normalizeOfficialHost` para por que el apex no sirve.
+ */
+function requireIntegrationUrl(rawValue, label, env) {
+  const value = normalizeOfficialHost(rawValue)
   if (!value) throw new HttpError(503, `Falta ${label} para crear el checkout.`)
   let url
   try {
@@ -203,6 +211,21 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     }
   }
 
+  /**
+   * Todos los pagos que Mercado Pago tiene registrados contra esta orden.
+   * `external_reference` es el id de la orden y viaja en la preferencia, en el
+   * pago embebido y en la suscripcion, asi que es la unica clave que permite
+   * reconstruir la verdad del proveedor sin depender de que el webhook haya
+   * llegado.
+   */
+  async function searchPaymentsForOrder(order) {
+    const response = await getJson(
+      `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
+    )
+    const results = Array.isArray(response?.results) ? response.results : []
+    return results.filter((payment) => String(payment.external_reference ?? '') === String(order.id))
+  }
+
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
@@ -264,12 +287,12 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         paymentClient.get({ id: String(id) }))
     },
 
+    searchPaymentsForOrder,
+
     async findPaymentForOrder(order) {
-      const response = await getJson(
-        `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
-      )
-      const results = Array.isArray(response?.results) ? response.results : []
-      return results.find((payment) => String(payment.external_reference ?? '') === String(order.id)) ?? null
+      // El mas reciente no es necesariamente el que vale: ver
+      // providerPaymentSelection.js.
+      return selectCanonicalProviderPayment(await searchPaymentsForOrder(order))
     },
 
     async createPayment({ order, formData, idempotencyKey }) {

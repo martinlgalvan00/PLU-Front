@@ -35,6 +35,8 @@
 /* =============================================
    LOADING STATE (editorial, CSS-only)
    Loop de la regla: estado operativo, no decoración.
+   El sweep tiene pausa respirada (dwell): la regla cruza, descansa en el
+   borde y vuelve a cruzar. Menos maquinal que un vaivén constante.
    ============================================= */
 
 .loading-state {
@@ -55,6 +57,7 @@
 }
 
 .loading-state__mark {
+  animation: loading-state-mark-rise 0.4s var(--ease-out) both;
   color: var(--color-text-primary);
   font-family: var(--font-display);
   font-size: clamp(18px, 2.2vw, 22px);
@@ -67,16 +70,16 @@
 }
 
 .loading-state__rail {
-  background: color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 30%, transparent);
   display: block;
   height: 1px;
   overflow: hidden;
   position: relative;
-  width: 4.5rem;
+  width: 5rem;
 }
 
 .loading-state__rule {
-  animation: loading-state-sweep var(--duration-xslow) var(--ease-in-out) infinite;
+  animation: loading-state-sweep 1.9s cubic-bezier(0.45, 0, 0.25, 1) infinite;
   background: var(--color-brand-gold);
   display: block;
   height: 100%;
@@ -84,7 +87,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-100%);
-  width: 45%;
+  width: 38%;
 }
 
 .loading-state__label {
@@ -106,18 +109,81 @@
   }
 }
 
+@keyframes loading-state-mark-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dwell: 0-12% entra, 12-64% cruza con ease, 64-100% sale y descansa. */
 @keyframes loading-state-sweep {
   0% {
     transform: translateX(-100%);
   }
 
+  64% {
+    transform: translateX(300%);
+  }
+
   100% {
-    transform: translateX(220%);
+    transform: translateX(300%);
+  }
+}
+
+/* =============================================
+   PLU SPINNER — primitivo único de espera activa
+   Anillo hairline con acento en currentColor: hereda el color del botón o
+   superficie donde vive. Cada contexto puede sobre-escribir los tokens
+   (--spinner-size / --spinner-thickness / --spinner-accent / --spinner-track)
+   sin volver a dibujar el anillo ni duplicar keyframes.
+   ============================================= */
+
+.plu-spinner {
+  animation: plu-spinner-rotate 720ms linear infinite;
+  block-size: var(--spinner-size, 15px);
+  border: var(--spinner-thickness, 1.5px) solid
+    var(--spinner-track, color-mix(in oklab, currentColor 26%, transparent));
+  border-radius: 50%;
+  border-top-color: var(--spinner-accent, currentColor);
+  display: block;
+  flex: none;
+  inline-size: var(--spinner-size, 15px);
+}
+
+.plu-spinner--lg {
+  --spinner-size: 22px;
+  --spinner-thickness: 2px;
+}
+
+/* Densidad de botón/chip del panel: 13px hairline. */
+.plu-spinner--sm {
+  --spinner-size: 13px;
+  --spinner-thickness: 1.25px;
+}
+
+@keyframes plu-spinner-rotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* El spinner comunica una operación real en curso, pero sin giro: queda
+     el anillo estático con el acento visible. Mismo criterio que el CTA
+     de acceso. */
+  .plu-spinner {
+    animation: none;
+    transform: rotate(40deg);
+  }
+
   .loading-state,
+  .loading-state__mark,
   .loading-state__rule {
     animation: none !important;
   }
@@ -126,9 +192,119 @@
     opacity: 1;
   }
 
+  .loading-state__mark {
+    opacity: 1;
+    transform: none;
+  }
+
   .loading-state__rule {
     transform: none;
     width: 100%;
+  }
+}
+
+/* =============================================
+   TABLE SKELETON
+   Anticipa la geometría de la tabla operativa:
+   cabecera baja + filas separadas por hairline.
+   El shimmer barre una vez por fila con stagger
+   corto; bajo reduced motion quedan barras
+   estáticas (mismo criterio que plu-spinner).
+   ============================================= */
+
+.table-skeleton {
+  animation: loading-state-appear var(--motion-base) var(--ease-out) 140ms both;
+}
+
+.table-skeleton__frame {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg, 12px);
+  overflow: hidden;
+}
+
+.table-skeleton__head,
+.table-skeleton__row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(var(--skeleton-cols, 5), minmax(0, 1fr));
+  padding: 10px 16px;
+}
+
+.table-skeleton__head {
+  background: color-mix(in oklab, var(--color-text-primary) 3%, transparent);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.table-skeleton__row {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.table-skeleton__row:last-child {
+  border-bottom: 0;
+}
+
+.table-skeleton__label,
+.table-skeleton__cell {
+  --skeleton-bar: color-mix(in oklab, var(--color-text-primary) 9%, transparent);
+  --skeleton-bar-active: color-mix(in oklab, var(--color-text-primary) 16%, transparent);
+
+  background: var(--skeleton-bar);
+  border-radius: 999px;
+  display: block;
+  height: 10px;
+}
+
+.table-skeleton__label {
+  height: 8px;
+  width: 52%;
+}
+
+.table-skeleton__cell {
+  width: 72%;
+}
+
+/* Ritmo editorial: la primera columna es el ancla (más ancha) y la última
+   suele ser numérica (más corta). Evita la retícula uniforme de plantilla. */
+.table-skeleton__row .table-skeleton__cell:first-child {
+  width: 86%;
+}
+
+.table-skeleton__row .table-skeleton__cell:last-child {
+  width: 44%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .table-skeleton__cell {
+    animation: table-skeleton-shimmer 1.4s var(--ease-standard, ease) var(--skeleton-stagger, 0ms) both;
+  }
+}
+
+@keyframes table-skeleton-shimmer {
+  from {
+    background: var(--skeleton-bar);
+  }
+
+  40% {
+    background: var(--skeleton-bar-active);
+  }
+
+  to {
+    background: var(--skeleton-bar);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .table-skeleton__head,
+  .table-skeleton__row {
+    gap: 10px;
+    grid-template-columns: repeat(var(--skeleton-cols, 5), minmax(0, 1fr));
+    padding: 10px 12px;
   }
 }
 
@@ -763,6 +939,20 @@
   justify-content: center;
   letter-spacing: 0.02em;
   width: 44px;
+}
+
+.member-profile-card__avatar {
+  overflow: hidden;
+  position: relative;
+}
+
+.member-profile-card__avatar-photo {
+  background: var(--color-bg-surface);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
 }
 
 .member-profile-card__titles {

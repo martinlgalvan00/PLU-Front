@@ -113,6 +113,346 @@
   max-width: min(92vw, 520px);
 }
 
+/* ---- Toast de cierre de sesión ----
+   Pieza compacta editorial: filete dorado, despedida tipográfica y una
+   acción de reingreso. Contador y cerrar viven juntos en la esquina, fuera
+   de la lectura. El dorado aparece una sola vez. */
+.session-notice {
+  align-items: flex-start;
+}
+
+.session-notice__card {
+  /* Filete dorado suavizado y estirado para mayor elegancia */
+  --session-notice-rule: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-brand-gold) 60%, transparent) 15%,
+    var(--color-brand-gold) 50%,
+    color-mix(in oklab, var(--color-brand-gold) 60%, transparent) 85%,
+    transparent
+  );
+
+  /* Superficie tipo glassmorphism muy sutil, propia de interfaces high-end */
+  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 85%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 var(--theme-surface-highlight);
+  max-width: min(92vw, 440px);
+  overflow: hidden;
+  padding: 20px 24px;
+  pointer-events: auto;
+  position: relative;
+}
+
+.session-notice__card::before {
+  background: var(--session-notice-rule);
+  content: '';
+  height: 1px;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+/* El filete duplicado es la cuenta regresiva del auto-cierre: retrocede al
+   ritmo de DISMISS_MS y se congela cuando el cursor o el foco entran, igual
+   que el timer de JS. Solo existe si hay motion habilitado. */
+.session-notice__timer {
+  background: var(--session-notice-rule);
+  display: none;
+  height: 1px;
+  inset: 0 0 auto;
+  position: absolute;
+  transform-origin: left center;
+}
+
+.session-notice__corner {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 1;
+}
+
+.session-notice__countdown {
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  min-width: 1.4ch;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.session-notice__countdown-digit {
+  display: inline-block;
+}
+
+/* Fila principal: iniciales de la persona + eyebrow/título. */
+.session-notice__body {
+  align-items: center; /* Alineación centrada para equilibrio visual */
+  display: flex;
+  gap: 16px;
+  padding-right: 44px;
+}
+
+.session-notice__avatar {
+  align-items: center;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--color-text-primary) 12%, transparent), color-mix(in oklab, var(--color-text-primary) 4%, transparent));
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 14px;
+  font-weight: 500;
+  height: 42px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  width: 42px;
+}
+
+.session-notice__copy {
+  min-width: 0;
+}
+
+.session-notice__eyebrow {
+  color: var(--color-brand-gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.session-notice__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 18px;
+  font-weight: 500; /* 500 en display se ve más premium que 600 */
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-top: 6px;
+  text-wrap: balance;
+}
+
+.session-notice__foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+}
+
+.session-notice__meta {
+  color: var(--color-text-secondary);
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.session-notice__login {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  letter-spacing: 0.01em;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 16px;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
+  white-space: nowrap;
+}
+
+.session-notice__login svg {
+  transition: transform 180ms var(--ease-standard, ease);
+}
+
+.session-notice__login:hover {
+  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-color: color-mix(in oklab, var(--color-text-primary) 15%, transparent);
+}
+
+.session-notice__login:hover svg {
+  transform: translateX(2px);
+}
+
+.session-notice__login:focus-visible,
+.session-notice__close:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.session-notice__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: color-mix(in oklab, var(--color-text-secondary) 72%, transparent);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 24px;
+  justify-content: center;
+  position: relative;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 24px;
+}
+
+.session-notice__close:hover {
+  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* El cerrar se ve de 24px pero se toca en 44: el área crece por fuera del
+   dibujo para no engordar la esquina de la card. */
+.session-notice__close::after {
+  content: '';
+  inset: -10px;
+  position: absolute;
+}
+
+@media (pointer: coarse) {
+  .session-notice__login {
+    min-height: 44px;
+  }
+}
+
+[data-theme='light'] .session-notice__card {
+  box-shadow:
+    0 14px 28px -18px rgba(15, 17, 21, 0.24),
+    0 1px 4px rgba(15, 17, 21, 0.06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .session-notice__card {
+    animation: session-notice-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .session-notice.is-leaving .session-notice__card {
+    animation: session-notice-out 200ms var(--ease-standard, ease) both;
+  }
+
+  /* Con cuenta regresiva visible, el filete de base pasa a ser el riel. */
+  .session-notice__card::before {
+    opacity: 0.24;
+  }
+
+  .session-notice__timer {
+    animation: session-notice-countdown var(--session-notice-duration, 8000ms) linear
+      both;
+    display: block;
+  }
+
+  .session-notice__countdown {
+    animation: session-notice-countdown-fade var(--session-notice-duration, 8000ms)
+      linear both;
+  }
+
+  .session-notice__countdown-digit {
+    animation: session-notice-digit-in 140ms var(--ease-standard, ease) both;
+  }
+
+  .session-notice__card:hover .session-notice__timer,
+  .session-notice__card:focus-within .session-notice__timer,
+  .session-notice__card:hover .session-notice__countdown,
+  .session-notice__card:focus-within .session-notice__countdown {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes session-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes session-notice-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes session-notice-countdown {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes session-notice-countdown-fade {
+  from {
+    opacity: 0.75;
+  }
+
+  to {
+    opacity: 0.2;
+  }
+}
+
+@keyframes session-notice-digit-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .session-notice__foot {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .session-notice__login {
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
 .email-verification-notice button {
   background: var(--color-brand-action);
   border: 1px solid var(--color-brand-action);
@@ -133,8 +473,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .email-verification-notice,
-  .session-notice {
+  .email-verification-notice {
     animation: email-verification-in var(--motion-base, 240ms) var(--ease-standard, ease) both;
   }
 }
@@ -143,5 +482,176 @@
   from {
     opacity: 0;
     transform: translateY(-8px);
+  }
+}
+
+/* =============================================
+   ADMIN ACTION TOASTS
+   Stack operativo abajo a la derecha. Misma receta
+   material que el toast de sesión (superficie
+   elevada + filete superior): confirma y se va, salvo
+   que traiga una acción ("Deshacer"), que se queda más
+   tiempo. Un acento por variante: oro = éxito, rojo =
+   error real.
+   ============================================= */
+
+.admin-toasts {
+  align-items: flex-end;
+  bottom: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  position: fixed;
+  right: var(--space-3, 12px);
+  z-index: calc(var(--z-header, 200) + 20);
+}
+
+.admin-toasts__item {
+  --toast-accent: var(--color-brand-gold);
+
+  align-items: flex-start;
+  background: var(--color-bg-elevated, var(--color-bg-surface));
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 7%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 16px 32px -20px rgba(0, 0, 0, 0.4),
+    0 1px 4px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  max-width: min(92vw, 380px);
+  overflow: hidden;
+  padding: 11px 12px 11px 14px;
+  pointer-events: auto;
+  position: relative;
+}
+
+.admin-toasts__item::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--toast-accent) 88%, transparent) 22%,
+    var(--toast-accent) 50%,
+    color-mix(in oklab, var(--toast-accent) 88%, transparent) 78%,
+    transparent
+  );
+  content: '';
+  height: 1px;
+  inset: 0 0 auto;
+  position: absolute;
+}
+
+.admin-toasts__item--error {
+  --toast-accent: var(--color-brand-red);
+}
+
+.admin-toasts__icon {
+  align-items: center;
+  border-radius: 8px;
+  color: var(--toast-accent);
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+}
+
+.admin-toasts__message {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.admin-toasts__action {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--toast-accent);
+  cursor: pointer;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 1px;
+  padding: 2px 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-toasts__action:hover {
+  text-decoration: none;
+}
+
+.admin-toasts__action:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-toasts__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: color-mix(in oklab, var(--color-text-secondary) 72%, transparent);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 24px;
+  justify-content: center;
+  position: relative;
+  transition:
+    background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 24px;
+}
+
+.admin-toasts__close:hover {
+  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-primary);
+}
+
+/* Se ve de 24px pero se toca en 44: el área crece por fuera. */
+.admin-toasts__close::after {
+  content: '';
+  inset: -10px;
+  position: absolute;
+}
+
+.admin-toasts__close:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+[data-theme='light'] .admin-toasts__item {
+  box-shadow:
+    0 14px 28px -18px rgba(15, 17, 21, 0.24),
+    0 1px 4px rgba(15, 17, 21, 0.06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-toasts__item {
+    animation: admin-toast-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-toasts {
+    left: var(--space-3, 12px);
+  }
+
+  .admin-toasts__item {
+    max-width: none;
   }
 }

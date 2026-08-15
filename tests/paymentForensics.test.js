@@ -249,6 +249,33 @@ describe('linea de tiempo de una orden', () => {
     expect(report.verdict.state).toBe('blocked')
   })
 
+  it('explica que una orden cancelada vencio sin pago en vez de dejar un estado generico', async () => {
+    const report = await buildOrderTimeline(
+      clientWith({
+        ...baseTables,
+        athlete_payment_orders: [{
+          ...baseTables.athlete_payment_orders[0],
+          status: 'cancelado',
+          expires_at: '2026-08-01T10:30:00.000Z',
+          updated_at: '2026-08-01T10:30:42.000Z',
+        }],
+        athlete_payments: [],
+        embedded_payment_attempts: [],
+        payment_integration_events: [],
+        memberships: [],
+      }),
+      { orderId: ORDER_ID, organizationId: ORG },
+    )
+
+    expect(report.verdict.summary).toBe('La orden vencio automaticamente sin un pago iniciado.')
+    expect(report.cancellation).toMatchObject({
+      code: 'expired_without_payment',
+      paymentEvidence: false,
+      providerPaymentStarted: false,
+      checkoutOpenedAt: '2026-08-01T10:00:30.000Z',
+    })
+  })
+
   it('falla con 404 cuando la orden no existe en ninguna tabla', async () => {
     await expect(
       buildOrderTimeline(clientWith({}), { orderId: ORDER_ID, organizationId: ORG }),

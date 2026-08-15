@@ -2,6 +2,7 @@ import '../../styles/components/credential-card.css'
 import { useState } from 'react'
 import { QrCode, RotateCcw } from 'lucide-react'
 import TiltCard from '../../motion/TiltCard.tsx'
+import CredentialQr from './CredentialQr.jsx'
 
 /**
  * CredentialCard — PLU ARG
@@ -24,6 +25,7 @@ export default function CredentialCard({
   status,
   qrSrc = null,
   qrAlt = '',
+  qrFailed = false,
   qrCaption,
   validUntil = null,
   flipToBackLabel,
@@ -126,13 +128,13 @@ export default function CredentialCard({
               </header>
 
               <div className="credential-card__qr-block">
-                <span className="credential-card__qr-chip">
-                  {qrSrc ? (
-                    <img src={qrSrc} alt={qrAlt} className="credential-card__qr-img" />
-                  ) : (
-                    <QrCode size={44} strokeWidth={1.2} aria-hidden />
-                  )}
-                </span>
+                <CredentialQr
+                  className="credential-card__qr-chip"
+                  src={qrSrc}
+                  alt={qrAlt}
+                  failed={qrFailed}
+                  size="md"
+                />
                 <span className="credential-card__qr-caption">{qrCaption}</span>
                 {validUntil ? <span className="credential-card__qr-valid">{validUntil}</span> : null}
               </div>

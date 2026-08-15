@@ -47,7 +47,13 @@ export const PAYMENT_TRAIL_ACTIONS = {
   webhookProcessed: 'payment.webhook_processed',
   webhookFailed: 'payment.webhook_failed',
   manualRejection: 'payment.manual_rejection',
+  forceSettled: 'payment.force_settled',
   reconciled: 'payment.reconciled',
+  // Revalidacion contra el proveedor: releer que dice Mercado Pago de una orden
+  // y corregir el estado local con esa respuesta.
+  revalidated: 'payment.revalidated',
+  revalidationMismatch: 'payment.revalidation_mismatch',
+  revalidationSweep: 'payment.revalidation_sweep',
   reconciliationFailed: 'payment.reconciliation_failed',
   recoveryRun: 'payment.recovery_run',
   orderCreated: 'payment.order_created',
@@ -229,7 +235,11 @@ export function createPaymentAuditTrail({
         actor_type: actorTypeFor(order),
         actor_id: order?.athleteId ?? externalPaymentId ?? null,
         status: 'failed',
-        severity: diagnosis.severity === 'expected' ? 'warning' : 'danger',
+        // El catálogo distingue entre una configuración que bloquea cobrar y
+        // una operación que el flujo ya contuvo. Ambas se registran como
+        // `failed`, pero la segunda no debe parecer un incidente crítico en
+        // el panel: no acreditó ni modificó la orden.
+        severity: diagnosis.severity === 'blocker' ? 'danger' : 'warning',
         metadata: {
           ...metadata,
           stage: stage ?? null,
