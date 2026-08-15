@@ -7,7 +7,7 @@ export const DEFAULT_EVENT_PRICING = {
   membership: PRICING.membership,
   registration: PRICING.event,
   combo: PRICING.combo,
-  ticketsEnabled: true,
+  ticketsEnabled: false,
   ticketAddons: [],
 }
 
@@ -120,7 +120,7 @@ export function cheapestTicketTypePrice(pricing) {
  * la navegación a checkout se permite; el formulario decide si hay qué vender.
  */
 export function isTicketSalesEnabled(event) {
-  return resolveEventPricing(event).ticketsEnabled !== false
+  return resolveEventPricing(event).ticketsEnabled === true
 }
 
 export function normalizeEventPricingInput(pricing = {}) {
@@ -132,7 +132,7 @@ export function normalizeEventPricingInput(pricing = {}) {
     membership: numberOrDefault(pricing.membership, DEFAULT_EVENT_PRICING.membership),
     registration: numberOrDefault(pricing.registration, DEFAULT_EVENT_PRICING.registration),
     combo: numberOrDefault(pricing.combo, DEFAULT_EVENT_PRICING.combo),
-    ticketsEnabled: pricing.ticketsEnabled !== false,
+    ticketsEnabled: pricing.ticketsEnabled === true,
     ticketAddons: normalizeTicketAddons(pricing.ticketAddons),
   }
 }

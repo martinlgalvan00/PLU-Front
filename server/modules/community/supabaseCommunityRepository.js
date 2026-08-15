@@ -2,6 +2,8 @@ import { HttpError } from '../../lib/errors.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PHOTO_SIGNED_TTL_SEC = 3600
+const PHOTO_URL_CACHE_MS = (PHOTO_SIGNED_TTL_SEC - 60) * 1000
+const signedPhotoUrlCache = new Map()
 
 function assertSupabaseResult(result, fallback = 'No se pudo consultar la comunidad.') {
   if (result?.error) {
@@ -36,21 +38,35 @@ function normalizeMember(row) {
 }
 
 async function attachSignedPhotoUrls(client, members) {
-  await Promise.all(
-    members.map(async (member) => {
-      if (!member.photoPath) return
-      try {
-        const signed = assertSupabaseResult(
-          await client.storage.from(PHOTO_BUCKET).createSignedUrl(member.photoPath, PHOTO_SIGNED_TTL_SEC),
-          'No se pudo firmar la foto del afiliado.',
-        )
-        member.photoUrl = signed?.signedUrl ?? null
-      } catch {
-        member.photoUrl = null
+  const now = Date.now()
+  const paths = [...new Set(members.map((member) => member.photoPath).filter(Boolean))]
+  const missingPaths = paths.filter((path) => {
+    const cached = signedPhotoUrlCache.get(path)
+    return !cached || cached.expiresAt <= now
+  })
+
+  if (missingPaths.length > 0) {
+    try {
+      const signed = assertSupabaseResult(
+        await client.storage.from(PHOTO_BUCKET).createSignedUrls(missingPaths, PHOTO_SIGNED_TTL_SEC),
+      )
+      for (const item of signed ?? []) {
+        if (!item?.path || !item?.signedUrl) continue
+        signedPhotoUrlCache.set(item.path, {
+          url: item.signedUrl,
+          expiresAt: now + PHOTO_URL_CACHE_MS,
+        })
       }
-      delete member.photoPath
-    }),
-  )
+    } catch {
+      // Las fotos son decorativas: el feed sigue disponible sin ellas.
+    }
+  }
+
+  for (const member of members) {
+    const cached = member.photoPath ? signedPhotoUrlCache.get(member.photoPath) : null
+    member.photoUrl = cached?.expiresAt > now ? cached.url : null
+    delete member.photoPath
+  }
   return members
 }
 

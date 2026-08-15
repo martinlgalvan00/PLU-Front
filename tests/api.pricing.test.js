@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
-import { comboOfferSchema, membershipPlanVersionSchema } from '../server/routes/pricing.js'
+import {
+  comboOfferSchema,
+  discountCodeSchema,
+  membershipPlanVersionSchema,
+} from '../server/routes/pricing.js'
 import {
   authHeaders,
   buildStaffUser,
@@ -23,6 +27,19 @@ function planPayload(overrides = {}) {
     intervalCount: 1,
     graceDays: 0,
     effectiveFrom: '',
+    ...overrides,
+  }
+}
+
+function discountCodePayload(overrides = {}) {
+  return {
+    code: 'BIENVENIDA-25',
+    description: 'Beneficio de bienvenida.',
+    percentOff: 25,
+    appliesTo: 'both',
+    maxRedemptions: 30,
+    expiresAt: '2026-12-31T23:59:00Z',
+    active: true,
     ...overrides,
   }
 }
@@ -116,5 +133,35 @@ describe('configuración económica administrativa', () => {
       startsAt: '2026-08-20T12:00:00Z',
       endsAt: '2026-08-19T12:00:00Z',
     }).success).toBe(false)
+  })
+
+  it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/discount-codes`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify(discountCodePayload()),
+      })
+
+      expect(response.status).toBe(201)
+      expect(rpc).toHaveBeenCalledWith('staff_upsert_discount_code', {
+        p_code: expect.objectContaining({
+          code: 'BIENVENIDA-25',
+          percentOff: 25,
+          appliesTo: 'both',
+          maxRedemptions: 30,
+          active: true,
+        }),
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no permite cupones gratis sin un flujo de confirmación específico', () => {
+    expect(discountCodeSchema.safeParse(discountCodePayload({ percentOff: 100 })).success).toBe(false)
+    expect(discountCodeSchema.safeParse(discountCodePayload({ code: 'MAL@' })).success).toBe(false)
   })
 })

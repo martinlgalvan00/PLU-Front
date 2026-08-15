@@ -444,7 +444,7 @@ export default function AdminEventEditor({
   }
 
   const err = (key) => fieldErrors[key]
-  const ticketSalesEnabled = draft.pricing?.ticketsEnabled !== false
+  const ticketSalesEnabled = draft.pricing?.ticketsEnabled === true
   const configuredTicketTypes = (draft.ticketTypes ?? []).filter(
     (ticketType) => ticketType.active !== false,
   ).length

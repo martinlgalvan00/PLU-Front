@@ -29,6 +29,14 @@ const PITBULL = {
   eventSlug: 'pitbull-classic-2026',
 }
 
+/** Peor caso de contraste para el velo del retrato: una foto lisa blanca.
+ *  Si el nombre y los datos se leen sobre esto, se leen sobre cualquier foto. */
+const WHITE_PHOTO =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="#ffffff"/></svg>',
+  )
+
 const FIXTURES = [
   {
     name: 'afiliacion-historia',
@@ -118,6 +126,46 @@ const FIXTURES = [
       athletePhotoUrl: 'https://picsum.photos/seed/plu-athlete/400/400',
       category: 'Open',
       division: 'Equipado',
+      ...PITBULL,
+    },
+  },
+  {
+    name: 'afiliacion-foto-post',
+    label: 'Afiliación con foto de perfil · post',
+    props: {
+      variant: 'membership',
+      format: 'square',
+      athleteName: 'Martina Rivas',
+      athleteCode: 'PLU-ARG-2026-001',
+      athletePhotoUrl: 'https://picsum.photos/seed/plu-athlete/400/400',
+      membershipSeason: '2026',
+      membershipExpiration: '31 ene 2027',
+    },
+  },
+  {
+    name: 'foto-blanca-historia',
+    label: 'Peor caso de contraste: foto blanca · historia',
+    props: {
+      variant: 'membership',
+      format: 'story',
+      athleteName: 'Martina Rivas',
+      athleteCode: 'PLU-ARG-2026-001',
+      athletePhotoUrl: WHITE_PHOTO,
+      membershipSeason: '2026',
+      membershipExpiration: '31 ene 2027',
+    },
+  },
+  {
+    name: 'foto-blanca-post',
+    label: 'Peor caso de contraste: foto blanca · post',
+    props: {
+      variant: 'event',
+      format: 'square',
+      athleteName: 'Agustín Di Santo',
+      athleteCode: 'PA-2847',
+      athletePhotoUrl: WHITE_PHOTO,
+      category: 'Youth',
+      division: 'Clásico',
       ...PITBULL,
     },
   },

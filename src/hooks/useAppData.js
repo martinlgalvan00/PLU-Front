@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
   acceptStaffInvitationRequest,
@@ -28,7 +28,8 @@ import {
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
-import { markSignedOut } from '../lib/sessionNotice.js'
+import { sessionDisplayName } from '../lib/format.js'
+import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
 import {
   FEATURE_KEYS,
   getFeatureAvailability,
@@ -55,12 +56,15 @@ import {
   fetchAdminAthleteData,
   fetchAthleteSession,
   fetchAthleteSnapshot,
+  forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
   logoutAthleteSession,
   loginAthleteSession,
   registerAthlete as registerAthleteRequest,
   registerAthletePhoto as registerAthletePhotoRequest,
   rejectAthletePaymentOrder as rejectAthletePaymentOrderRequest,
+  setEventRegistrationStatus as setRegistrationStatusRequest,
   setMembershipStatus as setMembershipStatusRequest,
+  setRegistrationPublicVisibility as setRegistrationPublicVisibilityRequest,
   updateAthleteProfile as updateAthleteProfileRequest,
 } from '../services/athleteApi.js'
 import { uploadAthletePhoto } from '../services/athletePhotoService.js'
@@ -149,9 +153,16 @@ import {
   upsertDiscountCodeRequest,
 } from '../services/pricingAdminService.js'
 import {
+  deleteRegistrationAccessGate as deleteRegistrationAccessGateRequest,
   fetchRegistrationAccessConfiguration,
   saveRegistrationAccessGate as saveRegistrationAccessGateRequest,
 } from '../services/registrationAccessAdminService.js'
+import {
+  dismissQueueItem as dismissQueueItemRequest,
+  fetchDismissedQueueItems,
+  undismissQueueItem as undismissQueueItemRequest,
+} from '../services/adminQueueService.js'
+import { establishSupabaseSession } from '../services/supabaseSessionService.js'
 import {
   DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
   fetchPublicCheckoutAvailability,
@@ -167,30 +178,21 @@ import {
 // Pago, validación manual o staff). Esta frecuencia es el respaldo seguro para
 // cambios que llegaron desde otra sesión: el browser sólo relee su proyección
 // autorizada, nunca intenta confirmar una afiliación o inscripción localmente.
-const LIVE_ATHLETE_SYNC_MS = 5_000
-const LIVE_STAFF_SYNC_MS = 15_000
-const LIVE_PUBLIC_CATALOG_SYNC_MS = 15_000
-
-// El login de esta app corre sobre Prisma/Auth0, nunca sobre supabase.auth
-// -- sin esto, auth.uid() es siempre null en el navegador y ninguna RPC
-// protegida por is_admin()/can_check_in() puede autorizar a nadie, ni
-// siquiera a un admin real logueado (ver server/services/supabaseAuthBridge.js).
-// El backend genera un magic-link de un solo uso al loguear staff; acá lo
-// canjeamos para tener una sesión real de Supabase Auth en el cliente.
-async function establishSupabaseSession(supabaseAuth) {
-  if (!supabaseAuth || !isSupabaseConfigured) return
-
-  try {
-    const supabase = await getSupabaseClient()
-    await supabase.auth.verifyOtp({
-      email: supabaseAuth.email,
-      token: supabaseAuth.tokenHash,
-      type: 'magiclink',
-    })
-  } catch (error) {
-    console.warn('No se pudo establecer la sesión de Supabase.', error)
-  }
-}
+// Los cambios propios y entre pestañas disparan una invalidación inmediata.
+// Estos intervalos son sólo red de seguridad para cambios de otro dispositivo
+// o un webhook que no llegó al browser; son deliberadamente conservadores
+// para no convertir cada sesión activa en una lectura continua de Supabase.
+const LIVE_ATHLETE_SYNC_MS = 30_000
+const LIVE_STAFF_SYNC_MS = 60_000
+// Umbral antes de anunciar una sincronización en background: si el refetch
+// resuelve más rápido, el aviso ni aparece. Evita un parpadeo por cada ciclo
+// de polling cuando la red responde bien.
+const LIVE_REFRESH_HINT_DELAY_MS = 600
+// El cambio de estado hecho por un staff en otra sesión debe alcanzar la
+// landing sin requerir una recarga manual. La misma sesión se actualiza en el
+// acto desde `setAdminEventState`; este sondeo corto cubre las demás pestañas
+// y dispositivos sin exponer acceso directo del navegador a Supabase.
+const LIVE_PUBLIC_CATALOG_SYNC_MS = 60_000
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -218,6 +220,8 @@ export function useAppData() {
   )
   const [payments, setPayments] = useState(() => (env.demoMode ? demoPayments : []))
   const [athleteDataLoading, setAthleteDataLoading] = useState(false)
+  const [athleteDataRefreshing, setAthleteDataRefreshing] = useState(false)
+  const [athleteDataSyncedAt, setAthleteDataSyncedAt] = useState(null)
   const [athleteDataError, setAthleteDataError] = useState(null)
   // Las entradas viven en Postgres, no en localStorage â€” este estado es
   // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
@@ -250,6 +254,8 @@ export function useAppData() {
   })
   const [registrationAccessLoading, setRegistrationAccessLoading] = useState(false)
   const [registrationAccessError, setRegistrationAccessError] = useState(null)
+  const [dismissedQueueItems, setDismissedQueueItems] = useState([])
+  const [dismissedQueueItemsLoading, setDismissedQueueItemsLoading] = useState(false)
   const [checkoutAvailability, setCheckoutAvailability] = useState(
     DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
   )
@@ -277,6 +283,7 @@ export function useAppData() {
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
+  const athleteDataLoadedRef = useRef(false)
 
   useEffect(() => {
     const onPaymentUpdated = (event) => {
@@ -309,21 +316,31 @@ export function useAppData() {
   useEffect(() => {
     let active = true
     let timerId = null
+    let refreshInFlight = null
 
-    const refreshPublicCatalog = () => fetchPublishedEvents()
-      .then((remoteEvents) => {
-        if (!active) return
-        setAdminEvents((current) => {
-          const bySlug = new Map(current.map((event) => [event.slug, event]))
-          return remoteEvents.map((event) => ({
-            ...bySlug.get(event.slug),
-            ...event,
-            // Fecha del panel (`registration_opens_at`): nunca conservar seed local.
-            registrationOpensAt: event.registrationOpensAt ?? null,
-          }))
+    // El timer, el foco de la pestaña y la carga inicial pueden coincidir.
+    // Una sola petición alcanza: las tres fuentes necesitan el mismo catálogo.
+    const refreshPublicCatalog = () => {
+      if (refreshInFlight) return refreshInFlight
+      refreshInFlight = fetchPublishedEvents()
+        .then((remoteEvents) => {
+          if (!active) return
+          setAdminEvents((current) => {
+            const bySlug = new Map(current.map((event) => [event.slug, event]))
+            return remoteEvents.map((event) => ({
+              ...bySlug.get(event.slug),
+              ...event,
+              // Fecha del panel (`registration_opens_at`): nunca conservar seed local.
+              registrationOpensAt: event.registrationOpensAt ?? null,
+            }))
+          })
         })
-      })
-      .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
+        .catch((error) => console.warn('No se pudieron cargar los eventos publicados.', error))
+        .finally(() => {
+          refreshInFlight = null
+        })
+      return refreshInFlight
+    }
 
     const start = () => {
       if (timerId != null) return
@@ -355,6 +372,8 @@ export function useAppData() {
     }
   }, [])
 
+  // Pública y sin sesión: la lee cualquier visitante para saber si el checkout
+  // de afiliación/inscripción/entradas está habilitado antes de tocar un botón.
   const refreshCheckoutAvailability = useCallback(async () => {
     try {
       const availability = await fetchPublicCheckoutAvailability()
@@ -368,16 +387,9 @@ export function useAppData() {
 
   useEffect(() => {
     void refreshCheckoutAvailability()
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void refreshCheckoutAvailability()
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
   }, [refreshCheckoutAvailability])
 
-  const refreshAdminEvents = useCallback(async () => {
+  const refreshAdminEvents = useCallback(async ({ silent = false } = {}) => {
     const currentSession = sessionRef.current
     if (
       !currentSession ||
@@ -387,22 +399,50 @@ export function useAppData() {
       return null
     }
 
-    setAdminEventsLoading(true)
-    setAdminEventsError(null)
+    if (!silent) {
+      setAdminEventsLoading(true)
+      setAdminEventsError(null)
+    }
     try {
       const remoteEvents = await fetchAdminEvents()
       setAdminEvents(remoteEvents)
+      setAdminEventsError(null)
       return remoteEvents
     } catch (error) {
-      setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      if (!silent) {
+        setAdminEventsError(error?.message ?? 'No se pudieron cargar los eventos.')
+      }
       console.warn('No se pudieron cargar los eventos del panel.', error)
       return null
     } finally {
-      setAdminEventsLoading(false)
+      if (!silent) setAdminEventsLoading(false)
     }
   }, [])
 
-  const refreshAthleteData = useCallback(async () => {
+  const refreshDismissedQueueItems = useCallback(async () => {
+    const currentSession = sessionRef.current
+    if (
+      !currentSession ||
+      isDemoSession(currentSession) ||
+      !hasPermission(currentSession, 'admin.dashboard.read')
+    ) {
+      return null
+    }
+
+    setDismissedQueueItemsLoading(true)
+    try {
+      const dismissals = await fetchDismissedQueueItems()
+      setDismissedQueueItems(dismissals)
+      return dismissals
+    } catch (error) {
+      console.warn('No se pudieron cargar los descartes de la cola de trabajo.', error)
+      return null
+    } finally {
+      setDismissedQueueItemsLoading(false)
+    }
+  }, [])
+
+  const refreshAthleteData = useCallback(async ({ silent = false } = {}) => {
     if (!session || isDemoSession(session)) return
 
     if (session.role === 'athlete_plu') {
@@ -431,23 +471,47 @@ export function useAppData() {
     ])
 
     if (canReadAthleteData) {
-      setAthleteDataLoading(true)
-      setAthleteDataError(null)
+      // Loader bloqueante solo en la primera carga: las sincronizaciones
+      // periódicas (polling de 15s) actualizan en background sin descartar
+      // la pantalla que el staff ya está viendo. El aviso de "sincronizando"
+      // es diferido: refetch rápidos no lo muestran.
+      const isInitialLoad = !athleteDataLoadedRef.current
+      let hintTimerId = null
+      if (isInitialLoad) {
+        setAthleteDataLoading(true)
+        setAthleteDataError(null)
+      } else {
+        hintTimerId = window.setTimeout(
+          () => setAthleteDataRefreshing(true),
+          LIVE_REFRESH_HINT_DELAY_MS,
+        )
+      }
       tasks.push(
         fetchAdminAthleteData()
           .then((data) => {
+            athleteDataLoadedRef.current = true
+            setAthleteDataSyncedAt(Date.now())
             setAthletes(data.athletes)
             setMemberships(data.memberships)
             setRegistrations(data.registrations)
             setPayments(data.payments)
+            setAthleteDataError(null)
           })
           .catch((error) => {
-            setAthleteDataError(
-              error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
-            )
+            // En background un fallo puntual no debe reemplazar la pantalla
+            // por un error: se retiene el último snapshot válido.
+            if (isInitialLoad) {
+              setAthleteDataError(
+                error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
+              )
+            }
             console.error('refreshAthleteData:', error)
           })
-          .finally(() => setAthleteDataLoading(false)),
+          .finally(() => {
+            if (hintTimerId != null) window.clearTimeout(hintTimerId)
+            if (isInitialLoad) setAthleteDataLoading(false)
+            else setAthleteDataRefreshing(false)
+          }),
       )
     } else {
       setAthleteDataLoading(false)
@@ -459,7 +523,11 @@ export function useAppData() {
     }
 
     if (hasPermission(session, 'admin.events.read')) {
-      tasks.push(refreshAdminEvents())
+      tasks.push(refreshAdminEvents({ silent }))
+    }
+
+    if (hasPermission(session, 'admin.dashboard.read')) {
+      tasks.push(refreshDismissedQueueItems())
     }
 
     if (hasPermission(session, 'admin.users.read')) {
@@ -491,7 +559,7 @@ export function useAppData() {
     }
 
     await Promise.all(tasks)
-  }, [refreshAdminEvents, session])
+  }, [refreshAdminEvents, refreshDismissedQueueItems, session])
 
   useEffect(() => {
     refreshAthleteData()
@@ -512,7 +580,7 @@ export function useAppData() {
     const refresh = () => {
       if (liveRefreshInFlightRef.current) return
       liveRefreshInFlightRef.current = true
-      void refreshAthleteData().finally(() => {
+      void refreshAthleteData({ silent: true }).finally(() => {
         liveRefreshInFlightRef.current = false
       })
     }
@@ -568,7 +636,7 @@ export function useAppData() {
         invalidateEventLiveData()
         publishAthleteSnapshotInvalidation()
       }
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
     window.addEventListener('plu:payment-updated', refreshFromServer)
     window.addEventListener('plu:email-verified', refreshFromServer)
@@ -583,7 +651,7 @@ export function useAppData() {
   // relee únicamente su propio snapshot o los datos autorizados del panel.
   useEffect(() => subscribeLiveSync((message) => {
     if (message.type === 'athlete-snapshot-invalidated') {
-      void refreshAthleteData()
+      void refreshAthleteData({ silent: true })
     }
   }), [refreshAthleteData])
 
@@ -695,6 +763,11 @@ export function useAppData() {
     [memberships, athletes],
   )
 
+  const dismissedQueueItemKeys = useMemo(
+    () => new Set(dismissedQueueItems.map((dismissal) => dismissal.itemKey)),
+    [dismissedQueueItems],
+  )
+
   const pendingActions = useMemo(
     () =>
       buildPendingActions({
@@ -704,8 +777,8 @@ export function useAppData() {
         registrations,
         pendingTicketOrders,
         events: adminEvents,
-      }),
-    [payments, athletes, memberships, registrations, pendingTicketOrders, adminEvents],
+      }).filter((item) => !dismissedQueueItemKeys.has(item.id)),
+    [payments, athletes, memberships, registrations, pendingTicketOrders, adminEvents, dismissedQueueItemKeys],
   )
 
   const adminNavBadges = useMemo(
@@ -768,6 +841,7 @@ export function useAppData() {
         registration.athlete?.fullName?.toLowerCase().includes(query) ||
         registration.athlete?.documentId?.toLowerCase().includes(query) ||
         registration.athlete?.email?.toLowerCase().includes(query) ||
+        registration.athlete?.gym?.toLowerCase().includes(query) ||
         registration.event?.toLowerCase().includes(query) ||
         registration.category?.toLowerCase().includes(query) ||
         registration.division?.toLowerCase().includes(query)
@@ -1610,7 +1684,7 @@ export function useAppData() {
     }
     const { deletedMembership } = await deleteMembershipRequest(membershipId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedMembership
   }, [refreshAthleteData, session])
@@ -1626,10 +1700,31 @@ export function useAppData() {
     }
     const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
     applyLocalRemoval()
-    void refreshAthleteData()
+    void refreshAthleteData({ silent: true })
     publishAthleteSnapshotInvalidation()
     return deletedRegistration
   }, [refreshAthleteData, session])
+
+  const setRegistrationPublicVisibilityAction = useCallback(async (registrationId, publicVisible) => {
+    if (!hasPermission(session, 'admin.registrations.write')) {
+      throw new Error('Sin permisos para administrar la visibilidad de inscripciones.')
+    }
+    const eventSlug = registrations.find((item) => item.id === registrationId)?.eventSlug
+    const apply = (registration) => setRegistrations((current) =>
+      current.map((item) => (
+        item.id === registrationId ? { ...item, publicVisible: registration.publicVisible } : item
+      )),
+    )
+    if (isDemoSession(session)) {
+      const registration = { id: registrationId, publicVisible }
+      apply(registration)
+      return registration
+    }
+    const { registration } = await setRegistrationPublicVisibilityRequest(registrationId, publicVisible)
+    apply(registration)
+    if (eventSlug) invalidateEventRegistrationSummary(eventSlug)
+    return registration
+  }, [registrations, session])
 
   const updateAccessRoleStatusAction = useCallback(async (roleId, active) => {
     const currentRole = accessRoles.find((role) => role.id === roleId)
@@ -1829,6 +1924,7 @@ export function useAppData() {
       try {
         const { user, supabaseAuth } = await loginRequest(credentialsOrAccountType)
         setSession(user)
+        markSignedIn(sessionDisplayName(user ?? {}, { short: true }))
         await establishSupabaseSession(supabaseAuth)
         return user
       } catch (error) {
@@ -1839,6 +1935,7 @@ export function useAppData() {
         if (error?.status !== 401 && error?.status !== 429) throw error
         const { user } = await loginAthleteSession(credentialsOrAccountType)
         setSession(user)
+        markSignedIn(sessionDisplayName(user ?? {}, { short: true }))
         return user
       }
     },
@@ -1848,7 +1945,9 @@ export function useAppData() {
   const logout = useCallback(async ({ notify = true } = {}) => {
     const currentSession = session
     setSession(null)
-    if (notify) markSignedOut()
+    // El nombre del toast se captura antes de limpiar la sesión: el aviso
+    // tiene que decir quién salió, no un genérico.
+    if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
 
     if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
       await logoutAthleteSession().catch((error) => {
@@ -1945,6 +2044,82 @@ export function useAppData() {
     [session],
   )
 
+  // Acreditación manual de una orden que el proveedor dio por perdida. Refleja
+  // exactamente lo mismo que `handleApprovePayment` porque el backend devuelve
+  // la misma forma; la diferencia está en qué órdenes acepta, no en el efecto.
+  const handleForceSettlePayment = useCallback(
+    async (paymentId, { reason, reference } = {}) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para acreditar pagos.' }
+      }
+      try {
+        const { order, membership, registration, duplicate } =
+          await forceSettleAthletePaymentOrderRequest(paymentId, { reason, reference })
+        setPayments((c) =>
+          c.map((p) =>
+            p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,
+          ),
+        )
+
+        if (membership) {
+          setMemberships((c) => c.map((m) => (m.id === membership.id ? membership : m)))
+          setAthletes((c) =>
+            c.map((a) => (a.id === membership.athleteId ? { ...a, status: 'afiliado_activo' } : a)),
+          )
+        }
+
+        if (registration) {
+          setRegistrations((c) =>
+            c.map((r) =>
+              r.id === registration.id
+                ? { ...r, status: registration.status, paymentStatus: order.status }
+                : r,
+            ),
+          )
+        }
+
+        setCreatedOrder((c) => (c?.paymentId === paymentId ? { ...c, status: order.status } : c))
+        publishAthleteSnapshotInvalidation()
+
+        return { order, membership, registration, duplicate }
+      } catch (error) {
+        console.error('handleForceSettlePayment:', error)
+        return { error: error?.message ?? 'No se pudo acreditar el pago.' }
+      }
+    },
+    [session],
+  )
+
+  // Corrección manual del estado de una inscripción (confirmar, observar o
+  // cancelar) sin tener que borrarla y volver a crearla.
+  const setRegistrationStatusAction = useCallback(
+    async (registrationId, status, reason) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        return { error: 'Sin permisos para editar inscripciones.' }
+      }
+      try {
+        const { registration, duplicate } = await setRegistrationStatusRequest(
+          registrationId,
+          status,
+          reason,
+        )
+        if (registration) {
+          setRegistrations((current) =>
+            current.map((item) =>
+              item.id === registration.id ? { ...item, status: registration.status } : item,
+            ),
+          )
+        }
+        publishAthleteSnapshotInvalidation()
+        return { registration, duplicate }
+      } catch (error) {
+        if (error instanceof ApiError) return { error: error.message }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de la inscripción.' }
+      }
+    },
+    [session],
+  )
+
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
@@ -1960,7 +2135,7 @@ export function useAppData() {
         )
         // El estado del atleta lo recalcula la RPC (afiliado_activo/registrado),
         // así que se refleja el padrón entero en vez de adivinarlo acá.
-        void refreshAthleteData()
+        void refreshAthleteData({ silent: true })
         publishAthleteSnapshotInvalidation()
         return { membership }
       } catch (error) {
@@ -1978,7 +2153,10 @@ export function useAppData() {
    * en vez de parchear las filas tocadas, porque la RPC descarta las canceladas
    * y las de otro evento y el resultado real puede no ser el pedido.
    */
-  const handleScheduleAssigned = useCallback(() => refreshAthleteData(), [refreshAthleteData])
+  const handleScheduleAssigned = useCallback(
+    () => refreshAthleteData({ silent: true }),
+    [refreshAthleteData],
+  )
 
   const activateDemoMembership = useCallback(
     (athleteId) => {
@@ -2417,6 +2595,65 @@ export function useAppData() {
     }
   }, [refreshRegistrationAccessConfiguration, session])
 
+  const deleteRegistrationAccessGate = useCallback(async (gateId) => {
+    if (!hasPermission(session, 'admin.registration_access.write')) {
+      return { error: 'No tenés permisos para gestionar tandas privadas.' }
+    }
+    try {
+      const deletedGate = await deleteRegistrationAccessGateRequest(gateId)
+      await refreshRegistrationAccessConfiguration()
+      return { deletedGate }
+    } catch (error) {
+      return { error: error?.message ?? 'No pudimos eliminar la tanda.' }
+    }
+  }, [refreshRegistrationAccessConfiguration, session])
+
+  // Update optimista: la cola puede tener muchos ítems y esperar el viaje
+  // completo antes de sacarlo de la vista se siente lento. Si la request
+  // falla, se restaura el estado previo y se avisa con error.
+  const dismissQueueItem = useCallback(async (itemKey, itemType) => {
+    if (!hasPermission(session, 'admin.dashboard.write')) {
+      return { error: 'No tenés permisos para descartar ítems de la cola.' }
+    }
+    const previous = dismissedQueueItems
+    const optimisticEntry = {
+      itemKey,
+      itemType,
+      dismissedBy: null,
+      dismissedAt: new Date().toISOString(),
+    }
+    setDismissedQueueItems((current) => [
+      optimisticEntry,
+      ...current.filter((dismissal) => dismissal.itemKey !== itemKey),
+    ])
+    try {
+      const dismissed = await dismissQueueItemRequest({ itemKey, itemType })
+      setDismissedQueueItems((current) => [
+        dismissed,
+        ...current.filter((dismissal) => dismissal.itemKey !== itemKey),
+      ])
+      return { dismissal: dismissed }
+    } catch (error) {
+      setDismissedQueueItems(previous)
+      return { error: error?.message ?? 'No pudimos descartar este ítem.' }
+    }
+  }, [session, dismissedQueueItems])
+
+  const undismissQueueItem = useCallback(async (itemKey) => {
+    if (!hasPermission(session, 'admin.dashboard.write')) {
+      return { error: 'No tenés permisos para restaurar ítems de la cola.' }
+    }
+    const previous = dismissedQueueItems
+    setDismissedQueueItems((current) => current.filter((dismissal) => dismissal.itemKey !== itemKey))
+    try {
+      await undismissQueueItemRequest(itemKey)
+      return { restored: true }
+    } catch (error) {
+      setDismissedQueueItems(previous)
+      return { error: error?.message ?? 'No pudimos restaurar este ítem.' }
+    }
+  }, [session, dismissedQueueItems])
+
   const setDiscountCodeActive = useCallback(async (codeId, active) => {
     if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
@@ -2502,6 +2739,8 @@ export function useAppData() {
     registrations,
     payments,
     athleteDataLoading,
+    athleteDataRefreshing,
+    athleteDataSyncedAt,
     athleteDataError,
     refreshAthleteData,
     tickets,
@@ -2528,6 +2767,10 @@ export function useAppData() {
     refreshCheckoutAvailability,
     refreshRegistrationAccessConfiguration,
     saveRegistrationAccessGate,
+    deleteRegistrationAccessGate,
+    dismissedQueueItemsLoading,
+    dismissQueueItem,
+    undismissQueueItem,
     refreshPricingConfiguration,
     createMembershipPlanVersion,
     setMembershipPlanActive,
@@ -2566,6 +2809,7 @@ export function useAppData() {
     activateDemoMembership,
     cancelDemoMembership,
     setMembershipStatusAction,
+    setRegistrationStatusAction,
     submitTicketPurchase,
     uploadTicketPaymentProofAction,
     approveTicketPurchase,
@@ -2590,6 +2834,7 @@ export function useAppData() {
     deleteAthleteAction,
     deleteMembershipAction,
     deleteRegistrationAction,
+    setRegistrationPublicVisibilityAction,
     createAccessRoleAction,
     updateAccessRolePermissionsAction,
     updateAccessRoleStatusAction,
@@ -2601,6 +2846,7 @@ export function useAppData() {
     updateSecurityUserStatusAction,
     loginWithGateToken,
     handleApprovePayment,
+    handleForceSettlePayment,
     handleRejectPayment,
     exportAdminCsv,
     exportPluUsaCsv,

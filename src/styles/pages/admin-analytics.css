@@ -40,10 +40,9 @@
   flex-wrap: nowrap;
   max-width: min(100%, 420px);
   overflow-x: auto;
-  padding: 2px;
-  border: 1px solid var(--color-border-subtle);
+  padding: 4px;
   border-radius: var(--border-radius-md);
-  background: var(--color-bg-surface);
+  background: var(--color-bg-elevated);
   scrollbar-width: none;
 }
 
@@ -79,8 +78,9 @@
 }
 
 .admin-analytics__ranges button.is-active {
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
+  box-shadow: var(--elevation-sm);
 }
 
 .admin-analytics__ranges button:focus-visible {
@@ -89,10 +89,11 @@
 }
 
 .admin-analytics__pulse {
-  background: color-mix(in srgb, var(--color-bg-secondary) 72%, transparent);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
-  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg) var(--space-lg);
+  box-shadow: var(--elevation-sm);
 }
 
 .admin-analytics__metrics {
@@ -104,12 +105,10 @@
 
 .admin-analytics__metrics > div {
   min-width: 0;
-  padding: 2px var(--space-md);
-  border-left: 1px solid var(--color-border-subtle);
+  padding: 2px var(--space-lg) 2px 0;
 }
 
 .admin-analytics__metrics > div:first-child {
-  border-left: 0;
   padding-left: 0;
 }
 
@@ -132,6 +131,19 @@
   margin: 4px 0 0;
 }
 
+/*
+ * Aclaración al pie de una métrica cuyo número no se explica solo. La usa
+ * "Sesiones con atención", que sin el criterio a la vista es un valor absoluto
+ * sin referencia: 341 no dice nada hasta saber sobre cuántas y bajo qué corte.
+ */
+.admin-analytics__metric-hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+  text-wrap: pretty;
+}
+
 .admin-analytics__metric-delta {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -148,6 +160,36 @@
 
 .admin-analytics__metric-delta--flat {
   color: var(--color-text-muted);
+}
+
+.admin-analytics__metrics--secondary {
+  border-top: 1px solid var(--color-border-subtle);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--space-md) 0 0;
+  padding-top: var(--space-sm);
+}
+
+.admin-analytics__metrics--secondary > div {
+  border-left: 1px solid var(--color-border-subtle);
+  padding: 2px var(--space-md);
+}
+
+.admin-analytics__metrics--secondary > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.admin-analytics__metrics--secondary dt {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-analytics__metrics--secondary dd {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 2px 0 0;
 }
 
 .admin-analytics__summary {
@@ -302,7 +344,7 @@
 }
 
 .admin-analytics__funnel-bar {
-  height: 8px;
+  height: 6px;
   border-radius: var(--border-radius-pill);
   background: var(--color-bg-elevated);
   overflow: hidden;
@@ -321,6 +363,7 @@
 .admin-analytics__funnel small {
   color: var(--color-text-muted);
   font-size: 12px;
+  padding-top: var(--space-xs);
 }
 
 /* --- Mapa de calor --- */
@@ -494,13 +537,37 @@
 
   .admin-analytics__metrics > div,
   .admin-analytics__metrics > div:first-child {
-    border-left: 0;
     padding: 4px 10px 4px 0;
   }
 
   .admin-analytics__metrics > div:nth-child(even) {
+    padding-left: 12px;
+  }
+
+  .admin-analytics__metrics--secondary {
+    gap: 10px 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-analytics__metrics--secondary > div,
+  .admin-analytics__metrics--secondary > div:first-child {
+    border-left: 0;
+    padding: 4px 10px 4px 0;
+  }
+
+  .admin-analytics__metrics--secondary > div:nth-child(even) {
     border-left: 1px solid var(--color-border-subtle);
     padding-left: 12px;
+  }
+
+  .admin-analytics__metrics--secondary > div:nth-child(3) {
+    border-left: 0;
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+
+  .admin-analytics__metrics--secondary dd {
+    font-size: 16px;
   }
 }
 
@@ -806,5 +873,245 @@
   .admin-analytics__ranges button,
   .admin-analytics__devices button {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Presencia en vivo
+ * ---------------------------------------------------------------------------
+ *
+ * Franja fija arriba del informe histórico. Es una sola superficie (no una card
+ * dentro de otra) y usa el celeste de marca como único acento del bloque: el
+ * oro está reservado para la acción principal, y acá no hay ninguna acción.
+ *
+ * La jerarquía la construye la escala, no el color: el número de personas es lo
+ * único grande, la curva lo acompaña y el resto queda en texto secundario.
+ */
+
+.admin-live {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-sm) var(--space-lg);
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  background: var(--color-bg-surface);
+}
+
+.admin-live--loading,
+.admin-live--failed {
+  grid-template-columns: 1fr;
+}
+
+.admin-live__loading,
+.admin-live__empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.admin-live__headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  min-width: 0;
+}
+
+.admin-live__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Único loop de la pantalla, y comunica estado operativo real: late mientras el
+   dato es fresco. Solo `transform` y `opacity`. */
+.admin-live__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-brand-celeste);
+  animation: admin-live-pulse 2s var(--ease-in-out) infinite;
+}
+
+@keyframes admin-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+.admin-live__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.admin-live__count strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-live__count span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.admin-live__spark {
+  width: clamp(96px, 18vw, 200px);
+  height: 28px;
+  overflow: visible;
+}
+
+.admin-live__spark-area {
+  fill: var(--color-brand-celeste-dim);
+}
+
+.admin-live__spark-line {
+  fill: none;
+  stroke: var(--color-brand-celeste);
+  stroke-width: 1.5;
+  /* Sin esto el trazo se deforma: el viewBox se estira con
+     `preserveAspectRatio="none"` y arrastra el grosor con él. */
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+
+.admin-live__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  margin: 0;
+  justify-content: flex-end;
+}
+
+.admin-live__metrics div {
+  min-width: 0;
+}
+
+.admin-live__metrics dt {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-live__metrics dd {
+  margin: 2px 0 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dónde está parada la gente. Ocupa el ancho completo bajo las dos columnas. */
+.admin-live__pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-sm);
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-live__pages li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-elevated);
+  max-width: 100%;
+}
+
+.admin-live__page-path {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-live__page-count {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-live__empty {
+  grid-column: 1 / -1;
+}
+
+/* Dato viejo: el bloque baja de intensidad y el latido se apaga. El estado se
+   comunica además por texto, no solo por color.
+
+   El texto y el punto se tratan por separado: agrupados en un mismo bloque, el
+   `background` que pinta el punto convertía la línea entera en una barra gris
+   con el texto encima del mismo color, y el estado dejaba de leerse. */
+.admin-live--stale .admin-live__status {
+  color: var(--color-text-secondary);
+}
+
+.admin-live--stale .admin-live__pulse {
+  background: var(--color-text-secondary);
+  animation: none;
+}
+
+.admin-live--stale .admin-live__spark-line {
+  stroke: var(--color-text-secondary);
+}
+
+.admin-live--stale .admin-live__spark-area {
+  fill: transparent;
+}
+
+.admin-live__stale-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  /* Las métricas dejan de competir por la fila con el titular y pasan abajo,
+     alineadas a la izquierda como el resto del bloque. */
+  .admin-live {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-live__metrics {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* El punto deja de latir pero conserva el color, que es lo que distingue el
+     dato fresco del viejo. */
+  .admin-live__pulse {
+    animation: none;
   }
 }

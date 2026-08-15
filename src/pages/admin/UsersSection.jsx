@@ -3,7 +3,6 @@ import {
   Ban,
   CheckCircle2,
   KeyRound,
-  LoaderCircle,
   PauseCircle,
   Shield,
   Trash2,
@@ -539,7 +538,8 @@ export default function UsersSection({
                   {canReset ? (
                     <AdminIconButton
                       disabled={busy}
-                      icon={busy ? LoaderCircle : KeyRound}
+                      icon={KeyRound}
+                      spinning={busy}
                       label={t('admin.users.actionReset')}
                       onClick={() => void handleResetPassword(row)}
                       variant="ghost"
@@ -548,7 +548,8 @@ export default function UsersSection({
                   {canUpdateStatus && status !== 'active' ? (
                     <AdminIconButton
                       disabled={busy}
-                      icon={busy ? LoaderCircle : CheckCircle2}
+                      icon={CheckCircle2}
+                      spinning={busy}
                       label={t('admin.users.actionActivate')}
                       onClick={() => void handleStatusChange(row.id, 'active')}
                       variant="celeste"
@@ -557,7 +558,8 @@ export default function UsersSection({
                   {canUpdateStatus && status === 'active' ? (
                     <AdminIconButton
                       disabled={busy}
-                      icon={busy ? LoaderCircle : PauseCircle}
+                      icon={PauseCircle}
+                      spinning={busy}
                       label={t('admin.users.actionSuspend')}
                       onClick={() => void handleStatusChange(row.id, 'suspended')}
                       variant="ghost"

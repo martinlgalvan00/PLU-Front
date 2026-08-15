@@ -47,6 +47,46 @@ export function createSupabaseAnalyticsRepository(
       return rpc('get_operational_alerts', { p_organization_id: organizationId }, 'No se pudieron leer las alertas operativas.') ?? []
     },
 
+    /**
+     * Consumo del plan de Supabase: cuanto pesa la base, que tabla la ocupa y
+     * cuanto de la cuota diaria de analitica se gasto hoy.
+     *
+     * El proyecto vive en el plan gratuito, y eso no es un estado que se sostenga
+     * solo: hay tablas que crecen sin que nadie las mire (la analitica publica, la
+     * bitacora de pg_cron) y el aviso de Supabase llega cuando ya no queda margen.
+     * Sin esto la unica forma de saber cuanto queda es abrir el dashboard de
+     * Supabase, y lo que no esta en el panel propio no se mira.
+     */
+    async databaseUsage({ limit = 15 } = {}) {
+      return rpc('get_database_usage', { p_limit: limit }, 'No se pudo leer el uso de la base.')
+    },
+
+    /**
+     * Presencia en vivo. No lleva rango: "ahora" lo define la RPC contra el
+     * reloj del servidor, y dejar que el cliente mande la ventana permitiria
+     * pedir "los ultimos 30 dias" por un endpoint sin indices para eso.
+     */
+    async live({ windowMinutes = 5 } = {}) {
+      return rpc(
+        'get_analytics_live',
+        { p_organization_id: organizationId, p_window_minutes: windowMinutes },
+        'No se pudo leer la actividad en vivo.',
+      )
+    },
+
+    /**
+     * Accesos del periodo: quienes entraron, quienes no pudieron y por que.
+     * Lee la bitacora de identidad, no la analitica: un acceso es un hecho
+     * auditado, no una visita.
+     */
+    async accessMetrics({ from, to }) {
+      return rpc(
+        'get_access_metrics',
+        { p_from: from, p_to: to, p_organization_id: organizationId },
+        'No se pudieron leer las metricas de acceso.',
+      )
+    },
+
     async pages({ from, to, limit = 25 }) {
       return rpc(
         'get_analytics_pages',

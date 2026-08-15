@@ -64,14 +64,21 @@ function createPrismaDouble(seedUsers) {
 // endpoint. Registra las llamadas para verificar id y actor.
 function createAthleteRepoDouble() {
   const calls = []
+  const visibilityCalls = []
+  const adminDataScopes = []
   return {
     calls,
-    adminData: async () => ({
-      athletes: [{ id: ATHLETE_ID, full_name: 'Atleta visible' }],
-      memberships: [],
-      registrations: [],
-      paymentOrders: [{ id: 'pay-sensitive', amount: 75000 }],
-    }),
+    visibilityCalls,
+    adminDataScopes,
+    adminData: async (scope) => {
+      adminDataScopes.push(scope)
+      return {
+        athletes: [{ id: ATHLETE_ID, full_name: 'Atleta visible' }],
+        memberships: [],
+        registrations: [],
+        paymentOrders: [{ id: 'pay-sensitive', amount: 75000 }],
+      }
+    },
     deleteAthlete: async (athleteId, actor) => {
       calls.push({ athleteId, actor })
       if (athleteId === MISSING_ATHLETE_ID) {
@@ -81,6 +88,10 @@ function createAthleteRepoDouble() {
         id: athleteId,
         removed: { checkIns: 0, memberships: 1, registrations: 1, paymentOrders: 1 },
       }
+    },
+    setRegistrationPublicVisibility: async (registrationId, publicVisible, actor) => {
+      visibilityCalls.push({ registrationId, publicVisible, actor })
+      return { id: registrationId, public_visible: publicVisible }
     },
   }
 }
@@ -208,6 +219,34 @@ describe('borrado de atletas (DELETE /api/athletes/admin/:athleteId)', () => {
   })
 })
 
+describe('visibilidad pública de inscripciones', () => {
+  it('permite a un staff autorizado ocultar una inscripción sin exponer datos personales', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin/registrations/${ATHLETE_ID}/public-visibility`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ publicVisible: false }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.registration).toEqual({ id: ATHLETE_ID, public_visible: false })
+      expect(athleteRepository.visibilityCalls).toEqual([{
+        registrationId: ATHLETE_ID,
+        publicVisible: false,
+        actor: 'usr-admin:admin@pluarg.test',
+      }])
+    } finally {
+      await target.close()
+    }
+  })
+})
+
 describe('lectura segmentada del padrón (GET /api/athletes/admin)', () => {
   it('no expone órdenes si el rol puede ver el dashboard pero no pagos', async () => {
     const user = await buildAdmin('operador_plu_arg')
@@ -227,6 +266,14 @@ describe('lectura segmentada del padrón (GET /api/athletes/admin)', () => {
       expect(body.athletes).toHaveLength(1)
       expect(body.paymentOrders).toEqual([])
       expect(body).not.toHaveProperty('payments')
+      expect(athleteRepository.adminDataScopes).toEqual([
+        {
+          athletes: true,
+          memberships: true,
+          registrations: true,
+          paymentOrders: false,
+        },
+      ])
     } finally {
       await target.close()
     }

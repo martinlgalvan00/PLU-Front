@@ -32,6 +32,10 @@ import {
   reconcileClaimedPaymentAttempt,
   recoverPaymentOperations,
 } from '../modules/payments/paymentRecoveryWorkflow.js'
+import {
+  revalidatePaymentOrder,
+  revalidatePaymentOrders,
+} from '../modules/payments/paymentRevalidationWorkflow.js'
 import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import {
@@ -135,6 +139,26 @@ const operationsQuerySchema = z.object({
 const failureReasonsQuerySchema = z.object({
   from: z.string().trim().min(1).optional(),
   to: z.string().trim().min(1).optional(),
+})
+
+const revalidationSweepSchema = z.object({
+  // Ventana corta por defecto: cada orden es una llamada a la API de Mercado
+  // Pago, y las divergencias que importan son recientes (un cobro perdido se
+  // reclama a los dias, no a los meses).
+  sinceDays: z.coerce.number().int().min(1).max(365).optional().default(30),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(25),
+  // `apply` es opt-in: el barrido informa antes de tocar nada, para que quien
+  // opera vea que se va a corregir.
+  apply: z.boolean().optional().default(false),
+  statuses: z
+    .array(z.enum(['pendiente', 'rechazado', 'cancelado', 'reembolsado', 'aprobado']))
+    .min(1)
+    .max(5)
+    .optional(),
+})
+
+const revalidateOrderSchema = z.object({
+  apply: z.boolean().optional().default(true),
 })
 
 const mockNotifySchema = z.object({
@@ -469,6 +493,46 @@ export function createPaymentRoutes(deps = {}) {
   })
 
   /**
+   * El mismo recorrido, buscado por correo o documento.
+   *
+   * `buildAthleteTimeline` siempre supo resolver por esos dos campos, pero la
+   * unica ruta que lo exponia pedia el UUID del atleta. En soporte nadie tiene
+   * el UUID: llega un correo o un DNI, y para auditar habia que buscar primero
+   * la persona en otra pantalla, copiar el id y recien ahi pedir la traza. Este
+   * endpoint elimina ese salto, que era el que hacia que la traza no se usara.
+   *
+   * Va antes de `/:athleteId` porque Express resuelve por orden de declaracion
+   * y una ruta con parametro tomaria cualquier cosa que llegue en esa posicion.
+   */
+  router.get('/audit/athletes', ...athleteAuditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseInput(
+        z
+          .object({
+            email: z.string().trim().email().max(160).optional(),
+            documentId: z.string().trim().min(6).max(20).regex(/^[\d.-]+$/).optional(),
+          })
+          .refine((value) => value.email || value.documentId, {
+            message: 'Indicá un correo o un documento.',
+          }),
+        req.query,
+      )
+
+      const client = resolveSupabaseAdmin()
+      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+      res.json(await buildAthleteTimeline(client, {
+        email: query.email ?? null,
+        // El documento se guarda sin puntos ni guiones; quien lo copia de un DNI
+        // los trae, y sin normalizar la busqueda no encontraba a nadie.
+        documentId: query.documentId ? query.documentId.replace(/[.-]/g, '') : null,
+        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+      }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
    * Recorrido de afiliacion de un atleta: alta, verificacion de correo,
    * ordenes, pagos y membresia, con el eslabon donde se corto.
    */
@@ -499,6 +563,49 @@ export function createPaymentRoutes(deps = {}) {
         requestId,
         organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
       }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Revalidacion de una orden contra Mercado Pago.
+   *
+   * Es la respuesta a "la orden figura cancelada pero la plata entro": relee
+   * los pagos que el proveedor tiene contra esa orden y aplica el mismo camino
+   * canonico del webhook. No acredita nada por su cuenta — si Mercado Pago no
+   * tiene un pago aprobado, el estado no se mueve. Para el caso contrario (el
+   * dinero entro por fuera del checkout, sin pago en MP) sigue estando
+   * `POST /api/athletes/admin/payment-orders/:orderId/force-settle`, que exige
+   * comprobante y motivo.
+   */
+  router.post('/orders/:orderId/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidateOrderSchema), async (req, res, next) => {
+    try {
+      const orderId = parseInput(z.string().uuid(), req.params.orderId)
+      const result = await revalidatePaymentOrder(orderId, {
+        ...services({ notifications: true }),
+        apply: req.validatedBody.apply,
+        actor: `${req.auth.user.id}:${req.auth.user.email}`,
+      })
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Barrido: revalida las ordenes de Mercado Pago que todavia no estan
+   * aprobadas y devuelve las que difieren de lo que dice el proveedor. Sin
+   * `apply` no toca nada: primero se ve que hay, despues se corrige.
+   */
+  router.post('/operations/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidationSweepSchema), async (req, res, next) => {
+    try {
+      const result = await revalidatePaymentOrders({
+        ...services({ notifications: true }),
+        ...req.validatedBody,
+        actor: `${req.auth.user.id}:${req.auth.user.email}`,
+      })
+      res.json(result)
     } catch (error) {
       next(error)
     }

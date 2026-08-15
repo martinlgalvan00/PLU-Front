@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { LoaderCircle, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 
 /**
@@ -147,7 +147,11 @@ export default function AdminDeleteConfirmDialog({
             disabled={busy || !phraseMatches}
             onClick={onConfirm}
           >
-            {busy ? <LoaderCircle size={15} aria-hidden /> : <Trash2 size={15} aria-hidden />}
+            {busy ? (
+              <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
+            ) : (
+              <Trash2 size={15} aria-hidden />
+            )}
             {busy ? busyLabel : confirmLabel}
           </Button>
         </div>

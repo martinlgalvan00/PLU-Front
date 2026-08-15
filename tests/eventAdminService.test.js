@@ -3,6 +3,7 @@ import {
   buildAdminEventDraft,
   createAdminEventDraft,
   filterAdminEvents,
+  getEventRegistrationAvailability,
   getInitialAdminEvents,
   getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
@@ -130,6 +131,27 @@ describe('eventAdminService', () => {
     ])
   })
 
+  it('usa el count agregado del catálogo público sin traer filas de inscripciones', () => {
+    const event = mapSupabaseEventRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-08-15T12:00:00.000Z',
+      ends_at: '2026-08-15T20:00:00.000Z',
+      capacity: 120,
+      price: 75000,
+      currency: 'ARS',
+      rules: {},
+      eventRegistrations: [{ count: 48 }],
+      eventDays: [],
+      ticketTypes: [],
+    })
+
+    expect(event.registered).toBe(48)
+  })
+
   it('filtra sin romperse ante datos parciales del backend', () => {
     const events = [
       { id: 'one', title: 'Open', venue: null, location: null, slug: null, status: 'proximamente' },
@@ -231,6 +253,71 @@ describe('getEventConsistencyWarnings', () => {
     expect(getEventConsistencyWarnings(draft({ status: 'finalizado' }), null, now)).toContain(
       'finishedButNotEnded',
     )
+  })
+})
+
+describe('getEventRegistrationAvailability', () => {
+  const now = new Date('2026-08-01T12:00:00.000Z')
+
+  it('considera habilitada una inscripción sólo cuando estado, publicación y ventana coinciden', () => {
+    const availability = getEventRegistrationAvailability(
+      {
+        status: 'inscripcion_abierta',
+        published: true,
+        slots: 120,
+        registered: 32,
+        registrationOpensAt: '2026-07-01T00:00:00.000Z',
+        registrationClosesAt: '2026-09-01T00:00:00.000Z',
+      },
+      now,
+    )
+
+    expect(availability.isLive).toBe(true)
+    expect(availability.canOpen).toBe(false)
+  })
+
+  it('no habilita desde el atajo si la ventana todavía no abrió o ya venció', () => {
+    const scheduled = getEventRegistrationAvailability(
+      {
+        status: 'proximamente',
+        published: true,
+        slots: 120,
+        registered: 0,
+        registrationOpensAt: '2026-08-10T00:00:00.000Z',
+      },
+      now,
+    )
+    const expired = getEventRegistrationAvailability(
+      {
+        status: 'proximamente',
+        published: true,
+        slots: 120,
+        registered: 0,
+        registrationClosesAt: '2026-07-31T00:00:00.000Z',
+      },
+      now,
+    )
+
+    expect(scheduled).toMatchObject({ scheduled: true, canOpen: false, isLive: false })
+    expect(expired).toMatchObject({ closedByWindow: true, canOpen: false, isLive: false })
+  })
+
+  it('no intenta reabrir un evento agotado aunque el conteo local sea parcial', () => {
+    const availability = getEventRegistrationAvailability(
+      { status: 'agotado', published: true, slots: 120, registered: 0 },
+      now,
+    )
+
+    expect(availability).toMatchObject({ full: true, canOpen: false, isLive: false })
+  })
+
+  it('permite abrir un próximo evento si está publicado o todavía oculto', () => {
+    const availability = getEventRegistrationAvailability(
+      { status: 'proximamente', published: false, slots: 120, registered: 0 },
+      now,
+    )
+
+    expect(availability).toMatchObject({ canOpen: true, canSetUpcoming: true })
   })
 })
 

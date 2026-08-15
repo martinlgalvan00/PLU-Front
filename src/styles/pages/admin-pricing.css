@@ -21,6 +21,7 @@
 }
 
 .admin-pricing__hero {
+  align-items: center;
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   padding-bottom: 1rem;
 }
@@ -144,6 +145,29 @@
   background: color-mix(in srgb, var(--color-brand-action) 88%, var(--color-text-primary));
 }
 
+.admin-pricing__refresh {
+  flex: none;
+  min-height: 44px;
+  min-width: 44px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 44px;
+}
+
+.admin-pricing__refresh .admin-pricing__btn-label {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .admin-pricing button:disabled,
 .admin-pricing fieldset:disabled {
   cursor: not-allowed;
@@ -186,6 +210,68 @@
   border-top-color: color-mix(in srgb, var(--color-brand-gold) 42%, var(--color-border-subtle));
   border-radius: 4px;
   padding: clamp(1rem, 2.4vw, 1.35rem);
+}
+
+.admin-pricing__combo-head-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 0.65rem;
+}
+
+.admin-pricing__combo-disclosure {
+  min-height: 36px;
+}
+
+.admin-pricing__combo-disclosure-chevron {
+  transition: transform var(--transition-fast, 160ms ease);
+}
+
+.admin-pricing__combo-disclosure[aria-expanded='true'] .admin-pricing__combo-disclosure-chevron {
+  transform: rotate(180deg);
+}
+
+.admin-pricing__combo-summary {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.admin-pricing__combo-summary > div {
+  border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.2rem clamp(0.75rem, 2vw, 1.1rem);
+}
+
+.admin-pricing__combo-summary > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.admin-pricing__combo-summary dt {
+  color: var(--color-text-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.admin-pricing__combo-summary dd {
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-pricing__combo-summary-price dd {
+  color: var(--color-brand-gold);
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-pricing__block > .admin-pricing__form {
@@ -343,6 +429,11 @@
   gap: 0.28rem;
 }
 
+.admin-pricing__plan-meta-date--urgent {
+  color: var(--color-warning-text);
+  font-weight: 650;
+}
+
 .admin-pricing__plan-amount {
   flex: none;
   font-family: var(--font-display, var(--font-family));
@@ -366,6 +457,86 @@
 
 .admin-pricing__plan-amount--percent {
   color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 92%, var(--color-text-primary));
+}
+
+.admin-pricing__copy-code {
+  flex: none;
+  font-size: 0.7rem;
+  min-height: 44px;
+  padding-inline: 0.35rem;
+}
+
+.admin-pricing__copy-code:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.admin-pricing__coupon-row--expired .admin-pricing__status,
+.admin-pricing__coupon-row--expired .admin-pricing__coupon-usage-head > span {
+  color: var(--color-warning-text);
+}
+
+.admin-pricing__coupon-row--expired .admin-pricing__status-dot {
+  background: var(--plu-warning-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-warning-500) 14%, transparent);
+}
+
+.admin-pricing__coupon-row--exhausted .admin-pricing__coupon-usage-head > span {
+  color: var(--color-text-secondary);
+  font-weight: 650;
+}
+
+.admin-pricing__coupon-row:not(.admin-pricing__coupon-row--active) .admin-pricing__plan-amount--percent {
+  color: var(--color-text-muted);
+}
+
+.admin-pricing__coupon-usage {
+  display: grid;
+  gap: 0.32rem;
+  margin-top: 0.12rem;
+  max-width: 20rem;
+}
+
+.admin-pricing__coupon-usage-head {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 0.69rem;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.admin-pricing__coupon-usage-head strong {
+  color: var(--color-text-secondary);
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.admin-pricing__coupon-progress {
+  appearance: none;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border: 0;
+  border-radius: var(--border-radius-pill);
+  display: block;
+  height: 0.32rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.admin-pricing__coupon-progress::-webkit-progress-bar {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-pricing__coupon-progress::-webkit-progress-value {
+  background: var(--color-brand-action);
+  border-radius: inherit;
+}
+
+.admin-pricing__coupon-progress::-moz-progress-bar {
+  background: var(--color-brand-action);
+  border-radius: inherit;
 }
 
 .admin-pricing__retirement-form {
@@ -507,10 +678,11 @@
 
 .admin-pricing__form--combo {
   background: transparent;
-  border: none;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   display: grid;
   gap: 1.1rem;
-  padding: 0;
+  padding: 1.1rem 0 0;
 }
 
 .admin-pricing__offer-pill {
@@ -813,17 +985,61 @@
   justify-content: flex-end;
 }
 
-.admin-pricing__empty,
+.admin-pricing__empty {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  display: flex;
+  font-size: 0.82rem;
+  min-height: 52px;
+  padding: 0.65rem 0;
+}
+
 .admin-pricing__loading {
   font-size: 0.88rem;
   padding: 0.25rem 0;
+}
+
+.admin-pricing__subscription-empty {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 88px;
+  padding: 0.9rem 0;
+}
+
+.admin-pricing__subscription-empty-icon {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-pricing__subscription-empty strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-pricing__subscription-empty p {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  margin: 0.18rem 0 0;
+  max-width: 52ch;
 }
 
 /* El rail colapsado achica el contenido sin achicar el viewport.
    Los cortes miran el tablero, con @media como fallback. */
 @supports (container-type: inline-size) {
   @container admin-pricing (max-width: 899px) {
-    .admin-pricing__hero,
     .admin-pricing__block-head {
       align-items: stretch;
       flex-direction: column;
@@ -833,6 +1049,32 @@
     .admin-pricing__block-head .admin-pricing__btn {
       min-height: 44px;
       width: 100%;
+    }
+
+    .admin-pricing__combo-head-actions {
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .admin-pricing__block-head .admin-pricing__combo-disclosure {
+      width: auto;
+    }
+
+    .admin-pricing__combo-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-pricing__combo-summary > div {
+      padding-block: 0.7rem;
+    }
+
+    .admin-pricing__combo-summary > div:nth-child(odd) {
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .admin-pricing__combo-summary > div:nth-child(n + 3) {
+      border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
     }
 
     .admin-pricing__combo-toolbar,
@@ -898,7 +1140,6 @@
   }
 
   @container admin-pricing (max-width: 719px) {
-    .admin-pricing__hero,
     .admin-pricing__block-head {
       align-items: stretch;
       flex-direction: column;
@@ -914,26 +1155,7 @@
     }
 
     .admin-pricing__refresh {
-      align-self: flex-start;
-      min-height: 44px;
-      min-width: 44px;
-      overflow: hidden;
-      padding: 0;
-      position: relative;
-      width: 44px;
-    }
-
-    .admin-pricing__refresh .admin-pricing__btn-label {
-      border: 0;
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-      height: 1px;
-      margin: -1px;
-      overflow: hidden;
-      padding: 0;
-      position: absolute;
-      white-space: nowrap;
-      width: 1px;
+      align-self: center;
     }
 
     .admin-pricing__block-head .admin-pricing__btn {
@@ -1005,6 +1227,20 @@
   }
 
   @container admin-pricing (max-width: 430px) {
+    .admin-pricing__combo-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__combo-summary > div {
+      border-left: 0;
+      border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+      padding-inline: 0;
+    }
+
+    .admin-pricing__combo-summary > div:first-child {
+      border-top: 0;
+    }
+
     .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
       grid-template-columns: 1fr;
     }
@@ -1022,7 +1258,6 @@
 }
 
 @media (max-width: 900px) {
-  .admin-pricing__hero,
   .admin-pricing__block-head {
     align-items: stretch;
     flex-direction: column;
@@ -1126,7 +1361,6 @@
 }
 
 @media (max-width: 640px) {
-  .admin-pricing__hero,
   .admin-pricing__block-head {
     align-items: stretch;
     flex-direction: column;

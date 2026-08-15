@@ -28,6 +28,7 @@ export default function AthleteProfilePage({
   onStartMembershipPayment,
   demoMode = false,
   onNavigate,
+  onSelectEvent,
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
@@ -101,6 +102,7 @@ export default function AthleteProfilePage({
         athleteRegistrations={athleteRegistrations}
         membership={membership}
         onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
         athlete={athlete}
         onNavigateSection={setActiveTab}
         checkoutAvailability={checkoutAvailability}
@@ -121,6 +123,8 @@ export default function AthleteProfilePage({
         onStartMembershipPayment={onStartMembershipPayment}
         demoMode={demoMode}
         gateEvent={gateEvent}
+        events={availableEvents}
+        onSelectEvent={onSelectEvent}
         checkoutAvailability={checkoutAvailability}
       />
     ),

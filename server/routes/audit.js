@@ -4,6 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { requirePermission } from '../middleware/auth.js'
 import { staffLimiter } from '../middleware/rateLimit.js'
 import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRepository.js'
+import { AUDIT_CATEGORY_KEYS } from '../modules/audit/auditActionCategories.js'
 
 /**
  * audit.js — PLU ARG
@@ -19,6 +20,14 @@ import { createSupabaseAuditRepository } from '../modules/audit/supabaseAuditRep
 
 const listQuerySchema = z.object({
   action: z.string().trim().min(1).max(80).optional(),
+  /**
+   * Agrupa los nombres que describen el mismo hecho con distinta convención
+   * (`payment.webhook_failed` de la app y `payment_webhook.failed` del
+   * trigger). Se valida contra el catálogo cerrado y no como texto libre: el
+   * valor termina en un `like` de PostgREST, así que aceptar cualquier string
+   * sería dejar entrar el patrón a la consulta.
+   */
+  category: z.enum(AUDIT_CATEGORY_KEYS).optional(),
   entityType: z.string().trim().min(1).max(60).optional(),
   entityId: z.string().trim().min(1).max(120).optional(),
   entityIds: z
@@ -42,8 +51,20 @@ const listQuerySchema = z.object({
     .refine((value) => value.length > 0)
     .optional(),
   before: z.string().datetime({ offset: true }).optional(),
+  // Complemento del cursor: sin él, las filas que empatan `created_at` con el
+  // último registro de la página (típico de una transacción que audita varios
+  // efectos con el mismo `now()`) quedan fuera de la página siguiente.
+  beforeId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .regex(/^[\w-]+$/)
+    .optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
 })
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
   const router = Router()
@@ -62,14 +83,38 @@ export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
       const parsed = listQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Parámetros de auditoría inválidos.')
       const entries = await repo().list(parsed.data)
+      const isFullPage = entries.length === parsed.data.limit
       res.json({
         entries,
         // El cursor sale del último registro devuelto: la UI lo reenvía como
-        // `before` para pedir la página siguiente.
-        nextCursor: entries.length === parsed.data.limit
-          ? entries[entries.length - 1].created_at
-          : null,
+        // `before`/`beforeId` para pedir la página siguiente.
+        nextCursor: isFullPage ? entries[entries.length - 1].created_at : null,
+        nextCursorId: isFullPage ? entries[entries.length - 1].id : null,
       })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Detalle de un evento con su contexto alrededor.
+   *
+   * La tabla muestra el mensaje del error y nada más. Todo lo que hace falta
+   * para diagnosticar —código, status HTTP, archivo y línea de origen, stack
+   * completo, cadena de causas, diagnóstico— ya se guarda en `metadata`, pero
+   * no había forma de abrirlo. Y la pregunta que más se repite frente a una
+   * falla, "¿qué venía haciendo esta persona?", no la contestaba nadie.
+   */
+  router.get('/:id/context', ...auditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const id = String(req.params.id ?? '').trim()
+      if (!UUID_PATTERN.test(id)) throw new HttpError(400, 'Identificador de evento inválido.')
+
+      const store = repo()
+      const event = await store.getById(id)
+      if (!event) throw new HttpError(404, 'El evento de auditoría no existe.')
+
+      res.json({ event, context: await store.context(event) })
     } catch (error) {
       next(error)
     }

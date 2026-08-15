@@ -8,7 +8,7 @@ export default function AdminEventTicketInsights({ event, tickets }) {
   const { locale, t } = useI18n()
   const stats = useMemo(() => buildEventTicketStats(tickets, event.slug), [event.slug, tickets])
 
-  if (event.pricing?.ticketsEnabled === false) {
+  if (event.pricing?.ticketsEnabled !== true) {
     return (
       <div className="admin-event-ticket-insights admin-event-ticket-insights--disabled">
         <p>{t('admin.eventEditor.ticketsDisabledNote')}</p>

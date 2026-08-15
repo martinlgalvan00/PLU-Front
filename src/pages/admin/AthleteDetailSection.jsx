@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, BadgeCheck, Trash2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Route, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
@@ -7,6 +7,7 @@ import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -47,6 +48,7 @@ export default function AthleteDetailSection({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [traceOrderId, setTraceOrderId] = useState(null)
   const {
     athlete,
     memberships = [],
@@ -142,6 +144,7 @@ export default function AthleteDetailSection({
         flat
         metaLayout="inline"
         name={athlete.fullName}
+        photoUrl={athlete.photoUrl}
         documentId={athlete.documentId}
         gym={athlete.gym}
         status={athlete.status}
@@ -294,6 +297,12 @@ export default function AthleteDetailSection({
                 render: (row) => (
                   <AdminTableActions>
                     <AdminIconButton
+                      icon={Route}
+                      label={t('admin.paymentTrace.open')}
+                      onClick={() => setTraceOrderId(row.id)}
+                      variant="ghost"
+                    />
+                    <AdminIconButton
                       disabled={!canEdit || row.status === 'aprobado'}
                       icon={BadgeCheck}
                       label={t('admin.actions.validate')}
@@ -307,6 +316,9 @@ export default function AthleteDetailSection({
             rows={payments}
             emptyMessage={t('admin.athleteDetail.emptyPayments')}
           />
+          {traceOrderId ? (
+            <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
+          ) : null}
         </div>
       )}
 

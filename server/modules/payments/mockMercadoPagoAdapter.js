@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
+import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
 
 export const MOCK_PAYMENT_METHODS = Object.freeze({
   mock_approved: 'approved',
@@ -163,6 +164,26 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
       const payment = payments.get(String(id))
       if (!payment) throw new HttpError(404, 'Pago mock no encontrado.')
       return clone(payment)
+    },
+
+    /**
+     * Mismo contrato que el adaptador real: los pagos de la orden buscados por
+     * `external_reference`. Sin esto, el retorno del navegador sin `payment_id`
+     * y la revalidacion contra el proveedor no se podian probar en local.
+     */
+    async searchPaymentsForOrder(order) {
+      return [...payments.values()]
+        .filter((payment) => String(payment.external_reference ?? '') === String(order.id))
+        .map(clone)
+    },
+
+    async findPaymentForOrder(order) {
+      const canonical = selectCanonicalProviderPayment(
+        [...payments.values()].filter(
+          (payment) => String(payment.external_reference ?? '') === String(order.id),
+        ),
+      )
+      return canonical ? clone(canonical) : null
     },
 
     /**

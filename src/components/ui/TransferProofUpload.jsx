@@ -83,7 +83,7 @@ export default function TransferProofUpload({ orderId, onUploaded }) {
         aria-busy={busy || undefined}
       >
         {busy ? (
-          <span className="account-transfer-proof__spinner" aria-hidden />
+          <span className="plu-spinner account-transfer-proof__spinner" aria-hidden />
         ) : (
           <Upload size={18} aria-hidden />
         )}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, RefreshCw, Route } from 'lucide-react'
+import { BadgeCheck, HandCoins, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -9,11 +9,13 @@ import {
   AdminTableActions,
 } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
-import LoadingState from '../../components/ui/LoadingState.jsx'
+import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
+import { revalidatePaymentOrder } from '../../services/paymentService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 
@@ -61,10 +63,22 @@ function canValidateConcept(concept, validationEnabled) {
   return validationEnabled[concept] !== false
 }
 
+/**
+ * Órdenes que el flujo normal ya no puede resolver pero todavía tienen arreglo:
+ * un cobro de Mercado Pago que quedó rechazado, o una transferencia rechazada
+ * cuyo dinero terminó entrando igual. Son las candidatas a acreditación manual.
+ */
+function canForceSettleRow(row) {
+  if (row.status === 'aprobado') return false
+  return row.method === 'mercado_pago' || row.status === 'rechazado'
+}
+
 export default function AthletePaymentOrdersSection({
   canEdit,
+  canForceSettle = false,
   highlightOrderId = null,
   onApprovePayment,
+  onForceSettlePayment,
   onRejectPayment,
   onSummaryChange,
   refreshKey = 0,
@@ -79,6 +93,8 @@ export default function AthletePaymentOrdersSection({
   const [approvingId, setApprovingId] = useState(null)
   const [reviewRow, setReviewRow] = useState(null)
   const [traceOrderId, setTraceOrderId] = useState(null)
+  const [revalidatingId, setRevalidatingId] = useState(null)
+  const [revalidation, setRevalidation] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -166,6 +182,7 @@ export default function AthletePaymentOrdersSection({
       const result = await onApprovePayment?.(orderId)
       if (result?.error) {
         setError(result.error)
+        notifyError(result.error)
         return false
       }
       // El backend ya devuelve la orden actualizada: parchear la fila en vez
@@ -178,17 +195,18 @@ export default function AthletePaymentOrdersSection({
       } else {
         await load()
       }
+      notifySuccess(t('admin.toasts.paymentApproved'))
       return true
     } finally {
       setApprovingId(null)
     }
   }
 
-  async function reject(orderId, reason) {
+  async function forceSettle(orderId, { reason, reference }) {
     setApprovingId(orderId)
     setError('')
     try {
-      const result = await onRejectPayment?.(orderId, reason)
+      const result = await onForceSettlePayment?.(orderId, { reason, reference })
       if (result?.error) {
         setError(result.error)
         return false
@@ -206,9 +224,60 @@ export default function AthletePaymentOrdersSection({
     }
   }
 
-  function openReview(row) {
+  /**
+   * Confronta la orden contra Mercado Pago y aplica lo que diga el proveedor.
+   * No es una corrección a mano: si Mercado Pago no tiene un pago aprobado, el
+   * estado no se mueve y el resultado lo dice.
+   */
+  async function revalidate(orderId) {
+    setRevalidatingId(orderId)
+    setError('')
+    setRevalidation(null)
+    try {
+      const result = await revalidatePaymentOrder(orderId)
+      setRevalidation({ orderId, ...result })
+      if (result?.resultStatus && result.resultStatus !== result.localStatus) {
+        setOrders((current) =>
+          current.map((order) =>
+            order.id === orderId ? { ...order, status: result.resultStatus } : order,
+          ),
+        )
+      }
+    } catch (revalidateError) {
+      setError(revalidateError?.message ?? t('admin.athletePayments.revalidateError'))
+    } finally {
+      setRevalidatingId(null)
+    }
+  }
+
+  async function reject(orderId, reason) {
+    setApprovingId(orderId)
+    setError('')
+    try {
+      const result = await onRejectPayment?.(orderId, reason)
+      if (result?.error) {
+        setError(result.error)
+        notifyError(result.error)
+        return false
+      }
+      if (result?.order) {
+        setOrders((current) =>
+          current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
+        )
+      } else {
+        await load()
+      }
+      notifySuccess(t('admin.toasts.paymentRejected'))
+      return true
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  function openReview(row, mode = 'validate') {
     setError('')
     setReviewRow({
+      mode,
       type: 'payment',
       paymentId: row.id,
       hasProof: row.hasProof,
@@ -263,8 +332,29 @@ export default function AthletePaymentOrdersSection({
         />
       ) : null}
 
+      {/* Resultado de la última revalidación: qué decía el panel, qué dice
+          Mercado Pago y qué quedó. Es la constancia de que el estado que se ve
+          ahora salió del proveedor y no de una corrección a mano. */}
+      {revalidation ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <ScanSearch size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            <strong>{t(`admin.athletePayments.revalidate.${revalidation.outcome}`)}</strong>
+            <p>
+              {t('admin.athletePayments.revalidateDetail', {
+                reference: revalidation.order?.reference ?? '—',
+                local: t(`status.${revalidation.localStatus}`),
+                provider: revalidation.providerStatus
+                  ? t(`status.${revalidation.providerStatus}`)
+                  : t('admin.athletePayments.revalidateNoPayment'),
+              })}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {loading ? (
-        <LoadingState label={t('admin.athletePayments.loading')} />
+        <TableSkeleton rows={6} columns={8} label={t('admin.athletePayments.loading')} />
       ) : (
         <AdminDataTable
           className="admin-data-table--athlete-orders"
@@ -360,6 +450,20 @@ export default function AthletePaymentOrdersSection({
                     onClick={() => setTraceOrderId(row.id)}
                     variant="ghost"
                   />
+                  {/* Confrontar contra el proveedor es la vía sana cuando el
+                      estado que figura no coincide con la plata: no acredita
+                      nada por sí sola, aplica lo que responde Mercado Pago.
+                      Va antes que la acreditación manual para que sea lo
+                      primero que se prueba. */}
+                  {canEdit && row.method === 'mercado_pago' ? (
+                    <AdminIconButton
+                      disabled={revalidatingId === row.id || approvingId === row.id}
+                      icon={ScanSearch}
+                      label={t('admin.athletePayments.revalidate.action')}
+                      onClick={() => void revalidate(row.id)}
+                      variant="ghost"
+                    />
+                  ) : null}
                   <AdminIconButton
                     disabled={
                       !canEdit ||
@@ -380,6 +484,22 @@ export default function AthletePaymentOrdersSection({
                     onClick={() => openReview(row)}
                     variant="celeste"
                   />
+                  {/* Vía de excepción: sólo aparece en las órdenes que el botón
+                      de validar no puede tocar (Mercado Pago, o rechazadas),
+                      para que no compita con el flujo normal. */}
+                  {canForceSettle && canForceSettleRow(row) ? (
+                    <AdminIconButton
+                      disabled={!row.validatable || approvingId === row.id}
+                      icon={HandCoins}
+                      label={
+                        row.validatable
+                          ? t('admin.athletePayments.forceSettle')
+                          : t('admin.athletePayments.validationPaused')
+                      }
+                      onClick={() => openReview(row, 'settle')}
+                      variant="ghost"
+                    />
+                  ) : null}
                 </AdminTableActions>
               ),
             },
@@ -396,13 +516,17 @@ export default function AthletePaymentOrdersSection({
       {reviewRow ? (
         <PaymentValidationDialog
           item={reviewRow}
+          mode={reviewRow.mode ?? 'validate'}
           busy={approvingId === reviewRow.paymentId}
           error={error}
           onCancel={() => setReviewRow(null)}
-          onConfirm={() => {
+          onConfirm={(settlement) => {
             const paymentId = reviewRow.paymentId
-            void approve(paymentId).then((approved) => {
-              if (approved) setReviewRow(null)
+            const action = reviewRow.mode === 'settle'
+              ? forceSettle(paymentId, settlement)
+              : approve(paymentId)
+            void action.then((done) => {
+              if (done) setReviewRow(null)
             })
           }}
           onReject={(reason) => {

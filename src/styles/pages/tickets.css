@@ -239,6 +239,23 @@
   width: 100%;
 }
 
+.tickets-page__sales-paused {
+  align-items: center;
+  border-left: 2px solid var(--plu-gold-500);
+  color: color-mix(in oklab, var(--design-hero-fg, #fff) 78%, transparent);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 8px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+  padding-left: 10px;
+}
+
+.tickets-page__sales-paused svg {
+  color: var(--plu-gold-400, var(--plu-gold-500));
+  flex: none;
+}
+
 .tickets-page__hero-copy::before {
   background: var(--home-hero-editorial-rule, linear-gradient(180deg, var(--plu-celeste-500), #fff 50%, var(--plu-gold-500)));
   border-radius: 99px;

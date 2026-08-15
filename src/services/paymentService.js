@@ -1,5 +1,6 @@
 import { apiGet, apiPost, apiRequest } from '../lib/api.js'
 import { filterPublicMembershipPlans } from '../lib/featureAvailability.js'
+import { env } from '../config/env.js'
 
 const MEMBERSHIP_PLANS_CACHE_MS = 5 * 60 * 1000
 let membershipPlansCache = null
@@ -172,6 +173,23 @@ export async function getPaymentOperations(status) {
 
 export async function recoverPaymentOperations() {
   return apiPost('/api/payments/operations/recover', {})
+}
+
+/**
+ * Vuelve a preguntarle a Mercado Pago qué pasó con una orden y corrige el
+ * estado local con lo que contesta el proveedor. Es lo que resuelve "figura
+ * cancelada pero la plata entró": no acredita nada por su cuenta — si Mercado
+ * Pago no tiene un pago aprobado, el estado no se mueve.
+ *
+ * `apply: false` devuelve el diagnóstico sin escribir.
+ */
+export async function revalidatePaymentOrder(orderId, { apply = true } = {}) {
+  return apiPost(`/api/payments/orders/${encodeURIComponent(orderId)}/revalidate`, { apply })
+}
+
+/** Barrido de órdenes no aprobadas contra el proveedor. Sin `apply` no toca nada. */
+export async function revalidatePaymentOrders({ sinceDays = 30, limit = 25, apply = false } = {}) {
+  return apiPost('/api/payments/operations/revalidate', { sinceDays, limit, apply })
 }
 
 export async function retryPaymentEvent(eventId) {

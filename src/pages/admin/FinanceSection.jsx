@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { createExpense, fetchFinanceReport } from '../../services/financeService.js'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const monthStart = () => `${today().slice(0, 8)}01`
+const SEARCH_DEBOUNCE_MS = 350
 
 const EMPTY_EXPENSE = {
   occurredOn: today(),
@@ -23,22 +26,38 @@ export default function FinanceSection({ canEdit = false }) {
   const searchId = useId()
   const [from, setFrom] = useState(monthStart)
   const [to, setTo] = useState(today)
+  const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(EMPTY_EXPENSE)
+  const reportLoadedRef = useRef(false)
+
+  // El buscador no dispara un request por cada tecla: la query viaja al
+  // backend recién cuando el tipeo se asienta.
+  useEffect(() => {
+    const timerId = window.setTimeout(() => setQuery(searchInput.trim()), SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timerId)
+  }, [searchInput])
 
   const load = useCallback(async () => {
     setError('')
-    setLoading(true)
+    // Primera carga: loader editorial. Refetch (filtros, refresh, post-egreso):
+    // los datos anteriores siguen visibles y la actualización avisa en
+    // segundo plano -- nunca se vuelve a la pantalla vacía.
+    if (reportLoadedRef.current) setRefreshing(true)
+    else setInitialLoading(true)
     try {
       setReport(await fetchFinanceReport({ from, to, query }))
+      reportLoadedRef.current = true
     } catch (loadError) {
       setError(loadError.message)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setRefreshing(false)
     }
   }, [from, to, query])
 
@@ -57,9 +76,11 @@ export default function FinanceSection({ canEdit = false }) {
     try {
       await createExpense({ ...form, amount: Number(form.amount) })
       setForm({ ...EMPTY_EXPENSE, occurredOn: today() })
+      notifySuccess(t('admin.toasts.expenseSaved'))
       await load()
     } catch (saveError) {
       setError(saveError.message)
+      notifyError(saveError.message)
     } finally {
       setSaving(false)
     }
@@ -89,15 +110,21 @@ export default function FinanceSection({ canEdit = false }) {
           <p>{t('admin.ledger.lead')}</p>
         </div>
         <button
-          className="btn btn--outline btn--small"
+          className="btn btn--outline btn--small admin-finance__refresh"
           type="button"
           onClick={() => void load()}
-          disabled={loading}
+          disabled={initialLoading || refreshing || saving}
         >
-          <RefreshCw size={14} aria-hidden />
+          <RefreshCw className={refreshing ? 'is-spinning' : undefined} size={14} aria-hidden />
           {t('admin.ledger.refresh')}
         </button>
       </header>
+
+      {refreshing && report ? (
+        <p className="admin-finance__sync-hint" role="status" aria-live="polite">
+          {t('admin.ledger.updating')}
+        </p>
+      ) : null}
 
       <div className="admin-finance__overview" role="group" aria-label={t('admin.ledger.kpisAria')}>
         <div className="admin-finance__balance">
@@ -149,8 +176,8 @@ export default function FinanceSection({ canEdit = false }) {
           <input
             id={searchId}
             type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('admin.ledger.search')}
           />
         </label>
@@ -217,10 +244,11 @@ export default function FinanceSection({ canEdit = false }) {
         </p>
       ) : null}
 
-      <AdminDataTable
-        rows={report?.rows ?? []}
-        emptyMessage={t('admin.ledger.empty')}
-        columns={[
+      {initialLoading ? <TableSkeleton rows={6} columns={6} /> : (
+        <AdminDataTable
+          rows={report?.rows ?? []}
+          emptyMessage={t('admin.ledger.empty')}
+          columns={[
           {
             key: 'date',
             label: t('admin.ledger.colDate'),
@@ -274,7 +302,8 @@ export default function FinanceSection({ canEdit = false }) {
             render: (row) => row.reference ?? '—',
           },
         ]}
-      />
+        />
+      )}
     </section>
   )
 }

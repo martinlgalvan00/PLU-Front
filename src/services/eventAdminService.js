@@ -1,5 +1,6 @@
 import { DEFAULT_EVENT_PRICING, isComboOfferLive, normalizeEventPricingInput } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
+import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { apiDelete, apiGet, apiPost } from '../lib/api.js'
 
@@ -186,7 +187,7 @@ export function getEventConsistencyWarnings(draft, sourceEvent = null, now = new
     warnings.push('slotsFullButOpenStatus')
   }
 
-  if (draft.pricing?.ticketsEnabled !== false && ticketSalesClosesAt && ticketSalesClosesAt < now) {
+  if (draft.pricing?.ticketsEnabled === true && ticketSalesClosesAt && ticketSalesClosesAt < now) {
     warnings.push('ticketSalesClosedButEnabled')
   }
 
@@ -445,6 +446,45 @@ export function isEventFull(event) {
   return slots > 0 && (event?.registered ?? 0) >= slots
 }
 
+/**
+ * Estado operativo de una inscripción pública. El estado del evento, su
+ * publicación y la ventana calendaria son tres guards distintos en la RPC;
+ * concentrarlos evita que el panel anuncie "abierta" algo que el servidor va
+ * a rechazar por fecha o cupo.
+ *
+ * `now` es inyectable para que esta misma decisión se pueda cubrir sin depender
+ * del reloj del navegador en los tests.
+ */
+export function getEventRegistrationAvailability(event, now = new Date()) {
+  const status = event?.status ?? 'proximamente'
+  const published = event?.published === true
+  const opensAt = event?.registrationOpensAt ? new Date(event.registrationOpensAt) : null
+  const closesAt = event?.registrationClosesAt ? new Date(event.registrationClosesAt) : null
+  const validOpensAt = opensAt && !Number.isNaN(opensAt.getTime()) ? opensAt : null
+  const validClosesAt = closesAt && !Number.isNaN(closesAt.getTime()) ? closesAt : null
+  const scheduled = Boolean(validOpensAt && now < validOpensAt)
+  const closedByWindow = Boolean(validClosesAt && now > validClosesAt)
+  // `agotado` es autoritativo aunque el resumen local todavía no tenga el
+  // conteo completo (por ejemplo, durante una recarga del panel).
+  const full = status === 'agotado' || isEventFull(event)
+  const statusOpen = isRegistrationOpen(status)
+
+  return {
+    closedByWindow,
+    full,
+    isLive: published && statusOpen && !scheduled && !closedByWindow && !full,
+    published,
+    scheduled,
+    statusOpen,
+    // La acción rápida no toca fechas: sólo está disponible cuando la ventana
+    // ya admite altas. Así no se saltea una apertura programada por error.
+    canOpen: !full && !scheduled && !closedByWindow && (!published || !statusOpen),
+    canSetUpcoming: !published || status !== 'proximamente',
+    opensAt: validOpensAt,
+    closesAt: validClosesAt,
+  }
+}
+
 export const ADMIN_EVENT_FORM_DEFAULT = {
   title: '',
   description: '',
@@ -539,9 +579,14 @@ export function mapSupabaseEventRow(row) {
     : (row.comboOffer ?? row.combo_offer ?? null)
   const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
   const registrationRows = row.eventRegistrations ?? row.event_registrations
-  const registrationCount = Array.isArray(registrationRows)
-    ? countActiveRegistrations(registrationRows)
-    : (row.registrationCount ?? row.registration_count ?? 0)
+  const embeddedRegistrationCount = Array.isArray(registrationRows)
+    ? registrationRows.find((item) => Number.isFinite(Number(item?.count)))?.count
+    : null
+  const registrationCount = Number.isFinite(Number(embeddedRegistrationCount))
+    ? Number(embeddedRegistrationCount)
+    : Array.isArray(registrationRows)
+      ? countActiveRegistrations(registrationRows)
+      : (row.registrationCount ?? row.registration_count ?? 0)
 
   return {
     id: row.id,
@@ -616,11 +661,16 @@ function mapAdminEventRow(row, index = 0) {
 }
 
 const PUBLISHED_EVENTS_SELECT = `
-  *,
-  eventDays:event_days(*),
-  comboOffer:event_combo_offers(*),
+  id, slug, title, description, venue, location,
+  starts_at, ends_at,
+  registration_opens_at, registration_closes_at,
+  ticket_sales_opens_at, ticket_sales_closes_at,
+  capacity, status, published, requires_membership, price, currency, rules,
+  live_stream_url, live_stream_provider, live_status, created_at, updated_at,
+  eventDays:event_days(id, day_index, label, date),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
   ticketTypes:ticket_types(
-    *,
+    id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
     includedAddons:ticket_type_included_addons(addon_id)
   )

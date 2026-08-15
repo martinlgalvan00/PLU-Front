@@ -51,9 +51,18 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true })).not.toThrow()
   })
 
-  // Un interruptor ausente no cierra nada: una lectura incompleta o una tabla
-  // sin fila no puede dejar la plataforma sin cobrar.
-  it('trata la ausencia de dato como abierto', () => {
+  it('exige habilitación explícita de lanzamiento para vender entradas al público', () => {
+    const production = { NODE_ENV: 'production' }
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, production)).toThrowError(
+      thrown('TICKET_SALES_COMING_SOON'),
+    )
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, { ...production, TICKET_SALES_ENABLED: 'true' }))
+      .not.toThrow()
+  })
+
+  // Las altas siguen abiertas, pero afiliaciones e inscripciones no ofrecen
+  // canal manual hasta que Administración lo habilite explícitamente.
+  it('mantiene las altas abiertas y exige habilitación explícita para el canal manual', () => {
     for (const assert of [
       assertCheckoutEnabled,
       assertMembershipCheckoutEnabled,
@@ -64,6 +73,7 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
       expect(() => assert(undefined)).not.toThrow()
     }
     expect(() => assertManualChannelEnabled({}, 'ticket')).not.toThrow()
+    expect(() => assertManualChannelEnabled({}, 'membership')).toThrowError(thrown('MEMBERSHIP_MANUAL_DISABLED'))
     expect(() => assertValidationEnabled(undefined, 'membership')).not.toThrow()
   })
 })
@@ -143,9 +153,27 @@ describe('disponibilidad publicada al checkout', () => {
     expect(availability.ticketManualEnabled).toBe(false)
   })
 
+  it('no publica venta de entradas antes del lanzamiento explícito', () => {
+    const availability = resolvePublicCheckoutAvailability(
+      { ticketEnabled: true, ticketManualEnabled: true },
+      { NODE_ENV: 'production' },
+    )
+    expect(availability.ticketEnabled).toBe(false)
+    expect(availability.ticketManualEnabled).toBe(false)
+  })
+
   it('deja el concepto abierto con el canal manual cerrado', () => {
     const availability = resolvePublicCheckoutAvailability({ membershipManualEnabled: false })
     expect(availability.membershipEnabled).toBe(true)
     expect(availability.membershipManualEnabled).toBe(false)
+  })
+
+  it('publica un canal manual sólo con habilitación explícita', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      membershipManualEnabled: true,
+      registrationManualEnabled: true,
+    })
+    expect(availability.membershipManualEnabled).toBe(true)
+    expect(availability.registrationManualEnabled).toBe(true)
   })
 })

@@ -102,7 +102,8 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
   const published = publishedRows ?? rows.map((row) => ({ ...row, published: true, registration_opens_at: '2026-08-20T10:00:00-03:00' }))
   const orderAll = vi.fn(async () => ({ data: rows, error: null }))
   const orderPublished = vi.fn(async () => ({ data: published, error: null }))
-  const eq = vi.fn(() => ({ order: orderPublished }))
+  const inFilter = vi.fn(() => ({ order: orderPublished }))
+  const eq = vi.fn(() => ({ in: inFilter }))
   const select = vi.fn(() => ({ order: orderAll, eq }))
   const rpc = vi.fn(async () => rpcResult ?? { data: { id: EVENT_ID }, error: null })
   const list = vi.fn(async () => ({ data: storageFiles, error: null }))
@@ -113,6 +114,7 @@ function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = 
     client: { from: vi.fn(() => ({ select })), rpc, storage },
     rpc,
     eq,
+    inFilter,
     orderPublished,
     storage,
     list,
@@ -127,6 +129,14 @@ async function setup(role = 'admin_maximal', supabaseOptions, extraUsers = []) {
   const supabase = createSupabaseDouble(supabaseOptions)
   const target = listen(createApp({ prisma, supabaseAdmin: supabase.client }))
   const { cookie } = await loginStaff(target.url, { email: staff.email })
+
+  // El login gasta RPCs propias del guard de identidad
+  // (`inspect_identity_lock` / `clear_identity_failures`, ver
+  // `lib/defense/identityGuard.js`). Son del armado del fixture, no de lo que
+  // cada test mide, así que el contador arranca en cero después de loguear:
+  // los `expect(supabase.rpc).not.toHaveBeenCalled()` siguen afirmando lo mismo
+  // de siempre -- que un request denegado no llega a ninguna RPC de dominio.
+  supabase.rpc.mockClear()
 
   return { target, cookie, supabase, prisma, users }
 }
@@ -163,6 +173,12 @@ describe('API administrativa de eventos', () => {
 
       expect(response.status).toBe(200)
       expect(supabase.eq).toHaveBeenCalledWith('published', true)
+      expect(supabase.inFilter).toHaveBeenCalledWith('event_registrations.status', [
+        'pendiente_pago',
+        'pagada',
+        'confirmada',
+      ])
+      expect(response.headers.get('cache-control')).toContain('s-maxage=30')
       expect(body.events[0]).toMatchObject({
         id: EVENT_ID,
         registration_opens_at: '2026-08-20T10:00:00-03:00',

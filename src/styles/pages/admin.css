@@ -20,6 +20,105 @@
 }
 
 /* =============================================
+   LIVE SYNC — aviso no bloqueante de que el
+   snapshot admin se está sincronizando en
+   background (polling de 15s). Abajo a la
+   izquierda: abajo a la derecha viven los toasts
+   operativos. El flag llega diferido desde
+   useAppData, así que un polling que responde
+   bien no muestra nada.
+   ============================================= */
+
+.admin-live-sync {
+  align-items: center;
+  bottom: calc(var(--layout-gutter) / 2);
+  color: var(--admin-muted, var(--color-text-muted));
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 7px;
+  left: calc(var(--layout-gutter) / 2);
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  pointer-events: none;
+  position: fixed;
+  text-transform: uppercase;
+  z-index: 40;
+}
+
+.admin-live-sync__dot {
+  animation: admin-live-sync-pulse 1.6s ease-in-out infinite;
+  background: var(--color-brand-gold);
+  border-radius: 50%;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+.admin-live-sync__check {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
+@keyframes admin-live-sync-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-live-sync {
+    animation: admin-live-sync-in 240ms var(--ease-out, ease) both;
+  }
+
+  /* Settle: el check confirma y se desvanece. El 70% inicial quieto casa
+     con SETTLE_MS del componente, que desmonta el chip cuando ya no se ve. */
+  .admin-live-sync--settled {
+    animation: admin-live-sync-settle 2600ms var(--ease-standard, ease) forwards;
+  }
+}
+
+@keyframes admin-live-sync-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-live-sync-settle {
+  0%,
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-live-sync__dot {
+    animation: none;
+  }
+
+  .admin-live-sync,
+  .admin-live-sync--settled {
+    animation: none;
+  }
+}
+
+/* =============================================
    ADMIN GLASS — primitiva compartida
    Una sola receta de vidrio para las superficies
    del panel: fondo translúcido, blur, hairline y
@@ -2015,6 +2114,25 @@
   max-width: 46ch;
 }
 
+.admin-finance--ledger .admin-finance__refresh.is-spinning svg {
+  animation: admin-spin 0.9s linear infinite;
+}
+
+/* Keyframe compartido por los íconos de refresh en giro (sync en curso).
+   Los estados de espera usan la primitiva `.plu-spinner`. */
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-finance--ledger .admin-finance__sync-hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
 .admin-finance--ledger .admin-finance__overview {
   align-items: center;
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -3875,15 +3993,6 @@
   margin: 0;
 }
 
-.admin-events__loading-indicator {
-  animation: admin-spin 0.9s linear infinite;
-  border: 2px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 50%;
-  border-top-color: var(--color-brand-celeste);
-  height: 18px;
-  width: 18px;
-}
-
 /* â”€â”€ Events toolbar & filter bar overrides â”€â”€ */
 
 .admin-list-section--events {
@@ -5321,75 +5430,85 @@
 
 .admin-payments-ops-callout {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--admin-status-warning, #c9a227) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--admin-status-warning, #c9a227) 32%, transparent);
-  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  border-block: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-left: 2px solid color-mix(in srgb, var(--admin-status-warning, #c9a227) 70%, transparent);
+  border-radius: 0;
   color: var(--admin-ink, var(--color-text-primary));
-  display: flex;
-  gap: 10px;
-  padding: 12px 14px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  padding: 14px 0 14px 12px;
 }
 
 .admin-payments-ops-callout > svg {
   color: var(--admin-status-warning, #c9a227);
-  flex-shrink: 0;
   margin-top: 2px;
 }
 
 .admin-payments-ops-callout__body {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.4;
   min-width: 0;
 }
 
 .admin-payments-ops-callout__body strong {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.admin-payments-ops-callout__body > p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  margin: 0;
+  max-width: 76ch;
 }
 
 .admin-payments-ops-callout__body ul {
   margin: 0;
-  padding-left: 1.1rem;
-}
-
-.admin-payments-ops-callout__body li + li {
-  margin-top: 2px;
+  padding-left: 0;
 }
 
 /* Diagnóstico accionable: título del problema, causa y pasos concretos. Se
    lee como una lista de tareas, no como un volcado de errores. */
 .admin-payments-ops-callout__diagnoses {
   display: grid;
-  gap: 10px;
+  gap: 0;
   list-style: none;
+  margin-top: 6px;
   padding-left: 0;
 }
 
 .admin-payments-ops-callout__diagnoses > li {
-  border-left: 2px solid color-mix(in srgb, var(--admin-status-warning, #c9a227) 55%, transparent);
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: 3px;
-  padding-left: 10px;
+  gap: 2px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 0;
 }
 
 .admin-payments-ops-callout__diagnosis-title {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  font-weight: 700;
+  font-weight: 650;
   gap: 8px;
 }
 
 .admin-payments-ops-callout__diagnosis-count {
+  color: var(--admin-muted, var(--color-text-muted));
   font-size: 12px;
   font-weight: 500;
-  opacity: 0.75;
 }
 
 .admin-payments-ops-callout__diagnosis-cause {
-  opacity: 0.85;
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
 }
 
 .admin-payments-ops-callout__diagnosis-fix {
@@ -5397,6 +5516,48 @@
   gap: 2px;
   margin: 2px 0 0;
   padding-left: 1.1rem;
+}
+
+.admin-payments-ops-callout__link-button {
+  background: transparent;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 36px;
+  padding: 0 12px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.admin-payments-ops-callout__link-button:hover {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-payments-ops-callout__link-button:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .admin-payments-ops-callout__diagnoses > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-payments-ops-callout__link-button {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 6px;
+    min-height: 44px;
+  }
 }
 
 .admin-payment-ops__diagnosis {
@@ -7422,6 +7583,43 @@
   opacity: 0.7;
 }
 
+.payment-trace__cancellation {
+  background: color-mix(in srgb, var(--admin-status-warning, #c9a227) 9%, transparent);
+  border-left: 3px solid var(--admin-status-warning, #c9a227);
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.payment-trace__cancellation > p,
+.payment-trace__cancellation dl {
+  font-size: 13px;
+  margin: 0;
+}
+
+.payment-trace__cancellation dl {
+  display: grid;
+  gap: 5px;
+}
+
+.payment-trace__cancellation dl div {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(132px, auto) minmax(0, 1fr);
+}
+
+.payment-trace__cancellation dt {
+  opacity: 0.68;
+}
+
+.payment-trace__cancellation dd {
+  margin: 0;
+}
+
+.payment-trace__cancellation-action {
+  font-weight: 600;
+}
+
 .payment-trace__timeline {
   display: grid;
   gap: 10px;
@@ -7573,6 +7771,10 @@
 
 @media (max-width: 720px) {
   .payment-trace__failure-meta div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-trace__cancellation dl div {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -7806,7 +8008,8 @@
   margin: 0;
 }
 
-.payment-validation-dialog__reject-form {
+.payment-validation-dialog__reject-form,
+.payment-validation-dialog__settle-form {
   display: grid;
   gap: var(--space-sm);
   margin-top: var(--space-md);
@@ -7814,26 +8017,61 @@
   border-top: 1px solid var(--color-border-subtle);
 }
 
-.payment-validation-dialog__reject-form label {
+.payment-validation-dialog__reject-form label,
+.payment-validation-dialog__settle-form label {
   color: var(--admin-ink, var(--color-text-primary));
   font-size: 12.5px;
   font-weight: 650;
 }
 
-.payment-validation-dialog__reject-form textarea {
+.payment-validation-dialog__reject-form textarea,
+.payment-validation-dialog__settle-form textarea,
+.payment-validation-dialog__settle-form input {
   background: var(--admin-surface, var(--color-bg-elevated));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
   color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-family);
   font-size: 13.5px;
+  /* En mobile el alto que dan `rows` y el padding se quedaba en 43px, apenas
+     debajo del target táctil mínimo. */
+  min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   resize: vertical;
 }
 
-.payment-validation-dialog__reject-form textarea:focus-visible {
+.payment-validation-dialog__settle-form input {
+  /* El input de referencia no se redimensiona: `resize` sobre un campo de una
+     línea no hace nada y confunde al leer la regla compartida. */
+  resize: none;
+}
+
+.payment-validation-dialog__reject-form textarea:focus-visible,
+.payment-validation-dialog__settle-form textarea:focus-visible,
+.payment-validation-dialog__settle-form input:focus-visible {
   border-color: var(--color-brand-gold);
   outline: none;
+}
+
+/* Acreditar por fuera del proveedor es una excepción, no un atajo: la nota
+   advierte antes de que el operador llegue al botón, sin gritar en rojo (no es
+   un error, es una acción deliberada que queda firmada). */
+.payment-validation-dialog__settle-note {
+  background: var(--color-warning-bg, color-mix(in srgb, var(--color-brand-gold) 12%, transparent));
+  border-left: 2px solid var(--color-brand-gold);
+  border-radius: var(--border-radius-sm);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.payment-validation-dialog__settle-hint {
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin-top: calc(var(--space-sm) * -0.5);
 }
 
 .payment-validation-dialog__actions .btn--danger {
@@ -7857,10 +8095,6 @@
 
 .payment-validation-dialog__actions .btn {
   min-height: 40px;
-}
-
-.payment-validation-dialog .is-spinning {
-  animation: spin 0.9s linear infinite;
 }
 
 @media (min-width: 540px) and (max-width: 768px) {
@@ -7913,6 +8147,223 @@
 
   .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
     height: min(48dvh, 360px);
+  }
+}
+
+/* Corrección de estado de inscripción — mismo material y escala que el diálogo
+   de validación de pagos. Las opciones se muestran como radios grandes y no
+   como un select: son tres, cada una necesita una línea de ayuda para que el
+   operador entienda qué implica, y un select las esconde. */
+.admin-status-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1300;
+}
+
+.admin-status-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.admin-status-dialog__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: min(92vh, 880px);
+  overflow: auto;
+  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  position: relative;
+  width: min(100%, 560px);
+}
+
+.admin-status-dialog__head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+}
+
+.admin-status-dialog__head h2 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-status-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.admin-status-dialog__lead {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: var(--space-xs) 0 0;
+}
+
+.admin-status-dialog__meta {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-status-dialog__meta > div {
+  align-items: center;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 9rem) 1fr;
+}
+
+.admin-status-dialog__meta dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-status-dialog__meta dd {
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.admin-status-dialog__options {
+  border: 0;
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.admin-status-dialog__options legend {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+  margin-bottom: var(--space-xs);
+  padding: 0;
+}
+
+.admin-status-dialog__option {
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+  /* 44px de alto mínimo: es un control táctil, no una fila de tabla. */
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  transition: border-color var(--motion-fast, 140ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 140ms) var(--ease-out, ease);
+}
+
+.admin-status-dialog__option:hover:not(:has(input:disabled)) {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, var(--color-border-subtle));
+}
+
+.admin-status-dialog__option.is-selected {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.admin-status-dialog__option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-status-dialog__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Badge sobre la explicación, no al lado: en línea, la opción cuyo texto no
+   entraba envolvía a una segunda fila y las tres quedaban con alturas y
+   alineaciones distintas según el largo del copy. Apilado, las tres leen igual
+   y no dependen de cuánto mida cada etiqueta. */
+.admin-status-dialog__option-body {
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: start;
+}
+
+.admin-status-dialog__option-body small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-status-dialog__field {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.admin-status-dialog__field label {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.admin-status-dialog__field textarea {
+  background: var(--admin-surface, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  padding: var(--space-sm) var(--space-md);
+  resize: vertical;
+}
+
+.admin-status-dialog__field textarea:focus-visible {
+  border-color: var(--color-brand-gold);
+  outline: none;
+}
+
+.admin-status-dialog__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-status-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .admin-status-dialog__meta > div {
+    gap: var(--space-xs);
+    grid-template-columns: 1fr;
+  }
+
+  .admin-status-dialog__actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-status-dialog__option {
+    transition: none;
   }
 }
 
@@ -8219,7 +8670,7 @@
 
 .admin-list-shell--users .data-table-card--compact {
   gap: 8px;
-  padding: 10px 12px;
+  padding: 11px 13px;
 }
 
 .admin-list-shell--users .data-table-card__top {
@@ -10221,16 +10672,6 @@
   position: absolute;
 }
 
-.admin-checkin-scanner__spinner {
-  animation: admin-spin 0.9s linear infinite;
-}
-
-@keyframes admin-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .admin-checkin-scanner__status {
   color: var(--color-text-muted);
   font-size: 11px;
@@ -11828,6 +12269,20 @@
   color: var(--color-brand-gold);
 }
 
+.data-table__avatar {
+  overflow: hidden;
+  position: relative;
+}
+
+.data-table__avatar-photo {
+  background: var(--color-bg-surface);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
 .data-table__identity-copy {
   min-width: 0;
 }
@@ -11855,36 +12310,38 @@
 .data-table-card--admin {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  box-shadow: var(--admin-shadow-soft, none);
+  padding: 12px 14px;
 }
 
 .data-table-card--admin.data-table-card--compact {
   display: grid;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: 7px;
+  padding: 11px 13px;
 }
 
 .data-table-card--admin.data-table-card--compact .data-table__avatar {
   border-radius: 8px;
   font-size: 11px;
-  height: 28px;
-  width: 28px;
+  height: 30px;
+  width: 30px;
 }
 
 .data-table-card--admin.data-table-card--compact .data-table__identity {
-  gap: 8px;
+  gap: 9px;
 }
 
 .data-table-card--admin.data-table-card--compact .data-table__identity-copy strong {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
 .data-table-card--admin.data-table-card--compact .data-table__identity-copy .data-table__sub {
-  font-size: 11.5px;
-  line-height: 1.25;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .data-table-card__top {
@@ -11927,7 +12384,7 @@
 
 .data-table-card__meta {
   display: grid;
-  gap: 3px 10px;
+  gap: 4px 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -11963,7 +12420,7 @@
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   min-width: 0;
 }
 
@@ -11998,67 +12455,130 @@
 
 .data-table-card__footer {
   align-items: center;
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   justify-content: flex-end;
-  margin-top: 0;
-  padding-top: 6px;
+  margin-top: 1px;
+  padding-top: 9px;
 }
 
-/* Registrations — cards densas en mobile/notebook */
+/* Registrations — ficha operativa: atleta → estado → contexto → acciones */
 .admin-list-shell--registrations .data-table-card--compact {
-  gap: 8px;
-  padding: 10px 12px;
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 12px 14px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.admin-list-shell--registrations .data-table-card--compact:hover,
+.admin-list-shell--registrations .data-table-card--compact:focus-visible {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 34%, var(--admin-hairline, var(--color-border-subtle)));
+  box-shadow: inset 2px 0 0 var(--color-brand-celeste);
+  outline: none;
 }
 
 .admin-list-shell--registrations .data-table-card__top {
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  grid-column: 1 / -1;
 }
 
 .admin-list-shell--registrations .data-table__avatar {
   border-radius: 8px;
-  font-size: 11px;
-  height: 28px;
-  width: 28px;
+  font-size: 12px;
+  height: 32px;
+  width: 32px;
 }
 
 .admin-list-shell--registrations .data-table__identity {
-  gap: 8px;
+  gap: 10px;
 }
 
 .admin-list-shell--registrations .data-table__identity-copy strong {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.admin-list-shell--registrations .data-table__identity-copy .data-table__sub {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-list-shell--registrations .data-table-card__badges {
-  align-items: center;
-  flex-direction: row;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  flex-direction: column;
+  flex-wrap: nowrap;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  max-width: min(48%, 240px);
 }
 
 .admin-list-shell--registrations .data-table-card__badge .admin-payment-cell {
-  align-items: center;
+  align-items: flex-end;
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 2px;
+  justify-content: flex-start;
 }
 
 .admin-list-shell--registrations .data-table-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
+  align-content: start;
+  display: grid;
+  gap: 8px 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) .data-table-card__meta {
+  grid-column: 1;
+}
+
+.admin-list-shell--registrations .data-table-card__meta-item {
+  align-content: start;
+  display: grid;
+  gap: 3px;
   grid-template-columns: none;
-  row-gap: 2px;
+  min-width: 0;
+}
+
+.admin-list-shell--registrations .data-table-card__meta-label {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .admin-list-shell--registrations .data-table-card__meta-value {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-list-shell--registrations .data-table-card__meta-value .admin-muted-text {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
 }
 
 .admin-list-shell--registrations .data-table-card__footer:empty,
@@ -12068,8 +12588,24 @@
 }
 
 .admin-list-shell--registrations .data-table-card__footer {
-  margin-top: 2px;
-  padding-top: 8px;
+  align-items: flex-end;
+  align-self: end;
+  border-top: 0;
+  display: flex;
+  grid-column: 2;
+  grid-row: 2;
+  justify-content: flex-end;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.admin-list-shell--registrations .data-table-card__footer .admin-table-actions {
+  gap: 6px;
+}
+
+.admin-list-shell--registrations .data-table-card__footer .admin-icon-btn {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .admin-list-shell--registrations .admin-payment-cell {
@@ -12077,11 +12613,19 @@
   gap: 2px;
 }
 
+.admin-list-shell--registrations .admin-payment-cell__amount {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 /* Tickets / athlete orders (Pagos) — cards densas espejo de registrations */
 .admin-list-shell--tickets .data-table-card--compact,
 .admin-orders-block .data-table-card--compact {
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 7px;
+  padding: 11px 13px;
 }
 
 .admin-list-shell--tickets .data-table-card__top,
@@ -12135,27 +12679,29 @@
 @media (max-width: 720px) {
   .admin-list-shell--tickets .data-table-card--compact,
   .admin-orders-block .data-table-card--compact {
-    gap: 5px;
-    padding: 7px 8px;
+    gap: 7px;
+    padding: 11px 13px;
   }
 
   .data-table-cards--admin {
     background: transparent;
-    gap: 5px;
-    padding: 2px 0 8px;
+    /* Las cards se leen como fichas separadas: 9px de aire entre ellas.
+       Con 5px se pegaban y la lista parecía una hoja de cálculo. */
+    gap: 9px;
+    padding: 4px 0 12px;
   }
 
   .data-table-card--admin {
-    padding: 8px 10px;
+    padding: 12px 14px;
   }
 
   .data-table-card--admin.data-table-card--compact {
-    gap: 5px;
-    padding: 7px 9px;
+    gap: 8px;
+    padding: 12px 14px;
   }
 
   .data-table-card--admin.data-table-card--compact .data-table-card__meta {
-    gap: 2px 8px;
+    gap: 3px 10px;
   }
 
   .data-table-card--admin:not(.data-table-card--compact) {
@@ -12170,9 +12716,43 @@
     gap: 2px;
   }
 
-  .admin-list-shell--registrations .data-table-card--compact {
-    gap: 5px;
-    padding: 7px 8px;
+  .admin-list-shell--registrations .data-table-card--compact,
+  .admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) {
+    gap: 8px 10px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 12px;
+  }
+
+  .admin-list-shell--registrations .data-table-card__badges {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: min(58%, 220px);
+  }
+
+  .admin-list-shell--registrations .data-table-card__badge .admin-payment-cell {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+
+  .admin-list-shell--registrations .data-table-card__meta,
+  .admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) .data-table-card__meta {
+    gap: 8px 10px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-list-shell--registrations .data-table-card__meta-item[data-column='event'],
+  .admin-list-shell--registrations .data-table-card__meta-item[data-column='schedule'] {
+    grid-column: 1 / -1;
+  }
+
+  .admin-list-shell--registrations .data-table-card__footer {
+    border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-end;
+    margin-top: 2px;
+    padding-top: 8px;
   }
 }
 
@@ -12424,7 +13004,9 @@
    ============================================= */
 
 .admin-action-drawer__backdrop {
-  background: rgba(4, 6, 10, 0.58);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  background: rgba(4, 6, 10, 0.45);
   border: 0;
   cursor: pointer;
   inset: 0;
@@ -12439,6 +13021,15 @@
 }
 
 .admin-action-drawer {
+  --drawer-rule: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-brand-gold) 85%, transparent) 22%,
+    var(--color-brand-gold) 50%,
+    color-mix(in oklab, var(--color-brand-gold) 85%, transparent) 78%,
+    transparent
+  );
+
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 18%), var(--color-bg-surface);
   border-left: 1px solid var(--color-border-subtle);
@@ -12456,6 +13047,17 @@
   z-index: 250;
 }
 
+/* Filete dorado: la firma de la casa (mismo dibujo que el toast de sesión).
+   Una sola línea estática que se desvanece en los extremos. */
+.admin-action-drawer::before {
+  background: var(--drawer-rule);
+  content: '';
+  height: 1px;
+  inset: 0 0 auto;
+  position: absolute;
+  z-index: 1;
+}
+
 .admin-action-drawer.is-open {
   transform: translateX(0);
 }
@@ -12465,33 +13067,69 @@
   border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   flex-shrink: 0;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   justify-content: space-between;
   padding: 16px 16px 14px;
 }
 
 .admin-action-drawer__head-copy h2 {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   margin: 4px 0 0;
 }
 
 .admin-action-drawer__subtitle {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.45;
-  margin: 6px 0 0;
+  margin: 7px 0 0;
 }
 
 .admin-action-drawer__eyebrow {
   color: var(--color-text-muted);
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-action-drawer__head-side {
+  align-items: flex-start;
+  display: flex;
+  flex: none;
+  gap: 12px;
+}
+
+/* Cifra hero: responde "¿cuánto falta?" antes que cualquier texto.
+   Tipografía display con tabular-nums para que el número no baile
+   entre sincronizaciones. */
+.admin-action-drawer__count {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  padding-top: 2px;
+}
+
+.admin-action-drawer__count-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 6vw, 34px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.admin-action-drawer__count-label {
+  color: var(--color-text-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -12528,6 +13166,45 @@
   overscroll-behavior: contain;
   padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px));
   touch-action: pan-y;
+}
+
+/* Vacío = calma. El único momento del drawer que puede respirar en
+   vertical: marca en anillo hairline, título display y un renglón. */
+.admin-action-drawer__empty {
+  align-content: center;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 12px;
+  justify-items: center;
+  padding: 48px 28px calc(48px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+}
+
+.admin-action-drawer__empty-mark {
+  align-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-brand-gold) 38%, transparent);
+  border-radius: 50%;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.admin-action-drawer__empty h3 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.admin-action-drawer__empty p {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 30ch;
 }
 
 @media (max-width: 480px) {
@@ -12613,7 +13290,62 @@
 }
 
 /* Fila editorial: [tipo] [sujeto + detalle] [monto] [acciones].
-   La prioridad es una marca de 2px a la izquierda (sin borde de card). */
+   La prioridad es la única marca de color de la fila: una veta de 2px
+   que se desvanece en los extremos (hairline, no banner). */
+.action-queue__row {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  align-items: center;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  list-style: none;
+  padding: 10px 14px;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.action-queue__type-block {
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  background: transparent;
+  overflow: hidden;
+}
+
+.action-queue__type-block:last-child {
+  margin-bottom: 0;
+}
+
+.action-queue__type-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.action-queue__type-count {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 99px;
+  line-height: 1;
+}
+
+[data-theme='dark'] .action-queue__type-head {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+[data-theme='dark'] .action-queue__type-count {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .action-queue__card {
   background: transparent;
   border: 0;
@@ -12630,6 +13362,13 @@
 }
 
 .action-queue__card::before {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--action-bar, transparent) 16%,
+    var(--action-bar, transparent) 84%,
+    transparent
+  );
   border-radius: 2px;
   bottom: 11px;
   content: '';
@@ -12639,19 +13378,20 @@
   width: 2px;
 }
 
-.action-queue__card--high::before {
-  background: color-mix(in srgb, var(--color-brand-red) 70%, transparent);
+.action-queue__card--high {
+  --action-bar: color-mix(in srgb, var(--color-brand-red) 72%, transparent);
 }
 
-.action-queue__card--medium::before {
-  background: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+.action-queue__card--medium {
+  --action-bar: color-mix(in srgb, var(--color-brand-gold) 72%, transparent);
 }
 
-.action-queue__card--low::before {
-  background: color-mix(in srgb, var(--color-brand-celeste) 70%, transparent);
+.action-queue__card--low {
+  --action-bar: color-mix(in srgb, var(--color-brand-celeste) 72%, transparent);
 }
 
-.action-queue__list > .action-queue__card:first-child {
+.action-queue__list > .action-queue__card:first-child,
+.action-queue__list > .action-queue__row:first-child {
   border-top: 0;
 }
 
@@ -12659,6 +13399,8 @@
   gap: 0;
 }
 
+/* El texto del tipo es neutro; el ícono lleva la categoría en color de
+   marca. Un punto de color por fila y ya lo dijo la veta de prioridad. */
 .action-queue__type {
   align-items: center;
   background: transparent;
@@ -12667,7 +13409,7 @@
   display: inline-flex;
   flex: none;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 650;
   gap: 5px;
   letter-spacing: 0.06em;
   padding: 0;
@@ -12675,29 +13417,18 @@
   white-space: nowrap;
 }
 
-.action-queue__type--payment {
-  color: #ff8a8a;
-}
-
 .action-queue__type--payment svg {
-  color: var(--color-brand-red);
+  color: color-mix(in oklab, var(--color-brand-red) 78%, var(--color-text-primary));
 }
 
-.action-queue__type--registration {
-  color: #dbc98a;
+.action-queue__type--registration svg,
+.action-queue__type--registration_gate svg {
+  color: color-mix(in oklab, var(--color-brand-gold) 80%, var(--color-text-primary));
 }
 
-.action-queue__type--registration svg {
-  color: var(--color-brand-gold);
-}
-
-.action-queue__type--membership {
-  border-color: rgba(116, 172, 223, 0.22);
-  color: #9ec7eb;
-}
-
-.action-queue__type--membership svg {
-  color: var(--color-brand-celeste);
+.action-queue__type--membership svg,
+.action-queue__type--ticket_order svg {
+  color: color-mix(in oklab, var(--color-brand-celeste) 82%, var(--color-text-primary));
 }
 
 .action-queue__card-body {
@@ -12707,9 +13438,9 @@
 }
 
 .action-queue__subject {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -12741,12 +13472,14 @@
 }
 
 .action-queue__amount {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   flex: none;
-  font-size: 12.5px;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   justify-self: end;
+  letter-spacing: -0.01em;
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -12830,52 +13563,60 @@ button.action-queue__proof:focus-visible {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .action-queue__card:hover {
+  .action-queue__card:hover,
+  .action-queue__row:hover {
     background: rgba(255, 255, 255, 0.025);
   }
 }
 
-[data-theme='light'] .action-queue__card:hover {
+[data-theme='light'] .action-queue__card:hover,
+[data-theme='light'] .action-queue__row:hover {
   background: rgba(15, 17, 23, 0.03);
 }
 
 /* En rail colapsado el contenido baja a ~685px sin que el viewport
    cruce 640. Apilar por ancho útil, no solo por media de ventana. */
 @media (max-width: 900px) {
-  .action-queue__card {
+  .action-queue__card,
+  .action-queue__row {
     align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
-    padding: 12px 2px 12px 14px;
+    padding: 12px 14px;
   }
 
   .action-queue__card .action-queue__type {
     grid-column: 1 / -1;
   }
 
-  .action-queue__card .action-queue__card-body {
+  .action-queue__card .action-queue__card-body,
+  .action-queue__row .action-queue__card-body {
     grid-column: 1;
     min-width: 0;
   }
 
-  .action-queue__card .action-queue__subject {
+  .action-queue__card .action-queue__subject,
+  .action-queue__row .action-queue__subject {
     white-space: normal;
   }
 
-  .action-queue__card .action-queue__amount {
+  .action-queue__card .action-queue__amount,
+  .action-queue__row .action-queue__amount {
     align-self: start;
     grid-column: 2;
     justify-self: end;
     padding-top: 1px;
   }
 
-  .action-queue__card .action-queue__actions {
+  .action-queue__card .action-queue__actions,
+  .action-queue__row .action-queue__actions {
     gap: 8px;
     grid-column: 1 / -1;
     justify-content: flex-start;
     padding-left: 0;
   }
 
-  .action-queue__card .action-queue__btn {
+  .action-queue__card .action-queue__btn,
+  .action-queue__row .action-queue__btn {
     flex: 0 0 auto;
     min-height: 44px;
     width: auto;
@@ -12888,40 +13629,46 @@ button.action-queue__proof:focus-visible {
 }
 
 @container admin-ops (max-width: 899px) {
-  .action-queue__card {
+  .action-queue__card,
+  .action-queue__row {
     align-items: start;
     grid-template-columns: minmax(0, 1fr) auto;
-    padding: 12px 2px 12px 14px;
+    padding: 12px 14px;
   }
 
   .action-queue__card .action-queue__type {
     grid-column: 1 / -1;
   }
 
-  .action-queue__card .action-queue__card-body {
+  .action-queue__card .action-queue__card-body,
+  .action-queue__row .action-queue__card-body {
     grid-column: 1;
     min-width: 0;
   }
 
-  .action-queue__card .action-queue__subject {
+  .action-queue__card .action-queue__subject,
+  .action-queue__row .action-queue__subject {
     white-space: normal;
   }
 
-  .action-queue__card .action-queue__amount {
+  .action-queue__card .action-queue__amount,
+  .action-queue__row .action-queue__amount {
     align-self: start;
     grid-column: 2;
     justify-self: end;
     padding-top: 1px;
   }
 
-  .action-queue__card .action-queue__actions {
+  .action-queue__card .action-queue__actions,
+  .action-queue__row .action-queue__actions {
     gap: 8px;
     grid-column: 1 / -1;
     justify-content: flex-start;
     padding-left: 0;
   }
 
-  .action-queue__card .action-queue__btn {
+  .action-queue__card .action-queue__btn,
+  .action-queue__row .action-queue__btn {
     flex: 0 0 auto;
     min-height: 44px;
     width: auto;
@@ -14913,19 +15660,10 @@ button.action-queue__proof:focus-visible {
   width: 52px;
 }
 
+/* Spinner de la puerta — primitivo `.plu-spinner` (states.css) en celeste. */
 .security-gate-loading__spinner {
-  animation: security-gate-spin 0.8s linear infinite;
-  border: 2px solid var(--color-border-subtle);
-  border-radius: 50%;
-  border-top-color: var(--color-brand-celeste);
-  height: 22px;
-  width: 22px;
-}
-
-@keyframes security-gate-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  --spinner-accent: var(--color-brand-celeste);
+  --spinner-track: var(--color-border-subtle);
 }
 
 @media (max-width: 720px) {

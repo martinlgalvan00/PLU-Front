@@ -625,7 +625,7 @@ export default function EventsSection({
         <div className="admin-events-workspace__main">
           {isLoading && adminEvents.length === 0 ? (
             <div className="admin-events__loading" role="status">
-              <span className="admin-events__loading-indicator" aria-hidden />
+              <span className="plu-spinner plu-spinner--lg" aria-hidden="true" />
               <p>{t('admin.sections.events.loading')}</p>
             </div>
           ) : rows.length === 0 ? (

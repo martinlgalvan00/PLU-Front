@@ -1020,6 +1020,17 @@
   color: rgba(255, 255, 255, 0.28);
 }
 
+/* El documento espera la nacionalidad: el estado deshabilitado tiene que
+   leerse como "todavía no", no como un campo roto. La opacidad funciona
+   igual en light y dark sin duplicar la paleta. */
+.register-page--profile .register-card .field:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.register-page--profile .register-card .field input:disabled {
+  cursor: not-allowed;
+}
+
 .register-page--profile .register-card .field--select .field__select select {
   padding-right: 1.75rem;
 }
@@ -1155,23 +1166,8 @@
   box-shadow: none;
 }
 
-/* Spinner del CTA — mismo lenguaje que el de acceso */
-.register-card__submit-spinner {
-  animation: register-submit-spin 620ms linear infinite;
-  block-size: 15px;
-  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
-  border-radius: 50%;
-  border-top-color: currentColor;
-  display: block;
-  flex: none;
-  inline-size: 15px;
-}
-
-@keyframes register-submit-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* Spinner del CTA — primitivo global `.plu-spinner` (states.css), mismo
+   lenguaje que el de acceso. */
 
 /* Los dos pasos comparten celda durante el crossfade (mode="sync"): apilados
    en flujo normal la tarjeta duplicaba su alto en cada cambio de paso. */
@@ -2204,39 +2200,62 @@
   padding: 0;
 }
 
-.register-page--competition .register-status--settle .register-status__manual-actions {
-  align-self: stretch;
+/* ── Celebración de inscripción admitida ──────────────────────────
+   El estado de la orden es una lista de datos; esto no. Ocupa la fila
+   completa (el resto del bloque es un grid de dos columnas), se separa
+   con una regla y lleva la única acción principal de la pantalla. */
+
+/* El eyebrow y la bajada los pone ConfirmationSeal: acá quedó solo el
+   asiento del bloque dentro del grid de dos columnas del estado de orden. */
+.register-status__celebration {
+  border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: 12px;
   grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 1fr);
-  justify-self: stretch;
-  margin-top: 4px;
-  min-width: 0;
+  margin-top: 12px;
+  padding-top: 14px;
+}
+
+.register-status__celebration-cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  color: #14181f;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
   width: 100%;
 }
 
-.register-page--competition .register-status--settle .register-status__manual-actions .manual-note {
-  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
-  color: var(--color-text-secondary) !important;
-  display: block;
-  grid-column: auto;
-  max-width: none;
-  min-width: 0;
-  overflow-wrap: break-word;
-  width: 100%;
+.register-status__celebration-cta:hover {
+  background: var(--plu-gold-400);
+  transform: translateY(-1px);
 }
 
-.register-page--competition .register-status--settle .register-status__manual-actions .card-trigger-btn {
-  grid-column: auto;
-  justify-self: stretch;
+.register-status__celebration-cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
-[data-theme='light'] .register-page--competition .register-status--settle .register-status__manual-actions .manual-note {
-  background: color-mix(in srgb, var(--color-brand-gold) 14%, #fff);
-  border-color: color-mix(in srgb, var(--color-brand-gold) 34%, rgba(15, 17, 23, 0.12));
-  color: var(--color-text-primary) !important;
+@media (prefers-reduced-motion: reduce) {
+  .register-status__celebration-cta {
+    transition: none;
+  }
+
+  .register-status__celebration-cta:hover {
+    transform: none;
+  }
 }
 
 .register-settle {
@@ -3665,7 +3684,14 @@
   color: var(--plu-gold-600);
 }
 
-/* ── Membership confirmation (post-order) ─── */
+/* ── Membership confirmation (post-order) ───────────────────────────
+   El momento de entrega: primero la card real, la acción de compartir
+   pegada a ella, y los datos administrativos recién al cierre.
+
+   Una sola capa de reglas. Antes había dos bloques apilados en esta misma
+   hoja que se sobreescribían entre sí (el segundo pisaba radios, tamaños
+   y hasta el color del CTA principal), así que el estilo vigente no era
+   el que se leía primero. */
 
 .register-card--confirmation {
   gap: 0;
@@ -3681,56 +3707,50 @@
   gap: clamp(16px, 2.4vw, 22px);
 }
 
-.register-membership-confirmation__head {
-  align-items: start;
+/* ── La pieza ──
+   La card a tamaño real, reducida por su propio wrapper (mismo componente
+   que se descarga como PNG). El marco le da apoyo físico para que se lea
+   como un objeto entregado y no como una imagen incrustada en un form. */
+
+/* La card y su acción se leen como una sola unidad: mismo ancho, mismo
+   eje. Un CTA más ancho que la pieza la deja flotando sobre el bloque. */
+/* ── El sello de afiliación acreditada ──
+   Abre la confirmación: es la respuesta a lo que la persona vino a hacer.
+   Va contra el borde izquierdo del bloque aunque la card de abajo esté
+   centrada — el sello se lee, la card se mira. */
+.register-membership-confirmation__seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+.register-membership-confirmation__piece {
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr;
+  gap: 14px;
+  justify-items: center;
+  --piece-width: 380px;
 }
 
-.register-membership-confirmation__head svg {
-  color: var(--color-brand-celeste);
-  margin-top: 2px;
+.register-membership-confirmation__piece-frame,
+.register-membership-confirmation__piece .register-membership-confirmation__cta {
+  max-width: var(--piece-width);
+  width: 100%;
 }
 
-.register-membership-confirmation__head-copy {
-  display: grid;
-  gap: 6px;
+.register-membership-confirmation__piece-frame {
+  border: 1px solid var(--register-card-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
 }
 
-.register-membership-confirmation__eyebrow {
-  color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.register-membership-confirmation__head-copy h2 {
-  font-family: var(--font-display);
-  font-size: clamp(20px, 2.8vw, 26px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.12;
-  margin: 0;
-}
-
-.register-membership-confirmation__head-copy p {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.62;
-  margin: 0;
-  max-width: 48ch;
-}
+/* ── Credencial (fallback sin card emitida) ── */
 
 .register-membership-confirmation__credential {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--register-card-border);
-  border-radius: 16px;
-  display: grid;
-  gap: 0;
+  border-radius: 12px;
   overflow: hidden;
-  padding: 16px 18px 18px;
+  padding: 16px 16px 14px;
   position: relative;
 }
 
@@ -3744,20 +3764,12 @@
   top: 0;
 }
 
-.register-membership-confirmation__credential-row {
+.register-membership-confirmation__credential-main {
   align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: auto 1fr auto;
-  padding-top: 4px;
-}
-
-.register-membership-confirmation__emblem {
-  border-radius: 50%;
-  flex: none;
-  height: 40px;
-  object-fit: cover;
-  width: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
 }
 
 .register-membership-confirmation__credential-meta {
@@ -3768,31 +3780,23 @@
 
 .register-membership-confirmation__credential-label {
   color: var(--color-text-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.register-membership-confirmation__credential-season {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 500;
-}
-
 .register-membership-confirmation__credential-code {
-  font-family: var(--font-display);
-  font-size: clamp(22px, 3vw, 28px);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .register-membership-confirmation__credential-name {
   color: var(--color-brand-celeste);
   font-size: 13px;
-  font-style: normal;
   font-weight: 600;
   line-height: 1.35;
 }
@@ -3803,13 +3807,35 @@
   line-height: 1.4;
 }
 
-.register-membership-confirmation__ledger {
-  border-top: 1px solid var(--register-section-border);
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+/* ── Próximo paso / nota manual ── */
+
+.register-membership-confirmation__next-inline {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
   margin: 0;
-  padding-top: 16px;
+}
+
+.register-membership-confirmation__manual {
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+/* ── Cierre administrativo ── */
+
+.register-membership-confirmation__ledger {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 14px;
 }
 
 .register-membership-confirmation__ledger div {
@@ -3844,29 +3870,7 @@
   padding: 6px 8px;
 }
 
-.register-membership-confirmation__next {
-  background: rgba(116, 172, 223, 0.06);
-  border: 1px solid rgba(116, 172, 223, 0.14);
-  border-radius: 12px;
-  display: grid;
-  gap: 6px;
-  padding: 12px 14px;
-}
-
-.register-membership-confirmation__next-label {
-  color: var(--color-brand-celeste);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.register-membership-confirmation__next p {
-  color: var(--color-text-secondary);
-  font-size: 12.5px;
-  line-height: 1.55;
-  margin: 0;
-}
+/* ── Acciones ── */
 
 .register-membership-confirmation__actions {
   display: grid;
@@ -3888,26 +3892,27 @@
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
     color var(--transition-fast),
     transform var(--transition-fast);
   width: 100%;
 }
 
+/* Acción principal en oro: es la acción del bloque, y el oro es el token
+   de acción de la marca. El celeste queda para identidad, links y foco. */
 .register-membership-confirmation__cta--primary {
-  background: linear-gradient(135deg, var(--plu-gold-500), var(--plu-gold-600));
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset;
+  background: var(--color-brand-action);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   color: #14181f;
 }
 
 .register-membership-confirmation__cta--primary:hover {
-  background: linear-gradient(135deg, var(--plu-gold-400), var(--plu-gold-500));
+  background: var(--plu-gold-400);
   transform: translateY(-1px);
 }
 
-.register-membership-confirmation__cta--outline {
-  width: 100%;
+.register-membership-confirmation__cta--primary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
 .register-membership-confirmation__cta--ghost {
@@ -3916,6 +3921,8 @@
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 600;
+  justify-self: start;
+  margin-top: 12px;
   min-height: 0;
   padding: 6px 0;
   width: auto;
@@ -3925,15 +3932,14 @@
   color: var(--color-text-primary);
 }
 
-.register-membership-confirmation__manual {
-  background: var(--color-manual-note-bg);
-  border: 1px solid var(--color-manual-note-border);
-  border-radius: 10px;
-  color: var(--color-text-primary);
-  font-size: 12px;
-  line-height: 1.55;
-  margin: 0;
-  padding: 12px 14px;
+@media (prefers-reduced-motion: reduce) {
+  .register-membership-confirmation__cta {
+    transition: none;
+  }
+
+  .register-membership-confirmation__cta--primary:hover {
+    transform: none;
+  }
 }
 
 @media (max-width: 720px) {
@@ -3941,13 +3947,8 @@
     grid-template-columns: 1fr;
   }
 
-  .register-membership-confirmation__credential-row {
-    grid-template-columns: auto 1fr;
-  }
-
-  .register-membership-confirmation__credential-row .status-pill {
-    grid-column: 1 / -1;
-    justify-self: start;
+  .register-membership-confirmation__piece {
+    --piece-width: 320px;
   }
 }
 
@@ -3955,81 +3956,11 @@
   background: #fff;
 }
 
-[data-theme='light'] .register-membership-confirmation__next {
-  background: rgba(31, 95, 158, 0.05);
-  border-color: rgba(31, 95, 158, 0.12);
-}
-
-/* ── Membership confirmation (post-order) ─── */
-
-.register-membership-confirmation__head h2 {
-  font-family: var(--font-family);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.register-membership-confirmation__head p {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.register-membership-confirmation__next-inline {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.register-membership-confirmation__credential-main {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  justify-content: space-between;
-}
-
-.register-membership-confirmation__credential {
-  border-radius: 12px;
-  box-shadow: none;
-  padding: 14px 16px;
-}
-
-.register-membership-confirmation__credential-code {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.register-membership-confirmation__credential-label {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.register-membership-confirmation__credential-name {
-  font-size: 13px;
-}
-
-.register-membership-confirmation__ledger {
-  border-top: 1px solid var(--color-border-subtle);
-  gap: 12px;
-  padding-top: 14px;
-}
-
-.register-membership-confirmation__cta--primary {
-  background: var(--color-brand-celeste);
-  box-shadow: none;
-}
-
-.register-membership-confirmation__cta--primary:hover {
-  box-shadow: none;
-  transform: none;
+/* La card es siempre oscura (es una pieza de marca, no una superficie de
+   la app): en light necesita un filo propio para no flotar sobre blanco. */
+[data-theme='light'] .register-membership-confirmation__piece-frame {
+  border-color: rgba(15, 17, 23, 0.14);
+  box-shadow: 0 18px 44px rgba(15, 17, 23, 0.18);
 }
 
 /* =============================================
@@ -4273,40 +4204,67 @@
 }
 
 .register-profile-readiness {
-  align-items: flex-start;
-  background: color-mix(in srgb, var(--color-brand-gold) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
-  border-radius: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-inline-start: 3px solid var(--color-brand-gold);
+  border-radius: 8px;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 14px 16px;
+  gap: 18px;
+  padding: clamp(18px, 2.5vw, 24px);
 }
 
 .register-profile-readiness--incomplete {
-  background: color-mix(in srgb, var(--color-warning, #e6a817) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-warning, #e6a817) 42%, transparent);
+  border-inline-start-color: var(--color-warning-text);
 }
 
-.register-profile-readiness strong {
+.register-profile-readiness__header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.register-profile-readiness__state {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.register-profile-readiness--incomplete .register-profile-readiness__state {
+  color: var(--color-warning-text);
+}
+
+.register-profile-readiness h2 {
   color: var(--color-text-primary);
-  display: block;
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 7px 0 0;
 }
 
 .register-profile-readiness p {
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
-  margin: 3px 0 0;
-  max-width: 56ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+  max-width: 52ch;
 }
 
 .register-profile-readiness__details {
   display: grid;
-  gap: 10px 18px;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  margin: 14px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  gap: 14px 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding-top: 17px;
 }
 
 .register-profile-readiness__details div {
@@ -4316,57 +4274,94 @@
 .register-profile-readiness__details dt {
   color: var(--color-text-muted);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  line-height: 1.25;
   text-transform: uppercase;
 }
 
 .register-profile-readiness__details dd {
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: 13.5px;
+  font-weight: 500;
   line-height: 1.35;
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-.register-profile-readiness button {
-  align-self: flex-start;
-  background: transparent;
-  border: 0;
-  color: var(--color-brand-gold);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.register-profile-readiness button:focus-visible {
-  outline: 2px solid var(--color-brand-gold);
+.register-profile-readiness__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  border-radius: 6px;
+  color: var(--color-brand-gold);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  gap: 9px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 13px;
+  transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out), transform 180ms var(--ease-out);
+  white-space: nowrap;
+}
+
+.register-profile-readiness__action:hover {
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border-color: var(--color-brand-gold);
+  transform: translateX(2px);
+}
+
+.register-profile-readiness__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 
 @media (max-width: 620px) {
-  .register-profile-readiness {
-    grid-template-columns: 1fr;
+  .register-profile-readiness__header {
+    flex-direction: column;
+  }
+
+  .register-profile-readiness__action {
+    width: 100%;
   }
 
   .register-profile-readiness__details {
     grid-template-columns: 1fr;
   }
+}
 
-  .register-profile-readiness button {
-    justify-self: flex-start;
+@media (prefers-reduced-motion: reduce) {
+  .register-profile-readiness__action {
+    transition: none;
+  }
+
+  .register-profile-readiness__action:hover {
+    transform: none;
   }
 }
 
 .register-competition-fields {
   display: grid;
   gap: clamp(22px, 3vw, 30px);
+}
+
+.register-competition-commitment {
+  border-left: 2px solid var(--plu-gold-500);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  padding-left: 12px;
+}
+
+.register-page--competition .register-competition-fields :is(input:disabled, .field__choice:has(input:disabled)) {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .register-page--competition .register-card .form-section-block {

@@ -500,17 +500,24 @@ export default function App() {
           adminEventsLoading={app.adminEventsLoading}
           adminEventsError={app.adminEventsError}
           athleteDataLoading={app.athleteDataLoading}
+          athleteDataRefreshing={app.athleteDataRefreshing}
+          athleteDataSyncedAt={app.athleteDataSyncedAt}
           athleteDataError={app.athleteDataError}
           filters={app.filters}
           filteredRegistrations={app.filteredRegistrations}
           gatePendingIds={app.gatePendingIds}
           enrichedMemberships={app.enrichedMemberships}
           pendingActions={app.pendingActions}
+          dismissedQueueItemsLoading={app.dismissedQueueItemsLoading}
+          onDismissQueueItem={app.dismissQueueItem}
+          onUndismissQueueItem={app.undismissQueueItem}
           adminNavBadges={app.adminNavBadges}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
+          onForceSettlePayment={app.handleForceSettlePayment}
           onRejectPayment={app.handleRejectPayment}
           onSetMembershipStatus={app.setMembershipStatusAction}
+          onSetRegistrationStatus={app.setRegistrationStatusAction}
           onApproveTicketPurchase={app.approveTicketPurchase}
           onRejectTicketOrder={app.rejectTicketPurchase}
           onCheckInRegistration={app.checkInRegistrationAction}
@@ -528,6 +535,7 @@ export default function App() {
           registrationAccessError={app.registrationAccessError}
           onRefreshRegistrationAccess={app.refreshRegistrationAccessConfiguration}
           onSaveRegistrationAccessGate={app.saveRegistrationAccessGate}
+          onDeleteRegistrationAccessGate={app.deleteRegistrationAccessGate}
           onRefreshCheckoutAvailability={app.refreshCheckoutAvailability}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
@@ -555,6 +563,7 @@ export default function App() {
           onDeleteAthlete={app.deleteAthleteAction}
           onDeleteMembership={app.deleteMembershipAction}
           onDeleteRegistration={app.deleteRegistrationAction}
+          onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
           onCreateRole={app.createAccessRoleAction}
           onDeleteShopProduct={app.deleteShopProductAction}
           onExportAdmin={app.exportAdminCsv}
@@ -683,6 +692,7 @@ export default function App() {
             onStartMembershipPayment={app.startMembershipPayment}
             demoMode={app.demoMode}
             onNavigate={navigate}
+            onSelectEvent={selectEvent}
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
             onRemovePhoto={app.removeAthletePhotoAction}
@@ -741,7 +751,7 @@ export default function App() {
           Se monta acá, fuera de PageTransition, para que el aviso no se pierda
           al cambiar de vista. */}
       <EmailVerificationNotice />
-      <SessionNotice />
+      <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
       <DocumentMetaSync
         view={view}
@@ -784,7 +794,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
   return (
     <div className="app-shell">
       <EmailVerificationNotice />
-      <SessionNotice />
+      <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
       <DocumentMetaSync view={view} />
       <AnalyticsTracker view={view} />

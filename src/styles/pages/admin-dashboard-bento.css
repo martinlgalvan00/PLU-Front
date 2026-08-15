@@ -662,6 +662,159 @@
   padding: 0;
 }
 
+/* ---- Circuitos operativos ---- */
+
+.admin-ops__flows {
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  display: grid;
+  gap: 14px;
+  padding: 18px 0 2px;
+}
+
+.admin-ops__flows-head {
+  border-bottom: 1px solid var(--admin-hairline);
+  padding-bottom: 12px;
+}
+
+.admin-ops__flows-head > div {
+  display: grid;
+  gap: 4px;
+  max-width: 62ch;
+}
+
+.admin-ops__flows-head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.admin-ops__flows-head p {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-ops__flows-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-ops__flows-list li {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 82%, transparent);
+  column-gap: 12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  min-height: 64px;
+  padding: 8px 0;
+}
+
+.admin-ops__flows-list li:first-child {
+  border-top: 0;
+}
+
+.admin-ops__flow-state {
+  align-items: center;
+  color: var(--admin-status-success);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.admin-ops__flows-list li.is-attention .admin-ops__flow-state,
+.admin-ops__flows-list li.is-attention .admin-ops__flow-attention strong {
+  color: var(--admin-status-warning);
+}
+
+.admin-ops__flow-copy,
+.admin-ops__flow-attention {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-ops__flow-copy strong,
+.admin-ops__flow-attention strong {
+  color: var(--admin-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.admin-ops__flow-copy span,
+.admin-ops__flow-attention span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.admin-ops__flow-attention {
+  min-width: 92px;
+  text-align: right;
+}
+
+.admin-ops__flow-open {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 5px;
+  justify-content: flex-end;
+  min-height: 44px;
+  padding: 0 4px 0 8px;
+}
+
+.admin-ops__flow-open:hover {
+  color: var(--admin-ink);
+}
+
+.admin-ops__flow-open:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@container admin-ops (max-width: 500px) {
+  .admin-ops__flows-list li {
+    column-gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 74px;
+  }
+
+  .admin-ops__flow-state {
+    grid-row: 1 / span 2;
+  }
+
+  .admin-ops__flow-attention {
+    align-items: baseline;
+    display: flex;
+    gap: 5px;
+    grid-column: 2;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .admin-ops__flow-open {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
 /* ---- Pendientes (franja editorial plana, misma disciplina que el resto del board) ---- */
 
 .admin-ops__work {
@@ -980,6 +1133,35 @@
   .admin-ops__work-cta {
     align-self: center;
   }
+
+  /* La cola vive en un rail angosto: conserva tipo + tarea como lectura
+     vertical y deja la acción alineada a la derecha, sin convertir cada fila
+     en una card alta de cuatro renglones. */
+  .admin-ops__work .action-queue__card {
+    align-items: center;
+    gap: 3px 16px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 11px;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__type,
+  .admin-ops__work .action-queue__card .action-queue__card-body {
+    grid-column: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__amount {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    padding-top: 1px;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__actions {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    justify-content: flex-end;
+  }
 }
 
 @container admin-ops (max-width: 480px) {
@@ -1122,6 +1304,10 @@
   transition: background var(--transition-fast, 160ms ease);
 }
 
+.admin-ops__recent-open--static {
+  cursor: default;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .admin-ops__recent-open:hover {
     background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
@@ -1151,7 +1337,18 @@
   height: 34px;
   justify-content: center;
   letter-spacing: -0.02em;
+  overflow: hidden;
+  position: relative;
   width: 34px;
+}
+
+.admin-ops__recent-avatar-photo {
+  background: var(--admin-surface, var(--color-bg-surface));
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
 }
 
 .admin-ops__recent-body {

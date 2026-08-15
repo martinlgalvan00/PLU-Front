@@ -123,7 +123,7 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
         >
           {labeledMeta
             ? metaItems.map(({ col, value }) => (
-                <div key={col.key} className="data-table-card__meta-item">
+                <div key={col.key} className="data-table-card__meta-item" data-column={col.key}>
                   {typeof col.label === 'string' && col.label ? (
                     <span className="data-table-card__meta-label">{col.label}</span>
                   ) : null}
@@ -131,7 +131,7 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
                 </div>
               ))
             : metaItems.map(({ col, value }, index) => (
-                <span key={col.key} className="data-table-card__meta-value">
+                <span key={col.key} className="data-table-card__meta-value" data-column={col.key}>
                   {index > 0 ? (
                     <span className="data-table-card__meta-sep" aria-hidden>
                       ·

@@ -1085,6 +1085,7 @@ html.plu-drawer-open body {
 }
 
 .plu-drawer {
+  -webkit-tap-highlight-color: transparent;
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   background: color-mix(in srgb, var(--institution-surface) 94%, transparent);
@@ -1579,6 +1580,7 @@ html.plu-drawer-open body {
 }
 
 .plu-drawer__row {
+  -webkit-tap-highlight-color: transparent;
   align-items: center;
   background: transparent;
   border: 0;
@@ -1605,19 +1607,25 @@ html.plu-drawer-open body {
   color: var(--institution-text);
 }
 
-.plu-drawer__row:active {
-  opacity: 0.6;
-}
-
-.plu-drawer__row-icon {
-  color: var(--institution-text-muted);
-  flex: none;
+/* Press: el copy cede 2px hacia adentro — respuesta elástica al dedo sin
+   pelear el transform del botón (lo controla Motion para el stagger). */
+.plu-drawer__row:active .plu-drawer__row-copy {
+  opacity: 0.62;
+  transform: translateX(-2px);
 }
 
 .plu-drawer__row-copy {
   display: grid;
   gap: 0;
   min-width: 0;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out);
+}
+
+.plu-drawer__row-icon {
+  color: var(--institution-text-muted);
+  flex: none;
 }
 
 .plu-drawer__row-copy strong {

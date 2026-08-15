@@ -11,7 +11,7 @@ export default function AdminEventTicketAddonReport({ event, tickets }) {
     [event.pricing?.ticketAddons, event.slug, tickets],
   )
 
-  if (event.pricing?.ticketsEnabled === false) return null
+  if (event.pricing?.ticketsEnabled !== true) return null
   if (!report.hasCatalog && !report.hasActivity) return null
 
   const metrics = [

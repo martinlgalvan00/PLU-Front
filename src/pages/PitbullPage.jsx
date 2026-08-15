@@ -33,6 +33,7 @@ import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
+import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { env } from '../config/env.js'
@@ -560,10 +561,27 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
       ) : (
         <ol className="pitbull-recent__list">
           {recent.map((item, index) => {
-            const line = [item.displayName, item.gym].filter(Boolean).join(' · ')
+            const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
             return (
               <li key={`${item.displayName}-${item.registeredAt ?? index}`} className="pitbull-recent__row">
-                <span className="pitbull-recent__name">{line}</span>
+                <span className="pitbull-recent__portrait" aria-hidden="true">
+                  {item.photoUrl ? (
+                    <img
+                      src={item.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        event.currentTarget.hidden = true
+                      }}
+                    />
+                  ) : null}
+                  <span>{initial}</span>
+                </span>
+                <span className="pitbull-recent__identity">
+                  <strong className="pitbull-recent__name">{item.displayName}</strong>
+                  {item.gym ? <span className="pitbull-recent__gym">{item.gym}</span> : null}
+                </span>
                 <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
                   {formatRelativeTime(item.registeredAt, locale)}
                 </time>
@@ -937,8 +955,9 @@ export default function PitbullPage({
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
-  const ticketsOpen = ticketCheckoutOpen && eventPricing.ticketsEnabled !== false
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
+  const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
+  const ticketsOpen = env.ticketSalesEnabled && ticketCheckoutOpen && eventPricing.ticketsEnabled === true && ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,
     registered: liveRegistered,

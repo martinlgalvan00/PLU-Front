@@ -25,3 +25,30 @@ jobs:
             --retry 5 --retry-all-errors --retry-delay 5 --max-time 20 \
             "$DEPLOYMENT_URL/api/ready" > ready.json
           node -e "const fs=require('fs'); const body=JSON.parse(fs.readFileSync('ready.json')); if(body.status!=='ready' || !body.checks?.prisma || !body.checks?.supabase) { console.error(body); process.exit(1) }"
+      - name: Verify the deployed instance is hardened
+        env:
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        run: |
+          set -euo pipefail
+          # Un despliegue puede estar vivo y con la caja abierta: estas tres
+          # comprobaciones son las que distinguen "responde" de "responde bien".
+          private_status=$(curl --show-error --silent --output /dev/null --write-out '%{http_code}' \
+            --max-time 20 "$DEPLOYMENT_URL/api/payments/operations")
+          if [[ "$private_status" != "401" && "$private_status" != "403" ]]; then
+            echo "::error title=Ruta privada expuesta::/api/payments/operations respondió $private_status sin sesión."
+            exit 1
+          fi
+
+          webhook_status=$(curl --show-error --silent --output /dev/null --write-out '%{http_code}' \
+            --max-time 20 -X POST -H 'Content-Type: application/json' \
+            -d '{"id":1,"type":"payment","data":{"id":"1234"}}' \
+            "$DEPLOYMENT_URL/api/payments/webhook/mercadopago?type=payment&data.id=1234")
+          if [[ "$webhook_status" != "400" && "$webhook_status" != "401" ]]; then
+            echo "::error title=Webhook sin verificar firma::respondió $webhook_status a una notificación sin firmar."
+            exit 1
+          fi
+
+          if curl --show-error --silent --head --max-time 20 "$DEPLOYMENT_URL/api/health" | grep -qi '^x-powered-by:'; then
+            echo "::error title=Cabecera x-powered-by presente::el runtime está anunciando su motor."
+            exit 1
+          fi

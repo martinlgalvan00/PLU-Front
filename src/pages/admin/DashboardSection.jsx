@@ -5,6 +5,8 @@ import {
   BadgeCheck,
   CalendarDays,
   ClipboardList,
+  CircleAlert,
+  CircleCheck,
   MapPin,
   Send,
   Shield,
@@ -23,6 +25,7 @@ import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
@@ -56,6 +59,18 @@ const QUICK_ACTIONS = [
   { section: 'events', labelKey: 'admin.nav.events' },
   { section: 'memberships', labelKey: 'admin.nav.memberships' },
 ]
+
+const LAUNCH_SOURCE_LABEL_KEYS = {
+  pitbull_page: 'admin.dashboard.launchInterest.sources.pitbullPage',
+  launch_teaser: 'admin.dashboard.launchInterest.sources.launchTeaser',
+}
+
+function humanizeLaunchSource(source, t) {
+  const labelKey = LAUNCH_SOURCE_LABEL_KEYS[source]
+  if (labelKey) return t(labelKey)
+  const words = String(source ?? '').trim().replace(/[_-]+/g, ' ')
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : t('admin.dashboard.launchInterest.unknownSource')
+}
 
 function mapMetrics(items, t, locale) {
   return items.map((item) => {
@@ -185,6 +200,95 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
   )
 }
 
+/**
+ * Una lectura corta de los circuitos evita que el administrador tenga que
+ * inferir, cruzando los gráficos, qué sigue su curso y qué requiere una
+ * decisión humana. No reemplaza las tablas ni ejecuta mutaciones.
+ */
+function OperationalFlows({ flows, onNavigate, t }) {
+  const items = [
+    {
+      id: 'payments',
+      section: 'payments',
+      title: t('admin.dashboard.flowPaymentsTitle'),
+      progressing: flows.payments.reconciliationPending,
+      progressingLabel: t('admin.dashboard.flowPaymentsProgressing'),
+      attention: flows.payments.manualValidation,
+      attentionLabel: t('admin.dashboard.flowPaymentsManual'),
+    },
+    {
+      id: 'registrations',
+      section: 'registrations',
+      title: t('admin.dashboard.flowRegistrationsTitle'),
+      progressing: flows.registrations.confirmed,
+      progressingLabel: t('admin.dashboard.flowRegistrationsConfirmed'),
+      attention: flows.registrations.observed + flows.registrations.gatePending,
+      attentionLabel: t('admin.dashboard.flowRegistrationsAttention'),
+    },
+    {
+      id: 'memberships',
+      section: 'memberships',
+      title: t('admin.dashboard.flowMembershipsTitle'),
+      progressing: flows.memberships.active,
+      progressingLabel: t('admin.dashboard.flowMembershipsActive'),
+      attention: flows.memberships.expiring,
+      attentionLabel: t('admin.dashboard.flowMembershipsExpiring'),
+    },
+    {
+      id: 'events',
+      section: 'events',
+      title: t('admin.dashboard.flowEventsTitle'),
+      progressing: flows.events.open,
+      progressingLabel: t('admin.dashboard.flowEventsOpen'),
+      attention: flows.events.limited,
+      attentionLabel: t('admin.dashboard.flowEventsLimited'),
+    },
+  ]
+
+  return (
+    <section className="admin-ops__flows" aria-labelledby="admin-operational-flows-title">
+      <header className="admin-ops__flows-head">
+        <div>
+          <span className="admin-ops__eyebrow">{t('admin.dashboard.flowsEyebrow')}</span>
+          <h3 id="admin-operational-flows-title">{t('admin.dashboard.flowsTitle')}</h3>
+          <p>{t('admin.dashboard.flowsSubtitle')}</p>
+        </div>
+      </header>
+      <ul className="admin-ops__flows-list">
+        {items.map((item) => {
+          const needsAttention = item.attention > 0
+          const StateIcon = needsAttention ? CircleAlert : CircleCheck
+          return (
+            <li key={item.id} className={needsAttention ? 'is-attention' : 'is-clear'}>
+              <span className="admin-ops__flow-state" aria-hidden>
+                <StateIcon size={16} strokeWidth={1.8} />
+              </span>
+              <div className="admin-ops__flow-copy">
+                <strong>{item.title}</strong>
+                <span>
+                  {item.progressing} {item.progressingLabel}
+                </span>
+              </div>
+              <div className="admin-ops__flow-attention">
+                <strong>{item.attention}</strong>
+                <span>{item.attentionLabel}</span>
+              </div>
+              <button
+                type="button"
+                className="admin-ops__flow-open"
+                onClick={() => onNavigate?.(item.section)}
+              >
+                <span>{t('admin.dashboard.flowOpen')}</span>
+                <ArrowRight size={14} aria-hidden />
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 function SpotlightInline({ event, locale, onNavigate, t }) {
   if (!event) return null
 
@@ -252,7 +356,17 @@ function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }
               onClick={() => onSelectAthlete?.(athlete.id)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(athlete.fullName)}
+                {athlete.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={athlete.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(athlete.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{athlete.fullName}</strong>
@@ -340,7 +454,17 @@ function RecentMembershipsCard({
               onClick={() => onSelectAthlete?.(membership.athleteId)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(membership.fullName)}
+                {membership.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={membership.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(membership.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{membership.fullName}</strong>
@@ -419,7 +543,17 @@ function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAt
               onClick={() => onSelectAthlete?.(registration.athleteId)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(registration.fullName)}
+                {registration.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={registration.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(registration.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{registration.fullName}</strong>
@@ -484,6 +618,7 @@ function LeaderboardCard({
 }
 
 function LaunchInterestWidget() {
+  const { t } = useI18n()
   const [summary, setSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [notifying, setNotifying] = useState(null)
@@ -530,46 +665,52 @@ function LaunchInterestWidget() {
     <section className="admin-ops__recent" aria-label="Lanzamientos">
       <header className="admin-ops__chart-head">
         <div>
-          <p className="admin-ops__eyebrow">Waitlists & Lanzamientos</p>
-          <h3>Interesados Pendientes</h3>
-          <p>Usuarios esperando la apertura de inscripciones o ventas.</p>
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.launchInterest.eyebrow')}</p>
+          <h3>{t('admin.dashboard.launchInterest.title')}</h3>
+          <p>{t('admin.dashboard.launchInterest.subtitle')}</p>
         </div>
       </header>
       <ul className="admin-ops__recent-list">
-        {summary.map((item) => (
-          <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
-            <div className="admin-ops__recent-open" style={{ cursor: 'default' }}>
-              <span className="admin-ops__recent-avatar" aria-hidden>
-                {item.source.charAt(0).toUpperCase()}
-              </span>
-              <span className="admin-ops__recent-body">
-                <strong>{item.source}</strong>
-                <span>Total: {item.total}</span>
-              </span>
-              <span className="admin-ops__recent-date">
-                <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
-                <span>{item.pending} sin notificar</span>
-              </span>
-            </div>
-            {item.pending > 0 ? (
-              <AdminIconButton
-                icon={Send}
-                label={`Notificar ${item.pending}`}
-                onClick={() => {
-                  setNotifyError('')
-                  setConfirmSource(item.source)
-                }}
-                disabled={notifying === item.source}
-                variant="primary"
-              />
-            ) : null}
-          </li>
-        ))}
+        {summary.map((item) => {
+          const sourceLabel = humanizeLaunchSource(item.source, t)
+          return (
+            <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+              <div className="admin-ops__recent-open admin-ops__recent-open--static">
+                <span className="admin-ops__recent-avatar" aria-hidden>
+                  {sourceLabel.charAt(0).toUpperCase()}
+                </span>
+                <span className="admin-ops__recent-body">
+                  <strong>{sourceLabel}</strong>
+                  <span>{t('admin.dashboard.launchInterest.total', { count: item.total })}</span>
+                </span>
+                <span className="admin-ops__recent-date">
+                  <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
+                  <span>{t('admin.dashboard.launchInterest.pending', { count: item.pending })}</span>
+                </span>
+              </div>
+              {item.pending > 0 ? (
+                <AdminIconButton
+                  icon={Send}
+                  label={t('admin.dashboard.launchInterest.notify', {
+                    count: item.pending,
+                    source: sourceLabel,
+                  })}
+                  onClick={() => {
+                    setNotifyError('')
+                    setConfirmSource(item.source)
+                  }}
+                  disabled={notifying === item.source}
+                  variant="primary"
+                />
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
 
       {confirmSource ? (
         <LaunchInterestConfirmDialog
-          source={confirmSource}
+          sourceLabel={humanizeLaunchSource(confirmSource, t)}
           pending={summary.find((item) => item.source === confirmSource)?.pending ?? 0}
           busy={notifying === confirmSource}
           error={notifyError}
@@ -581,7 +722,7 @@ function LaunchInterestWidget() {
   )
 }
 
-function LaunchInterestConfirmDialog({ source, pending, busy, error, onCancel, onConfirm }) {
+function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCancel, onConfirm }) {
   const panelRef = useAdminModal(onCancel)
 
   return createPortal(
@@ -605,7 +746,7 @@ function LaunchInterestConfirmDialog({ source, pending, busy, error, onCancel, o
         </span>
         <div className="admin-user-delete-dialog__copy">
           <h2 id="launch-interest-confirm-title">Enviar aviso de lanzamiento</h2>
-          <p>{`¿Enviar aviso a los ${pending} pendientes de "${source}"?`}</p>
+          <p>{`¿Enviar aviso a los ${pending} pendientes de "${sourceLabel}"?`}</p>
           {error ? (
             <p className="admin-user-delete-dialog__error" role="alert">
               {error}
@@ -636,6 +777,9 @@ export default function DashboardSection({
   onApproveTicketOrder,
   onRejectTicketOrder,
   canEdit,
+  canDismissQueueItems = false,
+  onDismissItem,
+  onUndismissItem,
   canDeleteAthletes = false,
   onDeleteAthlete,
   onSelectAthlete,
@@ -647,6 +791,40 @@ export default function DashboardSection({
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
 
+  // Validación rápida desde la lista de pendientes de cobros: sin esto el
+  // botón disparaba la acción sin esperarse ni avisar el resultado.
+  async function handleQuickValidate(paymentId) {
+    try {
+      const result = await onApprovePayment?.(paymentId)
+      if (result?.error) notifyError(result.error)
+      else notifySuccess(t('admin.toasts.paymentApproved'))
+    } catch (error) {
+      notifyError(error?.message ?? t('admin.toasts.actionError'))
+    }
+  }
+
+  // Descartar es reversible: el toast de éxito ofrece "Deshacer" por si el
+  // click fue un error, sin obligar a ir a buscar el ítem de vuelta.
+  async function handleDismiss(itemKey, itemType) {
+    try {
+      const result = await onDismissItem?.(itemKey, itemType)
+      if (result?.error) {
+        notifyError(result.error)
+        return
+      }
+      notifySuccess(t('admin.actionQueue.dismissed'), {
+        label: t('admin.actionQueue.undo'),
+        onClick: () => {
+          void onUndismissItem?.(itemKey).then((undoResult) => {
+            if (undoResult?.error) notifyError(undoResult.error)
+          })
+        },
+      })
+    } catch (error) {
+      notifyError(error?.message ?? t('admin.actionQueue.dismissError'))
+    }
+  }
+
   const {
     breakdowns,
     eventLeaderboard,
@@ -657,6 +835,7 @@ export default function DashboardSection({
     recentRegistrations,
     spotlightEvent,
     topGyms,
+    operationalFlows,
   } = dashboardOverview
 
   const primaryMetrics = useMemo(
@@ -707,6 +886,8 @@ export default function DashboardSection({
         onApproveTicketOrder={onApproveTicketOrder}
         onRejectTicketOrder={onRejectTicketOrder}
         canEdit={canEdit}
+        canDismiss={canDismissQueueItems}
+        onDismissItem={handleDismiss}
       />
 
       <div className="admin-ops" aria-label={t('admin.dashboard.metricsAria')}>
@@ -846,19 +1027,13 @@ export default function DashboardSection({
             </div>
           </div>
 
+          <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
+
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
-                <div className="admin-ops__work-title-row">
-                  <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
-                  {hasWork ? (
-                    <span className="admin-ops__work-count" aria-hidden>
-                      {pendingActions.length || finance.pendingCount}
-                    </span>
-                  ) : null}
-                </div>
-                <h3>{t('admin.dashboard.workTitle')}</h3>
-                <p>{workSubtitle}</p>
+                <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
+                <h3>{workSubtitle}</h3>
               </div>
               {hasWork ? (
                 <button
@@ -887,6 +1062,8 @@ export default function DashboardSection({
                 onApproveTicketOrder={onApproveTicketOrder}
                 onRejectTicketOrder={onRejectTicketOrder}
                 canEdit={canEdit}
+                canDismiss={canDismissQueueItems}
+                onDismissItem={handleDismiss}
               />
             ) : null}
 
@@ -903,7 +1080,7 @@ export default function DashboardSection({
                       <button
                         type="button"
                         className="admin-ops__pending-action"
-                        onClick={() => onApprovePayment?.(item.id)}
+                        onClick={() => void handleQuickValidate(item.id)}
                       >
                         {t('admin.actions.validate')}
                       </button>

@@ -105,6 +105,7 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     category: registration.category,
     division: registration.division,
     bodyweight: registration.bodyweight_kg,
+    publicVisible: registration.public_visible ?? registration.publicVisible ?? true,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
     createdAt: registration.created_at ?? registration.createdAt ?? null,
@@ -155,6 +156,11 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       id: order.id,
       athleteId: order.athlete_id,
       concept: eventTitle ? `Inscripción ${eventTitle}` : CONCEPT_LABELS[order.concept] ?? order.concept,
+      // Valor crudo ('membership' | 'registration' | 'combo'), distinto de
+      // `concept` (la etiqueta ya formateada arriba) -- lo necesita
+      // paymentReconciliationService para saber qué entitlement debería
+      // existir sin tener que parsear el label.
+      conceptType: order.concept,
       amount: order.amount,
       method: order.method,
       manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
@@ -371,12 +377,15 @@ export async function createCompetitionRegistration({
   }
 }
 
-export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug }) {
+export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug, paymentMethod }) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
     planCode: planCode || undefined,
     eventSlug: eventSlug || undefined,
+    // Sin el canal, el servidor calcula el ahorro sobre el precio de catálogo
+    // y muestra un número distinto al que se cobra durante la ventana Pitbull.
+    paymentMethod: paymentMethod || undefined,
   })
   const preview = result.preview ?? {}
   return {
@@ -442,6 +451,32 @@ export async function approveAthletePaymentOrder(orderId) {
 export async function rejectAthletePaymentOrder(orderId, reason) {
   const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/reject`, { reason })
   return { order: toCamelPaymentOrder(result.order) }
+}
+
+/**
+ * Acredita a mano una orden que el proveedor dio por perdida. Devuelve la misma
+ * forma que `approveAthletePaymentOrder` para que la bandeja no tenga que
+ * distinguir de qué acción viene el resultado.
+ */
+export async function forceSettleAthletePaymentOrder(orderId, { reason, reference } = {}) {
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/force-settle`, {
+    reason,
+    ...(reference ? { reference } : {}),
+  })
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: toCamelMembership(result.membership),
+    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    duplicate: Boolean(result.duplicate),
+  }
+}
+
+export async function setEventRegistrationStatus(registrationId, status, reason) {
+  const result = await apiPost(`/api/athletes/admin/registrations/${registrationId}/status`, { status, reason })
+  return {
+    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    duplicate: Boolean(result.duplicate),
+  }
 }
 
 function toCredentialResult(result, eventSlug) {
@@ -602,6 +637,15 @@ export async function deleteMembershipRequest(membershipId) {
 export async function deleteRegistrationRequest(registrationId) {
   const result = await apiDelete(`/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`)
   return { deletedRegistration: result.deletedRegistration }
+}
+
+/** Publica u oculta una inscripción del padrón público del evento. */
+export async function setRegistrationPublicVisibility(registrationId, publicVisible) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/public-visibility`,
+    { publicVisible },
+  )
+  return { registration: toCamelRegistrationEntry({ registration }) }
 }
 
 /** Rota la credencial de la persona: invalida la card impresa de ese atleta. */

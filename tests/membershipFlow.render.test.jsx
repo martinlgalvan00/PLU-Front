@@ -34,9 +34,14 @@ beforeAll(() => {
 })
 
 // El brick de Mercado Pago carga el SDK remoto al montarse.
+const mpBrick = vi.hoisted(() => ({ paymentProps: [] }))
+
 vi.mock('@mercadopago/sdk-react', () => ({
   initMercadoPago: vi.fn(),
-  Payment: () => <div data-testid="mp-payment-brick" />,
+  Payment: (props) => {
+    mpBrick.paymentProps.push(props)
+    return <div data-testid="mp-payment-brick" />
+  },
   CardPayment: () => <div data-testid="mp-card-brick" />,
   Wallet: () => <div data-testid="mp-wallet-brick" />,
 }))
@@ -183,9 +188,11 @@ async function waitForMembershipPayButton() {
   return screen.getByRole('button', { name: /continuar con mercado pago/i })
 }
 
-// Cada pantalla rotula su acción distinto: "Ver credencial" en el alta, "Ver
-// mi card" en la cuenta. Lo que importa es si existe o no.
-const registerCredentialAction = () => screen.queryByRole('button', { name: 'Ver credencial' })
+// Cada pantalla rotula su acción distinto: "Descargar y compartir mi card" en
+// el alta y en la inscripción, "Ver mi card" en la cuenta. Lo que importa es
+// si existe o no, no el rótulo exacto.
+const registerCredentialAction = () =>
+  screen.queryByRole('button', { name: /descargar y compartir mi card/i })
 const accountCredentialAction = () => screen.queryByRole('button', { name: 'Ver mi card' })
 
 afterEach(() => {
@@ -221,7 +228,9 @@ describe('confirmación del alta de afiliación', () => {
     renderRegister({ memberships: [membership()] })
 
     expect(registerCredentialAction()).toBeTruthy()
-    expect(screen.getByText('PLU-ARG-2026-014')).toBeTruthy()
+    // El número de socio ahora vive dentro de la card ("Socio n.º PLU-…"), no
+    // en una ficha aparte: se busca por contenido, no por nodo exacto.
+    expect(screen.getAllByText(/PLU-ARG-2026-014/).length).toBeGreaterThan(0)
   })
 
   it('ignora la afiliación de otro atleta', () => {
@@ -254,7 +263,8 @@ describe('credencial de inscripción a torneo', () => {
 
   // El bloque de estado se duplica en el layout (aside de desktop + contexto
   // mobile), así que la acción aparece más de una vez cuando existe.
-  const cardActions = () => screen.queryAllByRole('button', { name: /generar mi card/i })
+  const cardActions = () =>
+    screen.queryAllByRole('button', { name: /descargar y compartir mi card/i })
 
   it('muestra ARS 85.000 como total de inscripción de Pitbull Classic con Mercado Pago', () => {
     const { container } = renderRegister({
@@ -492,9 +502,11 @@ describe('sección de afiliación de la cuenta', () => {
     await waitFor(() => {
       expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
     })
-    // La cuenta de Mercado Pago se ofrece al lado de la tarjeta: quien tiene
-    // saldo o medios guardados puede usarlos sin salir del flujo de afiliación.
-    expect(screen.getByTestId('mp-wallet-brick')).toBeTruthy()
+    // La cuenta de Mercado Pago se ofrece como una fila más de la misma lista,
+    // no como un segundo formulario con su propio botón.
+    expect(screen.queryByTestId('mp-wallet-brick')).toBeNull()
+    expect(mpBrick.paymentProps.at(-1).customization.paymentMethods.mercadoPago)
+      .toEqual(['wallet_purchase'])
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
 

@@ -69,6 +69,19 @@ aplicaciones distintas en Mercado Pago (TEST para DEV, PROD para produccion).
 | DEV (preview rama `dev`) | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app` | `https://plu-git-dev-martinlgalvan00s-projects.vercel.app/api/payments/webhook/mercadopago` |
 | PROD | `https://www.powerliftingunited.ar` | `https://www.powerliftingunited.ar/api/payments/webhook/mercadopago` |
 
+> **Siempre con `www`.** El apex `powerliftingunited.ar` no sirve la aplicacion: responde `308
+> Permanent Redirect` hacia `www`. Un navegador lo sigue y no se nota, pero Mercado Pago exige
+> 200/201 en la `notification_url` y **no sigue redirects**, asi que toda notificacion se da por
+> fallida. Eso tuvo `payment_integration_events` en cero durante toda la vida del sistema con
+> pagos reales acreditados: los cobros con tarjeta seguian funcionando porque el checkout
+> embebido acredita contra la respuesta del Brick, y la falla solo aparecia en lo que depende del
+> webhook (acreditacion diferida, contracargos, reembolsos).
+>
+> El backend promueve el apex a `www` por su cuenta (`normalizeOfficialHost`), asi que una
+> variable mal cargada ya no reintroduce el problema. Verificacion rapida:
+> `curl -i -X POST <notification_url>` tiene que responder **400 o 401**, nunca `3xx`.
+> `npm run mercado-pago:urls` lo chequea y marca cualquier redirect como bloqueante.
+
 En el panel MP (Tu integracion → Webhooks):
 
 1. Pegar la URL de webhook de la fila correspondiente.
@@ -223,6 +236,28 @@ Las altas de atleta que no se completan quedan en `source = 'identity'` como
 `account.registration_failed`, con el documento y el correo como fingerprint
 (nunca en claro).
 
+#### Dos convenciones para el mismo hecho
+
+La lista de arriba es la que escribe la aplicacion. Los triggers de
+`payment_integration_events` y `embedded_payment_attempts` asientan **los mismos hechos con otra
+convencion**: `payment_webhook.<status>`, `payment_attempt.<status>`,
+`payment_reconciliation.<status>`. Tambien conviven `payment.applied` y `payment.aprobado`.
+
+No se unificaron los nombres a proposito: la bitacora es append-only y reescribir el historico
+para que quede prolijo destruiria su valor probatorio. En su lugar, la lectura agrupa las
+acciones en **categorias** (`server/modules/audit/auditActionCategories.js`), que es lo que usa
+el filtro del panel:
+
+| Categoria | Agrupa |
+|---|---|
+| `webhook` | `payment.webhook_*` **y** `payment_webhook.*` |
+| `conciliacion` | `payment.reconcil*`, `payment_reconciliation.*`, `payment.recovery_*` |
+| `checkout_cliente` | `payment_brick.*` (falla en el navegador del atleta, no del servidor) |
+| `cobro` | el resto del ciclo, incluidos `payment_attempt.*` |
+
+Filtrar por categoria en Panel > Auditoria trae las dos convenciones juntas; el filtro de accion
+exacta sigue disponible para cuando ya se sabe que se busca.
+
 ### 4. Catalogo de diagnostico
 
 `server/modules/payments/paymentFailureCatalog.js` traduce una falla a
@@ -298,6 +333,22 @@ Complementos: `npm run mercado-pago:doctor` (credenciales),
 `npm run mercado-pago:urls` (webhooks a registrar),
 `npm run db:verify:payments` (maquina de estados transaccional).
 
+## Que verifica el CI del cobro
+
+Automatizado, en cada PR y en cada push a `main`:
+
+| Compuerta | Donde | Que prueba |
+|---|---|---|
+| `tests/paymentRevalidation.test.js` | job `application` | seleccion del pago canonico, revalidacion y barrido con dobles |
+| `tests/infra.apiSurface.test.js` | job `application` | que acreditar, corregir y revalidar sigan detras de `admin.payments.approve`, y que los dos paths del webhook verifiquen firma |
+| `tests/infra.httpHardening.test.js` | job `application` | la app levantada: 401 sin sesion en las rutas de plata, webhook sin firma rechazado |
+| `tests/integration/mercadoPagoWebhook.integration.test.js` | job `supabase-integration` | webhook firmado end-to-end contra Postgres: acredita, activa la afiliacion, no duplica, y rechaza monto que no coincide |
+| `tests/integration/paymentRevalidation.integration.test.js` | job `supabase-integration` | una orden cancelada vuelve a `aprobado` con el pago del proveedor, activa la membresia y queda asentada |
+| `npm run db:verify:payments` | job `supabase-integration` | smoke transaccional de la maquina de estados |
+| `npm run db:verify:schema` | job `supabase-integration` | las RPC de cobro existen y no las puede ejecutar el navegador |
+| `npm run mercado-pago:doctor` | job `integrations-live` | el token real responde (solo con secrets cargados) |
+| `deployment-smoke.yml` | post-deploy | health, readiness, ruta privada cerrada y webhook sin firma rechazado en la instancia publicada |
+
 ## Pruebas de aceptacion
 
 Antes de habilitar produccion verificar en sandbox:
@@ -350,3 +401,43 @@ activar.
 Reprocesar siempre desde Panel > Pagos > Recuperar operaciones, nunca editando
 estados a mano: las RPC de claim mantienen la idempotencia y una edicion manual
 deja el ledger desalineado (queda registrado como drift en Integridad).
+
+### La orden figura cancelada o rechazada pero la plata entro
+
+Ese es el unico caso que **no** resuelve Recuperar operaciones. Recuperar drena
+dos colas: notificaciones que llegaron (`payment_integration_events`) e intentos
+embebidos que quedaron sin conciliar (`embedded_payment_attempts`). Si el cobro
+se hizo por el checkout redirigido y la notificacion nunca llego --URL mal
+configurada, redirect en el camino, notificacion perdida-- y ademas el atleta no
+volvio al sitio, no hay ninguna fila en esas dos colas: la orden se queda con el
+ultimo estado conocido y nadie vuelve a preguntarle al proveedor.
+
+El orden de resolucion es:
+
+1. **Revalidar contra Mercado Pago** -- Panel > Pagos, boton `Revalidar con
+   Mercado Pago` de la fila (o el barrido `Revalidar con Mercado Pago` de la
+   franja de operaciones, que lista todas las divergencias de los ultimos 30
+   dias antes de tocar nada). Relee los pagos que el proveedor tiene contra esa
+   orden por `external_reference` y aplica el mismo camino canonico del webhook,
+   con sus validaciones de monto, moneda y pertenencia. Es la via correcta
+   siempre que el cobro exista en Mercado Pago: el estado queda respaldado por
+   el proveedor, no por la firma de un operador.
+
+   ```
+   POST /api/payments/orders/:orderId/revalidate   { "apply": true }
+   POST /api/payments/operations/revalidate        { "sinceDays": 30, "limit": 50, "apply": false }
+   ```
+
+   Permiso: `admin.payments.approve`. Deja asiento `payment.revalidated` /
+   `payment.revalidation_mismatch` en la bitacora (categoria `conciliacion`).
+
+2. **Acreditar a mano** (`Acreditar a mano`, `staff_force_settle_payment_order`)
+   solo si Mercado Pago **no** tiene el pago: transferencia acreditada por fuera
+   del checkout, cobro resuelto por otro canal. Exige comprobante adjunto y
+   motivo, y queda asentado como `payment.force_settled` con severidad
+   `warning`.
+
+Si la revalidacion devuelve `amount_mismatch`, el cobro existe pero por otro
+importe (cambio de tarifa entre el alta de la orden y el pago, cupon aplicado
+despues). No se aplica solo: hay que decidir a mano si se acredita, se ajusta la
+orden o se reintegra.

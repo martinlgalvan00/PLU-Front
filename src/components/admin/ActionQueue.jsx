@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Eye, Ticket } from 'lucide-react'
+import {
+  ArrowRight,
+  BadgeCheck,
+  ClipboardList,
+  CreditCard,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Ticket,
+} from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import PaymentValidationDialog from './PaymentValidationDialog.jsx'
 
@@ -8,6 +17,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low']
 const TYPE_ICONS = {
   payment: CreditCard,
   registration: ClipboardList,
+  registration_gate: ShieldCheck,
   membership: BadgeCheck,
   ticket_order: Ticket,
 }
@@ -29,6 +39,8 @@ export default function ActionQueue({
   onApproveTicketOrder,
   onRejectTicketOrder,
   canEdit,
+  canDismiss,
+  onDismissItem,
 }) {
   const { t } = useI18n()
   const [reviewItem, setReviewItem] = useState(null)
@@ -38,10 +50,24 @@ export default function ActionQueue({
 
   const groups = useMemo(
     () =>
-      PRIORITY_ORDER.map((priority) => ({
-        priority,
-        items: items.filter((item) => item.priority === priority),
-      })).filter((group) => group.items.length > 0),
+      PRIORITY_ORDER.map((priority) => {
+        const priorityItems = items.filter((item) => item.priority === priority)
+        if (!priorityItems.length) return null
+
+        const typesMap = priorityItems.reduce((acc, item) => {
+          if (!acc[item.type]) acc[item.type] = []
+          acc[item.type].push(item)
+          return acc
+        }, {})
+
+        return {
+          priority,
+          types: Object.entries(typesMap).map(([type, typeItems]) => ({
+            type,
+            items: typeItems,
+          })),
+        }
+      }).filter(Boolean),
     [items],
   )
 
@@ -161,117 +187,129 @@ export default function ActionQueue({
       )}
 
       <div className="action-queue__groups">
-        {groups.map(({ priority, items: groupItems }) => (
+        {groups.map(({ priority, types }) => (
           <section key={priority} className={`action-queue__group action-queue__group--${priority}`}>
             {showGroupHeads ? (
               <header className="action-queue__group-head">
                 <span className={`action-queue__group-label action-queue__group-label--${priority}`}>
                   {t(`admin.actionQueue.priority.${priority}`)}
                 </span>
-                <span className="action-queue__group-count">{groupItems.length}</span>
+                <span className="action-queue__group-count">
+                  {types.reduce((acc, group) => acc + group.items.length, 0)}
+                </span>
               </header>
             ) : null}
 
-            <ul className="action-queue__list">
-              {groupItems.map((item) => {
-                const TypeIcon = TYPE_ICONS[item.type] ?? ClipboardList
-                const typeLabel = t(`admin.actionQueue.types.${item.type}`)
-                const hasProof = itemHasProof(item)
-                const isPaymentTask = Boolean(item.paymentId || item.orderId)
-                // La cola no es una vía alternativa de acreditación: una
-                // transferencia necesita su archivo y Mercado Pago queda
-                // exclusivamente en webhook. Efectivo Pitbull es la excepción
-                // operativa declarada por la orden.
-                const hasPrimaryAction = Boolean(
-                  canEdit && (
-                    (item.paymentId && item.method === 'manual_link' && (hasProof || item.cashAtPitbull))
-                    || (item.orderId && item.provider === 'manual' && hasProof)
-                  ),
-                )
+            <div className="action-queue__type-blocks">
+              {types.map(({ type, items: typeItems }) => {
+                const TypeIcon = TYPE_ICONS[type] ?? ClipboardList
+                const typeLabel = t(`admin.actionQueue.types.${type}`)
 
                 return (
-                  <li key={item.id} className={`action-queue__card action-queue__card--${item.priority}`}>
-                    <span className={`action-queue__type action-queue__type--${item.type}`}>
-                      <TypeIcon size={13} aria-hidden />
-                      {typeLabel}
-                    </span>
-
-                    <div className="action-queue__card-body">
-                      <strong className="action-queue__subject">{item.subject}</strong>
-                      <span className="action-queue__meta">
-                        {!hasPrimaryAction && item.summary ? (
-                          <span className="action-queue__meta-item">{item.summary}</span>
-                        ) : null}
-                        {item.detail ? (
-                          <span className="action-queue__meta-item">{item.detail}</span>
-                        ) : null}
-                        {isPaymentTask && hasProof ? (
-                          <button
-                            type="button"
-                            className="action-queue__proof action-queue__proof--ok"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              openReview(item, 'view')
-                            }}
-                          >
-                            {t('admin.paymentValidation.viewProof')}
-                          </button>
-                        ) : null}
-                        {isPaymentTask && !hasProof ? (
-                          <span className="action-queue__proof">
-                            {t('admin.actionQueue.proofMissing')}
-                          </span>
-                        ) : null}
+                  <div key={type} className="action-queue__type-block">
+                    <header className="action-queue__type-head">
+                      <span className={`action-queue__type action-queue__type--${type}`}>
+                        <TypeIcon size={14} aria-hidden />
+                        {typeLabel}
                       </span>
-                    </div>
+                      <span className="action-queue__type-count">{typeItems.length}</span>
+                    </header>
 
-                    {item.meta ? (
-                      <span className="action-queue__amount action-queue__meta-item--accent">
-                        {item.meta}
-                      </span>
-                    ) : (
-                      <span className="action-queue__amount action-queue__amount--empty" aria-hidden />
-                    )}
+                    <ul className="action-queue__list action-queue__list--compact">
+                      {typeItems.map((item) => {
+                        const hasProof = itemHasProof(item)
+                        const isPaymentTask = Boolean(item.paymentId || item.orderId)
+                        const hasPrimaryAction = Boolean(
+                          canEdit &&
+                            ((item.paymentId &&
+                              item.method === 'manual_link' &&
+                              (hasProof || item.cashAtPitbull)) ||
+                              (item.orderId && item.provider === 'manual' && hasProof)),
+                        )
 
-                    <div className="action-queue__actions">
-                      {item.paymentId && hasPrimaryAction ? (
-                        <button
-                          type="button"
-                          className="btn btn--small action-queue__btn action-queue__btn--primary"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            openReview(item)
-                          }}
-                        >
-                          {t('admin.actions.validate')}
-                        </button>
-                      ) : null}
-                      {item.orderId && hasPrimaryAction ? (
-                        <button
-                          type="button"
-                          className="btn btn--small action-queue__btn action-queue__btn--primary"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            openReview(item)
-                          }}
-                        >
-                          {t('admin.actions.validate')}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
-                        onClick={() => openItem(item)}
-                      >
-                        {isPaymentTask ? <Eye size={14} aria-hidden /> : null}
-                        {t('admin.actions.view')}
-                        {isPaymentTask ? null : <ArrowRight size={14} aria-hidden />}
-                      </button>
-                    </div>
-                  </li>
+                        return (
+                          <li key={item.id} className={`action-queue__card action-queue__card--${item.priority}`}>
+                            <div className="action-queue__card-body">
+                              <strong className="action-queue__subject">{item.subject}</strong>
+                              <span className="action-queue__meta">
+                                {!hasPrimaryAction && item.summary ? (
+                                  <span className="action-queue__meta-item">{item.summary}</span>
+                                ) : null}
+                                {item.detail ? (
+                                  <span className="action-queue__meta-item">{item.detail}</span>
+                                ) : null}
+                                {isPaymentTask && hasProof ? (
+                                  <button
+                                    type="button"
+                                    className="action-queue__proof action-queue__proof--ok"
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      openReview(item, 'view')
+                                    }}
+                                  >
+                                    {t('admin.paymentValidation.viewProof')}
+                                  </button>
+                                ) : null}
+                                {isPaymentTask && !hasProof ? (
+                                  <span className="action-queue__proof">
+                                    {t('admin.actionQueue.proofMissing')}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </div>
+
+                            {item.meta ? (
+                              <span className="action-queue__amount action-queue__meta-item--accent">
+                                {item.meta}
+                              </span>
+                            ) : (
+                              <span className="action-queue__amount action-queue__amount--empty" aria-hidden />
+                            )}
+
+                            <div className="action-queue__actions">
+                              {hasPrimaryAction ? (
+                                <button
+                                  type="button"
+                                  className="btn btn--small action-queue__btn action-queue__btn--primary"
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    openReview(item)
+                                  }}
+                                >
+                                  {t('admin.actions.validate')}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
+                                onClick={() => openItem(item)}
+                              >
+                                {isPaymentTask ? <Eye size={14} aria-hidden /> : null}
+                                {t('admin.actions.view')}
+                                {isPaymentTask ? null : <ArrowRight size={14} aria-hidden />}
+                              </button>
+                              {canDismiss ? (
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost btn--small action-queue__btn action-queue__btn--ghost"
+                                  aria-label={t('admin.actionQueue.dismiss')}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    onDismissItem?.(item.id, item.type)
+                                  }}
+                                >
+                                  <EyeOff size={14} aria-hidden />
+                                </button>
+                              ) : null}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
                 )
               })}
-            </ul>
+            </div>
           </section>
         ))}
       </div>

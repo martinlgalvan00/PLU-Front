@@ -1,4 +1,4 @@
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 import RegisterPage from './RegisterPage.jsx'
 
 const athlete = {
@@ -52,6 +52,10 @@ export const OfertaVigente = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByRole('radio', { name: /afiliaci/i })).toBeChecked()
-    await expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled()
+    // El CTA arranca deshabilitado hasta que resuelve el chequeo de tanda
+    // privada (`fetchRegistrationAccessRequirements`, sin backend en Storybook).
+    await waitFor(() =>
+      expect(canvas.getByRole('button', { name: /continuar al pago/i })).toBeEnabled(),
+    )
   },
 }

@@ -9,6 +9,9 @@ import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
+const ATHLETE_PHOTO_BUCKET = 'athlete-photos'
+const RECENT_PORTRAIT_TTL_SECONDS = 3600
+const recentPortraitUrlCache = new Map()
 
 const EVENT_SELECT = `
   *,
@@ -22,6 +25,25 @@ const EVENT_SELECT = `
     includedAddons:ticket_type_included_addons(addon_id)
   )
 `
+
+const CATALOG_EVENT_SELECT = `
+  id, slug, title, description, venue, location,
+  starts_at, ends_at,
+  registration_opens_at, registration_closes_at,
+  ticket_sales_opens_at, ticket_sales_closes_at,
+  capacity, status, published, requires_membership, price, currency, rules,
+  live_stream_url, live_stream_provider, live_status, created_at, updated_at,
+  eventRegistrations:event_registrations(count),
+  eventDays:event_days(id, day_index, label, date),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
+  ticketTypes:ticket_types(
+    id, name, price, quota, sort_order, active,
+    ticketTypeDays:ticket_type_days(event_day_id),
+    includedAddons:ticket_type_included_addons(addon_id)
+  )
+`
+
+const ACTIVE_REGISTRATION_STATUSES = ['pendiente_pago', 'pagada', 'confirmada']
 
 /**
  * Vocabulario de estados públicos del evento. `agotado` lo mantiene la base
@@ -292,6 +314,47 @@ async function readEvents(client) {
   )
 }
 
+async function getRecentPortraitUrl(client, photoPath) {
+  const cached = recentPortraitUrlCache.get(photoPath)
+  if (cached && cached.expiresAt > Date.now()) return cached.url
+
+  try {
+    const signed = assertSupabaseResult(
+      await client.storage
+        .from(ATHLETE_PHOTO_BUCKET)
+        .createSignedUrl(photoPath, RECENT_PORTRAIT_TTL_SECONDS),
+      'No se pudo firmar la foto del inscripto.',
+    )
+    const url = signed?.signedUrl ?? null
+    if (url) {
+      recentPortraitUrlCache.set(photoPath, {
+        expiresAt: Date.now() + (RECENT_PORTRAIT_TTL_SECONDS - 60) * 1000,
+        url,
+      })
+    }
+    return url
+  } catch {
+    // El resumen público sigue disponible aunque una foto haya sido removida.
+    return null
+  }
+}
+
+async function attachRecentRegistrationPortraits(client, summary) {
+  const recent = Array.isArray(summary?.recent) ? summary.recent : []
+  const entries = await Promise.all(
+    recent.map(async (item) => {
+      const { photoPath, photo_path: photoPathSnake, ...entry } = item ?? {}
+      const portraitPath = String(photoPath ?? photoPathSnake ?? '').trim()
+      return {
+        ...entry,
+        photoUrl: portraitPath ? await getRecentPortraitUrl(client, portraitPath) : null,
+      }
+    }),
+  )
+
+  return { ...summary, recent: entries }
+}
+
 export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
@@ -327,11 +390,13 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       const events = assertSupabaseResult(
         await client
           .from('events')
-          .select(EVENT_SELECT)
+          .select(CATALOG_EVENT_SELECT)
           .eq('published', true)
+          .in('event_registrations.status', ACTIVE_REGISTRATION_STATUSES)
           .order('starts_at'),
         'No se pudieron leer los eventos públicos.',
       )
+      res.set('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=60')
       res.json({ events: Array.isArray(events) ? events : [] })
     } catch (error) {
       next(error)
@@ -347,7 +412,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
       )
-      res.json({ summary })
+      res.json({ summary: await attachRecentRegistrationPortraits(client, summary) })
     } catch (error) {
       next(error)
     }

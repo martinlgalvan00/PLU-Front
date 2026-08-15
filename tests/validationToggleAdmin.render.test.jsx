@@ -165,10 +165,12 @@ describe('pantalla de Acceso y habilitación', () => {
       screen.getByRole('checkbox', { name: /habilitar validación de afiliaciones/i }).checked,
     ).toBe(true)
   })
-  it('mantiene el foco mientras se edita una tanda privada', async () => {
+
+  it('reabre una tanda cerrada sin arrastrar su fecha de cierre vencida', async () => {
     vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
       Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
     )
+    const onSave = vi.fn().mockResolvedValue({})
 
     render(
       <I18nProvider>
@@ -176,29 +178,37 @@ describe('pantalla de Acceso y habilitación', () => {
           canEdit
           configuration={{
             membershipGate: {
-              id: 'gate-1',
+              id: 'gate-membership',
               scope: 'membership',
-              label: 'Afiliaciones',
-              active: true,
-              startsAt: '2026-08-14T20:05:00.000Z',
-              endsAt: '2026-08-15T20:05:00.000Z',
+              label: 'PIT',
+              active: false,
+              startsAt: null,
+              endsAt: '2026-08-14T20:51:00.000Z',
             },
             eventGates: [],
           }}
           adminEvents={[]}
           onRefresh={() => {}}
-          onSave={async () => ({})}
+          onSave={onSave}
         />
       </I18nProvider>,
     )
 
-    await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
-    fireEvent.click(screen.getByRole('button', { name: /configurar/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /reabrir tanda/i }))
 
-    const labelInput = await screen.findByLabelText(/nombre de tanda/i)
-    labelInput.focus()
-    fireEvent.change(labelInput, { target: { value: 'pit 2' } })
+    expect(screen.getAllByText(/código nuevo/i).length).toBeGreaterThan(0)
+    expect(screen.getByLabelText('Abre').value).toBe('')
+    expect(screen.getByLabelText('Cierra').value).toBe('')
+    expect(screen.getByRole('checkbox', { name: /habilitar tanda/i }).checked).toBe(true)
 
-    await waitFor(() => expect(document.activeElement).toBe(labelInput))
+    fireEvent.change(screen.getByLabelText(/^Código/), { target: { value: ' NUEVO-CODIGO-2026 ' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar tanda/i }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      active: true,
+      code: 'NUEVO-CODIGO-2026',
+      startsAt: '',
+      endsAt: '',
+    })))
   })
 })

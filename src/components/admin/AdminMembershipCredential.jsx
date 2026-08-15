@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, Copy, QrCode, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { buildCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import { buildCredentialUrl, generateStyledAthleteCredentialQr } from '../../lib/credentialQr.js'
 import { formatShortDate } from '../../lib/format.js'
 import {
   getMembershipCredential,
@@ -68,7 +68,7 @@ export default function AdminMembershipCredential({
       return undefined
     }
     let cancelled = false
-    generateCredentialQr(buildCredentialUrl({ code: qrToken }))
+    generateStyledAthleteCredentialQr(buildCredentialUrl({ code: qrToken }))
       .then((dataUrl) => {
         if (!cancelled) setQrSrc(dataUrl)
       })
@@ -149,11 +149,11 @@ export default function AdminMembershipCredential({
           </div>
         ) : null}
 
+        <p className="admin-credential__code data-table__mono">
+          {membership?.memberCode ?? '—'}
+        </p>
+
         <dl className="admin-credential__rows">
-          <div>
-            <dt>{t('admin.columns.code')}</dt>
-            <dd className="data-table__mono">{membership?.memberCode ?? '—'}</dd>
-          </div>
           <div>
             <dt>{t('admin.columns.status')}</dt>
             <dd>{membership?.status ? <StatusBadge value={membership.status} /> : '—'}</dd>

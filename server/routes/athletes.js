@@ -30,6 +30,13 @@ import {
   registrationAccessCodeLimiter,
   staffLimiter,
 } from '../middleware/rateLimit.js'
+import { passwordHashShedder } from '../middleware/loadShedder.js'
+import {
+  assertIdentityNotLocked,
+  clearIdentityFailures,
+  IDENTITY_SCOPES,
+  registerIdentityFailure,
+} from '../lib/defense/identityGuard.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
   checkoutPriceFor,
@@ -228,6 +235,12 @@ const updateSchema = z.object({
     'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
   ),
   bestTotalKg: optionalDeclaredBestTotal,
+  fullName: z.string().trim().min(3).max(160).optional(),
+  birthDate: birthDateSchema.optional(),
+  country: z.string().trim().min(2).max(80).optional(),
+  // Puede faltar en cuentas creadas antes de que existiera el perfil
+  // competitivo. Es editable sólo para completar ese requisito de inscripción.
+  sex: z.enum(['Masculino', 'Femenino']).optional(),
 })
 const discountCodeField = z.string().trim().toUpperCase().max(32).optional()
 const registrationAccessCodeField = z.string().trim().max(72).optional()
@@ -274,6 +287,11 @@ const discountPreviewSchema = z.object({
   appliesTo: z.enum(['membership', 'registration']),
   planCode: z.string().trim().min(1).optional(),
   eventSlug: z.string().trim().min(1).optional(),
+  // El precio vigente depende del canal (transferencia y efectivo pagan menos
+  // que Mercado Pago). Sin este dato el preview calculaba el ahorro sobre el
+  // precio de catálogo y le mostraba al atleta un número que no era el que
+  // terminaba pagando.
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']).optional(),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -287,6 +305,17 @@ const proofUploadSchema = z.object({
 })
 const proofSchema = z.object({ proofPath: z.string().trim().min(3).max(300) })
 const rejectPaymentSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+// El motivo es obligatorio: acreditar a mano una orden que el proveedor dio por
+// perdida es la única operación del panel que crea dinero en el reporte
+// financiero sin que ningún proveedor lo haya confirmado.
+const forceSettlePaymentSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+  reference: z.string().trim().max(120).optional(),
+})
+const registrationStatusSchema = z.object({
+  status: z.enum(['confirmada', 'observada', 'cancelada']),
+  reason: z.string().trim().min(3).max(500),
+})
 const paymentOrdersQuerySchema = z.object({
   status: z.enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado']).optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
@@ -374,6 +403,7 @@ export function createAthleteRoutes({
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const membershipWriteGuard = requirePermission('admin.memberships.write', { prisma })
+  const registrationWriteGuard = requirePermission('admin.registrations.write', { prisma })
   const membershipDeleteGuard = requirePermission('admin.memberships.delete', { prisma })
   const registrationDeleteGuard = requirePermission('admin.registrations.delete', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
@@ -792,17 +822,31 @@ export function createAthleteRoutes({
   // permisivo), pero con instancia propia: `authLimiter` lo comparte el login
   // de staff, que el cliente prueba primero en cada intento (ver
   // athleteAuthLimiter en middleware/rateLimit.js).
-  router.post('/login', athleteAuthLimiter, validateBody(loginSchema), async (req, res, next) => {
+  router.post('/login', athleteAuthLimiter, passwordHashShedder, validateBody(loginSchema), async (req, res, next) => {
     try {
+      // Mismo esquema que el login de staff: el bloqueo por cuenta se consulta
+      // antes del bcrypt. Acá pesa incluso más, porque el padrón es mucho más
+      // grande que el puñado de cuentas operativas y una lista de credenciales
+      // filtradas tiene muchas más casillas para probar.
+      const identity = {
+        scope: IDENTITY_SCOPES.athleteLogin,
+        identity: req.validatedBody.email,
+        deps: { supabaseAdmin: client() },
+        env,
+      }
+      await assertIdentityNotLocked(identity)
+
       const row = await repo().findLogin(req.validatedBody.email)
       // Igual que en el login de staff: bcrypt corre siempre, exista o no la
       // cuenta, para que el tiempo de respuesta no enumere el padrón.
       const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
 
       if (!row || row.status === 'bloqueado' || !passwordMatches) {
+        await registerIdentityFailure(identity)
         await recordFailedLogin(req, req.validatedBody.email)
         throw new HttpError(401, 'Credenciales invalidas.')
       }
+      await clearIdentityFailures(identity)
       const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
       res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
       res.json({ user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email } })
@@ -1098,7 +1142,7 @@ export function createAthleteRoutes({
   router.post('/me/discount-preview', publicWriteLimiter, validateBody(discountPreviewSchema), async (req, res, next) => {
     try {
       const auth = await athlete(req)
-      const { code, appliesTo, planCode, eventSlug } = req.validatedBody
+      const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
       let baseAmount
       if (appliesTo === 'membership') {
         if (!planCode) throw new HttpError(400, 'Falta el plan de afiliación.')
@@ -1111,6 +1155,14 @@ export function createAthleteRoutes({
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         baseAmount = event.price
       }
+      // Misma política que usa la creación de la orden: mientras la ventana
+      // Pitbull esté abierta el precio real lo fija el canal de pago, no el
+      // catálogo. Fuera de esa ventana `checkoutPriceFor` devuelve null y
+      // vuelve a mandar el precio de la tabla.
+      const checkoutAmount = paymentMethod
+        ? checkoutPriceFor({ concept: appliesTo, paymentMethod })
+        : null
+      if (checkoutAmount != null) baseAmount = checkoutAmount
       const preview = await repo().previewDiscountCode(auth.athleteId, { code, appliesTo, baseAmount })
       res.json({ preview })
     } catch (error) {
@@ -1173,11 +1225,19 @@ export function createAthleteRoutes({
 
   router.get('/admin', ...adminGuard, staffLimiter, async (req, res, next) => {
     try {
-      const data = await repo().adminData()
       const canReadAthletes = hasPermission(req.auth.user, 'admin.athletes.read')
       const canReadMemberships = hasPermission(req.auth.user, 'admin.memberships.read')
       const canReadRegistrations = hasPermission(req.auth.user, 'admin.registrations.read')
       const canReadPayments = hasPermission(req.auth.user, 'admin.payments.read')
+      // No leemos segmentos que el rol no puede recibir. Antes se cargaban
+      // las cuatro tablas y luego se descartaban del JSON: costaba base y
+      // transferencia aun para perfiles de alcance acotado.
+      const data = await repo().adminData({
+        athletes: canReadAthletes,
+        memberships: canReadMemberships,
+        registrations: canReadRegistrations,
+        paymentOrders: canReadPayments,
+      })
 
       res.json({
         athletes: canReadAthletes ? data.athletes : [],
@@ -1374,6 +1434,79 @@ export function createAthleteRoutes({
     }
   })
   /**
+   * Acreditación manual de una orden que el proveedor dio por perdida. Es la
+   * contracara de `/approve`: aquella solo toca transferencias y solo mientras
+   * la orden siga abierta, así que cuando Mercado Pago devolvía `rechazado` o
+   * `cancelado` con el dinero ya cobrado no había ninguna salida operativa.
+   *
+   * A diferencia de forzar la afiliación con `/memberships/:id/status`, esto
+   * deja el cobro asentado en `athlete_payments`, que es de donde el reporte
+   * financiero saca los ingresos. No pasa por `assertOrderValidationEnabled`:
+   * ese interruptor apaga la validación de comprobantes del flujo normal, y
+   * esta es justamente la vía de excepción para cuando el flujo normal falló.
+   */
+  router.post('/admin/payment-orders/:orderId/force-settle', ...financeGuard, staffLimiter, validateBody(forceSettlePaymentSchema), async (req, res, next) => {
+    const orderId = z.string().uuid().safeParse(req.params.orderId)
+    try {
+      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+      const result = await repo().forceSettlePayment(
+        orderId.data,
+        { reason: req.validatedBody.reason, reference: req.validatedBody.reference ?? null },
+        actorLabel(req),
+      )
+      await paymentTrail().record({
+        action: PAYMENT_TRAIL_ACTIONS.forceSettled,
+        entityType: 'athlete_payment_order',
+        entityId: orderId.data,
+        status: result?.order?.status ?? 'aprobado',
+        // `warning`, no `success`: acreditar por fuera del proveedor es una
+        // excepción y tiene que saltar a la vista en la bitácora.
+        severity: 'warning',
+        metadata: {
+          stage: 'force_settlement',
+          method: result?.order?.method ?? null,
+          settledBy: actorLabel(req),
+          amount: result?.order?.amount ?? null,
+          reason: req.validatedBody.reason,
+          providerReference: req.validatedBody.reference ?? null,
+          duplicate: Boolean(result?.duplicate),
+        },
+      })
+      // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
+      await notifyManualApproval(result).catch((error) =>
+        logger.warn('payment.force_settlement_email_failed', { orderId: orderId.data, err: error }),
+      )
+      res.json(result)
+    } catch (error) {
+      await paymentTrail().recordFailure({
+        stage: 'force_settlement',
+        entityType: 'athlete_payment_order',
+        entityId: orderId.success ? orderId.data : String(req.params.orderId),
+        error,
+        metadata: { settledBy: req.auth?.user?.email ?? null },
+      })
+      next(error)
+    }
+  })
+  /**
+   * Corrección manual del estado de una inscripción. Hasta ahora el panel solo
+   * podía aprobar el pago asociado o borrar la inscripción entera: no había
+   * forma de observar a un atleta, ni de revertir una cancelación equivocada
+   * sin perder división, categoría y horario ya asignados.
+   */
+  router.post('/admin/registrations/:registrationId/status', ...registrationWriteGuard, staffLimiter, validateBody(registrationStatusSchema), async (req, res, next) => {
+    try {
+      const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+      if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+      res.json(await repo().setRegistrationStatus(
+        registrationId.data,
+        req.validatedBody.status,
+        req.validatedBody.reason,
+        actorLabel(req),
+      ))
+    } catch (error) { next(error) }
+  })
+  /**
    * Credencial de un socio desde el panel: hasta ahora no había forma de ver
    * el QR emitido, y si un token se filtraba la única salida era editar la
    * fila a mano en la base.
@@ -1479,6 +1612,25 @@ export function createAthleteRoutes({
       res.json({ deletedRegistration: await repo().deleteRegistration(registrationId.data, actorLabel(req)) })
     } catch (error) { next(error) }
   })
+  router.post(
+    '/admin/registrations/:registrationId/public-visibility',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(z.object({ publicVisible: z.boolean() })),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        res.json({
+          registration: await repo().setRegistrationPublicVisibility(
+            registrationId.data,
+            req.validatedBody.publicVisible,
+            actorLabel(req),
+          ),
+        })
+      } catch (error) { next(error) }
+    },
+  )
   router.post('/admin/:athleteId/credential', ...accountGuard, staffLimiter, validateBody(
     z.object({ password: z.string().min(12).max(72) }),
   ), async (req, res, next) => {

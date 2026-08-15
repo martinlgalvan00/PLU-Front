@@ -36,6 +36,33 @@ describe('deployment environment', () => {
     ).toBe(OFFICIAL_APP_URL)
   })
 
+  /**
+   * El dominio oficial tiene que ser el que **sirve** la aplicación, no el que
+   * redirige hacia ella.
+   *
+   * El apex `powerliftingunited.ar` responde 308 hacia `www`. Para un navegador
+   * eso es invisible, pero Mercado Pago exige 200/201 en la `notification_url`
+   * y no sigue redirects: durante toda la vida del sistema ninguna notificación
+   * se entregó y `payment_integration_events` quedó en cero. No se veía roto
+   * porque el checkout embebido acredita contra la respuesta del Brick.
+   */
+  it('el dominio oficial es el que sirve la app, no el apex que redirige', () => {
+    expect(OFFICIAL_APP_URL).toBe('https://www.powerliftingunited.ar')
+    expect(new URL(OFFICIAL_APP_URL).hostname.startsWith('www.')).toBe(true)
+  })
+
+  it('la notification_url de producción sale del dominio que responde 200', () => {
+    // Es la URL exacta que `mercadoPagoAdapter` arma y manda a MP.
+    const webhook = new URL(
+      '/api/payments/webhook/mercadopago',
+      resolveDeploymentAppUrl({ VERCEL_ENV: 'production' }),
+    )
+    expect(webhook.toString()).toBe(
+      'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+    )
+    expect(webhook.protocol).toBe('https:')
+  })
+
   it('en desarrollo conserva APP_URL local', () => {
     expect(
       resolveDeploymentAppUrl({
